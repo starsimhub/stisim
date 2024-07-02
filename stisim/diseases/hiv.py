@@ -145,8 +145,10 @@ class HIV(ss.Infection):
         self.results += ss.Result(self.name, 'cum_agents_on_art', npts, dtype=float, scale=True)
         self.results += ss.Result(self.name, 'prevalence_sw', npts, dtype=float)
         self.results += ss.Result(self.name, 'new_infections_sw', npts, dtype=float, scale=True)
+        self.results += ss.Result(self.name, 'new_infections_not_sw', npts, dtype=float, scale=True)
         self.results += ss.Result(self.name, 'prevalence_client', npts, dtype=float)
         self.results += ss.Result(self.name, 'new_infections_client', npts, dtype=float, scale=True)
+        self.results += ss.Result(self.name, 'new_infections_not_client', npts, dtype=float, scale=True)
         self.results += ss.Result(self.name, 'p_on_art', npts, dtype=float, scale=False)
         if self.include_mtct:
             self.results += ss.Result(self.name, 'n_on_art_pregnant', npts, dtype=float, scale=True)
@@ -415,9 +417,11 @@ class HIV(ss.Infection):
         if len(fsw_infected) > 0:
             self.results['prevalence_sw'][ti] = sum(fsw_infected) / len(fsw_infected)
             self.results['new_infections_sw'][ti] = len(((self.ti_infected == ti) & self.sim.networks.structuredsexual.fsw).uids)
+            self.results['new_infections_not_sw'][ti] = len(((self.ti_infected == ti) & ~self.sim.networks.structuredsexual.fsw).uids)
         if len(client_infected) > 0:
             self.results['prevalence_client'][ti] = sum(client_infected) / len(client_infected)
             self.results['new_infections_client'][ti] = len(((self.ti_infected == ti) & self.sim.networks.structuredsexual.client).uids)
+            self.results['new_infections_not_client'][ti] = len(((self.ti_infected == ti) & ~self.sim.networks.structuredsexual.client).uids)
 
         return
 
