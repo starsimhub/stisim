@@ -144,7 +144,9 @@ class HIV(ss.Infection):
         self.results += ss.Result(self.name, 'new_agents_on_art', npts, dtype=float, scale=True)
         self.results += ss.Result(self.name, 'cum_agents_on_art', npts, dtype=float, scale=True)
         self.results += ss.Result(self.name, 'prevalence_sw', npts, dtype=float)
+        self.results += ss.Result(self.name, 'new_infections_sw', npts, dtype=float, scale=True)
         self.results += ss.Result(self.name, 'prevalence_client', npts, dtype=float)
+        self.results += ss.Result(self.name, 'new_infections_client', npts, dtype=float, scale=True)
         self.results += ss.Result(self.name, 'p_on_art', npts, dtype=float, scale=False)
         if self.include_mtct:
             self.results += ss.Result(self.name, 'n_on_art_pregnant', npts, dtype=float, scale=True)
