@@ -408,15 +408,18 @@ class HIV(ss.Infection):
         for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
             for sex in ['female', 'male']:
                 risk_group_infected = self.infected[(self.sim.networks.structuredsexual.risk_group == risk_group) & (self.sim.people[sex])]
+                risk_group_new_inf = ((self.ti_infected == ti) & (self.sim.networks.structuredsexual.risk_group == risk_group) &  (self.sim.people[sex])).uids
                 if len(risk_group_infected) > 0:
                     self.results['prevalence_risk_group_' + str(risk_group) + '_' + sex][ti] = sum(risk_group_infected) / len(risk_group_infected)
-                    self.results['new_infections_risk_group_' + str(risk_group) + '_' + sex][ti] = sum(risk_group_infected) / len(risk_group_infected)
+                    self.results['new_infections_risk_group_' + str(risk_group) + '_' + sex][ti] = len(risk_group_new_inf)
 
         # Add FSW and clients to results:
         if len(fsw_infected) > 0:
             self.results['prevalence_sw'][ti] = sum(fsw_infected) / len(fsw_infected)
+            self.results['new_infections_sw'][ti] = len(((self.ti_infected == ti) & self.sim.networks.structuredsexual.fsw).uids)
         if len(client_infected) > 0:
             self.results['prevalence_client'][ti] = sum(client_infected) / len(client_infected)
+            self.results['new_infections_client'][ti] = len(((self.ti_infected == ti) & self.sim.networks.structuredsexual.client).uids)
 
         return
 
