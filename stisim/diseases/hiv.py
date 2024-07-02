@@ -154,10 +154,8 @@ class HIV(ss.Infection):
         # Add FSW and clients to results:
         for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
             for sex in ['female', 'male']:
-                self.results += ss.Result(self.name, 'prevalence_risk_group_' + str(risk_group) + '_' + sex, npts,
-                                          dtype=float)
-                self.results += ss.Result(self.name, 'new_infections_risk_group_' + str(risk_group) + '_' + sex,
-                                          npts, dtype=float)
+                self.results += ss.Result(self.name, 'prevalence_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float)
+                self.results += ss.Result(self.name, 'new_infections_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float, scale=True)
 
         return
 
