@@ -224,6 +224,18 @@ class Syphilis(ss.Infection):
         self.results += ss.Result(self.name, 'cum_congenital',  npts, dtype=int, scale=True)
         self.results += ss.Result(self.name, 'cum_congenital_deaths', npts, dtype=int, scale=True)
         self.results += ss.Result(self.name, 'new_deaths', npts, dtype=int, scale=True)
+
+        # Add FSW and clients to results:
+        self.results += ss.Result(self.name, 'prevalence_sw', npts, dtype=float)
+        self.results += ss.Result(self.name, 'new_infections_sw', npts, dtype=float, scale=True)
+        self.results += ss.Result(self.name, 'prevalence_client', npts, dtype=float)
+        self.results += ss.Result(self.name, 'new_infections_client', npts, dtype=float, scale=True)
+        # Add risk groups to results
+        for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
+            for sex in ['female', 'male']:
+                self.results += ss.Result(self.name, 'prevalence_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float)
+                self.results += ss.Result(self.name, 'new_infections_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float, scale=True)
+
         return
 
     def update_pre(self):
@@ -305,6 +317,26 @@ class Syphilis(ss.Infection):
         self.results['new_congenital'][ti] = np.count_nonzero(self.ti_congenital == ti)
         self.results['new_congenital_deaths'][ti] = self.results['new_nnds'][ti]  # + self.results['new_stillborns'][ti]
         self.results['new_deaths'][ti] = np.count_nonzero(self.ti_dead == ti)
+
+        # Add FSW and clients to results:
+        fsw_infected = self.infected[self.sim.networks.structuredsexual.fsw]
+        client_infected = self.infected[self.sim.networks.structuredsexual.client]
+        if len(fsw_infected) > 0:
+            self.results['prevalence_sw'][ti] = sum(fsw_infected) / len(fsw_infected)
+            self.results['new_infections_sw'][ti] = len(((self.ti_infected == ti) & self.sim.networks.structuredsexual.fsw).uids)
+        if len(client_infected) > 0:
+            self.results['prevalence_client'][ti] = sum(client_infected) / len(client_infected)
+            self.results['new_infections_client'][ti] = len(((self.ti_infected == ti) & self.sim.networks.structuredsexual.client).uids)
+
+        # Add risk groups
+        for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
+            for sex in ['female', 'male']:
+                risk_group_infected = self.infected[(self.sim.networks.structuredsexual.risk_group == risk_group) & (self.sim.people[sex])]
+                risk_group_new_inf = ((self.ti_infected == ti) & (self.sim.networks.structuredsexual.risk_group == risk_group) &  (self.sim.people[sex])).uids
+                if len(risk_group_infected) > 0:
+                    self.results['prevalence_risk_group_' + str(risk_group) + '_' + sex][ti] = sum(risk_group_infected) / len(risk_group_infected)
+                    self.results['new_infections_risk_group_' + str(risk_group) + '_' + sex][ti] = len(risk_group_new_inf)
+
         return
 
     def finalize_results(self):
