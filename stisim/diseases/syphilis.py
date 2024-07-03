@@ -141,6 +141,9 @@ class Syphilis(ss.Infection):
             ss.BoolArr('congenital'),
 
             # Timestep of state changes
+            ss.FloatArr('ti_transmitted'),
+            ss.FloatArr('new_transmissions'),
+            ss.FloatArr('cum_transmissions'),
             ss.FloatArr('ti_primary'),
             ss.FloatArr('ti_secondary'),
             ss.FloatArr('ti_latent'),
@@ -381,6 +384,7 @@ class Syphilis(ss.Infection):
                 raise ValueError(errormsg)
 
         dt = self.sim.dt
+        self.new_transmissions[:] = 0  # Reset this every timestep
 
         self.susceptible[uids] = False
         self.ever_exposed[uids] = True
@@ -388,6 +392,12 @@ class Syphilis(ss.Infection):
         self.infected[uids] = True
         self.ti_primary[uids] = ti
         self.ti_infected[uids] = ti
+
+        if source_uids is not None:
+            unique_sources, counts = np.unique(source_uids, return_counts=True)
+            self.ti_transmitted[unique_sources] = ti
+            self.new_transmissions[unique_sources] = counts
+            self.cum_transmissions[unique_sources] += counts
 
         # Primary to secondary
         dur_primary = self.pars.dur_primary.rvs(uids)
