@@ -395,7 +395,6 @@ class Syphilis(ss.Infection):
             self.ti_transmitted[unique_sources] = ti
             self.new_transmissions[unique_sources] = counts
             self.cum_transmissions[unique_sources] += counts
-        # uids = np.unique(uids)
 
         self.susceptible[uids] = False
         self.ever_exposed[uids] = True
