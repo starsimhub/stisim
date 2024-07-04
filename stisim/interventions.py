@@ -126,7 +126,7 @@ class ART(ss.Intervention):
         super().__init__()
         self.default_pars(
             init_prob=ss.bernoulli(p=0.9),  # Probability that a newly diagnosed person will initiate treatment
-            future_coverage={'year': 2022, 'prop': 0.9},
+            future_coverage={'year': 2022, 'prop': 0.85},
         )
         self.update_pars(pars, **kwargs)
         self.coverage_data = coverage_data
