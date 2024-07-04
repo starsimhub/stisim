@@ -460,6 +460,9 @@ class StructuredSexual(ss.SexualNetwork):
 
 class FastStructuredSexual(StructuredSexual):
 
+    def __init__(self, **kwargs):
+        super().__init__(name='structuredsexual', **kwargs)
+
     def match_pairs(self, ppl):
         """
         Match pairs by age, using sorting rather than the linear sum assignment
