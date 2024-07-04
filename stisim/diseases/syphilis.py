@@ -386,18 +386,23 @@ class Syphilis(ss.Infection):
         dt = self.sim.dt
         self.new_transmissions[:] = 0  # Reset this every timestep
 
+        # If someone has been infected by >1 person, remove duplicates
+        uidx = np.unique(uids, return_index=True)[1]
+        uids = ss.uids([uids[index] for index in sorted(uidx)])
+        if source_uids is not None:
+            source_uids = ss.uids([source_uids[index] for index in sorted(uidx)])
+            unique_sources, counts = np.unique(source_uids, return_counts=True)
+            self.ti_transmitted[unique_sources] = ti
+            self.new_transmissions[unique_sources] = counts
+            self.cum_transmissions[unique_sources] += counts
+        # uids = np.unique(uids)
+
         self.susceptible[uids] = False
         self.ever_exposed[uids] = True
         self.primary[uids] = True
         self.infected[uids] = True
         self.ti_primary[uids] = ti
         self.ti_infected[uids] = ti
-
-        if source_uids is not None:
-            unique_sources, counts = np.unique(source_uids, return_counts=True)
-            self.ti_transmitted[unique_sources] = ti
-            self.new_transmissions[unique_sources] = counts
-            self.cum_transmissions[unique_sources] += counts
 
         # Primary to secondary
         dur_primary = self.pars.dur_primary.rvs(uids)
