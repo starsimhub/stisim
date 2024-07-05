@@ -235,11 +235,22 @@ class Syphilis(ss.Infection):
         self.results += ss.Result(self.name, 'prevalence_client', npts, dtype=float)
         self.results += ss.Result(self.name, 'new_infections_client', npts, dtype=float, scale=True)
         self.results += ss.Result(self.name, 'new_infections_not_client', npts, dtype=float, scale=True)
+
         # Add risk groups to results
         for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
             for sex in ['female', 'male']:
                 self.results += ss.Result(self.name, 'prevalence_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float)
                 self.results += ss.Result(self.name, 'new_infections_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float, scale=True)
+
+        # Add overall testing and treatment results, which might be assembled from numerous interventions
+        self.results += ss.Result(self.name, 'new_false_pos', npts, dtype=int, scale=True)
+        self.results += ss.Result(self.name, 'new_true_pos', npts, dtype=int, scale=True)
+        self.results += ss.Result(self.name, 'new_false_neg', npts, dtype=int, scale=True)
+        self.results += ss.Result(self.name, 'new_true_neg', npts, dtype=int, scale=True)
+        self.results += ss.Result(self.name, 'new_treated_success', npts, dtype=int, scale=True)
+        self.results += ss.Result(self.name, 'new_treated_failure', npts, dtype=int, scale=True)
+        self.results += ss.Result(self.name, 'new_treated_unnecessary', npts, dtype=int, scale=True)
+        self.results += ss.Result(self.name, 'new_treated', npts, dtype=int, scale=True)
 
         return
 
