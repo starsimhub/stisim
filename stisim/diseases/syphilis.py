@@ -106,8 +106,8 @@ class Syphilis(ss.Infection):
             #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5973824/)
             #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2819963/
             birth_outcomes=sc.objdict(
-                active = ss.choice(a=5, p=np.array([0.125, 0.125, 0.20, 0.35, 0.200])), # Probabilities of active by birth outcome
-                latent = ss.choice(a=5, p=np.array([0.050, 0.075, 0.10, 0.05, 0.725])), # Probabilities of latent
+                active = ss.choice(a=5, p=np.array([0.10, 0.15, 0.10, 0.50, 0.15])), # Probabilities of active by birth outcome
+                latent = ss.choice(a=5, p=np.array([0.05, 0.05, 0.05, 0.10, 0.75])), # Probabilities of latent
             ),
             birth_outcome_keys=['miscarriage', 'nnd', 'stillborn', 'congenital'],
 
@@ -235,11 +235,22 @@ class Syphilis(ss.Infection):
         self.results += ss.Result(self.name, 'prevalence_client', npts, dtype=float)
         self.results += ss.Result(self.name, 'new_infections_client', npts, dtype=float, scale=True)
         self.results += ss.Result(self.name, 'new_infections_not_client', npts, dtype=float, scale=True)
+
         # Add risk groups to results
         for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
             for sex in ['female', 'male']:
                 self.results += ss.Result(self.name, 'prevalence_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float)
                 self.results += ss.Result(self.name, 'new_infections_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float, scale=True)
+
+        # Add overall testing and treatment results, which might be assembled from numerous interventions
+        self.results += ss.Result(self.name, 'new_false_pos', npts, dtype=int, scale=True)
+        self.results += ss.Result(self.name, 'new_true_pos', npts, dtype=int, scale=True)
+        self.results += ss.Result(self.name, 'new_false_neg', npts, dtype=int, scale=True)
+        self.results += ss.Result(self.name, 'new_true_neg', npts, dtype=int, scale=True)
+        self.results += ss.Result(self.name, 'new_treated_success', npts, dtype=int, scale=True)
+        self.results += ss.Result(self.name, 'new_treated_failure', npts, dtype=int, scale=True)
+        self.results += ss.Result(self.name, 'new_treated_unnecessary', npts, dtype=int, scale=True)
+        self.results += ss.Result(self.name, 'new_treated', npts, dtype=int, scale=True)
 
         return
 
@@ -320,7 +331,7 @@ class Syphilis(ss.Infection):
         self.results['new_nnds'][ti]       = np.count_nonzero(self.ti_nnd == ti)
         self.results['new_stillborns'][ti] = np.count_nonzero(self.ti_stillborn == ti)
         self.results['new_congenital'][ti] = np.count_nonzero(self.ti_congenital == ti)
-        self.results['new_congenital_deaths'][ti] = self.results['new_nnds'][ti]  # + self.results['new_stillborns'][ti]
+        self.results['new_congenital_deaths'][ti] = self.results['new_nnds'][ti] + self.results['new_stillborns'][ti]
         self.results['new_deaths'][ti] = np.count_nonzero(self.ti_dead == ti)
 
         # Add FSW and clients to results:
