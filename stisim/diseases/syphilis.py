@@ -71,7 +71,7 @@ class Syphilis(ss.Infection):
 
     def __init__(self, pars=None, init_prev_data=None, init_prev_latent_data=None, **kwargs):
         super().__init__()
-        self.requires = sti.StructuredSexual
+        self.requires = 'structuredsexual'
 
         self.default_pars(
             # Adult syphilis natural history, all specified in years
