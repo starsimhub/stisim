@@ -15,7 +15,7 @@ class HIV(ss.Infection):
 
     def __init__(self, pars=None, init_prev_data=None, **kwargs):
         super().__init__()
-        self.requires = sti.StructuredSexual
+        self.requires = 'structuredsexual'
 
         # Parameters
         self.default_pars(
