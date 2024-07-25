@@ -251,6 +251,9 @@ class Syphilis(ss.Infection):
         self.results += ss.Result(self.name, 'new_treated_failure', npts, dtype=int, scale=True)
         self.results += ss.Result(self.name, 'new_treated_unnecessary', npts, dtype=int, scale=True)
         self.results += ss.Result(self.name, 'new_treated', npts, dtype=int, scale=True)
+        self.results += ss.Result(self.name, 'new_fetus_treated_success', npts, dtype=int, scale=True)
+        self.results += ss.Result(self.name, 'new_fetus_treated_unnecessary', npts, dtype=int, scale=True)
+        self.results += ss.Result(self.name, 'new_fetus_treated_failure', npts, dtype=int, scale=True)
 
         return
 
