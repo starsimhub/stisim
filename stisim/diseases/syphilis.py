@@ -465,8 +465,6 @@ class Syphilis(ss.Infection):
         ti = self.sim.ti
         dt = self.sim.dt
 
-
-
         # Determine outcomes
         for state in ['active', 'latent']:
 
