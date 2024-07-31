@@ -346,7 +346,7 @@ class StructuredSexual(ss.SexualNetwork):
         p1_sw, p2_sw, beta_sw, dur_sw, acts_sw, sw_sw, age_p1_sw, age_p2_sw = self.add_sex_work(ppl)
 
         # Sex Work Condoms: Figure out reduction in transmission through condom use
-        condoms_sw=0
+        condoms_sw = 0
         if self.condom_data is not None:
             if isinstance(self.condom_data, dict):
                 condoms_sw = self.condom_data['(fsw,client)']['simvals'][self.sim.ti]
