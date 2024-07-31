@@ -101,7 +101,7 @@ class StructuredSexual(ss.SexualNetwork):
             client_shares=ss.bernoulli(p=0.12),
             sw_seeking_rate=12,  # Annual rate at which clients seek FSWs (12 = 1 new SW partner every month)
             sw_seeking_dist=ss.bernoulli(p=0.5),  # Placeholder value replaced by dt-adjusted sw_seeking_rate
-            sw_beta=1,  # Replace with condom use
+            sw_beta=1,  
             sw_intensity=ss.random(),  # At each time step, FSW may work with varying intensity
 
             # Distributions derived from parameters above - don't adjust
