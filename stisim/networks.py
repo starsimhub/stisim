@@ -353,6 +353,10 @@ class StructuredSexual(ss.SexualNetwork):
                 condoms_sw[:] = self.condom_data
             else:
                 raise Exception("Unknown condom data input type")
+
+        if (beta_sw - condoms_sw < 0).any():
+            raise Exception("Negative Beta - sw_beta is smaller than reduction in transmission through condom use.")
+
         # Finalize adding the edges to the network
         self.append(p1=p1_sw, p2=p2_sw, beta=beta_sw, dur=dur_sw, acts=acts_sw, sw=sw_sw, age_p1=age_p1_sw, age_p2=age_p2_sw)
 
