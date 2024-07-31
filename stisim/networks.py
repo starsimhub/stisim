@@ -358,7 +358,7 @@ class StructuredSexual(ss.SexualNetwork):
             raise Exception("Negative Beta - sw_beta is smaller than reduction in transmission through condom use.")
 
         # Finalize adding the edges to the network
-        self.append(p1=p1_sw, p2=p2_sw, beta=beta_sw, dur=dur_sw, acts=acts_sw, sw=sw_sw, age_p1=age_p1_sw, age_p2=age_p2_sw)
+        self.append(p1=p1_sw, p2=p2_sw, beta=beta_sw-condoms_sw, dur=dur_sw, acts=acts_sw, sw=sw_sw, age_p1=age_p1_sw, age_p2=age_p2_sw)
 
         unique_p1, counts_p1 = np.unique(p1, return_counts=True)
         unique_p2, counts_p2 = np.unique(p2, return_counts=True)
