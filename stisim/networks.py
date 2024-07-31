@@ -101,7 +101,7 @@ class StructuredSexual(ss.SexualNetwork):
             client_shares=ss.bernoulli(p=0.12),
             sw_seeking_rate=12,  # Annual rate at which clients seek FSWs (12 = 1 new SW partner every month)
             sw_seeking_dist=ss.bernoulli(p=0.5),  # Placeholder value replaced by dt-adjusted sw_seeking_rate
-            sw_beta=1,  # Replace with condom use
+            sw_beta=1,  
             sw_intensity=ss.random(),  # At each time step, FSW may work with varying intensity
 
             # Distributions derived from parameters above - don't adjust
@@ -137,7 +137,7 @@ class StructuredSexual(ss.SexualNetwork):
             df = condom_data.melt(id_vars=['partnership'])
             dd = dict()
             for pcombo in df.partnership.unique():
-                key = tuple(map(int, pcombo[1:-1].split(',')))
+                key = tuple(map(int, pcombo[1:-1].split(','))) if pcombo != '(fsw,client)' else '(fsw,client)'
                 thisdf = df.loc[df.partnership == pcombo]
                 dd[key] = dict()
                 dd[key]['year'] = thisdf.variable.values.astype(int)
@@ -345,8 +345,22 @@ class StructuredSexual(ss.SexualNetwork):
         # Get sex work values
         p1_sw, p2_sw, beta_sw, dur_sw, acts_sw, sw_sw, age_p1_sw, age_p2_sw = self.add_sex_work(ppl)
 
+        # Sex Work Condoms: Figure out reduction in transmission through condom use
+        condoms_sw = 0
+        if self.condom_data is not None:
+            if isinstance(self.condom_data, dict):
+                condoms_sw = self.condom_data['(fsw,client)']['simvals'][self.sim.ti]
+            elif sc.isnumber(self.condom_data):
+                condoms_sw[:] = self.condom_data
+            else:
+                raise Exception("Unknown condom data input type")
+
+        if (beta_sw - condoms_sw < 0).any():
+            ss.warn(f'Negative Beta - sw_beta is smaller than reduction in transmission through condom use.\n'
+                    f'sw_beta is {self.pars.sw_beta} and reduction through condom use is {condoms_sw}')
+
         # Finalize adding the edges to the network
-        self.append(p1=p1_sw, p2=p2_sw, beta=beta_sw, dur=dur_sw, acts=acts_sw, sw=sw_sw, age_p1=age_p1_sw, age_p2=age_p2_sw)
+        self.append(p1=p1_sw, p2=p2_sw, beta=beta_sw-condoms_sw, dur=dur_sw, acts=acts_sw, sw=sw_sw, age_p1=age_p1_sw, age_p2=age_p2_sw)
 
         unique_p1, counts_p1 = np.unique(p1, return_counts=True)
         unique_p2, counts_p2 = np.unique(p2, return_counts=True)
