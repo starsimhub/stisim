@@ -134,7 +134,7 @@ class Syphilis(ss.Infection):
             ss.BoolArr('secondary'),    # Inclusive of those who may still have primary chancres
             ss.BoolArr('latent'),       # Can relapse to secondary, remain in latent, or progress to tertiary,
             ss.BoolArr('tertiary'),     # Includes complications (cardio/neuro/disfigurement)
-            ss.BoolArr('immune'),       # After effective treatment people may acquire temp immunity
+            ss.BoolArr('immune'),       # Immunity may be conferred by some treatment/vaccine options
             ss.BoolArr('ever_exposed'), # Anyone ever exposed - stays true after treatment
 
             # Congenital syphilis states

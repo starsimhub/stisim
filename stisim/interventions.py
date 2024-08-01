@@ -10,7 +10,7 @@ import sciris as sc
 import functools
 import itertools
 
-__all__ = ['HIVTest', 'ART', 'VMMC', "PartnerNotification"]
+__all__ = ['HIVTest', 'ART', 'VMMC', "PartnerNotification", "SyphVaccine"]
 
 
 class HIVTest(ss.Intervention):
@@ -392,3 +392,71 @@ class PartnerNotification(ss.Intervention):
         uids = self.identify_contacts(sim, uids)
         return self.notify(sim, uids)
 
+
+class SyphVaccine(ss.Intervention):
+    def __init__(self, pars=None, years=None, start_year=None, eligibility=None, name=None, label=None, **kwargs):
+        super().__init__(name=name, label=label)
+        self.requires = 'syphilis'
+        self.default_pars(
+            efficacy=ss.bernoulli(0.9),
+        )
+        self.update_pars(pars, **kwargs)
+
+        # Years
+        if years is not None and start_year is not None:
+            errormsg = 'Provide either years or start_year, not both.'
+            raise ValueError(errormsg)
+        self.years = years
+        self.start_year = start_year
+
+        # Eligibility
+        self.eligibility = eligibility
+
+        # States
+        self.add_states(
+            ss.BoolArr('vaccinated'),
+            ss.FloatArr('ti_vaccinated'),
+        )
+
+    def init_pre(self, sim):
+        super().init_pre(sim)
+        if self.start_year is None:
+            self.start_year = self.years[0]
+        self.init_results()
+        return
+
+    def init_results(self):
+        npts = self.sim.npts
+        self.results += [
+            ss.Result(self.name, 'new_vaccinations', npts, dtype=float, scale=True),
+            ss.Result(self.name, 'n_vaccinated', npts, dtype=int, scale=True),
+        ]
+        return
+
+    def check_eligibility(self, sim):
+        if self.eligibility is not None:
+            uids = self.eligibility(sim).uids
+        else:
+            uids = sim.people.alive.uids
+        return uids
+
+    def get_targets(self, sim):
+        target_uids = ss.uids()
+        eligible_uids = self.check_eligibility(sim)  # Apply eligiblity
+        if len(eligible_uids):
+            target_uids = self.vacc_prob.filter(eligible_uids)
+        return target_uids
+
+    def apply(self, sim):
+        syph = sim.diseases.syph
+        if sim.year > self.start_year:
+            target_uids = self.get_targets(sim)
+            if len(target_uids):
+                self.results['new_vaccinations'][sim.ti] += len(target_uids)
+                self.vaccinated[target_uids] = True
+                self.ti_vaccinated[target_uids] = sim.ti
+
+        # Apply effects
+        syph.rel_sus[target_uids] = ... # TODO
+
+        return
