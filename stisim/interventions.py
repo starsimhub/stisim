@@ -443,8 +443,16 @@ class SyphVaccine(ss.Intervention):
     def get_targets(self, sim):
         target_uids = ss.uids()
         eligible_uids = self.check_eligibility(sim)  # Apply eligiblity
-        if len(eligible_uids):
-            target_uids = self.vacc_prob.filter(eligible_uids)
+        current_vaccinated = self.vaccinated.uids
+
+        n_current_vaccinated = len(current_vaccinated)
+        n_target_vaccinated = len(eligible_uids) * self.target_coverage
+        n_to_vaccinate = int(n_target_vaccinated - n_current_vaccinated)
+       
+        if n_to_vaccinate > 0:
+            # Grab the first n_to_vaccinate eligible agents, TODO: Pick randomly
+            target_uids = (eligible_uids & (~self.vaccinated).uids)[:n_to_vaccinate]
+
         return target_uids
 
     def apply(self, sim):
