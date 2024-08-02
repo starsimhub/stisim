@@ -450,8 +450,11 @@ class SyphVaccine(ss.Intervention):
         n_to_vaccinate = int(n_target_vaccinated - n_current_vaccinated)
        
         if n_to_vaccinate > 0:
-            # Grab the first n_to_vaccinate eligible agents, TODO: Pick randomly
-            target_uids = (eligible_uids & (~self.vaccinated).uids)[:n_to_vaccinate]
+            # Pick eligible, non-vaccinated agents randomly
+            eligible_non_vaccinated_uids = eligible_uids & (~self.vaccinated).uids
+            bools = ss.random(strict=False).rvs(len(eligible_non_vaccinated_uids))
+            choices = np.argsort(bools)[:n_to_vaccinate]
+            target_uids = eligible_non_vaccinated_uids[choices]
 
         return target_uids
 
