@@ -154,6 +154,7 @@ class Syphilis(ss.Infection):
             ss.FloatArr('ti_nnd'),
             ss.FloatArr('ti_stillborn'),
             ss.FloatArr('ti_congenital'),
+            ss.FloatArr('rel_trans_mothers', default=1.0, label='Relative transmission of mothers'),
         )
 
         return
@@ -265,6 +266,7 @@ class Syphilis(ss.Infection):
         # Reset susceptibility and infectiousness
         self.rel_sus[:] = 1
         self.rel_trans[:] = 1
+        self.rel_trans_mothers[:] = 1
 
         # Secondary from primary
         secondary_from_primary = self.primary & (self.ti_secondary <= ti)
@@ -315,6 +317,10 @@ class Syphilis(ss.Infection):
         self.rel_trans[self.primary] = self.pars.rel_trans_primary
         self.rel_trans[self.secondary] = self.pars.rel_trans_secondary
         self.rel_trans[self.tertiary] = self.pars.rel_trans_tertiary
+        # Set rel_trans for mothers
+        self.rel_trans_mothers[self.primary] = self.pars.rel_trans_primary
+        self.rel_trans_mothers[self.secondary] = self.pars.rel_trans_secondary
+        self.rel_trans_mothers[self.tertiary] = self.pars.rel_trans_tertiary
         # Latent rel_trans decays with duration of latent infection
         if len(self.latent.uids) > 0:
             self.set_latent_trans()
@@ -374,18 +380,13 @@ class Syphilis(ss.Infection):
         decay_rate = np.log(2) / hl if ~np.isnan(hl) else 0.
         latent_trans = self.pars.rel_trans_latent * np.exp(-decay_rate * dur_latent * dt)
         self.rel_trans[self.latent] = latent_trans
+        self.rel_trans_mothers[self.latent] = latent_trans
         return
 
     def make_new_cases(self):
         """
         Add new syphilis cases
         """
-        """
-                Add new cases of module, through transmission, incidence, etc.
-
-                Common-random-number-safe transmission code works by mapping edges onto
-                slots.
-                """
         new_cases = []
         sources = []
         networks = []
@@ -398,7 +399,10 @@ class Syphilis(ss.Infection):
             nbetas = betamap[nkey]
             edges = net.edges
 
-            rel_trans = self.rel_trans.asnew(self.infectious * self.rel_trans)
+            if net == 'maternalnet':
+                rel_trans = self.rel_trans_mothers.asnew(self.infectious * self.rel_trans_mothers)
+            else:
+                rel_trans = self.rel_trans.asnew(self.infectious * self.rel_trans)
             rel_sus = self.rel_sus.asnew(self.susceptible * self.rel_sus)
             p1p2b0 = [edges.p1, edges.p2, nbetas[0]]
             p2p1b1 = [edges.p2, edges.p1, nbetas[1]]
