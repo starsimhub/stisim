@@ -336,8 +336,8 @@ class Syphilis(ss.Infection):
         active_adults_num = len(((self.sim.people.age >= 15) & (self.sim.people.age < 50) & (self.active)).uids)
         infected_adults_num = len(((self.sim.people.age >= 15) & (self.sim.people.age < 50)& (self.infected)).uids)
         adults_denom = len(((self.sim.people.age >= 15) & (self.sim.people.age < 50)).uids)
-        self.results['adult_prevalence'][ti] = infected_adults_num / adults_denom
-        self.results['active_adult_prevalence'][ti] = active_adults_num / adults_denom
+        self.results['adult_prevalence'][ti] = sc.safedivide(infected_adults_num, adults_denom)
+        self.results['active_adult_prevalence'][ti] = sc.safedivide(active_adults_num, adults_denom)
         self.results['new_nnds'][ti]       = np.count_nonzero(self.ti_nnd == ti)
         self.results['new_stillborns'][ti] = np.count_nonzero(self.ti_stillborn == ti)
         self.results['new_congenital'][ti] = np.count_nonzero(self.ti_congenital == ti)
