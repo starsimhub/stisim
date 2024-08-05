@@ -401,7 +401,11 @@ class SyphVaccine(ss.Intervention):
         self.requires = 'syphilis'
         self.default_pars(
             efficacy=ss.bernoulli(0.9),
+            immunity_init=ss.uniform(low=0.7, high=0.9),
+            nab_boost_infection=0.9, # Multiply base immunity by this factor. 1=no change in immunity, 0=full immunity, no reinfection
+            nab_boost_vaccination=0.5, # Multiply base immunity by this factor. 1=no change in immunity, 0=full immunity, no reinfection
             prevent_infection=0.05,
+            prevent_transmission_susceptible=0,
             prevent_transmission_primary=0.9,
             prevent_transmission_secondary=0.1,
             prevent_transmission_tertiary=0.05,
@@ -426,8 +430,12 @@ class SyphVaccine(ss.Intervention):
         self.add_states(
             ss.BoolArr('vaccinated'),
             ss.FloatArr('ti_vaccinated'),
+            ss.FloatArr('doses', default=0),
             ss.FloatArr('immunity_trans', default=1),
             ss.FloatArr('immunity_inf', default=1),
+            ss.FloatArr('base_immunity_trans', default=1),
+            ss.FloatArr('base_immunity_inf', default=1),
+            ss.FloatArr('ti_nab_event'),
         )
 
         # Vaccine 
@@ -435,9 +443,9 @@ class SyphVaccine(ss.Intervention):
         self.target_coverage = 0.7
         self.dose_interval = None
         time_to_peak_1 = 1  # After 1 month, immunity reaches 80%
-        time_to_peak_2 = 2  # After 2 months, immunity reaches 97.5%
-        self._immunity_timecourse = [(0, 0), (time_to_peak_1, 0.80 / 0.975), (time_to_peak_2, 1)] # Immunity against infection
-        self._protection_timecourse =  [(0, 0), (time_to_peak_1, 0.80 / 0.975), (time_to_peak_2, 1)] # Protection against transmission
+        time_to_peak_2 = 5  # After 2 months, immunity reaches 97.5%
+        self._immunity_timecourse = [(0, 0), (1, 0.1), (5, 0.1), (6,0), (15, 0), (16, -0.5), (17, 0)] # Immunity against infection
+        self._protection_timecourse =  [(0, 0), (1, 0.1), (5, 0.1), (6,0), (15, 0), (16, -0.5), (17, 0)] # Protection against transmission
 
     def init_pre(self, sim):
         super().init_pre(sim)
@@ -474,42 +482,94 @@ class SyphVaccine(ss.Intervention):
        
         if n_to_vaccinate > 0:
             # Pick eligible, non-vaccinated agents randomly
-            eligible_non_vaccinated_uids = eligible_uids & (~self.vaccinated).uids
-            bools = ss.random(strict=False).rvs(len(eligible_non_vaccinated_uids))
+            # eligible_uids = eligible_uids & (~self.vaccinated).uids # Allow for multiple doses
+            bools = ss.random(strict=False).rvs(len(eligible_uids))
             choices = np.argsort(bools)[:n_to_vaccinate]
-            target_uids = eligible_non_vaccinated_uids[choices]
+            target_uids = eligible_uids[choices]
 
         return target_uids
 
-    def vaccinate(self, sim, uids, update_immunity=True):
+    def vaccinate(self, sim, uids, update_immunity_vaccination=True):
+        """
+        Vaccinate
+        """
+        # Set states
         self.vaccinated[uids] = True
-        #if self.dose_interval is None:
-        #    # If it's a single dose vaccine, they are fully vaccinated after the first dose
-        #    self.fully_vaccinated[uids] = True
         self.ti_vaccinated[uids] = sim.ti
-        if update_immunity:
-            self.update_immunity(sim)
+        self.ti_nab_event[uids] = sim.ti
+        # Update number of doses
+        self.doses[uids] += 1
+        # Update Immunity
+        if update_immunity_vaccination:
+            self.update_immunity_vaccination(sim)
 
-    def update_immunity(self, sim):
-        # For the remaining vaccine characteristics, scale the outcome by proportion of protection
-        vaccinated = self.vaccinated.uids  # Indices of people that were vaccinated using this intervention
-        ti_vaccinated = self.ti_vaccinated[vaccinated]  # Vaccination date for people vaccinated using this intervention
-        duration_since_vaccinated = sim.ti - ti_vaccinated
+    def update_immunity_natural(self, sim):
+        """
+        Update base immunity for individuals, who got infected at this timestep
+        """
+        # Extract parameters and indices
+        syph = sim.diseases.syphilis
+        new_syphilis = syph.ti_infected == sim.ti
+        has_nabs = self.ti_nab_event.notnan
+        
+        prior_nab_uids = (new_syphilis & has_nabs).uids
+        no_prior_nab_uids = (new_syphilis & ~has_nabs).uids
 
-        duration_since_vaccinated = np.minimum(duration_since_vaccinated, len(self._protection_timecourse) - 1).astype(ss.dtypes.int)  # Max out protection
+        # 1) Individuals that already have NAbs from a previous vaccination/infection have their Immunity levels boosted
+        # base_immunity_inf = 1 -> No Immunity, base_immunity_inf = 0 -> full immunity, no reinfection
+        if len(prior_nab_uids):
+            boost_factor = self.pars.nab_boost_infection
+            self.immunity_inf[prior_nab_uids] *= boost_factor.rvs(prior_nab_uids)
 
-        # Update protection for this time step
-        immunity = self._immunity_timecourse[duration_since_vaccinated]
-        protection = self._protection_timecourse[duration_since_vaccinated]
+        # 2) Individuals without prior NAbs are assigned an initial level drawn from a distribution.
+        if len(no_prior_nab_uids):
+            self.immunity_inf[no_prior_nab_uids] = self.pars.immunity_init.rvs(no_prior_nab_uids)
+
+        # Ensure values between 0 and 1
+        self.immunity_inf[new_syphilis] = np.where(self.immunity_inf[new_syphilis] < 0, 0, self.immunity_inf[new_syphilis])  # Make sure immunity doesn't drop below 0
+        self.immunity_inf[new_syphilis] = np.where(self.immunity_inf[new_syphilis] > 1, 1, self.immunity_inf[new_syphilis])  # Make sure immunity doesn't exceed 1
+
+        # Update time of NAb event
+        self.ti_nab_event[new_syphilis] = sim.ti
+        return
+
+    def update_immunity_vaccination(self, sim):
+        """
+        Update Immunity levels for both vaccinated and unvaccinated individuals 
+        """
+        # dose1_uids = (self.doses == 1).uids
+        # dose2_uids = (self.doses == 2).uids
+        # dose3_uids = (self.doses >= 3).uids
 
         syph = sim.diseases.syphilis
-        # Update protection against infection
-        # self.immunity_inf[vaccinated & syph.susceptible.uids] = syph.base_immunity_inf[vaccinated & syph.susceptible.uids] * (1 - self.pars.prevent_infection * immunity)
-        # # Update protection against transmission
-        # self.immunity_trans[vaccinated & syph.primary.uids] = syph.base_immunity_trans[vaccinated & syph.primary.uids] * (1 - self.pars.prevent_transmission_primary * protection)
-        # self.immunity_trans[vaccinated & syph.secondary.uids] = syph.base_immunity_trans[vaccinated & syph.secondary.uids] * (1 - self.pars.prevent_transmission_secondary * protection)
-        # self.immunity_trans[vaccinated & syph.tertiary.uids] = syph.base_immunity_trans[vaccinated & syph.tertiary.uids] * (1 - self.pars.prevent_transmission_tertiary * protection)
-        # self.immunity_trans[vaccinated & syph.latent.uids] = syph.base_immunity_trans[vaccinated & syph.latent.uids] * (1 - self.pars.prevent_transmission_latent * protection)
+
+        # 1) Vaccinated Individuals
+        vaccinated_bool = self.vaccinated
+        vaccinated_uids = vaccinated_bool.uids
+        
+        # Update protection against infection and transmission for vaccinated inidivuals 
+        # Do this by infection state to differentiate between different transmission reductions per state  
+        for state in ['susceptible', 'primary', 'secondary', 'tertiary', 'latent']:
+            state = f'{state}'
+            state_bools = getattr(sim.diseases.syphilis, state)
+            uids = vaccinated_uids & state_bools.uids
+            if len(uids):
+                ti_since_boost_vaccinated = sim.ti - self.ti_nab_event[uids].astype(ss.dtypes.int)
+                # Max out protection
+                ti_since_boost_vaccinated = np.minimum(ti_since_boost_vaccinated, len(self._protection_timecourse) - 1).astype(ss.dtypes.int)
+                immunity = self._immunity_timecourse[ti_since_boost_vaccinated]
+                protection = self._protection_timecourse[ti_since_boost_vaccinated]
+                prevent_transmission_param = self.pars[f'prevent_transmission_{state}']
+                
+                # Update protection against infection for vaccinated agents
+                self.immunity_inf[uids] -= self.pars.prevent_infection * immunity
+
+                # Update protection against transmission for vaccinated inidivuals
+                self.immunity_trans[uids] -= prevent_transmission_param * protection
+
+        # Ensure values between 0 and 1
+        # self.immunity_inf = np.where(self.immunity_inf >= 0, self.immunity_inf, 0)  # Make sure immunity doesn't drop below 0
+        # self.immunity_inf = np.where(self.immunity_inf <= 1, self.immunity_inf, 1)  # Make sure immunity doesn't exceed 1
 
         # Set rel trans and rel sus
         rel_trans, rel_sus = self.compute_trans_sus(sim)
@@ -519,7 +579,10 @@ class SyphVaccine(ss.Intervention):
         # TODO Update dur_primary, dur_secondary, p_reinfection
         # ti_primary
         # ti_secondary
-
+        
+        # Update time of NAb event
+        # self.ti_nab_event[vaccinated_uids] = sim.ti
+        
     def compute_trans_sus(self, sim):
         syph = sim.diseases.syphilis
         rel_trans = syph.rel_trans * syph.infectious * self.immunity_trans
@@ -528,13 +591,14 @@ class SyphVaccine(ss.Intervention):
 
     def apply(self, sim):
         syph = sim.diseases.syphilis
+        self.update_immunity_natural(sim)
         if sim.year > self.start_year:
             target_uids = self.get_targets(sim)
             if len(target_uids):
                 self.vaccinate(sim, target_uids)
                 self.results['new_vaccinations'][sim.ti] += len(target_uids)
             else:
-                self.update_immunity(sim)
+                self.update_immunity_vaccination(sim)
 
         return
 
