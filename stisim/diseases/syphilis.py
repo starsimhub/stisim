@@ -136,6 +136,7 @@ class Syphilis(ss.Infection):
             ss.BoolArr('tertiary'),     # Includes complications (cardio/neuro/disfigurement)
             ss.BoolArr('immune'),       # Immunity may be conferred by some treatment/vaccine options
             ss.BoolArr('ever_exposed'), # Anyone ever exposed - stays true after treatment
+            ss.BoolArr('reinfected'),   # Anyone reinfected
 
             # Congenital syphilis states
             ss.BoolArr('congenital'),
@@ -470,6 +471,7 @@ class Syphilis(ss.Infection):
             self.cum_transmissions[unique_sources] += counts
 
         self.susceptible[uids] = False
+        self.reinfected[uids] = self.ever_exposed[uids]
         self.ever_exposed[uids] = True
         self.primary[uids] = True
         self.infected[uids] = True
