@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from collections import defaultdict
 import sciris as sc
+from sciris import randround as rr # Since used frequently
 import functools
 import itertools
 
@@ -436,6 +437,7 @@ class SyphVaccine(ss.Intervention):
             ss.FloatArr('immunity_trans', default=1),
             ss.FloatArr('immunity_inf', default=1),
             ss.FloatArr('ti_nab_event'),
+            ss.FloatArr('ti_dur_inf_updated')
         )
 
         # Vaccine 
@@ -548,10 +550,6 @@ class SyphVaccine(ss.Intervention):
         if len(no_prior_nab_uids):
             self.immunity_inf[no_prior_nab_uids] = self.pars.immunity_init.rvs(no_prior_nab_uids)
 
-        # Ensure values between 0 and 1
-        # self.immunity_inf = np.where(self.immunity_inf >= 0, self.immunity_inf, 0)  # Make sure immunity doesn't drop below 0
-        # self.immunity_inf = np.where(self.immunity_inf <= 1, self.immunity_inf, 1)  # Make sure immunity doesn't exceed 1
-
         # Update time of NAb event
         self.ti_nab_event[new_syphilis] = sim.ti
         return
@@ -612,18 +610,15 @@ class SyphVaccine(ss.Intervention):
                 # Update protection against transmission for vaccinated inidivuals
                 self.immunity_trans[uids] -= prevent_transmission_param * protection
 
-        # Ensure values between 0 and 1
-        # self.immunity_inf = np.where(self.immunity_inf >= 0, self.immunity_inf, 0)  # Make sure immunity doesn't drop below 0
-        # self.immunity_inf = np.where(self.immunity_inf <= 1, self.immunity_inf, 1)  # Make sure immunity doesn't exceed 1
+        # Ensure values are non-negative
+        self.immunity_inf[vaccinated_uids] = self.immunity_inf[vaccinated_uids].clip(0)  # Make sure immunity doesn't drop below 0
+        self.immunity_trans[vaccinated_uids] = self.immunity_trans[vaccinated_uids].clip(0)  # Make sure immunity doesn't drop below 0
 
         # Set rel trans and rel sus
         rel_trans, rel_sus = self.compute_trans_sus(sim)
         syph.rel_trans.set(uids=sim.people.auids, new_vals = rel_trans)
         syph.rel_sus.set(uids=sim.people.auids, new_vals = rel_sus)
 
-        # TODO Update dur_primary, dur_secondary, p_reinfection
-        # ti_primary
-        # ti_secondary
         return
 
     def compute_trans_sus(self, sim):
@@ -631,6 +626,34 @@ class SyphVaccine(ss.Intervention):
         rel_trans = syph.rel_trans * syph.infectious * self.immunity_trans
         rel_sus = syph.rel_sus * syph.susceptible * self.immunity_inf
         return rel_trans, rel_sus
+
+    def update_dur_infection(self, sim):
+        # Extract parameters and indices
+        syph = sim.diseases.syphilis
+        has_primary_syphilis = syph.primary
+        has_secondary_syphilis = syph.secondary
+        ti_infected = syph.ti_infected
+        is_vaccinated = self.vaccinated
+        dur_inf_updated = self.ti_dur_inf_updated
+
+        # Get people that are syphilis infected and vaccinated, who hadn't had their infection duration updated
+        # This ensures that vaccinated people who get infected get their duration updated as well as
+        # infected people who get vaccinated.
+        # Primary -> Secondary, Secondary -> Tertiary 
+        for state, next_state in zip(['primary', 'secondary'], ['secondary', 'tertiary']):
+            ti_duration = getattr(syph, f'ti_{next_state}')
+            uids = (getattr(syph, state) & ti_duration.notnan & ~dur_inf_updated).uids
+            
+            current_duration = ti_duration[uids] - sim.ti
+            reduce_duraton_parameter = self.pars[f'reduce_dur_{state}']
+            new_ti_duration = sim.ti + rr(current_duration * reduce_duraton_parameter)
+            ti_duration[uids] = new_ti_duration
+            
+            # Update values
+            setattr(syph, f'ti_{next_state}', ti_duration)
+            
+            # Update bool - ensures we only update the infection durations once per agent
+            self.dur_inf_updated[uids] = True
 
     def apply(self, sim):
         syph = sim.diseases.syphilis
@@ -642,5 +665,8 @@ class SyphVaccine(ss.Intervention):
                 self.results['new_vaccinations'][sim.ti] += len(target_uids)
             else:
                 self.update_immunity_by_vaccination(sim)
+
+            # Reduce duration of infection for vaccinated, infected agents
+            self.update_dur_infection(sim)
 
         return
