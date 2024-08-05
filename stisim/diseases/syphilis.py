@@ -380,10 +380,65 @@ class Syphilis(ss.Infection):
         """
         Add new syphilis cases
         """
-        targets, sources, networks = super().make_new_cases()
-        for source, target, network in zip(sources, targets, networks):
+        """
+                Add new cases of module, through transmission, incidence, etc.
+
+                Common-random-number-safe transmission code works by mapping edges onto
+                slots.
+                """
+        new_cases = []
+        sources = []
+        networks = []
+        betamap = super()._check_betas()
+
+        for i, (nkey, net) in enumerate(self.sim.networks.items()):
+            if not len(net):
+                break
+
+            nbetas = betamap[nkey]
+            edges = net.edges
+
+            rel_trans = self.rel_trans.asnew(self.infectious * self.rel_trans)
+            rel_sus = self.rel_sus.asnew(self.susceptible * self.rel_sus)
+            p1p2b0 = [edges.p1, edges.p2, nbetas[0]]
+            p2p1b1 = [edges.p2, edges.p1, nbetas[1]]
+            for src, trg, beta in [p1p2b0, p2p1b1]:
+
+                # Skip networks with no transmission
+                if beta == 0:
+                    continue
+
+                # Calculate probability of a->b transmission.
+                beta_per_dt = net.beta_per_dt(disease_beta=beta, dt=self.sim.dt)
+                p_transmit = rel_trans[src] * rel_sus[trg] * beta_per_dt
+
+                # Generate a new random number based on the two other random numbers
+                rvs_s = self.rng_source.rvs(src)
+                rvs_t = self.rng_target.rvs(trg)
+                rvs = ss.combine_rands(rvs_s, rvs_t)
+
+                new_cases_bool = rvs < p_transmit
+                new_cases.append(trg[new_cases_bool])
+                sources.append(src[new_cases_bool])
+                networks.append(np.full(np.count_nonzero(new_cases_bool), dtype=ss.dtypes.int, fill_value=i))
+
+        # Tidy up
+        if len(new_cases) and len(sources):
+            new_cases = ss.uids.cat(new_cases)
+            new_cases, inds = new_cases.unique(return_index=True)
+            sources = ss.uids.cat(sources)[inds]
+            networks = np.concatenate(networks)[inds]
+        else:
+            new_cases = np.empty(0, dtype=int)
+            sources = np.empty(0, dtype=int)
+            networks = np.empty(0, dtype=int)
+
+        if len(new_cases):
+            super()._set_cases(new_cases, sources)
+
+        for source, target, network in zip(sources, new_cases, networks):
             self.log.append(source, target, t=self.sim.year, network=self.sim.networks[network].name)
-        return sources, targets, networks
+        return sources, new_cases, networks
 
     def set_prognoses(self, uids, source_uids=None, ti=None):
         """
