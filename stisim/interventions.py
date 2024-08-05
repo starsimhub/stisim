@@ -395,12 +395,14 @@ class PartnerNotification(ss.Intervention):
 
 class SyphVaccine(ss.Intervention):
     def __init__(self, pars=None, years=None, start_year=None, eligibility=None, target_coverage=None, name=None, label=None, 
-                 immunity_timecourse=None, protection_timecourse=None, **kwargs):
+                  **kwargs):
         super().__init__(name=name, label=label)
         self.name = 'syph_vaccine'
         self.requires = 'syphilis'
         self.default_pars(
-            efficacy=ss.bernoulli(0.9),
+            efficacy=0.9,
+            dur_protection=12, # half-life of exponential decay
+            dur_reach_peak=2, # 2 months until efficacy is reached
             immunity_init=ss.uniform(low=0.7, high=0.9),
             nab_boost_infection=0.9, # Multiply base immunity by this factor. 1=no change in immunity, 0=full immunity, no reinfection
             nab_boost_vaccination=0.7, # Multiply base immunity by this factor. 1=no change in immunity, 0=full immunity, no reinfection
@@ -433,8 +435,6 @@ class SyphVaccine(ss.Intervention):
             ss.FloatArr('doses', default=0),
             ss.FloatArr('immunity_trans', default=1),
             ss.FloatArr('immunity_inf', default=1),
-            ss.FloatArr('base_immunity_trans', default=1),
-            ss.FloatArr('base_immunity_inf', default=1),
             ss.FloatArr('ti_nab_event'),
         )
 
@@ -442,18 +442,16 @@ class SyphVaccine(ss.Intervention):
         self.current_coverage = 0
         self.target_coverage = 0.7
         self.dose_interval = None
-        time_to_peak_1 = 1  # After 1 month, immunity reaches 80%
-        time_to_peak_2 = 5  # After 2 months, immunity reaches 97.5%
-        self._immunity_timecourse = [(0, 0), (1, 0.1), (5, 0.1), (6,0), (15, 0), (16, -0.5), (17, 0)] # Immunity against infection
-        self._protection_timecourse =  [(0, 0), (1, 0.1), (5, 0.1), (6,0), (15, 0), (16, -0.5), (17, 0)] # Protection against transmission
+        self._immunity_timecourse = None
+        self._protection_timecourse = None
 
     def init_pre(self, sim):
         super().init_pre(sim)
         if self.start_year is None:
             self.start_year = self.years[0]
         self.init_results()
-        self._protection_timecourse = self.protection_timecourse(np.arange(0, 50))
-        self._immunity_timecourse = self.immunity_timecourse(np.arange(0, 50))
+        self._immunity_timecourse = self.immunity_timecourse()
+        self._protection_timecourse = self.immunity_timecourse() # For now, assume protection timecourse and immunity timecourse are equal 
         return
 
     def init_results(self):
@@ -463,6 +461,35 @@ class SyphVaccine(ss.Intervention):
             ss.Result(self.name, 'n_vaccinated', npts, dtype=int, scale=True),
         ]
         return
+
+    def linear_increase(self, length, init_val, slope):
+        ''' 
+        Calculate linear decay 
+        '''
+        result = slope * np.ones(length)
+        result[0] = init_val
+        return result.cumsum()
+
+    def exp_decay(self, t, init_val, half_life):
+        '''
+        Returns an array of length t with values for the immunity at each time step
+        '''
+        decay_rate = np.log(2) / half_life if ~np.isnan(half_life) else 0.
+        result = init_val * np.exp(-decay_rate * t, dtype=ss.dtypes.float)
+        return result
+    
+    def immunity_timecourse(self):
+        
+        # Efficacy will increase linearly to its peak value
+        linear_increase = self.linear_increase(length=self.pars.dur_reach_peak, init_val=0, slope=self.pars.efficacy/self.pars.dur_reach_peak)
+        # Efficacy will then drop exponentially, with half-time corresponding to the duration of proection
+        exp_decay = self.exp_decay(t=np.arange(0, self.sim.npts - len(linear_increase)), init_val=self.pars.efficacy, half_life=self.pars.dur_protection)
+        # Combine to one array
+        timecourse = np.concatenate([linear_increase, exp_decay])
+        
+        # Return derivative 
+        timecourse_derivative = np.diff(timecourse)
+        return timecourse_derivative
 
     def check_eligibility(self, sim):
         if self.eligibility is not None:
@@ -607,27 +634,3 @@ class SyphVaccine(ss.Intervention):
                 self.update_immunity_by_vaccination(sim)
 
         return
-
-    def _interpolate(self, vals: list, t):
-        vals = sorted(vals, key=lambda x: x[0])  # Make sure values are sorted
-        assert len({x[0] for x in vals}) == len(vals)  # Make sure time points are unique
-        return np.interp(t, [x[0] for x in vals], [x[1] for x in vals], left=vals[0][1], right=vals[-1][1])
-
-    def immunity_timecourse(self, t: np.array) -> np.array:
-        return self._interpolate(self._immunity_timecourse, t)
-
-    def protection_timecourse(self, t: np.array) -> np.array:
-        return self._interpolate(self._protection_timecourse, t)
-
-    @property
-    def full_protection_time(self) -> int:
-        # Return time taken to reach full immunity
-        return max(x[0] for x in self._immunity_timecourse + self._protection_timecourse)
-
-    @classmethod
-    def syph_vaccine(cls):
-        time_to_peak_1 = 1 # After 1 month, immunity reaches 80%
-        time_to_peak_2 = 2 # After 2 months, immunity reaches 97.5%
-        # TODO Waning
-        immunity_timecourse = [(0, 0), (time_to_peak_1, 0.80 / 0.975), (time_to_peak_2, 1)]
-        protection_timecourse = [(0, 0), (time_to_peak_1, 0.80 / 0.975), (time_to_peak_2, 1)]
