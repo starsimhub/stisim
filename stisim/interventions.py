@@ -437,7 +437,7 @@ class SyphVaccine(ss.Intervention):
             ss.FloatArr('immunity_trans', default=1),
             ss.FloatArr('immunity_inf', default=1),
             ss.FloatArr('ti_nab_event'),
-            ss.FloatArr('ti_dur_inf_updated')
+            ss.BoolArr('dur_inf_updated')
         )
 
         # Vaccine 
@@ -634,7 +634,9 @@ class SyphVaccine(ss.Intervention):
         has_secondary_syphilis = syph.secondary
         ti_infected = syph.ti_infected
         is_vaccinated = self.vaccinated
-        dur_inf_updated = self.ti_dur_inf_updated
+        dur_inf_updated = self.dur_inf_updated
+        # New reinfections
+        new_reinfected = syph.reinfected & (syph.ti_infected == sim.ti-1) 
 
         # Get people that are syphilis infected and vaccinated, who hadn't had their infection duration updated
         # This ensures that vaccinated people who get infected get their duration updated as well as
@@ -642,7 +644,8 @@ class SyphVaccine(ss.Intervention):
         # Primary -> Secondary, Secondary -> Tertiary 
         for state, next_state in zip(['primary', 'secondary'], ['secondary', 'tertiary']):
             ti_duration = getattr(syph, f'ti_{next_state}')
-            uids = (getattr(syph, state) & ti_duration.notnan & ~dur_inf_updated).uids
+            # Get uids from agents whose duration haven't been updated ever, or who have been reinfected
+            uids = (is_vaccinated & getattr(syph, state) & ti_duration.notnan & (~dur_inf_updated | new_reinfected)).uids
             
             current_duration = ti_duration[uids] - sim.ti
             reduce_duraton_parameter = self.pars[f'reduce_dur_{state}']
@@ -654,6 +657,7 @@ class SyphVaccine(ss.Intervention):
             
             # Update bool - ensures we only update the infection durations once per agent
             self.dur_inf_updated[uids] = True
+            
 
     def apply(self, sim):
         syph = sim.diseases.syphilis
