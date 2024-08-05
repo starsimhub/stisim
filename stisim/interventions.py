@@ -450,8 +450,9 @@ class SyphVaccine(ss.Intervention):
         if self.start_year is None:
             self.start_year = self.years[0]
         self.init_results()
-        self._immunity_timecourse = self.immunity_timecourse()
-        self._protection_timecourse = self.immunity_timecourse() # For now, assume protection timecourse and immunity timecourse are equal 
+        # Get immunity and protection time courses
+        self._immunity_timecourse = self.get_immunity_timecourse(self.pars.efficacy, self.pars.dur_reach_peak, self.pars.dur_protection)
+        self._protection_timecourse = self.get_immunity_timecourse(self.pars.efficacy, self.pars.dur_reach_peak, self.pars.dur_protection) # For now, assume protection timecourse and immunity timecourse are equal
         return
 
     def init_results(self):
@@ -478,12 +479,21 @@ class SyphVaccine(ss.Intervention):
         result = init_val * np.exp(-decay_rate * t, dtype=ss.dtypes.float)
         return result
     
-    def immunity_timecourse(self):
-        
+    def get_immunity_timecourse(self, efficacy, dur_reach_peak, dur_protection):
+        """
+        Get the derivative of the immunity timecourse.
+        Immunity will increase linearly to the vaccine's efficacy level and then decrease exponentially.
+
+            Args:
+                efficacy: Vaccine Efficacy
+                dur_reach_peak: Parameter to describe how long it takes to reach efficacy
+                dur_protection: Parameter to describe how long protection lasts. This will be the half-life of the exponential decay
+
+        """
         # Efficacy will increase linearly to its peak value
-        linear_increase = self.linear_increase(length=self.pars.dur_reach_peak, init_val=0, slope=self.pars.efficacy/self.pars.dur_reach_peak)
-        # Efficacy will then drop exponentially, with half-time corresponding to the duration of proection
-        exp_decay = self.exp_decay(t=np.arange(0, self.sim.npts - len(linear_increase)), init_val=self.pars.efficacy, half_life=self.pars.dur_protection)
+        linear_increase = self.linear_increase(length=dur_reach_peak, init_val=0, slope=efficacy/dur_reach_peak)
+        # Efficacy will then drop exponentially, with half-time corresponding to the duration of protection
+        exp_decay = self.exp_decay(t=np.arange(0, self.sim.npts - len(linear_increase)), init_val=efficacy, half_life=dur_protection)
         # Combine to one array
         timecourse = np.concatenate([linear_increase, exp_decay])
         
@@ -589,11 +599,11 @@ class SyphVaccine(ss.Intervention):
             state_bools = getattr(sim.diseases.syphilis, state)
             uids = vaccinated_uids & state_bools.uids
             if len(uids):
-                ti_since_boost_vaccinated = sim.ti - self.ti_nab_event[uids].astype(ss.dtypes.int)
-                ti_since_boost_vaccinated = np.minimum(ti_since_boost_vaccinated, len(self._protection_timecourse) - 1).astype(ss.dtypes.int)  # Max out protection
+                ti_since_boost = sim.ti - self.ti_nab_event[uids].astype(ss.dtypes.int)
+                ti_since_boost = np.minimum(ti_since_boost, len(self._protection_timecourse) - 1).astype(ss.dtypes.int)  # Max out protection
                 
-                immunity = self._immunity_timecourse[ti_since_boost_vaccinated]
-                protection = self._protection_timecourse[ti_since_boost_vaccinated]
+                immunity = self._immunity_timecourse[ti_since_boost]
+                protection = self._protection_timecourse[ti_since_boost]
                 prevent_transmission_param = self.pars[f'prevent_transmission_{state}']
                 
                 # Update protection against infection for vaccinated agents
