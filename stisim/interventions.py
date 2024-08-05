@@ -489,7 +489,7 @@ class SyphVaccine(ss.Intervention):
 
         return target_uids
 
-    def vaccinate(self, sim, uids, update_immunity_vaccination=True):
+    def vaccinate(self, sim, uids, update_vaccination_immunity=True):
         """
         Vaccinate
         """
@@ -500,10 +500,10 @@ class SyphVaccine(ss.Intervention):
         # Update number of doses
         self.doses[uids] += 1
         # Update Immunity
-        if update_immunity_vaccination:
-            self.update_immunity_vaccination(sim)
+        if update_vaccination_immunity:
+            self.update_vaccination_immunity(sim)
 
-    def update_immunity_natural(self, sim):
+    def update_natural_immunity(self, sim):
         """
         Update base immunity for individuals, who got infected at this timestep
         """
@@ -516,7 +516,7 @@ class SyphVaccine(ss.Intervention):
         no_prior_nab_uids = (new_syphilis & ~has_nabs).uids
 
         # 1) Individuals that already have NAbs from a previous vaccination/infection have their Immunity levels boosted
-        # base_immunity_inf = 1 -> No Immunity, base_immunity_inf = 0 -> full immunity, no reinfection
+        # immunity_inf = 1 -> No Immunity, immunity_inf = 0 -> full immunity, no reinfection
         if len(prior_nab_uids):
             boost_factor = self.pars.nab_boost_infection
             self.immunity_inf[prior_nab_uids] *= boost_factor.rvs(prior_nab_uids)
@@ -533,7 +533,7 @@ class SyphVaccine(ss.Intervention):
         self.ti_nab_event[new_syphilis] = sim.ti
         return
 
-    def update_immunity_vaccination(self, sim):
+    def update_vaccination_immunity(self, sim):
         """
         Update Immunity levels for both vaccinated and unvaccinated individuals 
         """
@@ -591,14 +591,14 @@ class SyphVaccine(ss.Intervention):
 
     def apply(self, sim):
         syph = sim.diseases.syphilis
-        self.update_immunity_natural(sim)
+        self.update_natural_immunity(sim)
         if sim.year > self.start_year:
             target_uids = self.get_targets(sim)
             if len(target_uids):
                 self.vaccinate(sim, target_uids)
                 self.results['new_vaccinations'][sim.ti] += len(target_uids)
             else:
-                self.update_immunity_vaccination(sim)
+                self.update_vaccination_immunity(sim)
 
         return
 
