@@ -402,6 +402,7 @@ class SyphVaccine(ss.Intervention):
         self.requires = 'syphilis'
         self.default_pars(
             efficacy=0.9,
+            target_coverage=0.75,
             dur_protection=12, # half-life of exponential decay
             dur_reach_peak=2, # 2 months until efficacy is reached
             immunity_init=ss.uniform(low=0.7, high=0.9),
@@ -442,7 +443,7 @@ class SyphVaccine(ss.Intervention):
 
         # Vaccine 
         self.current_coverage = 0
-        self.target_coverage = 0.7
+        self.target_coverage = self.pars.target_coverage
         self.dose_interval = None
         self._immunity_timecourse = None
         self._protection_timecourse = None
@@ -628,6 +629,9 @@ class SyphVaccine(ss.Intervention):
         return rel_trans, rel_sus
 
     def update_dur_infection(self, sim):
+        """
+        Reduce ti_secondary, and ti_tertiary for vaccinated, infected agents.
+        """
         # Extract parameters and indices
         syph = sim.diseases.syphilis
         has_primary_syphilis = syph.primary
@@ -672,5 +676,7 @@ class SyphVaccine(ss.Intervention):
 
             # Reduce duration of infection for vaccinated, infected agents
             self.update_dur_infection(sim)
+
+            # TODO Reduce p_reactivate for vaccinated, infected agents
 
         return
