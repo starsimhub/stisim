@@ -182,7 +182,8 @@ def test_syph_vacc():
     # agents['No infection, vaccine'] = [('syph_vaccine', 20)]
     # agents['Infection, no vaccine'] = [('syphilis_infection', 20)]
     # agents['Infection after vaccine'] = [('syphilis_infection', 30), ('syph_vaccine', 2)]
-    agents['Pregnancy'] = [('syphilis_infection', 10), ('pregnant', 5)] #, ('syph_vaccine', 2)]
+    # agents['Pregnancy'] = [('syphilis_infection', 10), ('pregnant', 15), ('syph_vaccine', 2)]
+    agents['2 Doses'] = [('syph_vaccine', 2), ('syph_vaccine', 20)]
     events = []
     for i, x in enumerate(agents.values()):
         for y in x:
