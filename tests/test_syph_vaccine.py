@@ -29,6 +29,7 @@ class TrackValues(ss.Analyzer):
 
         self.syph_rel_sus = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
         self.syph_rel_trans = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
+        self.rel_trans_maternal = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
 
         self.syph_immunity_inf = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
         self.syph_immunity_trans = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
@@ -52,21 +53,23 @@ class TrackValues(ss.Analyzer):
         if self.has_syph:
             self.syph_rel_sus[sim.ti, :self.n] = sim.diseases.syphilis.rel_sus.values[:self.n]
             self.syph_rel_trans[sim.ti, :self.n] = sim.diseases.syphilis.rel_trans.values[:self.n]
+            self.rel_trans_maternal[sim.ti, :self.n] = sim.diseases.syphilis.rel_trans_maternal.values[:self.n]
 
-        self.syph_immunity_inf[sim.ti, :self.n] = sim.interventions.syph_vaccine.immunity_inf.values[:self.n]
-        self.syph_immunity_trans[sim.ti, :self.n] = sim.interventions.syph_vaccine.immunity_trans.values[:self.n]
-
-        # State of each agent
-        susceptible_agents = sim.diseases.syphilis.susceptible
-        primary_agents = sim.diseases.syphilis.primary.uids
-        secondary_agents = sim.diseases.syphilis.secondary.uids
-        tertiary_agents = sim.diseases.syphilis.tertiary.uids
-        latent_agents = sim.diseases.syphilis.latent.uids
-        self.syph_state[sim.ti, susceptible_agents] = 0
-        self.syph_state[sim.ti, primary_agents] = 1
-        self.syph_state[sim.ti, secondary_agents] = 2
-        self.syph_state[sim.ti, tertiary_agents] = 3
-        self.syph_state[sim.ti, latent_agents] = 4
+            # Immunity Inf and trans
+            self.syph_immunity_inf[sim.ti, :self.n] = sim.interventions.syph_vaccine.immunity_inf.values[:self.n]
+            self.syph_immunity_trans[sim.ti, :self.n] = sim.interventions.syph_vaccine.immunity_trans.values[:self.n]
+            
+            # State of each agent
+            susceptible_agents = sim.diseases.syphilis.susceptible
+            primary_agents = sim.diseases.syphilis.primary.uids
+            secondary_agents = sim.diseases.syphilis.secondary.uids
+            tertiary_agents = sim.diseases.syphilis.tertiary.uids
+            latent_agents = sim.diseases.syphilis.latent.uids
+            self.syph_state[sim.ti, susceptible_agents] = 0
+            self.syph_state[sim.ti, primary_agents] = 1
+            self.syph_state[sim.ti, secondary_agents] = 2
+            self.syph_state[sim.ti, tertiary_agents] = 3
+            self.syph_state[sim.ti, latent_agents] = 4
 
     def plot(self, agents: dict):
         """
@@ -91,12 +94,14 @@ class TrackValues(ss.Analyzer):
                         colors.append('red')
                     if event[0] == 'syph_vaccine':
                         colors.append('blue')
+                    if event[0] == 'pregnant':
+                        colors.append('yellow')
             ax.scatter(x_ev, y_ev, marker='*', color=colors, edgecolor='red', s=100, linewidths=0.5, zorder=100)
             ax.set_title(title)
             return h
 
         if self.has_syph:
-            fig, ax = plt.subplots(2, 2, figsize=(8, 8))
+            fig, ax = plt.subplots(2, 3, figsize=(12, 8))
         else:
             fig, ax = plt.subplots(1, 2)
 
@@ -108,17 +113,19 @@ class TrackValues(ss.Analyzer):
         if self.has_syph:
             h = plot_with_events(ax[2], self.sim.yearvec, self.syph_rel_sus, agents, 'Syphilis rel_sus', colors)
             h = plot_with_events(ax[3], self.sim.yearvec, self.syph_rel_trans, agents, 'Syphilis rel_trans', colors)
+            h = plot_with_events(ax[4], self.sim.yearvec, self.rel_trans_maternal, agents, 'Syphilis maternal rel_trans', colors)
 
         for axis in ax:
           axis.set_xlim([2020, 2024])
         # fig.legend(h, agents.keys(), loc='upper right')
         infection = Line2D([0], [0], label='Infection', linestyle='', marker='*', color='red')
         vaccination = Line2D([0], [0], label='Vaccination', linestyle='', marker='*', color='blue')
+        pregnant = Line2D([0], [0], label='Pregnancy', linestyle='', marker='*', color='yellow')
         patches = []
         for state, label in zip([0, 1, 2, 3, 4], ['susceptible', 'primary', 'secondary', 'tertiary', 'latent']):
             state_patch = mpatches.Patch(color=colors[state], label=label)
             patches.append(state_patch)
-        ax[0].legend(frameon=False, handles=[infection, vaccination] + patches)
+        ax[0].legend(frameon=False, handles=[infection, vaccination, pregnant] + patches)
         return fig
 
 
@@ -174,7 +181,8 @@ def test_syph_vacc():
     # agents['Infection, vaccine after infection'] = [('syphilis_infection', 2), ('syph_vaccine', 2)]
     # agents['No infection, vaccine'] = [('syph_vaccine', 20)]
     # agents['Infection, no vaccine'] = [('syphilis_infection', 20)]
-    agents['Infection after vaccine'] = [('syphilis_infection', 30), ('syph_vaccine', 2)]
+    # agents['Infection after vaccine'] = [('syphilis_infection', 30), ('syph_vaccine', 2)]
+    agents['Pregnancy'] = [('syphilis_infection', 10), ('pregnant', 5)] #, ('syph_vaccine', 2)]
     events = []
     for i, x in enumerate(agents.values()):
         for y in x:
@@ -199,8 +207,8 @@ def test_syph_vacc():
         eligibility=vaccine_eligible,
         target_coverage=0.75,
         efficacy=0.95,  # Peak
-        dur_reach_peak=1,  # Reaches efficacy after 6 months
-        dur_protection=1000,  # Assume 18 months
+        dur_reach_peak=6,  # Reaches efficacy after 6 months
+        dur_protection=18,  # Assume 18 months
     )
 
     pars['interventions'] = [PerformTest(events), syph_vaccine]
