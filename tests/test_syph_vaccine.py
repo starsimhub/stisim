@@ -1,11 +1,15 @@
+"""
+Test functionality of syphilis vaccine
+- Vaccinate susceptible agents
+- Vaccinate infected agents
+- Infect vaccinated agents
+- Vaccinate pregnant women, infected or susceptible
+- Vaccinate multiple times
+- Vaccinate before or after re-infection 
+"""
+
+#% Imports
 import starsim as ss
-import sys
-x = 'c:\\users\\alina.muellenmeister\\documents\\github\\gavi-outbreaks'
-y = 'c:\\users\\alina.muellenmeister\\documents\\github\\syphilis_analyses'
-if x in sys.path:
-    sys.path.remove(x)
-if y in sys.path:
-    sys.path.remove(y)
 import stisim as sti
 import pandas as pd
 from collections import defaultdict
@@ -19,7 +23,7 @@ from syph_tests import TreatNum
 
 
 class TrackValues(ss.Analyzer):
-    # Track outputs for viral load and CD4 counts
+    # Track outputs for rel_trans, rel_sus
     # Assumes no births; for diagnostic/debugging purposes only
     def init_pre(self, sim):
         super().init_pre(sim)
@@ -121,7 +125,7 @@ class TrackValues(ss.Analyzer):
         for axis in ax:
           axis.set_xlim([2020, 2024])
 
-        # fig.legend(h, agents.keys(), loc='upper right')
+        # Add Legend
         infection = Line2D([0], [0], label='Infection', linestyle='', marker='*', color='red')
         vaccination = Line2D([0], [0], label='Vaccination', linestyle='', marker='*', color='blue')
         pregnant = Line2D([0], [0], label='Pregnancy', linestyle='', marker='*', color='yellow')
@@ -192,7 +196,7 @@ class PerformTest(ss.Intervention):
 def test_syph_vacc():
     # AGENTS
     agents = sc.odict()
-    #agents['Gets vaccine at start of infection'] = [('syphilis_infection', 1), ('syph_vaccine', 2)]
+    # agents['Gets vaccine at start of infection'] = [('syphilis_infection', 1), ('syph_vaccine', 2)]
     # agents['Infection, vaccine after infection'] = [('syphilis_infection', 2), ('syph_vaccine', 2)]
     # agents['No infection, vaccine'] = [('syph_vaccine', 20)]
     # agents['Infection, no vaccine'] = [('syphilis_infection', 20)]
@@ -202,6 +206,7 @@ def test_syph_vacc():
     # agents['Reinfection'] = [('syphilis_infection', 10), ('syphilis_treatment', 20), ('syph_vaccine', 25), ('syphilis_infection', 30)]
     # agents['Reinfection'] = [('syph_vaccine', 1), ('syphilis_infection', 10), ('syphilis_treatment', 20), ('syphilis_infection', 30)]
     agents['Reinfection'] = [('syph_vaccine', 1), ('syphilis_infection', 5), ('syph_vaccine', 7), ('syphilis_treatment', 20), ('syphilis_infection', 30)]
+
     events = []
     for i, x in enumerate(agents.values()):
         for y in x:
