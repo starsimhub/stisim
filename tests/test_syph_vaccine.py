@@ -12,6 +12,9 @@ from collections import defaultdict
 import numpy as np
 import matplotlib.pyplot as plt
 import sciris as sc
+import matplotlib.patches as mpatches
+from matplotlib.lines import Line2D
+import matplotlib.colors as mcolors
 
 
 class TrackValues(ss.Analyzer):
@@ -70,16 +73,25 @@ class TrackValues(ss.Analyzer):
         :param agents: Dictionary of events per agent {'agent_description':[('event_type', ti),...]}
         :return: Matplotlib figure
         """
-
-        def plot_with_events(ax, x, y, agents, title):
-            h = ax.scatter(x, y, c=self.syph_state)
+        colors = {0: 'tab:green', 1: 'tab:blue', 2: 'tab:orange', 3: 'tab:red', 4: 'tab:grey'}
+        def plot_with_events(ax, x, y, agents, title, colors):
+            for idx, agent in enumerate(agents):
+                syph_state_array = self.syph_state[:, idx].astype(int)
+                h = ax.scatter(x, y[:, idx], c= [colors[k] for k in syph_state_array])
+            
             x_ev = []
             y_ev = []
+            colors = []
+            labels = []
             for i, events in enumerate(agents.values()):
                 for event in events:
                     x_ev.append(self.sim.yearvec[event[1]])
                     y_ev.append(y[event[1], i])
-            ax.scatter(x_ev, y_ev, marker='*', color='yellow', edgecolor='red', s=100, linewidths=0.5, zorder=100)
+                    if event[0] == 'syphilis_infection':
+                        colors.append('red')
+                    if event[0] == 'syph_vaccine':
+                        colors.append('blue')
+            ax.scatter(x_ev, y_ev, marker='*', color=colors, edgecolor='red', s=100, linewidths=0.5, zorder=100)
             ax.set_title(title)
             return h
 
@@ -90,17 +102,23 @@ class TrackValues(ss.Analyzer):
 
         ax = ax.ravel()
 
-        h = plot_with_events(ax[0], self.sim.yearvec, self.syph_immunity_inf, agents, 'Syphilis immunity_inf')
-        h = plot_with_events(ax[1], self.sim.yearvec, self.syph_immunity_trans, agents, 'Syphilis immunity_trans')
+        h = plot_with_events(ax[0], self.sim.yearvec, self.syph_immunity_inf, agents, 'Syphilis immunity_inf', colors)
+        h = plot_with_events(ax[1], self.sim.yearvec, self.syph_immunity_trans, agents, 'Syphilis immunity_trans', colors)
 
         if self.has_syph:
-            h = plot_with_events(ax[2], self.sim.yearvec, self.syph_rel_sus, agents, 'Syphilis rel_sus')
-            h = plot_with_events(ax[3], self.sim.yearvec, self.syph_rel_trans, agents, 'Syphilis rel_trans')
+            h = plot_with_events(ax[2], self.sim.yearvec, self.syph_rel_sus, agents, 'Syphilis rel_sus', colors)
+            h = plot_with_events(ax[3], self.sim.yearvec, self.syph_rel_trans, agents, 'Syphilis rel_trans', colors)
 
-        # for axis in ax:
-        #    axis.set_xlim([2020, 2021])
+        for axis in ax:
+          axis.set_xlim([2020, 2024])
         # fig.legend(h, agents.keys(), loc='upper right')
-
+        infection = Line2D([0], [0], label='Infection', linestyle='', marker='*', color='red')
+        vaccination = Line2D([0], [0], label='Vaccination', linestyle='', marker='*', color='blue')
+        patches = []
+        for state, label in zip([0, 1, 2, 3, 4], ['susceptible', 'primary', 'secondary', 'tertiary', 'latent']):
+            state_patch = mpatches.Patch(color=colors[state], label=label)
+            patches.append(state_patch)
+        ax[0].legend(frameon=False, handles=[infection, vaccination] + patches)
         return fig
 
 
@@ -153,10 +171,10 @@ def test_syph_vacc():
     # AGENTS
     agents = sc.odict()
     #agents['Gets vaccine at start of infection'] = [('syphilis_infection', 1), ('syph_vaccine', 2)]
-    agents['Infection, vaccine after infection'] = [('syphilis_infection', 20), ('syph_vaccine', 50)]
-    #agents['No infection, vaccine'] = [('syph_vaccine', 50)]
-    #agents['Infection, no vaccine'] = [('syphilis_infection', 100)]
-
+    # agents['Infection, vaccine after infection'] = [('syphilis_infection', 2), ('syph_vaccine', 2)]
+    # agents['No infection, vaccine'] = [('syph_vaccine', 20)]
+    # agents['Infection, no vaccine'] = [('syphilis_infection', 20)]
+    agents['Infection after vaccine'] = [('syphilis_infection', 30), ('syph_vaccine', 2)]
     events = []
     for i, x in enumerate(agents.values()):
         for y in x:
@@ -181,8 +199,8 @@ def test_syph_vacc():
         eligibility=vaccine_eligible,
         target_coverage=0.75,
         efficacy=0.95,  # Peak
-        dur_reach_peak=6,  # Reaches efficacy after 6 months
-        dur_protection=18,  # Assume 18 months
+        dur_reach_peak=1,  # Reaches efficacy after 6 months
+        dur_protection=1000,  # Assume 18 months
     )
 
     pars['interventions'] = [PerformTest(events), syph_vaccine]
