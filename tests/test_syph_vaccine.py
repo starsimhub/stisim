@@ -15,6 +15,7 @@ import sciris as sc
 import matplotlib.patches as mpatches
 from matplotlib.lines import Line2D
 import matplotlib.colors as mcolors
+from syph_tests import TreatNum
 
 
 class TrackValues(ss.Analyzer):
@@ -96,7 +97,9 @@ class TrackValues(ss.Analyzer):
                         colors.append('blue')
                     if event[0] == 'pregnant':
                         colors.append('yellow')
-            ax.scatter(x_ev, y_ev, marker='*', color=colors, edgecolor='red', s=100, linewidths=0.5, zorder=100)
+                    if event[0] == 'syphilis_treatment':
+                        colors.append('black')
+            ax.scatter(x_ev, y_ev, marker='*', color=colors, edgecolor='red', s=150, linewidths=0.5, zorder=100)
             ax.set_title(title)
             return h
 
@@ -117,15 +120,17 @@ class TrackValues(ss.Analyzer):
 
         for axis in ax:
           axis.set_xlim([2020, 2024])
+
         # fig.legend(h, agents.keys(), loc='upper right')
         infection = Line2D([0], [0], label='Infection', linestyle='', marker='*', color='red')
         vaccination = Line2D([0], [0], label='Vaccination', linestyle='', marker='*', color='blue')
         pregnant = Line2D([0], [0], label='Pregnancy', linestyle='', marker='*', color='yellow')
+        treatment = Line2D([0], [0], label='Treatment', linestyle='', marker='*', color='black')
         patches = []
         for state, label in zip([0, 1, 2, 3, 4], ['susceptible', 'primary', 'secondary', 'tertiary', 'latent']):
             state_patch = mpatches.Patch(color=colors[state], label=label)
             patches.append(state_patch)
-        ax[0].legend(frameon=False, handles=[infection, vaccination, pregnant] + patches)
+        ax[0].legend(frameon=False, handles=[infection, vaccination, pregnant, treatment] + patches)
         return fig
 
 
@@ -139,6 +144,7 @@ class PerformTest(ss.Intervention):
         self.hiv_infections = defaultdict(list)
         self.syphilis_infections = defaultdict(list)
         self.syph_vaccine = defaultdict(list)
+        self.syphilis_treatment = defaultdict(list)
         self.pregnant = defaultdict(list)
 
         if events:
@@ -147,6 +153,8 @@ class PerformTest(ss.Intervention):
                     self.hiv_infections[ti].append(uid)
                 elif event == 'syphilis_infection':
                     self.syphilis_infections[ti].append(uid)
+                elif event == 'syphilis_treatment':
+                    self.syphilis_treatment[ti].append(uid)
                 elif event == 'syph_vaccine':
                     self.syph_vaccine[ti].append(uid)
                 elif event == 'pregnant':
@@ -157,18 +165,25 @@ class PerformTest(ss.Intervention):
     def administer_vaccine(self, uids):
         if len(uids):
             self.sim.interventions.syph_vaccine.vaccinate(self.sim, ss.uids(uids), update_immunity_by_vaccination=False)
-
+            if (self.sim.interventions.syph_vaccine.doses[ss.uids(uids)] > 1).any():
+                uids_boost = ss.uids(uids)[self.sim.interventions.syph_vaccine.doses[ss.uids(uids)] > 1]
+                self.sim.interventions.syph_vaccine.boost_immunity_by_vaccination(self.sim, ss.uids(uids_boost))
+                
+    def administer_treatment(self, uids):
+        if len(uids):
+            self.sim.interventions.treat.change_states(self.sim, ss.uids(uids))
 
     def set_pregnancy(self, uids):
         self.sim.demographics.pregnancy.pregnant[ss.uids(uids)] = True
         self.sim.demographics.pregnancy.ti_pregnant[ss.uids(uids)] = self.sim.ti
 
     def apply(self, sim):
-        self.administer_vaccine(self.syph_vaccine[sim.ti])
         if 'hiv' in sim.diseases:
             self.sim.diseases.hiv.set_prognoses(ss.uids(self.hiv_infections[sim.ti]))
         if 'syphilis' in sim.diseases:
             self.sim.diseases.syphilis.set_prognoses(ss.uids(self.syphilis_infections[sim.ti]))
+            self.administer_vaccine(self.syph_vaccine[sim.ti])
+            self.administer_treatment(self.syphilis_treatment[sim.ti])
 
         # Set pregnancies:
         self.set_pregnancy(self.pregnant[sim.ti])
@@ -183,7 +198,10 @@ def test_syph_vacc():
     # agents['Infection, no vaccine'] = [('syphilis_infection', 20)]
     # agents['Infection after vaccine'] = [('syphilis_infection', 30), ('syph_vaccine', 2)]
     # agents['Pregnancy'] = [('syphilis_infection', 10), ('pregnant', 15), ('syph_vaccine', 2)]
-    agents['2 Doses'] = [('syph_vaccine', 2), ('syph_vaccine', 20)]
+    # agents['2 Doses'] = [('syph_vaccine', 2), ('syph_vaccine', 20)]
+    # agents['Reinfection'] = [('syphilis_infection', 10), ('syphilis_treatment', 20), ('syph_vaccine', 25), ('syphilis_infection', 30)]
+    # agents['Reinfection'] = [('syph_vaccine', 1), ('syphilis_infection', 10), ('syphilis_treatment', 20), ('syphilis_infection', 30)]
+    agents['Reinfection'] = [('syph_vaccine', 1), ('syphilis_infection', 5), ('syph_vaccine', 7), ('syphilis_treatment', 20), ('syphilis_infection', 30)]
     events = []
     for i, x in enumerate(agents.values()):
         for y in x:
@@ -212,7 +230,10 @@ def test_syph_vacc():
         dur_protection=18,  # Assume 18 months
     )
 
-    pars['interventions'] = [PerformTest(events), syph_vaccine]
+    # Add Syphilis Treatment
+    treat = TreatNum(rel_treat_prob=0, name='treat', label='treat')
+    
+    pars['interventions'] = [PerformTest(events), treat, syph_vaccine]
     output = TrackValues()
     pars['analyzers'] = output
 
