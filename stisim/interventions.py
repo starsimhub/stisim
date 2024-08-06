@@ -683,9 +683,9 @@ class SyphVaccine(ss.Intervention):
         n_remove_reactivation = n_reactivate_vaccinated - rr(n_reactivate_vaccinated_target)
         # Pick agents randomly 
         if n_remove_reactivation > 0:
-            bools = ss.random(strict=False).rvs(len(reactive_uids))
+            bools = ss.random(strict=False).rvs(len((reactivate_bool & vaccinated).uids))
             choices = np.argsort(bools)[:n_remove_reactivation]
-            target_uids = reactive_uids[choices]
+            target_uids = (reactivate_bool & vaccinated).uids[choices]
             
             # Reset ti_secondary
             syph.ti_secondary[target_uids] = np.nan
