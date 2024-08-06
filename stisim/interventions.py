@@ -416,7 +416,7 @@ class SyphVaccine(ss.Intervention):
             prevent_transmission_latent=0.05,
             reduce_dur_primary=0.7,
             reduce_dur_secondary=0.2,
-            reduce_p_reactivate=0.5
+            reduce_p_reactivate=0.5 # Reduce p_reactivate in syphilis disease module by this factor 
         )
         self.update_pars(pars, **kwargs)
         
@@ -662,21 +662,53 @@ class SyphVaccine(ss.Intervention):
             # Update bool - ensures we only update the infection durations once per agent
             self.dur_inf_updated[uids] = True
             
+    def update_latent_prognoses(self, sim):
+        """
+        A proportion of agents in the latent syphilis stage are scheduled to reactivate based on p_reactivation in the syphilis disease module.
+        Here, we reduce the proportion of agents that are scheduled to reactivate to the secondary stage for vaccinated agents based 
+        on the reduce_p_reactivate parameter.
+        Agents that have reactivation to secondary removed will stay latent for the rest of the simulation (unless treated)
+        """
+        syph = sim.diseases.syphilis
+        vaccinated = self.vaccinated
+        new_latent = (syph.ti_latent == sim.ti)
+
+        # Scheduled to reactivate
+        reactivate_bool = new_latent & (syph.ti_secondary >= sim.ti)
+        reactive_uids = reactivate_bool.uids
+
+        # Remove reactivation for a proportion of agents scheduled for reactivation according to reduce_p_reactivate param
+        n_reactivate_vaccinated = len((reactivate_bool & vaccinated).uids)
+        n_reactivate_vaccinated_target = syph.pars.p_reactivate.pars.p * self.pars.reduce_p_reactivate * len((vaccinated & new_latent).uids)
+        n_remove_reactivation = n_reactivate_vaccinated - rr(n_reactivate_vaccinated_target)
+        # Pick agents randomly 
+        if n_remove_reactivation > 0:
+            bools = ss.random(strict=False).rvs(len(reactive_uids))
+            choices = np.argsort(bools)[:n_remove_reactivation]
+            target_uids = reactive_uids[choices]
+            
+            # Reset ti_secondary
+            syph.ti_secondary[target_uids] = np.nan
+            
+        return
 
     def apply(self, sim):
         syph = sim.diseases.syphilis
         self.update_natural_immunity(sim)
         if sim.year > self.start_year:
             target_uids = self.get_targets(sim)
+            # If there are targets, vaccinate them and update immunity for all vaccinated agents 
             if len(target_uids):
                 self.vaccinate(sim, target_uids)
                 self.results['new_vaccinations'][sim.ti] += len(target_uids)
+            # If there are no targets, only update immunity for all vaccinated agents 
             else:
                 self.update_immunity_by_vaccination(sim)
 
             # Reduce duration of infection for vaccinated, infected agents
             self.update_dur_infection(sim)
 
-            # TODO Reduce p_reactivate for vaccinated, infected agents
+            # Update latent prognoses by reducing p_reactivate for vaccinated, infected agents in latent state
+            self.update_latent_prognoses(sim)
 
         return
