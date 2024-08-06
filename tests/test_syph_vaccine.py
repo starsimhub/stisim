@@ -30,6 +30,8 @@ class TrackValues(ss.Analyzer):
         self.syph_immunity_inf = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
         self.syph_immunity_trans = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
 
+        self.syph_state = np.empty((sim.npts, self.n))
+
     @property
     def has_hiv(self):
         return 'hiv' in self.sim.diseases
@@ -51,6 +53,17 @@ class TrackValues(ss.Analyzer):
         self.syph_immunity_inf[sim.ti, :self.n] = sim.interventions.syph_vaccine.immunity_inf.values[:self.n]
         self.syph_immunity_trans[sim.ti, :self.n] = sim.interventions.syph_vaccine.immunity_trans.values[:self.n]
 
+        # State of each agent
+        susceptible_agents = sim.diseases.syphilis.susceptible
+        primary_agents = sim.diseases.syphilis.primary.uids
+        secondary_agents = sim.diseases.syphilis.secondary.uids
+        tertiary_agents = sim.diseases.syphilis.tertiary.uids
+        latent_agents = sim.diseases.syphilis.latent.uids
+        self.syph_state[sim.ti, susceptible_agents] = 0
+        self.syph_state[sim.ti, primary_agents] = 1
+        self.syph_state[sim.ti, secondary_agents] = 2
+        self.syph_state[sim.ti, tertiary_agents] = 3
+        self.syph_state[sim.ti, latent_agents] = 4
 
     def plot(self, agents: dict):
         """
@@ -59,7 +72,7 @@ class TrackValues(ss.Analyzer):
         """
 
         def plot_with_events(ax, x, y, agents, title):
-            h = ax.plot(x, y)
+            h = ax.scatter(x, y, c=self.syph_state)
             x_ev = []
             y_ev = []
             for i, events in enumerate(agents.values()):
@@ -71,20 +84,22 @@ class TrackValues(ss.Analyzer):
             return h
 
         if self.has_syph:
-            fig, ax = plt.subplots(2, 2)
+            fig, ax = plt.subplots(2, 2, figsize=(8, 8))
         else:
             fig, ax = plt.subplots(1, 2)
 
         ax = ax.ravel()
 
-        h = plot_with_events(ax[0], self.sim.yearvec, self.syph_immunity_inf, agents, 'Syphilis imm inf')
-        h = plot_with_events(ax[1], self.sim.yearvec, self.syph_immunity_trans, agents, 'Syphilis imm trans')
+        h = plot_with_events(ax[0], self.sim.yearvec, self.syph_immunity_inf, agents, 'Syphilis immunity_inf')
+        h = plot_with_events(ax[1], self.sim.yearvec, self.syph_immunity_trans, agents, 'Syphilis immunity_trans')
 
         if self.has_syph:
             h = plot_with_events(ax[2], self.sim.yearvec, self.syph_rel_sus, agents, 'Syphilis rel_sus')
             h = plot_with_events(ax[3], self.sim.yearvec, self.syph_rel_trans, agents, 'Syphilis rel_trans')
 
-        fig.legend(h, agents.keys(), loc='upper right', bbox_to_anchor=(1.1, 1))
+        # for axis in ax:
+        #    axis.set_xlim([2020, 2021])
+        # fig.legend(h, agents.keys(), loc='upper right')
 
         return fig
 
@@ -116,7 +131,7 @@ class PerformTest(ss.Intervention):
 
     def administer_vaccine(self, uids):
         if len(uids):
-            self.sim.interventions.syph_vaccine.vaccinate(self.sim, ss.uids(uids))
+            self.sim.interventions.syph_vaccine.vaccinate(self.sim, ss.uids(uids), update_immunity_by_vaccination=False)
 
 
     def set_pregnancy(self, uids):
@@ -137,10 +152,10 @@ class PerformTest(ss.Intervention):
 def test_syph_vacc():
     # AGENTS
     agents = sc.odict()
-    agents['No infection'] = []
-    agents['Gets vaccine at start of infection'] = [('syphilis_infection', 1), ('syph_vaccine', 2)]
-    agents['Gets vaccine later'] = [('syphilis_infection', 1), ('syph_vaccine', 12)]
-    agents['Gets vaccine while naive'] = [('syph_vaccine', 12)]
+    #agents['Gets vaccine at start of infection'] = [('syphilis_infection', 1), ('syph_vaccine', 2)]
+    agents['Infection, vaccine after infection'] = [('syphilis_infection', 20), ('syph_vaccine', 50)]
+    #agents['No infection, vaccine'] = [('syph_vaccine', 50)]
+    #agents['Infection, no vaccine'] = [('syphilis_infection', 100)]
 
     events = []
     for i, x in enumerate(agents.values()):
@@ -157,9 +172,9 @@ def test_syph_vacc():
     pars['networks'] = [sti.StructuredSexual(), ss.MaternalNet()]
     pars['demographics'] = [ss.Pregnancy(fertility_rate=0), ss.Deaths(death_rate=0)]
 
-    # Add Vaccine Intervention
+    # Add Vaccine Intervention          
     def vaccine_eligible(sim):
-        eligible = sim.people.age >= 0 # Everyone is eligible
+        eligible = sim.people.age < 0 # Noone is eligible
         return eligible
     syph_vaccine = sti.SyphVaccine(
         start_year=1981,
