@@ -696,8 +696,8 @@ class SyphVaccine(ss.Intervention):
             uids = (is_vaccinated & getattr(syph, state) & ti_duration.notnan & (~dur_inf_updated | new_reinfected)).uids
             
             current_duration = ti_duration[uids] - sim.ti
-            reduce_duraton_parameter = self.pars[f'reduce_dur_{state}']
-            new_ti_duration = sim.ti + rr(current_duration * reduce_duraton_parameter)
+            reduce_duration_parameter = self.pars[f'reduce_dur_{state}']
+            new_ti_duration = sim.ti + rr(current_duration * reduce_duration_parameter)
             ti_duration[uids] = new_ti_duration
             
             # Update values
