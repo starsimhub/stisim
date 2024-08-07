@@ -401,17 +401,21 @@ class SyphVaccine(ss.Intervention):
         self.name = 'syph_vaccine'
         self.requires = 'syphilis'
         self.default_pars(
-            efficacy=0.9,
+            # Dose parameters
             target_coverage=0.75,
-            daily_num_doses=1000, # Daily supply of vaccine doses
+            daily_num_doses=1000, # Daily supply of vaccine doses (unscaled)
             dose_interval=ss.lognorm_ex(mean=3, stdev=1/12), # Assume every 3 years for now
             p_second_dose=ss.bernoulli(p=1), # Probability that a a person, who received 1 dose, comes back for a second dose
             p_third_dose=ss.bernoulli(p=1), # Probability that a person, who receieved 2 doses, comes back for a third dose. More likely?
-            dur_protection=5, # expected duration of protection, half-life of exponential decay
-            dur_reach_peak=0.5, # Assume 6 months until efficacy is reached
+
+            # Immunity parameters
+            efficacy=0.9,
+            dur_protection=5, # in years, expected duration of protection, half-life of exponential decay
+            dur_reach_peak=0.5, # in years, Assume 6 months until efficacy is reached
             immunity_init=ss.uniform(low=0.7, high=0.9),
             nab_boost_infection=0.9, # Multiply base immunity by this factor. 1=no change in immunity, 0=full immunity, no reinfection
-            nab_boost_vaccination=0.7, # Multiply base immunity by this factor. 1=no change in immunity, 0=full immunity, no reinfection
+            nab_boost_vaccination_inf=0.99, # When receiving a second or third dose, multiply immunity_inf by this factor. 1=no change in immunity, 0=full immunity, no reinfection
+            nab_boost_vaccination_trans=0.75,  # When receiving a second or third dose, multiply immunity_trans by this factor. 1=no change in immunity, 0=full immunity, no reinfection
             prevent_infection=0.05,
             prevent_transmission_susceptible=0,
             prevent_transmission_primary=0.9,
@@ -585,7 +589,8 @@ class SyphVaccine(ss.Intervention):
 
     def update_natural_immunity(self, sim):
         """
-        Update base immunity for individuals, who got infected at this timestep
+        Update immunity_inf for individuals, who got infected at this timestep
+        No effect on immunity_trans
         """
         # Extract parameters and indices
         syph = sim.diseases.syphilis
@@ -613,8 +618,10 @@ class SyphVaccine(ss.Intervention):
         """
         Boost immunity level for newly vaccinated individuals, who received their second, third, etc. dose
         """
-        boost_factor = self.pars.nab_boost_vaccination
-        self.immunity_inf[uids] *= boost_factor
+        boost_factor_inf = self.pars.nab_boost_vaccination_inf
+        boost_factor_trans = self.pars.nab_boost_vaccination_trans
+        self.immunity_inf[uids] *= boost_factor_inf
+        self.immunity_trans[uids] *= boost_factor_trans
         return
 
     def update_immunity_by_vaccination(self, sim):
