@@ -403,7 +403,7 @@ class SyphVaccine(ss.Intervention):
         self.default_pars(
             efficacy=0.9,
             target_coverage=0.75,
-            num_doses=10000, # Daily supply of vaccine doses
+            daily_num_doses=1000, # Daily supply of vaccine doses
             dose_interval=ss.lognorm_ex(mean=3, stdev=1/12), # Assume every 3 years for now
             p_second_dose=ss.bernoulli(p=1), # Probability that a a person, who received 1 dose, comes back for a second dose
             p_third_dose=ss.bernoulli(p=1), # Probability that a person, who receieved 2 doses, comes back for a third dose. More likely?
@@ -523,10 +523,13 @@ class SyphVaccine(ss.Intervention):
         Get uids of agents to get vaccinated this time step.
 
         1) First, try to reach the target coverage by vaccinating as many eligible agents as possible (up to num_doses).
-        
+
         2) If target coverage has been reached, and there are doses leftover, administer second and third doses.
         Second and third doses are prioritized by wait time (only), e.g. an agent who received their second dose 24 months ago is prioritized
         over an agent who received their first dose 12 months ago.
+
+        Args:
+            num_doses:      available doses at this time step
         """
         target_uids = ss.uids()
         eligible_uids = self.check_eligibility(sim)  # Apply eligiblity
@@ -757,7 +760,8 @@ class SyphVaccine(ss.Intervention):
         syph = sim.diseases.syphilis
         self.update_natural_immunity(sim)
         if sim.year > self.start_year:
-            available_doses = self.pars.num_doses
+            # Available doses per time step
+            available_doses = rr(self.pars.daily_num_doses * 365 * sim.dt)
             target_uids = self.get_targets(sim, available_doses)
             # If there are targets, vaccinate them and update immunity for all vaccinated agents 
             if len(target_uids):
