@@ -403,8 +403,11 @@ class SyphVaccine(ss.Intervention):
         self.default_pars(
             efficacy=0.9,
             target_coverage=0.75,
-            dur_protection=12, # half-life of exponential decay
-            dur_reach_peak=2, # 2 months until efficacy is reached
+            dose_interval=ss.lognorm_ex(mean=3, stdev=1/12), # Assume every 3 years for now
+            p_second_dose=ss.bernoulli(p=1), # Probability that a a person, who received 1 dose, comes back for a second dose
+            p_third_dose=ss.bernoulli(p=1), # Probability that a person, who receieved 2 doses, comes back for a third dose. More likely?
+            dur_protection=5, # expected duration of protection, half-life of exponential decay
+            dur_reach_peak=0.5, # Assume 6 months until efficacy is reached
             immunity_init=ss.uniform(low=0.7, high=0.9),
             nab_boost_infection=0.9, # Multiply base immunity by this factor. 1=no change in immunity, 0=full immunity, no reinfection
             nab_boost_vaccination=0.7, # Multiply base immunity by this factor. 1=no change in immunity, 0=full immunity, no reinfection
@@ -434,11 +437,13 @@ class SyphVaccine(ss.Intervention):
         self.add_states(
             ss.BoolArr('vaccinated'),
             ss.FloatArr('ti_vaccinated'),
-            ss.FloatArr('doses', default=0),
             ss.FloatArr('immunity_trans', default=1),
             ss.FloatArr('immunity_inf', default=1),
             ss.FloatArr('ti_nab_event'),
-            ss.BoolArr('dur_inf_updated')
+            ss.BoolArr('dur_inf_updated'),
+            ss.FloatArr('doses', default=0),
+            ss.FloatArr('ti_second_dose'),
+            ss.FloatArr('ti_third_dose'),
         )
 
         # Vaccine 
@@ -493,10 +498,11 @@ class SyphVaccine(ss.Intervention):
                 dur_protection: Parameter to describe how long protection lasts. This will be the half-life of the exponential decay
 
         """
+        dt = self.sim.dt
         # Efficacy will increase linearly to its peak value
-        linear_increase = self.linear_increase(length=dur_reach_peak, init_val=0, slope=efficacy/dur_reach_peak)
+        linear_increase = self.linear_increase(length=rr(dur_reach_peak / dt), init_val=0, slope=efficacy/rr(dur_reach_peak / dt))
         # Efficacy will then drop exponentially, with half-time corresponding to the duration of protection
-        exp_decay = self.exp_decay(t=np.arange(0, self.sim.npts - len(linear_increase)), init_val=efficacy, half_life=dur_protection)
+        exp_decay = self.exp_decay(t=np.arange(0, self.sim.npts - len(linear_increase)), init_val=efficacy, half_life=rr(dur_protection / dt))
         # Combine to one array
         timecourse = np.concatenate([linear_increase, exp_decay])
         
@@ -514,18 +520,26 @@ class SyphVaccine(ss.Intervention):
     def get_targets(self, sim):
         target_uids = ss.uids()
         eligible_uids = self.check_eligibility(sim)  # Apply eligiblity
-        current_vaccinated = self.vaccinated.uids
 
+        # 1) Reach target coverage
+        current_vaccinated = self.vaccinated.uids
         n_current_vaccinated = len(current_vaccinated)
         n_target_vaccinated = len(eligible_uids) * self.target_coverage
         n_to_vaccinate = int(n_target_vaccinated - n_current_vaccinated)
-       
+        target_coverage_uids = ss.uids()
         if n_to_vaccinate > 0:
             # Pick eligible, non-vaccinated agents randomly
             # eligible_uids = eligible_uids & (~self.vaccinated).uids # Allow for multiple doses
             bools = ss.random(strict=False).rvs(len(eligible_uids))
             choices = np.argsort(bools)[:n_to_vaccinate]
-            target_uids = eligible_uids[choices]
+            target_coverage_uids = eligible_uids[choices]
+
+        # 2) If there are any unused doses, offer a second dose to any vaccinated agents, scheduled to come back for second dose
+        get_second_dose = self.ti_second_dose == sim.ti
+        get_third_dose = self.ti_third_dose == sim.ti
+
+        # Combine all agents that will get vaccinated at this timestep
+        target_uids = target_coverage_uids | get_second_dose.uids | get_third_dose.uids
 
         return target_uids
 
@@ -563,8 +577,11 @@ class SyphVaccine(ss.Intervention):
         self.vaccinated[uids] = True
         self.ti_vaccinated[uids] = sim.ti
         self.ti_nab_event[uids] = sim.ti
+
         # Update number of doses
         self.doses[uids] += 1
+
+        # Update immunity
         if update_immunity_by_vaccination:
             # Boost Immunity for >1 dose
             boost_uids = uids[self.doses[uids] > 1]
@@ -572,6 +589,19 @@ class SyphVaccine(ss.Intervention):
                 self.boost_immunity_by_vaccination(sim, boost_uids)
             # Update Immunity
             self.update_immunity_by_vaccination(sim)
+
+        # Schedule a second dose for a proportion of agents who received their first vaccination
+        dt = sim.dt
+        first_dose_uids = uids[self.doses[uids] == 1]
+        will_get_second_dose = first_dose_uids[self.pars.p_second_dose.rvs(first_dose_uids)]
+        self.ti_second_dose[will_get_second_dose] = sim.ti + rr(self.pars.dose_interval.rvs(will_get_second_dose) / dt)
+
+        # Schedule a third dose for a proportion of agents that have received their second dose
+        second_dose_uids = uids[self.doses[uids] == 2]
+        will_get_third_dose = second_dose_uids[self.pars.p_third_dose.rvs(second_dose_uids)]
+        self.ti_third_dose[will_get_third_dose] = sim.ti + rr(self.pars.dose_interval.rvs(will_get_third_dose) / dt)
+
+        return
 
     def boost_immunity_by_vaccination(self, sim, uids):
         """
