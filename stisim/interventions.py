@@ -690,7 +690,7 @@ class SyphVaccine(ss.Intervention):
         # This ensures that vaccinated people who get infected get their duration updated as well as
         # infected people who get vaccinated.
         # Primary -> Secondary, Secondary -> Tertiary 
-        for state, next_state in zip(['primary', 'secondary'], ['secondary', 'tertiary']):
+        for state, next_state in zip(['primary', 'secondary'], ['secondary', 'latent']):
             ti_duration = getattr(syph, f'ti_{next_state}')
             # Get uids from agents whose duration haven't been updated ever, or who have been reinfected
             uids = (is_vaccinated & getattr(syph, state) & ti_duration.notnan & (~dur_inf_updated | new_reinfected)).uids
