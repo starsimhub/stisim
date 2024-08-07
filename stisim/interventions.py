@@ -458,7 +458,13 @@ class SyphVaccine(ss.Intervention):
         super().init_pre(sim)
         if self.start_year is None:
             self.start_year = self.years[0]
+
+        # Initialize results
         self.init_results()
+        
+        # Scale number of doses
+        self.num_doses = rr((self.pars.daily_num_doses * 365 * sim.dt) / sim.pars.pop_scale)
+        
         # Get immunity and protection time courses
         self._immunity_timecourse = self.get_immunity_timecourse(self.pars.efficacy, self.pars.dur_reach_peak, self.pars.dur_protection)
         self._protection_timecourse = self.get_immunity_timecourse(self.pars.efficacy, self.pars.dur_reach_peak, self.pars.dur_protection) # For now, assume protection timecourse and immunity timecourse are equal
@@ -603,40 +609,6 @@ class SyphVaccine(ss.Intervention):
         self.ti_nab_event[new_syphilis] = sim.ti
         return
 
-    def vaccinate(self, sim, uids, update_immunity_by_vaccination=True):
-        """
-        Vaccinate
-        """
-        # Set states
-        self.vaccinated[uids] = True
-        self.ti_vaccinated[uids] = sim.ti
-        self.ti_nab_event[uids] = sim.ti
-
-        # Update number of doses
-        self.doses[uids] += 1
-
-        # Update immunity
-        if update_immunity_by_vaccination:
-            # Boost Immunity for >1 dose
-            boost_uids = uids[self.doses[uids] > 1]
-            if len(boost_uids):
-                self.boost_immunity_by_vaccination(sim, boost_uids)
-            # Update Immunity
-            self.update_immunity_by_vaccination(sim)
-
-        # Schedule a second dose for a proportion of agents who received their first vaccination
-        dt = sim.dt
-        first_dose_uids = uids[self.doses[uids] == 1]
-        will_get_second_dose = first_dose_uids[self.pars.p_second_dose.rvs(first_dose_uids)]
-        self.ti_second_dose[will_get_second_dose] = sim.ti + rr(self.pars.dose_interval.rvs(will_get_second_dose) / dt)
-
-        # Schedule a third dose for a proportion of agents that have received their second dose
-        second_dose_uids = uids[self.doses[uids] == 2]
-        will_get_third_dose = second_dose_uids[self.pars.p_third_dose.rvs(second_dose_uids)]
-        self.ti_third_dose[will_get_third_dose] = sim.ti + rr(self.pars.dose_interval.rvs(will_get_third_dose) / dt)
-
-        return
-
     def boost_immunity_by_vaccination(self, sim, uids):
         """
         Boost immunity level for newly vaccinated individuals, who received their second, third, etc. dose
@@ -644,19 +616,19 @@ class SyphVaccine(ss.Intervention):
         boost_factor = self.pars.nab_boost_vaccination
         self.immunity_inf[uids] *= boost_factor
         return
-        
+
     def update_immunity_by_vaccination(self, sim):
         """
-        Update Immunity levels for both vaccinated and unvaccinated individuals 
+        Update Immunity levels for both vaccinated and unvaccinated individuals
         """
         syph = sim.diseases.syphilis
 
         # Vaccinated Individuals
         vaccinated_bool = self.vaccinated
         vaccinated_uids = vaccinated_bool.uids
-        
-        # Update protection against infection and transmission for vaccinated inidivuals 
-        # Do this by infection state to differentiate between different transmission reductions per state  
+
+        # Update protection against infection and transmission for vaccinated inidivuals
+        # Do this by infection state to differentiate between different transmission reductions per state
         for state in ['susceptible', 'primary', 'secondary', 'tertiary', 'latent']:
             state = f'{state}'
             state_bools = getattr(sim.diseases.syphilis, state)
@@ -664,11 +636,11 @@ class SyphVaccine(ss.Intervention):
             if len(uids):
                 ti_since_boost = sim.ti - self.ti_nab_event[uids].astype(ss.dtypes.int)
                 ti_since_boost = np.minimum(ti_since_boost, len(self._protection_timecourse) - 1).astype(ss.dtypes.int)  # Max out protection
-                
+
                 immunity = self._immunity_timecourse[ti_since_boost]
                 protection = self._protection_timecourse[ti_since_boost]
                 prevent_transmission_param = self.pars[f'prevent_transmission_{state}']
-                
+
                 # Update protection against infection for vaccinated agents
                 self.immunity_inf[uids] -= self.pars.prevent_infection * immunity
 
@@ -681,8 +653,8 @@ class SyphVaccine(ss.Intervention):
 
         # Set rel trans and rel sus
         rel_trans, rel_sus = self.compute_trans_sus(sim)
-        syph.rel_trans.set(uids=sim.people.auids, new_vals = rel_trans)
-        syph.rel_sus.set(uids=sim.people.auids, new_vals = rel_sus)
+        syph.rel_trans.set(uids=sim.people.auids, new_vals=rel_trans)
+        syph.rel_sus.set(uids=sim.people.auids, new_vals=rel_sus)
 
         return
 
@@ -691,6 +663,7 @@ class SyphVaccine(ss.Intervention):
         rel_trans = syph.rel_trans * syph.infectious * self.immunity_trans
         rel_sus = syph.rel_sus * syph.susceptible * self.immunity_inf
         return rel_trans, rel_sus
+
 
     def update_dur_infection(self, sim):
         """
@@ -725,7 +698,9 @@ class SyphVaccine(ss.Intervention):
             
             # Update bool - ensures we only update the infection durations once per agent
             self.dur_inf_updated[uids] = True
-            
+
+        return
+
     def update_latent_prognoses(self, sim):
         """
         A proportion of agents in the latent syphilis stage are scheduled to reactivate based on p_reactivation in the syphilis disease module.
@@ -756,13 +731,45 @@ class SyphVaccine(ss.Intervention):
             
         return
 
+    def vaccinate(self, sim, uids, update_immunity_by_vaccination=True):
+        """
+        Vaccinate
+        """
+        # Set states
+        self.vaccinated[uids] = True
+        self.ti_vaccinated[uids] = sim.ti
+        self.ti_nab_event[uids] = sim.ti
+
+        # Update number of doses
+        self.doses[uids] += 1
+
+        # Update immunity
+        if update_immunity_by_vaccination:
+            # Boost Immunity for >1 dose
+            boost_uids = uids[self.doses[uids] > 1]
+            if len(boost_uids):
+                self.boost_immunity_by_vaccination(sim, boost_uids)
+            # Update Immunity
+            self.update_immunity_by_vaccination(sim)
+
+        # Schedule a second dose for a proportion of agents who received their first vaccination
+        dt = sim.dt
+        first_dose_uids = uids[self.doses[uids] == 1]
+        will_get_second_dose = first_dose_uids[self.pars.p_second_dose.rvs(first_dose_uids)]
+        self.ti_second_dose[will_get_second_dose] = sim.ti + rr(self.pars.dose_interval.rvs(will_get_second_dose) / dt)
+
+        # Schedule a third dose for a proportion of agents that have received their second dose
+        second_dose_uids = uids[self.doses[uids] == 2]
+        will_get_third_dose = second_dose_uids[self.pars.p_third_dose.rvs(second_dose_uids)]
+        self.ti_third_dose[will_get_third_dose] = sim.ti + rr(self.pars.dose_interval.rvs(will_get_third_dose) / dt)
+
+        return
+
     def apply(self, sim):
         syph = sim.diseases.syphilis
         self.update_natural_immunity(sim)
         if sim.year > self.start_year:
-            # Available doses per time step
-            available_doses = rr(self.pars.daily_num_doses * 365 * sim.dt)
-            target_uids = self.get_targets(sim, available_doses)
+            target_uids = self.get_targets(sim, self.num_doses)
             # If there are targets, vaccinate them and update immunity for all vaccinated agents 
             if len(target_uids):
                 self.vaccinate(sim, target_uids)
