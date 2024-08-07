@@ -40,6 +40,8 @@ class TrackValues(ss.Analyzer):
         self.syph_immunity_trans = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
 
         self.syph_state = np.empty((sim.npts, self.n))
+        self.ti_secondary = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
+        self.ti_latent = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
 
     @property
     def has_hiv(self):
@@ -75,6 +77,10 @@ class TrackValues(ss.Analyzer):
             self.syph_state[sim.ti, secondary_agents] = 2
             self.syph_state[sim.ti, tertiary_agents] = 3
             self.syph_state[sim.ti, latent_agents] = 4
+
+            # Duration of infection
+            self.ti_secondary[sim.ti, :self.n] = sim.diseases.syphilis.ti_secondary.values[:self.n]
+            self.ti_latent[sim.ti, :self.n] = sim.diseases.syphilis.ti_latent.values[:self.n]
 
     def plot(self, agents: dict):
         """
@@ -202,7 +208,7 @@ def test_syph_vacc():
     # agents['Infection, no vaccine'] = [('syphilis_infection', 20)]
     # agents['Infection after vaccine'] = [('syphilis_infection', 30), ('syph_vaccine', 2)]
     # agents['Pregnancy'] = [('syphilis_infection', 10), ('pregnant', 15), ('syph_vaccine', 2)]
-    agents['2 Doses'] = [('syph_vaccine', 2), ('syphilis_infection', 10)]
+    agents['2 Doses'] = [('syphilis_infection', 10), ('syph_vaccine', 11)]
     # agents['Reinfection'] = [('syphilis_infection', 10), ('syphilis_treatment', 20), ('syph_vaccine', 25), ('syphilis_infection', 30)]
     # agents['Reinfection'] = [('syph_vaccine', 1), ('syphilis_infection', 10), ('syphilis_treatment', 20), ('syphilis_infection', 30)]
     # agents['Reinfection'] = [('syph_vaccine', 1), ('syphilis_infection', 5), ('syph_vaccine', 7), ('syphilis_treatment', 20), ('syphilis_infection', 30)]
