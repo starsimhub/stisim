@@ -122,8 +122,8 @@ class TrackValues(ss.Analyzer):
             h = plot_with_events(ax[3], self.sim.yearvec, self.syph_rel_trans, agents, 'Syphilis rel_trans', colors)
             h = plot_with_events(ax[4], self.sim.yearvec, self.rel_trans_maternal, agents, 'Syphilis maternal rel_trans', colors)
 
-        for axis in ax:
-          axis.set_xlim([2020, 2024])
+        # for axis in ax:
+        #   axis.set_xlim([2020, 2024])
 
         # Add Legend
         infection = Line2D([0], [0], label='Infection', linestyle='', marker='*', color='red')
@@ -169,9 +169,9 @@ class PerformTest(ss.Intervention):
     def administer_vaccine(self, uids):
         if len(uids):
             self.sim.interventions.syph_vaccine.vaccinate(self.sim, ss.uids(uids), update_immunity_by_vaccination=False)
-            if (self.sim.interventions.syph_vaccine.doses[ss.uids(uids)] > 1).any():
-                uids_boost = ss.uids(uids)[self.sim.interventions.syph_vaccine.doses[ss.uids(uids)] > 1]
-                self.sim.interventions.syph_vaccine.boost_immunity_by_vaccination(self.sim, ss.uids(uids_boost))
+            # if (self.sim.interventions.syph_vaccine.doses[ss.uids(uids)] > 1).any():
+            #     uids_boost = ss.uids(uids)[self.sim.interventions.syph_vaccine.doses[ss.uids(uids)] > 1]
+            #     self.sim.interventions.syph_vaccine.boost_immunity_by_vaccination(self.sim, ss.uids(uids_boost))
                 
     def administer_treatment(self, uids):
         if len(uids):
@@ -202,10 +202,10 @@ def test_syph_vacc():
     # agents['Infection, no vaccine'] = [('syphilis_infection', 20)]
     # agents['Infection after vaccine'] = [('syphilis_infection', 30), ('syph_vaccine', 2)]
     # agents['Pregnancy'] = [('syphilis_infection', 10), ('pregnant', 15), ('syph_vaccine', 2)]
-    # agents['2 Doses'] = [('syph_vaccine', 2), ('syph_vaccine', 20)]
+    agents['2 Doses'] = [('syph_vaccine', 2), ('syphilis_infection', 10)]
     # agents['Reinfection'] = [('syphilis_infection', 10), ('syphilis_treatment', 20), ('syph_vaccine', 25), ('syphilis_infection', 30)]
     # agents['Reinfection'] = [('syph_vaccine', 1), ('syphilis_infection', 10), ('syphilis_treatment', 20), ('syphilis_infection', 30)]
-    agents['Reinfection'] = [('syph_vaccine', 1), ('syphilis_infection', 5), ('syph_vaccine', 7), ('syphilis_treatment', 20), ('syphilis_infection', 30)]
+    # agents['Reinfection'] = [('syph_vaccine', 1), ('syphilis_infection', 5), ('syph_vaccine', 7), ('syphilis_treatment', 20), ('syphilis_infection', 30)]
 
     events = []
     for i, x in enumerate(agents.values()):
@@ -226,13 +226,16 @@ def test_syph_vacc():
     def vaccine_eligible(sim):
         eligible = sim.people.age < 0 # Noone is eligible
         return eligible
+
     syph_vaccine = sti.SyphVaccine(
         start_year=1981,
         eligibility=vaccine_eligible,
         target_coverage=0.75,
-        efficacy=0.95,  # Peak
-        dur_reach_peak=6,  # Reaches efficacy after 6 months
-        dur_protection=18,  # Assume 18 months
+        daily_num_doses=500,
+        p_second_dose=1,
+        efficacy=0.75,  # Medium assumption
+        dur_reach_peak=0.5,  # Reaches efficacy after 6 months
+        dur_protection=5,  # Assume 5 years
     )
 
     # Add Syphilis Treatment
