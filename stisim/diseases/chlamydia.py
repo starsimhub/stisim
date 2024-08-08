@@ -62,8 +62,6 @@ class Chlamydia(ss.Infection):
             self.pars.beta['structuredsexual'][0] *= self.pars.beta_m2f
         if self.pars.beta_f2m is not None:
             self.pars.beta['structuredsexual'][1] *= self.pars.beta_f2m
-        if self.pars.beta_m2c is not None:
-            self.pars.beta['maternal'][0] *= self.pars.beta_m2c
         return
 
     def init_post(self):
