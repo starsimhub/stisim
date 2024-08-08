@@ -21,12 +21,23 @@ class Chlamydia(ss.Infection):
             time_to_peak=8/52,
             half_life=ss.lognorm_ex(2.5/52, 0.5/52),
             ct_beta=0.5,  # Growth rate in logistic function mapping CT load to rel_trans
+            model_ct_load=True,  # Whether to model CT load
+            dur_inf=ss.lognorm_ex(60/52, 5/52),  # Duration of infection - only used if model_ct_load is False
 
             # Transmission
             beta=1.0,  # Placeholder
             beta_m2f=None,
             beta_f2m=None,
             beta_m2c=None,
+
+            # Symptoms
+            p_symp=[
+                ss.bernoulli(p=0.375),
+                ss.bernoulli(p=0.375),
+            ],
+            p_pid_symp=ss.bernoulli(p=0.25),
+            p_pid_asymp=ss.bernoulli(p=0.25),
+            dur_presymp=ss.lognorm_ex(2/52, 1/52),
 
             # Initial conditions
             init_prev=ss.bernoulli(p=0.01)
@@ -100,21 +111,11 @@ class Chlamydia(ss.Infection):
         super().finalize_results()
         return
 
-    def set_prognoses(self, uids, source_uids=None):
-        """
-        Set initial prognoses for adults newly infected with syphilis
-        """
-        super().set_prognoses(uids, source_uids)
-
+    def set_ct_load(self, uids):
+        """ Bacterial load dynamics """
         ti = self.sim.ti
         dt = self.sim.dt
         p = self.pars
-
-        self.susceptible[uids] = False
-        self.infected[uids] = True
-        self.ti_infected[uids] = ti
-
-        # Bacterial load dynamics
         timesteps_to_peak = p.time_to_peak/dt
         if timesteps_to_peak < 1:
             self.ct_load[uids] = p.peak_load
@@ -126,6 +127,27 @@ class Chlamydia(ss.Infection):
         self.ct_growth_rate[uids] = np.log(p.peak_load/p.init_load)/timesteps_to_peak
         self.ct_decay_rate[uids] = np.log(2) / (self.ct_half_life[uids]/dt)
         dur_inf = (-np.log(p.init_load/p.peak_load)/self.ct_decay_rate[uids])*dt
+
+        return dur_inf
+
+    def set_prognoses(self, uids, source_uids=None):
+        """
+        Set initial prognoses for adults newly infected with syphilis
+        """
+        super().set_prognoses(uids, source_uids)
+
+        ti = self.sim.ti
+        dt = self.sim.dt
+
+        self.susceptible[uids] = False
+        self.infected[uids] = True
+        self.ti_infected[uids] = ti
+
+        # Calculate duration of infection
+        if self.pars.model_ct_load:
+            dur_inf = self.set_ct_load(uids)
+        else:
+            dur_inf = self.pars.dur_inf.rvs(uids)
 
         # Determine when people recover
         self.ti_clearance[uids] = ti + dur_inf/dt
