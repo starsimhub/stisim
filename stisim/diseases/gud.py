@@ -1,28 +1,28 @@
 """
-Define genital ulcer disease
+Placeholder modules for non-specific STIs, including:
+    - Genital ulcer disease
+    - Vaginal discharge
 """
 
-import numpy as np
-import sciris as sc
 import starsim as ss
 import stisim as sti
 
-__all__ = ['GUDPlaceholder', 'GUD']
+__all__ = ['Placeholder', 'GUDPlaceholder', 'VDPlaceholder', 'GUD']
 
 
-class GUDPlaceholder(ss.Disease):
+class Placeholder(ss.Disease):
     # A simple placeholder module to use when testing connectors
 
-    def __init__(self, pars=None, **kwargs):
-        super().__init__(name='gud')
+    def __init__(self, pars=None, name=None, **kwargs):
+        super().__init__(name=name)
 
         self.default_pars(
             prevalence=0.1,  # Target prevalance. If None, no automatic infections will be applied
         )
         self.update_pars(pars, **kwargs)
         self.add_states(
-            ss.BoolArr('symptomatic'), # Symptomatic
-            ss.FloatArr('ti_symptomatic'), # Time of active syphilis
+            ss.BoolArr('symptomatic'),  # Symptomatic
+            ss.FloatArr('ti_symptomatic'),  # Time of active symptoms
         )
         self._prev_dist = ss.bernoulli(p=0)
 
@@ -65,6 +65,19 @@ class GUDPlaceholder(ss.Disease):
             self._prev_dist.set(p=-change/(len(uids)/len(sim.people)))
             self.symptomatic[self._prev_dist.filter(uids)] = False
 
+
+class VDPlaceholder(Placeholder):
+    # Background prevalence of vaginal discharge
+    def __init__(self, pars=None, name='vd', **kwargs):
+        super().__init__(pars=pars, name=name, **kwargs)
+        return
+
+
+class GUDPlaceholder(Placeholder):
+    # Background prevalence of genital ulcerative disease
+    def __init__(self, pars=None, name='gud', **kwargs):
+        super().__init__(pars=pars, name=name, **kwargs)
+        return
 
 
 class GUD(ss.Infection):
