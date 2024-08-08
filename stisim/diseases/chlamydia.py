@@ -38,6 +38,7 @@ class Chlamydia(ss.Infection):
             p_pid_symp=ss.bernoulli(p=0.25),
             p_pid_asymp=ss.bernoulli(p=0.25),
             dur_presymp=ss.lognorm_ex(2/52, 1/52),
+            dur_prepid=ss.lognorm_ex(3/52, 6/52),
 
             # Initial conditions
             init_prev=ss.bernoulli(p=0.01)
@@ -45,12 +46,23 @@ class Chlamydia(ss.Infection):
         self.update_pars(pars, **kwargs)
 
         self.add_states(
-            ss.FloatArr('ct_load'),  # Bacterial load
+            # Bacterial load
+            ss.FloatArr('ct_load'),
             ss.FloatArr('ct_peak_time'),
             ss.FloatArr('ct_growth_rate'),
             ss.FloatArr('ct_decay_rate'),
             ss.FloatArr('ct_half_life'),
+
+            # Natural history
+            ss.BoolArr('asymptomatic'),
+            ss.BoolArr('symptomatic'),
+            ss.BoolArr('pid'),
+            ss.FloatArr('dur_inf'),
+            ss.FloatArr('ti_symptomatic'),
+            ss.FloatArr('ti_pid'),
             ss.FloatArr('ti_clearance'),
+
+            # Immunity
             ss.FloatArr('immunity', default=0.0),
         )
 
@@ -83,6 +95,14 @@ class Chlamydia(ss.Infection):
         super().init_results()
         return
 
+    def clear_infection(self, uids):
+        self.infected[uids] = False
+        self.symptomatic[uids] = False
+        self.asymptomatic[uids] = False
+        self.pid[uids] = False
+        self.susceptible[uids] = True
+        self.ti_clearance[uids] = self.sim.ti
+
     def update_pre(self):
         """ Updates prior to interventions """
         ti = self.sim.ti
@@ -93,13 +113,23 @@ class Chlamydia(ss.Infection):
         self.rel_trans[:] = 1
 
         # Clear infections
-        newly_cleared = (self.infected & (self.ti_clearance <= ti)).uids
-        self.infected[newly_cleared] = False
-        self.susceptible[newly_cleared] = True
+        new_cleared = (self.infected & (self.ti_clearance <= ti)).uids
+        self.clear_infection(new_cleared)
+
+        # Progress symptoms
+        new_symptomatic = (self.asymptomatic & (self.ti_symptomatic <= ti)).uids
+        self.asymptomatic[new_symptomatic] = False
+        self.symptomatic[new_symptomatic] = True
+        self.ti_symptomatic[new_symptomatic] = ti
+
+        # Progress PID
+        new_pid = (self.infected & (self.ti_pid <= ti)).uids
+        self.pid[new_pid] = False
 
         # Update CT load and scale res_sus
-        self.update_ct_load(self.infected.uids)
-        self.rel_trans[self.infected] = 2 / (1 + np.exp(-self.pars.ct_beta*np.log10(self.ct_load[self.infected]))) - 1
+        if self.pars.model_ct_load:
+            self.update_ct_load(self.infected.uids)
+            self.rel_trans[self.infected] = 2 / (1 + np.exp(-self.pars.ct_beta*np.log10(self.ct_load[self.infected]))) - 1
 
         return
 
@@ -138,9 +168,12 @@ class Chlamydia(ss.Infection):
 
         ti = self.sim.ti
         dt = self.sim.dt
+        ppl = self.sim.people
+        p = self.pars
 
         self.susceptible[uids] = False
         self.infected[uids] = True
+        self.asymptomatic[uids] = True
         self.ti_infected[uids] = ti
 
         # Calculate duration of infection
@@ -148,6 +181,24 @@ class Chlamydia(ss.Infection):
             dur_inf = self.set_ct_load(uids)
         else:
             dur_inf = self.pars.dur_inf.rvs(uids)
+        self.dur_inf[uids] = dur_inf
+
+        # Symptoms
+        m_uids = ppl.male.uids.intersect(uids)
+        f_uids = ppl.female.uids.intersect(uids)
+        m_symp = p.p_symp[0].filter(m_uids)
+        f_symp, f_asymp = p.p_symp[1].split(f_uids)
+        dur_presymp_m = np.minimum(p.dur_presymp.rvs(m_symp), self.dur_inf[m_symp])
+        dur_presymp_f = np.minimum(p.dur_presymp.rvs(f_symp), self.dur_inf[f_symp])
+        self.ti_symptomatic[m_symp] = ti + dur_presymp_m/dt
+        self.ti_symptomatic[f_symp] = ti + dur_presymp_f/dt
+
+        pid_symp = p.p_pid_symp.filter(f_symp)
+        pid_asymp = p.p_pid_asymp.filter(f_asymp)
+        dur_prepid_symp = np.minimum(p.dur_prepid.rvs(pid_symp), self.dur_inf[pid_symp])
+        dur_prepid_asymp = np.minimum(p.dur_prepid.rvs(pid_asymp), self.dur_inf[pid_asymp])
+        self.ti_pid[pid_symp] = ti + dur_prepid_symp/dt
+        self.ti_pid[pid_asymp] = ti + dur_prepid_asymp/dt
 
         # Determine when people recover
         self.ti_clearance[uids] = ti + dur_inf/dt
