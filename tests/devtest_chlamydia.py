@@ -10,7 +10,7 @@ import pylab as pl
 def plot_bacterial_load(n_years=2, dt=1/52, init_load=1, peak_load=10e7):
 
     time_to_peak = 8/52
-    half_life = 2.5/52  #3/52
+    half_life = 2.5/52
     ti_peak = int(time_to_peak/dt)
     growth_rate = np.log(peak_load/init_load)/(ti_peak-1)
     decay_rate = np.log(2) / (half_life/dt)
@@ -77,4 +77,3 @@ def plot_bacterial_load(n_years=2, dt=1/52, init_load=1, peak_load=10e7):
 if __name__ == '__main__':
 
     t, y = plot_bacterial_load()
-    

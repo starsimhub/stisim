@@ -3,9 +3,7 @@ Chlamydia trachomatis disease module
 """
 
 import numpy as np
-import sciris as sc
 import starsim as ss
-import stisim as sti
 
 __all__ = ['Chlamydia']
 
