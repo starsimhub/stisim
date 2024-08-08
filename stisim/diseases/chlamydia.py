@@ -93,6 +93,8 @@ class Chlamydia(ss.Infection):
     def init_results(self):
         """ Initialize results """
         super().init_results()
+        npts = self.sim.npts
+        self.results += ss.Result(self.name, 'symp_prevalence', npts, dtype=float, scale=False)
         return
 
     def clear_infection(self, uids):
@@ -135,6 +137,8 @@ class Chlamydia(ss.Infection):
 
     def update_results(self):
         super().update_results()
+        ti = self.sim.ti
+        self.results['symp_prevalence'][ti] = self.results['n_symptomatic'][ti] / np.count_nonzero(self.sim.people.alive)
         return
 
     def finalize_results(self):
