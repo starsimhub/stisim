@@ -237,7 +237,7 @@ def test_syph_vacc():
         start_year=1981,
         eligibility=vaccine_eligible,
         target_coverage=0.75,
-        daily_num_doses=500,
+        # daily_num_doses=500,
         p_second_dose=1,
         efficacy=0.75,  # Medium assumption
         dur_reach_peak=0.5,  # Reaches efficacy after 6 months

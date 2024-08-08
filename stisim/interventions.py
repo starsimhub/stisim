@@ -403,7 +403,7 @@ class SyphVaccine(ss.Intervention):
         self.default_pars(
             # Dose parameters
             target_coverage=0.75,
-            daily_num_doses=1000, # Daily supply of vaccine doses (unscaled)
+            daily_num_doses=None, # Daily supply of vaccine doses (unscaled), None equals unlimited supply
             dose_interval=ss.lognorm_ex(mean=3, stdev=1/12), # Assume every 3 years for now
             p_second_dose=ss.bernoulli(p=1), # Probability that a a person, who received 1 dose, comes back for a second dose
             p_third_dose=ss.bernoulli(p=1), # Probability that a person, who receieved 2 doses, comes back for a third dose. More likely?
@@ -467,7 +467,10 @@ class SyphVaccine(ss.Intervention):
         self.init_results()
         
         # Scale number of doses
-        self.num_doses = rr((self.pars.daily_num_doses * 365 * sim.dt) / sim.pars.pop_scale)
+        if self.pars.daily_num_doses is not None:
+            self.num_doses = rr((self.pars.daily_num_doses * 365 * sim.dt) / sim.pars.pop_scale)
+        else:
+            self.num_doses = None
         
         # Get immunity and protection time courses
         self._immunity_timecourse = self.get_immunity_timecourse(self.pars.efficacy, self.pars.dur_reach_peak, self.pars.dur_protection)
@@ -548,7 +551,12 @@ class SyphVaccine(ss.Intervention):
         current_vaccinated = self.vaccinated.uids
         n_current_vaccinated = len(current_vaccinated)
         n_target_vaccinated = len(eligible_uids) * self.target_coverage
-        n_to_vaccinate = np.minimum(num_doses, int(n_target_vaccinated - n_current_vaccinated))
+        # If there unlimited doses (i.e. num_doses=None), vaccinate all, otherwise vaccinate as many as possible
+        if num_doses is not None:
+            n_to_vaccinate = np.minimum(num_doses, int(n_target_vaccinated - n_current_vaccinated))
+        else:
+            n_to_vaccinate = int(n_target_vaccinated - n_current_vaccinated)
+
         target_coverage_uids = ss.uids()
         if n_to_vaccinate > 0:
             # Pick eligible, non-vaccinated agents randomly to each target coverage
@@ -558,29 +566,31 @@ class SyphVaccine(ss.Intervention):
             target_coverage_uids = eligible_uids[choices]
 
         # 2) Disperse unused doses to agents, who are eligible to receive a second or third dose
-        remaining_doses = num_doses - len(target_coverage_uids)
-        if remaining_doses > 0:
-            # If there are any unused doses, offer a second dose to any vaccinated agents, scheduled to come back for second dose
-            eligible_second_dose = self.ti_second_dose <= sim.ti
-            eligible_third_dose = self.ti_third_dose <= sim.ti
+        # If there are any unused doses, offer a second and third dose to any vaccinated agents, scheduled to come back for second or third dose
+        eligible_second_dose = self.ti_second_dose <= sim.ti
+        eligible_third_dose = self.ti_third_dose <= sim.ti
+
+        # If there are limited doses, prioritize agents, who have waited the longest
+        # else, vaccinate everyone eligible
+        if num_doses is not None:
+            remaining_doses = num_doses - len(target_coverage_uids)
 
             # Get and combine wait times 
             wait_times_second_dose = sim.ti - self.ti_second_dose[eligible_second_dose.uids]
             wait_times_third_dose = sim.ti - self.ti_third_dose[eligible_third_dose.uids]
             wait_times_combined = np.concatenate([wait_times_second_dose, wait_times_third_dose])
             uids_combined = eligible_second_dose.uids.concat(eligible_third_dose.uids)
-            # Prioritize agents, who have waited the longest
+            
             choices = np.argsort(wait_times_combined)[:remaining_doses]
             uids_to_revaccinate = uids_combined[choices]
-            
-            # Reset ti_second_dose, and ti_third_dose for agents who received their second and third dose
-            get_second_dose_uids = uids_to_revaccinate & eligible_second_dose.uids
-            get_third_dose_uids = uids_to_revaccinate & eligible_third_dose.uids
-            self.ti_second_dose[get_second_dose_uids] = np.nan
-            self.ti_third_dose[get_third_dose_uids] = np.nan
         else:
-            get_second_dose_uids = ss.uids()
-            get_third_dose_uids = ss.uids()
+            uids_to_revaccinate = eligible_second_dose.uids | eligible_third_dose.uids
+        
+        # Reset ti_second_dose, and ti_third_dose for agents who received their second and third dose
+        get_second_dose_uids = uids_to_revaccinate & eligible_second_dose.uids
+        get_third_dose_uids = uids_to_revaccinate & eligible_third_dose.uids
+        self.ti_second_dose[get_second_dose_uids] = np.nan
+        self.ti_third_dose[get_third_dose_uids] = np.nan
 
         # Combine all agents that will get vaccinated at this timestep
         target_uids = target_coverage_uids | get_second_dose_uids | get_third_dose_uids
