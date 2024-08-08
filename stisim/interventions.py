@@ -531,7 +531,7 @@ class SyphVaccine(ss.Intervention):
             uids = sim.people.alive.uids
         return uids
 
-    def get_targets(self, sim, num_doses=100):
+    def get_targets(self, sim, num_doses=None):
         """
         Get uids of agents to get vaccinated this time step.
 
@@ -542,7 +542,7 @@ class SyphVaccine(ss.Intervention):
         over an agent who received their first dose 12 months ago.
 
         Args:
-            num_doses:      available doses at this time step
+            num_doses:      available doses at this time step, if None assume unlimited supply
         """
         target_uids = ss.uids()
         eligible_uids = self.check_eligibility(sim)  # Apply eligiblity
