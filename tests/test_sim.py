@@ -8,6 +8,7 @@ import starsim as ss
 import stisim as sti
 import pandas as pd
 import numpy as np
+import pylab as pl
 
  
 def test_hiv_sim(n_agents=500, dt=1):
@@ -39,6 +40,32 @@ def test_hiv_sim(n_agents=500, dt=1):
     return sim
 
 
+def test_sti_sim(n_agents=500, dt=1):
+
+    chlamydia = sti.Chlamydia(
+        beta_m2f=0.5,
+        beta_f2m=0.2,
+        init_prev=0.05,
+    )
+    pregnancy = ss.Pregnancy(fertility_rate=10)
+    death = ss.Deaths(death_rate=10)
+    sexual = sti.StructuredSexual()
+    sim = ss.Sim(
+        dt=dt,
+        start=1990,
+        n_years=40,
+        n_agents=n_agents,
+        diseases=chlamydia,
+        networks=sexual,
+        demographics=[pregnancy, death],
+    )
+    sim.run(verbose=0.01)
+    sim.plot('chlamydia')
+    pl.show()
+
+    return sim
+
+
 if __name__ == '__main__':
-    sc.options(interactive=False)
-    s0 = test_hiv_sim()
+    # s0 = test_hiv_sim()
+    sim = test_sti_sim(n_agents=10e3, dt=1/12)
