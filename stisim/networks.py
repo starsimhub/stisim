@@ -445,7 +445,7 @@ class StructuredSexual(ss.SexualNetwork):
         ti = self.sim.ti
         partners_active_m = self.partners[(self.sim.people.male & self.active(self.sim.people))]
         partners_active_f = self.partners[(self.sim.people.female & self.active(self.sim.people))]
-        self.results.share_active[ti] = len(self.active(self.sim.people).uids)/len(self.sim.people)
+        self.results.share_active[ti] = sc.safedivide(len(self.active(self.sim.people).uids), len(self.sim.people))
         # self.results.partners_f_mean[ti] = np.mean(partners_active_f)
         # self.results.partners_m_mean[ti] = np.mean(partners_active_m)
 
