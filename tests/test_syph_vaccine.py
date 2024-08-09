@@ -38,6 +38,7 @@ class TrackValues(ss.Analyzer):
 
         self.syph_immunity_inf = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
         self.syph_immunity_trans = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
+        self.syph_immunity_trans_maternal = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
 
         self.syph_state = np.empty((sim.npts, self.n))
         self.ti_secondary = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
@@ -53,36 +54,38 @@ class TrackValues(ss.Analyzer):
 
     def apply(self, sim):
 
-        if self.has_hiv:
-            self.hiv_rel_sus[sim.ti, :self.n] = sim.diseases.hiv.rel_sus.values[:self.n]
-            self.hiv_rel_trans[sim.ti, :self.n] = sim.diseases.hiv.rel_trans.values[:self.n]
+        if len(sim.people.alive.uids):
+            if self.has_hiv:
+                self.hiv_rel_sus[sim.ti, :self.n] = sim.diseases.hiv.rel_sus.values[:self.n]
+                self.hiv_rel_trans[sim.ti, :self.n] = sim.diseases.hiv.rel_trans.values[:self.n]
 
-        if self.has_syph:
-            self.syph_rel_sus[sim.ti, :self.n] = sim.diseases.syphilis.rel_sus.values[:self.n]
-            self.syph_rel_trans[sim.ti, :self.n] = sim.diseases.syphilis.rel_trans.values[:self.n]
-            self.rel_trans_maternal[sim.ti, :self.n] = sim.diseases.syphilis.rel_trans_maternal.values[:self.n]
+            if self.has_syph:
+                self.syph_rel_sus[sim.ti, :self.n] = sim.diseases.syphilis.rel_sus.values[:self.n]
+                self.syph_rel_trans[sim.ti, :self.n] = sim.diseases.syphilis.rel_trans.values[:self.n]
+                self.rel_trans_maternal[sim.ti, :self.n] = sim.diseases.syphilis.rel_trans_maternal.values[:self.n]
 
-            # Immunity Inf and trans
-            self.syph_immunity_inf[sim.ti, :self.n] = sim.interventions.syph_vaccine.immunity_inf.values[:self.n]
-            self.syph_immunity_trans[sim.ti, :self.n] = sim.interventions.syph_vaccine.immunity_trans.values[:self.n]
-            
-            # State of each agent
-            susceptible_agents = sim.diseases.syphilis.susceptible.uids
-            primary_agents = sim.diseases.syphilis.primary.uids
-            secondary_agents = sim.diseases.syphilis.secondary.uids
-            tertiary_agents = sim.diseases.syphilis.tertiary.uids
-            latent_agents = sim.diseases.syphilis.latent.uids
-            dead = sim.people.dead.uids
-            self.syph_state[sim.ti, sim.people.auids] = -1
-            self.syph_state[sim.ti, susceptible_agents] = 0
-            self.syph_state[sim.ti, primary_agents] = 1
-            self.syph_state[sim.ti, secondary_agents] = 2
-            self.syph_state[sim.ti, tertiary_agents] = 3
-            self.syph_state[sim.ti, latent_agents] = 4
+                # Immunity Inf and trans
+                self.syph_immunity_inf[sim.ti, :self.n] = sim.interventions.syph_vaccine.immunity_inf.values[:self.n]
+                self.syph_immunity_trans[sim.ti, :self.n] = sim.interventions.syph_vaccine.immunity_trans.values[:self.n]
+                self.syph_immunity_trans_maternal[sim.ti, :self.n] = sim.interventions.syph_vaccine.immunity_trans_maternal.values[:self.n]
 
-            # Duration of infection
-            self.ti_secondary[sim.ti, :self.n] = sim.diseases.syphilis.ti_secondary.values[:self.n]
-            self.ti_latent[sim.ti, :self.n] = sim.diseases.syphilis.ti_latent.values[:self.n]
+                # State of each agent
+                susceptible_agents = sim.diseases.syphilis.susceptible.uids
+                primary_agents = sim.diseases.syphilis.primary.uids
+                secondary_agents = sim.diseases.syphilis.secondary.uids
+                tertiary_agents = sim.diseases.syphilis.tertiary.uids
+                latent_agents = sim.diseases.syphilis.latent.uids
+                dead = sim.people.dead.uids
+                self.syph_state[sim.ti, sim.people.auids] = -1
+                self.syph_state[sim.ti, susceptible_agents] = 0
+                self.syph_state[sim.ti, primary_agents] = 1
+                self.syph_state[sim.ti, secondary_agents] = 2
+                self.syph_state[sim.ti, tertiary_agents] = 3
+                self.syph_state[sim.ti, latent_agents] = 4
+
+                # Duration of infection
+                self.ti_secondary[sim.ti, :self.n] = sim.diseases.syphilis.ti_secondary.values[:self.n]
+                self.ti_latent[sim.ti, :self.n] = sim.diseases.syphilis.ti_latent.values[:self.n]
 
     def plot(self, agents: dict):
         """
@@ -126,17 +129,19 @@ class TrackValues(ss.Analyzer):
 
         h = plot_with_events(ax[0], self.sim.yearvec, self.syph_immunity_inf, agents, 'Syphilis immunity_inf', colors)
         h = plot_with_events(ax[1], self.sim.yearvec, self.syph_immunity_trans, agents, 'Syphilis immunity_trans', colors)
+        h = plot_with_events(ax[2], self.sim.yearvec, self.syph_immunity_trans_maternal, agents, 'Syphilis immunity_trans_maternal', colors)
 
         if self.has_syph:
-            h = plot_with_events(ax[2], self.sim.yearvec, self.syph_rel_sus, agents, 'Syphilis rel_sus', colors)
-            h = plot_with_events(ax[3], self.sim.yearvec, self.syph_rel_trans, agents, 'Syphilis rel_trans', colors)
-            h = plot_with_events(ax[4], self.sim.yearvec, self.rel_trans_maternal, agents, 'Syphilis maternal rel_trans', colors)
+            h = plot_with_events(ax[3], self.sim.yearvec, self.syph_rel_sus, agents, 'Syphilis rel_sus', colors)
+            h = plot_with_events(ax[4], self.sim.yearvec, self.syph_rel_trans, agents, 'Syphilis rel_trans', colors)
+            h = plot_with_events(ax[5], self.sim.yearvec, self.rel_trans_maternal, agents, 'Syphilis maternal rel_trans', colors)
 
         # for axis in ax:
         #   axis.set_xlim([2020, 2024])
 
         # Add Legend
-        infection = Line2D([0], [0], label='Infection', linestyle='', marker='*', color='red')
+        infection = Line2D([0], [0], label='Syphilis Infection', linestyle='', marker='*', color='red')
+        hiv_infection = Line2D([0], [0], label='HIV Infection', linestyle='', marker='*', color='tab:orange')
         vaccination = Line2D([0], [0], label='Vaccination', linestyle='', marker='*', color='blue')
         pregnant = Line2D([0], [0], label='Pregnancy', linestyle='', marker='*', color='yellow')
         treatment = Line2D([0], [0], label='Treatment', linestyle='', marker='*', color='black')
@@ -144,7 +149,7 @@ class TrackValues(ss.Analyzer):
         for state, label in zip([0, 1, 2, 3, 4], ['susceptible', 'primary', 'secondary', 'tertiary', 'latent']):
             state_patch = mpatches.Patch(color=colors[state], label=label)
             patches.append(state_patch)
-        ax[0].legend(frameon=False, handles=[infection, vaccination, pregnant, treatment] + patches)
+        ax[0].legend(frameon=False, handles=[infection, hiv_infection, vaccination, pregnant, treatment] + patches)
         return fig
 
 
@@ -192,27 +197,30 @@ class PerformTest(ss.Intervention):
         self.sim.demographics.pregnancy.ti_pregnant[ss.uids(uids)] = self.sim.ti
 
     def apply(self, sim):
-        if 'hiv' in sim.diseases:
-            self.sim.diseases.hiv.set_prognoses(ss.uids(self.hiv_infections[sim.ti]))
-        if 'syphilis' in sim.diseases:
-            self.sim.diseases.syphilis.set_prognoses(ss.uids(self.syphilis_infections[sim.ti]))
-            self.administer_vaccine(self.syph_vaccine[sim.ti])
-            self.administer_treatment(self.syphilis_treatment[sim.ti])
-
-        # Set pregnancies:
-        self.set_pregnancy(self.pregnant[sim.ti])
+        if len(sim.people.alive.uids):
+            if 'hiv' in sim.diseases:
+                self.sim.diseases.hiv.set_prognoses(ss.uids(self.hiv_infections[sim.ti]))
+            if 'syphilis' in sim.diseases:
+                self.sim.diseases.syphilis.set_prognoses(ss.uids(self.syphilis_infections[sim.ti]))
+                self.administer_vaccine(self.syph_vaccine[sim.ti])
+                self.administer_treatment(self.syphilis_treatment[sim.ti])
+    
+            # Set pregnancies:
+            self.set_pregnancy(self.pregnant[sim.ti])
 
 
 def test_syph_vacc():
     # AGENTS
     agents = sc.odict()
     # agents['Gets vaccine at start of infection'] = [('syphilis_infection', 1), ('syph_vaccine', 2)]
-    agents['Infection, vaccine after infection'] = [('syphilis_infection', 2), ('syph_vaccine', 2)]
+    # agents['Infection, vaccine after infection'] = [('syphilis_infection', 2), ('syph_vaccine', 2)]
     # agents['No infection, vaccine'] = [('syph_vaccine', 20)]
     # agents['Infection, no vaccine'] = [('syphilis_infection', 20)]
     # agents['Infection after vaccine'] = [('syphilis_infection', 30), ('syph_vaccine', 2)]
     # agents['Pregnancy'] = [('syphilis_infection', 10), ('pregnant', 15), ('syph_vaccine', 2)]
-    agents['HIV Infection'] = [('hiv_infection', 3), ('syphilis_infection', 10), ('syph_vaccine', 11)]
+    # agents['HIV Infection'] = [('syphilis_infection', 85), ('syph_vaccine', 90), ('hiv_infection', 100)]
+    agents['HIV Infection'] = [ ('syph_vaccine', 90), ('hiv_infection', 100), ('syphilis_infection', 120)]
+    # agents['No HIV Infection'] = [('syphilis_infection', 10), ('syph_vaccine', 11)]
     # agents['Reinfection'] = [('syphilis_infection', 10), ('syphilis_treatment', 20), ('syph_vaccine', 25), ('syphilis_infection', 30)]
     # agents['Reinfection'] = [('syph_vaccine', 1), ('syphilis_infection', 10), ('syphilis_treatment', 20), ('syphilis_infection', 30)]
     # agents['Reinfection'] = [('syph_vaccine', 1), ('syphilis_infection', 5), ('syph_vaccine', 7), ('syphilis_treatment', 20), ('syphilis_infection', 30)]
