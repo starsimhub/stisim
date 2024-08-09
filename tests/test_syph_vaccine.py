@@ -67,11 +67,13 @@ class TrackValues(ss.Analyzer):
             self.syph_immunity_trans[sim.ti, :self.n] = sim.interventions.syph_vaccine.immunity_trans.values[:self.n]
             
             # State of each agent
-            susceptible_agents = sim.diseases.syphilis.susceptible
+            susceptible_agents = sim.diseases.syphilis.susceptible.uids
             primary_agents = sim.diseases.syphilis.primary.uids
             secondary_agents = sim.diseases.syphilis.secondary.uids
             tertiary_agents = sim.diseases.syphilis.tertiary.uids
             latent_agents = sim.diseases.syphilis.latent.uids
+            dead = sim.people.dead.uids
+            self.syph_state[sim.ti, sim.people.auids] = -1
             self.syph_state[sim.ti, susceptible_agents] = 0
             self.syph_state[sim.ti, primary_agents] = 1
             self.syph_state[sim.ti, secondary_agents] = 2
@@ -87,7 +89,7 @@ class TrackValues(ss.Analyzer):
         :param agents: Dictionary of events per agent {'agent_description':[('event_type', ti),...]}
         :return: Matplotlib figure
         """
-        colors = {0: 'tab:green', 1: 'tab:blue', 2: 'tab:orange', 3: 'tab:red', 4: 'tab:grey'}
+        colors = {0: 'tab:green', 1: 'tab:blue', 2: 'tab:orange', 3: 'tab:red', 4: 'tab:grey', -1: 'black'}
         def plot_with_events(ax, x, y, agents, title, colors):
             for idx, agent in enumerate(agents):
                 syph_state_array = self.syph_state[:, idx].astype(int)
@@ -103,6 +105,8 @@ class TrackValues(ss.Analyzer):
                     y_ev.append(y[event[1], i])
                     if event[0] == 'syphilis_infection':
                         colors.append('red')
+                    if event[0] == 'hiv_infection':
+                        colors.append('orange')
                     if event[0] == 'syph_vaccine':
                         colors.append('blue')
                     if event[0] == 'pregnant':
@@ -203,12 +207,12 @@ def test_syph_vacc():
     # AGENTS
     agents = sc.odict()
     # agents['Gets vaccine at start of infection'] = [('syphilis_infection', 1), ('syph_vaccine', 2)]
-    # agents['Infection, vaccine after infection'] = [('syphilis_infection', 2), ('syph_vaccine', 2)]
+    agents['Infection, vaccine after infection'] = [('syphilis_infection', 2), ('syph_vaccine', 2)]
     # agents['No infection, vaccine'] = [('syph_vaccine', 20)]
     # agents['Infection, no vaccine'] = [('syphilis_infection', 20)]
     # agents['Infection after vaccine'] = [('syphilis_infection', 30), ('syph_vaccine', 2)]
     # agents['Pregnancy'] = [('syphilis_infection', 10), ('pregnant', 15), ('syph_vaccine', 2)]
-    agents['2 Doses'] = [('syphilis_infection', 10), ('syph_vaccine', 11)]
+    agents['HIV Infection'] = [('hiv_infection', 3), ('syphilis_infection', 10), ('syph_vaccine', 11)]
     # agents['Reinfection'] = [('syphilis_infection', 10), ('syphilis_treatment', 20), ('syph_vaccine', 25), ('syphilis_infection', 30)]
     # agents['Reinfection'] = [('syph_vaccine', 1), ('syphilis_infection', 10), ('syphilis_treatment', 20), ('syphilis_infection', 30)]
     # agents['Reinfection'] = [('syph_vaccine', 1), ('syphilis_infection', 5), ('syph_vaccine', 7), ('syphilis_treatment', 20), ('syphilis_infection', 30)]
@@ -224,7 +228,8 @@ def test_syph_vacc():
     pars['end'] = 2040
     pars['dt'] = 1 / 12
     syph = sti.Syphilis(init_prev=0, beta={'structuredsexual': [0, 0], 'maternal': [0, 0]})
-    pars['diseases'] = [syph]
+    hiv = sti.HIV(init_prev=0, beta={'structuredsexual': [0, 0], 'maternal': [0, 0]})
+    pars['diseases'] = [syph, hiv]
     pars['networks'] = [sti.StructuredSexual(), ss.MaternalNet()]
     pars['demographics'] = [ss.Pregnancy(fertility_rate=0), ss.Deaths(death_rate=0)]
 
