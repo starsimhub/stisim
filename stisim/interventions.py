@@ -465,11 +465,8 @@ class SyphVaccine(ss.Intervention):
         self.target_coverage = self.pars.target_coverage
         self.dose_interval = None
         self._immunity_timecourse = None
-        # self._immunity_timecourse_maternal = None
-        # self._immunity_timecourse_hiv_pos = None
         self._protection_timecourse = None
-        # self._protection_timecourse_maternal = None
-        # self._protection_timecourse_hiv_pos = None
+
 
     def init_pre(self, sim):
         super().init_pre(sim)
@@ -487,11 +484,7 @@ class SyphVaccine(ss.Intervention):
         
         # Get immunity and protection time courses and differentiate by efficacy for general pop, mothters and hiv positives
         self._immunity_timecourse = self.get_immunity_timecourse(self.pars.efficacy, self.pars.dur_reach_peak, self.pars.dur_protection)
-        # self._immunity_timecourse_maternal = self.get_immunity_timecourse(self.pars.efficacy_maternal, self.pars.dur_reach_peak, self.pars.dur_protection)
-        # self._immunity_timecourse_hiv_pos = self.get_immunity_timecourse(self.pars.efficacy_hiv_pos, self.pars.dur_reach_peak, self.pars.dur_protection)
         self._protection_timecourse = self._immunity_timecourse # For now, assume protection timecourse and immunity timecourse are the same
-        # self._protection_timecourse_maternal = self._immunity_timecourse_maternal
-        # self._protection_timecourse_hiv_pos = self._immunity_timecourse_hiv_pos
         return
 
     def init_results(self):
@@ -616,7 +609,7 @@ class SyphVaccine(ss.Intervention):
 
     def update_natural_immunity(self, sim):
         """
-        Update immunity_inf for individuals, who got infected at this timestep
+        Update immunity_inf for individuals, who got infected with syphilis at this timestep
         No effect on immunity_trans
         """
         # Extract parameters and indices
