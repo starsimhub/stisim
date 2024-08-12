@@ -490,8 +490,9 @@ class SyphVaccine(ss.Intervention):
     def init_results(self):
         npts = self.sim.npts
         self.results += [
-            ss.Result(self.name, 'new_vaccinations', npts, dtype=float, scale=True),
+            ss.Result(self.name, 'new_vaccinated', npts, dtype=float, scale=True),
             ss.Result(self.name, 'n_vaccinated', npts, dtype=int, scale=True),
+            ss.Result(self.name, 'n_doses', npts, dtype=float, scale=True),
         ]
         return
 
@@ -826,6 +827,15 @@ class SyphVaccine(ss.Intervention):
 
         return
 
+    def update_results(self, sim):
+        """
+        Update results
+        """
+        self.results['n_doses'][sim.ti] += len(target_uids)
+        self.results['n_vaccinated'][sim.ti] = len(self.vaccinated.uids)
+        self.results['new_vaccinated'][sim.ti] = len(((self.ti_vaccinated == sim.ti) & (self.doses == 1)).uids)
+        return
+
     def apply(self, sim):
         syph = sim.diseases.syphilis
         self.update_natural_immunity(sim)
@@ -834,7 +844,6 @@ class SyphVaccine(ss.Intervention):
             # If there are targets, vaccinate them and update immunity for all vaccinated agents 
             if len(target_uids):
                 self.vaccinate(sim, target_uids)
-                self.results['new_vaccinations'][sim.ti] += len(target_uids)
             # If there are no targets, only update immunity for all vaccinated agents 
             else:
                 self.update_immunity_by_vaccination(sim)
@@ -844,5 +853,8 @@ class SyphVaccine(ss.Intervention):
 
             # Update latent prognoses by reducing p_reactivate for vaccinated, infected agents in latent state
             self.update_latent_prognoses(sim)
+
+            # Update Results
+            self.update_results(sim)
 
         return
