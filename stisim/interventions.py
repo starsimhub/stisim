@@ -411,13 +411,14 @@ class SyphVaccine(ss.Intervention):
             # Immunity parameters
             # - Efficacy
             efficacy=0.9, # vaccine efficacy applied to general pop
-            efficacy_maternal=0.8, # vaccine efficacy applied to mothers
-            efficacy_hiv_pos=0.8, # vaccine efficacy applied to hiv positive agents
+            reduction_maternal=0.2, # Adjust immunity_inf for maternal network: 0 = no reduction, 0.5 = 50% reduction
+            reduction_hiv_pos_on_ART=0.2, # Adjust immunity_inf for hiv-pos: 0 = no reduction, 0.5 = 50% reduction
+            reduction_hiv_pos_off_ART=0.2,
             # - Protection
             dur_protection=5, # in years, expected duration of protection, half-life of exponential decay
             dur_reach_peak=0.5, # in years, Assume 6 months until efficacy is reached
             # - Update immunity
-            immunity_init=ss.uniform(low=0.7, high=0.9),
+            immunity_init=ss.uniform(low=0.7, high=0.7),
             nab_boost_infection=0.9, # Multiply base immunity by this factor. 1=no change in immunity, 0=full immunity, no reinfection
             nab_boost_vaccination_inf=0.99, # When receiving a second or third dose, multiply immunity_inf by this factor. 1=no change in immunity, 0=full immunity, no reinfection
             nab_boost_vaccination_trans=0.75,  # When receiving a second or third dose, multiply immunity_trans by this factor. 1=no change in immunity, 0=full immunity, no reinfection
@@ -448,13 +449,13 @@ class SyphVaccine(ss.Intervention):
         # States
         self.add_states(
             ss.BoolArr('vaccinated'),
-            ss.FloatArr('ti_vaccinated'),
             ss.FloatArr('immunity_trans', default=1),
             ss.FloatArr('immunity_trans_maternal', default=1),
             ss.FloatArr('immunity_inf', default=1),
-            ss.FloatArr('ti_nab_event'),
             ss.BoolArr('dur_inf_updated'),
             ss.FloatArr('doses', default=0),
+            ss.FloatArr('ti_vaccinated'),
+            ss.FloatArr('ti_nab_event'),
             ss.FloatArr('ti_second_dose'),
             ss.FloatArr('ti_third_dose'),
         )
@@ -464,11 +465,11 @@ class SyphVaccine(ss.Intervention):
         self.target_coverage = self.pars.target_coverage
         self.dose_interval = None
         self._immunity_timecourse = None
-        self._immunity_timecourse_maternal = None
-        self._immunity_timecourse_hiv_pos = None
+        # self._immunity_timecourse_maternal = None
+        # self._immunity_timecourse_hiv_pos = None
         self._protection_timecourse = None
-        self._protection_timecourse_maternal = None
-        self._protection_timecourse_hiv_pos = None
+        # self._protection_timecourse_maternal = None
+        # self._protection_timecourse_hiv_pos = None
 
     def init_pre(self, sim):
         super().init_pre(sim)
@@ -486,11 +487,11 @@ class SyphVaccine(ss.Intervention):
         
         # Get immunity and protection time courses and differentiate by efficacy for general pop, mothters and hiv positives
         self._immunity_timecourse = self.get_immunity_timecourse(self.pars.efficacy, self.pars.dur_reach_peak, self.pars.dur_protection)
-        self._immunity_timecourse_maternal = self.get_immunity_timecourse(self.pars.efficacy_maternal, self.pars.dur_reach_peak, self.pars.dur_protection)
-        self._immunity_timecourse_hiv_pos = self.get_immunity_timecourse(self.pars.efficacy_hiv_pos, self.pars.dur_reach_peak, self.pars.dur_protection)
+        # self._immunity_timecourse_maternal = self.get_immunity_timecourse(self.pars.efficacy_maternal, self.pars.dur_reach_peak, self.pars.dur_protection)
+        # self._immunity_timecourse_hiv_pos = self.get_immunity_timecourse(self.pars.efficacy_hiv_pos, self.pars.dur_reach_peak, self.pars.dur_protection)
         self._protection_timecourse = self._immunity_timecourse # For now, assume protection timecourse and immunity timecourse are the same
-        self._protection_timecourse_maternal = self._immunity_timecourse_maternal
-        self._protection_timecourse_hiv_pos = self._immunity_timecourse_hiv_pos
+        # self._protection_timecourse_maternal = self._immunity_timecourse_maternal
+        # self._protection_timecourse_hiv_pos = self._immunity_timecourse_hiv_pos
         return
 
     def init_results(self):
@@ -654,11 +655,15 @@ class SyphVaccine(ss.Intervention):
     def update_immunity_by_vaccination(self, sim):
         """
         Update Immunity levels for both vaccinated and unvaccinated individuals.
-        Differentiate by hiv positive and negative agents, and update rel_trans for maternal network separately (with a lower efficacy)
+        1) Update immunity_inf and immunity_trans for all vaccinated agents
+        2) Adjust immunity_inf and immunity_trans for all hiv-pos agents
+        3) Adjust immunity_trans for maternal transmission
         """
         syph = sim.diseases.syphilis
         hiv = sim.diseases.hiv
         hiv_pos = hiv.infected
+        on_art = hiv.on_art
+        off_art = ~on_art
 
         # Vaccinated Individuals
         vaccinated_bool = self.vaccinated
@@ -670,7 +675,8 @@ class SyphVaccine(ss.Intervention):
             state = f'{state}'
             state_bools = getattr(sim.diseases.syphilis, state)
             uids = vaccinated_uids & state_bools.uids
-            hiv_pos_uids = uids & hiv_pos.uids
+            hiv_pos_art_uids = uids & hiv_pos.uids & on_art.uids
+            hiv_pos_off_art_uids = uids & hiv_pos.uids & off_art.uids
             hiv_neg_uids = uids.remove(hiv_pos.uids)
 
             # Prevent infection and transmission params
@@ -679,45 +685,37 @@ class SyphVaccine(ss.Intervention):
 
             if len(uids):
                 ################################################################################
-                # 1) Update immunity and transmission for non-hiv infected agents
-                ti_since_boost = sim.ti - self.ti_nab_event[hiv_neg_uids].astype(ss.dtypes.int)
+                # 1) Update immunity and transmission for all vaccinated agents
+                ti_since_boost = sim.ti - self.ti_nab_event[uids].astype(ss.dtypes.int)
                 ti_since_boost = np.minimum(ti_since_boost, len(self._protection_timecourse) - 1).astype(ss.dtypes.int)  # Max out protection
 
                 immunity = self._immunity_timecourse[ti_since_boost]
                 protection = self._protection_timecourse[ti_since_boost]
 
-                # Update protection against infection for vaccinated, hiv-negative agents
-                self.immunity_inf[hiv_neg_uids] -= prevent_infection_param * immunity
+                # Update protection against infection for vaccinated
+                self.immunity_inf[uids] -= prevent_infection_param * immunity
 
                 # Update protection against transmission for vaccinated inidivuals
-                self.immunity_trans[hiv_neg_uids] -= prevent_transmission_param * protection
+                self.immunity_trans[uids] -= prevent_transmission_param * protection
 
                 ################################################################################
                 # 2) Update immunity and transmission for hiv-positive agents
-                ti_since_boost = sim.ti - self.ti_nab_event[hiv_pos_uids].astype(ss.dtypes.int)
-                ti_since_boost = np.minimum(ti_since_boost, len(self._protection_timecourse_hiv_pos) - 1).astype(ss.dtypes.int)  # Max out protection
+                # Update protection against infection for vaccinated, hiv-positive agents. Differentiate by ART-status
+                self.immunity_inf[hiv_pos_art_uids] = np.minimum(1, self.immunity_inf[hiv_pos_art_uids] * (1 + self.pars.reduction_hiv_pos_on_ART))
+                self.immunity_inf[hiv_pos_off_art_uids] = np.minimum(1, self.immunity_inf[hiv_pos_off_art_uids] * (1 + self.pars.reduction_hiv_pos_off_ART))
 
-                immunity = self._immunity_timecourse_hiv_pos[ti_since_boost]
-                protection = self._protection_timecourse_hiv_pos[ti_since_boost]
-
-                # Update protection against infection for vaccinated, hiv-negative agents
-                self.immunity_inf[hiv_pos_uids] -= prevent_infection_param * immunity
-
-                # Update protection against transmission for vaccinated inidivuals
-                self.immunity_trans[hiv_pos_uids] -= prevent_transmission_param * protection
+                # Update protection against transmission for vaccinated, hiv-positive inidivuals. Differentiate by ART-status
+                self.immunity_trans[hiv_pos_art_uids] = np.minimum(1, self.immunity_trans[hiv_pos_art_uids] * (1 + self.pars.reduction_hiv_pos_on_ART))
+                self.immunity_trans[hiv_pos_off_art_uids] = np.minimum(1, self.immunity_trans[hiv_pos_off_art_uids] * (1 + self.pars.reduction_hiv_pos_off_ART))
 
                 ################################################################################
                 # 3) Update transmission for maternal network
-                ti_since_boost = sim.ti - self.ti_nab_event[uids].astype(ss.dtypes.int)
-                ti_since_boost = np.minimum(ti_since_boost, len(self._protection_timecourse_maternal) - 1).astype(ss.dtypes.int)  # Max out protection
-
-                protection = self._protection_timecourse_maternal[ti_since_boost]
-                self.immunity_trans_maternal[uids] -= prevent_transmission_param * protection
+                self.immunity_trans_maternal[uids] = np.minimum(1, self.immunity_trans[uids] * (1 + self.pars.reduction_maternal))
 
         # Ensure values are non-negative
         self.immunity_inf[vaccinated_uids] = self.immunity_inf[vaccinated_uids].clip(0)  # Make sure immunity doesn't drop below 0
         self.immunity_trans[vaccinated_uids] = self.immunity_trans[vaccinated_uids].clip(0)  # Make sure immunity doesn't drop below 0
-        self.immunity_trans_maternal[vaccinated_uids] = self.immunity_trans_maternal[vaccinated_uids].clip(0)
+        self.immunity_trans_maternal[vaccinated_uids] = self.immunity_trans_maternal[vaccinated_uids].clip(0) # Make sure immunity doesn't drop below 0
 
         # Set rel trans and rel sus
         rel_trans, rel_trans_maternal, rel_sus = self.compute_trans_sus(sim)
