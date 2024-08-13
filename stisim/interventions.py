@@ -411,9 +411,9 @@ class SyphVaccine(ss.Intervention):
             # Immunity parameters
             # - Efficacy
             efficacy=0.9, # vaccine efficacy applied to general pop
-            reduction_maternal=0.2, # Adjust immunity_inf for maternal network: 0 = no reduction, 0.5 = 50% reduction
-            reduction_hiv_pos_on_ART=0.2, # Adjust immunity_inf for hiv-pos: 0 = no reduction, 0.5 = 50% reduction
-            reduction_hiv_pos_off_ART=0.2,
+            rel_efficacy_red_maternal=0.2, # Relative reduction in efficacy for maternal network, 20% reduction of 90% efficacy -> efficacy of 72%
+            rel_efficacy_red_hiv_pos_on_art=0.2, # Relative reduction in efficacy for hiv positive agents on ART, 20% reduction of 90% efficacy -> efficacy of 72%
+            rel_efficacy_red_hiv_pos_off_art=0.2, # Relative reduction in efficacy for hiv positive agents off ART, 20% reduction of 90% efficacy -> efficacy of 72%
             # - Protection
             dur_protection=5, # in years, expected duration of protection, half-life of exponential decay
             dur_reach_peak=0.5, # in years, Assume 6 months until efficacy is reached
@@ -698,21 +698,21 @@ class SyphVaccine(ss.Intervention):
                 # 2) Update immunity and transmission for hiv-positive agents
                 # Update protection against infection for vaccinated, hiv-positive agents. Differentiate by ART-status
                 # Example: 
-                # If immunity_inf is 0.3 (i.e. 70% immune) and we want to reduce vaccine efficacy by 20% for HIV-positive agents (i.e. reduce to 56%), 
+                # If immunity_inf is 0.3 (i.e. 70% immune) and we want to reduce vaccine effectiveness by 20% for HIV-positive agents (i.e. reduce to 56%),
                 # we can calculate 1 - (1 - 0.3) * (1 - 0.2) to get the correct value for immunity_inf (i.e. 0.44).
                 # This ensures that when we are at peak immunity (say 75% efficacy), we can apply the reduction to get the expected
                 # vaccine efficacy for HIV positives (e.g. only 50%). 
                 
-                self.immunity_inf[hiv_pos_art_uids] = 1 - (1 - self.immunity_inf[hiv_pos_art_uids]) * (1-self.pars.reduction_hiv_pos_on_ART)
-                self.immunity_inf[hiv_pos_off_art_uids] = 1 - (1 - self.immunity_inf[hiv_pos_off_art_uids]) * (1-self.pars.reduction_hiv_pos_on_ART)
+                self.immunity_inf[hiv_pos_art_uids] = 1 - (1 - self.immunity_inf[hiv_pos_art_uids]) * (1-self.pars.rel_efficacy_red_hiv_pos_on_art)
+                self.immunity_inf[hiv_pos_off_art_uids] = 1 - (1 - self.immunity_inf[hiv_pos_off_art_uids]) * (1-self.pars.rel_efficacy_red_hiv_pos_off_art)
 
                 # Update protection against transmission for vaccinated, hiv-positive inidivuals. Differentiate by ART-status
-                self.immunity_trans[hiv_pos_art_uids] = 1 - (1 - self.immunity_trans[hiv_pos_art_uids]) * (1-self.pars.reduction_hiv_pos_on_ART)
-                self.immunity_trans[hiv_pos_off_art_uids] = 1 - (1 - self.immunity_trans[hiv_pos_off_art_uids]) * (1-self.pars.reduction_hiv_pos_on_ART)
+                self.immunity_trans[hiv_pos_art_uids] = 1 - (1 - self.immunity_trans[hiv_pos_art_uids]) * (1-self.pars.rel_efficacy_red_hiv_pos_on_art)
+                self.immunity_trans[hiv_pos_off_art_uids] = 1 - (1 - self.immunity_trans[hiv_pos_off_art_uids]) * (1-self.pars.rel_efficacy_red_hiv_pos_off_art)
 
                 ################################################################################
                 # 3) Update transmission for maternal network
-                self.immunity_trans_maternal[uids] = 1 - (1 - self.immunity_trans[uids]) * (1 - self.pars.reduction_maternal)
+                self.immunity_trans_maternal[uids] = 1 - (1 - self.immunity_trans[uids]) * (1 - self.pars.rel_efficacy_red_maternal)
 
         # Ensure values are non-negative
         self.immunity_inf[vaccinated_uids] = self.immunity_inf[vaccinated_uids].clip(0)  # Make sure immunity doesn't drop below 0
