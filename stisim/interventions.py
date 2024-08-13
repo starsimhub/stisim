@@ -405,8 +405,8 @@ class SyphVaccine(ss.Intervention):
             target_coverage=0.75,
             daily_num_doses=None, # Daily supply of vaccine doses (unscaled), None equals unlimited supply
             dose_interval=ss.lognorm_ex(mean=3, stdev=1/12), # Assume every 3 years for now
-            p_second_dose=ss.bernoulli(p=1), # Probability that a a person, who received 1 dose, comes back for a second dose
-            p_third_dose=ss.bernoulli(p=1), # Probability that a person, who receieved 2 doses, comes back for a third dose. More likely?
+            p_second_dose=ss.bernoulli(p=0.6), # Probability that a a person, who received 1 dose, comes back for a second dose
+            p_third_dose=ss.bernoulli(p=0.6), # Probability that a person, who receieved 2 doses, comes back for a third dose. More likely?
 
             # Immunity parameters
             # - Efficacy
@@ -492,6 +492,8 @@ class SyphVaccine(ss.Intervention):
         self.results += [
             ss.Result(self.name, 'new_vaccinated', npts, dtype=float, scale=True),
             ss.Result(self.name, 'n_vaccinated', npts, dtype=int, scale=True),
+            ss.Result(self.name, 'n_vaccinated_twice', npts, dtype=int, scale=True),
+            ss.Result(self.name, 'n_vaccinated_triple', npts, dtype=int, scale=True),
             ss.Result(self.name, 'n_doses', npts, dtype=float, scale=True),
         ]
         return
@@ -831,8 +833,10 @@ class SyphVaccine(ss.Intervention):
         """
         Update results
         """
-        self.results['n_doses'][sim.ti] += len(target_uids)
+        self.results['n_doses'][sim.ti] = sum(self.doses.values)
         self.results['n_vaccinated'][sim.ti] = len(self.vaccinated.uids)
+        self.results['n_vaccinated_twice'][sim.ti] = len((self.doses == 2).uids)
+        self.results['n_vaccinated_triple'][sim.ti] = len((self.doses == 3).uids)
         self.results['new_vaccinated'][sim.ti] = len(((self.ti_vaccinated == sim.ti) & (self.doses == 1)).uids)
         return
 
