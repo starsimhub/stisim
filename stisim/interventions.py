@@ -425,9 +425,9 @@ class SyphVaccine(ss.Intervention):
             prevent_infection=0.05,
             prevent_transmission_susceptible=0,
             prevent_transmission_primary=0.9,
-            prevent_transmission_secondary=0.1,
-            prevent_transmission_tertiary=0.05,
-            prevent_transmission_latent=0.05,
+            prevent_transmission_secondary=0.75,
+            prevent_transmission_tertiary=0.1,
+            prevent_transmission_latent=0.1,
             # - Update duration of infection
             reduce_dur_primary=0.7,
             reduce_dur_secondary=0.2,
@@ -730,7 +730,7 @@ class SyphVaccine(ss.Intervention):
     def compute_trans_sus(self, sim):
         syph = sim.diseases.syphilis
         rel_trans = syph.rel_trans * syph.infectious * self.immunity_trans
-        rel_trans_maternal = syph.rel_trans_maternal * self.immunity_trans_maternal # TODO
+        rel_trans_maternal = syph.rel_trans_maternal * self.immunity_trans_maternal
         rel_sus = syph.rel_sus * syph.susceptible * self.immunity_inf
         return rel_trans, rel_trans_maternal, rel_sus
 
