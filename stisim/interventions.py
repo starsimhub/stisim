@@ -697,16 +697,22 @@ class SyphVaccine(ss.Intervention):
                 ################################################################################
                 # 2) Update immunity and transmission for hiv-positive agents
                 # Update protection against infection for vaccinated, hiv-positive agents. Differentiate by ART-status
-                self.immunity_inf[hiv_pos_art_uids] = np.minimum(1, self.immunity_inf[hiv_pos_art_uids] * (1 + self.pars.reduction_hiv_pos_on_ART))
-                self.immunity_inf[hiv_pos_off_art_uids] = np.minimum(1, self.immunity_inf[hiv_pos_off_art_uids] * (1 + self.pars.reduction_hiv_pos_off_ART))
+                # Example: 
+                # If immunity_inf is 0.3 (i.e. 70% immune) and we want to reduce vaccine efficacy by 20% for HIV-positive agents (i.e. reduce to 56%), 
+                # we can calculate 1 - (1 - 0.3) * (1 - 0.2) to get the correct value for immunity_inf (i.e. 0.44).
+                # This ensures that when we are at peak immunity (say 75% efficacy), we can apply the reduction to get the expected
+                # vaccine efficacy for HIV positives (e.g. only 50%)
+                
+                self.immunity_inf[hiv_pos_art_uids] = np.minimum(1, 1 - (1 - self.immunity_inf[hiv_pos_art_uids]) * (1-self.pars.reduction_hiv_pos_on_ART))
+                self.immunity_inf[hiv_pos_off_art_uids] = np.minimum(1, 1 - (1 - self.immunity_inf[hiv_pos_off_art_uids]) * (1-self.pars.reduction_hiv_pos_on_ART))
 
                 # Update protection against transmission for vaccinated, hiv-positive inidivuals. Differentiate by ART-status
-                self.immunity_trans[hiv_pos_art_uids] = np.minimum(1, self.immunity_trans[hiv_pos_art_uids] * (1 + self.pars.reduction_hiv_pos_on_ART))
-                self.immunity_trans[hiv_pos_off_art_uids] = np.minimum(1, self.immunity_trans[hiv_pos_off_art_uids] * (1 + self.pars.reduction_hiv_pos_off_ART))
+                self.immunity_trans[hiv_pos_art_uids] = np.minimum(1, 1 - (1 - self.immunity_trans[hiv_pos_art_uids]) * (1-self.pars.reduction_hiv_pos_on_ART))
+                self.immunity_trans[hiv_pos_off_art_uids] = np.minimum(1, 1 - (1 - self.immunity_trans[hiv_pos_off_art_uids]) * (1-self.pars.reduction_hiv_pos_on_ART))
 
                 ################################################################################
                 # 3) Update transmission for maternal network
-                self.immunity_trans_maternal[uids] = np.minimum(1, self.immunity_trans[uids] * (1 + self.pars.reduction_maternal))
+                self.immunity_trans_maternal[uids] = np.minimum(1, 1 - (1 - self.immunity_trans[uids]) * self.pars.reduction_maternal)
 
         # Ensure values are non-negative
         self.immunity_inf[vaccinated_uids] = self.immunity_inf[vaccinated_uids].clip(0)  # Make sure immunity doesn't drop below 0
