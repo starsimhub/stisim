@@ -421,8 +421,8 @@ class SyphVaccine(ss.Intervention):
             # - Update immunity
             immunity_init=ss.uniform(low=0.7, high=0.99),
             nab_boost_infection=0.999, # Multiply base immunity by this factor. 1=no change in immunity, 0=full immunity, no reinfection
-            nab_boost_vaccination_inf=0.9, # When receiving a second or third dose, multiply immunity_inf by this factor. 1=no change in immunity, 0=full immunity, no reinfection
-            nab_boost_vaccination_trans=0.9,  # When receiving a second or third dose, multiply immunity_trans by this factor. 1=no change in immunity, 0=full immunity, no reinfection
+            nab_boost_vaccination_inf=0.9, # When receiving a second or third dose, multiply rel_sus_immunity by this factor. 1=no change in immunity, 0=full immunity, no reinfection
+            nab_boost_vaccination_trans=0.9,  # When receiving a second or third dose, multiply rel_trans_immunity by this factor. 1=no change in immunity, 0=full immunity, no reinfection
             prevent_infection=0.05,
             prevent_transmission_susceptible=0.95,
             prevent_transmission_primary=0.95,
@@ -451,9 +451,9 @@ class SyphVaccine(ss.Intervention):
         self.add_states(
             ss.BoolArr('vaccinated'),
             ss.FloatArr('immunity', default=0),
-            ss.FloatArr('immunity_trans', default=0),
-            ss.FloatArr('immunity_trans_maternal', default=0),
-            ss.FloatArr('immunity_inf', default=0),
+            ss.FloatArr('rel_trans_immunity', default=0),
+            ss.FloatArr('rel_trans_immunity_maternal', default=0),
+            ss.FloatArr('rel_sus_immunity', default=0),
             ss.FloatArr('peak_immunity', default=0),
             ss.FloatArr('linear_boost'),
             ss.BoolArr('dur_inf_updated'),
@@ -641,8 +641,8 @@ class SyphVaccine(ss.Intervention):
 
     def update_natural_immunity(self, sim):
         """
-        Update immunity_inf for individuals, who got infected with syphilis at this timestep
-        No effect on immunity_trans
+        Update rel_sus_immunity for individuals, who got infected with syphilis at this timestep
+        No effect on rel_trans_immunity
         """
         # Extract parameters and indices
         syph = sim.diseases.syphilis
@@ -653,14 +653,14 @@ class SyphVaccine(ss.Intervention):
         no_prior_nab_uids = (new_syphilis & ~has_nabs).uids
 
         # 1) Individuals that already have NAbs from a previous vaccination/infection have their Immunity levels boosted
-        # immunity_inf = 1 -> No Immunity, immunity_inf = 0 -> full immunity
+        # rel_sus_immunity = 1 -> No Immunity, rel_sus_immunity = 0 -> full immunity
         if len(prior_nab_uids):
             boost_factor = self.pars.nab_boost_infection
-            self.immunity_inf[prior_nab_uids] *= boost_factor
+            self.rel_sus_immunity[prior_nab_uids] *= boost_factor
 
         # 2) Individuals without prior NAbs are assigned an initial level drawn from a distribution.
         if len(no_prior_nab_uids):
-            self.immunity_inf[no_prior_nab_uids] = self.pars.immunity_init.rvs(no_prior_nab_uids)
+            self.rel_sus_immunity[no_prior_nab_uids] = self.pars.immunity_init.rvs(no_prior_nab_uids)
 
         # Update time of NAb event
         self.ti_nab_event[new_syphilis] = sim.ti
@@ -672,9 +672,9 @@ class SyphVaccine(ss.Intervention):
         """
         boost_factor_inf = self.pars.nab_boost_vaccination_inf
         boost_factor_trans = self.pars.nab_boost_vaccination_trans
-        self.immunity_inf[uids] *= boost_factor_inf
-        self.immunity_trans[uids] *= boost_factor_trans
-        self.immunity_trans_maternal[uids] *= boost_factor_trans
+        self.rel_sus_immunity[uids] *= boost_factor_inf
+        self.rel_trans_immunity[uids] *= boost_factor_trans
+        self.rel_trans_immunity_maternal[uids] *= boost_factor_trans
         return
 
     def set_linear_boost(self, sim, uids):
@@ -705,9 +705,9 @@ class SyphVaccine(ss.Intervention):
     def update_immunity_by_vaccination(self, sim):
         """
         Update Immunity levels for both vaccinated and unvaccinated individuals.
-        1) Update immunity_inf and immunity_trans for all vaccinated agents
-        2) Adjust immunity_inf and immunity_trans for all hiv-pos agents
-        3) Adjust immunity_trans for maternal transmission
+        1) Update rel_sus_immunity and rel_trans_immunity for all vaccinated agents
+        2) Adjust rel_sus_immunity and rel_trans_immunity for all hiv-pos agents
+        3) Adjust rel_trans_immunity for maternal transmission
 
         """
         syph = sim.diseases.syphilis
@@ -740,25 +740,25 @@ class SyphVaccine(ss.Intervention):
 
                     # Boost linearly to peak immunity
                     self.immunity[uids_to_boost] = np.minimum(self.peak_immunity[uids_to_boost], self.immunity[uids_to_boost] + self.linear_boost[uids_to_boost])
-                    self.immunity_inf[uids_to_boost] = prevent_infection_param * self.immunity[uids_to_boost]
-                    self.immunity_trans[uids_to_boost] = prevent_transmission_param * self.immunity[uids_to_boost]
+                    self.rel_sus_immunity[uids_to_boost] = prevent_infection_param * self.immunity[uids_to_boost]
+                    self.rel_trans_immunity[uids_to_boost] = prevent_transmission_param * self.immunity[uids_to_boost]
 
 
                 if len(uids_to_wane):
                     self.immunity[uids_to_wane] = self.logistic_decay(sim.ti - self.ti_start_waning[uids_to_wane], self.peak_immunity[uids_to_wane])
-                    self.immunity_inf[uids_to_wane] = prevent_infection_param * self.immunity[uids_to_wane]
-                    self.immunity_trans[uids_to_wane] = prevent_transmission_param * self.immunity[uids_to_wane]
+                    self.rel_sus_immunity[uids_to_wane] = prevent_infection_param * self.immunity[uids_to_wane]
+                    self.rel_trans_immunity[uids_to_wane] = prevent_transmission_param * self.immunity[uids_to_wane]
 
                 # Ensure values are non-negative
-                self.immunity_inf[uids] = np.minimum(1, self.immunity_inf[uids]).clip(0)  # Make sure immunity is between 0 and 1
-                self.immunity_trans[uids] = np.minimum(1, self.immunity_trans[uids]).clip(0)  # Make sure immunity is between 0 and 1
+                self.rel_sus_immunity[uids] = np.minimum(1, self.rel_sus_immunity[uids]).clip(0)  # Make sure immunity is between 0 and 1
+                self.rel_trans_immunity[uids] = np.minimum(1, self.rel_trans_immunity[uids]).clip(0)  # Make sure immunity is between 0 and 1
 
                 ################################################################################
                 # 3) Update transmission for maternal network
-                self.immunity_trans_maternal[uids] = self.immunity_trans[uids] * (1 - self.pars.rel_efficacy_red_maternal)
+                self.rel_trans_immunity_maternal[uids] = self.rel_trans_immunity[uids] * (1 - self.pars.rel_efficacy_red_maternal)
 
                 # Ensure values are non-negative
-                self.immunity_trans_maternal[uids] = np.minimum(1, self.immunity_trans_maternal[uids]).clip(0)  # Make sure immunity is between 0 and 1
+                self.rel_trans_immunity_maternal[uids] = np.minimum(1, self.rel_trans_immunity_maternal[uids]).clip(0)  # Make sure immunity is between 0 and 1
 
 
         # Set rel trans and rel sus
@@ -771,9 +771,9 @@ class SyphVaccine(ss.Intervention):
 
     def compute_trans_sus(self, sim):
         syph = sim.diseases.syphilis
-        rel_trans = syph.rel_trans * (1-self.immunity_trans)
-        rel_trans_maternal = syph.rel_trans_maternal * (1-self.immunity_trans_maternal)
-        rel_sus = syph.rel_sus * (1-self.immunity_inf)
+        rel_trans = syph.rel_trans * (1-self.rel_trans_immunity)
+        rel_trans_maternal = syph.rel_trans_maternal * (1-self.rel_trans_immunity_maternal)
+        rel_sus = syph.rel_sus * (1-self.rel_sus_immunity)
         return rel_trans, rel_trans_maternal, rel_sus
 
 
