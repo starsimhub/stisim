@@ -417,7 +417,7 @@ class SyphVaccine(ss.Intervention):
             dur_protection=5, # in years, expected duration of protection, half-life of exponential decay
             dur_reach_peak=0.5, # in years, Assume 6 months until efficacy is reached
             # - Update immunity
-            immunity_init=ss.uniform(low=0.01, high=0.05),
+            immunity_init=ss.lognorm_ex(mean=0.001, stdev=0.001),
             nab_boost_infection=0.05, # Multiply base immunity by this factor. 1=no change in immunity, 0=full immunity, no reinfection
 
             prevent_infection=0.05,
@@ -684,9 +684,20 @@ class SyphVaccine(ss.Intervention):
         # Start waning in the next time step
         self.ti_start_waning[new_syphilis] = sim.ti + 1
 
+        # Update rel sus and rel trans for new syphilis cases
+        self.rel_sus_immunity[new_syphilis] = self.immunity[new_syphilis]
+        self.rel_trans_immunity[new_syphilis] = self.immunity[new_syphilis]
+        self.rel_trans_immunity_maternal[new_syphilis] = self.immunity[new_syphilis]
+
         # Wane, only wane unvaccinated agents here
         uids_to_wane = (~self.vaccinated).uids & (self.ti_start_waning <= sim.ti).uids
         self.immunity[uids_to_wane] = self.logistic_decay(sim.ti - self.ti_start_waning[uids_to_wane], self.peak_immunity[uids_to_wane])
+
+        # Update rel sus and rel trans for waning agents
+        self.rel_sus_immunity[uids_to_wane] = self.immunity[uids_to_wane]
+        self.rel_trans_immunity[uids_to_wane] = self.immunity[uids_to_wane]
+        self.rel_trans_immunity_maternal[uids_to_wane] = self.immunity[uids_to_wane]
+
         return
 
     def set_linear_boost(self, sim, uids):
@@ -773,11 +784,11 @@ class SyphVaccine(ss.Intervention):
                 self.rel_trans_immunity_maternal[uids] = np.minimum(1, self.rel_trans_immunity_maternal[uids]).clip(0)  # Make sure immunity is between 0 and 1
 
 
-        # Set rel trans and rel sus
-        rel_trans, rel_trans_maternal, rel_sus = self.compute_trans_sus(sim)
-        syph.rel_trans.set(uids=sim.people.auids, new_vals=rel_trans)
-        syph.rel_trans_maternal.set(uids=sim.people.auids, new_vals=rel_trans_maternal)
-        syph.rel_sus.set(uids=sim.people.auids, new_vals=rel_sus)
+        # # Set rel trans and rel sus
+        # rel_trans, rel_trans_maternal, rel_sus = self.compute_trans_sus(sim)
+        # syph.rel_trans.set(uids=sim.people.auids, new_vals=rel_trans)
+        # syph.rel_trans_maternal.set(uids=sim.people.auids, new_vals=rel_trans_maternal)
+        # syph.rel_sus.set(uids=sim.people.auids, new_vals=rel_sus)
 
         return
 
@@ -870,6 +881,17 @@ class SyphVaccine(ss.Intervention):
         self.peak_immunity[uids_third_dose] = self.pars.third_dose_efficacy
         return
 
+    def update_rel_sus_rel_trans(self, sim):
+        """
+
+        """
+        syph = sim.diseases.syphilis
+        # Set rel trans and rel sus
+        rel_trans, rel_trans_maternal, rel_sus = self.compute_trans_sus(sim)
+        syph.rel_trans.set(uids=sim.people.auids, new_vals=rel_trans)
+        syph.rel_trans_maternal.set(uids=sim.people.auids, new_vals=rel_trans_maternal)
+        syph.rel_sus.set(uids=sim.people.auids, new_vals=rel_sus)
+
     def vaccinate(self, sim, uids, update_immunity_by_vaccination=True):
         """
         Vaccinate
@@ -890,7 +912,6 @@ class SyphVaccine(ss.Intervention):
 
         # Update immunity
         if update_immunity_by_vaccination:
-
             # Update Immunity
             self.update_immunity_by_vaccination(sim)
 
@@ -920,7 +941,7 @@ class SyphVaccine(ss.Intervention):
 
     def apply(self, sim):
         syph = sim.diseases.syphilis
-        self.update_natural_immunity(sim)
+        # self.update_natural_immunity(sim)
         
         if sim.year > self.start_year:
             # Get this time steps target coverage
@@ -933,6 +954,9 @@ class SyphVaccine(ss.Intervention):
             # If there are no targets, only update immunity for all vaccinated agents 
             else:
                 self.update_immunity_by_vaccination(sim)
+
+            # Update rel_sus, rel_trans and rel_trans_maternal
+            self.update_rel_sus_rel_trans(sim)
 
             # Reduce duration of infection for vaccinated, infected agents
             self.update_dur_infection(sim)
