@@ -413,16 +413,13 @@ class SyphVaccine(ss.Intervention):
             second_dose_efficacy=0.5,
             third_dose_efficacy=0.75,
             rel_efficacy_red_maternal=0.2, # Relative reduction in efficacy for maternal network, 20% reduction of 90% efficacy -> efficacy of 72%
-            #rel_efficacy_red_hiv_pos_on_art=0.2, # Relative reduction in efficacy for hiv positive agents on ART, 20% reduction of 90% efficacy -> efficacy of 72%
-            #rel_efficacy_red_hiv_pos_off_art=0.2, # Relative reduction in efficacy for hiv positive agents off ART, 20% reduction of 90% efficacy -> efficacy of 72%
             # - Protection
             dur_protection=5, # in years, expected duration of protection, half-life of exponential decay
             dur_reach_peak=0.5, # in years, Assume 6 months until efficacy is reached
             # - Update immunity
-            immunity_init=ss.uniform(low=0.7, high=0.99),
-            nab_boost_infection=0.999, # Multiply base immunity by this factor. 1=no change in immunity, 0=full immunity, no reinfection
-            nab_boost_vaccination_inf=0.9, # When receiving a second or third dose, multiply rel_sus_immunity by this factor. 1=no change in immunity, 0=full immunity, no reinfection
-            nab_boost_vaccination_trans=0.9,  # When receiving a second or third dose, multiply rel_trans_immunity by this factor. 1=no change in immunity, 0=full immunity, no reinfection
+            immunity_init=ss.uniform(low=0.01, high=0.05),
+            nab_boost_infection=0.05, # Multiply base immunity by this factor. 1=no change in immunity, 0=full immunity, no reinfection
+
             prevent_infection=0.05,
             prevent_transmission_susceptible=0.95,
             prevent_transmission_primary=0.95,
@@ -669,28 +666,27 @@ class SyphVaccine(ss.Intervention):
         no_prior_nab_uids = (new_syphilis & ~has_nabs).uids
 
         # 1) Individuals that already have NAbs from a previous vaccination/infection have their Immunity levels boosted
-        # rel_sus_immunity = 1 -> No Immunity, rel_sus_immunity = 0 -> full immunity
         if len(prior_nab_uids):
-            boost_factor = self.pars.nab_boost_infection
-            self.rel_sus_immunity[prior_nab_uids] *= boost_factor
+            linear_boost = self.pars.nab_boost_infection
+            self.immunity[prior_nab_uids] += linear_boost
+            self.peak_immunity[prior_nab_uids] =  self.immunity[prior_nab_uids]
 
         # 2) Individuals without prior NAbs are assigned an initial level drawn from a distribution.
         if len(no_prior_nab_uids):
-            self.rel_sus_immunity[no_prior_nab_uids] = self.pars.immunity_init.rvs(no_prior_nab_uids)
+            self.immunity[no_prior_nab_uids] = self.pars.immunity_init.rvs(no_prior_nab_uids)
 
         # Update time of NAb event
         self.ti_nab_event[new_syphilis] = sim.ti
-        return
 
-    def boost_immunity_by_vaccination(self, sim, uids):
-        """
-        Boost immunity level for newly vaccinated individuals, who received their second, third, etc. dose
-        """
-        boost_factor_inf = self.pars.nab_boost_vaccination_inf
-        boost_factor_trans = self.pars.nab_boost_vaccination_trans
-        self.rel_sus_immunity[uids] *= boost_factor_inf
-        self.rel_trans_immunity[uids] *= boost_factor_trans
-        self.rel_trans_immunity_maternal[uids] *= boost_factor_trans
+        # Update peak immunity
+        self.peak_immunity[new_syphilis] = np.maximum(self.peak_immunity[new_syphilis], self.immunity[new_syphilis])
+
+        # Start waning in the next time step
+        self.ti_start_waning[new_syphilis] = sim.ti + 1
+
+        # Wane, only wane unvaccinated agents here
+        uids_to_wane = (~self.vaccinated).uids & (self.ti_start_waning <= sim.ti).uids
+        self.immunity[uids_to_wane] = self.logistic_decay(sim.ti - self.ti_start_waning[uids_to_wane], self.peak_immunity[uids_to_wane])
         return
 
     def set_linear_boost(self, sim, uids):
@@ -924,7 +920,7 @@ class SyphVaccine(ss.Intervention):
 
     def apply(self, sim):
         syph = sim.diseases.syphilis
-        # self.update_natural_immunity(sim)
+        self.update_natural_immunity(sim)
         
         if sim.year > self.start_year:
             # Get this time steps target coverage
