@@ -66,9 +66,10 @@ class TrackValues(ss.Analyzer):
                 self.rel_trans_maternal[sim.ti, :self.n] = sim.diseases.syphilis.rel_trans_maternal.values[:self.n]
 
                 # Immunity Inf and trans
-                self.syph_rel_sus_immunity[sim.ti, :self.n] = sim.interventions.syph_vaccine.immunity_inf.values[:self.n]
-                self.syph_rel_trans_immunity[sim.ti, :self.n] = sim.interventions.syph_vaccine.immunity_trans.values[:self.n]
-                self.syph_rel_trans_immunity_maternal[sim.ti, :self.n] = sim.interventions.syph_vaccine.immunity_trans_maternal.values[:self.n]
+                self.syph_immunity[sim.ti, :self.n] = sim.interventions.syph_vaccine.immunity.values[:self.n]
+                self.syph_rel_sus_immunity[sim.ti, :self.n] = sim.interventions.syph_vaccine.rel_sus_immunity.values[:self.n]
+                self.syph_rel_trans_immunity[sim.ti, :self.n] = sim.interventions.syph_vaccine.rel_trans_immunity.values[:self.n]
+                self.syph_rel_trans_immunity_maternal[sim.ti, :self.n] = sim.interventions.syph_vaccine.rel_trans_immunity_maternal.values[:self.n]
 
                 # State of each agent
                 susceptible_agents = sim.diseases.syphilis.susceptible.uids
@@ -128,9 +129,9 @@ class TrackValues(ss.Analyzer):
 
         ax = ax.ravel()
 
-        h = plot_with_events(ax[0], self.sim.yearvec, self.syph_rel_sus_immunity, agents, 'Syphilis immunity_inf', colors)
-        h = plot_with_events(ax[1], self.sim.yearvec, self.syph_rel_trans_immunity, agents, 'Syphilis immunity_trans', colors)
-        h = plot_with_events(ax[2], self.sim.yearvec, self.syph_rel_trans_immunity_maternal, agents, 'Syphilis immunity_trans_maternal', colors)
+        h = plot_with_events(ax[0], self.sim.yearvec, self.syph_rel_sus_immunity, agents, 'Syphilis rel_sus_immunity', colors)
+        h = plot_with_events(ax[1], self.sim.yearvec, self.syph_rel_trans_immunity, agents, 'Syphilis rel_trans_immunity', colors)
+        h = plot_with_events(ax[2], self.sim.yearvec, self.syph_rel_trans_immunity_maternal, agents, 'Syphilis rel_trans_immunity_maternal', colors)
 
         if self.has_syph:
             h = plot_with_events(ax[3], self.sim.yearvec, self.syph_rel_sus, agents, 'Syphilis rel_sus', colors)
