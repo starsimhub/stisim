@@ -497,7 +497,7 @@ class SyphVaccine(ss.Intervention):
             self.num_doses = rr((self.pars.daily_num_doses * 365 * sim.dt) / sim.pars.pop_scale)
         else:
             self.num_doses = None
-        
+
         # Get immunity and protection time courses and differentiate by efficacy for general pop, mothters and hiv positives
         # self._immunity_timecourse = self.get_immunity_timecourse(self.pars.efficacy, self.pars.dur_reach_peak, self.pars.dur_protection)
         # self._protection_timecourse = self._immunity_timecourse # For now, assume protection timecourse and immunity timecourse are the same
@@ -680,11 +680,18 @@ class SyphVaccine(ss.Intervention):
         """
         Get linear boost values
         """
-        # hiv_pos_uids = uids & hiv_pos_uids
-        # hiv_neg_uids = uids.remove(hiv_pos.uids)
-        #
-        # self.linear_boost[hiv_neg_uids] =
-        self.linear_boost[uids] =0.2
+        dt = sim.dt
+        hiv = sim.diseases.hiv
+        hiv_pos = hiv.infected.uids
+        hiv_pos_uids = uids & hiv_pos
+        hiv_neg_uids = uids.remove(hiv_pos_uids)
+
+        # Boost depending on CD4 counts
+        cd4_bins = np.array([1000, 500, 350, 200, 50, 0]) # TODO make input
+        linear_boost = np.array([1, 1, 0.9, 0.8, 0.7, 0.5]) # Percentage of HIV negative linear boost
+
+        self.linear_boost[uids] = self.peak_immunity[uids]/rr(self.pars.dur_reach_peak / dt)
+        self.linear_boost[hiv_pos_uids] = self.linear_boost[hiv_pos_uids] * linear_boost[np.digitize(hiv.cd4[hiv_pos_uids], cd4_bins)]
         return
 
     def update_immunity_by_vaccination(self, sim):
@@ -696,10 +703,6 @@ class SyphVaccine(ss.Intervention):
 
         """
         syph = sim.diseases.syphilis
-        hiv = sim.diseases.hiv
-        hiv_pos = hiv.infected
-        on_art = hiv.on_art
-        off_art = ~on_art
 
         # Vaccinated Individuals
         vaccinated_bool = self.vaccinated
@@ -711,9 +714,6 @@ class SyphVaccine(ss.Intervention):
             state = f'{state}'
             state_bools = getattr(sim.diseases.syphilis, state)
             uids = vaccinated_uids & state_bools.uids
-            hiv_pos_art_uids = uids & hiv_pos.uids & on_art.uids
-            hiv_pos_off_art_uids = uids & hiv_pos.uids & off_art.uids
-            hiv_neg_uids = uids.remove(hiv_pos.uids)
 
             # Prevent infection and transmission params
             prevent_infection_param = self.pars.prevent_infection
@@ -722,7 +722,6 @@ class SyphVaccine(ss.Intervention):
             if len(uids):
                 ################################################################################
                 # 1) Update immunity and transmission for all vaccinated agents
-                # ti_since_boost = sim.ti - self.ti_nab_event[uids].astype(ss.dtypes.int)
 
                 # Uids to boost and uids to wane
                 uids_to_wane = uids[self.ti_start_waning[uids] <= sim.ti]
@@ -751,7 +750,7 @@ class SyphVaccine(ss.Intervention):
 
                 ################################################################################
                 # 3) Update transmission for maternal network
-                self.immunity_trans_maternal[uids] = self.immunity_trans[uids] * self.pars.rel_efficacy_red_maternal
+                self.immunity_trans_maternal[uids] = self.immunity_trans[uids] * (1 - self.pars.rel_efficacy_red_maternal)
 
                 # Ensure values are non-negative
                 self.immunity_trans_maternal[uids] = np.minimum(1, self.immunity_trans_maternal[uids]).clip(0)  # Make sure immunity is between 0 and 1
