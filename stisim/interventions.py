@@ -423,12 +423,12 @@ class SyphVaccine(ss.Intervention):
             nab_boost_infection=0.999, # Multiply base immunity by this factor. 1=no change in immunity, 0=full immunity, no reinfection
             nab_boost_vaccination_inf=0.9, # When receiving a second or third dose, multiply immunity_inf by this factor. 1=no change in immunity, 0=full immunity, no reinfection
             nab_boost_vaccination_trans=0.9,  # When receiving a second or third dose, multiply immunity_trans by this factor. 1=no change in immunity, 0=full immunity, no reinfection
-            prevent_infection=1,
-            prevent_transmission_susceptible=1,
-            prevent_transmission_primary=1,
-            prevent_transmission_secondary=1,
-            prevent_transmission_tertiary=1,
-            prevent_transmission_latent=1,
+            prevent_infection=0.05,
+            prevent_transmission_susceptible=0.95,
+            prevent_transmission_primary=0.95,
+            prevent_transmission_secondary=0.95,
+            prevent_transmission_tertiary=0.05,
+            prevent_transmission_latent=0.05,
             # - Update duration of infection
             reduce_dur_primary=0.2,
             reduce_dur_secondary=0.2,
@@ -450,6 +450,7 @@ class SyphVaccine(ss.Intervention):
         # States
         self.add_states(
             ss.BoolArr('vaccinated'),
+            ss.FloatArr('immunity', default=0),
             ss.FloatArr('immunity_trans', default=0),
             ss.FloatArr('immunity_trans_maternal', default=0),
             ss.FloatArr('immunity_inf', default=0),
@@ -688,10 +689,17 @@ class SyphVaccine(ss.Intervention):
 
         # Boost depending on CD4 counts
         cd4_bins = np.array([1000, 500, 350, 200, 50, 0]) # TODO make input
-        linear_boost = np.array([1, 1, 0.9, 0.8, 0.7, 0.5]) # Percentage of HIV negative linear boost
+        hiv_rel_linear_boost = np.array([1, 1, 0.9, 0.8, 0.7, 0.5]) # Percentage of HIV negative linear boost
 
-        self.linear_boost[uids] = self.peak_immunity[uids]/rr(self.pars.dur_reach_peak / dt)
-        self.linear_boost[hiv_pos_uids] = self.linear_boost[hiv_pos_uids] * linear_boost[np.digitize(hiv.cd4[hiv_pos_uids], cd4_bins)]
+        new_vaccinated_uids = uids[self.ti_vaccinated[uids] == sim.ti]
+
+        # Set this once for newly vaccinated agents
+        self.linear_boost[new_vaccinated_uids] = (self.peak_immunity[new_vaccinated_uids] - self.immunity[new_vaccinated_uids])/rr(self.pars.dur_reach_peak / dt)
+        self.ti_start_waning[new_vaccinated_uids] = sim.ti + rr(self.pars.dur_reach_peak / dt)
+
+        self.linear_boost[hiv_pos_uids] = self.linear_boost[hiv_pos_uids] * hiv_rel_linear_boost[np.digitize(hiv.cd4[hiv_pos_uids], cd4_bins)]
+        duration_to_reach_peak = (self.peak_immunity[hiv_pos_uids] - self.immunity[hiv_pos_uids]) / self.linear_boost[hiv_pos_uids]
+        self.ti_start_waning[hiv_pos_uids] = sim.ti + duration_to_reach_peak
         return
 
     def update_immunity_by_vaccination(self, sim):
@@ -731,18 +739,15 @@ class SyphVaccine(ss.Intervention):
                     self.set_linear_boost(sim, uids_to_boost)
 
                     # Boost linearly to peak immunity
-                    immunity = np.minimum(self.peak_immunity[uids_to_boost], self.immunity_inf[uids_to_boost] + self.linear_boost[uids_to_boost])
-                    self.immunity_inf[uids_to_boost] = prevent_infection_param * immunity
-                    self.immunity_trans[uids_to_boost] = prevent_transmission_param * immunity
-                    
-                    uids_start_waning = uids_to_boost[(immunity == self.peak_immunity[uids_to_boost])]
-                    # Start waning immunity for individuals who have reached their peak immunity
-                    self.ti_start_waning[uids_start_waning] = sim.ti + 1
+                    self.immunity[uids_to_boost] = np.minimum(self.peak_immunity[uids_to_boost], self.immunity[uids_to_boost] + self.linear_boost[uids_to_boost])
+                    self.immunity_inf[uids_to_boost] = prevent_infection_param * self.immunity[uids_to_boost]
+                    self.immunity_trans[uids_to_boost] = prevent_transmission_param * self.immunity[uids_to_boost]
+
 
                 if len(uids_to_wane):
-                    immunity = self.logistic_decay(sim.ti - self.ti_start_waning[uids_to_wane], self.peak_immunity[uids_to_wane])
-                    self.immunity_inf[uids_to_wane] = prevent_infection_param * immunity
-                    self.immunity_trans[uids_to_wane] = prevent_transmission_param * immunity
+                    self.immunity[uids_to_wane] = self.logistic_decay(sim.ti - self.ti_start_waning[uids_to_wane], self.peak_immunity[uids_to_wane])
+                    self.immunity_inf[uids_to_wane] = prevent_infection_param * self.immunity[uids_to_wane]
+                    self.immunity_trans[uids_to_wane] = prevent_transmission_param * self.immunity[uids_to_wane]
 
                 # Ensure values are non-negative
                 self.immunity_inf[uids] = np.minimum(1, self.immunity_inf[uids]).clip(0)  # Make sure immunity is between 0 and 1
@@ -754,6 +759,7 @@ class SyphVaccine(ss.Intervention):
 
                 # Ensure values are non-negative
                 self.immunity_trans_maternal[uids] = np.minimum(1, self.immunity_trans_maternal[uids]).clip(0)  # Make sure immunity is between 0 and 1
+
 
         # Set rel trans and rel sus
         rel_trans, rel_trans_maternal, rel_sus = self.compute_trans_sus(sim)
