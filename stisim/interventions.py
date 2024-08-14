@@ -573,6 +573,27 @@ class SyphVaccine(ss.Intervention):
             uids = sim.people.alive.uids
         return uids
 
+    def prioritize_agents(self, sim, num_doses, eligible_second_dose, eligible_third_dose):
+        """
+
+        """
+        # Pick agents randomly
+        eligible_uids = eligible_second_dose.uids & eligible_third_dose.uids
+        bools = ss.random(strict=False).rvs(len(eligible_uids))
+        choices = np.argsort(bools)[:num_doses]
+        uids_to_revaccinate = eligible_uids[choices]
+
+        # Pick agents by wait time
+        # wait_times_second_dose = sim.ti - self.ti_second_dose[eligible_second_dose.uids]
+        # wait_times_third_dose = sim.ti - self.ti_third_dose[eligible_third_dose.uids]
+        # wait_times_combined = np.concatenate([wait_times_second_dose, wait_times_third_dose])
+        # uids_combined = eligible_second_dose.uids.concat(eligible_third_dose.uids)
+        #
+        # choices = np.argsort(wait_times_combined)[:remaining_doses]
+        # uids_to_revaccinate = uids_combined[choices]
+
+        return uids_to_revaccinate
+
     def get_targets(self, sim, num_doses=None, target_coverage=None):
         """
         Get uids of agents to get vaccinated this time step.
@@ -616,15 +637,7 @@ class SyphVaccine(ss.Intervention):
         # else, vaccinate everyone eligible
         if num_doses is not None:
             remaining_doses = num_doses - len(target_coverage_uids)
-
-            # Get and combine wait times 
-            wait_times_second_dose = sim.ti - self.ti_second_dose[eligible_second_dose.uids]
-            wait_times_third_dose = sim.ti - self.ti_third_dose[eligible_third_dose.uids]
-            wait_times_combined = np.concatenate([wait_times_second_dose, wait_times_third_dose])
-            uids_combined = eligible_second_dose.uids.concat(eligible_third_dose.uids)
-            
-            choices = np.argsort(wait_times_combined)[:remaining_doses]
-            uids_to_revaccinate = uids_combined[choices]
+            uids_to_revaccinate = self.prioritize_agents(sim, remaining_doses, eligible_second_dose, eligible_third_dose)
         else:
             uids_to_revaccinate = eligible_second_dose.uids | eligible_third_dose.uids
         
