@@ -120,28 +120,30 @@ class TrackValues(ss.Analyzer):
                         colors.append('black')
             ax.scatter(x_ev, y_ev, marker='*', color=colors, edgecolor='red', s=150, linewidths=0.5, zorder=100)
             ax.set_title(title)
+            # ax.set_ylim([0, 1])
             return h
 
         if self.has_syph:
-            fig, ax = plt.subplots(2, 3, figsize=(12, 8))
+            fig, ax = plt.subplots(2, 4, figsize=(16, 8))
         else:
             fig, ax = plt.subplots(1, 2)
 
         ax = ax.ravel()
-
-        h = plot_with_events(ax[0], self.sim.yearvec, self.syph_rel_sus_immunity, agents, 'Syphilis rel_sus_immunity', colors)
-        h = plot_with_events(ax[1], self.sim.yearvec, self.syph_rel_trans_immunity, agents, 'Syphilis rel_trans_immunity', colors)
-        h = plot_with_events(ax[2], self.sim.yearvec, self.syph_rel_trans_immunity_maternal, agents, 'Syphilis rel_trans_immunity_maternal', colors)
+        h = plot_with_events(ax[0], self.sim.yearvec, self.syph_immunity, agents, 'Immunity', colors)
+        h = plot_with_events(ax[1], self.sim.yearvec, self.syph_rel_sus_immunity, agents, 'Syphilis rel_sus_immunity', colors)
+        h = plot_with_events(ax[2], self.sim.yearvec, self.syph_rel_trans_immunity, agents, 'Syphilis rel_trans_immunity', colors)
+        h = plot_with_events(ax[3], self.sim.yearvec, self.syph_rel_trans_immunity_maternal, agents, 'Syphilis rel_trans_immunity_maternal', colors)
 
         if self.has_syph:
-            h = plot_with_events(ax[3], self.sim.yearvec, self.syph_rel_sus, agents, 'Syphilis rel_sus', colors)
-            h = plot_with_events(ax[4], self.sim.yearvec, self.syph_rel_trans, agents, 'Syphilis rel_trans', colors)
-            h = plot_with_events(ax[5], self.sim.yearvec, self.rel_trans_maternal, agents, 'Syphilis maternal rel_trans', colors)
+            h = plot_with_events(ax[5], self.sim.yearvec, self.syph_rel_sus, agents, 'Syphilis rel_sus', colors)
+            h = plot_with_events(ax[6], self.sim.yearvec, self.syph_rel_trans, agents, 'Syphilis rel_trans', colors)
+            h = plot_with_events(ax[7], self.sim.yearvec, self.rel_trans_maternal, agents, 'Syphilis maternal rel_trans', colors)
 
         # for axis in ax:
         #   axis.set_xlim([2020, 2024])
 
         # Add Legend
+        ax[4].axis('off')
         infection = Line2D([0], [0], label='Syphilis Infection', linestyle='', marker='*', color='red')
         hiv_infection = Line2D([0], [0], label='HIV Infection', linestyle='', marker='*', color='tab:orange')
         vaccination = Line2D([0], [0], label='Vaccination', linestyle='', marker='*', color='blue')
@@ -151,7 +153,7 @@ class TrackValues(ss.Analyzer):
         for state, label in zip([0, 1, 2, 3, 4], ['susceptible', 'primary', 'secondary', 'tertiary', 'latent']):
             state_patch = mpatches.Patch(color=colors[state], label=label)
             patches.append(state_patch)
-        ax[0].legend(frameon=False, handles=[infection, hiv_infection, vaccination, pregnant, treatment] + patches)
+        ax[4].legend(frameon=False, handles=[infection, hiv_infection, vaccination, pregnant, treatment] + patches)
         return fig
 
 
@@ -235,7 +237,7 @@ def test_syph_vacc():
     pars = {}
     pars['n_agents'] = len(agents)
     pars['start'] = 2020
-    pars['end'] = 2040
+    pars['end'] = 2050
     pars['dt'] = 1 / 12
     syph = sti.Syphilis(init_prev=0, beta={'structuredsexual': [0, 0], 'maternal': [0, 0]})
     hiv = sti.HIV(init_prev=0, beta={'structuredsexual': [0, 0], 'maternal': [0, 0]})
@@ -251,10 +253,13 @@ def test_syph_vacc():
     syph_vaccine = sti.SyphVaccine(
         start_year=1981,
         eligibility=vaccine_eligible,
-        target_coverage=0.75,
+        first_dose_efficacy=0.3,
+        second_dose_efficacy=0.5,
+        third_dose_efficacy=0.8,
+        dose_interval=7,
         # daily_num_doses=500,
         p_second_dose=1,
-        efficacy=0.75,  # Medium assumption
+        p_third_dose=1,
         dur_reach_peak=0.5,  # Reaches efficacy after 6 months
         dur_protection=5,  # Assume 5 years
     )
