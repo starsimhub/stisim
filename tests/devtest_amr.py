@@ -26,17 +26,15 @@ def test_gon(n_agents=500, dt=1, start=2000, n_years=40):
     vd = sti.VDPlaceholder(prevalence=0.05)
 
     # Testing interventions
-    def vd_symptoms(sim):
+    def has_discharge(sim):
         return (sim.diseases.gonorrhea.symptomatic | sim.diseases.trichomoniasis.symptomatic | sim.diseases.vd.symptomatic).uids
 
     gon_tx = sti.GonorrheaTreatment()
     syndromic = sti.SyndromicMgmt(
-        diseases=['gonorrhea', 'trichomoniasis'],
+        diseases=[gon, trich],
         test_prob_data=0.2,
-        eligibility=vd_symptoms,
-        treatment=dict(
-            gonorrhea=gon_tx,
-        )
+        eligibility=has_discharge,
+        treatments=gon_tx,
     )
 
     pregnancy = ss.Pregnancy(fertility_rate=10)

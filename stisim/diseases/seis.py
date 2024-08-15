@@ -69,6 +69,11 @@ class SEIS(ss.Infection):
 
         return
 
+    @property
+    def treatable(self):
+        """ Active bacterial presence -- includes exposed and infected, and responds to treatment """
+        return self.exposed | self.infected
+
     def init_pre(self, sim):
         super().init_pre(sim)
         if self.pars.beta_m2f is not None:

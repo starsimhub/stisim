@@ -7,6 +7,10 @@ import numpy as np
 import sciris as sc
 
 
+# %% Helper functions
+def count(arr): return np.count_nonzero(arr)
+
+
 # %% Base classes
 __all__ = ["STIDx", "STITest", "SyndromicMgmt", "STITreatment", "PartnerNotification"]
 
@@ -81,9 +85,9 @@ class STITest(ss.Intervention):
         # States
         self.add_states(
             ss.BoolArr('tested'),
+            ss.BoolArr('diagnosed'),
             ss.FloatArr('ti_tested'),
             ss.FloatArr('ti_scheduled'),
-            ss.BoolArr('diagnosed'),
             ss.FloatArr('ti_diagnosed'),
             ss.FloatArr('tests', default=0),
         )
@@ -110,9 +114,11 @@ class STITest(ss.Intervention):
 
     def init_results(self):
         npts = self.sim.npts
-        self.results += [
-            ss.Result(self.name, 'new_diagnoses', npts, dtype=float, scale=True),
-            ss.Result(self.name, 'new_tests', npts, dtype=int, scale=True)]
+        results = [
+            ss.Result(self.name, 'new_diagnoses', npts, dtype=float, scale=True, label="New diagnoses"),
+            ss.Result(self.name, 'new_tests', npts, dtype=int, scale=True, label="New tests"),
+        ]
+        self.results += results
         return
 
     @staticmethod
@@ -182,8 +188,8 @@ class STITest(ss.Intervention):
     def update_results(self):
         # Store results
         ti = self.sim.ti
-        self.results['new_diagnoses'][ti] += np.count_nonzero(self.ti_diagnosed == ti)
-        self.results['new_tests'][ti] += np.count_nonzero(self.ti_tested == ti)
+        self.results['new_diagnoses'][ti] += count(self.ti_diagnosed == ti)
+        self.results['new_tests'][ti] += count(self.ti_tested == ti)
 
 
 class SyndromicMgmt(STITest):
@@ -194,11 +200,31 @@ class SyndromicMgmt(STITest):
     Rather, the testing intervention itself contains a linked treatment intervention.
     """
 
-    def __init__(self, pars=None, treatment=None, diseases=None, test_prob_data=None, years=None, start=None, end=None, eligibility=None, name=None, label=None, **kwargs):
+    def __init__(self, pars=None, treatments=None, diseases=None, test_prob_data=None, years=None, start=None, end=None, eligibility=None, name=None, label=None, **kwargs):
         super().__init__(test_prob_data=test_prob_data, years=years, start=start, end=end, eligibility=eligibility, name=name, label=label)
+        self.default_pars(
+            p_treat=ss.bernoulli(p=0.7),  # The probability that a person with discharge will be offered treatment
+        )
         self.update_pars(pars, **kwargs)
-        self.treatment = treatment
+        self.treatments = sc.tolist(treatments)
         self.diseases = diseases
+        self.add_states(
+            ss.FloatArr('ti_referred'),
+            ss.FloatArr('ti_dismissed'),
+        )
+        return
+
+    def init_results(self):
+        super().init_results()
+        npts = self.sim.npts
+        for disease in self.diseases:
+            results = [
+                ss.Result(disease.name, 'new_false_neg', npts, dtype=float, scale=True, label="False negatives"),
+                ss.Result(disease.name, 'new_true_neg', npts, dtype=float, scale=True, label="True negatives"),
+                ss.Result(disease.name, 'new_false_pos', npts, dtype=float, scale=True, label="False positive"),
+                ss.Result(disease.name, 'new_true_pos', npts, dtype=float, scale=True, label="True positives"),
+            ]
+            disease.results += results
         return
 
     def apply(self, sim, uids=None):
@@ -210,11 +236,27 @@ class SyndromicMgmt(STITest):
                 self.ti_tested[uids] = sim.ti
 
             if len(uids):
-                for disease, treatment in self.treatment.items():
-                    treatment.eligibility = uids
+                treat_uids, dismiss_uids = self.pars.p_treat.split(uids)
+                for treatment in self.treatments:
+                    treatment.eligibility = treat_uids
+                self.ti_referred[treat_uids] = sim.ti
+                self.ti_dismissed[dismiss_uids] = sim.ti
 
             # Update results
             self.update_results()
+
+        return
+
+    def update_results(self):
+        super().update_results()
+        ti = self.sim.ti
+        treat_uids = self.ti_referred == ti
+        dismiss_uids = self.ti_dismissed == ti
+        for disease in self.diseases:
+            disease.results['new_true_pos'][ti] += count(disease.treatable[treat_uids])
+            disease.results['new_false_pos'][ti] += count(disease.susceptible[treat_uids])
+            disease.results['new_true_neg'][ti] += count(disease.susceptible[dismiss_uids])
+            disease.results['new_false_pos'][ti] += count(disease.treatable[dismiss_uids])
 
         return
 
@@ -249,11 +291,15 @@ class STITreatment(ss.Intervention):
 
     def init_pre(self, sim):
         super().init_pre(sim)
+        self.init_results()
+        return
+
+    def init_results(self):
         results = [
-            ss.Result(self.disease, 'new_treated', self.sim.npts, dtype=int, scale=True),
-            ss.Result(self.disease, 'new_treated_success', self.sim.npts, dtype=int, scale=True),
-            ss.Result(self.disease, 'new_treated_failure', self.sim.npts, dtype=int, scale=True),
-            ss.Result(self.disease, 'new_treated_unnecessary', self.sim.npts, dtype=int, scale=True),
+            ss.Result(self.disease, 'new_treated', self.sim.npts, dtype=int, scale=True, label="Number treated"),
+            ss.Result(self.disease, 'new_treated_success', self.sim.npts, dtype=int, scale=True, label="Successfully treated"),
+            ss.Result(self.disease, 'new_treated_failure', self.sim.npts, dtype=int, scale=True, label="Treatment failure"),
+            ss.Result(self.disease, 'new_treated_unnecessary', self.sim.npts, dtype=int, scale=True, label="Overtreatment"),
         ]
         self.sim.diseases[self.disease].results += results
         self.results += results
@@ -298,15 +344,20 @@ class STITreatment(ss.Intervention):
 
         return ss.uids(treat_candidates)
 
-    def administer(self, sim, uids, treat_eff, return_format='dict'):
+    def set_treat_eff(self, uids):
+        """ Can be changed by derived classes """
+        return
+
+    def administer(self, sim, uids, return_format='dict'):
         """ Administer treatment, keeping track of unnecessarily treated individuals """
 
-        inf = sim.diseases[self.disease].infected
+        inf = sim.diseases[self.disease].treatable
         sus = sim.diseases[self.disease].susceptible
         inf_uids = uids[inf[uids]]
         sus_uids = uids[sus[uids]]
 
-        successful = treat_eff.filter(inf_uids)
+        self.set_treat_eff(inf_uids)
+        successful = self.pars.treat_eff.filter(inf_uids)
         unsuccessful = np.setdiff1d(inf_uids, successful)
         unnecessary = sus_uids
 
@@ -338,7 +389,7 @@ class STITreatment(ss.Intervention):
 
         # Treat people
         if len(treat_uids):
-            self.outcomes = self.administer(sim, uids=treat_uids, treat_eff=self.pars.treat_eff)
+            self.outcomes = self.administer(sim, uids=treat_uids)
         self.queue = [e for e in self.queue if e not in treat_uids]  # Recreate the queue, removing treated people
 
         # Change states
@@ -440,17 +491,11 @@ class HIVTest(STITest):
     """
     Base class for HIV testing
     """
-
-    def __init__(self, pars=None, test_prob_data=None, years=None, start_year=None, eligibility=None, name=None, label=None, **kwargs):
-        super().__init__(test_prob_data=test_prob_data, years=years, start_year=start_year, eligibility=eligibility, name=name, label=label)
-        self.default_pars(
-            rel_test=1,
-        )
-        self.update_pars(pars, **kwargs)
+    def __init__(self, product=None, pars=None, test_prob_data=None, years=None, start=None, eligibility=None, name=None, label=None, **kwargs):
+        if product is None: product = HIVDx()
+        super().__init__(product=product, pars=pars, test_prob_data=test_prob_data, years=years, start=start, eligibility=eligibility, name=name, label=label, **kwargs)
         if self.eligibility is None:
             self.eligibility = lambda sim: ~sim.diseases.hiv.diagnosed
-        if self.product is None:
-            self.product = HIVDx
 
 
 class ART(ss.Intervention):
@@ -634,8 +679,9 @@ class VMMC(ss.Intervention):
     def init_results(self):
         npts = self.sim.npts
         self.results += [
-            ss.Result(self.name, 'new_circumcisions', npts, dtype=float, scale=True),
-            ss.Result(self.name, 'n_circumcised', npts, dtype=float, scale=True)]
+            ss.Result(self.name, 'new_circumcisions', npts, dtype=float, scale=True, label="New circumcisions"),
+            ss.Result(self.name, 'n_circumcised', npts, dtype=float, scale=True, label="Number circumcised")
+        ]
         return
 
     def apply(self, sim):
@@ -665,7 +711,7 @@ class VMMC(ss.Intervention):
             self.ti_circumcised[new_circs] = sim.ti
 
         self.results['new_circumcisions'][sim.ti] = n_to_circ
-        self.results['n_circumcised'][sim.ti] = np.count_nonzero(self.circumcised)
+        self.results['n_circumcised'][sim.ti] = count(self.circumcised)
 
         # Reduce rel_sus
         sim.diseases.hiv.rel_sus[self.circumcised] *= 1-self.pars.eff_circ
@@ -688,7 +734,8 @@ class GonorrheaTreatment(STITreatment):
         super().__init__(disease='gonorrhea', eligibility=eligibility, max_capacity=max_capacity, years=years, *args)
         self.requires = ['gonorrhea', 'structuredsexual']
         self.default_pars(
-            treat_eff=ss.bernoulli(p=0.95),
+            base_treat_eff=0.96,
+            treat_eff=ss.bernoulli(p=0),  # Reset each time step depending on base_treat_eff and population AMR
             rel_treat_unsucc=0.01,
             rel_treat_unneed=0.005,
         )
@@ -702,7 +749,7 @@ class GonorrheaTreatment(STITreatment):
     def init_post(self):
         super().init_post()
         results = [
-            ss.Result('gonorrhea', 'rel_treat', self.sim.npts, dtype=int, scale=False),
+            ss.Result('gonorrhea', 'rel_treat', self.sim.npts, dtype=float, scale=False),
         ]
         self.results += results
         self.sim.diseases.gonorrhea.results += results
@@ -713,6 +760,11 @@ class GonorrheaTreatment(STITreatment):
         """ Change the states of people who are treated """
         sim.diseases.gonorrhea.clear_infection(treat_succ)
         sim.diseases.gonorrhea.wipe_dates(treat_succ)
+
+    def set_treat_eff(self, uids):
+        new_treat_eff = self.rel_treat[uids] * self.pars.base_treat_eff
+        self.pars.treat_eff.set(new_treat_eff)
+        return
 
     def apply(self, sim):
         """
