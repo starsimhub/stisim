@@ -4,15 +4,39 @@ Chlamydia trachomatis disease module
 
 import numpy as np
 import starsim as ss
+from stisim.diseases.seis import SEIS
 
-__all__ = ['Chlamydia']
+__all__ = ['Chlamydia', 'ChlamydiaBL']
 
 
-class Chlamydia(ss.Infection):
+class Chlamydia(SEIS):
 
     def __init__(self, pars=None, **kwargs):
         super().__init__()
-        self.requires = 'structuredsexual'
+
+        self.default_pars(
+            dur_exp=ss.constant(1/52),
+            dur_inf=[
+                ss.lognorm_ex(60/52, 5/52),  # Women: 433 days (https://doi.org/10.1016/j.epidem.2010.04.002)
+                ss.lognorm_ex(60/52, 5/52),  # Men: as above
+            ],
+            p_symp=[
+                ss.bernoulli(p=0.375),  # Women: 62.5% asymptomatic (https://doi.org/10.1016/j.epidem.2010.04.002)
+                ss.bernoulli(p=0.375),  # Men: as above
+            ],
+            p_pid=ss.bernoulli(p=0.2),  # Assumption used in https://doi.org/10.1086/598983, based on https://doi.org/10.1016/s0029-7844(02)02118-x
+            dur_prepid=ss.lognorm_ex(3/52, 6/52),
+            init_prev=ss.bernoulli(p=0.01)
+        )
+        self.update_pars(pars, **kwargs)
+
+        return
+
+
+class ChlamydiaBL(Chlamydia):
+
+    def __init__(self, pars=None, **kwargs):
+        super().__init__()
 
         self.default_pars(
             # Bacterial load dynamics
@@ -21,27 +45,6 @@ class Chlamydia(ss.Infection):
             time_to_peak=8/52,
             half_life=ss.lognorm_ex(2.5/52, 0.5/52),
             ct_beta=0.5,  # Growth rate in logistic function mapping CT load to rel_trans
-            model_ct_load=True,  # Whether to model CT load
-            dur_inf=ss.lognorm_ex(60/52, 5/52),  # Duration of infection - only used if model_ct_load is False
-
-            # Transmission
-            beta=1.0,  # Placeholder
-            beta_m2f=None,
-            beta_f2m=None,
-            beta_m2c=None,
-
-            # Symptoms
-            p_symp=[
-                ss.bernoulli(p=0.375),
-                ss.bernoulli(p=0.375),
-            ],
-            p_pid_symp=ss.bernoulli(p=0.25),
-            p_pid_asymp=ss.bernoulli(p=0.25),
-            dur_presymp=ss.lognorm_ex(2/52, 1/52),
-            dur_prepid=ss.lognorm_ex(3/52, 6/52),
-
-            # Initial conditions
-            init_prev=ss.bernoulli(p=0.01)
         )
         self.update_pars(pars, **kwargs)
 
@@ -52,18 +55,6 @@ class Chlamydia(ss.Infection):
             ss.FloatArr('ct_growth_rate'),
             ss.FloatArr('ct_decay_rate'),
             ss.FloatArr('ct_half_life'),
-
-            # Natural history
-            ss.BoolArr('asymptomatic'),
-            ss.BoolArr('symptomatic'),
-            ss.BoolArr('pid'),
-            ss.FloatArr('dur_inf'),
-            ss.FloatArr('ti_symptomatic'),
-            ss.FloatArr('ti_pid'),
-            ss.FloatArr('ti_clearance'),
-
-            # Immunity
-            ss.FloatArr('immunity', default=0.0),
         )
 
         return
@@ -77,72 +68,13 @@ class Chlamydia(ss.Infection):
             self.ct_load[ct_decr_uids] *= np.exp(-self.ct_decay_rate[ct_decr_uids])
         return
 
-    def init_pre(self, sim):
-        super().init_pre(sim)
-        if self.pars.beta_m2f is not None:
-            self.pars.beta['structuredsexual'][0] *= self.pars.beta_m2f
-        if self.pars.beta_f2m is not None:
-            self.pars.beta['structuredsexual'][1] *= self.pars.beta_f2m
-        return
-
-    def init_post(self):
-        """ Make initial cases """
-        super().init_post()
-        return
-
-    def init_results(self):
-        """ Initialize results """
-        super().init_results()
-        npts = self.sim.npts
-        self.results += ss.Result(self.name, 'symp_prevalence', npts, dtype=float, scale=False)
-        return
-
-    def clear_infection(self, uids):
-        self.infected[uids] = False
-        self.symptomatic[uids] = False
-        self.asymptomatic[uids] = False
-        self.pid[uids] = False
-        self.susceptible[uids] = True
-        self.ti_clearance[uids] = self.sim.ti
-
     def update_pre(self):
         """ Updates prior to interventions """
-        ti = self.sim.ti
-        dt = self.sim.dt
+        super().update_pre()
+        # Update CT load and scale rel_trans
+        self.update_ct_load(self.infected.uids)
+        self.rel_trans[self.infected] = 2 / (1 + np.exp(-self.pars.ct_beta*np.log10(self.ct_load[self.infected]))) - 1
 
-        # Reset susceptibility and infectiousness
-        self.rel_sus[:] = 1
-        self.rel_trans[:] = 1
-
-        # Clear infections
-        new_cleared = (self.infected & (self.ti_clearance <= ti)).uids
-        self.clear_infection(new_cleared)
-
-        # Progress symptoms
-        new_symptomatic = (self.asymptomatic & (self.ti_symptomatic <= ti)).uids
-        self.asymptomatic[new_symptomatic] = False
-        self.symptomatic[new_symptomatic] = True
-        self.ti_symptomatic[new_symptomatic] = ti
-
-        # Progress PID
-        new_pid = (self.infected & (self.ti_pid <= ti)).uids
-        self.pid[new_pid] = False
-
-        # Update CT load and scale res_sus
-        if self.pars.model_ct_load:
-            self.update_ct_load(self.infected.uids)
-            self.rel_trans[self.infected] = 2 / (1 + np.exp(-self.pars.ct_beta*np.log10(self.ct_load[self.infected]))) - 1
-
-        return
-
-    def update_results(self):
-        super().update_results()
-        ti = self.sim.ti
-        self.results['symp_prevalence'][ti] = self.results['n_symptomatic'][ti] / np.count_nonzero(self.sim.people.alive)
-        return
-
-    def finalize_results(self):
-        super().finalize_results()
         return
 
     def set_ct_load(self, uids):
@@ -166,46 +98,21 @@ class Chlamydia(ss.Infection):
 
     def set_prognoses(self, uids, source_uids=None):
         """
-        Set initial prognoses for adults newly infected with syphilis
+        Set initial prognoses for adults newly infected
         """
-        super().set_prognoses(uids, source_uids)
-
-        ti = self.sim.ti
-        dt = self.sim.dt
         ppl = self.sim.people
         p = self.pars
-
-        self.susceptible[uids] = False
-        self.infected[uids] = True
-        self.asymptomatic[uids] = True
-        self.ti_infected[uids] = ti
-
-        # Calculate duration of infection
-        if self.pars.model_ct_load:
-            dur_inf = self.set_ct_load(uids)
-        else:
-            dur_inf = self.pars.dur_inf.rvs(uids)
-        self.dur_inf[uids] = dur_inf
-
-        # Symptoms
-        m_uids = ppl.male.uids.intersect(uids)
         f_uids = ppl.female.uids.intersect(uids)
-        m_symp = p.p_symp[0].filter(m_uids)
-        f_symp, f_asymp = p.p_symp[1].split(f_uids)
-        dur_presymp_m = np.minimum(p.dur_presymp.rvs(m_symp), self.dur_inf[m_symp])
-        dur_presymp_f = np.minimum(p.dur_presymp.rvs(f_symp), self.dur_inf[f_symp])
-        self.ti_symptomatic[m_symp] = ti + dur_presymp_m/dt
-        self.ti_symptomatic[f_symp] = ti + dur_presymp_f/dt
+        m_uids = ppl.male.uids.intersect(uids)
 
-        pid_symp = p.p_pid_symp.filter(f_symp)
-        pid_asymp = p.p_pid_asymp.filter(f_asymp)
-        dur_prepid_symp = np.minimum(p.dur_prepid.rvs(pid_symp), self.dur_inf[pid_symp])
-        dur_prepid_asymp = np.minimum(p.dur_prepid.rvs(pid_asymp), self.dur_inf[pid_asymp])
-        self.ti_pid[pid_symp] = ti + dur_prepid_symp/dt
-        self.ti_pid[pid_asymp] = ti + dur_prepid_asymp/dt
+        self.set_exposure(uids)
+        self.set_symptoms(p, f_uids, m_uids)
+        dur_inf = self.set_ct_load(uids)
+        self.dur_inf[uids] = dur_inf
+        self.set_pid(p, f_uids)
 
         # Determine when people recover
-        self.ti_clearance[uids] = ti + dur_inf/dt
+        self.ti_clearance[uids] = self.ti_infected[uids] + self.dur_inf[uids]/self.sim.dt
 
         return
 

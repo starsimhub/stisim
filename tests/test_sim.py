@@ -40,11 +40,16 @@ def test_hiv_sim(n_agents=500, dt=1):
     return sim
 
 
-def test_sti_sim(n_agents=500, dt=1):
+def test_sti_sim(n_agents=500, dt=1, start=2000, n_years=40):
 
     chlamydia = sti.Chlamydia(
-        beta_m2f=0.5,
-        beta_f2m=0.2,
+        beta_m2f=0.038,
+        beta_f2m=0.019,
+        init_prev=0.03,
+    )
+    trich = sti.Trichomoniasis(
+        beta_m2f=0.05,
+        beta_f2m=0.02,
         init_prev=0.05,
     )
     pregnancy = ss.Pregnancy(fertility_rate=10)
@@ -52,20 +57,23 @@ def test_sti_sim(n_agents=500, dt=1):
     sexual = sti.StructuredSexual()
     sim = ss.Sim(
         dt=dt,
-        start=1990,
-        n_years=40,
+        start=start,
+        n_years=n_years,
         n_agents=n_agents,
-        diseases=chlamydia,
+        diseases=trich,
         networks=sexual,
         demographics=[pregnancy, death],
+        analyzers=[],
     )
     sim.run(verbose=0.01)
-    sim.plot('chlamydia')
-    pl.show()
 
     return sim
 
 
 if __name__ == '__main__':
     # s0 = test_hiv_sim()
-    sim = test_sti_sim(n_agents=10e3, dt=1/12)
+    sim = test_sti_sim(n_agents=5e3, dt=1/52, n_years=20)
+    sim.diseases.trichomoniasis.plot()
+    pl.show()
+
+

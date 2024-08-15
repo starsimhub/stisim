@@ -4,10 +4,8 @@ Syphilis-HIV connector for running coinfection analyses
 
 import starsim as ss
 
-import stisim
-import stisim as sti
 
-__all__ = ['hiv_syph']
+__all__ = ['hiv_syph', 'hiv_trich']
 
 
 class hiv_syph(ss.Connector):
@@ -60,5 +58,33 @@ class hiv_syph(ss.Connector):
         self.syphilis.rel_sus[aids] *= self.rel_sus_syph_aids[aids]
         self.syphilis.rel_trans[aids] = self.rel_trans_syph_aids[aids]
 
+        return
+
+
+class hiv_trich(ss.Connector):
+
+    def __init__(self, hiv_module, trich_module, pars=None, **kwargs):
+        super().__init__()
+
+        self.hiv = hiv_module
+        self.trich = trich_module
+        self.default_pars(
+            # Changes to HIV due to trichonomiasis coinfection
+            # Sources:
+            #   - https://www.who.int/news-room/fact-sheets/detail/trichomoniasis
+            #   - https://pubmed.ncbi.nlm.nih.gov/30341233/
+            rel_sus_hiv_trich=ss.normal(loc=1.5, scale=0.25),  # Trich infections: 1.5x risk of HIV acquisition.
+        )
+        self.update_pars(pars, **kwargs)
+
+        self.add_states(
+            ss.FloatArr('rel_sus_hiv_trich', default=self.pars.rel_sus_hiv_trich),
+        )
+
+        return
+
+    def update(self):
+        trich = self.trich.infected
+        self.hiv.rel_sus[trich] *= self.rel_sus_hiv_trich[trich]
         return
 

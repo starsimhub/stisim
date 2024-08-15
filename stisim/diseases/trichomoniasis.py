@@ -2,89 +2,72 @@
 Trichomoniasis disease module
 """
 
-import numpy as np
 import starsim as ss
- 
+from stisim.diseases.seis import SEIS
+
 __all__ = ['Trichomoniasis']
 
 
-class Trichomoniasis(ss.Infection):
+class Trichomoniasis(SEIS):
 
     def __init__(self, pars=None, **kwargs):
         super().__init__()
         self.requires = 'structuredsexual'
 
         self.default_pars(
-            # Transmission
-            beta=1.0,  # Placeholder
-            beta_m2f=None,
-            beta_f2m=None,
-
-            # Natural history
-            dur_inf=ss.lognorm_ex(60/52, 5/52),
+            dur_exp=ss.lognorm_ex(1/52, 1/52),
+            dur_inf=[
+                # Average duration of infection in women is at least 3–5 years and approximately 4 months for men
+                # Source: https://sti.bmj.com/content/76/4/248
+                ss.lognorm_ex(20/52, 4/52),  # Men
+                ss.lognorm_ex(104/52, 15/52),  # Women
+            ],
+            p_symp=[
+                ss.bernoulli(p=0.4),  # Women: https://sti.bmj.com/content/76/4/248
+                ss.bernoulli(p=0.5),  # Men: https://sti.bmj.com/content/76/4/248
+            ],
+            p_clear=[
+                ss.bernoulli(p=0.1),  # Most women do not spontaneously clear
+                ss.bernoulli(p=1),  # Men assumed to clear (https://sti.bmj.com/content/76/4/248)
+            ],
+            p_pid=ss.bernoulli(p=0.025),
+            dur_prepid=ss.lognorm_ex(3/52, 6/52),
 
             # Initial conditions
             init_prev=ss.bernoulli(p=0.01)
         )
         self.update_pars(pars, **kwargs)
 
-        self.add_states(
-        )
-
         return
 
-    def init_pre(self, sim):
-        super().init_pre(sim)
-        if self.pars.beta_m2f is not None:
-            self.pars.beta['structuredsexual'][0] *= self.pars.beta_m2f
-        if self.pars.beta_f2m is not None:
-            self.pars.beta['structuredsexual'][1] *= self.pars.beta_f2m
-        return
-
-    def init_results(self):
-        """ Initialize results """
-        super().init_results()
-        return
-
-    def update_pre(self):
-        """ Updates prior to interventions """
-        # Reset susceptibility and infectiousness
-        self.rel_sus[:] = 1
-        self.rel_trans[:] = 1
-
-        # Clear infections
-        newly_cleared = (self.infected & (self.ti_clearance <= self.sim.ti)).uids
-        self.infected[newly_cleared] = False
-        self.susceptible[newly_cleared] = True
-
-        return
-
-    def update_results(self):
-        super().update_results()
-        return
-
-    def finalize_results(self):
-        super().finalize_results()
-        return
+    def set_duration(self, p, f_uids, m_uids):
+        """ Set duration of infection"""
+        f_clear, f_persist = p.p_clear[0].split(f_uids)
+        m_clear = p.p_clear[1].filter(m_uids)
+        dur_inf_f = p.dur_inf[0].rvs(f_clear)
+        dur_inf_m = p.dur_inf[1].rvs(m_clear)
+        self.ti_clearance[f_clear] = self.ti_infected[f_clear] + dur_inf_f/self.sim.dt
+        self.ti_clearance[m_clear] = self.ti_infected[m_clear] + dur_inf_m/self.sim.dt
+        self.dur_inf[f_persist] = 100
+        self.dur_inf[f_clear] = dur_inf_f
+        self.dur_inf[m_clear] = dur_inf_m
 
     def set_prognoses(self, uids, source_uids=None):
         """
-        Set initial prognoses for adults newly infected with syphilis
+        Set initial prognoses for adults newly infected
         """
-        super().set_prognoses(uids, source_uids)
+        ppl = self.sim.people
+        p = self.pars
+        m_uids = ppl.male.uids.intersect(uids)
+        f_uids = ppl.female.uids.intersect(uids)
 
-        ti = self.sim.ti
-        dt = self.sim.dt
-
-        self.susceptible[uids] = False
-        self.infected[uids] = True
-        self.ti_infected[uids] = ti
-
-        # Calculate duration of infection
-        dur_inf = self.pars.dur_inf.rvs(uids)
+        self.set_exposure(uids)
+        self.set_symptoms(p, f_uids, m_uids)
+        self.set_duration(p, f_uids, m_uids)
+        self.set_pid(p, f_uids)
 
         # Determine when people recover
-        self.ti_clearance[uids] = ti + dur_inf/dt
+        self.ti_clearance[uids] = self.ti_infected[uids] + self.dur_inf[uids]/self.sim.dt
 
         return
 
