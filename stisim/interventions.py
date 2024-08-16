@@ -570,7 +570,7 @@ class SyphVaccine(ss.Intervention):
             uids = sim.people.alive.uids
         return uids
 
-    def prioritize_agents(self, sim, num_doses, eligible_second_dose, eligible_third_dose):
+    def prioritize_agents(self, sim, num_doses):
         """
         Pick agents to receive a second and third dose. Currently, this is done randomly up to the number of available doses.
         Other options would be to prioritize agents by wait time, or by number of dose (e.g. administer second doses first, then
@@ -631,14 +631,15 @@ class SyphVaccine(ss.Intervention):
             choices = np.argsort(bools)[:n_to_vaccinate]
             target_coverage_uids = eligible_uids[choices]
 
+        eligible_second_dose = self.ti_second_dose <= sim.ti
+        eligible_third_dose = self.ti_third_dose <= sim.ti
+
         # 2) Disperse unused doses to agents, who are eligible to receive a second or third dose
         # If there are any unused doses, offer a second and third dose to any vaccinated agents, scheduled to come back for second or third dose
         if num_doses is not None:
             remaining_doses = num_doses - len(target_coverage_uids)
             uids_to_revaccinate = self.prioritize_agents(sim, remaining_doses)
         else:
-            eligible_second_dose = self.ti_second_dose <= sim.ti
-            eligible_third_dose = self.ti_third_dose <= sim.ti
             uids_to_revaccinate = eligible_second_dose.uids | eligible_third_dose.uids
         
         # Reset ti_second_dose, and ti_third_dose for agents who received their second and third dose
