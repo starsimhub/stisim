@@ -15,8 +15,8 @@ class Chlamydia(SEIS):
         super().__init__()
 
         self.default_pars(
-            dur_exp=ss.constant(1/52),
-            dur_inf=[
+            dur_exp2inf=ss.constant(1/52),
+            dur_inf2clear=[
                 ss.lognorm_ex(60/52, 5/52),  # Women: 433 days (https://doi.org/10.1016/j.epidem.2010.04.002)
                 ss.lognorm_ex(60/52, 5/52),  # Men: as above
             ],
@@ -25,7 +25,7 @@ class Chlamydia(SEIS):
                 ss.bernoulli(p=0.375),  # Men: as above
             ],
             p_pid=ss.bernoulli(p=0.2),  # Assumption used in https://doi.org/10.1086/598983, based on https://doi.org/10.1016/s0029-7844(02)02118-x
-            dur_prepid=ss.lognorm_ex(3/52, 6/52),
+            dur_inf2pid=ss.lognorm_ex(1.5/12, 1/12),
             init_prev=ss.bernoulli(p=0.01)
         )
         self.update_pars(pars, **kwargs)

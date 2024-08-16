@@ -18,9 +18,31 @@ class SEIS(ss.Infection):
 
         self.default_pars(
 
-            # Durations
-            dur_exp=ss.constant(1/52),
-            dur_inf=[
+            # Natural history
+            dur_exp2inf=ss.constant(1/52),
+
+            # Symptoms and symptomatic testing
+            p_symp=[
+                ss.bernoulli(p=0.375),  # Women
+                ss.bernoulli(p=0.375),  # Men
+            ],
+            p_symp_test=[
+                ss.bernoulli(p=0.2),  # Women
+                ss.bernoulli(p=0.01),  # Men
+            ],
+            dur_symp2test=[
+                ss.lognorm_ex(1/12, 1/12),  # Women
+                ss.lognorm_ex(1.5/12, 1/12),  # Men
+            ],
+
+            # PID and PID care-seeking
+            p_pid=ss.bernoulli(p=0.2),
+            dur_inf2pid=ss.lognorm_ex(1.5/12, 1/12),
+            p_pid_test=ss.bernoulli(p=0.1),  # Women
+            dur_pid2test=ss.lognorm_ex(0.5/12, 1/12),  # Women
+
+            # Clearance
+            dur_inf2clear=[
                 ss.lognorm_ex(52/52, 5/52),  # Women
                 ss.lognorm_ex(52/52, 5/52),  # Men
             ],
@@ -30,14 +52,6 @@ class SEIS(ss.Infection):
             beta_m2f=None,
             beta_f2m=None,
             beta_m2c=None,
-
-            # Symptoms
-            p_symp=[
-                ss.bernoulli(p=0.375),  # Women
-                ss.bernoulli(p=0.375),  # Men
-            ],
-            p_pid=ss.bernoulli(p=0.2),  # Probability depends on duration of infection
-            dur_prepid=ss.lognorm_ex(3/52, 6/52),
 
             # Initial conditions
             init_prev=ss.bernoulli(p=0.01)
@@ -50,9 +64,11 @@ class SEIS(ss.Infection):
             ss.BoolArr('asymptomatic'),
             ss.BoolArr('symptomatic'),
             ss.BoolArr('pid'),
+            ss.BoolArr('seeking_care'),
             ss.FloatArr('dur_inf'),
             ss.FloatArr('ti_exposed'),
             ss.FloatArr('ti_symptomatic'),
+            ss.FloatArr('ti_seeks_care'),
             ss.FloatArr('ti_pid'),
             ss.FloatArr('ti_clearance'),
         )
@@ -105,10 +121,12 @@ class SEIS(ss.Infection):
         return
  
     def clear_infection(self, uids):
+        self.exposed[uids] = False
         self.infected[uids] = False
         self.symptomatic[uids] = False
         self.asymptomatic[uids] = False
         self.pid[uids] = False
+        self.seeking_care[uids] = False
         self.susceptible[uids] = True
         self.ti_clearance[uids] = self.sim.ti
 
@@ -141,6 +159,11 @@ class SEIS(ss.Infection):
         new_pid = (self.infected & (self.ti_pid <= ti)).uids
         self.pid[new_pid] = True
         self.ti_pid[new_pid] = ti
+
+        # Symptomatic/PID care seeking
+        new_seekers = (self.symptomatic & (self.ti_seeks_care <= ti)).uids
+        self.seeking_care[new_seekers] = new_seekers
+        self.ti_seeks_care[new_seekers] = ti
 
         return
 
@@ -192,7 +215,7 @@ class SEIS(ss.Infection):
         self.exposed[uids] = True
         self.asymptomatic[uids] = True
         self.ti_exposed[uids] = self.sim.ti
-        dur_exp = self.pars.dur_exp.rvs(uids)
+        dur_exp = self.pars.dur_exp2inf.rvs(uids)
         self.ti_infected[uids] = self.sim.ti + dur_exp/self.sim.dt
         return
 
@@ -201,19 +224,35 @@ class SEIS(ss.Infection):
         m_symp = p.p_symp[1].filter(m_uids)
         self.ti_symptomatic[f_symp] = self.ti_infected[f_symp]
         self.ti_symptomatic[m_symp] = self.ti_infected[m_symp]
-        return
+        return f_symp, m_symp
 
     def set_duration(self, p, f_uids, m_uids):
-        dur_inf_f = p.dur_inf[0].rvs(f_uids)
-        dur_inf_m = p.dur_inf[1].rvs(m_uids)
+        dur_inf_f = p.dur_inf2clear[0].rvs(f_uids)
+        dur_inf_m = p.dur_inf2clear[1].rvs(m_uids)
         self.dur_inf[f_uids] = dur_inf_f
         self.dur_inf[m_uids] = dur_inf_m
         return
 
+    def set_care_seeking(self, p, f_symp, m_symp):
+        f_symp_test = p.p_symp_test[0].filter(f_symp)
+        m_symp_test = p.p_symp_test[1].filter(m_symp)
+        f_dur_symp2test = np.minimum(p.dur_symp2test[0].rvs(f_symp_test), self.dur_inf[f_symp_test])
+        m_dur_symp2test = np.minimum(p.dur_symp2test[1].rvs(m_symp_test), self.dur_inf[m_symp_test])
+        self.ti_seeks_care[f_symp_test] = self.ti_infected[f_symp_test] + f_dur_symp2test/self.sim.dt
+        self.ti_seeks_care[m_symp_test] = self.ti_infected[m_symp_test] + m_dur_symp2test/self.sim.dt
+        return
+
     def set_pid(self, p, f_uids):
         pid = p.p_pid.filter(f_uids)
-        dur_prepid = np.minimum(p.dur_prepid.rvs(pid), self.dur_inf[pid])
+        dur_prepid = np.minimum(p.dur_inf2pid.rvs(pid), self.dur_inf[pid])
         self.ti_pid[pid] = self.ti_infected[pid] + dur_prepid/self.sim.dt
+        return pid
+
+    def set_pid_care_seeking(self, p, pid):
+        dt = self.sim.dt
+        pid_test = p.p_pid_test.filter(pid)
+        dur_pid2test = np.minimum(p.dur_pid2test.rvs(pid_test), self.dur_inf[pid_test])
+        self.ti_seeks_care[pid_test] = np.minimum(self.ti_seeks_care[pid_test], self.ti_infected[pid_test] + dur_pid2test/dt)
         return
 
     def wipe_dates(self, uids):
@@ -222,6 +261,7 @@ class SEIS(ss.Infection):
         self.ti_infected[uids] = np.nan
         self.ti_symptomatic[uids] = np.nan
         self.ti_pid[uids] = np.nan
+        self.ti_seeks_care[uids] = np.nan
         self.ti_clearance[uids] = np.nan
         return
 
@@ -238,71 +278,14 @@ class SEIS(ss.Infection):
         m_uids = ppl.male.uids.intersect(uids)
 
         self.set_exposure(uids)
-        self.set_symptoms(p, f_uids, m_uids)
+        f_symp, m_symp = self.set_symptoms(p, f_uids, m_uids)
         self.set_duration(p, f_uids, m_uids)
-        self.set_pid(p, f_uids)
+        self.set_care_seeking(p, f_symp, m_symp)
+        pid = self.set_pid(p, f_uids)
+        self.set_pid_care_seeking(p, pid)
 
         # Determine when people recover
         self.ti_clearance[uids] = self.ti_infected[uids] + self.dur_inf[uids]/self.sim.dt
 
         return
 
-    def plot(self, key=None, fig=None, style='fancy', fig_kw=None, plot_kw=None):
-        """
-        Plot all results in the Sim object
-
-        Args:
-            key (str): the results key to plot (by default, all)
-            fig (Figure): if provided, plot results into an existing figure
-            style (str): the plotting style to use (default "fancy"; other options are "simple", None, or any Matplotlib style)
-            fig_kw (dict): passed to ``plt.subplots()``
-            plot_kw (dict): passed to ``plt.plot()``
-
-        """
-        # Configuration
-        flat = self.results.flatten()
-
-        n_cols = np.ceil(np.sqrt(len(flat)))  # Number of columns of axes
-        default_figsize = np.array([8, 6])
-        figsize_factor = np.clip((n_cols-3)/6+1, 1, 1.5) # Scale the default figure size based on the number of rows and columns
-        figsize = default_figsize*figsize_factor
-        fig_kw = sc.mergedicts({'figsize':figsize}, fig_kw)
-        plot_kw = sc.mergedicts({'lw':2}, plot_kw)
-
-        # Do the plotting
-        with sc.options.with_style(style):
-
-            yearvec = self.sim.yearvec
-
-            # Get the figure
-            fig, axs = sc.getrowscols(len(flat), make=True, **fig_kw)
-            if isinstance(axs, np.ndarray):
-                axs = axs.flatten()
-            else:
-                axs = fig.axes
-            if not sc.isiterable(axs):
-                axs = [axs]
-
-            # Do the plotting
-            for ax, (key, res) in zip(axs, flat.items()):
-                ax.plot(yearvec, res, **plot_kw, label=self.label)
-                title = getattr(res, 'label', key)
-                modtitle = res.module
-                title = f'{modtitle}: {title}'
-                ax.set_title(title)
-                ax.set_xlabel('Year')
-
-        sc.figlayout(fig=fig)
-
-        return fig
-
-    def plot(self):
-        with sc.options.with_style('fancy'):
-            flat = sc.flattendict(self.results, sep=': ')
-            yearvec = self.sim.yearvec
-            fig, axs = sc.getrowscols(len(flat), make=True)
-            for ax, (k, v) in zip(axs.flatten(), flat.items()):
-                ax.plot(yearvec, v)
-                ax.set_title(k)
-                ax.set_xlabel('Year')
-        return fig

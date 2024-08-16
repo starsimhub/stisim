@@ -42,15 +42,20 @@ def test_hiv_sim(n_agents=500, dt=1):
 
 def test_sti_sim(n_agents=500, dt=1, start=2000, n_years=40):
 
-    chlamydia = sti.Chlamydia(
-        beta_m2f=0.038,
-        beta_f2m=0.019,
-        init_prev=0.03,
-    )
-    trich = sti.Trichomoniasis(
-        beta_m2f=0.05,
-        beta_f2m=0.02,
-        init_prev=0.05,
+    # chlamydia = sti.Chlamydia(
+    #     beta_m2f=0.038,
+    #     beta_f2m=0.019,
+    #     init_prev=0.03,
+    # )
+    # trich = sti.Trichomoniasis(
+    #     beta_m2f=0.05,
+    #     beta_f2m=0.02,
+    #     init_prev=0.05,
+    # )
+    vd = sti.DischargingSTI(
+        beta_m2f=0.1,
+        beta_f2m=0.05,
+        init_prev=0.025,
     )
     pregnancy = ss.Pregnancy(fertility_rate=10)
     death = ss.Deaths(death_rate=10)
@@ -60,7 +65,7 @@ def test_sti_sim(n_agents=500, dt=1, start=2000, n_years=40):
         start=start,
         n_years=n_years,
         n_agents=n_agents,
-        diseases=trich,
+        diseases=vd,
         networks=sexual,
         demographics=[pregnancy, death],
         analyzers=[],
@@ -71,9 +76,9 @@ def test_sti_sim(n_agents=500, dt=1, start=2000, n_years=40):
 
 
 if __name__ == '__main__':
-    s0 = test_hiv_sim()
-    # sim = test_sti_sim(n_agents=5e3, dt=1/52, n_years=20)
-    # sim.diseases.trichomoniasis.plot()
+    # s0 = test_hiv_sim()
+    sim = test_sti_sim(n_agents=5e3, dt=1/12, n_years=20)
+    sim.plot("dischargingsti")
     pl.show()
 
 

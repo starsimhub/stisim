@@ -18,11 +18,14 @@ class Placeholder(ss.Disease):
 
         self.default_pars(
             prevalence=0.1,  # Target prevalance. If None, no automatic infections will be applied
+            care_seeking=ss.bernoulli(p=0.5),
         )
         self.update_pars(pars, **kwargs)
         self.add_states(
             ss.BoolArr('symptomatic'),  # Symptomatic
             ss.FloatArr('ti_symptomatic'),  # Time of active symptoms
+            ss.BoolArr('seeking_care'),  # Care seeking
+            ss.FloatArr('ti_seeks_care'),  # Time of active symptoms
         )
         self._prev_dist = ss.bernoulli(p=0)
 

@@ -16,17 +16,17 @@ class Gonorrhea(SEIS):
         super().__init__()
 
         self.default_pars(
-            dur_exp=ss.lognorm_ex(1/52, 1/52),
-            dur_inf=[
-                ss.lognorm_ex(26/52, 5/52),  # Women
-                ss.lognorm_ex(13/52, 5/52),  # Men
+            dur_exp2inf=ss.constant(0),
+            dur_inf2clear=[
+                ss.lognorm_ex(6/12, 1.2/12),  # Women
+                ss.lognorm_ex(4/12, 1.2/12),  # Men
             ],
             p_symp=[
                 ss.bernoulli(p=0.35),  # Women: https://doi.org/10.1371/journal.pone.0143304
                 ss.bernoulli(p=0.65),  # Men:   https://doi.org/10.1371/journal.pone.0143304
             ],
             p_pid=ss.bernoulli(p=0.2),  # TODO
-            dur_prepid=ss.lognorm_ex(3/52, 6/52),  # TODO
+            dur_inf2pid=ss.lognorm_ex(1.5/12, 1/12),
 
             # Initial conditions
             init_prev=ss.bernoulli(p=0.01)

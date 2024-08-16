@@ -232,7 +232,7 @@ class SyndromicMgmt(STITest):
         if (sim.year >= self.start) & (sim.year < self.end):
 
             if uids is None:
-                uids = self.get_testers(sim)
+                uids = self.check_eligibility(sim)
                 self.ti_tested[uids] = sim.ti
 
             if len(uids):
@@ -279,6 +279,8 @@ class STITreatment(ss.Intervention):
         self.disease = disease
         self.update_pars(pars, **kwargs)
         self.eligibility = eligibility
+        if self.eligibility is None:
+            self.eligibility = ss.uids()
         self.queue = []
         self.max_capacity = max_capacity
         self.years = years
@@ -788,7 +790,8 @@ class GonorrheaTreatment(STITreatment):
         ti = self.sim.ti
         treat_uids = (self.ti_treated == ti).uids
         # Add mean rel_treat among those newly treated
-        self.sim.diseases.gonorrhea.results['rel_treat'][ti] = np.mean(self.rel_treat[treat_uids])
+        if len(treat_uids):
+            self.sim.diseases.gonorrhea.results['rel_treat'][ti] = np.mean(self.rel_treat[treat_uids])
 
         return
 
