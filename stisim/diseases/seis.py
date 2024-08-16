@@ -12,8 +12,8 @@ __all__ = ['SEIS']
 
 class SEIS(ss.Infection):
 
-    def __init__(self, pars=None, **kwargs):
-        super().__init__()
+    def __init__(self, pars=None, name=None, **kwargs):
+        super().__init__(name=name)
         self.requires = 'structuredsexual'
 
         self.default_pars(

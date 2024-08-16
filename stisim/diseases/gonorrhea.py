@@ -12,8 +12,8 @@ __all__ = ['Gonorrhea']
 
 class Gonorrhea(SEIS):
 
-    def __init__(self, pars=None, **kwargs):
-        super().__init__()
+    def __init__(self, name='ng', pars=None, **kwargs):
+        super().__init__(name=name)
 
         self.default_pars(
             dur_exp2inf=ss.constant(0),

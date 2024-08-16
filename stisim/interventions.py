@@ -733,8 +733,8 @@ class GonorrheaTreatment(STITreatment):
         - unnecessary treatment results in lower rel_treat
     """
     def __init__(self, pars=None, eligibility=None, max_capacity=None, years=None, *args, **kwargs):
-        super().__init__(disease='gonorrhea', eligibility=eligibility, max_capacity=max_capacity, years=years, *args)
-        self.requires = ['gonorrhea', 'structuredsexual']
+        super().__init__(disease='ng', eligibility=eligibility, max_capacity=max_capacity, years=years, *args)
+        self.requires = ['ng', 'structuredsexual']
         self.default_pars(
             base_treat_eff=0.96,
             treat_eff=ss.bernoulli(p=0),  # Reset each time step depending on base_treat_eff and population AMR
@@ -751,17 +751,17 @@ class GonorrheaTreatment(STITreatment):
     def init_post(self):
         super().init_post()
         results = [
-            ss.Result('gonorrhea', 'rel_treat', self.sim.npts, dtype=float, scale=False),
+            ss.Result('ng', 'rel_treat', self.sim.npts, dtype=float, scale=False),
         ]
         self.results += results
-        self.sim.diseases.gonorrhea.results += results
+        self.sim.diseases.ng.results += results
         return
 
     @staticmethod
     def change_states(sim, treat_succ):
         """ Change the states of people who are treated """
-        sim.diseases.gonorrhea.clear_infection(treat_succ)
-        sim.diseases.gonorrhea.wipe_dates(treat_succ)
+        sim.diseases.ng.clear_infection(treat_succ)
+        sim.diseases.ng.wipe_dates(treat_succ)
 
     def set_treat_eff(self, uids):
         new_treat_eff = self.rel_treat[uids] * self.pars.base_treat_eff
@@ -791,7 +791,7 @@ class GonorrheaTreatment(STITreatment):
         treat_uids = (self.ti_treated == ti).uids
         # Add mean rel_treat among those newly treated
         if len(treat_uids):
-            self.sim.diseases.gonorrhea.results['rel_treat'][ti] = np.mean(self.rel_treat[treat_uids])
+            self.sim.diseases.ng.results['rel_treat'][ti] = np.mean(self.rel_treat[treat_uids])
 
         return
 
@@ -803,7 +803,7 @@ class UpdateDrugs(ss.Intervention):
     """
     def __init__(self, pars=None, eligibility=None, years=None, *args, **kwargs):
         super().__init__(*args)
-        self.requires = ['gonorrhea', 'gonorrheatreatment']
+        self.requires = ['ng', 'gonorrheatreatment']
         self.default_pars(
             threshold_amr=0.05
         )

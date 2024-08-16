@@ -10,8 +10,8 @@ __all__ = ['Trichomoniasis']
 
 class Trichomoniasis(SEIS):
 
-    def __init__(self, pars=None, **kwargs):
-        super().__init__()
+    def __init__(self, pars=None, name='tv', **kwargs):
+        super().__init__(name=name)
         self.requires = 'structuredsexual'
 
         self.default_pars(
