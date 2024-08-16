@@ -469,9 +469,6 @@ class SyphVaccine(ss.Intervention):
         self.coverage_format = None  # Set below
         
         self.dose_interval = None
-        self._immunity_timecourse = None
-        self._protection_timecourse = None
-
 
     def init_pre(self, sim):
         super().init_pre(sim)
@@ -496,10 +493,6 @@ class SyphVaccine(ss.Intervention):
         else:
             self.num_doses = None
 
-        # Get immunity and protection time courses and differentiate by efficacy for general pop, mothters and hiv positives
-        # self._immunity_timecourse = self.get_immunity_timecourse(self.pars.efficacy, self.pars.dur_reach_peak, self.pars.dur_protection)
-        # self._protection_timecourse = self._immunity_timecourse # For now, assume protection timecourse and immunity timecourse are the same
-        # self.sinus_decay_timecourse = self.sinus_decay(self.pars.third_dose_efficacy, self.pars.dur_protection)
         return
 
     def init_results(self):
@@ -531,15 +524,14 @@ class SyphVaccine(ss.Intervention):
 
     def logistic_decay(self, t, init_val):
         """
-        sin(pi/2 * 1/duration_of_protection) * duration_since_boost)
+        Return an array of length t with values for the immunity at each time step
         """
-        dt = self.sim.dt 
-        #sinus_decay = np.sin(t * (np.pi / 2) / rr(self.pars.dur_protection / dt))
+        dt = self.sim.dt
         decay_rate = 3 * dt  # Decay rate reprsenting how quickly y decays
         D = 0  # Value of immunity when t -> inf
         y = init_val + (D - init_val) / (1 + np.exp(-decay_rate * (t - rr(self.pars.dur_protection / dt))))
         return y
-    
+
     def get_immunity_timecourse(self, efficacy, dur_reach_peak, dur_protection):
         """
         Get the derivative of the immunity timecourse.
@@ -604,8 +596,6 @@ class SyphVaccine(ss.Intervention):
         1) First, try to reach the target coverage by vaccinating as many eligible agents as possible (up to num_doses).
 
         2) If target coverage has been reached, and there are doses leftover, administer second and third doses.
-        Second and third doses are prioritized by wait time (only), e.g. an agent who received their second dose 24 months ago is prioritized
-        over an agent who received their first dose 12 months ago.
 
         Args:
             num_doses:      available doses at this time step, if None assume unlimited supply
@@ -721,6 +711,7 @@ class SyphVaccine(ss.Intervention):
         self.linear_boost[new_vaccinated_uids] = (self.peak_immunity[new_vaccinated_uids] - self.immunity[new_vaccinated_uids])/rr(self.pars.dur_reach_peak / dt)
         self.ti_start_waning[new_vaccinated_uids] = sim.ti + rr(self.pars.dur_reach_peak / dt)
 
+        # Update linear boost for HIV positives
         self.linear_boost[hiv_pos_uids] = self.linear_boost[hiv_pos_uids] * hiv_rel_linear_boost[np.digitize(hiv.cd4[hiv_pos_uids], cd4_bins)]
         duration_to_reach_peak = (self.peak_immunity[hiv_pos_uids] - self.immunity[hiv_pos_uids]) / self.linear_boost[hiv_pos_uids]
         self.ti_start_waning[hiv_pos_uids] = sim.ti + duration_to_reach_peak
@@ -728,10 +719,9 @@ class SyphVaccine(ss.Intervention):
 
     def update_immunity_by_vaccination(self, sim):
         """
-        Update Immunity levels for both vaccinated and unvaccinated individuals.
-        1) Update rel_sus_immunity and rel_trans_immunity for all vaccinated agents
-        2) Adjust rel_sus_immunity and rel_trans_immunity for all hiv-pos agents
-        3) Adjust rel_trans_immunity for maternal transmission
+        Update Immunity levels for vaccinated agents
+        1) Update immunity and transmission for all vaccinated agents: Boosting and waning
+        2) Update maternal transmission
 
         """
         syph = sim.diseases.syphilis
@@ -758,8 +748,10 @@ class SyphVaccine(ss.Intervention):
                 # Uids to boost and uids to wane
                 uids_to_wane = uids[self.ti_start_waning[uids] <= sim.ti]
                 uids_to_boost = uids.remove(uids_to_wane)
+
+                # Boosting
                 if len(uids_to_boost):
-                    # Get linear boost value, for HIV positives this will depend on CD4 counts
+                    # Set linear boost value, for HIV positives this will depend on CD4 counts
                     self.set_linear_boost(sim, uids_to_boost)
 
                     # Boost linearly to peak immunity
@@ -767,7 +759,7 @@ class SyphVaccine(ss.Intervention):
                     self.rel_sus_immunity[uids_to_boost] = prevent_infection_param * self.immunity[uids_to_boost]
                     self.rel_trans_immunity[uids_to_boost] = prevent_transmission_param * self.immunity[uids_to_boost]
 
-
+                # Waning
                 if len(uids_to_wane):
                     self.immunity[uids_to_wane] = self.logistic_decay(sim.ti - self.ti_start_waning[uids_to_wane], self.peak_immunity[uids_to_wane])
                     self.rel_sus_immunity[uids_to_wane] = prevent_infection_param * self.immunity[uids_to_wane]
@@ -778,18 +770,11 @@ class SyphVaccine(ss.Intervention):
                 self.rel_trans_immunity[uids] = np.minimum(1, self.rel_trans_immunity[uids]).clip(0)  # Make sure immunity is between 0 and 1
 
                 ################################################################################
-                # 3) Update transmission for maternal network
+                # 2) Update transmission for maternal network
                 self.rel_trans_immunity_maternal[uids] = self.rel_trans_immunity[uids] * (1 - self.pars.rel_efficacy_red_maternal)
 
                 # Ensure values are non-negative
                 self.rel_trans_immunity_maternal[uids] = np.minimum(1, self.rel_trans_immunity_maternal[uids]).clip(0)  # Make sure immunity is between 0 and 1
-
-
-        # # Set rel trans and rel sus
-        # rel_trans, rel_trans_maternal, rel_sus = self.compute_trans_sus(sim)
-        # syph.rel_trans.set(uids=sim.people.auids, new_vals=rel_trans)
-        # syph.rel_trans_maternal.set(uids=sim.people.auids, new_vals=rel_trans_maternal)
-        # syph.rel_sus.set(uids=sim.people.auids, new_vals=rel_sus)
 
         return
 
@@ -884,7 +869,7 @@ class SyphVaccine(ss.Intervention):
 
     def update_rel_sus_rel_trans(self, sim):
         """
-
+        Update relative susceptibility and transmission, including transmission of maternal network
         """
         syph = sim.diseases.syphilis
         # Set rel trans and rel sus
@@ -942,7 +927,7 @@ class SyphVaccine(ss.Intervention):
 
     def apply(self, sim):
         syph = sim.diseases.syphilis
-        # self.update_natural_immunity(sim)
+        # self.update_natural_immunity(sim) # Taking this out for now
         
         if sim.year > self.start_year:
             # Get this time steps target coverage
