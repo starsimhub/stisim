@@ -75,7 +75,7 @@ class STITest(ss.Intervention):
                 self.start = self.years[0]
         if self.end is None:
             if self.years is not None:
-                self.start = self.years[-1]
+                self.end = self.years[-1]
 
         # Testing eligibility and uptake
         self.eligibility = eligibility
@@ -135,8 +135,8 @@ class STITest(ss.Intervention):
             errormsg = 'Format of test_prob_data must be float or array.'
             raise ValueError(errormsg)
 
-        # Scale and validate - TODO, replace this with desired coverage
-        test_prob = test_prob * self.pars.rel_test #  * sim.dt
+        # Scale and validate
+        test_prob = test_prob * self.pars.rel_test * sim.dt
         test_prob = np.clip(test_prob, a_min=0, a_max=1)
 
         return test_prob
