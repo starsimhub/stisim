@@ -409,8 +409,8 @@ class SyphVaccine(ss.Intervention):
 
             # Immunity parameters
             # - Efficacy
-            first_dose_efficacy=0.1, # vaccine efficacy applied to general pop
-            second_dose_efficacy=0.5,
+            first_dose_efficacy=0.5, # vaccine efficacy applied to general pop
+            second_dose_efficacy=0.6,
             third_dose_efficacy=0.75,
             rel_efficacy_red_maternal=0.2, # Relative reduction in efficacy for maternal network, 20% reduction of 90% efficacy -> efficacy of 72%
             # - Protection
@@ -451,6 +451,7 @@ class SyphVaccine(ss.Intervention):
             ss.FloatArr('rel_trans_immunity', default=0),
             ss.FloatArr('rel_trans_immunity_maternal', default=0),
             ss.FloatArr('rel_sus_immunity', default=0),
+            ss.FloatArr('rel_trans_start_latent'),
             ss.FloatArr('peak_immunity', default=0),
             ss.FloatArr('linear_boost'),
             ss.BoolArr('dur_inf_updated'),
@@ -720,7 +721,7 @@ class SyphVaccine(ss.Intervention):
     def update_immunity_by_vaccination(self, sim):
         """
         Update Immunity levels for vaccinated agents
-        1) Update immunity and transmission for all vaccinated agents: Boosting and waning
+        1) Update immunity and transmission for all vaccinated agents: Distinguish by agents in their boosting and waning phases
         2) Update maternal transmission
 
         """
@@ -867,6 +868,37 @@ class SyphVaccine(ss.Intervention):
         self.peak_immunity[uids_third_dose] = self.pars.third_dose_efficacy
         return
 
+    def update_latent_trans(self, ti=None):
+        """
+        Update latent transmission for vaccinated agents in the latent state.
+        This is also done in the syphilis module, however doesn't take into account immunity levels.
+        """
+        syph = self.sim.diseases.syphilis
+        vaccinated_uids = self.vaccinated.uids
+        # Log the current rel trans for vaccinated agents, who are scheduled to progress to the latent state in the next time step
+        start_latent = syph.ti_latent == self.sim.ti+1
+        start_latent_uids = (start_latent & self.vaccinated).uids
+        self.rel_trans_start_latent[start_latent_uids] = syph.rel_trans[start_latent_uids]
+        
+        # Define exponential decay
+        if ti is None: ti = self.sim.ti
+        dt = self.sim.dt
+        latent_vaccinated_uids = (syph.latent & self.vaccinated).uids
+        dur_latent = ti - syph.ti_latent[latent_vaccinated_uids]
+        hl = syph.pars.rel_trans_latent_half_life
+        decay_rate = np.log(2) / hl if ~np.isnan(hl) else 0.
+
+        # If prevent_transmission_latent is set high, we want to increase the decay rate in rel_trans.
+        # It is expected to be low value (e.g. 0.05), which is then similar to the decay rate without the vaccine.
+        syph.rel_trans[latent_vaccinated_uids] = self.rel_trans_start_latent[latent_vaccinated_uids] * syph.pars.rel_trans_latent * np.exp(-decay_rate *  (1 + self.rel_trans_immunity[latent_vaccinated_uids])  * dur_latent * dt)
+
+        # Update the maternal transmission
+        rel_trans_maternal = 1 - (1-self.rel_trans_start_latent[latent_vaccinated_uids]) * (1-self.pars.rel_efficacy_red_maternal)
+        syph.rel_trans_maternal[latent_vaccinated_uids] = rel_trans_maternal * syph.pars.rel_trans_latent * np.exp(-decay_rate *  (1 + self.rel_trans_immunity_maternal[latent_vaccinated_uids])  * dur_latent * dt)
+        return
+
+
+
     def update_rel_sus_rel_trans(self, sim):
         """
         Update relative susceptibility and transmission, including transmission of maternal network
@@ -943,7 +975,10 @@ class SyphVaccine(ss.Intervention):
 
             # Update rel_sus, rel_trans and rel_trans_maternal
             self.update_rel_sus_rel_trans(sim)
-
+            
+            # Update latent trans for vaccinated agents
+            self.update_latent_trans()
+            
             # Reduce duration of infection for vaccinated, infected agents
             self.update_dur_infection(sim)
 
