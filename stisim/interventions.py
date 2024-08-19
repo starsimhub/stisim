@@ -217,6 +217,9 @@ class SyndromicMgmt(STITest):
     def init_results(self):
         super().init_results()
         npts = self.sim.npts
+        self.results += [
+            ss.Result(self.name, 'care_seekers', npts, dtype=float, scale=True, label="Care seekers"),
+        ]
         for disease in self.diseases:
             results = [
                 ss.Result(disease.name, 'new_false_neg', npts, dtype=float, scale=True, label="False negatives"),
@@ -252,6 +255,8 @@ class SyndromicMgmt(STITest):
         ti = self.sim.ti
         treat_uids = self.ti_referred == ti
         dismiss_uids = self.ti_dismissed == ti
+        just_tested = self.ti_tested == ti
+        self.results['care_seekers'][ti] += count(just_tested)
         for disease in self.diseases:
             disease.results['new_true_pos'][ti] += count(disease.treatable[treat_uids])
             disease.results['new_false_pos'][ti] += count(disease.susceptible[treat_uids])
