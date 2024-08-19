@@ -203,7 +203,7 @@ class SyndromicMgmt(STITest):
     def __init__(self, pars=None, treatments=None, diseases=None, test_prob_data=None, years=None, start=None, end=None, eligibility=None, name=None, label=None, **kwargs):
         super().__init__(test_prob_data=test_prob_data, years=years, start=start, end=end, eligibility=eligibility, name=name, label=label)
         self.default_pars(
-            p_treat=ss.bernoulli(p=0.7),  # The probability that a person with discharge will be offered treatment
+            p_treat=ss.bernoulli(p=0.9),  # The probability that a person with discharge will be offered treatment
         )
         self.update_pars(pars, **kwargs)
         self.treatments = sc.tolist(treatments)
