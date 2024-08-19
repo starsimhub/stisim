@@ -504,6 +504,12 @@ class HIVTest(STITest):
         if self.eligibility is None:
             self.eligibility = lambda sim: ~sim.diseases.hiv.diagnosed
 
+    def apply(self, sim, uids=None):
+        outcomes = super().apply(sim, uids=uids)
+        pos_uids = outcomes['positive']
+        hiv.diagnosed[pos_uids] = True
+        hiv.ti_diagnosed[pos_uids] = sim.ti
+
 
 class ART(ss.Intervention):
     """
