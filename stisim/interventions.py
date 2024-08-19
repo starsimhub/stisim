@@ -451,7 +451,10 @@ class SyphVaccine(ss.Intervention):
             ss.FloatArr('rel_trans_immunity', default=0),
             ss.FloatArr('rel_trans_immunity_maternal', default=0),
             ss.FloatArr('rel_sus_immunity', default=0),
+            ss.FloatArr('rel_trans_last_ti'),
+            ss.FloatArr('rel_trans_maternal_last_ti'),
             ss.FloatArr('rel_trans_start_latent'),
+            ss.FloatArr('rel_trans_maternal_start_latent'),
             ss.FloatArr('peak_immunity', default=0),
             ss.FloatArr('linear_boost'),
             ss.BoolArr('dur_inf_updated'),
@@ -874,27 +877,25 @@ class SyphVaccine(ss.Intervention):
         This is also done in the syphilis module, however doesn't take into account immunity levels.
         """
         syph = self.sim.diseases.syphilis
-        vaccinated_uids = self.vaccinated.uids
-        # Log the current rel trans for vaccinated agents, who are scheduled to progress to the latent state in the next time step
-        start_latent = syph.ti_latent == self.sim.ti+1
-        start_latent_uids = (start_latent & self.vaccinated).uids
-        self.rel_trans_start_latent[start_latent_uids] = syph.rel_trans[start_latent_uids]
-        
+
+        new_latent = (syph.ti_latent == self.sim.ti)
+        self.rel_trans_start_latent[new_latent.uids] = self.rel_trans_last_ti[new_latent.uids]
+        self.rel_trans_maternal_start_latent[new_latent.uids] = self.rel_trans_maternal_last_ti[new_latent.uids]
+
         # Define exponential decay
         if ti is None: ti = self.sim.ti
         dt = self.sim.dt
-        latent_vaccinated_uids = (syph.latent & self.vaccinated).uids
-        dur_latent = ti - syph.ti_latent[latent_vaccinated_uids]
+        latent_uids = syph.latent.uids
+        dur_latent = ti - syph.ti_latent[latent_uids]
         hl = syph.pars.rel_trans_latent_half_life
         decay_rate = np.log(2) / hl if ~np.isnan(hl) else 0.
 
         # If prevent_transmission_latent is set high, we want to increase the decay rate in rel_trans.
         # It is expected to be low value (e.g. 0.05), which is then similar to the decay rate without the vaccine.
-        syph.rel_trans[latent_vaccinated_uids] = self.rel_trans_start_latent[latent_vaccinated_uids] * syph.pars.rel_trans_latent * np.exp(-decay_rate *  (1 + self.rel_trans_immunity[latent_vaccinated_uids])  * dur_latent * dt)
+        syph.rel_trans[latent_uids] = self.rel_trans_start_latent[latent_uids] * syph.pars.rel_trans_latent * np.exp(-decay_rate *  (1 + self.rel_trans_immunity[latent_uids])  * dur_latent * dt)
 
         # Update the maternal transmission
-        rel_trans_maternal = 1 - (1-self.rel_trans_start_latent[latent_vaccinated_uids]) * (1-self.pars.rel_efficacy_red_maternal)
-        syph.rel_trans_maternal[latent_vaccinated_uids] = rel_trans_maternal * syph.pars.rel_trans_latent * np.exp(-decay_rate *  (1 + self.rel_trans_immunity_maternal[latent_vaccinated_uids])  * dur_latent * dt)
+        syph.rel_trans_maternal[latent_uids] = self.rel_trans_maternal_start_latent[latent_uids] * syph.pars.rel_trans_latent * np.exp(-decay_rate *  (1 + self.rel_trans_immunity_maternal[latent_uids])  * dur_latent * dt)
         return
 
 
@@ -987,6 +988,9 @@ class SyphVaccine(ss.Intervention):
 
             # Update Results
             self.update_results(sim)
-
+            
+            # Log rel_trans levels for this time step
+            self.rel_trans_last_ti = syph.rel_trans.copy()
+            self.rel_trans_maternal_last_ti = syph.rel_trans_maternal.copy()
 
         return
