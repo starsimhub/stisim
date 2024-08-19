@@ -507,9 +507,9 @@ class HIVTest(STITest):
     def apply(self, sim, uids=None):
         outcomes = super().apply(sim, uids=uids)
         pos_uids = outcomes['positive']
-        hiv.diagnosed[pos_uids] = True
-        hiv.ti_diagnosed[pos_uids] = sim.ti
-
+        sim.diseases.hiv.diagnosed[pos_uids] = True
+        sim.diseases.hiv.ti_diagnosed[pos_uids] = sim.ti
+        return outcomes
 
 class ART(ss.Intervention):
     """
