@@ -871,33 +871,6 @@ class SyphVaccine(ss.Intervention):
         self.peak_immunity[uids_third_dose] = self.pars.third_dose_efficacy
         return
 
-    def update_latent_trans(self, ti=None):
-        """
-        Update latent transmission for vaccinated agents in the latent state.
-        This is also done in the syphilis module, however doesn't take into account immunity levels.
-        """
-        syph = self.sim.diseases.syphilis
-
-        # Define exponential decay
-        if ti is None: ti = self.sim.ti
-        dt = self.sim.dt
-        latent_uids = syph.latent.uids
-        dur_latent = ti - syph.ti_latent[latent_uids]
-        hl = syph.pars.rel_trans_latent_half_life
-        decay_rate = np.log(2) / hl if ~np.isnan(hl) else 0.
-
-        # If prevent_transmission_latent is set high, we want to increase the decay rate in rel_trans.
-        # It is expected to be low value (e.g. 0.05), which is then similar to the decay rate without the vaccine.
-        new_vals= self.rel_trans_start_latent[latent_uids] * syph.pars.rel_trans_latent * np.exp(-decay_rate *  (1 + self.rel_trans_immunity[latent_uids])  * dur_latent * dt)
-        syph.rel_trans.set(uids=latent_uids, new_vals=new_vals)
-        
-        # Update the maternal transmission
-        new_vals_maternal = self.rel_trans_maternal_start_latent[latent_uids] * syph.pars.rel_trans_latent * np.exp(-decay_rate *  (1 + self.rel_trans_immunity_maternal[latent_uids])  * dur_latent * dt)
-        syph.rel_trans_maternal.set(uids=latent_uids, new_vals=new_vals_maternal)
-
-        return
-
-
     def update_rel_sus_rel_trans(self, sim):
         """
         Update relative susceptibility and transmission, including transmission of maternal network
@@ -975,10 +948,6 @@ class SyphVaccine(ss.Intervention):
             # Update rel_sus, rel_trans and rel_trans_maternal
             self.update_rel_sus_rel_trans(sim)
             
-            # Update latent trans for vaccinated agents
-            # print(syph.rel_trans[ss.uids([33])])
-            self.update_latent_trans()
-            # print(syph.rel_trans[ss.uids([33])])
             # Reduce duration of infection for vaccinated, infected agents
             self.update_dur_infection(sim)
 
@@ -988,15 +957,4 @@ class SyphVaccine(ss.Intervention):
             # Update Results
             self.update_results(sim)
 
-        new_latent = (syph.ti_latent == self.sim.ti)
-        self.rel_trans_start_latent[new_latent.uids] = self.rel_trans_last_ti[new_latent.uids]
-        self.rel_trans_maternal_start_latent[new_latent.uids] = self.rel_trans_maternal_last_ti[new_latent.uids]
-            
-        # Log rel_trans levels for this time step
-        self.rel_trans_last_ti.set(uids=syph.rel_trans.auids, new_vals=syph.rel_trans.values)
-        self.rel_trans_maternal_last_ti.set(uids=syph.rel_trans_maternal.auids, new_vals=syph.rel_trans_maternal.values)
-
-        # Update rel sus and rel trans for HIV positives
-        self.sim.connectors.hiv_syph.update()
-        
         return
