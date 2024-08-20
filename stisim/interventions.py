@@ -451,10 +451,10 @@ class SyphVaccine(ss.Intervention):
             ss.FloatArr('rel_trans_immunity', default=0),
             ss.FloatArr('rel_trans_immunity_maternal', default=0),
             ss.FloatArr('rel_sus_immunity', default=0),
-            ss.FloatArr('rel_trans_last_ti'),
-            ss.FloatArr('rel_trans_maternal_last_ti'),
-            ss.FloatArr('rel_trans_start_latent'),
-            ss.FloatArr('rel_trans_maternal_start_latent'),
+            ss.FloatArr('rel_trans_last_ti', default=1),
+            ss.FloatArr('rel_trans_maternal_last_ti', default=1),
+            ss.FloatArr('rel_trans_start_latent', default=1),
+            ss.FloatArr('rel_trans_maternal_start_latent', default=1),
             ss.FloatArr('peak_immunity', default=0),
             ss.FloatArr('linear_boost'),
             ss.BoolArr('dur_inf_updated'),
@@ -878,10 +878,6 @@ class SyphVaccine(ss.Intervention):
         """
         syph = self.sim.diseases.syphilis
 
-        new_latent = (syph.ti_latent == self.sim.ti)
-        self.rel_trans_start_latent[new_latent.uids] = self.rel_trans_last_ti[new_latent.uids]
-        self.rel_trans_maternal_start_latent[new_latent.uids] = self.rel_trans_maternal_last_ti[new_latent.uids]
-
         # Define exponential decay
         if ti is None: ti = self.sim.ti
         dt = self.sim.dt
@@ -892,12 +888,14 @@ class SyphVaccine(ss.Intervention):
 
         # If prevent_transmission_latent is set high, we want to increase the decay rate in rel_trans.
         # It is expected to be low value (e.g. 0.05), which is then similar to the decay rate without the vaccine.
-        syph.rel_trans[latent_uids] = self.rel_trans_start_latent[latent_uids] * syph.pars.rel_trans_latent * np.exp(-decay_rate *  (1 + self.rel_trans_immunity[latent_uids])  * dur_latent * dt)
-
+        new_vals= self.rel_trans_start_latent[latent_uids] * syph.pars.rel_trans_latent * np.exp(-decay_rate *  (1 + self.rel_trans_immunity[latent_uids])  * dur_latent * dt)
+        syph.rel_trans.set(uids=latent_uids, new_vals=new_vals)
+        
         # Update the maternal transmission
-        syph.rel_trans_maternal[latent_uids] = self.rel_trans_maternal_start_latent[latent_uids] * syph.pars.rel_trans_latent * np.exp(-decay_rate *  (1 + self.rel_trans_immunity_maternal[latent_uids])  * dur_latent * dt)
-        return
+        new_vals_maternal = self.rel_trans_maternal_start_latent[latent_uids] * syph.pars.rel_trans_latent * np.exp(-decay_rate *  (1 + self.rel_trans_immunity_maternal[latent_uids])  * dur_latent * dt)
+        syph.rel_trans_maternal.set(uids=latent_uids, new_vals=new_vals_maternal)
 
+        return
 
 
     def update_rel_sus_rel_trans(self, sim):
@@ -978,8 +976,9 @@ class SyphVaccine(ss.Intervention):
             self.update_rel_sus_rel_trans(sim)
             
             # Update latent trans for vaccinated agents
+            # print(syph.rel_trans[ss.uids([33])])
             self.update_latent_trans()
-            
+            # print(syph.rel_trans[ss.uids([33])])
             # Reduce duration of infection for vaccinated, infected agents
             self.update_dur_infection(sim)
 
@@ -988,9 +987,16 @@ class SyphVaccine(ss.Intervention):
 
             # Update Results
             self.update_results(sim)
-            
-            # Log rel_trans levels for this time step
-            self.rel_trans_last_ti = syph.rel_trans.copy()
-            self.rel_trans_maternal_last_ti = syph.rel_trans_maternal.copy()
 
+        new_latent = (syph.ti_latent == self.sim.ti)
+        self.rel_trans_start_latent[new_latent.uids] = self.rel_trans_last_ti[new_latent.uids]
+        self.rel_trans_maternal_start_latent[new_latent.uids] = self.rel_trans_maternal_last_ti[new_latent.uids]
+            
+        # Log rel_trans levels for this time step
+        self.rel_trans_last_ti.set(uids=syph.rel_trans.auids, new_vals=syph.rel_trans.values)
+        self.rel_trans_maternal_last_ti.set(uids=syph.rel_trans_maternal.auids, new_vals=syph.rel_trans_maternal.values)
+
+        # Update rel sus and rel trans for HIV positives
+        self.sim.connectors.hiv_syph.update()
+        
         return
