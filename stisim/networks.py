@@ -462,8 +462,10 @@ class StructuredSexual(ss.SexualNetwork):
         if uids is None: uids = Ellipsis
         p_condom = self.edges.condoms[uids]
         eff_condom = disease.pars.eff_condom
-        result = 1 - (1 - disease_beta * p_condom * eff_condom) ** (self.edges.acts[uids])
-        result *= self.edges.beta[uids]
+        p_trans_condom = (1 - disease_beta*eff_condom)**(self.edges.acts[uids]*p_condom)
+        p_trans_no_condom = (1 - disease_beta)**(self.edges.acts[uids]*(1-p_condom))
+        p_trans = 1 - p_trans_condom * p_trans_no_condom
+        result = p_trans * self.edges.beta[uids]
         return result
 
     def update(self):
