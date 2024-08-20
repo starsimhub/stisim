@@ -1,4 +1,4 @@
-from .seis      import *
+from .sti      import *
 
 # Individual diseases
 from .chlamydia     import *

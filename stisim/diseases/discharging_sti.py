@@ -4,7 +4,7 @@ Chlamydia trachomatis disease module
 
 import numpy as np
 import starsim as ss
-from stisim.diseases.seis import SEIS
+from stisim.diseases.sti import SEIS
 
 __all__ = ['DischargingSTI']
 
@@ -25,7 +25,8 @@ class DischargingSTI(SEIS):
                 ss.bernoulli(p=0.9),  # Men
             ],
             p_pid=ss.bernoulli(p=0),
-            init_prev=ss.bernoulli(p=0.025)
+            init_prev=ss.bernoulli(p=0.025),
+            eff_condom=0.6,
         )
         self.update_pars(pars, **kwargs)
 

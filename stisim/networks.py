@@ -1,5 +1,5 @@
 """
-Define sexual network for syphilis.
+Define sexual network for STI transmission.
 
 Overview:
 - Risk groups: agents are randomly assigned into one of 3 main risk groups:
@@ -35,6 +35,7 @@ class StructuredSexual(ss.SexualNetwork):
 
         key_dict = sc.mergedicts({
             'sw': bool,
+            'condoms': ss_float_,
             'age_p1': ss_float_,
             'age_p2': ss_float_,
         }, key_dict)
@@ -279,6 +280,7 @@ class StructuredSexual(ss.SexualNetwork):
             return
 
         # Initialize beta, acts, duration
+        beta = np.ones(len(p2), dtype=ss_float_)
         condoms = np.zeros(len(p2), dtype=ss_float_)
         dur = np.full(len(p2), dtype=ss_float_, fill_value=dt)  # Default duration is dt, replaced for stable matches
         acts = (self.pars.acts.rvs(p2) * dt).astype(int)  # Number of acts does not depend on commitment/risk group
@@ -286,7 +288,7 @@ class StructuredSexual(ss.SexualNetwork):
         age_p1 = ppl.age[p1]
         age_p2 = ppl.age[p2]
 
-        # First figure out reduction in transmission through condom use
+        # Apply condom data
         if self.condom_data is not None:
             if isinstance(self.condom_data, dict):
                 for rgm in range(self.pars.n_risk_groups):
@@ -332,7 +334,7 @@ class StructuredSexual(ss.SexualNetwork):
                 self.pars.dur_casual.set(loc=loc, scale=scale)
                 dur[casual_bool] = self.pars.dur_casual.rvs(uids)
 
-        self.append(p1=p1, p2=p2, beta=1-condoms, dur=dur, acts=acts, sw=sw, age_p1=age_p1, age_p2=age_p2)
+        self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, sw=sw, age_p1=age_p1, age_p2=age_p2)
 
         # Checks
         if self.sim.people.female[p1].any() or self.sim.people.male[p2].any():
@@ -346,21 +348,18 @@ class StructuredSexual(ss.SexualNetwork):
         p1_sw, p2_sw, beta_sw, dur_sw, acts_sw, sw_sw, age_p1_sw, age_p2_sw = self.add_sex_work(ppl)
 
         # Sex Work Condoms: Figure out reduction in transmission through condom use
-        condoms_sw = 0
+        condoms_sw_val = 0
         if self.condom_data is not None:
             if isinstance(self.condom_data, dict):
-                condoms_sw = self.condom_data['(fsw,client)']['simvals'][self.sim.ti]
+                condoms_sw_val = self.condom_data['(fsw,client)']['simvals'][self.sim.ti]
             elif sc.isnumber(self.condom_data):
-                condoms_sw[:] = self.condom_data
+                condoms_sw_val = self.condom_data
             else:
                 raise Exception("Unknown condom data input type")
-
-        if (beta_sw - condoms_sw < 0).any():
-            ss.warn(f'Negative Beta - sw_beta is smaller than reduction in transmission through condom use.\n'
-                    f'sw_beta is {self.pars.sw_beta} and reduction through condom use is {condoms_sw}')
+        condoms_sw = np.full(len(p2_sw), dtype=ss_float_, fill_value=condoms_sw_val)  # Default duration is dt, replaced for stable matches
 
         # Finalize adding the edges to the network
-        self.append(p1=p1_sw, p2=p2_sw, beta=beta_sw-condoms_sw, dur=dur_sw, acts=acts_sw, sw=sw_sw, age_p1=age_p1_sw, age_p2=age_p2_sw)
+        self.append(p1=p1_sw, p2=p2_sw, beta=beta_sw, condoms=condoms_sw, dur=dur_sw, acts=acts_sw, sw=sw_sw, age_p1=age_p1_sw, age_p2=age_p2_sw)
 
         unique_p1, counts_p1 = np.unique(p1, return_counts=True)
         unique_p2, counts_p2 = np.unique(p2, return_counts=True)
@@ -459,9 +458,12 @@ class StructuredSexual(ss.SexualNetwork):
         ti = self.sim.ti
         self.results.share_active[ti] = len(self.active(self.sim.people).uids)/len(self.sim.people)
 
-    def beta_per_dt(self, disease_beta=None, dt=None, uids=None):
+    def beta_per_dt(self, disease_beta=None, dt=None, uids=None, disease=None):
         if uids is None: uids = Ellipsis
-        result = self.edges.beta[uids] * (1 - (1 - disease_beta) ** (self.edges.acts[uids]))
+        p_condom = self.edges.condoms[uids]
+        eff_condom = disease.pars.eff_condom
+        result = 1 - (1 - disease_beta * p_condom * eff_condom) ** (self.edges.acts[uids])
+        result *= self.edges.beta[uids]
         return result
 
     def update(self):

@@ -3,7 +3,7 @@ Trichomoniasis disease module
 """
 
 import starsim as ss
-from stisim.diseases.seis import SEIS
+from stisim.diseases.sti import SEIS
 
 __all__ = ['Trichomoniasis']
 
@@ -32,6 +32,7 @@ class Trichomoniasis(SEIS):
             ],
             p_pid=ss.bernoulli(p=0.025),
             dur_inf2pid=ss.lognorm_ex(1.5/12, 1/12),
+            eff_condom=0.6,
 
             # Initial conditions
             init_prev=ss.bernoulli(p=0.01)

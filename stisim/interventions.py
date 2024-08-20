@@ -218,7 +218,7 @@ class SyndromicMgmt(STITest):
         super().init_results()
         npts = self.sim.npts
         self.results += [
-            ss.Result(self.name, 'care_seekers', npts, dtype=float, scale=True, label="Care seekers"),
+            ss.Result(self.name, 'care_seekers', npts, dtype=int, scale=True, label="Care seekers"),
         ]
         for disease in self.diseases:
             results = [

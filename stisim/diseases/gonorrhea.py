@@ -5,7 +5,7 @@ Gonorrhea disease module
 import numpy as np
 import starsim as ss
 import sciris as sc
-from stisim.diseases.seis import SEIS
+from stisim.diseases.sti import SEIS
 
 __all__ = ['Gonorrhea']
 
@@ -29,7 +29,8 @@ class Gonorrhea(SEIS):
             dur_inf2pid=ss.lognorm_ex(1.5/12, 1/12),
 
             # Initial conditions
-            init_prev=ss.bernoulli(p=0.01)
+            init_prev=ss.bernoulli(p=0.01),
+            eff_condom=0.6,
         )
         self.update_pars(pars, **kwargs)
 

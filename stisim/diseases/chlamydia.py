@@ -4,7 +4,7 @@ Chlamydia trachomatis disease module
 
 import numpy as np
 import starsim as ss
-from stisim.diseases.seis import SEIS
+from stisim.diseases.sti import SEIS
 
 __all__ = ['Chlamydia', 'ChlamydiaBL']
 
@@ -26,7 +26,8 @@ class Chlamydia(SEIS):
             ],
             p_pid=ss.bernoulli(p=0.2),  # Assumption used in https://doi.org/10.1086/598983, based on https://doi.org/10.1016/s0029-7844(02)02118-x
             dur_inf2pid=ss.lognorm_ex(1.5/12, 1/12),
-            init_prev=ss.bernoulli(p=0.01)
+            init_prev=ss.bernoulli(p=0.01),
+            eff_condom=0.6,  # doi:10.1001/archpedi.159.6.536
         )
         self.update_pars(pars, **kwargs)
 

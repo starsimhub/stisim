@@ -7,6 +7,7 @@ import sciris as sc
 from sciris import randround as rr # Since used frequently
 import starsim as ss
 import stisim as sti
+from stisim.diseases.sti import BaseSTI
 
 __all__ = ['Syphilis','SyphilisPlaceholder']
 
@@ -67,7 +68,7 @@ class SyphilisPlaceholder(ss.Disease):
             self.active[self._prev_dist.filter(uids)] = False
 
 
-class Syphilis(ss.Infection):
+class Syphilis(BaseSTI):
 
     def __init__(self, pars=None, init_prev_data=None, init_prev_latent_data=None, **kwargs):
         super().__init__()
@@ -89,6 +90,7 @@ class Syphilis(ss.Infection):
             beta_m2f=None,
             beta_f2m=None,
             beta_m2c=None,
+            eff_condom=0.5,
             rel_trans_primary=1,
             rel_trans_secondary=1,
             rel_trans_latent=1,  # Baseline level; this decays exponentially with duration of latent infection
