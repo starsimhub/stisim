@@ -281,24 +281,12 @@ class StructuredSexual(ss.SexualNetwork):
 
         # Initialize beta, acts, duration
         beta = np.ones(len(p2), dtype=ss_float_)
-        condoms = np.zeros(len(p2), dtype=ss_float_)
+        condoms = np.zeros(len(p2), dtype=ss_float_)  # FILLED IN LATER
         dur = np.full(len(p2), dtype=ss_float_, fill_value=dt)  # Default duration is dt, replaced for stable matches
         acts = (self.pars.acts.rvs(p2) * dt).astype(int)  # Number of acts does not depend on commitment/risk group
         sw = np.full_like(p1, False, dtype=bool)
         age_p1 = ppl.age[p1]
         age_p2 = ppl.age[p2]
-
-        # Apply condom data
-        if self.condom_data is not None:
-            if isinstance(self.condom_data, dict):
-                for rgm in range(self.pars.n_risk_groups):
-                    for rgf in range(self.pars.n_risk_groups):
-                        risk_pairing = (self.risk_group[p1] == rgm) & (self.risk_group[p2] == rgf)
-                        condoms[risk_pairing] = self.condom_data[(rgm, rgf)]['simvals'][self.sim.ti]
-            elif sc.isnumber(self.condom_data):
-                condoms[:] = self.condom_data
-            else:
-                raise Exception("Unknown condom data input type")
 
         # If both partners are in the same risk group, determine the probability they'll commit
         for rg in range(self.pars.n_risk_groups):
@@ -347,18 +335,8 @@ class StructuredSexual(ss.SexualNetwork):
         # Get sex work values
         p1_sw, p2_sw, beta_sw, dur_sw, acts_sw, sw_sw, age_p1_sw, age_p2_sw = self.add_sex_work(ppl)
 
-        # Sex Work Condoms: Figure out reduction in transmission through condom use
-        condoms_sw_val = 0
-        if self.condom_data is not None:
-            if isinstance(self.condom_data, dict):
-                condoms_sw_val = self.condom_data['(fsw,client)']['simvals'][self.sim.ti]
-            elif sc.isnumber(self.condom_data):
-                condoms_sw_val = self.condom_data
-            else:
-                raise Exception("Unknown condom data input type")
-        condoms_sw = np.full(len(p2_sw), dtype=ss_float_, fill_value=condoms_sw_val)  # Default duration is dt, replaced for stable matches
-
         # Finalize adding the edges to the network
+        condoms_sw = np.zeros(len(p2_sw), dtype=ss_float_)
         self.append(p1=p1_sw, p2=p2_sw, beta=beta_sw, condoms=condoms_sw, dur=dur_sw, acts=acts_sw, sw=sw_sw, age_p1=age_p1_sw, age_p2=age_p2_sw)
 
         unique_p1, counts_p1 = np.unique(p1, return_counts=True)
@@ -462,16 +440,35 @@ class StructuredSexual(ss.SexualNetwork):
         if uids is None: uids = Ellipsis
         p_condom = self.edges.condoms[uids]
         eff_condom = disease.pars.eff_condom
-        p_trans_condom = (1 - disease_beta*eff_condom)**(self.edges.acts[uids]*p_condom)
+        p_trans_condom = (1 - disease_beta*(1-eff_condom))**(self.edges.acts[uids]*p_condom)
         p_trans_no_condom = (1 - disease_beta)**(self.edges.acts[uids]*(1-p_condom))
         p_trans = 1 - p_trans_condom * p_trans_no_condom
         result = p_trans * self.edges.beta[uids]
         return result
 
+    def set_condom_use(self):
+        """ Set condom use """
+        if self.condom_data is not None:
+            if isinstance(self.condom_data, dict):
+                for rgm in range(self.pars.n_risk_groups):
+                    for rgf in range(self.pars.n_risk_groups):
+                        risk_pairing = (self.risk_group[self.p1] == rgm) & (self.risk_group[self.p2] == rgf)
+                        self.edges.condoms[risk_pairing] = self.condom_data[(rgm, rgf)]['simvals'][self.sim.ti]
+                self.edges.condoms[self.edges.sw] = self.condom_data['(fsw,client)']['simvals'][self.sim.ti]
+
+            elif sc.isnumber(self.condom_data):
+                self.edges.condoms[:] = self.condom_data
+
+            else:
+                raise Exception("Unknown condom data input type")
+
+        return
+
     def update(self):
         self.end_pairs()
         self.set_network_states(upper_age=self.sim.dt)
         self.add_pairs()
+        self.set_condom_use()
         self.update_results()
 
         return
