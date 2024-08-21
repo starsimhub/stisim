@@ -200,8 +200,8 @@ class SyndromicMgmt(STITest):
     Rather, the testing intervention itself contains a linked treatment intervention.
     """
 
-    def __init__(self, pars=None, treatments=None, diseases=None, test_prob_data=None, years=None, start=None, end=None, eligibility=None, name=None, label=None, **kwargs):
-        super().__init__(test_prob_data=test_prob_data, years=years, start=start, end=end, eligibility=eligibility, name=name, label=label)
+    def __init__(self, pars=None, treatments=None, diseases=None, treat_prob_data=None, years=None, start=None, end=None, eligibility=None, name=None, label=None, **kwargs):
+        super().__init__(years=years, start=start, end=end, eligibility=eligibility, name=name, label=label)
         self.default_pars(
             p_treat=ss.bernoulli(p=0.9),  # The probability that a person with discharge will be offered treatment
         )
@@ -212,6 +212,13 @@ class SyndromicMgmt(STITest):
             ss.FloatArr('ti_referred'),
             ss.FloatArr('ti_dismissed'),
         )
+        self.treat_prob_data = treat_prob_data
+        self.treat_prob = None
+        return
+
+    def init_pre(self, sim):
+        super().init_pre(sim)
+        self.treat_prob = np.interp(sim.yearvec, self.treat_prob_data.year.values, self.treat_prob_data.treat_prob.values)
         return
 
     def init_results(self):
@@ -239,6 +246,7 @@ class SyndromicMgmt(STITest):
                 self.ti_tested[uids] = sim.ti
 
             if len(uids):
+                self.pars.p_treat.set(self.treat_prob[sim.ti])
                 treat_uids, dismiss_uids = self.pars.p_treat.split(uids)
                 for treatment in self.treatments:
                     treatment.eligibility = treat_uids
@@ -376,9 +384,10 @@ class STITreatment(ss.Intervention):
 
         return output
 
-    @staticmethod
-    def change_states(sim, treat_succ):
-        """ Change the states of people who are treated. Must be implemented by derived classes """
+    def change_states(self, sim, treat_succ):
+        """ Change the states of people who are treated """
+        self.sim.diseases[self.disease].clear_infection(treat_succ)
+        self.sim.diseases[self.disease].wipe_dates(treat_succ)
         return
 
     def apply(self, sim):
@@ -767,12 +776,6 @@ class GonorrheaTreatment(STITreatment):
         self.results += results
         self.sim.diseases.ng.results += results
         return
-
-    @staticmethod
-    def change_states(sim, treat_succ):
-        """ Change the states of people who are treated """
-        sim.diseases.ng.clear_infection(treat_succ)
-        sim.diseases.ng.wipe_dates(treat_succ)
 
     def set_treat_eff(self, uids):
         new_treat_eff = self.rel_treat[uids] * self.pars.base_treat_eff
