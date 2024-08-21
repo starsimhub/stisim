@@ -11,8 +11,8 @@ __all__ = ['Chlamydia', 'ChlamydiaBL']
 
 class Chlamydia(SEIS):
 
-    def __init__(self, pars=None, name='ct', **kwargs):
-        super().__init__(name=name)
+    def __init__(self, pars=None, name='ct', init_prev_data=None, **kwargs):
+        super().__init__(name=name, init_prev_data=init_prev_data)
 
         self.default_pars(
             dur_exp2inf=ss.constant(1/52),

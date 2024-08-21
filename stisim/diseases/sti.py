@@ -6,6 +6,7 @@ Used for chlamydia, gonorrhea, and trich
 import numpy as np
 import starsim as ss
 import sciris as sc
+from stisim.utils import make_init_prev_fn
 ss_int_ = ss.dtypes.int
 
 __all__ = ['BaseSTI', 'SEIS']
@@ -16,15 +17,25 @@ class BaseSTI(ss.Infection):
     Base class for sexually transmitted infections.
     Modifies make_new_cases to account for barrier protection.
     """
-    def __init__(self, pars=None, **kwargs):
+    def __init__(self, pars=None, init_prev_data=None, **kwargs):
         super().__init__()
         self.requires = 'structuredsexual'
         self.default_pars(
-            eff_condom=1
+            eff_condom=1,
+            rel_init_prev=1,
         )
         self.update_pars(pars, **kwargs)
+
+        # Set initial prevalence
+        self.init_prev_data = init_prev_data
+        if init_prev_data is not None:
+            self.pars.init_prev = ss.bernoulli(self.make_init_prev_fn)
+
         return
 
+    @staticmethod
+    def make_init_prev_fn(module, sim, uids):
+        return make_init_prev_fn(module, sim, uids, active=True)
 
     def make_new_cases(self):
         """
@@ -89,8 +100,8 @@ class BaseSTI(ss.Infection):
 
 class SEIS(BaseSTI):
 
-    def __init__(self, pars=None, name=None, **kwargs):
-        super().__init__(name=name)
+    def __init__(self, pars=None, name=None, init_prev_data=None, **kwargs):
+        super().__init__(name=name, init_prev_data=init_prev_data)
         self.default_pars(
 
             # Natural history
