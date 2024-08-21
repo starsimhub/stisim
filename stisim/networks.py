@@ -460,8 +460,6 @@ class StructuredSexual(ss.SexualNetwork):
 
     def beta_per_dt(self, disease_beta=None, dt=None, uids=None, disease=None):
         if uids is None: uids = Ellipsis
-        if self.sim.year > 1995:
-            print('hi')
         p_condom = self.edges.condoms[uids]
         eff_condom = disease.pars.eff_condom
         p_trans_condom = (1 - disease_beta*eff_condom)**(self.edges.acts[uids]*p_condom)
