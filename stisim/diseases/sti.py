@@ -244,13 +244,16 @@ class SEIS(BaseSTI):
         self.ti_symptomatic[new_symptomatic] = ti
 
         # Progress PID
-        new_pid = (self.infected & (self.ti_pid <= ti)).uids
+        new_pid = (~self.pid & (self.ti_pid <= ti)).uids
         self.pid[new_pid] = True
         self.ti_pid[new_pid] = ti
 
         # Symptomatic/PID care seeking
-        new_seekers = (self.symptomatic & (self.ti_seeks_care <= ti)).uids
-        self.seeking_care[new_seekers] = new_seekers
+        old_seekers = (self.seeking_care).uids
+        self.seeking_care[old_seekers] = False  # Remove the old
+        self.ti_seeks_care[old_seekers] = np.nan  # Remove the old
+        new_seekers = (~self.seeking_care & (self.ti_seeks_care <= ti)).uids
+        self.seeking_care[new_seekers] = True
         self.ti_seeks_care[new_seekers] = ti
 
         return
