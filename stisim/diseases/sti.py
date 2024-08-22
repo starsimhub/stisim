@@ -114,7 +114,7 @@ class SEIS(BaseSTI):
             ],
             p_symp_test=[
                 ss.bernoulli(p=0.2),  # Women
-                ss.bernoulli(p=0.01),  # Men
+                ss.bernoulli(p=0.1),  # Men
             ],
             dur_symp2test=[
                 ss.lognorm_ex(1/12, 1/12),  # Women
@@ -195,8 +195,10 @@ class SEIS(BaseSTI):
         npts = self.sim.npts
         self.results += ss.Result(self.name, 'symp_prevalence', npts, dtype=float, scale=False, label="Symptomatic prevalence")
         self.results += ss.Result(self.name, 'incidence', npts, dtype=float, scale=False, label="Incidence")
-        self.results += ss.Result(self.name, 'adult_prevalence', npts, dtype=float, scale=False)
-        self.results += ss.Result(self.name, 'symp_adult_prevalence', npts, dtype=float, scale=False)
+        self.results += ss.Result(self.name, 'adult_prevalence', npts, dtype=float, scale=False, label="Adult prevalence")
+        self.results += ss.Result(self.name, 'symp_adult_prevalence', npts, dtype=float, scale=False, label="Symptomatic adult prevalence")
+        self.results += ss.Result(self.name, 'new_symptomatic', npts, dtype=int, scale=True, label="New symptomatic")
+        self.results += ss.Result(self.name, 'new_care_seekers', npts, dtype=int, scale=True, label="New care seekers")
 
         # Age/sex results
         for rkey in self.age_sex_result_keys:
@@ -250,9 +252,9 @@ class SEIS(BaseSTI):
 
         # Symptomatic/PID care seeking
         old_seekers = (self.seeking_care).uids
-        self.seeking_care[old_seekers] = False  # Remove the old
+        self.seeking_care[old_seekers] = False
         self.ti_seeks_care[old_seekers] = np.nan  # Remove the old
-        new_seekers = (~self.seeking_care & self.infected & (self.ti_seeks_care <= ti)).uids
+        new_seekers = (self.infected & (self.ti_seeks_care <= ti)).uids
         self.seeking_care[new_seekers] = True
         self.ti_seeks_care[new_seekers] = ti
 
@@ -271,6 +273,9 @@ class SEIS(BaseSTI):
         symptomatic_adults = adults & self.symptomatic
         self.results['adult_prevalence'][ti] = np.count_nonzero(infected_adults) / np.count_nonzero(adults)
         self.results['symp_adult_prevalence'][ti] = np.count_nonzero(symptomatic_adults) / np.count_nonzero(adults)
+
+        self.results['new_symptomatic'][ti] = np.count_nonzero(self.ti_symptomatic == ti)
+        self.results['new_care_seekers'][ti] = np.count_nonzero(self.ti_seeks_care == ti)
 
         rmap = {'alive': 'both', 'female': 'female', 'male': 'male'}
 
