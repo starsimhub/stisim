@@ -220,6 +220,8 @@ class SEIS(BaseSTI):
         self.pid[uids] = False
         self.seeking_care[uids] = False
         self.susceptible[uids] = True
+        past_care_seekers = uids[(self.ti_seeks_care[uids]<self.sim.ti).nonzero()[-1]]
+        self.ti_seeks_care[past_care_seekers] = np.nan
         self.ti_clearance[uids] = self.sim.ti
 
     def update_pre(self):
@@ -259,6 +261,10 @@ class SEIS(BaseSTI):
         new_seekers = (self.infected & (self.ti_seeks_care <= ti)).uids
         self.seeking_care[new_seekers] = True
         self.ti_seeks_care[new_seekers] = ti
+        # If we don't update this results here, it's possible that someone could seek care,
+        # then get reinfected, and the reinfection would wipe all their dates so we'd miss
+        # counting them in the results.
+        self.results['new_care_seekers'][ti] = np.count_nonzero(self.ti_seeks_care == ti)
 
         return
 
@@ -275,9 +281,7 @@ class SEIS(BaseSTI):
         symptomatic_adults = adults & self.symptomatic
         self.results['adult_prevalence'][ti] = np.count_nonzero(infected_adults) / np.count_nonzero(adults)
         self.results['symp_adult_prevalence'][ti] = np.count_nonzero(symptomatic_adults) / np.count_nonzero(adults)
-
         self.results['new_symptomatic'][ti] = np.count_nonzero(self.ti_symptomatic == ti)
-        self.results['new_care_seekers'][ti] = np.count_nonzero(self.ti_seeks_care == ti)
 
         rmap = {'alive': 'both', 'female': 'female', 'male': 'male'}
 
@@ -366,6 +370,7 @@ class SEIS(BaseSTI):
         self.ti_pid[uids] = np.nan
         self.ti_seeks_care[uids] = np.nan
         self.ti_clearance[uids] = np.nan
+        self.dur_inf[uids] = np.nan
         return
 
     def set_prognoses(self, uids, source_uids=None):
