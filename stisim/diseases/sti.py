@@ -137,7 +137,7 @@ class SEIS(BaseSTI):
             beta=1.0,  # Placeholder
             beta_m2f=None,
             beta_f2m=None,
-            beta_m2c=None,
+            beta_m2c=0,  # DEFAULT: no MTCT
 
             # Initial conditions
             init_prev=ss.bernoulli(p=0.01)
@@ -182,6 +182,8 @@ class SEIS(BaseSTI):
             self.pars.beta['structuredsexual'][0] *= self.pars.beta_m2f
         if self.pars.beta_f2m is not None:
             self.pars.beta['structuredsexual'][1] *= self.pars.beta_f2m
+        if self.pars.beta_m2c is not None:
+            self.pars.beta['maternal'][1] *= self.pars.beta_m2c
         return
 
     def init_post(self):
