@@ -368,7 +368,7 @@ class SEIS(BaseSTI):
         self.ti_infected[uids] = np.nan
         self.ti_symptomatic[uids] = np.nan
         self.ti_pid[uids] = np.nan
-        self.ti_seeks_care[uids] = np.nan
+        # self.ti_seeks_care[uids] = np.nan
         self.ti_clearance[uids] = np.nan
         self.dur_inf[uids] = np.nan
         return
