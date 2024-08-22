@@ -195,6 +195,8 @@ class SEIS(BaseSTI):
         npts = self.sim.npts
         self.results += ss.Result(self.name, 'symp_prevalence', npts, dtype=float, scale=False, label="Symptomatic prevalence")
         self.results += ss.Result(self.name, 'incidence', npts, dtype=float, scale=False, label="Incidence")
+        self.results += ss.Result(self.name, 'adult_prevalence', npts, dtype=float, scale=False)
+        self.results += ss.Result(self.name, 'symp_adult_prevalence', npts, dtype=float, scale=False)
 
         # Age/sex results
         for rkey in self.age_sex_result_keys:
@@ -261,6 +263,11 @@ class SEIS(BaseSTI):
 
         self.results['symp_prevalence'][ti] = self.results['n_symptomatic'][ti] / np.count_nonzero(ppl.alive)
         self.results['incidence'][ti] = self.results['new_infections'][ti] / self.results['n_susceptible'][ti]
+        adults = (self.sim.people.age >= 15) & (self.sim.people.age < 50)
+        infected_adults = adults & self.infected
+        symptomatic_adults = adults & self.symptomatic
+        self.results['adult_prevalence'][ti] = np.count_nonzero(infected_adults) / np.count_nonzero(adults)
+        self.results['symp_adult_prevalence'][ti] = np.count_nonzero(symptomatic_adults) / np.count_nonzero(adults)
 
         rmap = {'alive': 'both', 'female': 'female', 'male': 'male'}
 
