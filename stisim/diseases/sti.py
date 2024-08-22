@@ -252,7 +252,7 @@ class SEIS(BaseSTI):
         old_seekers = (self.seeking_care).uids
         self.seeking_care[old_seekers] = False  # Remove the old
         self.ti_seeks_care[old_seekers] = np.nan  # Remove the old
-        new_seekers = (~self.seeking_care & (self.ti_seeks_care <= ti)).uids
+        new_seekers = (~self.seeking_care & self.infected & (self.ti_seeks_care <= ti)).uids
         self.seeking_care[new_seekers] = True
         self.ti_seeks_care[new_seekers] = ti
 
