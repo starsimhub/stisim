@@ -137,7 +137,7 @@ class SEIS(BaseSTI):
             beta=1.0,  # Placeholder
             beta_m2f=None,
             beta_f2m=None,
-            beta_m2c=0,  # DEFAULT: no MTCT
+            beta_m2c=None,
 
             # Initial conditions
             init_prev=ss.bernoulli(p=0.01)
