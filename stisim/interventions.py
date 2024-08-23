@@ -218,7 +218,8 @@ class SyndromicMgmt(STITest):
 
     def init_pre(self, sim):
         super().init_pre(sim)
-        self.treat_prob = np.interp(sim.yearvec, self.treat_prob_data.year.values, self.treat_prob_data.treat_prob.values)
+        if self.treat_prob_data is not None:
+            self.treat_prob = np.interp(sim.yearvec, self.treat_prob_data.year.values, self.treat_prob_data.treat_prob.values)
         return
 
     def init_results(self):
@@ -265,7 +266,8 @@ class SyndromicMgmt(STITest):
                 self.ti_tested[uids] = sim.ti
 
             if len(uids):
-                self.pars.p_treat.set(self.treat_prob[sim.ti])
+                if self.treat_prob is not None:
+                    self.pars.p_treat.set(self.treat_prob[sim.ti])
                 treat_uids, dismiss_uids = self.pars.p_treat.split(uids)
                 for treatment in self.treatments:
                     treatment.eligibility = treat_uids
