@@ -39,7 +39,7 @@ class Gonorrhea(SEIS):
     def set_prognoses(self, uids, source_uids=None):
         super().set_prognoses(uids, source_uids)
         # Also pass on the relative treatability
-        if 'gonorrheatreatment' in self.sim.interventions:
-            self.sim.interventions.gonorrheatreatment.rel_treat[uids] = self.sim.interventions.gonorrheatreatment.rel_treat[source_uids]
+        if 'gonorrheatreatment' in self.sim.interventions and source_uids is not None:
+            self.sim.people.gonorrheatreatment.rel_treat[uids] = self.sim.people.gonorrheatreatment.rel_treat[source_uids]
 
 
