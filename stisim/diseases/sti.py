@@ -105,33 +105,40 @@ class SEIS(BaseSTI):
         self.default_pars(
 
             # Natural history
-            dur_exp2inf=ss.constant(1/52),
+            dur_exp=ss.constant(1/52),  # Initial latent period: how long after exposure before you can infect others
 
             # Symptoms and symptomatic testing
             p_symp=[
                 ss.bernoulli(p=0.375),  # Women
                 ss.bernoulli(p=0.375),  # Men
             ],
-            p_symp_test=[
+            dur_presymp=ss.lognorm_ex(1/52, 26/52),  # For those who develop symptoms, how long before symptoms appear
+            p_symp_care=[
                 ss.bernoulli(p=0.2),  # Women
                 ss.bernoulli(p=0.1),  # Men
             ],
-            dur_symp2test=[
+            dur_symp2care=[  # For those who test, how long before they seek care
                 ss.lognorm_ex(1/12, 1/12),  # Women
                 ss.lognorm_ex(1.5/12, 1/12),  # Men
             ],
 
             # PID and PID care-seeking
             p_pid=ss.bernoulli(p=0.2),
-            dur_inf2pid=ss.lognorm_ex(1.5/12, 1/12),
-            p_pid_test=ss.bernoulli(p=0.1),  # Women
-            dur_pid2test=ss.lognorm_ex(0.5/12, 1/12),  # Women
+            dur_asymp2pid=ss.lognorm_ex(1.5/12, 1/12),
+            dur_symp2pid=ss.lognorm_ex(1.5/12, 1/12),
+            p_pid_care=ss.bernoulli(p=0.1),  # Women
+            dur_pid2care=ss.lognorm_ex(0.5/12, 1/12),  # Women
 
             # Clearance
-            dur_inf2clear=[
+            dur_asymp2clear=[  # Duration of untreated asymptomatic infection (excl initial latent)
                 ss.lognorm_ex(52/52, 5/52),  # Women
                 ss.lognorm_ex(52/52, 5/52),  # Men
             ],
+            dur_symp2clear=[  # Duration of untreated symptomatic infection (excl initial latent)
+                ss.lognorm_ex(52/52, 5/52),  # Women
+                ss.lognorm_ex(52/52, 5/52),  # Men
+            ],
+            dur_pid2clear=ss.lognorm_ex(52/52, 5/52),
 
             # Transmission
             beta=1.0,  # Placeholder

@@ -20,6 +20,7 @@ class Chlamydia(SEIS):
                 ss.lognorm_ex(60/52, 5/52),  # Women: 433 days (https://doi.org/10.1016/j.epidem.2010.04.002)
                 ss.lognorm_ex(60/52, 5/52),  # Men: as above
             ],
+            dur_presymp=ss.lognorm_ex(1/52, 26/52),  # For those who develop symptoms, how long before symptoms appear
             p_symp=[
                 ss.bernoulli(p=0.375),  # Women: 62.5% asymptomatic (https://doi.org/10.1016/j.epidem.2010.04.002)
                 ss.bernoulli(p=0.375),  # Men: as above
