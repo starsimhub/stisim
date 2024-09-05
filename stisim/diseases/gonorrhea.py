@@ -16,18 +16,34 @@ class Gonorrhea(SEIS):
         super().__init__(name=name, init_prev_data=init_prev_data)
 
         self.default_pars(
-            dur_exp=ss.constant(1/52),  # Initial latent period: how long after exposure before you can infect others
-            dur_inf2clear=[
-                ss.lognorm_ex(6/12, 1.2/12),  # Women
-                ss.lognorm_ex(4/12, 1.2/12),  # Men
-            ],
-            dur_presymp=ss.lognorm_ex(1/52, 26/52),  # For those who develop symptoms, how long before symptoms appear
+            dur_exp=ss.constant(0),  # Initial latent period: how long after exposure before you can infect others
             p_symp=[
                 ss.bernoulli(p=0.35),  # Women: https://doi.org/10.1371/journal.pone.0143304
                 ss.bernoulli(p=0.65),  # Men:   https://doi.org/10.1371/journal.pone.0143304
             ],
+            dur_presymp=ss.lognorm_ex(1/52, 12/52),  # For those who develop symptoms, how long before symptoms appear
+            p_symp_clear=[
+                ss.bernoulli(p=0.05),
+                ss.bernoulli(p=0.01),
+            ],
+            dur_symp=[
+                ss.lognorm_ex(1/12, 1/12),  # Women
+                ss.lognorm_ex(0.5/12, 1/12),  # Men
+            ],
+            dur_asymp2clear=[
+                ss.lognorm_ex(6/12, 1.5/12),  # Women
+                ss.lognorm_ex(4/12, 1.5/12),  # Men
+            ],
+            dur_symp2clear=[
+                ss.lognorm_ex(1/12, 1/12),  # Women
+                ss.lognorm_ex(0.5/12, 1/12),  # Men
+            ],
+            dur_postsymp2clear=[
+                ss.lognorm_ex(6/12, 1.5/12),  # Women
+                ss.lognorm_ex(4/12, 1.5/12),  # Men
+            ],
             p_pid=ss.bernoulli(p=0.2),  # TODO
-            dur_inf2pid=ss.lognorm_ex(1.5/12, 1/12),
+            dur_prepid=ss.lognorm_ex(1.5/12, 3/12),
 
             # Initial conditions
             init_prev=ss.bernoulli(p=0.01),

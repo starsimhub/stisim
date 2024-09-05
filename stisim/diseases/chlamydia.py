@@ -15,18 +15,35 @@ class Chlamydia(SEIS):
         super().__init__(name=name, init_prev_data=init_prev_data)
 
         self.default_pars(
-            dur_exp2inf=ss.constant(1/52),
-            dur_inf2clear=[
-                ss.lognorm_ex(60/52, 5/52),  # Women: 433 days (https://doi.org/10.1016/j.epidem.2010.04.002)
-                ss.lognorm_ex(60/52, 5/52),  # Men: as above
-            ],
-            dur_presymp=ss.lognorm_ex(1/52, 26/52),  # For those who develop symptoms, how long before symptoms appear
+            dur_exp=ss.constant(1/52),
             p_symp=[
                 ss.bernoulli(p=0.375),  # Women: 62.5% asymptomatic (https://doi.org/10.1016/j.epidem.2010.04.002)
                 ss.bernoulli(p=0.375),  # Men: as above
             ],
+            dur_presymp=ss.lognorm_ex(1/52, 26/52),  # For those who develop symptoms, how long before symptoms appear
+            p_symp_clear=[
+                ss.bernoulli(p=0.05),
+                ss.bernoulli(p=0.01),
+            ],
+            dur_symp=[
+                ss.lognorm_ex(1/12, 1/12),  # Women
+                ss.lognorm_ex(0.5/12, 1/12),  # Men
+            ],
+            dur_asymp2clear=[
+                ss.lognorm_ex(60/52, 5/52),  # Women: 433 days (https://doi.org/10.1016/j.epidem.2010.04.002)
+                ss.lognorm_ex(60/52, 5/52),  # Men: as above
+            ],
+            dur_symp2clear=[
+                ss.lognorm_ex(60/52, 5/52),  # As above
+                ss.lognorm_ex(60/52, 5/52),  # As above
+            ],
+            dur_postsymp2clear=[
+                ss.lognorm_ex(60/52, 5/52),  # As above
+                ss.lognorm_ex(60/52, 5/52),  # As above
+            ],
             p_pid=ss.bernoulli(p=0.2),  # Assumption used in https://doi.org/10.1086/598983, based on https://doi.org/10.1016/s0029-7844(02)02118-x
-            dur_inf2pid=ss.lognorm_ex(1.5/12, 1/12),
+            dur_prepid=ss.lognorm_ex(1.5/12, 3/12),
+
             init_prev=ss.bernoulli(p=0.01),
             eff_condom=0.6,  # doi:10.1001/archpedi.159.6.536
         )
