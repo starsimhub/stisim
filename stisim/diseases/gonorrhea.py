@@ -23,8 +23,8 @@ class Gonorrhea(SEIS):
             ],
             dur_presymp=ss.lognorm_ex(1/52, 12/52),  # For those who develop symptoms, how long before symptoms appear
             p_symp_clear=[
-                ss.bernoulli(p=0.05),
-                ss.bernoulli(p=0.01),
+                ss.bernoulli(p=0.0),
+                ss.bernoulli(p=0.0),
             ],
             dur_symp=[
                 ss.lognorm_ex(1/12, 1/12),  # Women
