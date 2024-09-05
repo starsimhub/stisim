@@ -35,8 +35,8 @@ class Gonorrhea(SEIS):
                 ss.lognorm_ex(4/12, 1.5/12),  # Men
             ],
             dur_symp2clear=[
-                ss.lognorm_ex(1/12, 1/12),  # Women
-                ss.lognorm_ex(0.5/12, 1/12),  # Men
+                ss.lognorm_ex(6/12, 1.5/12),  # Women
+                ss.lognorm_ex(4/12, 1.5/12),  # Men
             ],
             dur_postsymp2clear=[
                 ss.lognorm_ex(6/12, 1.5/12),  # Women

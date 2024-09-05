@@ -17,8 +17,8 @@ class Chlamydia(SEIS):
         self.default_pars(
             dur_exp=ss.constant(1/52),
             p_symp=[
-                ss.bernoulli(p=0.375),  # Women: 62.5% asymptomatic (https://doi.org/10.1016/j.epidem.2010.04.002)
-                ss.bernoulli(p=0.375),  # Men: as above
+                ss.bernoulli(p=0.20),  # Women: 62.5% asymptomatic (https://doi.org/10.1016/j.epidem.2010.04.002)
+                ss.bernoulli(p=0.45),  # Men: as above
             ],
             dur_presymp=ss.lognorm_ex(1/52, 26/52),  # For those who develop symptoms, how long before symptoms appear
             p_symp_clear=[
