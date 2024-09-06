@@ -502,7 +502,7 @@ class ProductMix(ss.Product):
     The test that agents are given does NOT depend on their underlying health state.
     """
 
-    def __init__(self, df, *args, **kwargs):
+    def __init__(self, df, excl_cols=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.df = df
         self.result_list = df.products.unique()
@@ -510,8 +510,11 @@ class ProductMix(ss.Product):
         self.product_mix = None  # Set during initialization
 
         # Pull out data from dataframe
-        self.data_years = np.array([float(c) for c in df.columns if c != 'products'])
-        data_years_str = [c for c in df.columns if c != 'products']
+        if excl_cols is None:
+            excl_cols = 'products'
+
+        self.data_years = np.array([float(c) for c in df.columns if c not in excl_cols])
+        data_years_str = [c for c in df.columns if c not in excl_cols]
         y = df[data_years_str].values
         self.f_out = interp1d(self.data_years, y, axis=1, fill_value=(y[:, 0], y[:, -1]), bounds_error=False)
         return

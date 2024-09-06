@@ -165,7 +165,7 @@ class NewbornTreatment(SyphTx):
         return output
 
 
-class SympSyphTest(STITest):
+class SyphTest(STITest):
     """ Base class for syphilis tests """
     def __init__(self, test_prob_data=None, years=None, start=None, end=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
         super().__init__(test_prob_data=test_prob_data, years=years, start=start, end=end, eligibility=eligibility, product=product, name=name, label=label, **kwargs)
@@ -177,6 +177,42 @@ class SympSyphTest(STITest):
         self.newborn_test = newborn_test
         return
 
+    def apply(self, sim, uids=None):
+        super().apply(sim, uids=uids)
+        if (sim.year >= self.start) & (sim.year < self.end):
+            # Schedule newborn tests if the mother is positive
+            if self.newborn_test is not None:
+                new_pos = self.ti_positive == self.sim.ti
+                if new_pos.any():
+                    pos_mother_inds = np.in1d(sim.networks.maternalnet.p1, new_pos.uids)
+                    unborn_uids = sim.networks.maternalnet.p2[pos_mother_inds]
+                    ti_births = sim.networks.maternalnet.edges.end[pos_mother_inds].astype(int)
+                    self.newborn_test.schedule(unborn_uids, ti_births)
+
+        return
+
+    def update_results(self):
+        ti = self.sim.ti
+        super().update_results()
+        new_pos = self.ti_positive == ti
+        new_neg = self.ti_negative == ti
+
+        # Count true/false positives
+        false_pos = np.count_nonzero(self.sim.diseases.syphilis.susceptible[new_pos])
+        true_pos = np.count_nonzero(self.sim.diseases.syphilis.infected[new_neg])
+        self.sim.diseases.syphilis.results['new_false_pos'][ti] += false_pos
+        self.sim.diseases.syphilis.results['new_true_pos'][ti] += true_pos
+
+        # Count true/false negatives
+        false_neg = np.count_nonzero(self.sim.diseases.syphilis.infected[new_neg])
+        true_neg = np.count_nonzero(self.sim.diseases.syphilis.susceptible[new_neg])
+        self.sim.diseases.syphilis.results['new_false_neg'][ti] += false_neg
+        self.sim.diseases.syphilis.results['new_true_neg'][ti] += true_neg
+        return
+
+
+class SympSyphTest(SyphTest):
+    """ Base class for syphilis tests """
     def process_data(self, sim):
         """ Turn dataframe into a dictionary """
         if isinstance(self.test_prob_data, pd.DataFrame):
@@ -228,41 +264,8 @@ class SympSyphTest(STITest):
         self.test_prob_data = self.process_data(sim)
         return
 
-    def apply(self, sim, uids=None):
-        super().apply(sim, uids=uids)
-        if (sim.year >= self.start) & (sim.year < self.end):
-            # Schedule newborn tests if the mother is positive
-            if self.newborn_test is not None:
-                new_pos = self.ti_positive == self.sim.ti
-                if new_pos.any():
-                    pos_mother_inds = np.in1d(sim.networks.maternalnet.p1, new_pos.uids)
-                    unborn_uids = sim.networks.maternalnet.p2[pos_mother_inds]
-                    ti_births = sim.networks.maternalnet.edges.end[pos_mother_inds].astype(int)
-                    self.newborn_test.schedule(unborn_uids, ti_births)
 
-        return
-
-    def update_results(self):
-        ti = self.sim.ti
-        super().update_results()
-        new_pos = self.ti_positive == ti
-        new_neg = self.ti_negative == ti
-
-        # Count true/false positives
-        false_pos = np.count_nonzero(self.sim.diseases.syphilis.susceptible[new_pos])
-        true_pos = np.count_nonzero(self.sim.diseases.syphilis.infected[new_neg])
-        self.sim.diseases.syphilis.results['new_false_pos'][ti] += false_pos
-        self.sim.diseases.syphilis.results['new_true_pos'][ti] += true_pos
-
-        # Count true/false negatives
-        false_neg = np.count_nonzero(self.sim.diseases.syphilis.infected[new_neg])
-        true_neg = np.count_nonzero(self.sim.diseases.syphilis.susceptible[new_neg])
-        self.sim.diseases.syphilis.results['new_false_neg'][ti] += false_neg
-        self.sim.diseases.syphilis.results['new_true_neg'][ti] += true_neg
-        return
-
-
-class ANCSyphTest(STITest):
+class ANCSyphTest(SyphTest):
     """
     Test given to pregnant women
     Need to adjust timing using Trivedi (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7138526/)
@@ -295,7 +298,7 @@ class ANCSyphTest(STITest):
         return super().apply(sim)
 
 
-class NewbornSyphTest(STITest):
+class NewbornSyphTest(SyphTest):
     """
     Test given to newborns if the mother was confirmed to have syphilis at any stage of the pregnancy
     """
