@@ -5,6 +5,7 @@ Define interventions for STIsim
 import starsim as ss
 import numpy as np
 import sciris as sc
+from scipy.interpolate import interp1d
 
 
 # %% Helper functions
@@ -12,7 +13,7 @@ def count(arr): return np.count_nonzero(arr)
 
 
 # %% Base classes
-__all__ = ["STIDx", "STITest", "SyndromicMgmt", "STITreatment", "PartnerNotification"]
+__all__ = ["STIDx", "STITest", "SyndromicMgmt", "STITreatment", "PartnerNotification", "ProductMix"]
 
 
 class STIDx(ss.Product):
@@ -119,6 +120,15 @@ class STITest(ss.Intervention):
             ss.Result(self.name, 'new_tests', npts, dtype=int, scale=True, label="New tests"),
         ]
         self.results += results
+
+        disease_results = [
+            ss.Result(self.disease, 'new_false_neg', npts, dtype=float, scale=True, label="False negatives"),
+            ss.Result(self.disease, 'new_true_neg', npts, dtype=float, scale=True, label="True negatives"),
+            ss.Result(self.disease, 'new_false_pos', npts, dtype=float, scale=True, label="False positive"),
+            ss.Result(self.disease, 'new_true_pos', npts, dtype=float, scale=True, label="True positives"),
+        ]
+        self.sim.diseases[self.disease].results += disease_results
+
         return
 
     @staticmethod
@@ -227,25 +237,6 @@ class SyndromicMgmt(STITest):
         npts = self.sim.npts
         self.results += [
             ss.Result(self.name, 'care_seekers', npts, dtype=int, scale=True, label="Care seekers"),
-            ss.Result(self.name, 'ng_only', npts, dtype=int, scale=True, label='Only NG'),
-            ss.Result(self.name, 'ct_only', npts, dtype=int, scale=True, label='Only CT'),
-            ss.Result(self.name, 'tv_only', npts, dtype=int, scale=True, label='Only TV'),
-            ss.Result(self.name, 'vd_only', npts, dtype=int, scale=True, label='Only VD'),
-            ss.Result(self.name, 'ng_ct', npts, dtype=int, scale=True, label='NG & CT'),
-            ss.Result(self.name, 'ng_tv', npts, dtype=int, scale=True, label='NG & TV'),
-            ss.Result(self.name, 'ng_vd', npts, dtype=int, scale=True, label='NG & VD'),
-            ss.Result(self.name, 'ct_tv', npts, dtype=int, scale=True, label='CT & TV'),
-            ss.Result(self.name, 'ct_vd', npts, dtype=int, scale=True, label='CT & VD'),
-            ss.Result(self.name, 'tv_vd', npts, dtype=int, scale=True, label='TV & VD'),
-            ss.Result(self.name, 'ng_ct_tv', npts, dtype=int, scale=True, label='NG & CT & TV'),
-            ss.Result(self.name, 'ng_ct_vd', npts, dtype=int, scale=True, label='NG & CT & VD'),
-            ss.Result(self.name, 'ng_tv_vd', npts, dtype=int, scale=True, label='NG & TV & VD'),
-            ss.Result(self.name, 'ct_tv_vd', npts, dtype=int, scale=True, label='CT & TV & VD'),
-            ss.Result(self.name, 'ng_ct_tv_vd', npts, dtype=int, scale=True, label='NG & CT & TV & VD'),
-            ss.Result(self.name, 'all_ng', npts, dtype=int, scale=True, label='All NG'),
-            ss.Result(self.name, 'all_ct', npts, dtype=int, scale=True, label='All CT'),
-            ss.Result(self.name, 'all_tv', npts, dtype=int, scale=True, label='All TV'),
-            ss.Result(self.name, 'all_vd', npts, dtype=int, scale=True, label='All VD'),
         ]
         for disease in self.diseases:
             results = [
@@ -292,31 +283,6 @@ class SyndromicMgmt(STITest):
             disease.results['new_false_pos'][ti] += count(disease.susceptible[treat_uids])
             disease.results['new_true_neg'][ti] += count(disease.susceptible[dismiss_uids])
             disease.results['new_false_pos'][ti] += count(disease.treatable[dismiss_uids])
-
-        # Custom results
-        self.results['ng_only'][ti] = len((just_tested & ppl.ng.infected & ~ppl.ct.infected & ~ppl.tv.infected & ~ppl.vd.infected).uids)
-        self.results['ct_only'][ti] = len((just_tested & ~ppl.ng.infected & ppl.ct.infected & ~ppl.tv.infected & ~ppl.vd.infected).uids)
-        self.results['tv_only'][ti] = len((just_tested & ~ppl.ng.infected & ~ppl.ct.infected & ppl.tv.infected & ~ppl.vd.infected).uids)
-        self.results['vd_only'][ti] = len((just_tested & ~ppl.ng.infected & ~ppl.ct.infected & ~ppl.tv.infected & ppl.vd.infected).uids)
-
-        self.results['ng_ct'][ti] = len((just_tested & ppl.ng.infected & ppl.ct.infected & ~ppl.tv.infected & ~ppl.vd.infected).uids)
-        self.results['ng_tv'][ti] = len((just_tested & ppl.ng.infected & ~ppl.ct.infected & ppl.tv.infected & ~ppl.vd.infected).uids)
-        self.results['ng_vd'][ti] = len((just_tested & ppl.ng.infected & ~ppl.ct.infected & ~ppl.tv.infected & ppl.vd.infected).uids)
-        self.results['ct_tv'][ti] = len((just_tested & ~ppl.ng.infected & ppl.ct.infected & ppl.tv.infected & ~ppl.vd.infected).uids)
-        self.results['ct_vd'][ti] = len((just_tested & ~ppl.ng.infected & ppl.ct.infected & ~ppl.tv.infected & ppl.vd.infected).uids)
-        self.results['tv_vd'][ti] = len((just_tested & ~ppl.ng.infected & ~ppl.ct.infected & ppl.tv.infected & ppl.vd.infected).uids)
-
-        self.results['ng_ct_tv'][ti] = len((just_tested & ppl.ng.infected & ppl.ct.infected & ppl.tv.infected & ~ppl.vd.infected).uids)
-        self.results['ng_ct_vd'][ti] = len((just_tested & ppl.ng.infected & ppl.ct.infected & ~ppl.tv.infected & ppl.vd.infected).uids)
-        self.results['ng_tv_vd'][ti] = len((just_tested & ppl.ng.infected & ~ppl.ct.infected & ppl.tv.infected & ppl.vd.infected).uids)
-        self.results['ct_tv_vd'][ti] = len((just_tested & ~ppl.ng.infected & ppl.ct.infected & ppl.tv.infected & ppl.vd.infected).uids)
-
-        self.results['ng_ct_tv_vd'][ti] = len((just_tested & ppl.ng.infected & ppl.ct.infected & ppl.tv.infected & ppl.vd.infected).uids)
-
-        self.results['all_ng'][ti] = len((just_tested & ppl.ng.infected).uids)
-        self.results['all_ct'][ti] = len((just_tested & ppl.ct.infected).uids)
-        self.results['all_tv'][ti] = len((just_tested & ppl.tv.infected).uids)
-        self.results['all_vd'][ti] = len((just_tested & ppl.vd.infected).uids)
 
         return
 
@@ -535,5 +501,45 @@ class PartnerNotification(ss.Intervention):
         uids = self.identify_contacts(sim, uids)
         return self.notify(sim, uids)
 
+
+class ProductMix(ss.Product):
+    """
+    Generic class for algorithms that determine which product a person will receive
+    Uses ss.choice() sampling, which is slower than bernoulli, when there are more than two options
+    The test that agents are given does NOT depend on their underlying health state.
+    """
+
+    def __init__(self, df, products, product_map, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.df = df
+        self.products = products
+        self.result_list = df.products.unique()
+        self.product_dist = ss.choice(a=self.result_list)
+        self.product_mix = None  # Set during initialization
+        self.product_map = product_map
+
+        # Pull out data from dataframe
+        self.data_years = np.array([float(c) for c in df.columns if c != 'products'])
+        data_years_str = [c for c in df.columns if c != 'products']
+        y = df[data_years_str].values
+        self.f_out = interp1d(self.data_years, y, axis=1, fill_value=(y[:, 0], y[:, -1]), bounds_error=False)
+        return
+
+    def init_pre(self, sim):
+        super().init_pre(sim)
+        self.product_mix = self.f_out(sim.yearvec)
+
+    def administer(self, sim, uids):
+        """
+        Apply a testing algorithm
+        """
+        outcomes = {r: ss.uids() for r in self.result_list}
+        self.product_dist.set(p=self.product_mix[:, sim.ti])
+        this_result = self.product_dist.rvs(uids)
+        if len(this_result):
+            for res in self.result_list:
+                outcomes[res] = uids[this_result == res]
+
+        return outcomes
 
 
