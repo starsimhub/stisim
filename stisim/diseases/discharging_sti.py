@@ -15,11 +15,6 @@ class DischargingSTI(SEIS):
         super().__init__(name=name, init_prev_data=init_prev_data)
 
         self.default_pars(
-            dur_exp2inf=ss.constant(0),
-            dur_inf2clear=[
-                ss.lognorm_ex(4/12, 1/12),
-                ss.lognorm_ex(3/12, 1/12),
-            ],
             p_symp=[
                 ss.bernoulli(p=0.8),  # Women
                 ss.bernoulli(p=0.9),  # Men

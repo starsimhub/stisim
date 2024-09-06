@@ -112,7 +112,10 @@ class SEIS(BaseSTI):
                 ss.bernoulli(p=0.375),  # Women
                 ss.bernoulli(p=0.375),  # Men
             ],
-            dur_presymp=ss.lognorm_ex(1/52, 26/52),  # For those who develop symptoms, how long before symptoms appear
+            dur_presymp=[  # For those who develop symptoms, how long before symptoms appear
+                ss.lognorm_ex(1/52, 12/52),  # Women:
+                ss.lognorm_ex(0.5/52, 12/52),  # Men: symptoms should appear within days
+            ],
             p_symp_clear=[
                 ss.bernoulli(p=0.0),  # Women
                 ss.bernoulli(p=0.0),  # Men
@@ -359,8 +362,8 @@ class SEIS(BaseSTI):
     def set_symptoms(self, p, f_uids, m_uids):
         f_symp, f_asymp = p.p_symp[0].split(f_uids)
         m_symp, m_asymp = p.p_symp[1].split(m_uids)
-        f_dur_presymp = self.pars.dur_presymp.rvs(f_symp)
-        m_dur_presymp = self.pars.dur_presymp.rvs(m_symp)
+        f_dur_presymp = self.pars.dur_presymp[0].rvs(f_symp)
+        m_dur_presymp = self.pars.dur_presymp[1].rvs(m_symp)
         self.ti_symptomatic[f_symp] = self.ti_infected[f_symp] + f_dur_presymp/self.sim.dt
         self.ti_symptomatic[m_symp] = self.ti_infected[m_symp] + m_dur_presymp/self.sim.dt
         return f_symp, m_symp, f_asymp, m_asymp

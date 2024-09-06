@@ -20,7 +20,10 @@ class Trichomoniasis(SEIS):
                 ss.bernoulli(p=0.4),  # Women: https://sti.bmj.com/content/76/4/248
                 ss.bernoulli(p=0.5),  # Men: https://sti.bmj.com/content/76/4/248
             ],
-            dur_presymp=ss.lognorm_ex(0.25/12, 1/12),  # For those who develop symptoms, how long before symptoms appear
+            dur_presymp=[  # For those who develop symptoms, how long before symptoms appear
+                ss.lognorm_ex(1/52, 12/52),  # Women:
+                ss.lognorm_ex(0.25/52, 1/52),  # Men: symptoms should appear within days
+            ],
             p_symp_clear=[
                 ss.bernoulli(p=0.0),  # Women
                 ss.bernoulli(p=0.0),  # Men

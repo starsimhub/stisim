@@ -20,7 +20,10 @@ class Chlamydia(SEIS):
                 ss.bernoulli(p=0.20),  # Women: 62.5% asymptomatic (https://doi.org/10.1016/j.epidem.2010.04.002)
                 ss.bernoulli(p=0.45),  # Men: as above
             ],
-            dur_presymp=ss.lognorm_ex(1/52, 26/52),  # For those who develop symptoms, how long before symptoms appear
+            dur_presymp=[  # For those who develop symptoms, how long before symptoms appear
+                ss.lognorm_ex(1/52, 12/52),  # Women:
+                ss.lognorm_ex(0.25/52, 1/52),  # Men: symptoms should appear within days
+            ],
             p_symp_clear=[
                 ss.bernoulli(p=0.05),
                 ss.bernoulli(p=0.01),
