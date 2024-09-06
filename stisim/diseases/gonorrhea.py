@@ -21,7 +21,9 @@ class Gonorrhea(SEIS):
                 ss.bernoulli(p=0.35),  # Women: https://doi.org/10.1371/journal.pone.0143304
                 ss.bernoulli(p=0.65),  # Men:   https://doi.org/10.1371/journal.pone.0143304
             ],
-            dur_presymp=ss.lognorm_ex(1/52, 12/52),  # For those who develop symptoms, how long before symptoms appear
+            dur_presymp=[  # For those who develop symptoms, how long before symptoms appear
+                ss.lognorm_ex(1/52, 12/52),  # Women
+            ],
             p_symp_clear=[
                 ss.bernoulli(p=0.0),
                 ss.bernoulli(p=0.0),
