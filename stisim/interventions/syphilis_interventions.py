@@ -9,7 +9,7 @@ import sciris as sc
 from stisim.interventions.base_interventions import STIDx, STITest, STITreatment
 from stisim.utils import TimeSeries
 
-__all__ = ["SyphDx", "SyphTx", "NewbornTreatment"]
+__all__ = ["SyphDx", "SyphTx", "NewbornTreatment", "SympSyphTest", "ANCSyphTest", "NewbornSyphTest"]
 
 
 class SyphDx(STIDx):
@@ -165,7 +165,7 @@ class NewbornTreatment(SyphTx):
         return output
 
 
-class SyphTest(STITest):
+class SympSyphTest(STITest):
     """ Base class for syphilis tests """
     def __init__(self, test_prob_data=None, years=None, start=None, end=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
         super().__init__(test_prob_data=test_prob_data, years=years, start=start, end=end, eligibility=eligibility, product=product, name=name, label=label, **kwargs)
@@ -261,59 +261,48 @@ class SyphTest(STITest):
         self.sim.diseases.syphilis.results['new_true_neg'][ti] += true_neg
         return
 
-#
-# class ANCTesting(TestProb):
-#     """
-#     Test given to pregnant women
-#     Need to adjust timing using Trivedi (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7138526/)
-#     """
-#     def __init__(self, start=None, end=None, years=None, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         self.pars.linked = True  # test_prob doesn't need to be scaled by dt
-#         self.test_timing = ss.randint(1, 9)
-#         self.years = years
-#         self.start = start
-#         self.end = end
-#
-#         if self.eligibility is None:
-#             self.eligibility = lambda sim: sim.demographics.pregnancy.pregnant
-#         return
-#
-#     def init_pre(self, sim):
-#         super().init_pre(sim)
-#         if self.start is None: self.start = sim.pars.start
-#         if self.end is None: self.end = sim.pars.end
-#         return
-#
-#     def get_testers(self, sim):
-#         # For ANC testing, only administer scheduled tests
-#         return (self.ti_scheduled == sim.ti).uids
-#
-#     def schedule_tests(self, sim):
-#         """ Schedule a test for newly pregnant women """
-#         newly_preg = (sim.demographics.pregnancy.ti_pregnant == sim.ti).uids
-#         self.test_prob.pars['p'] = self.make_test_prob_fn(self, sim, newly_preg)
-#         will_test = self.test_prob.filter(newly_preg)
-#         ti_test = sim.ti + self.test_timing.rvs(will_test)
-#         self.ti_scheduled[will_test] = ti_test
-#
-#     def apply(self, sim):
-#         self.schedule_tests(sim)  # Check for newly pregnant women so they can be added to the schedule
-#         return super().apply(sim)
-#
-#
-# class NewbornTesting(TestProb):
-#     """
-#     Test given to newborns if the mother was confirmed to have syphilis at any stage of the pregnancy
-#     """
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, requires=[sti.Syphilis, ANCTesting], **kwargs)
-#         self.ti_test = ss.FloatArr('ti_test')
-#         return
-#
-#     def get_testers(self, sim):
-#         # For newborn testing, only administer scheduled tests, and account for probability of testing at this point
-#         eligible_uids = (self.ti_scheduled == sim.ti).uids
-#         accept_uids = self.test_prob.filter(eligible_uids)
-#         return accept_uids
-#
+
+class ANCSyphTest(STITest):
+    """
+    Test given to pregnant women
+    Need to adjust timing using Trivedi (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7138526/)
+    """
+    def __init__(self, test_prob_data=None, years=None, start=None, end=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
+        super().__init__(test_prob_data=test_prob_data, years=years, start=start, end=end, eligibility=eligibility, product=product, name=name, label=label, **kwargs)
+        self.default_pars(
+            linked=True,
+        )
+        self.update_pars(pars, **kwargs)
+        self.test_timing = ss.randint(1, 9)
+        if self.eligibility is None:
+            self.eligibility = lambda sim: sim.demographics.pregnancy.pregnant
+        return
+
+    def get_testers(self, sim):
+        # For ANC testing, only administer scheduled tests
+        return (self.ti_scheduled == sim.ti).uids
+
+    def schedule_tests(self, sim):
+        """ Schedule a test for newly pregnant women """
+        newly_preg = (sim.demographics.pregnancy.ti_pregnant == sim.ti).uids
+        self.test_prob.pars['p'] = self.make_test_prob_fn(self, sim, newly_preg)
+        will_test = self.test_prob.filter(newly_preg)
+        ti_test = sim.ti + self.test_timing.rvs(will_test)
+        self.ti_scheduled[will_test] = ti_test
+
+    def apply(self, sim):
+        self.schedule_tests(sim)  # Check for newly pregnant women so they can be added to the schedule
+        return super().apply(sim)
+
+
+class NewbornSyphTest(STITest):
+    """
+    Test given to newborns if the mother was confirmed to have syphilis at any stage of the pregnancy
+    """
+
+    def get_testers(self, sim):
+        # For newborn testing, only administer scheduled tests, and account for probability of testing at this point
+        eligible_uids = (self.ti_scheduled == sim.ti).uids
+        accept_uids = self.test_prob.filter(eligible_uids)
+        return accept_uids
+

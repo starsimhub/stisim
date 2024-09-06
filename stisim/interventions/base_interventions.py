@@ -502,14 +502,12 @@ class ProductMix(ss.Product):
     The test that agents are given does NOT depend on their underlying health state.
     """
 
-    def __init__(self, df, products, product_map, *args, **kwargs):
+    def __init__(self, df, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.df = df
-        self.products = products
         self.result_list = df.products.unique()
         self.product_dist = ss.choice(a=self.result_list)
         self.product_mix = None  # Set during initialization
-        self.product_map = product_map
 
         # Pull out data from dataframe
         self.data_years = np.array([float(c) for c in df.columns if c != 'products'])
