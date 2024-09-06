@@ -9,7 +9,7 @@ import sciris as sc
 from stisim.interventions.base_interventions import STIDx, STITest, STITreatment
 from stisim.utils import TimeSeries
 
-__all__ = ["SyphDx", "SyphTx", "NewbornTreatment", "SympSyphTest", "ANCSyphTest", "NewbornSyphTest"]
+__all__ = ["SyphDx", "SyphTx", "NewbornTreatment", "SyphTest", "SympSyphTest", "ANCSyphTest", "NewbornSyphTest"]
 
 
 class SyphDx(STIDx):
