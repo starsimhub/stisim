@@ -89,7 +89,8 @@ class STITest(ss.Intervention):
             ss.BoolArr('diagnosed'),
             ss.FloatArr('ti_tested'),
             ss.FloatArr('ti_scheduled'),
-            ss.FloatArr('ti_diagnosed'),
+            ss.FloatArr('ti_positive'),
+            ss.FloatArr('ti_negative'),
             ss.FloatArr('tests', default=0),
         )
 
@@ -179,8 +180,9 @@ class STITest(ss.Intervention):
             else:
                 return outcomes
 
-            # Set time of diagnosis
-            self.ti_diagnosed[outcomes['positive']] = sim.ti
+            # Set time of diagnosis or dismissal
+            self.ti_negative[outcomes['negative']] = sim.ti
+            self.ti_positive[outcomes['positive']] = sim.ti
 
             # Update results
             self.update_results()
@@ -190,7 +192,7 @@ class STITest(ss.Intervention):
     def update_results(self):
         # Store results
         ti = self.sim.ti
-        self.results['new_diagnoses'][ti] += count(self.ti_diagnosed == ti)
+        self.results['new_diagnoses'][ti] += count(self.ti_positive == ti)
         self.results['new_tests'][ti] += count(self.ti_tested == ti)
 
 
@@ -265,7 +267,6 @@ class SyndromicMgmt(STITest):
     def update_results(self):
         super().update_results()
         ti = self.sim.ti
-        ppl = self.sim.people
         treat_uids = self.ti_referred == ti
         dismiss_uids = self.ti_dismissed == ti
         just_tested = self.ti_tested == ti
@@ -323,7 +324,7 @@ class STITreatment(ss.Intervention):
             ss.Result(self.disease, 'new_treated_failure', self.sim.npts, dtype=int, scale=True, label="Treatment failure"),
             ss.Result(self.disease, 'new_treated_unnecessary', self.sim.npts, dtype=int, scale=True, label="Overtreatment"),
         ]
-        self.sim.diseases[self.disease].results += results
+        # self.sim.diseases[self.disease].results += results
         self.results += results
         return
 

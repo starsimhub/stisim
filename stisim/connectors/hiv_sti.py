@@ -3,6 +3,7 @@ Syphilis-HIV connector for running coinfection analyses
 """
 
 import starsim as ss
+from stisim.diseases.syphilis import SyphilisPlaceholder
 
 
 __all__ = ['hiv_syph', 'hiv_trich']
@@ -47,7 +48,7 @@ class hiv_syph(ss.Connector):
         self.hiv.rel_trans[syphilis] *= self.rel_trans_hiv_syph[syphilis]
 
         # Syphilis changes due to HIV
-        if isinstance(self.syphilis, stisim.SyphilisPlaceholder):
+        if isinstance(self.syphilis, SyphilisPlaceholder):
             return
 
         hiv = self.hiv.cd4 < 500

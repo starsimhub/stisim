@@ -4,8 +4,10 @@ Define syphilis interventions for STIsim
 
 import starsim as ss
 import numpy as np
-from stisim.interventions.base_interventions import STIDx, STITreatment
-
+import pandas as pd
+import sciris as sc
+from stisim.interventions.base_interventions import STIDx, STITest, STITreatment
+from stisim.utils import TimeSeries
 
 __all__ = ["SyphDx", "SyphTx", "NewbornTreatment"]
 
@@ -125,7 +127,17 @@ class SyphTx(STITreatment):
         return treat_uids
 
 
-class NewbornTreatment(STITreatment):
+class NewbornTreatment(SyphTx):
+
+    def init_results(self):
+        results = [
+            ss.Result(self.disease, 'new_treated', self.sim.npts, dtype=int, scale=True, label="Number treated"),
+            ss.Result(self.disease, 'new_treated_success', self.sim.npts, dtype=int, scale=True, label="Successfully treated"),
+            ss.Result(self.disease, 'new_treated_failure', self.sim.npts, dtype=int, scale=True, label="Treatment failure"),
+            ss.Result(self.disease, 'new_treated_unnecessary', self.sim.npts, dtype=int, scale=True, label="Overtreatment"),
+        ]
+        self.results += results
+        return
 
     def change_states(self, sim, treat_succ):
         """ Change states of congenital cases """
@@ -153,4 +165,155 @@ class NewbornTreatment(STITreatment):
         return output
 
 
+class SyphTest(STITest):
+    """ Base class for syphilis tests """
+    def __init__(self, test_prob_data=None, years=None, start=None, end=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
+        super().__init__(test_prob_data=test_prob_data, years=years, start=start, end=end, eligibility=eligibility, product=product, name=name, label=label, **kwargs)
+        self.default_pars(
+            linked=True,
+        )
+        self.update_pars(pars, **kwargs)
+        # Store optional newborn test intervention
+        self.newborn_test = newborn_test
+        return
 
+    def process_data(self, sim):
+        """ Turn dataframe into a dictionary """
+        if isinstance(self.test_prob_data, pd.DataFrame):
+            df = self.test_prob_data.set_index(['risk_group', 'sex', 'sw'])
+            df = df.pivot(columns='year', values='symp_test_prob')
+            dd = df.to_dict(orient='index')
+            for group, vals in dd.items():
+                dd[group] = sc.smoothinterp(sim.yearvec, list(vals.keys()), list(vals.values()))
+            return dd
+        else: return self.test_prob_data
+
+    @staticmethod
+    def make_test_prob_fn(self, sim, uids):
+        """ Process symptomatic testing probabilites over time by sex and risk group """
+
+        if sc.isnumber(self.test_prob_data):
+            test_prob = self.test_prob_data
+        elif isinstance(self.test_prob_data, TimeSeries):
+            test_prob = self.test_prob_data.interpolate(sim.year)
+        elif sc.checktype(self.test_prob_data, 'arraylike'):
+            year_ind = sc.findnearest(self.years, sim.year)
+            test_prob = self.test_prob_data[year_ind]
+        elif isinstance(self.test_prob_data, dict):
+            test_prob = pd.Series(index=uids)
+            n_risk_groups = sim.networks.structuredsexual.pars.n_risk_groups
+            for rg in range(n_risk_groups):
+                for sex in ['female', 'male']:
+                    for sw in [0, 1]:
+                        dkey = (rg, sex, sw)
+                        conditions = (sim.people[sex] & (sim.networks.structuredsexual.risk_group==rg))
+                        if sw:
+                            if sex == 'female': conditions = conditions & sim.networks.structuredsexual.fsw
+                            if sex == 'male':   conditions = conditions & sim.networks.structuredsexual.client
+                        test_prob[conditions[uids]] = self.test_prob_data[dkey][sim.ti]
+        else:
+            errormsg = 'Format of test_prob_data must be float, array, or dict.'
+            raise ValueError(errormsg)
+
+        # Scale and validate
+        test_prob = test_prob * self.pars.rel_test
+        if not self.pars.linked:
+            test_prob = test_prob * sim.dt
+        test_prob = np.clip(test_prob, a_min=0, a_max=1)
+
+        return test_prob
+
+    def init_pre(self, sim):
+        super().init_pre(sim)
+        self.test_prob_data = self.process_data(sim)
+        return
+
+    def apply(self, sim, uids=None):
+        super().apply(sim, uids=uids)
+        if (sim.year >= self.start) & (sim.year < self.end):
+            # Schedule newborn tests if the mother is positive
+            if self.newborn_test is not None:
+                new_pos = self.ti_positive == self.sim.ti
+                if new_pos.any():
+                    pos_mother_inds = np.in1d(sim.networks.maternalnet.p1, new_pos.uids)
+                    unborn_uids = sim.networks.maternalnet.p2[pos_mother_inds]
+                    ti_births = sim.networks.maternalnet.edges.end[pos_mother_inds].astype(int)
+                    self.newborn_test.schedule(unborn_uids, ti_births)
+
+        return
+
+    def update_results(self):
+        ti = self.sim.ti
+        super().update_results()
+        new_pos = self.ti_positive == ti
+        new_neg = self.ti_negative == ti
+
+        # Count true/false positives
+        false_pos = np.count_nonzero(self.sim.diseases.syphilis.susceptible[new_pos])
+        true_pos = np.count_nonzero(self.sim.diseases.syphilis.infected[new_neg])
+        self.sim.diseases.syphilis.results['new_false_pos'][ti] += false_pos
+        self.sim.diseases.syphilis.results['new_true_pos'][ti] += true_pos
+
+        # Count true/false negatives
+        false_neg = np.count_nonzero(self.sim.diseases.syphilis.infected[new_neg])
+        true_neg = np.count_nonzero(self.sim.diseases.syphilis.susceptible[new_neg])
+        self.sim.diseases.syphilis.results['new_false_neg'][ti] += false_neg
+        self.sim.diseases.syphilis.results['new_true_neg'][ti] += true_neg
+        return
+
+#
+# class ANCTesting(TestProb):
+#     """
+#     Test given to pregnant women
+#     Need to adjust timing using Trivedi (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7138526/)
+#     """
+#     def __init__(self, start=None, end=None, years=None, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         self.pars.linked = True  # test_prob doesn't need to be scaled by dt
+#         self.test_timing = ss.randint(1, 9)
+#         self.years = years
+#         self.start = start
+#         self.end = end
+#
+#         if self.eligibility is None:
+#             self.eligibility = lambda sim: sim.demographics.pregnancy.pregnant
+#         return
+#
+#     def init_pre(self, sim):
+#         super().init_pre(sim)
+#         if self.start is None: self.start = sim.pars.start
+#         if self.end is None: self.end = sim.pars.end
+#         return
+#
+#     def get_testers(self, sim):
+#         # For ANC testing, only administer scheduled tests
+#         return (self.ti_scheduled == sim.ti).uids
+#
+#     def schedule_tests(self, sim):
+#         """ Schedule a test for newly pregnant women """
+#         newly_preg = (sim.demographics.pregnancy.ti_pregnant == sim.ti).uids
+#         self.test_prob.pars['p'] = self.make_test_prob_fn(self, sim, newly_preg)
+#         will_test = self.test_prob.filter(newly_preg)
+#         ti_test = sim.ti + self.test_timing.rvs(will_test)
+#         self.ti_scheduled[will_test] = ti_test
+#
+#     def apply(self, sim):
+#         self.schedule_tests(sim)  # Check for newly pregnant women so they can be added to the schedule
+#         return super().apply(sim)
+#
+#
+# class NewbornTesting(TestProb):
+#     """
+#     Test given to newborns if the mother was confirmed to have syphilis at any stage of the pregnancy
+#     """
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, requires=[sti.Syphilis, ANCTesting], **kwargs)
+#         self.ti_test = ss.FloatArr('ti_test')
+#         return
+#
+#     def get_testers(self, sim):
+#         # For newborn testing, only administer scheduled tests, and account for probability of testing at this point
+#         eligible_uids = (self.ti_scheduled == sim.ti).uids
+#         accept_uids = self.test_prob.filter(eligible_uids)
+#         return accept_uids
+#
