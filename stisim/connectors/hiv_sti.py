@@ -18,14 +18,14 @@ class hiv_syph(ss.Connector):
         self.syphilis = syphilis_module
         self.default_pars(
             # Changes to HIV due to syphilis coinfection
-            rel_sus_hiv_syph=ss.normal(loc=1.5, scale=0.25),  # Relative increase in susceptibility to HIV due to syphilis
-            rel_trans_hiv_syph=ss.normal(loc=1.2, scale=0.025),  # Relative increase in transmission due to syphilis
+            rel_sus_hiv_syph=2.67,  # Relative increase in susceptibility to HIV due to syphilis
+            rel_trans_hiv_syph=1.2,  # Relative increase in transmission due to syphilis
 
             # Changes to syphilis due to HIV coinfection
-            rel_sus_syph_hiv=2,         # People with HIV are 2x more likely to acquire syphilis
-            rel_sus_syph_aids=5,        # People with AIDS are 5x more likely to acquire syphilis
-            rel_trans_syph_hiv=1.5,     # People with HIV are 1.5x more likely to transmit syphilis
-            rel_trans_syph_aids=3,      # People with AIDS are 3x more likely to transmit syphilis
+            rel_sus_syph_hiv=1,         # People with HIV are x more likely to acquire syphilis
+            rel_sus_syph_aids=1,        # People with AIDS are x more likely to acquire syphilis
+            rel_trans_syph_hiv=1,       # People with HIV are x more likely to transmit syphilis
+            rel_trans_syph_aids=1,      # People with AIDS are x more likely to transmit syphilis
         )
         self.update_pars(pars, **kwargs)
 
@@ -57,7 +57,7 @@ class hiv_syph(ss.Connector):
 
         aids = self.hiv.cd4 < 200
         self.syphilis.rel_sus[aids] *= self.rel_sus_syph_aids[aids]
-        self.syphilis.rel_trans[aids] = self.rel_trans_syph_aids[aids]
+        self.syphilis.rel_trans[aids] *= self.rel_trans_syph_aids[aids]
 
         return
 
