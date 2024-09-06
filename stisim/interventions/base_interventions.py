@@ -180,9 +180,10 @@ class STITest(ss.Intervention):
             else:
                 return outcomes
 
-            # Set time of diagnosis or dismissal
-            self.ti_negative[outcomes['negative']] = sim.ti
-            self.ti_positive[outcomes['positive']] = sim.ti
+            # If it's a binary test, set the time of positive/negative outcome
+            if 'positive' in outcomes.keys():
+                self.ti_negative[outcomes['negative']] = sim.ti
+                self.ti_positive[outcomes['positive']] = sim.ti
 
             # Update results
             self.update_results()
