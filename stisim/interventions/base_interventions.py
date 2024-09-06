@@ -121,14 +121,6 @@ class STITest(ss.Intervention):
         ]
         self.results += results
 
-        disease_results = [
-            ss.Result(self.disease, 'new_false_neg', npts, dtype=float, scale=True, label="False negatives"),
-            ss.Result(self.disease, 'new_true_neg', npts, dtype=float, scale=True, label="True negatives"),
-            ss.Result(self.disease, 'new_false_pos', npts, dtype=float, scale=True, label="False positive"),
-            ss.Result(self.disease, 'new_true_pos', npts, dtype=float, scale=True, label="True positives"),
-        ]
-        self.sim.diseases[self.disease].results += disease_results
-
         return
 
     @staticmethod
