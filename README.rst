@@ -32,7 +32,7 @@ STIsim can also be installed locally. To do this, clone first this repository, t
 Usage and documentation
 -----------------------
 
-Documentation has not yet been developed, please watch this space!
+Documentation is available at https://docs.idmod.org/projects/stisim. 
 
 
 Contributing

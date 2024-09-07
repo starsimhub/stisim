@@ -225,6 +225,7 @@ class HIV(ss.Infection):
         with a CD4 count of 50 (https://docs.idmod.org/projects/emod-hiv/en/latest/hiv-model-healthcare-systems.html)
         However, here we use a logistic growth function and assume that ART CD4 count depends on CD4 at initiation.
         Sources:
+
             - https://i-base.info/guides/starting/cd4-increase
             - https://www.sciencedirect.com/science/article/pii/S1876034117302022
             - https://bmcinfectdis.biomedcentral.com/articles/10.1186/1471-2334-8-20
@@ -355,6 +356,7 @@ class HIV(ss.Infection):
         """
         Update rel_trans and rel_sus for all agents. These are reset on each timestep then adjusted depending on states.
         Adjustments are made throughout different modules:
+        
            - rel_trans for acute and late-stage untreated infection are adjusted below
            - rel_trans for all people on treatment (including pregnant women) below
            - rel_sus for unborn babies of pregnant WLHIV receiving treatment is adjusted in the ART intervention
