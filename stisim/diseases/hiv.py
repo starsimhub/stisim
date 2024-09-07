@@ -6,16 +6,17 @@ import numpy as np
 import sciris as sc
 import starsim as ss
 import stisim as sti
+from stisim.diseases.sti import BaseSTI
 
 
 __all__ = ['HIV']
 
 
-class HIV(ss.Infection):
+class HIV(BaseSTI):
 
     def __init__(self, pars=None, init_prev_data=None, **kwargs):
         super().__init__()
-        self.requires = sti.StructuredSexual
+        self.requires = 'structuredsexual'
 
         # Parameters
         self.default_pars(
@@ -35,6 +36,7 @@ class HIV(ss.Infection):
             beta_m2c=None,
             rel_trans_acute=ss.normal(loc=6, scale=0.5),  # Increase transmissibility during acute HIV infection
             rel_trans_falling=ss.normal(loc=8, scale=0.5),  # Increase transmissibility during late HIV infection
+            eff_condom=0.9,
 
             # Initialization
             init_prev=ss.bernoulli(p=0.05),
@@ -144,7 +146,11 @@ class HIV(ss.Infection):
         self.results += ss.Result(self.name, 'new_agents_on_art', npts, dtype=float, scale=True)
         self.results += ss.Result(self.name, 'cum_agents_on_art', npts, dtype=float, scale=True)
         self.results += ss.Result(self.name, 'prevalence_sw', npts, dtype=float)
+        self.results += ss.Result(self.name, 'new_infections_sw', npts, dtype=float, scale=True)
+        self.results += ss.Result(self.name, 'new_infections_not_sw', npts, dtype=float, scale=True)
         self.results += ss.Result(self.name, 'prevalence_client', npts, dtype=float)
+        self.results += ss.Result(self.name, 'new_infections_client', npts, dtype=float, scale=True)
+        self.results += ss.Result(self.name, 'new_infections_not_client', npts, dtype=float, scale=True)
         self.results += ss.Result(self.name, 'p_on_art', npts, dtype=float, scale=False)
         if self.include_mtct:
             self.results += ss.Result(self.name, 'n_on_art_pregnant', npts, dtype=float, scale=True)
@@ -152,10 +158,8 @@ class HIV(ss.Infection):
         # Add FSW and clients to results:
         for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
             for sex in ['female', 'male']:
-                self.results += ss.Result(self.name, 'prevalence_risk_group_' + str(risk_group) + '_' + sex, npts,
-                                          dtype=float)
-                self.results += ss.Result(self.name, 'new_infections_risk_group_' + str(risk_group) + '_' + sex,
-                                          npts, dtype=float)
+                self.results += ss.Result(self.name, 'prevalence_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float)
+                self.results += ss.Result(self.name, 'new_infections_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float, scale=True)
 
         return
 
@@ -223,6 +227,7 @@ class HIV(ss.Infection):
         with a CD4 count of 50 (https://docs.idmod.org/projects/emod-hiv/en/latest/hiv-model-healthcare-systems.html)
         However, here we use a logistic growth function and assume that ART CD4 count depends on CD4 at initiation.
         Sources:
+
             - https://i-base.info/guides/starting/cd4-increase
             - https://www.sciencedirect.com/science/article/pii/S1876034117302022
             - https://bmcinfectdis.biomedcentral.com/articles/10.1186/1471-2334-8-20
@@ -353,6 +358,7 @@ class HIV(ss.Infection):
         """
         Update rel_trans and rel_sus for all agents. These are reset on each timestep then adjusted depending on states.
         Adjustments are made throughout different modules:
+        
            - rel_trans for acute and late-stage untreated infection are adjusted below
            - rel_trans for all people on treatment (including pregnant women) below
            - rel_sus for unborn babies of pregnant WLHIV receiving treatment is adjusted in the ART intervention
@@ -406,15 +412,20 @@ class HIV(ss.Infection):
         for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
             for sex in ['female', 'male']:
                 risk_group_infected = self.infected[(self.sim.networks.structuredsexual.risk_group == risk_group) & (self.sim.people[sex])]
+                risk_group_new_inf = ((self.ti_infected == ti) & (self.sim.networks.structuredsexual.risk_group == risk_group) &  (self.sim.people[sex])).uids
                 if len(risk_group_infected) > 0:
                     self.results['prevalence_risk_group_' + str(risk_group) + '_' + sex][ti] = sum(risk_group_infected) / len(risk_group_infected)
-                    self.results['new_infections_risk_group_' + str(risk_group) + '_' + sex][ti] = sum(risk_group_infected) / len(risk_group_infected)
+                    self.results['new_infections_risk_group_' + str(risk_group) + '_' + sex][ti] = len(risk_group_new_inf)
 
         # Add FSW and clients to results:
         if len(fsw_infected) > 0:
             self.results['prevalence_sw'][ti] = sum(fsw_infected) / len(fsw_infected)
+            self.results['new_infections_sw'][ti] = len(((self.ti_infected == ti) & self.sim.networks.structuredsexual.fsw).uids)
+            self.results['new_infections_not_sw'][ti] = len(((self.ti_infected == ti) & ~self.sim.networks.structuredsexual.fsw).uids)
         if len(client_infected) > 0:
             self.results['prevalence_client'][ti] = sum(client_infected) / len(client_infected)
+            self.results['new_infections_client'][ti] = len(((self.ti_infected == ti) & self.sim.networks.structuredsexual.client).uids)
+            self.results['new_infections_not_client'][ti] = len(((self.ti_infected == ti) & ~self.sim.networks.structuredsexual.client).uids)
 
         return
 

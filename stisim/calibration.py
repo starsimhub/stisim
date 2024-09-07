@@ -227,6 +227,7 @@ class Calibration(sc.prettyobj):
         """
         Take in an optuna trial and sample from pars, after extracting them from the structure they're provided in
         Different use cases:
+        
             - pardict is self.calib_pars, i.e. {'diseases':{'hiv':{'art_efficacy':[0.96, 0.9, 0.99]}}}, need to sample
             - pardict is self.initial_pars, i.e. {'diseases':{'hiv':{'art_efficacy':[0.96, 0.9, 0.99]}}}, pull 1st vals
             - pardict is self.best_pars, i.e. {'diseases':{'hiv':{'art_efficacy':0.96786}}}, pull single vals

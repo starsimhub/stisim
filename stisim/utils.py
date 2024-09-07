@@ -277,12 +277,12 @@ class TimeSeries:
         - 'previous' - stepped interpolation, maintain value until the next timepoint is reached (with constant, zero-gradient extrapolation)
         - Interpolation class or generator function
 
-        That final option allows the use of arbitrary interpolation methods. The underlying call will be
+        That final option allows the use of arbitrary interpolation methods. The underlying call will be::
 
             c = method(t1, v1, **kwargs)
             return c(t2)
 
-        so for example, if you wanted to use the base Scipy pchip method with no extrapolation, then could pass in
+        so for example, if you wanted to use the base Scipy pchip method with no extrapolation, then could pass in::
 
             TimeSeries.interpolate(...,method=scipy.interpolate.PchipInterpolator)
 
@@ -291,6 +291,7 @@ class TimeSeries:
         - If there is no data at all, this function will return ``np.nan`` for all requested time points
         - If only an assumption exists, this assumption will be returned for all requested time points
         - Otherwise, arrays will be formed with all finite time values
+        
             - If no finite time values remain, an error will be raised (in general, a TimeSeries should not store such values anyway)
             - If only one finite time value remains, then that value will be returned for all requested time points
             - Otherwise, the specified interpolation method will be used
