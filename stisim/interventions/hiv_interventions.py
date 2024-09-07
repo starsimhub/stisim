@@ -1,120 +1,49 @@
 """
-Define interventions for STIsim
+Define HIV interventions for STIsim
 """
 
 import starsim as ss
 import numpy as np
-import pandas as pd
-from collections import defaultdict
 import sciris as sc
-import functools
-import itertools
-
-__all__ = ['HIVTest', 'ART', 'VMMC', "PartnerNotification"]
+from stisim.interventions.base_interventions import STITest
 
 
-class HIVTest(ss.Intervention):
+# %% Helper functions
+def count(arr): return np.count_nonzero(arr)
+
+
+# %% HIV classes
+__all__ = ["HIVDx", "HIVTest", "ART", "VMMC"]
+
+
+class HIVDx(ss.Product):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.result_list = ['positive', 'negative']
+
+    def administer(self, sim, uids):
+        outcomes = {r: ss.uids() for r in self.result_list}
+        outcomes['positive'] = sim.diseases.hiv.infected.uids.intersect(uids)
+        outcomes['negative'] = sim.diseases.hiv.susceptible.uids.intersect(uids)
+        return outcomes
+
+
+class HIVTest(STITest):
     """
     Base class for HIV testing
-
-    Args:
-         prob           (float/arr)     : annual probability of eligible people being tested
-         eligibility    (inds/callable) : indices OR callable that returns inds
-         label          (str)           : the name of screening strategy
-         kwargs         (dict)          : passed to Intervention()
     """
-
-    def __init__(self, pars=None, test_prob_data=None, years=None, start_year=None, eligibility=None, name=None, label=None, **kwargs):
-        super().__init__(name=name, label=label)
-        self.default_pars(
-            rel_test=1,
-        )
-        self.update_pars(pars, **kwargs)
-
-        # Set testing probabilities and years
-        if years is not None and start_year is not None:
-            errormsg = 'Provide either years or start_year, not both.'
-            raise ValueError(errormsg)
-        self.years = years
-        self.start_year = start_year
-        self.test_prob_data = test_prob_data
-        self.test_prob = ss.bernoulli(self.make_test_prob_fn)
-
-        # Set eligibility
-        self.eligibility = eligibility
+    def __init__(self, product=None, pars=None, test_prob_data=None, years=None, start=None, eligibility=None, name=None, label=None, **kwargs):
+        if product is None: product = HIVDx()
+        super().__init__(product=product, pars=pars, test_prob_data=test_prob_data, years=years, start=start, eligibility=eligibility, name=name, label=label, **kwargs)
         if self.eligibility is None:
             self.eligibility = lambda sim: ~sim.diseases.hiv.diagnosed
 
-        # States
-        self.tested = ss.BoolArr('tested', default=False)
-        self.ti_tested = ss.FloatArr('ti_tested')
-        self.diagnosed = ss.BoolArr('diagnosed', default=False)
-        self.ti_diagnosed = ss.FloatArr('ti_diagnosed')
-
-    def init_pre(self, sim):
-        super().init_pre(sim)
-        if self.start_year is None:
-            self.start_year = self.years[0]
-        self.init_results()
-        return
-
-    def init_results(self):
-        npts = self.sim.npts
-        self.results += [
-            ss.Result(self.name, 'new_diagnoses', npts, dtype=float, scale=True),
-            ss.Result(self.name, 'new_tests', npts, dtype=int, scale=True)]
-        return
-
-    @staticmethod
-    def make_test_prob_fn(self, sim, uids):
-        """ Testing probabilites over time """
-
-        if sc.isnumber(self.test_prob_data):
-            test_prob = self.test_prob_data
-
-        elif sc.checktype(self.test_prob_data, 'arraylike'):
-            year_ind = sc.findnearest(self.years, sim.year)
-            test_prob = self.test_prob_data[year_ind]
-        else:
-            errormsg = 'Format of test_prob_data must be float or array.'
-            raise ValueError(errormsg)
-
-        # Scale and validate
-        test_prob = test_prob * self.pars.rel_test * sim.dt
-        test_prob = np.clip(test_prob, a_min=0, a_max=1)
-
-        return test_prob
-
-    def apply(self, sim):
-        if sim.year > self.start_year:
-            hiv = sim.diseases.hiv
-
-            # Find who's eligible to test, who gets a test, and who is diagnosed
-            eligible_uids = self.check_eligibility(sim)  # Apply eligiblity
-            if len(eligible_uids):
-                tester_uids = self.test_prob.filter(eligible_uids)
-                if len(tester_uids):
-                    # Add results and states for testers
-                    self.results['new_tests'][sim.ti] += len(tester_uids)
-                    self.tested[tester_uids] = True
-                    self.ti_tested[tester_uids] = sim.ti
-
-                    # Add results and states for diagnoses
-                    pos_uids = tester_uids[hiv.infected[tester_uids]]
-                    self.results['new_diagnoses'][sim.ti] += len(pos_uids)
-                    self.diagnosed[pos_uids] = True
-                    self.ti_diagnosed[pos_uids] = sim.ti
-                    hiv.diagnosed[pos_uids] = True
-                    hiv.ti_diagnosed[pos_uids] = sim.ti
-
-        return
-
-    def check_eligibility(self, sim):
-        if self.eligibility is not None:
-            uids = self.eligibility(sim).uids
-        else:
-            uids = sim.people.alive.uids
-        return uids
+    def apply(self, sim, uids=None):
+        outcomes = super().apply(sim, uids=uids)
+        pos_uids = outcomes['positive']
+        sim.diseases.hiv.diagnosed[pos_uids] = True
+        sim.diseases.hiv.ti_diagnosed[pos_uids] = sim.ti
+        return outcomes
 
 
 class ART(ss.Intervention):
@@ -298,13 +227,12 @@ class VMMC(ss.Intervention):
     def init_results(self):
         npts = self.sim.npts
         self.results += [
-            ss.Result(self.name, 'new_circumcisions', npts, dtype=float, scale=True),
-            ss.Result(self.name, 'n_circumcised', npts, dtype=float, scale=True)]
+            ss.Result(self.name, 'new_circumcisions', npts, dtype=float, scale=True, label="New circumcisions"),
+            ss.Result(self.name, 'n_circumcised', npts, dtype=float, scale=True, label="Number circumcised")
+        ]
         return
 
     def apply(self, sim):
-        hiv = sim.diseases.hiv
-        males = sim.people.male
         m_uids = sim.people.male.uids
 
         # Figure out how many people should be circumcised
@@ -331,64 +259,10 @@ class VMMC(ss.Intervention):
             self.ti_circumcised[new_circs] = sim.ti
 
         self.results['new_circumcisions'][sim.ti] = n_to_circ
-        self.results['n_circumcised'][sim.ti] = np.count_nonzero(self.circumcised)
+        self.results['n_circumcised'][sim.ti] = count(self.circumcised)
 
         # Reduce rel_sus
         sim.diseases.hiv.rel_sus[self.circumcised] *= 1-self.pars.eff_circ
 
         return
-
-
-
-
-class PartnerNotification(ss.Intervention):
-
-    def __init__(self, disease, eligible, test, test_prob=0.5, **kwargs):
-        """
-
-        :param disease: The disease module from which to draw the transmission tree used to find contacts
-        :param eligible: A function `f(sim)` that returns the UIDs/BoolArr of people to trace (typically people who just tested positive)
-        :param test: The testing intervention to use when testing identified contacts
-        :param test_prob: The probability of a contact being identified and accepting a test
-        :param kwargs: Other arguments passed to ``ss.Intervention``
-        """
-        super().__init__(**kwargs)
-        self.disease = disease
-        self.eligible = eligible
-        self.test = test
-        self.test_prob = ss.bernoulli(test_prob)
-
-    def identify_contacts(self, sim, uids):
-        # Return UIDs of people that have been identified as contacts and should be notified
-
-        if len(uids) == 0:
-            return ss.uids()
-
-        # Find current contacts
-        contacts = sim.networks['structuredsexual'].find_contacts(uids, as_array=False) # Current contacts
-
-        # Find historical contacts
-        log = sim.diseases[self.disease].log
-        for source, _, network in log.in_edges(uids, data="network"):
-            if network == 'structuredsexual':
-                contacts.add(source) # Add the infecting agents
-
-        for _, target, network in log.out_edges(uids, data="network"):
-            if network == 'structuredsexual':
-                contacts.add(target)  # Add infected agents
-
-        # Filter by test_prob and return UIDs
-        return self.test_prob.filter(ss.uids(contacts))
-
-
-    def notify(self, sim, uids):
-        # Schedule a test for identified contacts at the next timestep (this also ensures that contacts tracing will take place for partners that test positive)
-        # Could include a parameter here for acceptance of testing (if separating out probabilities of notification and testing)
-        # print(f'Scheduling {len(uids)} tests (of whom {(~sim.diseases.syphilis.susceptible[uids]).sum()} will be positive)')
-        return self.test.schedule(uids, sim.ti+1)
-
-    def apply(self, sim):
-        uids = self.eligible(sim)
-        uids = self.identify_contacts(sim, uids)
-        return self.notify(sim, uids)
 

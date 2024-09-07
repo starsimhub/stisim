@@ -6,12 +6,13 @@ import numpy as np
 import sciris as sc
 import starsim as ss
 import stisim as sti
+from stisim.diseases.sti import BaseSTI
 
 
 __all__ = ['HIV']
 
 
-class HIV(ss.Infection):
+class HIV(BaseSTI):
 
     def __init__(self, pars=None, init_prev_data=None, **kwargs):
         super().__init__()
@@ -35,6 +36,7 @@ class HIV(ss.Infection):
             beta_m2c=None,
             rel_trans_acute=ss.normal(loc=6, scale=0.5),  # Increase transmissibility during acute HIV infection
             rel_trans_falling=ss.normal(loc=8, scale=0.5),  # Increase transmissibility during late HIV infection
+            eff_condom=0.9,
 
             # Initialization
             init_prev=ss.bernoulli(p=0.05),

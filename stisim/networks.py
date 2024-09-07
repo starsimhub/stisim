@@ -1,5 +1,5 @@
 """
-Define sexual network for syphilis.
+Define sexual network for STI transmission.
 
 Overview:
 
@@ -38,6 +38,7 @@ class StructuredSexual(ss.SexualNetwork):
 
         key_dict = sc.mergedicts({
             'sw': bool,
+            'condoms': ss_float_,
             'age_p1': ss_float_,
             'age_p2': ss_float_,
         }, key_dict)
@@ -165,7 +166,7 @@ class StructuredSexual(ss.SexualNetwork):
         if self.condom_data is not None:
             if isinstance(self.condom_data, dict):
                 for rgtuple, valdict in self.condom_data.items():
-                    self.condom_data[rgtuple]['simvals'] = sc.smoothinterp(sim.yearvec, valdict['year'], valdict['val'])
+                    self.condom_data[rgtuple]['simvals'] = np.interp(sim.yearvec, valdict['year'], valdict['val'])
         self.init_results()
         return
 
@@ -282,24 +283,13 @@ class StructuredSexual(ss.SexualNetwork):
             return
 
         # Initialize beta, acts, duration
-        condoms = np.zeros(len(p2), dtype=ss_float_)
-        dur = np.full(len(p2), dtype=ss_float_, fill_value=dt) # Default duration is dt, replaced for stable matches
+        beta = np.ones(len(p2), dtype=ss_float_)
+        condoms = np.zeros(len(p2), dtype=ss_float_)  # FILLED IN LATER
+        dur = np.full(len(p2), dtype=ss_float_, fill_value=dt)  # Default duration is dt, replaced for stable matches
         acts = (self.pars.acts.rvs(p2) * dt).astype(int)  # Number of acts does not depend on commitment/risk group
         sw = np.full_like(p1, False, dtype=bool)
         age_p1 = ppl.age[p1]
         age_p2 = ppl.age[p2]
-
-        # First figure out reduction in transmission through condom use
-        if self.condom_data is not None:
-            if isinstance(self.condom_data, dict):
-                for rgm in range(self.pars.n_risk_groups):
-                    for rgf in range(self.pars.n_risk_groups):
-                        risk_pairing = (self.risk_group[p1] == rgm) & (self.risk_group[p2] == rgf)
-                        condoms[risk_pairing] = self.condom_data[(rgm, rgf)]['simvals'][self.sim.ti]
-            elif sc.isnumber(self.condom_data):
-                condoms[:] = self.condom_data
-            else:
-                raise Exception("Unknown condom data input type")
 
         # If both partners are in the same risk group, determine the probability they'll commit
         for rg in range(self.pars.n_risk_groups):
@@ -335,7 +325,7 @@ class StructuredSexual(ss.SexualNetwork):
                 self.pars.dur_casual.set(loc=loc, scale=scale)
                 dur[casual_bool] = self.pars.dur_casual.rvs(uids)
 
-        self.append(p1=p1, p2=p2, beta=1-condoms, dur=dur, acts=acts, sw=sw, age_p1=age_p1, age_p2=age_p2)
+        self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, sw=sw, age_p1=age_p1, age_p2=age_p2)
 
         # Checks
         if self.sim.people.female[p1].any() or self.sim.people.male[p2].any():
@@ -348,22 +338,9 @@ class StructuredSexual(ss.SexualNetwork):
         # Get sex work values
         p1_sw, p2_sw, beta_sw, dur_sw, acts_sw, sw_sw, age_p1_sw, age_p2_sw = self.add_sex_work(ppl)
 
-        # Sex Work Condoms: Figure out reduction in transmission through condom use
-        condoms_sw = 0
-        if self.condom_data is not None:
-            if isinstance(self.condom_data, dict):
-                condoms_sw = self.condom_data['(fsw,client)']['simvals'][self.sim.ti]
-            elif sc.isnumber(self.condom_data):
-                condoms_sw[:] = self.condom_data
-            else:
-                raise Exception("Unknown condom data input type")
-
-        if (beta_sw - condoms_sw < 0).any():
-            ss.warn(f'Negative Beta - sw_beta is smaller than reduction in transmission through condom use.\n'
-                    f'sw_beta is {self.pars.sw_beta} and reduction through condom use is {condoms_sw}')
-
         # Finalize adding the edges to the network
-        self.append(p1=p1_sw, p2=p2_sw, beta=beta_sw-condoms_sw, dur=dur_sw, acts=acts_sw, sw=sw_sw, age_p1=age_p1_sw, age_p2=age_p2_sw)
+        condoms_sw = np.zeros(len(p2_sw), dtype=ss_float_)
+        self.append(p1=p1_sw, p2=p2_sw, beta=beta_sw, condoms=condoms_sw, dur=dur_sw, acts=acts_sw, sw=sw_sw, age_p1=age_p1_sw, age_p2=age_p2_sw)
 
         unique_p1, counts_p1 = np.unique(p1, return_counts=True)
         unique_p2, counts_p2 = np.unique(p2, return_counts=True)
@@ -460,16 +437,41 @@ class StructuredSexual(ss.SexualNetwork):
 
     def update_results(self):
         ti = self.sim.ti
-        partners_active_m = self.partners[(self.sim.people.male & self.active(self.sim.people))]
-        partners_active_f = self.partners[(self.sim.people.female & self.active(self.sim.people))]
         self.results.share_active[ti] = len(self.active(self.sim.people).uids)/len(self.sim.people)
-        # self.results.partners_f_mean[ti] = np.mean(partners_active_f)
-        # self.results.partners_m_mean[ti] = np.mean(partners_active_m)
+
+    def beta_per_dt(self, disease_beta=None, dt=None, uids=None, disease=None):
+        if uids is None: uids = Ellipsis
+        p_condom = self.edges.condoms[uids]
+        eff_condom = disease.pars.eff_condom
+        p_trans_condom = (1 - disease_beta*(1-eff_condom))**(self.edges.acts[uids]*p_condom)
+        p_trans_no_condom = (1 - disease_beta)**(self.edges.acts[uids]*(1-p_condom))
+        p_trans = 1 - p_trans_condom * p_trans_no_condom
+        result = p_trans * self.edges.beta[uids]
+        return result
+
+    def set_condom_use(self):
+        """ Set condom use """
+        if self.condom_data is not None:
+            if isinstance(self.condom_data, dict):
+                for rgm in range(self.pars.n_risk_groups):
+                    for rgf in range(self.pars.n_risk_groups):
+                        risk_pairing = (self.risk_group[self.p1] == rgm) & (self.risk_group[self.p2] == rgf)
+                        self.edges.condoms[risk_pairing] = self.condom_data[(rgm, rgf)]['simvals'][self.sim.ti]
+                self.edges.condoms[self.edges.sw] = self.condom_data['(fsw,client)']['simvals'][self.sim.ti]
+
+            elif sc.isnumber(self.condom_data):
+                self.edges.condoms[:] = self.condom_data
+
+            else:
+                raise Exception("Unknown condom data input type")
+
+        return
 
     def update(self):
         self.end_pairs()
         self.set_network_states(upper_age=self.sim.dt)
         self.add_pairs()
+        self.set_condom_use()
         self.update_results()
 
         return
