@@ -113,6 +113,7 @@ class Syphilis(BaseSTI):
                 late = ss.choice(a=5, p=np.array([0.05, 0.05, 0.05, 0.10, 0.75])), # Outcomes for babies born to mothers with late latent infection
             ),
             birth_outcome_keys=['miscarriage', 'nnd', 'stillborn', 'congenital'],
+            anc_detection=0.8,
 
             # Initial conditions
             init_prev=ss.bernoulli(p=0),
@@ -224,6 +225,7 @@ class Syphilis(BaseSTI):
         npts = self.sim.npts
         self.results += ss.Result(self.name, 'n_active', npts, dtype=int, scale=True)
         self.results += ss.Result(self.name, 'pregnant_prevalence', npts, dtype=float, scale=False)
+        self.results += ss.Result(self.name, 'detected_pregnant_prevalence', npts, dtype=float, scale=False)
         self.results += ss.Result(self.name, 'adult_prevalence', npts, dtype=float, scale=False)
         self.results += ss.Result(self.name, 'active_adult_prevalence', npts, dtype=float, scale=False)
         self.results += ss.Result(self.name, 'active_prevalence', npts, dtype=float, scale=False)
@@ -352,7 +354,9 @@ class Syphilis(BaseSTI):
         # Pregnant women prevalence
         preg_denom = np.count_nonzero(self.sim.people.pregnancy.pregnant)
         preg_num = np.count_nonzero(self.sim.people.pregnancy.pregnant & self.infected)
+        detected_preg_num = preg_num*self.pars.anc_detection
         self.results['pregnant_prevalence'][ti] = preg_num / preg_denom
+        self.results['detected_pregnant_prevalence'][ti] = preg_num / preg_denom
 
         # Congenital results
         self.results['new_nnds'][ti]       = np.count_nonzero(self.ti_nnd == ti)
