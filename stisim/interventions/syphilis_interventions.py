@@ -191,7 +191,7 @@ class SyphTest(STITest):
             df = df.pivot(columns='year', values='symp_test_prob')
             dd = df.to_dict(orient='index')
             for group, vals in dd.items():
-                dd[group] = sc.smoothinterp(sim.yearvec, list(vals.keys()), list(vals.values()))
+                dd[group] = sc.smoothinterp(sim.yearvec, list(vals.keys()), list(vals.values()), smoothness=0)
             return dd
         else: return self.test_prob_data
 
