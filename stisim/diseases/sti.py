@@ -226,6 +226,16 @@ class SEIS(BaseSTI):
         self.results += ss.Result(self.name, 'new_symptomatic', npts, dtype=int, scale=True, label="New symptomatic")
         self.results += ss.Result(self.name, 'new_care_seekers', npts, dtype=int, scale=True, label="New care seekers")
 
+        # Add overall testing and treatment results, which might be assembled from numerous interventions
+        self.results += ss.Result(self.name, 'new_false_pos', npts, dtype=int, scale=True, label="New false positives")
+        self.results += ss.Result(self.name, 'new_true_pos', npts, dtype=int, scale=True, label="New true positives")
+        self.results += ss.Result(self.name, 'new_false_neg', npts, dtype=int, scale=True, label="New false negatives")
+        self.results += ss.Result(self.name, 'new_true_neg', npts, dtype=int, scale=True, label="New true negatives")
+        self.results += ss.Result(self.name, 'new_treated_success', npts, dtype=int, scale=True, label="Successful treatments")
+        self.results += ss.Result(self.name, 'new_treated_failure', npts, dtype=int, scale=True, label="Unsuccessful treatments")
+        self.results += ss.Result(self.name, 'new_treated_unnecessary', npts, dtype=int, scale=True, label="Unnecessary treatments")
+        self.results += ss.Result(self.name, 'new_treated', npts, dtype=int, scale=True, label="Treatments")
+
         # Age/sex results
         for rkey in self.age_sex_result_keys:
             self.sex_results[rkey] = sc.objdict()
@@ -315,6 +325,12 @@ class SEIS(BaseSTI):
         self.results['adult_prevalence'][ti] = np.count_nonzero(infected_adults) / np.count_nonzero(adults)
         self.results['symp_adult_prevalence'][ti] = np.count_nonzero(symptomatic_adults) / np.count_nonzero(adults)
         self.results['new_symptomatic'][ti] = np.count_nonzero(self.ti_symptomatic == ti)
+
+        self.results['new_treated_success'][ti] += len(self.outcomes['successful'])
+        self.results['new_treated_failure'][ti] += len(self.outcomes['unsuccessful'])
+        self.results['new_treated_unnecessary'][ti] += len(self.outcomes['unnecessary'])
+        self.results['new_treated'][ti] += len(treat_uids)
+
 
         rmap = {'alive': 'both', 'female': 'female', 'male': 'male'}
 
