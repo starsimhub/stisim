@@ -11,7 +11,7 @@ __all__ = ['DischargingSTI']
 
 class DischargingSTI(SEIS):
 
-    def __init__(self, pars=None, name='vd', init_prev_data=None, **kwargs):
+    def __init__(self, pars=None, name='bv', init_prev_data=None, **kwargs):
         super().__init__(name=name, init_prev_data=init_prev_data)
 
         self.default_pars(
