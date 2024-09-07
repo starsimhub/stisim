@@ -326,12 +326,6 @@ class SEIS(BaseSTI):
         self.results['symp_adult_prevalence'][ti] = np.count_nonzero(symptomatic_adults) / np.count_nonzero(adults)
         self.results['new_symptomatic'][ti] = np.count_nonzero(self.ti_symptomatic == ti)
 
-        self.results['new_treated_success'][ti] += len(self.outcomes['successful'])
-        self.results['new_treated_failure'][ti] += len(self.outcomes['unsuccessful'])
-        self.results['new_treated_unnecessary'][ti] += len(self.outcomes['unnecessary'])
-        self.results['new_treated'][ti] += len(treat_uids)
-
-
         rmap = {'alive': 'both', 'female': 'female', 'male': 'male'}
 
         # Incidence and prevalence by age and sex
