@@ -351,12 +351,13 @@ class Syphilis(BaseSTI):
         self.results['adult_prevalence'][ti] = infected_adults_num / adults_denom
         self.results['active_adult_prevalence'][ti] = active_adults_num / adults_denom
 
-        # Pregnant women prevalence
-        preg_denom = np.count_nonzero(self.sim.people.pregnancy.pregnant)
-        preg_num = np.count_nonzero(self.sim.people.pregnancy.pregnant & self.infected)
-        detected_preg_num = preg_num*self.pars.anc_detection
-        self.results['pregnant_prevalence'][ti] = preg_num / preg_denom
-        self.results['detected_pregnant_prevalence'][ti] = detected_preg_num / preg_denom
+        # Pregnant women prevalence, if present
+        if 'pregnancy' in self.sim.demographics.keys():
+            preg_denom = np.count_nonzero(self.sim.people.pregnancy.pregnant)
+            preg_num = np.count_nonzero(self.sim.people.pregnancy.pregnant & self.infected)
+            detected_preg_num = preg_num*self.pars.anc_detection
+            self.results['pregnant_prevalence'][ti] = preg_num / preg_denom
+            self.results['detected_pregnant_prevalence'][ti] = detected_preg_num / preg_denom
 
         # Congenital results
         self.results['new_nnds'][ti]       = np.count_nonzero(self.ti_nnd == ti)
