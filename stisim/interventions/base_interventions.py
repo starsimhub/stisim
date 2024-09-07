@@ -516,7 +516,7 @@ class ProductMix(ss.Product):
         self.data_years = np.array([float(c) for c in df.columns if c not in excl_cols])
         data_years_str = [c for c in df.columns if c not in excl_cols]
         y = df[data_years_str].values
-        self.f_out = interp1d(self.data_years, y, axis=1, fill_value=(y[:, 0], y[:, -1]), bounds_error=False)
+        self.f_out = interp1d(self.data_years, y, axis=1, fill_value=(y[:, 0], y[:, -1]), bounds_error=False, kind='previous')
         return
 
     def init_pre(self, sim):
