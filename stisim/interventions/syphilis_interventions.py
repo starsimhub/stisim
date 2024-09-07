@@ -175,8 +175,6 @@ class SyphTest(STITest):
         self.update_pars(pars, **kwargs)
         # Store optional newborn test intervention
         self.newborn_test = newborn_test
-        # Default test everyone
-        if test_prob_data is None: self.test_prob_data = 1
         return
 
     def init_pre(self, sim):

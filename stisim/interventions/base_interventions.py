@@ -80,6 +80,7 @@ class STITest(ss.Intervention):
 
         # Testing eligibility and uptake
         self.eligibility = eligibility
+        if test_prob_data is None: test_prob_data = 1  # Default test everyone
         self.test_prob_data = test_prob_data
         self.test_prob = ss.bernoulli(self.make_test_prob_fn)
 
