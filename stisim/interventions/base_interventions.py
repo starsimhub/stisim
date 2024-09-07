@@ -233,14 +233,6 @@ class SyndromicMgmt(STITest):
         self.results += [
             ss.Result(self.name, 'care_seekers', npts, dtype=int, scale=True, label="Care seekers"),
         ]
-        for disease in self.diseases:
-            results = [
-                ss.Result(disease.name, 'new_false_neg', npts, dtype=float, scale=True, label="False negatives"),
-                ss.Result(disease.name, 'new_true_neg', npts, dtype=float, scale=True, label="True negatives"),
-                ss.Result(disease.name, 'new_false_pos', npts, dtype=float, scale=True, label="False positive"),
-                ss.Result(disease.name, 'new_true_pos', npts, dtype=float, scale=True, label="True positives"),
-            ]
-            disease.results += results
         return
 
     def apply(self, sim, uids=None):
