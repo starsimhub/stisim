@@ -356,8 +356,8 @@ class Syphilis(BaseSTI):
             preg_denom = np.count_nonzero(self.sim.people.pregnancy.pregnant)
             preg_num = np.count_nonzero(self.sim.people.pregnancy.pregnant & self.infected)
             detected_preg_num = preg_num*self.pars.anc_detection
-            self.results['pregnant_prevalence'][ti] = preg_num / preg_denom
-            self.results['detected_pregnant_prevalence'][ti] = detected_preg_num / preg_denom
+            self.results['pregnant_prevalence'][ti] = sc.safedivide(preg_num, preg_denom)
+            self.results['detected_pregnant_prevalence'][ti] = sc.safedivide(detected_preg_num, preg_denom)
 
         # Congenital results
         self.results['new_nnds'][ti]       = np.count_nonzero(self.ti_nnd == ti)
