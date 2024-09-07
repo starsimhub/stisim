@@ -90,7 +90,7 @@ class Syphilis(BaseSTI):
             beta_m2f=None,
             beta_f2m=None,
             beta_m2c=None,
-            eff_condom=0.5,
+            eff_condom=0.0,
             rel_trans_primary=1,
             rel_trans_secondary=1,
             rel_trans_latent=1,  # Baseline level; this decays exponentially with duration of latent infection
@@ -219,6 +219,7 @@ class Syphilis(BaseSTI):
         super().init_results()
         npts = self.sim.npts
         self.results += ss.Result(self.name, 'n_active', npts, dtype=int, scale=True)
+        self.results += ss.Result(self.name, 'pregnant_prevalence', npts, dtype=float, scale=False)
         self.results += ss.Result(self.name, 'adult_prevalence', npts, dtype=float, scale=False)
         self.results += ss.Result(self.name, 'active_adult_prevalence', npts, dtype=float, scale=False)
         self.results += ss.Result(self.name, 'active_prevalence', npts, dtype=float, scale=False)
@@ -326,6 +327,7 @@ class Syphilis(BaseSTI):
     def update_results(self):
         super().update_results()
         ti = self.sim.ti
+
         self.results['n_active'][ti] = self.results['n_primary'][ti] + self.results['n_secondary'][ti]
         self.results['active_prevalence'][ti] = self.results['n_active'][ti] / np.count_nonzero(self.sim.people.alive)
         active_adults_num = len(((self.sim.people.age >= 15) & (self.sim.people.age < 50) & (self.active)).uids)
@@ -333,6 +335,13 @@ class Syphilis(BaseSTI):
         adults_denom = len(((self.sim.people.age >= 15) & (self.sim.people.age < 50)).uids)
         self.results['adult_prevalence'][ti] = infected_adults_num / adults_denom
         self.results['active_adult_prevalence'][ti] = active_adults_num / adults_denom
+
+        # Pregnant women prevalence
+        preg_denom = np.count_nonzero(self.sim.people.pregnancy.pregnant)
+        preg_num = np.count_nonzero(self.sim.people.pregnancy.pregnant & self.infected)
+        self.results['pregnant_prevalence'][ti] = preg_num / preg_denom
+
+        # Congenital results
         self.results['new_nnds'][ti]       = np.count_nonzero(self.ti_nnd == ti)
         self.results['new_stillborns'][ti] = np.count_nonzero(self.ti_stillborn == ti)
         self.results['new_congenital'][ti] = np.count_nonzero(self.ti_congenital == ti)

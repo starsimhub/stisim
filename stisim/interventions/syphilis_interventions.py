@@ -27,7 +27,7 @@ class SyphTx(STITreatment):
         super().__init__(disease='syphilis', eligibility=eligibility, years=years, max_capacity=max_capacity)
         self.default_pars(
             rel_treat_prob=1,
-            treat_prob=ss.bernoulli(p=0.9),
+            treat_prob=ss.bernoulli(p=1),
             treat_eff=ss.bernoulli(p=0.95),
             fetus_age_cutoff_treat_eff=-0.25,  # Reduced treatment efficacy for fetuses in the last trimester
             treat_eff_reduced=ss.bernoulli(p=0.2)  # Reduced efficacy for fetuses older than cut off
@@ -183,7 +183,6 @@ class SyphTest(STITest):
         super().init_pre(sim)
         self.test_prob_data = self.process_data(sim)
         return
-
 
     def process_data(self, sim):
         """ Turn dataframe into a dictionary """

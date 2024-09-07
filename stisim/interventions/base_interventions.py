@@ -487,7 +487,6 @@ class PartnerNotification(ss.Intervention):
     def notify(self, sim, uids):
         # Schedule a test for identified contacts at the next timestep (this also ensures that contacts tracing will take place for partners that test positive)
         # Could include a parameter here for acceptance of testing (if separating out probabilities of notification and testing)
-        # print(f'Scheduling {len(uids)} tests (of whom {(~sim.diseases.syphilis.susceptible[uids]).sum()} will be positive)')
         return self.test.schedule(uids, sim.ti+1)
 
     def apply(self, sim):
