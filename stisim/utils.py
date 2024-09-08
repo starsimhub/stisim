@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import starsim as ss
 
-__all__ = ['TimeSeries', 'make_init_prev_fn', "Result"]
+__all__ = ['TimeSeries', 'make_init_prev_fn', "Result", "finalize_results"]
 
 
 class TimeSeries:
@@ -419,12 +419,54 @@ def make_init_prev_fn(module, sim, uids, data=None, active=False):
 
 
 class Result(ss.Result):
-    def __new__(cls, agg=None, **kwargs):
-        arr = super().__new__(cls, **kwargs)
-        if agg is None:
-            if arr.name.startswith('n_'): agg = 'mean'
-            elif arr.name.startswith('new_'): agg = 'sum'
-            elif 'prev' in arr.name: agg = 'mean'
-            elif 'inci' in arr.name: agg = 'mean'
-            elif arr.name.startswith('cum_'): agg = 'end'
+    def __new__(cls, *args, **kwargs):
+        arr = ss.Result.__new__(cls, *args, **kwargs)
+        if arr.name.startswith('n_'): agg = 'mean'
+        elif arr.name.startswith('new_'): agg = 'sum'
+        elif 'prev' in arr.name: agg = 'mean'
+        elif 'inci' in arr.name: agg = 'mean'
+        elif arr.name.startswith('cum_'): agg = 'end'
         arr.agg = agg
+        return arr
+
+
+def finalize_results(sim, modules_to_drop=None, annualize=True):
+    modules_to_drop = sc.promotetolist(modules_to_drop)
+    modules_to_drop += ['yearvec']
+
+    # Drop modules
+    for mod in modules_to_drop:
+        if mod in sim.results: del sim.results[mod]
+
+    # Make new results
+    newres = ss.Results(module=None)
+    newres.yearvec = np.unique(sim.yearvec.astype(int))[:-1]
+
+    periods = int(1/sim.dt)
+    for modname, mod in sim.results.items():
+        if isinstance(mod, ss.Results):
+            newres[modname] = ss.Results(module=mod)
+            for resname, res in mod.items():
+                if resname.startswith('new_'):
+                    newres[modname][resname] = np.sum(res[:-1].reshape(-1, periods), axis=1)
+                elif 'prev' in resname or 'inci' in resname or resname.startswith('n_'):
+                    newres[modname][resname] = np.mean(res[:-1].reshape(-1, periods), axis=1)
+        else:
+            if modname.startswith('new_'):
+                newres[modname] = np.sum(mod[:-1].reshape(-1, periods), axis=1)
+            elif 'prev' in resname or 'inci' in resname or resname.startswith('n_'):
+                newres[modname] = np.mean(mod[:-1].reshape(-1, periods), axis=1)
+
+    def flatten_results(d, prefix=''):
+        flat = {}
+        for key, val in d.items():
+            if isinstance(val, dict):
+                flat.update(flatten_results(val, prefix=prefix+key+'.'))
+            else:
+                flat[prefix+key] = val
+        return flat
+
+    resdict = flatten_results(newres)
+    df = sc.dataframe.from_dict(resdict).set_index('yearvec')
+
+    return df

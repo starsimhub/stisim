@@ -151,7 +151,7 @@ class HIV(BaseSTI):
         self.results += Result(self.name, 'prevalence_client', npts, dtype=float)
         self.results += Result(self.name, 'new_infections_client', npts, dtype=float, scale=True)
         self.results += Result(self.name, 'new_infections_not_client', npts, dtype=float, scale=True)
-        self.results += Result(self.name, 'p_on_art', npts, dtype=float, scale=False, agg='mean')
+        self.results += Result(self.name, 'p_on_art', npts, dtype=float, scale=False)
         if self.include_mtct:
             self.results += Result(self.name, 'n_on_art_pregnant', npts, dtype=float, scale=True)
 

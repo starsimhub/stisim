@@ -265,7 +265,7 @@ class SyndromicMgmt(STITest):
         treat_uids = self.ti_referred == ti
         dismiss_uids = self.ti_dismissed == ti
         just_tested = self.ti_tested == ti
-        self.results['care_seekers'][ti] += count(just_tested)
+        self.results['new_care_seekers'][ti] += count(just_tested)
         for disease in self.diseases:
             disease.results['new_true_pos'][ti] += count(disease.treatable[treat_uids])
             disease.results['new_false_pos'][ti] += count(disease.susceptible[treat_uids])

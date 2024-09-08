@@ -43,7 +43,7 @@ class GonorrheaTreatment(STITreatment):
     def init_post(self):
         super().init_post()
         results = [
-            Result('ng', 'rel_treat', self.sim.npts, dtype=float, scale=False, agg='mean'),
+            Result('ng', 'rel_treat', self.sim.npts, dtype=float, scale=False),  #, agg='mean'),
         ]
         self.results += results
         self.sim.diseases.ng.results += results

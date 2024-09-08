@@ -473,7 +473,7 @@ class StructuredSexual(ss.SexualNetwork):
         self.set_network_states(upper_age=self.sim.dt)
         self.add_pairs()
         self.set_condom_use()
-        self.update_results()
+        # self.update_results()
 
         return
 
