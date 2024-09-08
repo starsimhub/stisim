@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import starsim as ss
 
-__all__ = ['TimeSeries', 'make_init_prev_fn', "Result", "finalize_results"]
+__all__ = ['TimeSeries', 'make_init_prev_fn', "finalize_results"]
 
 
 class TimeSeries:
@@ -418,19 +418,7 @@ def make_init_prev_fn(module, sim, uids, data=None, active=False):
     return init_prev
 
 
-class Result(ss.Result):
-    def __new__(cls, *args, **kwargs):
-        arr = ss.Result.__new__(cls, *args, **kwargs)
-        if arr.name.startswith('n_'): agg = 'mean'
-        elif arr.name.startswith('new_'): agg = 'sum'
-        elif 'prev' in arr.name: agg = 'mean'
-        elif 'inci' in arr.name: agg = 'mean'
-        elif arr.name.startswith('cum_'): agg = 'end'
-        arr.agg = agg
-        return arr
-
-
-def finalize_results(sim, modules_to_drop=None, annualize=True):
+def finalize_results(sim, modules_to_drop=None):
     modules_to_drop = sc.promotetolist(modules_to_drop)
     modules_to_drop += ['yearvec']
 

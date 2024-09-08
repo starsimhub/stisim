@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import sciris as sc
 from stisim.interventions.base_interventions import STIDx, STITest, STITreatment
-from stisim.utils import TimeSeries, Result
+from stisim.utils import TimeSeries
 
 __all__ = ["SyphDx", "SyphTx", "NewbornTreatment", "SyphTest", "ANCSyphTest", "NewbornSyphTest"]
 
@@ -131,10 +131,10 @@ class NewbornTreatment(SyphTx):
 
     def init_results(self):
         results = [
-            Result(self.disease, 'new_treated', self.sim.npts, dtype=int, scale=True, label="Number treated"),
-            Result(self.disease, 'new_treated_success', self.sim.npts, dtype=int, scale=True, label="Successfully treated"),
-            Result(self.disease, 'new_treated_failure', self.sim.npts, dtype=int, scale=True, label="Treatment failure"),
-            Result(self.disease, 'new_treated_unnecessary', self.sim.npts, dtype=int, scale=True, label="Overtreatment"),
+            ss.Result(self.disease, 'new_treated', self.sim.npts, dtype=int, scale=True, label="Number treated"),
+            ss.Result(self.disease, 'new_treated_success', self.sim.npts, dtype=int, scale=True, label="Successfully treated"),
+            ss.Result(self.disease, 'new_treated_failure', self.sim.npts, dtype=int, scale=True, label="Treatment failure"),
+            ss.Result(self.disease, 'new_treated_unnecessary', self.sim.npts, dtype=int, scale=True, label="Overtreatment"),
         ]
         self.results += results
         return

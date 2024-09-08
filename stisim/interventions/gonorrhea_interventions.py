@@ -6,7 +6,6 @@ import starsim as ss
 import numpy as np
 import sciris as sc
 from stisim.interventions.base_interventions import STITreatment
-from stisim.utils import Result
 
 
 # %% Helper functions
@@ -43,7 +42,7 @@ class GonorrheaTreatment(STITreatment):
     def init_post(self):
         super().init_post()
         results = [
-            Result('ng', 'rel_treat', self.sim.npts, dtype=float, scale=False),  #, agg='mean'),
+            ss.Result('ng', 'rel_treat', self.sim.npts, dtype=float, scale=False),
         ]
         self.results += results
         self.sim.diseases.ng.results += results
