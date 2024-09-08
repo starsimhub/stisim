@@ -232,13 +232,16 @@ class SyndromicMgmt(STITest):
         super().init_results()
         npts = self.sim.npts
         self.results += [
-            Result(self.name, 'new_care_seekers', npts, dtype=int, scale=True, label="Care seekers"),
+            ss.Result(self.name, 'new_care_seekers', npts, dtype=int, scale=True, label="Care seekers"),
         ]
         return
 
     def apply(self, sim, uids=None):
         """ Apply syndromic management """
         if (sim.year >= self.start) & (sim.year < self.end):
+
+            for treatment in self.treatments:
+                treatment.eligibility = ss.uids()  # Reset
 
             if uids is None:
                 uids = self.check_eligibility(sim)
