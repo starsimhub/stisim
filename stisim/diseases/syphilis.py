@@ -8,8 +8,9 @@ from sciris import randround as rr # Since used frequently
 import starsim as ss
 import stisim as sti
 from stisim.diseases.sti import BaseSTI
+from stisim.utils import Result
 
-__all__ = ['Syphilis','SyphilisPlaceholder']
+__all__ = ['Syphilis', 'SyphilisPlaceholder']
 
 
 class SyphilisPlaceholder(ss.Disease):
@@ -223,46 +224,46 @@ class Syphilis(BaseSTI):
         """ Initialize results """
         super().init_results()
         npts = self.sim.npts
-        self.results += ss.Result(self.name, 'n_active', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'pregnant_prevalence', npts, dtype=float, scale=False)
-        self.results += ss.Result(self.name, 'detected_pregnant_prevalence', npts, dtype=float, scale=False)
-        self.results += ss.Result(self.name, 'adult_prevalence', npts, dtype=float, scale=False)
-        self.results += ss.Result(self.name, 'active_adult_prevalence', npts, dtype=float, scale=False)
-        self.results += ss.Result(self.name, 'active_prevalence', npts, dtype=float, scale=False)
-        self.results += ss.Result(self.name, 'new_nnds', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_stillborns',  npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_congenital',  npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_congenital_deaths', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'cum_congenital',  npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'cum_congenital_deaths', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_deaths', npts, dtype=int, scale=True)
+        self.results += Result(self.name, 'n_active', npts, dtype=int, scale=True)
+        self.results += Result(self.name, 'pregnant_prevalence', npts, dtype=float, scale=False)
+        self.results += Result(self.name, 'detected_pregnant_prevalence', npts, dtype=float, scale=False)
+        self.results += Result(self.name, 'adult_prevalence', npts, dtype=float, scale=False)
+        self.results += Result(self.name, 'active_adult_prevalence', npts, dtype=float, scale=False)
+        self.results += Result(self.name, 'active_prevalence', npts, dtype=float, scale=False)
+        self.results += Result(self.name, 'new_nnds', npts, dtype=int, scale=True)
+        self.results += Result(self.name, 'new_stillborns',  npts, dtype=int, scale=True)
+        self.results += Result(self.name, 'new_congenital',  npts, dtype=int, scale=True)
+        self.results += Result(self.name, 'new_congenital_deaths', npts, dtype=int, scale=True)
+        self.results += Result(self.name, 'cum_congenital',  npts, dtype=int, scale=True)
+        self.results += Result(self.name, 'cum_congenital_deaths', npts, dtype=int, scale=True)
+        self.results += Result(self.name, 'new_deaths', npts, dtype=int, scale=True)
 
         # Add FSW and clients to results:
-        self.results += ss.Result(self.name, 'prevalence_sw', npts, dtype=float)
-        self.results += ss.Result(self.name, 'new_infections_sw', npts, dtype=float, scale=True)
-        self.results += ss.Result(self.name, 'new_infections_not_sw', npts, dtype=float, scale=True)
-        self.results += ss.Result(self.name, 'prevalence_client', npts, dtype=float)
-        self.results += ss.Result(self.name, 'new_infections_client', npts, dtype=float, scale=True)
-        self.results += ss.Result(self.name, 'new_infections_not_client', npts, dtype=float, scale=True)
+        self.results += Result(self.name, 'prevalence_sw', npts, dtype=float)
+        self.results += Result(self.name, 'new_infections_sw', npts, dtype=float, scale=True)
+        self.results += Result(self.name, 'new_infections_not_sw', npts, dtype=float, scale=True)
+        self.results += Result(self.name, 'prevalence_client', npts, dtype=float)
+        self.results += Result(self.name, 'new_infections_client', npts, dtype=float, scale=True)
+        self.results += Result(self.name, 'new_infections_not_client', npts, dtype=float, scale=True)
 
         # Add risk groups to results
         for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
             for sex in ['female', 'male']:
-                self.results += ss.Result(self.name, 'prevalence_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float)
-                self.results += ss.Result(self.name, 'new_infections_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float, scale=True)
+                self.results += Result(self.name, 'prevalence_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float)
+                self.results += Result(self.name, 'new_infections_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float, scale=True)
 
         # Add overall testing and treatment results, which might be assembled from numerous interventions
-        self.results += ss.Result(self.name, 'new_false_pos', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_true_pos', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_false_neg', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_true_neg', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_treated_success', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_treated_failure', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_treated_unnecessary', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_treated', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_fetus_treated_success', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_fetus_treated_unnecessary', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_fetus_treated_failure', npts, dtype=int, scale=True)
+        self.results += Result(self.name, 'new_false_pos', npts, dtype=int, scale=True)
+        self.results += Result(self.name, 'new_true_pos', npts, dtype=int, scale=True)
+        self.results += Result(self.name, 'new_false_neg', npts, dtype=int, scale=True)
+        self.results += Result(self.name, 'new_true_neg', npts, dtype=int, scale=True)
+        self.results += Result(self.name, 'new_treated_success', npts, dtype=int, scale=True)
+        self.results += Result(self.name, 'new_treated_failure', npts, dtype=int, scale=True)
+        self.results += Result(self.name, 'new_treated_unnecessary', npts, dtype=int, scale=True)
+        self.results += Result(self.name, 'new_treated', npts, dtype=int, scale=True)
+        self.results += Result(self.name, 'new_fetus_treated_success', npts, dtype=int, scale=True)
+        self.results += Result(self.name, 'new_fetus_treated_unnecessary', npts, dtype=int, scale=True)
+        self.results += Result(self.name, 'new_fetus_treated_failure', npts, dtype=int, scale=True)
 
         return
 

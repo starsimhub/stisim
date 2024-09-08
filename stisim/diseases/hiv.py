@@ -7,7 +7,7 @@ import sciris as sc
 import starsim as ss
 import stisim as sti
 from stisim.diseases.sti import BaseSTI
-
+from stisim.utils import Result
 
 __all__ = ['HIV']
 
@@ -139,27 +139,27 @@ class HIV(BaseSTI):
         """
         super().init_results()
         npts = self.sim.npts
-        self.results += ss.Result(self.name, 'new_deaths', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'cum_deaths', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_diagnoses', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'cum_diagnoses', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_agents_on_art', npts, dtype=float, scale=True)
-        self.results += ss.Result(self.name, 'cum_agents_on_art', npts, dtype=float, scale=True)
-        self.results += ss.Result(self.name, 'prevalence_sw', npts, dtype=float)
-        self.results += ss.Result(self.name, 'new_infections_sw', npts, dtype=float, scale=True)
-        self.results += ss.Result(self.name, 'new_infections_not_sw', npts, dtype=float, scale=True)
-        self.results += ss.Result(self.name, 'prevalence_client', npts, dtype=float)
-        self.results += ss.Result(self.name, 'new_infections_client', npts, dtype=float, scale=True)
-        self.results += ss.Result(self.name, 'new_infections_not_client', npts, dtype=float, scale=True)
-        self.results += ss.Result(self.name, 'p_on_art', npts, dtype=float, scale=False)
+        self.results += Result(self.name, 'new_deaths', npts, dtype=int, scale=True)
+        self.results += Result(self.name, 'cum_deaths', npts, dtype=int, scale=True)
+        self.results += Result(self.name, 'new_diagnoses', npts, dtype=int, scale=True)
+        self.results += Result(self.name, 'cum_diagnoses', npts, dtype=int, scale=True)
+        self.results += Result(self.name, 'new_agents_on_art', npts, dtype=float, scale=True)
+        self.results += Result(self.name, 'cum_agents_on_art', npts, dtype=float, scale=True)
+        self.results += Result(self.name, 'prevalence_sw', npts, dtype=float)
+        self.results += Result(self.name, 'new_infections_sw', npts, dtype=float, scale=True)
+        self.results += Result(self.name, 'new_infections_not_sw', npts, dtype=float, scale=True)
+        self.results += Result(self.name, 'prevalence_client', npts, dtype=float)
+        self.results += Result(self.name, 'new_infections_client', npts, dtype=float, scale=True)
+        self.results += Result(self.name, 'new_infections_not_client', npts, dtype=float, scale=True)
+        self.results += Result(self.name, 'p_on_art', npts, dtype=float, scale=False, agg='mean')
         if self.include_mtct:
-            self.results += ss.Result(self.name, 'n_on_art_pregnant', npts, dtype=float, scale=True)
+            self.results += Result(self.name, 'n_on_art_pregnant', npts, dtype=float, scale=True)
 
         # Add FSW and clients to results:
         for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
             for sex in ['female', 'male']:
-                self.results += ss.Result(self.name, 'prevalence_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float)
-                self.results += ss.Result(self.name, 'new_infections_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float, scale=True)
+                self.results += Result(self.name, 'prevalence_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float)
+                self.results += Result(self.name, 'new_infections_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float, scale=True)
 
         return
 

@@ -6,7 +6,7 @@ Used for chlamydia, gonorrhea, and trich
 import numpy as np
 import starsim as ss
 import sciris as sc
-from stisim.utils import make_init_prev_fn
+from stisim.utils import make_init_prev_fn, Result
 ss_int_ = ss.dtypes.int
 
 __all__ = ['BaseSTI', 'SEIS']
@@ -219,12 +219,12 @@ class SEIS(BaseSTI):
         """ Initialize results """
         super().init_results()
         npts = self.sim.npts
-        self.results += ss.Result(self.name, 'symp_prevalence', npts, dtype=float, scale=False, label="Symptomatic prevalence")
-        self.results += ss.Result(self.name, 'incidence', npts, dtype=float, scale=False, label="Incidence")
-        self.results += ss.Result(self.name, 'adult_prevalence', npts, dtype=float, scale=False, label="Adult prevalence")
-        self.results += ss.Result(self.name, 'symp_adult_prevalence', npts, dtype=float, scale=False, label="Symptomatic adult prevalence")
-        self.results += ss.Result(self.name, 'new_symptomatic', npts, dtype=int, scale=True, label="New symptomatic")
-        self.results += ss.Result(self.name, 'new_care_seekers', npts, dtype=int, scale=True, label="New care seekers")
+        self.results += Result(self.name, 'symp_prevalence', npts, dtype=float, scale=False, label="Symptomatic prevalence")
+        self.results += Result(self.name, 'incidence', npts, dtype=float, scale=False, label="Incidence")
+        self.results += Result(self.name, 'adult_prevalence', npts, dtype=float, scale=False, label="Adult prevalence")
+        self.results += Result(self.name, 'symp_adult_prevalence', npts, dtype=float, scale=False, label="Symptomatic adult prevalence")
+        self.results += Result(self.name, 'new_symptomatic', npts, dtype=int, scale=True, label="New symptomatic")
+        self.results += Result(self.name, 'new_care_seekers', npts, dtype=int, scale=True, label="New care seekers")
 
         # Add overall testing and treatment results, which might be assembled from numerous interventions
         self.results += ss.Result(self.name, 'new_false_pos', npts, dtype=int, scale=True, label="New false positives")

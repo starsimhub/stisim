@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 import scipy.optimize as spo
 import scipy.spatial as spsp
+from stisim.utils import Result
 
 ss_float_ = ss.dtypes.float
 
@@ -167,7 +168,7 @@ class StructuredSexual(ss.SexualNetwork):
             if isinstance(self.condom_data, dict):
                 for rgtuple, valdict in self.condom_data.items():
                     self.condom_data[rgtuple]['simvals'] = np.interp(sim.yearvec, valdict['year'], valdict['val'])
-        self.init_results()
+        # self.init_results()
         return
 
     def init_results(self):

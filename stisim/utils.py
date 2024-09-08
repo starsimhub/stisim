@@ -3,8 +3,9 @@
 import sciris as sc
 import pandas as pd
 import numpy as np
+import starsim as ss
 
-__all__ = ['TimeSeries','make_init_prev_fn']
+__all__ = ['TimeSeries', 'make_init_prev_fn', "Result"]
 
 
 class TimeSeries:
@@ -415,3 +416,15 @@ def make_init_prev_fn(module, sim, uids, data=None, active=False):
     init_prev = np.clip(init_prev, a_min=0, a_max=1)
 
     return init_prev
+
+
+class Result(ss.Result):
+    def __new__(cls, agg=None, **kwargs):
+        arr = super().__new__(cls, **kwargs)
+        if agg is None:
+            if arr.name.startswith('n_'): agg = 'mean'
+            elif arr.name.startswith('new_'): agg = 'sum'
+            elif 'prev' in arr.name: agg = 'mean'
+            elif 'inci' in arr.name: agg = 'mean'
+            elif arr.name.startswith('cum_'): agg = 'end'
+        arr.agg = agg

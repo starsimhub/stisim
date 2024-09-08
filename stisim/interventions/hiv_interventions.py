@@ -6,6 +6,7 @@ import starsim as ss
 import numpy as np
 import sciris as sc
 from stisim.interventions.base_interventions import STITest
+from stisim.utils import Result
 
 
 # %% Helper functions
@@ -227,8 +228,8 @@ class VMMC(ss.Intervention):
     def init_results(self):
         npts = self.sim.npts
         self.results += [
-            ss.Result(self.name, 'new_circumcisions', npts, dtype=float, scale=True, label="New circumcisions"),
-            ss.Result(self.name, 'n_circumcised', npts, dtype=float, scale=True, label="Number circumcised")
+            Result(self.name, 'new_circumcisions', npts, dtype=float, scale=True, label="New circumcisions"),
+            Result(self.name, 'n_circumcised', npts, dtype=float, scale=True, label="Number circumcised")
         ]
         return
 

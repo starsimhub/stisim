@@ -6,6 +6,7 @@ import starsim as ss
 import numpy as np
 import sciris as sc
 from scipy.interpolate import interp1d
+from stisim.utils import Result
 
 
 # %% Helper functions
@@ -118,8 +119,8 @@ class STITest(ss.Intervention):
     def init_results(self):
         npts = self.sim.npts
         results = [
-            ss.Result(self.name, 'new_diagnoses', npts, dtype=float, scale=True, label="New diagnoses"),
-            ss.Result(self.name, 'new_tests', npts, dtype=int, scale=True, label="New tests"),
+            Result(self.name, 'new_diagnoses', npts, dtype=float, scale=True, label="New diagnoses"),
+            Result(self.name, 'new_tests', npts, dtype=int, scale=True, label="New tests"),
         ]
         self.results += results
 
@@ -232,7 +233,7 @@ class SyndromicMgmt(STITest):
         super().init_results()
         npts = self.sim.npts
         self.results += [
-            ss.Result(self.name, 'care_seekers', npts, dtype=int, scale=True, label="Care seekers"),
+            Result(self.name, 'new_care_seekers', npts, dtype=int, scale=True, label="Care seekers"),
         ]
         return
 
@@ -313,10 +314,10 @@ class STITreatment(ss.Intervention):
 
     def init_results(self):
         results = [
-            ss.Result(self.disease, 'new_treated', self.sim.npts, dtype=int, scale=True, label="Number treated"),
-            ss.Result(self.disease, 'new_treated_success', self.sim.npts, dtype=int, scale=True, label="Successfully treated"),
-            ss.Result(self.disease, 'new_treated_failure', self.sim.npts, dtype=int, scale=True, label="Treatment failure"),
-            ss.Result(self.disease, 'new_treated_unnecessary', self.sim.npts, dtype=int, scale=True, label="Overtreatment"),
+            Result(self.disease, 'new_treated', self.sim.npts, dtype=int, scale=True, label="Number treated"),
+            Result(self.disease, 'new_treated_success', self.sim.npts, dtype=int, scale=True, label="Successfully treated"),
+            Result(self.disease, 'new_treated_failure', self.sim.npts, dtype=int, scale=True, label="Treatment failure"),
+            Result(self.disease, 'new_treated_unnecessary', self.sim.npts, dtype=int, scale=True, label="Overtreatment"),
         ]
         # self.sim.diseases[self.disease].results += results
         self.results += results
