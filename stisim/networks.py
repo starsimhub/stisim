@@ -18,7 +18,6 @@ import numpy as np
 import pandas as pd
 import scipy.optimize as spo
 import scipy.spatial as spsp
-from stisim.utils import Result
 
 ss_float_ = ss.dtypes.float
 
