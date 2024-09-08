@@ -8,7 +8,6 @@ from sciris import randround as rr # Since used frequently
 import starsim as ss
 import stisim as sti
 from stisim.diseases.sti import BaseSTI
-from stisim.utils import Result
 
 __all__ = ['Syphilis', 'SyphilisPlaceholder']
 
