@@ -61,10 +61,10 @@ class GonorrheaTreatment(STITreatment):
         treat_uids = super().apply(sim)
 
         # Change treatment resistance for those unsuccessfully treated
-        treat_unsucc = self.outcomes['unsuccessful']
+        treat_unsucc = self.outcomes['ng']['unsuccessful']
         if len(treat_unsucc):
             self.rel_treat[treat_unsucc] *= (1 - self.pars.rel_treat_unsucc)
-        treat_unneed = self.outcomes['unnecessary']
+        treat_unneed = self.outcomes['ng']['unnecessary']
         if len(treat_unneed):
             self.rel_treat[treat_unneed] *= (1 - self.pars.rel_treat_unneed)
 

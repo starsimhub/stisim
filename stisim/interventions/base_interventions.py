@@ -209,7 +209,7 @@ class SymptomaticTesting(STITest):
     Rather, the testing intervention itself contains a linked treatment intervention.
     """
 
-    def __init__(self, pars=None, treatments=None, diseases=None, treat_prob_data=None, years=None, start=None, end=None, eligibility=None, name=None, label=None, **kwargs):
+    def __init__(self, pars=None, treatments=None, diseases=None, disease_treatment_map=None, treat_prob_data=None, years=None, start=None, end=None, eligibility=None, name=None, label=None, **kwargs):
         super().__init__(years=years, start=start, end=end, eligibility=eligibility, name=name, label=label)
         self.default_pars(
             sens=dict(
@@ -231,7 +231,9 @@ class SymptomaticTesting(STITest):
         # Store treatments and diseases
         self.treatments = sc.tolist(treatments)
         self.diseases = diseases
-        self.disease_treatment_map = {t.disease: t for t in self.treatments}
+        if disease_treatment_map is None:
+            disease_treatment_map = {t.disease: t for t in self.treatments}
+        self.disease_treatment_map = disease_treatment_map
 
         self.add_states(
             ss.FloatArr('ti_referred'),
@@ -240,7 +242,7 @@ class SymptomaticTesting(STITest):
         self.treat_prob_data = treat_prob_data
         self.treat_prob = None
 
-        self.n_treatments = dict()
+        self.treated_by_uid = None
 
         return
 
@@ -255,14 +257,18 @@ class SymptomaticTesting(STITest):
         npts = self.sim.npts
         self.results += [
             ss.Result(self.name, 'new_care_seekers', npts, dtype=int, scale=True, label="Care seekers"),
+            ss.Result(self.name, 'new_tx0', npts, dtype=int, scale=True, label="No treatment"),
+            ss.Result(self.name, 'new_tx1', npts, dtype=int, scale=True, label="1 treatment"),
+            ss.Result(self.name, 'new_tx2', npts, dtype=int, scale=True, label="2 treatment"),
+            ss.Result(self.name, 'new_tx3', npts, dtype=int, scale=True, label="3 treatments"),
         ]
         return
 
     def apply(self, sim, uids=None):
         """ Apply syndromic management """
-        if (sim.year >= self.start) & (sim.year < self.end):
+        self.treated_by_uid = None
 
-            self.n_treatments = dict()
+        if (sim.year >= self.start) & (sim.year < self.end):
 
             for treatment in self.treatments:
                 treatment.eligibility = ss.uids()  # Reset
@@ -272,7 +278,7 @@ class SymptomaticTesting(STITest):
                 self.ti_tested[uids] = sim.ti
 
             if len(uids):
-                treatments_per_uid = np.zeros(len(uids), dtype=int)
+                treated_by_uid = np.zeros((len(uids), len(self.treatments)), dtype=bool)
                 for disease in self.diseases:
                     inf = uids & disease.infected
                     sus = uids & disease.susceptible
@@ -284,17 +290,19 @@ class SymptomaticTesting(STITest):
                     true_neg, false_pos = spec.split(sus)
                     treat_uids = true_pos | false_pos
                     do_treat = np.array([True if u in treat_uids else False for u in uids])
-                    treatments_per_uid[do_treat] += 1
 
                     tx = self.disease_treatment_map[disease.name]
                     if tx is not None:
-                        tx.eligibility = treat_uids
+                        tx_ind = self.treatments.index(tx)
+                        treated_by_uid[:, tx_ind] = treated_by_uid[:, tx_ind] | do_treat
+                        tx.eligibility = tx.eligibility | treat_uids
 
-                # Update states: time refrred for anyone referred
-                referred_uids = uids[treatments_per_uid > 0]
-                dismissed_uids = uids[treatments_per_uid == 0]
+                # Update states: time referred to treatment for anyone referred
+                referred_uids = uids[treated_by_uid.any(axis=1)]
+                dismissed_uids = uids.remove(referred_uids)
                 self.ti_referred[referred_uids] = sim.ti
                 self.ti_dismissed[dismissed_uids] = sim.ti
+                self.treated_by_uid = treated_by_uid
 
             # Update results
             self.update_results()
@@ -313,6 +321,14 @@ class SymptomaticTesting(STITest):
             disease.results['new_false_pos'][ti] += count(disease.susceptible[treat_uids])
             disease.results['new_true_neg'][ti] += count(disease.susceptible[dismiss_uids])
             disease.results['new_false_pos'][ti] += count(disease.treatable[dismiss_uids])
+
+        # Record the number of people who received 0-3 treatments
+        if self.treated_by_uid is not None:
+            n_treatments = self.treated_by_uid.sum(axis=1)
+            self.results['new_tx0'][ti] += count(n_treatments == 0)
+            self.results['new_tx1'][ti] += count(n_treatments == 1)
+            self.results['new_tx2'][ti] += count(n_treatments == 2)
+            self.results['new_tx3'][ti] += count(n_treatments == 3)
 
         return
 
@@ -354,15 +370,15 @@ class STITreatment(ss.Intervention):
         self.init_results()
         return
 
-    # def init_results(self):
-    #     results = [
-    #         ss.Result(self.disease, 'new_treated', self.sim.npts, dtype=int, scale=True, label="Number treated"),
-    #         ss.Result(self.disease, 'new_treated_success', self.sim.npts, dtype=int, scale=True, label="Successfully treated"),
-    #         ss.Result(self.disease, 'new_treated_failure', self.sim.npts, dtype=int, scale=True, label="Treatment failure"),
-    #         ss.Result(self.disease, 'new_treated_unnecessary', self.sim.npts, dtype=int, scale=True, label="Overtreatment"),
-    #     ]
-    #     self.results += results
-    #     return
+    def init_results(self):
+        results = [
+            ss.Result(self.name, 'new_treated', self.sim.npts, dtype=int, scale=True, label="Number treated"),
+            ss.Result(self.name, 'new_treated_success', self.sim.npts, dtype=int, scale=True, label="Successfully treated"),
+            ss.Result(self.name, 'new_treated_failure', self.sim.npts, dtype=int, scale=True, label="Treatment failure"),
+            ss.Result(self.name, 'new_treated_unnecessary', self.sim.npts, dtype=int, scale=True, label="Overtreatment"),
+        ]
+        self.results += results
+        return
 
     def add_to_queue(self, sim):
         """
@@ -439,7 +455,7 @@ class STITreatment(ss.Intervention):
         """
         self.outcomes = sc.objdict()
         for disease in self.diseases:
-            self.outcomes[disease] = sc.objdict(successful=[], unsuccessful=[], unnecessary=[])
+            self.outcomes[disease] = sc.objdict(successful=ss.uids(), unsuccessful=ss.uids(), unnecessary=ss.uids())
 
         # Figure out who to treat
         self.add_to_queue(sim)
@@ -456,7 +472,15 @@ class STITreatment(ss.Intervention):
                 # Change states
                 treat_succ = self.outcomes[disease]['successful']
                 if len(treat_succ):
-                    self.change_states(sim, treat_succ)
+                    self.change_states(disease, treat_succ)
+
+        for disease in self.diseases:
+            unneeded = treat_uids.remove(self.outcomes[disease]['successful'] | self.outcomes[disease]['unsuccessful'])
+            successful = treat_uids.remove(self.outcomes[disease]['unsuccessful'] | self.outcomes[disease]['unnecessary'])
+            unsuccessful = treat_uids.remove(self.outcomes[disease]['successful'] | self.outcomes[disease]['unnecessary'])
+            self.outcomes['unnecessary'] = unneeded
+            self.outcomes['successful'] = successful
+            self.outcomes['unsuccessful'] = unsuccessful
 
         # Update results
         self.update_results()
@@ -468,10 +492,10 @@ class STITreatment(ss.Intervention):
         treat_uids = (self.ti_treated == ti).uids
 
         # Store new treatment results in the disease module results
-        # self.results['new_treated_success'][ti] = len(self.outcomes['successful'])
-        # self.results['new_treated_failure'][ti] = len(self.outcomes['unsuccessful'])
-        # self.results['new_treated_unnecessary'][ti] = len(self.outcomes['unnecessary'])
-        # self.results['new_treated'][ti] = len(treat_uids)
+        self.results['new_treated_success'][ti] = len(self.outcomes['successful'])
+        self.results['new_treated_failure'][ti] = len(self.outcomes['unsuccessful'])
+        self.results['new_treated_unnecessary'][ti] = len(self.outcomes['unnecessary'])
+        self.results['new_treated'][ti] = len(treat_uids)
         for disease in self.diseases:
             self.sim.diseases[disease].results['new_treated_success'][ti] += len(self.outcomes[disease]['successful'])
             self.sim.diseases[disease].results['new_treated_failure'][ti] += len(self.outcomes[disease]['unsuccessful'])
