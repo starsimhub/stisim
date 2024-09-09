@@ -61,6 +61,7 @@ class STITest(ss.Intervention):
         super().__init__(name=name, label=label)
         self.default_pars(
             rel_test=1,
+            dt_scale=True,
         )
         self.update_pars(pars, **kwargs)
 
@@ -140,7 +141,8 @@ class STITest(ss.Intervention):
             raise ValueError(errormsg)
 
         # Scale and validate
-        test_prob = test_prob * self.pars.rel_test * sim.dt
+        test_prob *= self.pars.rel_test
+        if self.pars.dt_scale: test_prob *= sim.dt
         test_prob = np.clip(test_prob, a_min=0, a_max=1)
 
         return test_prob
