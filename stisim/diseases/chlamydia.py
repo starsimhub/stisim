@@ -28,13 +28,17 @@ class Chlamydia(SEIS):
                 ss.bernoulli(p=0.05),
                 ss.bernoulli(p=0.01),
             ],
+            p_symp_care=[
+                ss.bernoulli(p=0.4),
+                ss.bernoulli(p=0.8),
+            ],
             dur_symp=[
                 ss.lognorm_ex(1/12, 1/12),  # Women
                 ss.lognorm_ex(0.5/12, 1/12),  # Men
             ],
             dur_asymp2clear=[
-                ss.lognorm_ex(60/52, 5/52),  # Women: 433 days (https://doi.org/10.1016/j.epidem.2010.04.002)
-                ss.lognorm_ex(60/52, 5/52),  # Men: as above
+                ss.normal(60/52, 5/52),  # Women: 433 days (https://doi.org/10.1016/j.epidem.2010.04.002)
+                ss.normal(60/52, 5/52),  # Men: as above
             ],
             dur_symp2clear=[
                 ss.lognorm_ex(60/52, 5/52),  # As above
@@ -48,7 +52,7 @@ class Chlamydia(SEIS):
             dur_prepid=ss.lognorm_ex(1.5/12, 3/12),
 
             init_prev=ss.bernoulli(p=0.01),
-            eff_condom=0.6,  # doi:10.1001/archpedi.159.6.536
+            eff_condom=0.4,  # doi:10.1001/archpedi.159.6.536
         )
         self.update_pars(pars, **kwargs)
 

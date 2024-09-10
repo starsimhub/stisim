@@ -17,7 +17,11 @@ class DischargingSTI(SEIS):
         self.default_pars(
             p_symp=[
                 ss.bernoulli(p=0.8),  # Women
-                ss.bernoulli(p=0.05),  # Men
+                ss.bernoulli(p=0.0),  # Men
+            ],
+            p_symp_care=[
+                ss.bernoulli(p=0.3),
+                ss.bernoulli(p=0.0),
             ],
             p_pid=ss.bernoulli(p=0),
             init_prev=ss.bernoulli(p=0.025),

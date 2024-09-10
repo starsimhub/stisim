@@ -125,8 +125,8 @@ class SEIS(BaseSTI):
                 ss.lognorm_ex(1/52, 26/52),  # Duration of symptoms
             ],
             p_symp_care=[
-                ss.bernoulli(p=0.5),  # Women
-                ss.bernoulli(p=0.5),  # Men
+                ss.bernoulli(p=0.3),  # Women: 0.2*1+0.8*.2
+                ss.bernoulli(p=0.2),  # Men: 0.5*1+0.5*.25
             ],
             dur_symp2care=[  # For those who test, how long before they seek care
                 ss.lognorm_ex(1/12, 1/12),  # Women
@@ -204,6 +204,8 @@ class SEIS(BaseSTI):
         super().init_pre(sim)
         if self.pars.beta_m2f is not None:
             self.pars.beta['structuredsexual'][0] *= self.pars.beta_m2f
+            if self.pars.beta_f2m is None:
+                self.pars.beta_f2m = self.pars.beta_m2f / 2
         if self.pars.beta_f2m is not None:
             self.pars.beta['structuredsexual'][1] *= self.pars.beta_f2m
         if self.pars.beta_m2c is not None:
