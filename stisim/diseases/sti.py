@@ -125,8 +125,8 @@ class SEIS(BaseSTI):
                 ss.lognorm_ex(1/52, 26/52),  # Duration of symptoms
             ],
             p_symp_care=[
-                ss.bernoulli(p=0.8),  # Women
-                ss.bernoulli(p=0.8),  # Men
+                ss.bernoulli(p=0.5),  # Women
+                ss.bernoulli(p=0.5),  # Men
             ],
             dur_symp2care=[  # For those who test, how long before they seek care
                 ss.lognorm_ex(1/12, 1/12),  # Women
