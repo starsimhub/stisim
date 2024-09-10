@@ -30,8 +30,8 @@ class Gonorrhea(SEIS):
                 ss.bernoulli(p=0.0),
             ],
             p_symp_care=[
-                ss.bernoulli(p=0.4),
-                ss.bernoulli(p=0.8),
+                ss.bernoulli(p=0.66),
+                ss.bernoulli(p=0.83),
             ],
             dur_symp=[
                 ss.lognorm_ex(1/12, 1/12),  # Women
