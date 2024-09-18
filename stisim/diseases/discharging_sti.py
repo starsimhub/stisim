@@ -20,7 +20,7 @@ class DischargingSTI(SEIS):
                 ss.bernoulli(p=0.0),  # Men
             ],
             p_symp_care=[
-                ss.bernoulli(p=0.3),
+                ss.bernoulli(p=0.36),
                 ss.bernoulli(p=0.0),
             ],
             p_pid=ss.bernoulli(p=0),

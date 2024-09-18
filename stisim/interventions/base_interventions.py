@@ -213,16 +213,16 @@ class SymptomaticTesting(STITest):
         super().__init__(years=years, start=start, end=end, eligibility=eligibility, name=name, label=label)
         self.default_pars(
             sens=dict(
-                ng=ss.bernoulli(0.92),
-                ct=ss.bernoulli(0.92),
-                tv=ss.bernoulli(0.56),
-                bv=ss.bernoulli(0.56),
+                ng=ss.bernoulli(0.6919),
+                ct=ss.bernoulli(0.6919),
+                tv=ss.bernoulli(0.5988),
+                bv=ss.bernoulli(0.5988),
             ),
             spec=dict(
-                ng=ss.bernoulli(0.12),
-                ct=ss.bernoulli(0.12),
-                tv=ss.bernoulli(0.71),
-                bv=ss.bernoulli(0.71),
+                ng=ss.bernoulli(0.4833),
+                ct=ss.bernoulli(0.4833),
+                tv=ss.bernoulli(0.7011),
+                bv=ss.bernoulli(0.7011),
             ),
             dt_scale=False,
         )

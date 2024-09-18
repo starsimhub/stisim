@@ -18,8 +18,8 @@ class Gonorrhea(SEIS):
         self.default_pars(
             dur_exp=ss.constant(0),  # Initial latent period: how long after exposure before you can infect others
             p_symp=[
-                ss.bernoulli(p=0.35),  # Women: https://doi.org/10.1371/journal.pone.0143304
-                ss.bernoulli(p=0.65),  # Men:   https://doi.org/10.1371/journal.pone.0143304
+                ss.bernoulli(p=0.3),  # Women: https://doi.org/10.1371/journal.pone.0143304
+                ss.bernoulli(p=0.6),  # Men:   https://doi.org/10.1371/journal.pone.0143304
             ],
             dur_presymp=[  # For those who develop symptoms, how long before symptoms appear
                 ss.lognorm_ex(1/52, 12/52),  # Women:
@@ -30,24 +30,28 @@ class Gonorrhea(SEIS):
                 ss.bernoulli(p=0.0),
             ],
             p_symp_care=[
-                ss.bernoulli(p=0.66),
+                ss.bernoulli(p=0.65),
                 ss.bernoulli(p=0.83),
             ],
             dur_symp=[
                 ss.lognorm_ex(1/12, 1/12),  # Women
-                ss.lognorm_ex(0.5/12, 1/12),  # Men
+                ss.lognorm_ex(1/12, 1/12),  # Men
             ],
             dur_asymp2clear=[
-                ss.lognorm_ex(6/12, 1.5/12),  # Women
+                ss.lognorm_ex(6/12, 1/12),  # Women
                 ss.lognorm_ex(4/12, 1.5/12),  # Men
             ],
             dur_symp2clear=[
-                ss.lognorm_ex(6/12, 1.5/12),  # Women
-                ss.lognorm_ex(4/12, 1.5/12),  # Men
+                ss.lognorm_ex(5/12, 1/12),  # Assumption
+                ss.lognorm_ex(4/12, 1/12),  # Assumption
             ],
             dur_postsymp2clear=[
-                ss.lognorm_ex(6/12, 1.5/12),  # Women
+                ss.lognorm_ex(7/12, 1.5/12),  # Women
                 ss.lognorm_ex(4/12, 1.5/12),  # Men
+            ],
+            dur_symp2care=[  # For those who test, how long before they seek care
+                ss.lognorm_ex(1/12, 1/12),  # Women
+                ss.lognorm_ex(1/52, 1/52),  # Men
             ],
             p_pid=ss.bernoulli(p=0.2),  # TODO
             dur_prepid=ss.lognorm_ex(1.5/12, 3/12),
