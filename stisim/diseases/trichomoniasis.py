@@ -53,7 +53,7 @@ class Trichomoniasis(SEIS):
             ],
             p_pid=ss.bernoulli(p=0.025),
             dur_prepid=ss.lognorm_ex(1.5/12, 1/12),
-            eff_condom=0.4,
+            eff_condom=0.0,
 
             # Initial conditions
             init_prev=ss.bernoulli(p=0.01)

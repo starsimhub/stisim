@@ -54,7 +54,7 @@ class Gonorrhea(SEIS):
 
             # Initial conditions
             init_prev=ss.bernoulli(p=0.01),
-            eff_condom=0.4,
+            eff_condom=0.0,
         )
         self.update_pars(pars, **kwargs)
 

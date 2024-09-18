@@ -25,7 +25,7 @@ class DischargingSTI(SEIS):
             ],
             p_pid=ss.bernoulli(p=0),
             init_prev=ss.bernoulli(p=0.025),
-            eff_condom=0.6,
+            eff_condom=0.0,
         )
         self.update_pars(pars, **kwargs)
 

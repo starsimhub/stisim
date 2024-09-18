@@ -52,7 +52,7 @@ class Chlamydia(SEIS):
             dur_prepid=ss.lognorm_ex(1.5/12, 3/12),
 
             init_prev=ss.bernoulli(p=0.01),
-            eff_condom=0.4,  # doi:10.1001/archpedi.159.6.536
+            eff_condom=0.0,  # doi:10.1001/archpedi.159.6.536
         )
         self.update_pars(pars, **kwargs)
 
