@@ -25,8 +25,8 @@ class Chlamydia(SEIS):
                 ss.lognorm_ex(0.25/52, 1/52),  # Men: symptoms should appear within days
             ],
             p_symp_clear=[
-                ss.bernoulli(p=0.5),
-                ss.bernoulli(p=0.5),
+                ss.bernoulli(p=0.0),
+                ss.bernoulli(p=0.0),
             ],
             dur_symp=[
                 ss.lognorm_ex(1/52, 2/52),  # Duration of symptoms

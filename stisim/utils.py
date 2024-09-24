@@ -437,12 +437,12 @@ def finalize_results(sim, modules_to_drop=None):
             for resname, res in mod.items():
                 if resname.startswith('new_'):
                     newres[modname][resname] = np.sum(res[:-1].reshape(-1, periods), axis=1)
-                elif 'prev' in resname or 'inci' in resname or resname.startswith('n_'):
+                elif 'prev' in resname or 'inci' in resname or 'rel_' in resname or resname.startswith('n_'):
                     newres[modname][resname] = np.mean(res[:-1].reshape(-1, periods), axis=1)
         else:
             if modname.startswith('new_'):
                 newres[modname] = np.sum(mod[:-1].reshape(-1, periods), axis=1)
-            elif 'prev' in resname or 'inci' in resname or resname.startswith('n_'):
+            elif 'prev' in resname or 'inci' in resname or 'rel_' in resname or resname.startswith('n_'):
                 newres[modname] = np.mean(mod[:-1].reshape(-1, periods), axis=1)
 
     def flatten_results(d, prefix=''):

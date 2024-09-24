@@ -6,7 +6,7 @@ import starsim as ss
 from stisim.diseases.syphilis import SyphilisPlaceholder
 
 
-__all__ = ['hiv_syph', 'hiv_trich']
+__all__ = ['hiv_syph', 'hiv_tv', 'hiv_ng', 'hiv_ct']
 
 
 class hiv_syph(ss.Connector):
@@ -62,30 +62,71 @@ class hiv_syph(ss.Connector):
         return
 
 
-class hiv_trich(ss.Connector):
+class hiv_tv(ss.Connector):
 
-    def __init__(self, hiv_module, trich_module, pars=None, **kwargs):
+    def __init__(self, hiv_module, tv_module, pars=None, **kwargs):
         super().__init__()
 
         self.hiv = hiv_module
-        self.trich = trich_module
+        self.tv = tv_module
         self.default_pars(
             # Changes to HIV due to trichonomiasis coinfection
             # Sources:
             #   - https://www.who.int/news-room/fact-sheets/detail/trichomoniasis
             #   - https://pubmed.ncbi.nlm.nih.gov/30341233/
-            rel_sus_hiv_trich=ss.normal(loc=1.5, scale=0.25),  # Trich infections: 1.5x risk of HIV acquisition.
+            rel_sus_hiv_tv=1.5,  # Trich infections: 1.5x risk of HIV acquisition.
         )
         self.update_pars(pars, **kwargs)
+        return
 
-        self.add_states(
-            ss.FloatArr('rel_sus_hiv_trich', default=self.pars.rel_sus_hiv_trich),
+    def update(self):
+        tv = self.tv.infected
+        self.hiv.rel_sus[tv] *= self.pars.rel_sus_hiv_tv
+        return
+
+
+class hiv_ng(ss.Connector):
+
+    def __init__(self, hiv_module, ng_module, pars=None, **kwargs):
+        super().__init__()
+
+        self.hiv = hiv_module
+        self.ng = ng_module
+        self.default_pars(
+            # Changes to HIV due to gonorrhea coinfection
+            # Sources:
+            #   - TODO
+            rel_sus_hiv_ng=1.2,  # Having an NG infection leads to XXx risk of HIV acquisition.
         )
+        self.update_pars(pars, **kwargs)
 
         return
 
     def update(self):
-        trich = self.trich.infected
-        self.hiv.rel_sus[trich] *= self.rel_sus_hiv_trich[trich]
+        ng = self.ng.infected
+        self.hiv.rel_sus[ng] *= self.pars.rel_sus_hiv_ng
+        return
+
+
+class hiv_ct(ss.Connector):
+
+    def __init__(self, hiv_module, ct_module, pars=None, **kwargs):
+        super().__init__()
+
+        self.hiv = hiv_module
+        self.ct = ct_module
+        self.default_pars(
+            # Changes to HIV due to chlamydia coinfection
+            # Sources:
+            #   - TODO
+            rel_sus_hiv_ct=1,  # Having an CT infection leads to XXx risk of HIV acquisition.
+        )
+        self.update_pars(pars, **kwargs)
+
+        return
+
+    def update(self):
+        ct = self.ct.infected
+        self.hiv.rel_sus[ct] *= self.pars.rel_sus_hiv_ct
         return
 

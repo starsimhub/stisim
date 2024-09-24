@@ -39,15 +39,6 @@ class GonorrheaTreatment(STITreatment):
             ss.FloatArr('rel_treat', default=1),  # How well a person will respond to treatment
         )
 
-    def init_post(self):
-        super().init_post()
-        results = [
-            ss.Result('ng', 'rel_treat', self.sim.npts, dtype=float, scale=False),
-        ]
-        self.results += results
-        self.sim.diseases.ng.results += results
-        return
-
     def set_treat_eff(self, uids):
         new_treat_eff = self.rel_treat[uids] * self.pars.base_treat_eff
         self.pars.treat_eff.set(new_treat_eff)

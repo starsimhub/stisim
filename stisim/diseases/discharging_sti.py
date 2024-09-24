@@ -16,12 +16,24 @@ class DischargingSTI(SEIS):
 
         self.default_pars(
             p_symp=[
-                ss.bernoulli(p=0.8),  # Women
+                ss.bernoulli(p=1.0),  # Women
                 ss.bernoulli(p=0.0),  # Men
             ],
             p_symp_care=[
-                ss.bernoulli(p=0.36),
+                ss.bernoulli(p=0.5),
                 ss.bernoulli(p=0.0),
+            ],
+            dur_asymp2clear=[  # Duration of untreated asymptomatic infection (excl initial latent)
+                ss.uniform(1/52, 20/52),  # Women
+                ss.constant(100),  # Men
+            ],
+            dur_symp2clear=[  # Duration of untreated symptomatic infection (excl initial latent)
+                ss.uniform(1/52, 20/52),  # Women
+                ss.constant(100),  # Men
+            ],
+            dur_symp2care=[  # For those who test, how long before they seek care
+                ss.uniform(1/52, 5/52),  # Women
+                ss.constant(100),  # Men
             ],
             p_pid=ss.bernoulli(p=0),
             init_prev=ss.bernoulli(p=0.025),

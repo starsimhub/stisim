@@ -184,9 +184,8 @@ class SEIS(BaseSTI):
         )
 
         # Results by age and sex
-        self.sex_results = sc.objdict()
         self.age_sex_results = sc.objdict()
-        self.age_bins = np.array([0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 100])
+        self.age_bins = np.array([0, 15, 20, 25, 35, 65, 100])
         self.age_sex_result_keys = [
             'incidence',
             'prevalence',
@@ -221,11 +220,37 @@ class SEIS(BaseSTI):
         """ Initialize results """
         super().init_results()
         npts = self.sim.npts
+        self.results += ss.Result(self.name, 'female_prevalence', npts, dtype=float, scale=False, label="Prevalence - F")
+        self.results += ss.Result(self.name, 'male_prevalence', npts, dtype=float, scale=False, label="Prevalence - M")
+
         self.results += ss.Result(self.name, 'symp_prevalence', npts, dtype=float, scale=False, label="Symptomatic prevalence")
-        self.results += ss.Result(self.name, 'incidence', npts, dtype=float, scale=False, label="Incidence")
+        self.results += ss.Result(self.name, 'female_symp_prevalence', npts, dtype=float, scale=False, label="Symptomatic prevalence - F")
+        self.results += ss.Result(self.name, 'male_symp_prevalence', npts, dtype=float, scale=False, label="Symptomatic prevalence - M")
+
         self.results += ss.Result(self.name, 'adult_prevalence', npts, dtype=float, scale=False, label="Adult prevalence")
+        self.results += ss.Result(self.name, 'female_adult_prevalence', npts, dtype=float, scale=False, label="Adult prevalence - F")
+        self.results += ss.Result(self.name, 'male_adult_prevalence', npts, dtype=float, scale=False, label="Adult prevalence - F")
+
+        self.results += ss.Result(self.name, 'incidence', npts, dtype=float, scale=False, label="Incidence")
+        self.results += ss.Result(self.name, 'female_incidence', npts, dtype=float, scale=False, label="Incidence - F")
+        self.results += ss.Result(self.name, 'male_incidence', npts, dtype=float, scale=False, label="Incidence - M")
+
+        self.results += ss.Result(self.name, 'new_female_infections', npts, dtype=float, scale=False, label="New infections - F")
+        self.results += ss.Result(self.name, 'new_male_infections', npts, dtype=float, scale=False, label="New infections - F")
+
         self.results += ss.Result(self.name, 'symp_adult_prevalence', npts, dtype=float, scale=False, label="Symptomatic adult prevalence")
+        self.results += ss.Result(self.name, 'female_symp_adult_prevalence', npts, dtype=float, scale=False, label="Symptomatic adult female prevalence")
+        self.results += ss.Result(self.name, 'male_symp_adult_prevalence', npts, dtype=float, scale=False, label="Symptomatic adult female prevalence")
+
+        self.results += ss.Result(self.name, 'n_female_infected', npts, dtype=int, scale=True, label="Number infected - F")
+        self.results += ss.Result(self.name, 'n_male_infected', npts, dtype=int, scale=True, label="Number infected - F")
+        self.results += ss.Result(self.name, 'n_female_symptomatic', npts, dtype=int, scale=True, label="Number symptomatic - F")
+        self.results += ss.Result(self.name, 'n_male_symptomatic', npts, dtype=int, scale=True, label="Number symptomatic - F")
+
         self.results += ss.Result(self.name, 'new_symptomatic', npts, dtype=int, scale=True, label="New symptomatic")
+        self.results += ss.Result(self.name, 'new_female_symptomatic', npts, dtype=int, scale=True, label="New symptomatic - F")
+        self.results += ss.Result(self.name, 'new_male_symptomatic', npts, dtype=int, scale=True, label="New symptomatic - F")
+
         self.results += ss.Result(self.name, 'new_care_seekers', npts, dtype=int, scale=True, label="New care seekers")
 
         # Add overall testing and treatment results, which might be assembled from numerous interventions
@@ -233,17 +258,27 @@ class SEIS(BaseSTI):
         self.results += ss.Result(self.name, 'new_true_pos', npts, dtype=int, scale=True, label="New true positives")
         self.results += ss.Result(self.name, 'new_false_neg', npts, dtype=int, scale=True, label="New false negatives")
         self.results += ss.Result(self.name, 'new_true_neg', npts, dtype=int, scale=True, label="New true negatives")
+        self.results += ss.Result(self.name, 'new_false_pos_f', npts, dtype=int, scale=True, label="New false positives - F")
+        self.results += ss.Result(self.name, 'new_true_pos_f', npts, dtype=int, scale=True, label="New true positives - F")
+        self.results += ss.Result(self.name, 'new_false_neg_f', npts, dtype=int, scale=True, label="New false negatives - F")
+        self.results += ss.Result(self.name, 'new_true_neg_f', npts, dtype=int, scale=True, label="New true negatives - F")
+        self.results += ss.Result(self.name, 'new_false_pos_m', npts, dtype=int, scale=True, label="New false positives - M")
+        self.results += ss.Result(self.name, 'new_true_pos_m', npts, dtype=int, scale=True, label="New true positives - M")
+        self.results += ss.Result(self.name, 'new_false_neg_m', npts, dtype=int, scale=True, label="New false negatives - M")
+        self.results += ss.Result(self.name, 'new_true_neg_m', npts, dtype=int, scale=True, label="New true negatives - M")
         self.results += ss.Result(self.name, 'new_treated_success', npts, dtype=int, scale=True, label="Successful treatments")
         self.results += ss.Result(self.name, 'new_treated_failure', npts, dtype=int, scale=True, label="Unsuccessful treatments")
         self.results += ss.Result(self.name, 'new_treated_unnecessary', npts, dtype=int, scale=True, label="Unnecessary treatments")
+        self.results += ss.Result(self.name, 'new_treated_success_symp', npts, dtype=int, scale=True, label="Successful treatments (symptomatic)")
+        self.results += ss.Result(self.name, 'new_treated_success_asymp', npts, dtype=int, scale=True, label="Successful treatments (asymptomatic)")
         self.results += ss.Result(self.name, 'new_treated', npts, dtype=int, scale=True, label="Treatments")
 
         # Age/sex results
         for rkey in self.age_sex_result_keys:
-            self.sex_results[rkey] = sc.objdict()
+            # self.sex_results[rkey] = sc.objdict()
             self.age_sex_results[rkey] = sc.objdict()
             for skey in ['female', 'male', 'both']:
-                self.sex_results[rkey][skey] = np.zeros(len(self.sim.yearvec))
+                # self.sex_results[rkey][skey] = np.zeros(len(self.sim.yearvec))
                 self.age_sex_results[rkey][skey] = np.zeros((len(self.age_bins)-1, len(self.sim.yearvec)))
 
         return
@@ -319,16 +354,44 @@ class SEIS(BaseSTI):
         ppl = self.sim.people
         bins = self.age_bins
 
-        self.results['symp_prevalence'][ti] = self.results['n_symptomatic'][ti] / np.count_nonzero(ppl.alive)
-        self.results['incidence'][ti] = self.results['new_infections'][ti] / self.results['n_susceptible'][ti]
-        adults = (self.sim.people.age >= 15) & (self.sim.people.age < 50)
+        adults = (self.sim.people.age >= 15) & (self.sim.people.age <= 65)
+        women = adults & self.sim.people.female
+        men = adults & self.sim.people.male
         infected_adults = adults & self.infected
-        symptomatic_adults = adults & self.symptomatic
-        self.results['adult_prevalence'][ti] = np.count_nonzero(infected_adults) / np.count_nonzero(adults)
-        self.results['symp_adult_prevalence'][ti] = np.count_nonzero(symptomatic_adults) / np.count_nonzero(adults)
-        self.results['new_symptomatic'][ti] = np.count_nonzero(self.ti_symptomatic == ti)
+        infected_women = women & self.infected
+        infected_men = men & self.infected
 
-        rmap = {'alive': 'both', 'female': 'female', 'male': 'male'}
+        self.results['female_prevalence'][ti] = np.count_nonzero(self.infected & self.sim.people.female) / np.count_nonzero(self.sim.people.female)
+        self.results['male_prevalence'][ti] = np.count_nonzero(self.infected & self.sim.people.male) / np.count_nonzero(self.sim.people.male)
+
+        self.results['symp_prevalence'][ti] = np.count_nonzero(self.symptomatic) / np.count_nonzero(self.sim.people.alive)
+        self.results['female_symp_prevalence'][ti] = np.count_nonzero(self.symptomatic & self.sim.people.female) / np.count_nonzero(self.sim.people.female)
+        self.results['male_symp_prevalence'][ti] = np.count_nonzero(self.symptomatic & self.sim.people.male) / np.count_nonzero(self.sim.people.male)
+
+        self.results['adult_prevalence'][ti] = np.count_nonzero(self.infected & adults) / np.count_nonzero(adults)
+        self.results['female_adult_prevalence'][ti] = np.count_nonzero(self.infected & women) / np.count_nonzero(women)
+        self.results['male_adult_prevalence'][ti] = np.count_nonzero(self.infected & men) / np.count_nonzero(men)
+
+        self.results['new_female_infections'][ti] = np.count_nonzero((self.ti_infected == ti) & self.sim.people.female)
+        self.results['new_male_infections'][ti] = np.count_nonzero((self.ti_infected == ti) & self.sim.people.male)
+
+        self.results['symp_adult_prevalence'][ti] = np.count_nonzero(self.symptomatic & adults) / np.count_nonzero(adults)
+        self.results['female_symp_adult_prevalence'][ti] = np.count_nonzero(self.symptomatic & women) / np.count_nonzero(women)
+        self.results['male_symp_adult_prevalence'][ti] = np.count_nonzero(self.symptomatic & men) / np.count_nonzero(men)
+
+        self.results['n_female_infected'][ti] = np.count_nonzero(self.infected & women)
+        self.results['n_male_infected'][ti] = np.count_nonzero(self.infected & men)
+        self.results['n_female_symptomatic'][ti] = np.count_nonzero(self.symptomatic & women)
+        self.results['n_male_symptomatic'][ti] = np.count_nonzero(self.symptomatic & men)
+
+        self.results['new_symptomatic'][ti] = np.count_nonzero(self.ti_symptomatic == ti)
+        self.results['new_female_symptomatic'][ti] = np.count_nonzero((self.ti_symptomatic == ti) & self.sim.people.female)
+        self.results['new_male_symptomatic'][ti] = np.count_nonzero((self.ti_symptomatic == ti) & self.sim.people.male)
+
+        self.results['incidence'][ti] = self.results['new_infections'][ti] / self.results['n_susceptible'][ti]
+
+        # rmap = {'alive': 'both', 'female': 'female', 'male': 'male'}
+        rmap = {'female': 'female', 'male': 'male'}
 
         # Incidence and prevalence by age and sex
         for pkey, rkey in rmap.items():
@@ -339,7 +402,7 @@ class SEIS(BaseSTI):
             num, _ = np.histogram(new_inf_ages, bins=bins)
             denom, _ = np.histogram(n_sus_ages, bins=bins)
             self.age_sex_results['incidence'][rkey][:, ti] = sc.safedivide(num, denom)
-            self.sex_results['incidence'][rkey][ti] = sc.safedivide(len(new_inf), len(n_sus))
+            self.results[rkey+'_incidence'][ti] = sc.safedivide(len(new_inf), len(n_sus))
 
         # Prevalence by age and sex
         for pkey, rkey in rmap.items():
@@ -348,13 +411,13 @@ class SEIS(BaseSTI):
             num, _ = np.histogram(n_inf_ages, bins=bins)
             denom, _ = np.histogram(ppl.age[ppl[pkey]], bins=bins)
             self.age_sex_results['prevalence'][rkey][:, ti] = sc.safedivide(num, denom)
-            self.sex_results['prevalence'][rkey][ti] = sc.safedivide(len(n_inf), np.count_nonzero(ppl[pkey]))
+            self.results[rkey+'_prevalence'][ti] = sc.safedivide(len(n_inf), np.count_nonzero(ppl[pkey]))
 
             n_symp = (self.symptomatic & ppl[pkey]).uids
             n_symp_ages = ppl.age[n_symp]
             num, _ = np.histogram(n_symp_ages, bins=bins)
             self.age_sex_results['symp_prevalence'][rkey][:, ti] = sc.safedivide(num, denom)
-            self.sex_results['symp_prevalence'][rkey][ti] = sc.safedivide(len(n_symp), np.count_nonzero(ppl[pkey]))
+            self.results[rkey+'_symp_prevalence'][ti] = sc.safedivide(len(n_symp), np.count_nonzero(ppl[pkey]))
 
         return
 

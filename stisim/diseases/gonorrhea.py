@@ -30,20 +30,20 @@ class Gonorrhea(SEIS):
                 ss.bernoulli(p=0.0),
             ],
             p_symp_care=[
-                ss.bernoulli(p=0.65),
-                ss.bernoulli(p=0.83),
+                ss.bernoulli(p=0.5),
+                ss.bernoulli(p=0.8),
             ],
             dur_symp=[
                 ss.lognorm_ex(1/12, 1/12),  # Women
                 ss.lognorm_ex(1/12, 1/12),  # Men
             ],
             dur_asymp2clear=[
-                ss.lognorm_ex(6/12, 1/12),  # Women
-                ss.lognorm_ex(4/12, 1.5/12),  # Men
+                ss.lognorm_ex(7/12, 2/12),  # Women
+                ss.lognorm_ex(5/12, 3/12),  # Men
             ],
             dur_symp2clear=[
-                ss.lognorm_ex(5/12, 1/12),  # Assumption
-                ss.lognorm_ex(4/12, 1/12),  # Assumption
+                ss.lognorm_ex(7/12, 2/12),  # Assumption
+                ss.lognorm_ex(5/12, 3/12),  # Assumption
             ],
             dur_postsymp2clear=[
                 ss.lognorm_ex(7/12, 1.5/12),  # Women
@@ -64,10 +64,17 @@ class Gonorrhea(SEIS):
 
         return
 
+    def init_results(self):
+        super().init_results()
+        self.results += [
+            ss.Result(self.name, 'rel_treat', self.sim.npts, dtype=float, scale=False),
+        ]
+        return
+
     def set_prognoses(self, uids, source_uids=None):
         super().set_prognoses(uids, source_uids)
         # Also pass on the relative treatability
-        if 'gonorrheatreatment' in self.sim.interventions and source_uids is not None:
-            self.sim.people.gonorrheatreatment.rel_treat[uids] = self.sim.people.gonorrheatreatment.rel_treat[source_uids]
+        if 'ng_tx' in self.sim.interventions and source_uids is not None:
+            self.sim.people.ng_tx.rel_treat[uids] = self.sim.people.ng_tx.rel_treat[source_uids]
 
 

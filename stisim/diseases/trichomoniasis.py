@@ -39,21 +39,17 @@ class Trichomoniasis(SEIS):
             dur_asymp2clear=[
                 # Average duration of infection in women is at least 3–5 years and approximately 4 months for men
                 # Source: https://sti.bmj.com/content/76/4/248
-                ss.normal(20/52, 4/52),  # Men
-                ss.normal(52/52, 10/52),  # Women
+                ss.normal(150/52, 20/52),  # Women
+                ss.normal(26/52, 4/52),  # Men
             ],
             dur_symp2clear=[
                 # Assumptions...
-                ss.lognorm_ex(10/52, 4/52),  # Men
-                ss.lognorm_ex(10/52, 5/52),  # Women
+                ss.lognorm_ex(20/52, 4/52),  # Women
+                ss.lognorm_ex(15/52, 5/52),  # Men
             ],
             p_clear=[
                 ss.bernoulli(p=0.1),  # Most women do not spontaneously clear
                 ss.bernoulli(p=1),  # Men assumed to clear (https://sti.bmj.com/content/76/4/248)
-            ],
-            dur_symp2care=[  # For those who test, how long before they seek care
-                ss.lognorm_ex(1/12, 1/12),  # Women
-                ss.lognorm_ex(1/12, 1/12),  # Men
             ],
             p_pid=ss.bernoulli(p=0.025),
             dur_prepid=ss.lognorm_ex(1.5/12, 1/12),
