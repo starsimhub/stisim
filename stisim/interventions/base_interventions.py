@@ -277,9 +277,6 @@ class SymptomaticTesting(STITest):
 
         if (sim.year >= self.start):
 
-            if self.name == 'panel':
-                print('hi')
-
             if uids is None:
                 uids = self.check_eligibility(sim)
                 self.ti_tested[uids] = sim.ti
