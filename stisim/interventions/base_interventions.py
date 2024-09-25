@@ -268,6 +268,7 @@ class SymptomaticTesting(STITest):
         self.treated_by_uid = None
         ti = sim.ti
 
+
         # If this intervention has stopped, reset eligibility for all associated treatments
         if (sim.year >= self.end):
             for treatment in self.treatments:
@@ -275,6 +276,10 @@ class SymptomaticTesting(STITest):
             return
 
         if (sim.year >= self.start):
+
+            if self.name == 'panel':
+                print('hi')
+
             if uids is None:
                 uids = self.check_eligibility(sim)
                 self.ti_tested[uids] = sim.ti
