@@ -57,16 +57,16 @@ class SyphTx(STITreatment):
 
     def change_states(self, disease, treat_succ):
         """ Change the states of people who are treated """
-        sim.diseases[disease].primary[treat_succ] = False
-        sim.diseases[disease].secondary[treat_succ] = False
-        sim.diseases[disease].latent[treat_succ] = False
-        sim.diseases[disease].tertiary[treat_succ] = False
-        sim.diseases[disease].ti_primary[treat_succ] = np.nan
-        sim.diseases[disease].ti_secondary[treat_succ] = np.nan
-        sim.diseases[disease].ti_latent[treat_succ] = np.nan
-        sim.diseases[disease].ti_tertiary[treat_succ] = np.nan
-        sim.diseases[disease].susceptible[treat_succ] = True
-        sim.diseases[disease].infected[treat_succ] = False
+        self.sim.diseases[disease].primary[treat_succ] = False
+        self.sim.diseases[disease].secondary[treat_succ] = False
+        self.sim.diseases[disease].latent[treat_succ] = False
+        self.sim.diseases[disease].tertiary[treat_succ] = False
+        self.sim.diseases[disease].ti_primary[treat_succ] = np.nan
+        self.sim.diseases[disease].ti_secondary[treat_succ] = np.nan
+        self.sim.diseases[disease].ti_latent[treat_succ] = np.nan
+        self.sim.diseases[disease].ti_tertiary[treat_succ] = np.nan
+        self.sim.diseases[disease].susceptible[treat_succ] = True
+        self.sim.diseases[disease].infected[treat_succ] = False
 
     def treat_fetus(self, sim, mother_uids):
         """
