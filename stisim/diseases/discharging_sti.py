@@ -20,7 +20,7 @@ class DischargingSTI(SEIS):
                 ss.bernoulli(p=0.0),  # Men
             ],
             p_symp_care=[
-                ss.bernoulli(p=0.5),
+                ss.bernoulli(p=0.4),
                 ss.bernoulli(p=0.0),
             ],
             dur_asymp2clear=[  # Duration of untreated asymptomatic infection (excl initial latent)

@@ -518,8 +518,8 @@ class STITreatment(ss.Intervention):
         self.outcomes['unnecessary'] = unneeded
         self.outcomes['successful'] = successful
         self.outcomes['unsuccessful'] = unsuccessful
-        self.outcomes['successful_symp'] = self.outcomes[disease]['successful_symp']
-        self.outcomes['successful_asymp'] = self.outcomes[disease]['successful_asymp']
+        # self.outcomes['successful_symp'] = self.outcomes[disease]['successful_symp']
+        # self.outcomes['successful_asymp'] = self.outcomes[disease]['successful_asymp']
 
         # Update results
         self.update_results()
@@ -534,15 +534,15 @@ class STITreatment(ss.Intervention):
         self.results['new_treated_success'][ti] = len(self.outcomes['successful'])
         self.results['new_treated_failure'][ti] = len(self.outcomes['unsuccessful'])
         self.results['new_treated_unnecessary'][ti] = len(self.outcomes['unnecessary'])
-        self.results['new_treated_success_symp'][ti] = len(self.outcomes['successful_symp'])
-        self.results['new_treated_success_asymp'][ti] = len(self.outcomes['successful_asymp'])
+        # self.results['new_treated_success_symp'][ti] = len(self.outcomes['successful_symp'])
+        # self.results['new_treated_success_asymp'][ti] = len(self.outcomes['successful_asymp'])
         self.results['new_treated'][ti] = len(treat_uids)
         for disease in self.diseases:
             self.sim.diseases[disease].results['new_treated_success'][ti] += len(self.outcomes[disease]['successful'])
             self.sim.diseases[disease].results['new_treated_failure'][ti] += len(self.outcomes[disease]['unsuccessful'])
             self.sim.diseases[disease].results['new_treated_unnecessary'][ti] += len(self.outcomes[disease]['unnecessary'])
-            self.sim.diseases[disease].results['new_treated_success_symp'][ti] += len(self.outcomes[disease]['successful_symp'])
-            self.sim.diseases[disease].results['new_treated_success_asymp'][ti] += len(self.outcomes[disease]['successful_asymp'])
+            # self.sim.diseases[disease].results['new_treated_success_symp'][ti] += len(self.outcomes[disease]['successful_symp'])
+            # self.sim.diseases[disease].results['new_treated_success_asymp'][ti] += len(self.outcomes[disease]['successful_asymp'])
             self.sim.diseases[disease].results['new_treated'][ti] += len(treat_uids)
 
         # Debugging
