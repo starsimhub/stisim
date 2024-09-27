@@ -145,10 +145,10 @@ class NewbornTreatment(SyphTx):
         sim.diseases.syphilis.ti_congenital[treat_succ] = np.nan
         # sim.diseases.syphilis.susceptible[treat_succ] = True  # Leave this out for now
 
-    def administer(self, sim, uids, return_format='dict'):
+    def administer(self, sim, uids, disease, return_format='dict'):
         """ Administer treatment to newborns """
-        sus = sim.diseases.syphilis.susceptible
-        con = sim.diseases.syphilis.congenital
+        sus = sim.diseases[disease].susceptible
+        con = sim.diseases[disease].congenital
         sus_uids = uids[sus[uids]]
         con_uids = uids[con[uids]]
 
