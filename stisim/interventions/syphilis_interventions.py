@@ -139,10 +139,10 @@ class NewbornTreatment(SyphTx):
         self.results += results
         return
 
-    def change_states(self, sim, treat_succ):
+    def change_states(self, disease, treat_succ):
         """ Change states of congenital cases """
-        sim.diseases.syphilis.congenital[treat_succ] = False
-        sim.diseases.syphilis.ti_congenital[treat_succ] = np.nan
+        self.sim.diseases[disease].congenital[treat_succ] = False
+        self.sim.diseases[disease].ti_congenital[treat_succ] = np.nan
         # sim.diseases.syphilis.susceptible[treat_succ] = True  # Leave this out for now
 
     def administer(self, sim, uids, disease, return_format='dict'):
