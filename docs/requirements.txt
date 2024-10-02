@@ -1,7 +1,6 @@
 sphinxext.remoteliteralinclude
 sphinx
 pydata-sphinx-theme
-sphinxcontrib-napoleon
 plantweb
 sphinxcontrib-programoutput
 nbsphinx

@@ -355,6 +355,7 @@ class STITreatment(ss.Intervention):
     """
     Base class for treatment of STI infection.
     The majority of STI treatments will clear infection.
+    
     Args:
         pars:
         disease (str): should match the name of one of the diseases in the simulation

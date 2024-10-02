@@ -51,7 +51,6 @@ extensions = [
     'sphinx.ext.mathjax', # use latex to create math equations
     'sphinx.ext.githubpages', # host on gh-pages
     'sphinx.ext.autodoc', # create api reference
-    'sphinxcontrib.napoleon', # support for docstring formats
     'sphinx.ext.todo', 
     'plantweb.directive', # create diagrams from text files
     'sphinxcontrib.programoutput', # show program output
@@ -435,7 +434,6 @@ intersphinx_mapping = {'python': ('https://docs.python.org/3', None),
                        'starsim': ('https://docs.idmod.org/projects/starsim/en/latest/', None),
                        'fpsim': ('https://docs.idmod.org/projects/fpsim/en/latest/', None),
                        'hpvsim': ('https://docs.idmod.org/projects/hpvsim/en/latest/', None),
-                       'emod-hiv': ('https://docs.idmod.org/projects/emod-hiv/en/latest', None)
                        }
 
 
