@@ -115,6 +115,7 @@ class Calibration(sc.prettyobj):
     A class to handle calibration of STIsim simulations. Uses the Optuna hyperparameter
     optimization library (optuna.org), which must be installed separately (via
     pip install optuna).
+
     Args:
         sim          (Sim)  : the simulation to calibrate
         data         (df)   : pandas dataframe
@@ -136,7 +137,6 @@ class Calibration(sc.prettyobj):
 
     Returns:
         A Calibration object
-
     """
 
     def __init__(self, sim, data, calib_pars=None, weights=None, fit_args=None, par_samplers=None, n_trials=None, n_workers=None,
@@ -381,6 +381,7 @@ class Calibration(sc.prettyobj):
     def calibrate(self, calib_pars=None, confirm_fit=False, load=True, tidyup=True, **kwargs):
         '''
         Perform calibration.
+        
         Args:
             calib_pars (dict): if supplied, overwrite stored calib_pars
             verbose (bool): whether to print output from each trial

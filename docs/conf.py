@@ -51,7 +51,6 @@ extensions = [
     'sphinx.ext.mathjax', # use latex to create math equations
     'sphinx.ext.githubpages', # host on gh-pages
     'sphinx.ext.autodoc', # create api reference
-    'sphinxcontrib.napoleon', # support for docstring formats
     'sphinx.ext.todo', 
     'plantweb.directive', # create diagrams from text files
     'sphinxcontrib.programoutput', # show program output
@@ -197,7 +196,7 @@ html_theme_options = {
 html_sidebars = {
     "**": ["sidebar-nav-bs", "page-toc"],
 }
-html_logo = "images/idm-logo-transparent.png"
+#html_logo = "images/idm-logo-transparent.png"
 html_favicon = "images/favicon.ico"
 html_static_path = ['_static']
 html_baseurl = "https://docs.idmod.org/projects/stisim/en/latest"
@@ -435,7 +434,6 @@ intersphinx_mapping = {'python': ('https://docs.python.org/3', None),
                        'starsim': ('https://docs.idmod.org/projects/starsim/en/latest/', None),
                        'fpsim': ('https://docs.idmod.org/projects/fpsim/en/latest/', None),
                        'hpvsim': ('https://docs.idmod.org/projects/hpvsim/en/latest/', None),
-                       'emod-hiv': ('https://docs.idmod.org/projects/emod-hiv/en/latest', None)
                        }
 
 
