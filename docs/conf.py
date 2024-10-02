@@ -196,7 +196,7 @@ html_theme_options = {
 html_sidebars = {
     "**": ["sidebar-nav-bs", "page-toc"],
 }
-#html_logo = "images/idm-logo-transparent.png"
+html_logo = "images/idm-logo-transparent.png"
 html_favicon = "images/favicon.ico"
 html_static_path = ['_static']
 html_baseurl = "https://docs.idmod.org/projects/stisim/en/latest"
