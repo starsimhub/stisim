@@ -16,7 +16,10 @@ class DischargingSTI(SEIS):
 
         self.default_pars(
             p_symp=[
-                ss.bernoulli(p=1.0),  # Women
+                # Amsel score or Nugent score, clinical diagnosis for BV, cal be asymptomatic
+                # Asymptomatic still has the same risk for STIs/HIV
+                #
+                ss.bernoulli(p=0.1),  # Women
                 ss.bernoulli(p=0.0),  # Men
             ],
             p_symp_care=[
@@ -31,6 +34,7 @@ class DischargingSTI(SEIS):
                 ss.uniform(1/52, 20/52),  # Women
                 ss.constant(100),  # Men
             ],
+            # Care-seeking based on partner dynamics - if their partner notices changes
             dur_symp2care=[  # For those who test, how long before they seek care
                 ss.uniform(1/52, 5/52),  # Women
                 ss.constant(100),  # Men
