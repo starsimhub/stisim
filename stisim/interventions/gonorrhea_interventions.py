@@ -39,15 +39,6 @@ class GonorrheaTreatment(STITreatment):
             ss.FloatArr('rel_treat', default=1),  # How well a person will respond to treatment
         )
 
-    def init_post(self):
-        super().init_post()
-        results = [
-            ss.Result('ng', 'rel_treat', self.sim.npts, dtype=float, scale=False),
-        ]
-        self.results += results
-        self.sim.diseases.ng.results += results
-        return
-
     def set_treat_eff(self, uids):
         new_treat_eff = self.rel_treat[uids] * self.pars.base_treat_eff
         self.pars.treat_eff.set(new_treat_eff)
@@ -61,10 +52,10 @@ class GonorrheaTreatment(STITreatment):
         treat_uids = super().apply(sim)
 
         # Change treatment resistance for those unsuccessfully treated
-        treat_unsucc = self.outcomes['unsuccessful']
+        treat_unsucc = self.outcomes['ng']['unsuccessful']
         if len(treat_unsucc):
             self.rel_treat[treat_unsucc] *= (1 - self.pars.rel_treat_unsucc)
-        treat_unneed = self.outcomes['unnecessary']
+        treat_unneed = self.outcomes['ng']['unnecessary']
         if len(treat_unneed):
             self.rel_treat[treat_unneed] *= (1 - self.pars.rel_treat_unneed)
 

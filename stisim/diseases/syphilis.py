@@ -9,7 +9,7 @@ import starsim as ss
 import stisim as sti
 from stisim.diseases.sti import BaseSTI
 
-__all__ = ['Syphilis','SyphilisPlaceholder']
+__all__ = ['Syphilis', 'SyphilisPlaceholder']
 
 
 class SyphilisPlaceholder(ss.Disease):

@@ -5,6 +5,7 @@ Define interventions for STIsim
 import starsim as ss
 import numpy as np
 import sciris as sc
+import pandas as pd
 from scipy.interpolate import interp1d
 
 
@@ -13,7 +14,7 @@ def count(arr): return np.count_nonzero(arr)
 
 
 # %% Base classes
-__all__ = ["STIDx", "STITest", "SyndromicMgmt", "STITreatment", "PartnerNotification", "ProductMix"]
+__all__ = ["STIDx", "STITest", "SymptomaticTesting", "STITreatment", "PartnerNotification", "ProductMix"]
 
 
 class STIDx(ss.Product):
@@ -61,6 +62,7 @@ class STITest(ss.Intervention):
         super().__init__(name=name, label=label)
         self.default_pars(
             rel_test=1,
+            dt_scale=True,
         )
         self.update_pars(pars, **kwargs)
 
@@ -80,6 +82,7 @@ class STITest(ss.Intervention):
 
         # Testing eligibility and uptake
         self.eligibility = eligibility
+        if test_prob_data is None: test_prob_data = 1  # Default test everyone
         self.test_prob_data = test_prob_data
         self.test_prob = ss.bernoulli(self.make_test_prob_fn)
 
@@ -139,7 +142,8 @@ class STITest(ss.Intervention):
             raise ValueError(errormsg)
 
         # Scale and validate
-        test_prob = test_prob * self.pars.rel_test * sim.dt
+        test_prob *= self.pars.rel_test
+        if self.pars.dt_scale: test_prob *= sim.dt
         test_prob = np.clip(test_prob, a_min=0, a_max=1)
 
         return test_prob
@@ -197,28 +201,48 @@ class STITest(ss.Intervention):
         self.results['new_tests'][ti] += count(self.ti_tested == ti)
 
 
-class SyndromicMgmt(STITest):
+class SymptomaticTesting(STITest):
     """
-    Base class for syndromic management.
+    Base class for symptomatic testing with multiple possible etiologies
     Unlike other test classes, this doesn't return positive/negative outcomes, since
     syndromic management doesn't involve reaching a diagnosis.
     Rather, the testing intervention itself contains a linked treatment intervention.
     """
 
-    def __init__(self, pars=None, treatments=None, diseases=None, treat_prob_data=None, years=None, start=None, end=None, eligibility=None, name=None, label=None, **kwargs):
+    def __init__(self, pars=None, treatments=None, diseases=None, disease_treatment_map=None, treat_prob_data=None, years=None, start=None, end=None, eligibility=None, name=None, label=None, **kwargs):
         super().__init__(years=years, start=start, end=end, eligibility=eligibility, name=name, label=label)
         self.default_pars(
-            p_treat=ss.bernoulli(p=0.9),  # The probability that a person with discharge will be offered treatment
+            sens=dict(
+                ng=[ss.bernoulli(0.6919), ss.bernoulli(0.93)],
+                ct=[ss.bernoulli(0.6919), ss.bernoulli(0.93)],
+                tv=[ss.bernoulli(0.5988), ss.bernoulli(0.93)],
+                bv=[ss.bernoulli(0.5988), ss.bernoulli(0.0)],
+            ),
+            spec=dict(
+                ng=[ss.bernoulli(0.4833), ss.bernoulli(0.4812)],
+                ct=[ss.bernoulli(0.4833), ss.bernoulli(0.4812)],
+                tv=[ss.bernoulli(0.7011), ss.bernoulli(0.4812)],
+                bv=[ss.bernoulli(0.7011), ss.bernoulli(0.0)],
+            ),
+            dt_scale=False,
         )
         self.update_pars(pars, **kwargs)
+
+        # Store treatments and diseases
         self.treatments = sc.tolist(treatments)
         self.diseases = diseases
+        if disease_treatment_map is None:
+            disease_treatment_map = {t.disease: t for t in self.treatments}
+        self.disease_treatment_map = disease_treatment_map
+
         self.add_states(
             ss.FloatArr('ti_referred'),
             ss.FloatArr('ti_dismissed'),
         )
         self.treat_prob_data = treat_prob_data
         self.treat_prob = None
+        self.treated_by_uid = None
+
         return
 
     def init_pre(self, sim):
@@ -231,52 +255,98 @@ class SyndromicMgmt(STITest):
         super().init_results()
         npts = self.sim.npts
         self.results += [
-            ss.Result(self.name, 'care_seekers', npts, dtype=int, scale=True, label="Care seekers"),
+            ss.Result(self.name, 'new_care_seekers', npts, dtype=int, scale=True, label="Care seekers"),
+            ss.Result(self.name, 'new_tx0', npts, dtype=int, scale=True, label="No treatment"),
+            ss.Result(self.name, 'new_tx1', npts, dtype=int, scale=True, label="1 treatment"),
+            ss.Result(self.name, 'new_tx2', npts, dtype=int, scale=True, label="2 treatment"),
+            ss.Result(self.name, 'new_tx3', npts, dtype=int, scale=True, label="3 treatments"),
         ]
-        for disease in self.diseases:
-            results = [
-                ss.Result(disease.name, 'new_false_neg', npts, dtype=float, scale=True, label="False negatives"),
-                ss.Result(disease.name, 'new_true_neg', npts, dtype=float, scale=True, label="True negatives"),
-                ss.Result(disease.name, 'new_false_pos', npts, dtype=float, scale=True, label="False positive"),
-                ss.Result(disease.name, 'new_true_pos', npts, dtype=float, scale=True, label="True positives"),
-            ]
-            disease.results += results
         return
 
     def apply(self, sim, uids=None):
         """ Apply syndromic management """
-        if (sim.year >= self.start) & (sim.year < self.end):
+        self.treated_by_uid = None
+        ti = sim.ti
+
+
+        # If this intervention has stopped, reset eligibility for all associated treatments
+        if (sim.year >= self.end):
+            for treatment in self.treatments:
+                treatment.eligibility = ss.uids()  # Reset
+            return
+
+        if (sim.year >= self.start):
 
             if uids is None:
                 uids = self.check_eligibility(sim)
                 self.ti_tested[uids] = sim.ti
 
             if len(uids):
-                if self.treat_prob is not None:
-                    self.pars.p_treat.set(self.treat_prob[sim.ti])
-                treat_uids, dismiss_uids = self.pars.p_treat.split(uids)
-                for treatment in self.treatments:
-                    treatment.eligibility = treat_uids
-                self.ti_referred[treat_uids] = sim.ti
-                self.ti_dismissed[dismiss_uids] = sim.ti
+
+                treated_by_uid = np.zeros((len(uids), len(self.treatments)), dtype=bool)
+                for disease in self.diseases:
+                    inf_f = uids & disease.treatable & sim.people.female # Treatable includes exposed + infected
+                    sus_f = uids & disease.susceptible & sim.people.female
+                    inf_m = uids & disease.treatable & sim.people.male # Treatable includes exposed + infected
+                    sus_m = uids & disease.susceptible & sim.people.male
+
+                    sens_f = self.pars.sens[disease.name][0]
+                    spec_f = self.pars.spec[disease.name][0]
+                    sens_m = self.pars.sens[disease.name][1]
+                    spec_m = self.pars.spec[disease.name][1]
+
+                    true_pos_f, false_neg_f = sens_f.split(inf_f)
+                    true_neg_f, false_pos_f = spec_f.split(sus_f)
+                    true_pos_m, false_neg_m = sens_m.split(inf_m)
+                    true_neg_m, false_pos_m = spec_m.split(sus_m)
+                    treat_uids = true_pos_f | true_pos_m | false_pos_f | false_pos_m
+                    do_treat = np.array([True if u in treat_uids else False for u in uids])
+
+                    # Add to results
+                    disease.results['new_true_pos'][ti] += len(true_pos_f) + len(true_pos_m)
+                    disease.results['new_false_pos'][ti] += len(false_pos_f) + len(false_pos_m) 
+                    disease.results['new_true_neg'][ti] += len(true_neg_f) + len(true_neg_m)
+                    disease.results['new_false_neg'][ti] += len(false_neg_f) + len(false_neg_m)
+                    disease.results['new_true_pos_f'][ti] += len(true_pos_f)
+                    disease.results['new_false_pos_f'][ti] += len(false_pos_f)
+                    disease.results['new_true_neg_f'][ti] += len(true_neg_f)
+                    disease.results['new_false_neg_f'][ti] += len(false_neg_f)
+                    disease.results['new_true_pos_m'][ti] += len(true_pos_m)
+                    disease.results['new_false_pos_m'][ti] += len(false_pos_m) 
+                    disease.results['new_true_neg_m'][ti] += len(true_neg_m)
+                    disease.results['new_false_neg_m'][ti] += len(false_neg_m)
+
+                    tx = self.disease_treatment_map[disease.name]
+                    if tx is not None:
+                        tx_ind = self.treatments.index(tx)
+                        treated_by_uid[:, tx_ind] = treated_by_uid[:, tx_ind] | do_treat
+                        tx.eligibility = tx.eligibility | treat_uids
+
+                # Update states: time referred to treatment for anyone referred
+                referred_uids = uids[treated_by_uid.any(axis=1)]
+                dismissed_uids = uids.remove(referred_uids)
+                self.ti_referred[referred_uids] = sim.ti
+                self.ti_dismissed[dismissed_uids] = sim.ti
+                self.treated_by_uid = treated_by_uid
 
             # Update results
             self.update_results()
 
-        return
+            return
 
     def update_results(self):
         super().update_results()
         ti = self.sim.ti
-        treat_uids = self.ti_referred == ti
-        dismiss_uids = self.ti_dismissed == ti
         just_tested = self.ti_tested == ti
-        self.results['care_seekers'][ti] += count(just_tested)
-        for disease in self.diseases:
-            disease.results['new_true_pos'][ti] += count(disease.treatable[treat_uids])
-            disease.results['new_false_pos'][ti] += count(disease.susceptible[treat_uids])
-            disease.results['new_true_neg'][ti] += count(disease.susceptible[dismiss_uids])
-            disease.results['new_false_pos'][ti] += count(disease.treatable[dismiss_uids])
+        self.results['new_care_seekers'][ti] += count(just_tested)
+
+        # Record the number of people who received 0-3 treatments
+        if self.treated_by_uid is not None:
+            n_treatments = self.treated_by_uid.sum(axis=1)
+            self.results['new_tx0'][ti] += count(n_treatments == 0)
+            self.results['new_tx1'][ti] += count(n_treatments == 1)
+            self.results['new_tx2'][ti] += count(n_treatments == 2)
+            self.results['new_tx3'][ti] += count(n_treatments == 3)
 
         return
 
@@ -293,10 +363,10 @@ class STITreatment(ss.Intervention):
         super().__init__(*args)
         self.requires = disease
         self.default_pars(
-            treat_prob=ss.bernoulli(p=0.9),
-            treat_eff=ss.bernoulli(p=0.95),
+            treat_prob=ss.bernoulli(p=1.),
+            treat_eff=ss.bernoulli(p=0.9),
         )
-        self.disease = disease
+        self.diseases = sc.promotetolist(disease)
         self.update_pars(pars, **kwargs)
         self.eligibility = eligibility
         if self.eligibility is None:
@@ -320,12 +390,13 @@ class STITreatment(ss.Intervention):
 
     def init_results(self):
         results = [
-            ss.Result(self.disease, 'new_treated', self.sim.npts, dtype=int, scale=True, label="Number treated"),
-            ss.Result(self.disease, 'new_treated_success', self.sim.npts, dtype=int, scale=True, label="Successfully treated"),
-            ss.Result(self.disease, 'new_treated_failure', self.sim.npts, dtype=int, scale=True, label="Treatment failure"),
-            ss.Result(self.disease, 'new_treated_unnecessary', self.sim.npts, dtype=int, scale=True, label="Overtreatment"),
+            ss.Result(self.name, 'new_treated', self.sim.npts, dtype=int, scale=True, label="Number treated"),
+            ss.Result(self.name, 'new_treated_success', self.sim.npts, dtype=int, scale=True, label="Successfully treated"),
+            ss.Result(self.name, 'new_treated_failure', self.sim.npts, dtype=int, scale=True, label="Treatment failure"),
+            ss.Result(self.name, 'new_treated_unnecessary', self.sim.npts, dtype=int, scale=True, label="Overtreatment"),
+            ss.Result(self.name, 'new_treated_success_symp', self.sim.npts, dtype=int, scale=True, label="Successfully treated (symptomatic)"),
+            ss.Result(self.name, 'new_treated_success_asymp', self.sim.npts, dtype=int, scale=True, label="Successfully treated (asymptomatic)"),
         ]
-        # self.sim.diseases[self.disease].results += results
         self.results += results
         return
 
@@ -372,31 +443,32 @@ class STITreatment(ss.Intervention):
         """ Can be changed by derived classes """
         return
 
-    def administer(self, sim, uids, return_format='dict'):
+    def administer(self, sim, uids, disease, return_format='dict'):
         """ Administer treatment, keeping track of unnecessarily treated individuals """
 
-        inf = sim.diseases[self.disease].treatable
-        sus = sim.diseases[self.disease].susceptible
-        inf_uids = uids[inf[uids]]
-        sus_uids = uids[sus[uids]]
+        inf = uids & sim.diseases[disease].treatable
+        sym = uids & sim.diseases[disease].symptomatic
+        sus = uids & sim.diseases[disease].susceptible
 
-        self.set_treat_eff(inf_uids)
-        successful = self.pars.treat_eff.filter(inf_uids)
-        unsuccessful = np.setdiff1d(inf_uids, successful)
-        unnecessary = sus_uids
+        self.set_treat_eff(inf)
+        successful = self.pars.treat_eff.filter(inf)
+        successful_symp = successful & sym
+        successful_asymp = successful.remove(successful_symp)
+        unsuccessful = np.setdiff1d(inf, successful)
+        unnecessary = sus
 
         # Return outcomes
         if return_format == 'dict':
-            output = {'successful': successful, 'unsuccessful': unsuccessful, 'unnecessary': unnecessary}
+            output = {'successful': successful, 'unsuccessful': unsuccessful, 'unnecessary': unnecessary, 'successful_asymp': successful_asymp, 'successful_symp': successful_symp}
         elif return_format == 'array':
             output = successful
 
         return output
 
-    def change_states(self, sim, treat_succ):
+    def change_states(self, disease, treat_succ):
         """ Change the states of people who are treated """
-        self.sim.diseases[self.disease].clear_infection(treat_succ)
-        self.sim.diseases[self.disease].wipe_dates(treat_succ)
+        self.sim.diseases[disease].clear_infection(treat_succ)
+        self.sim.diseases[disease].wipe_dates(treat_succ)
         return
 
     def apply(self, sim):
@@ -404,7 +476,9 @@ class STITreatment(ss.Intervention):
         Apply treatment. On each timestep, this method will add eligible people who are willing to accept treatment to a
         queue, and then will treat as many people in the queue as there is capacity for.
         """
-        self.outcomes = sc.objdict(successful=[], unsuccessful=[], unnecessary=[])
+        self.outcomes = sc.objdict()
+        for disease in self.diseases:
+            self.outcomes[disease] = sc.objdict(successful=ss.uids(), unsuccessful=ss.uids(), unnecessary=ss.uids(), successful_symp=ss.uids(), successful_asymp=ss.uids())
 
         # Figure out who to treat
         self.add_to_queue(sim)
@@ -414,13 +488,38 @@ class STITreatment(ss.Intervention):
 
         # Treat people
         if len(treat_uids):
-            self.outcomes = self.administer(sim, uids=treat_uids)
-        self.queue = [e for e in self.queue if e not in treat_uids]  # Recreate the queue, removing treated people
+            for disease in self.diseases:
+                self.outcomes[disease] = self.administer(sim, treat_uids, disease)
 
-        # Change states
-        treat_succ = self.outcomes['successful']
-        if len(treat_succ):
-            self.change_states(sim, treat_succ)
+                # Change states
+                treat_succ = self.outcomes[disease]['successful']
+                if len(treat_succ):
+                    self.change_states(disease, treat_succ)
+
+            # Recreate the queue
+            self.queue = [e for e in self.queue if e not in treat_uids]  # Recreate the queue, removing treated people
+
+            # If eligibility is a list of UIDS, remove the treated ones. WARNING, FRAGILE!!!
+            if isinstance(self.eligibility, ss.uids):
+                self.eligibility = self.eligibility.remove(treat_uids)
+
+        successful = ss.uids()
+        unsuccessful = sc.dcp(treat_uids)
+        unneeded = sc.dcp(treat_uids)
+
+        for disease in self.diseases:
+            # Unneeded if it doesn't do anything for any disease
+            unneeded = unneeded.remove(self.outcomes[disease]['successful'] | self.outcomes[disease]['unsuccessful'])
+            # Successful if it's successful for at least one disease
+            successful = successful | self.outcomes[disease]['successful']
+            # Unsuccessful if it's unsuccessful for all diseases
+            unsuccessful = unsuccessful & self.outcomes[disease]['unsuccessful']
+
+        self.outcomes['unnecessary'] = unneeded
+        self.outcomes['successful'] = successful
+        self.outcomes['unsuccessful'] = unsuccessful
+        # self.outcomes['successful_symp'] = self.outcomes[disease]['successful_symp']
+        # self.outcomes['successful_asymp'] = self.outcomes[disease]['successful_asymp']
 
         # Update results
         self.update_results()
@@ -431,15 +530,27 @@ class STITreatment(ss.Intervention):
         ti = self.sim.ti
         treat_uids = (self.ti_treated == ti).uids
 
-        # Store new treatment results both in this intervention and in the gonorrhea disease module results
+        # Store new treatment results in the disease module results
         self.results['new_treated_success'][ti] = len(self.outcomes['successful'])
         self.results['new_treated_failure'][ti] = len(self.outcomes['unsuccessful'])
         self.results['new_treated_unnecessary'][ti] = len(self.outcomes['unnecessary'])
+        # self.results['new_treated_success_symp'][ti] = len(self.outcomes['successful_symp'])
+        # self.results['new_treated_success_asymp'][ti] = len(self.outcomes['successful_asymp'])
         self.results['new_treated'][ti] = len(treat_uids)
-        self.sim.diseases[self.disease].results['new_treated_success'][ti] += len(self.outcomes['successful'])
-        self.sim.diseases[self.disease].results['new_treated_failure'][ti] += len(self.outcomes['unsuccessful'])
-        self.sim.diseases[self.disease].results['new_treated_unnecessary'][ti] += len(self.outcomes['unnecessary'])
-        self.sim.diseases[self.disease].results['new_treated'][ti] += len(treat_uids)
+        for disease in self.diseases:
+            self.sim.diseases[disease].results['new_treated_success'][ti] += len(self.outcomes[disease]['successful'])
+            self.sim.diseases[disease].results['new_treated_failure'][ti] += len(self.outcomes[disease]['unsuccessful'])
+            self.sim.diseases[disease].results['new_treated_unnecessary'][ti] += len(self.outcomes[disease]['unnecessary'])
+            # self.sim.diseases[disease].results['new_treated_success_symp'][ti] += len(self.outcomes[disease]['successful_symp'])
+            # self.sim.diseases[disease].results['new_treated_success_asymp'][ti] += len(self.outcomes[disease]['successful_asymp'])
+            self.sim.diseases[disease].results['new_treated'][ti] += len(treat_uids)
+
+        # Debugging
+        if self.name in ['ng_tx', 'ct_tx']:
+            for oc in ['new_treated_success', 'new_treated_failure', 'new_treated_unnecessary']:
+                if self.sim.diseases[disease].results[oc][ti] != self.results[oc][ti]:
+                    errormsg = 'Inconsistent treatment outcomes'
+                    raise ValueError(errormsg)
 
         return
 

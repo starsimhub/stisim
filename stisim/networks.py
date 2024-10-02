@@ -167,7 +167,7 @@ class StructuredSexual(ss.SexualNetwork):
             if isinstance(self.condom_data, dict):
                 for rgtuple, valdict in self.condom_data.items():
                     self.condom_data[rgtuple]['simvals'] = np.interp(sim.yearvec, valdict['year'], valdict['val'])
-        self.init_results()
+        # self.init_results()
         return
 
     def init_results(self):
@@ -472,7 +472,7 @@ class StructuredSexual(ss.SexualNetwork):
         self.set_network_states(upper_age=self.sim.dt)
         self.add_pairs()
         self.set_condom_use()
-        self.update_results()
+        # self.update_results()
 
         return
 

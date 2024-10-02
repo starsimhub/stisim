@@ -17,38 +17,46 @@ class Chlamydia(SEIS):
         self.default_pars(
             dur_exp=ss.constant(1/52),
             p_symp=[
-                ss.bernoulli(p=0.20),  # Women: 62.5% asymptomatic (https://doi.org/10.1016/j.epidem.2010.04.002)
-                ss.bernoulli(p=0.45),  # Men: as above
+                ss.bernoulli(p=0.25),  # Women: 80% asymptomatic (https://doi.org/10.1016/j.epidem.2010.04.002)
+                ss.bernoulli(p=0.50),  # Men: as above
             ],
             dur_presymp=[  # For those who develop symptoms, how long before symptoms appear
-                ss.lognorm_ex(1/52, 12/52),  # Women:
+                ss.lognorm_ex(1/52, 10/52),  # Women:
                 ss.lognorm_ex(0.25/52, 1/52),  # Men: symptoms should appear within days
             ],
             p_symp_clear=[
-                ss.bernoulli(p=0.05),
-                ss.bernoulli(p=0.01),
+                ss.bernoulli(p=0.0),
+                ss.bernoulli(p=0.0),
             ],
             dur_symp=[
-                ss.lognorm_ex(1/12, 1/12),  # Women
-                ss.lognorm_ex(0.5/12, 1/12),  # Men
+                ss.lognorm_ex(1/52, 2/52),  # Duration of symptoms
+                ss.lognorm_ex(1/52, 2/52),  # Duration of symptoms
+            ],
+            p_symp_care=[
+                ss.bernoulli(p=0.5),
+                ss.bernoulli(p=0.85),
             ],
             dur_asymp2clear=[
-                ss.lognorm_ex(60/52, 5/52),  # Women: 433 days (https://doi.org/10.1016/j.epidem.2010.04.002)
-                ss.lognorm_ex(60/52, 5/52),  # Men: as above
+                ss.normal(14/12, 1/12),  # Women: 433 days (https://doi.org/10.1016/j.epidem.2010.04.002)
+                ss.normal(14/12, 1/12),  # Men: as above
             ],
             dur_symp2clear=[
-                ss.lognorm_ex(60/52, 5/52),  # As above
-                ss.lognorm_ex(60/52, 5/52),  # As above
+                ss.lognorm_ex(14/12, 1/12),  # Assumption
+                ss.lognorm_ex(14/12, 1/12),  # Assumption
             ],
             dur_postsymp2clear=[
-                ss.lognorm_ex(60/52, 5/52),  # As above
-                ss.lognorm_ex(60/52, 5/52),  # As above
+                ss.lognorm_ex(4/52, 1/52),  # Women
+                ss.lognorm_ex(4/52, 1/52),  # Men
+            ],
+            dur_symp2care=[  # For those who test, how long before they seek care
+                ss.lognorm_ex(0.5/12, 1/52),  # Women
+                ss.lognorm_ex(1/52, 1/52),  # Men
             ],
             p_pid=ss.bernoulli(p=0.2),  # Assumption used in https://doi.org/10.1086/598983, based on https://doi.org/10.1016/s0029-7844(02)02118-x
             dur_prepid=ss.lognorm_ex(1.5/12, 3/12),
 
             init_prev=ss.bernoulli(p=0.01),
-            eff_condom=0.6,  # doi:10.1001/archpedi.159.6.536
+            eff_condom=0.0,  # doi:10.1001/archpedi.159.6.536
         )
         self.update_pars(pars, **kwargs)
 

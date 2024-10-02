@@ -35,11 +35,11 @@ class SyphTx(STITreatment):
         self.update_pars(pars, **kwargs)
         return
 
-    def administer(self, sim, uids, return_format='dict'):
+    def administer(self, sim, uids, disease='syphilis', return_format='dict'):
         """ Administer treatment, keeping track of unnecessarily treated individuals """
 
-        inf = sim.diseases.syphilis.infected
-        sus = sim.diseases.syphilis.susceptible
+        inf = sim.diseases[disease].infected
+        sus = sim.diseases[disease].susceptible
         inf_uids = uids[inf[uids]]
         sus_uids = uids[sus[uids]]
 
@@ -55,18 +55,18 @@ class SyphTx(STITreatment):
 
         return output
 
-    def change_states(self, sim, treat_succ):
+    def change_states(self, disease, treat_succ):
         """ Change the states of people who are treated """
-        sim.diseases.syphilis.primary[treat_succ] = False
-        sim.diseases.syphilis.secondary[treat_succ] = False
-        sim.diseases.syphilis.latent[treat_succ] = False
-        sim.diseases.syphilis.tertiary[treat_succ] = False
-        sim.diseases.syphilis.ti_primary[treat_succ] = np.nan
-        sim.diseases.syphilis.ti_secondary[treat_succ] = np.nan
-        sim.diseases.syphilis.ti_latent[treat_succ] = np.nan
-        sim.diseases.syphilis.ti_tertiary[treat_succ] = np.nan
-        sim.diseases.syphilis.susceptible[treat_succ] = True
-        sim.diseases.syphilis.infected[treat_succ] = False
+        self.sim.diseases[disease].primary[treat_succ] = False
+        self.sim.diseases[disease].secondary[treat_succ] = False
+        self.sim.diseases[disease].latent[treat_succ] = False
+        self.sim.diseases[disease].tertiary[treat_succ] = False
+        self.sim.diseases[disease].ti_primary[treat_succ] = np.nan
+        self.sim.diseases[disease].ti_secondary[treat_succ] = np.nan
+        self.sim.diseases[disease].ti_latent[treat_succ] = np.nan
+        self.sim.diseases[disease].ti_tertiary[treat_succ] = np.nan
+        self.sim.diseases[disease].susceptible[treat_succ] = True
+        self.sim.diseases[disease].infected[treat_succ] = False
 
     def treat_fetus(self, sim, mother_uids):
         """
@@ -131,24 +131,24 @@ class NewbornTreatment(SyphTx):
 
     def init_results(self):
         results = [
-            ss.Result(self.disease, 'new_treated', self.sim.npts, dtype=int, scale=True, label="Number treated"),
-            ss.Result(self.disease, 'new_treated_success', self.sim.npts, dtype=int, scale=True, label="Successfully treated"),
-            ss.Result(self.disease, 'new_treated_failure', self.sim.npts, dtype=int, scale=True, label="Treatment failure"),
-            ss.Result(self.disease, 'new_treated_unnecessary', self.sim.npts, dtype=int, scale=True, label="Overtreatment"),
+            ss.Result(self.name, 'new_treated', self.sim.npts, dtype=int, scale=True, label="Number treated"),
+            ss.Result(self.name, 'new_treated_success', self.sim.npts, dtype=int, scale=True, label="Successfully treated"),
+            ss.Result(self.name, 'new_treated_failure', self.sim.npts, dtype=int, scale=True, label="Treatment failure"),
+            ss.Result(self.name, 'new_treated_unnecessary', self.sim.npts, dtype=int, scale=True, label="Overtreatment"),
         ]
         self.results += results
         return
 
-    def change_states(self, sim, treat_succ):
+    def change_states(self, disease, treat_succ):
         """ Change states of congenital cases """
-        sim.diseases.syphilis.congenital[treat_succ] = False
-        sim.diseases.syphilis.ti_congenital[treat_succ] = np.nan
+        self.sim.diseases[disease].congenital[treat_succ] = False
+        self.sim.diseases[disease].ti_congenital[treat_succ] = np.nan
         # sim.diseases.syphilis.susceptible[treat_succ] = True  # Leave this out for now
 
-    def administer(self, sim, uids, return_format='dict'):
+    def administer(self, sim, uids, disease, return_format='dict'):
         """ Administer treatment to newborns """
-        sus = sim.diseases.syphilis.susceptible
-        con = sim.diseases.syphilis.congenital
+        sus = sim.diseases[disease].susceptible
+        con = sim.diseases[disease].congenital
         sus_uids = uids[sus[uids]]
         con_uids = uids[con[uids]]
 
@@ -175,8 +175,6 @@ class SyphTest(STITest):
         self.update_pars(pars, **kwargs)
         # Store optional newborn test intervention
         self.newborn_test = newborn_test
-        # Default test everyone
-        if test_prob_data is None: self.test_prob_data = 1
         return
 
     def init_pre(self, sim):

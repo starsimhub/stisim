@@ -76,9 +76,9 @@ def test_sti_sim(n_agents=500, dt=1, start=2000, n_years=40):
 
 
 if __name__ == '__main__':
-    # s0 = test_hiv_sim()
-    sim = test_sti_sim(n_agents=5e3, dt=1/12, n_years=20)
-    sim.plot("dischargingsti")
-    pl.show()
+    s0 = test_hiv_sim()
+    # sim = test_sti_sim(n_agents=5e3, dt=1/12, n_years=20)
+    # sim.plot("dischargingsti")
+    # pl.show()
 
 

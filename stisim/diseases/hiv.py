@@ -8,7 +8,6 @@ import starsim as ss
 import stisim as sti
 from stisim.diseases.sti import BaseSTI
 
-
 __all__ = ['HIV']
 
 
