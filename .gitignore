@@ -65,6 +65,9 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+docs/modules.rst
+docs/stisim.*.rst
+docs/api/_autosummary/
 
 # PyBuilder
 target/
