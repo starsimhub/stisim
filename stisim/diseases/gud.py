@@ -21,7 +21,7 @@ class Placeholder(ss.Disease):
             care_seeking=ss.bernoulli(p=0.5),
         )
         self.update_pars(pars, **kwargs)
-        self.add_states(
+        self.define_states(
             ss.BoolArr('symptomatic'),  # Symptomatic
             ss.FloatArr('ti_symptomatic'),  # Time of active symptoms
             ss.BoolArr('seeking_care'),  # Care seeking
@@ -101,7 +101,7 @@ class GUD(ss.Infection):
             self.pars.init_prev = ss.bernoulli(self.make_init_prev_fn)
 
         # Add states
-        self.add_states(
+        self.define_states(
             ss.FloatArr('ti_recovered'),
         )
         return

@@ -165,7 +165,7 @@ class SEIS(BaseSTI):
         )
         self.update_pars(pars, **kwargs)
 
-        self.add_states(
+        self.define_states(
             # Natural history
             ss.BoolArr('exposed'),
             ss.BoolArr('infected'),

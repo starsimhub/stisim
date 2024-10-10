@@ -22,7 +22,7 @@ class SyphilisPlaceholder(ss.Disease):
             prevalence=0.1,  # Target prevalance. If None, no automatic infections will be applied
         )
         self.update_pars(pars, **kwargs)
-        self.add_states(
+        self.define_states(
             ss.BoolArr('active'), # Active syphilis
             ss.FloatArr('ti_active'), # Time of active syphilis
         )
@@ -132,7 +132,7 @@ class Syphilis(BaseSTI):
         if init_prev_latent_data is not None:
             self.pars.init_latent_prev = ss.bernoulli(self.make_init_prev_latent_fn)
 
-        self.add_states(
+        self.define_states(
             # Adult syphilis states
             ss.BoolArr('primary'),      # Primary chancres
             ss.BoolArr('secondary'),    # Inclusive of those who may still have primary chancres

@@ -73,7 +73,7 @@ class HIV(BaseSTI):
             self.pars.init_prev = ss.bernoulli(self.make_init_prev_fn)
 
         # States
-        self.add_states(
+        self.define_states(
             # Natural history
             ss.FloatArr('ti_acute'),
             ss.BoolArr('acute'),

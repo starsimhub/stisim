@@ -78,7 +78,7 @@ class ChlamydiaBL(Chlamydia):
         )
         self.update_pars(pars, **kwargs)
 
-        self.add_states(
+        self.define_states(
             # Bacterial load
             ss.FloatArr('ct_load'),
             ss.FloatArr('ct_peak_time'),
