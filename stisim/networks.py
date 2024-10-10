@@ -45,7 +45,7 @@ class StructuredSexual(ss.SexualNetwork):
 
         super().__init__(key_dict=key_dict)
 
-        self.default_pars(
+        self.define_pars(
             # Settings - generally shouldn't be adjusted
             n_risk_groups=3,
             f_age_group_bins=dict(  # For separating women into age groups: teens, young women, adult women
