@@ -219,59 +219,60 @@ class SEIS(BaseSTI):
     def init_results(self):
         """ Initialize results """
         super().init_results()
-        npts = self.sim.npts
-        self.results += ss.Result(self.name, 'female_prevalence', npts, dtype=float, scale=False, label="Prevalence - F")
-        self.results += ss.Result(self.name, 'male_prevalence', npts, dtype=float, scale=False, label="Prevalence - M")
+        self.define_results(
+            ss.Result('female_prevalence', scale=False, label="Prevalence - F"),
+            ss.Result('male_prevalence', scale=False, label="Prevalence - M"),
 
-        self.results += ss.Result(self.name, 'symp_prevalence', npts, dtype=float, scale=False, label="Symptomatic prevalence")
-        self.results += ss.Result(self.name, 'female_symp_prevalence', npts, dtype=float, scale=False, label="Symptomatic prevalence - F")
-        self.results += ss.Result(self.name, 'male_symp_prevalence', npts, dtype=float, scale=False, label="Symptomatic prevalence - M")
+            ss.Result('symp_prevalence',scale=False, label="Symptomatic prevalence"),
+            ss.Result('female_symp_prevalence', scale=False, label="Symptomatic prevalence - F"),
+            ss.Result('male_symp_prevalence', scale=False, label="Symptomatic prevalence - M"),
 
-        self.results += ss.Result(self.name, 'adult_prevalence', npts, dtype=float, scale=False, label="Adult prevalence")
-        self.results += ss.Result(self.name, 'female_adult_prevalence', npts, dtype=float, scale=False, label="Adult prevalence - F")
-        self.results += ss.Result(self.name, 'male_adult_prevalence', npts, dtype=float, scale=False, label="Adult prevalence - F")
+            ss.Result('adult_prevalence', scale=False, label="Adult prevalence"),
+            ss.Result('female_adult_prevalence', scale=False, label="Adult prevalence - F"),
+            ss.Result('male_adult_prevalence', scale=False, label="Adult prevalence - F"),
 
-        self.results += ss.Result(self.name, 'incidence', npts, dtype=float, scale=False, label="Incidence")
-        self.results += ss.Result(self.name, 'female_incidence', npts, dtype=float, scale=False, label="Incidence - F")
-        self.results += ss.Result(self.name, 'male_incidence', npts, dtype=float, scale=False, label="Incidence - M")
+            ss.Result('incidence', scale=False, label="Incidence"),
+            ss.Result('female_incidence', scale=False, label="Incidence - F"),
+            ss.Result('male_incidence', scale=False, label="Incidence - M"),
 
-        self.results += ss.Result(self.name, 'new_female_infections', npts, dtype=float, scale=False, label="New infections - F")
-        self.results += ss.Result(self.name, 'new_male_infections', npts, dtype=float, scale=False, label="New infections - F")
+            ss.Result('new_female_infections', dtype=int, label="New infections - F"),
+            ss.Result('new_male_infections', dtype=int, label="New infections - F"),
 
-        self.results += ss.Result(self.name, 'symp_adult_prevalence', npts, dtype=float, scale=False, label="Symptomatic adult prevalence")
-        self.results += ss.Result(self.name, 'female_symp_adult_prevalence', npts, dtype=float, scale=False, label="Symptomatic adult female prevalence")
-        self.results += ss.Result(self.name, 'male_symp_adult_prevalence', npts, dtype=float, scale=False, label="Symptomatic adult female prevalence")
+            ss.Result('symp_adult_prevalence', scale=False, label="Symptomatic adult prevalence"),
+            ss.Result('female_symp_adult_prevalence', scale=False, label="Symptomatic adult female prevalence"),
+            ss.Result('male_symp_adult_prevalence', scale=False, label="Symptomatic adult female prevalence"),
 
-        self.results += ss.Result(self.name, 'n_female_infected', npts, dtype=int, scale=True, label="Number infected - F")
-        self.results += ss.Result(self.name, 'n_male_infected', npts, dtype=int, scale=True, label="Number infected - F")
-        self.results += ss.Result(self.name, 'n_female_symptomatic', npts, dtype=int, scale=True, label="Number symptomatic - F")
-        self.results += ss.Result(self.name, 'n_male_symptomatic', npts, dtype=int, scale=True, label="Number symptomatic - F")
+            ss.Result('n_female_infected', dtype=int, label="Number infected - F"),
+            ss.Result('n_male_infected', dtype=int, label="Number infected - F"),
+            ss.Result('n_female_symptomatic', dtype=int, label="Number symptomatic - F"),
+            ss.Result('n_male_symptomatic', dtype=int, label="Number symptomatic - F"),
 
-        self.results += ss.Result(self.name, 'new_symptomatic', npts, dtype=int, scale=True, label="New symptomatic")
-        self.results += ss.Result(self.name, 'new_female_symptomatic', npts, dtype=int, scale=True, label="New symptomatic - F")
-        self.results += ss.Result(self.name, 'new_male_symptomatic', npts, dtype=int, scale=True, label="New symptomatic - F")
+            ss.Result('new_symptomatic', dtype=int, label="New symptomatic"),
+            ss.Result('new_female_symptomatic', dtype=int, label="New symptomatic - F"),
+            ss.Result('new_male_symptomatic', dtype=int, label="New symptomatic - F"),
 
-        self.results += ss.Result(self.name, 'new_care_seekers', npts, dtype=int, scale=True, label="New care seekers")
+            ss.Result('new_care_seekers', dtype=int, label="New care seekers"),
 
-        # Add overall testing and treatment results, which might be assembled from numerous interventions
-        self.results += ss.Result(self.name, 'new_false_pos', npts, dtype=int, scale=True, label="New false positives")
-        self.results += ss.Result(self.name, 'new_true_pos', npts, dtype=int, scale=True, label="New true positives")
-        self.results += ss.Result(self.name, 'new_false_neg', npts, dtype=int, scale=True, label="New false negatives")
-        self.results += ss.Result(self.name, 'new_true_neg', npts, dtype=int, scale=True, label="New true negatives")
-        self.results += ss.Result(self.name, 'new_false_pos_f', npts, dtype=int, scale=True, label="New false positives - F")
-        self.results += ss.Result(self.name, 'new_true_pos_f', npts, dtype=int, scale=True, label="New true positives - F")
-        self.results += ss.Result(self.name, 'new_false_neg_f', npts, dtype=int, scale=True, label="New false negatives - F")
-        self.results += ss.Result(self.name, 'new_true_neg_f', npts, dtype=int, scale=True, label="New true negatives - F")
-        self.results += ss.Result(self.name, 'new_false_pos_m', npts, dtype=int, scale=True, label="New false positives - M")
-        self.results += ss.Result(self.name, 'new_true_pos_m', npts, dtype=int, scale=True, label="New true positives - M")
-        self.results += ss.Result(self.name, 'new_false_neg_m', npts, dtype=int, scale=True, label="New false negatives - M")
-        self.results += ss.Result(self.name, 'new_true_neg_m', npts, dtype=int, scale=True, label="New true negatives - M")
-        self.results += ss.Result(self.name, 'new_treated_success', npts, dtype=int, scale=True, label="Successful treatments")
-        self.results += ss.Result(self.name, 'new_treated_failure', npts, dtype=int, scale=True, label="Unsuccessful treatments")
-        self.results += ss.Result(self.name, 'new_treated_unnecessary', npts, dtype=int, scale=True, label="Unnecessary treatments")
-        self.results += ss.Result(self.name, 'new_treated_success_symp', npts, dtype=int, scale=True, label="Successful treatments (symptomatic)")
-        self.results += ss.Result(self.name, 'new_treated_success_asymp', npts, dtype=int, scale=True, label="Successful treatments (asymptomatic)")
-        self.results += ss.Result(self.name, 'new_treated', npts, dtype=int, scale=True, label="Treatments")
+            # Add overall testing and treatment results, which might be assembled from numerous interventions
+            ss.Result('new_false_pos', dtype=int, label="New false positives"),
+            ss.Result('new_true_pos', dtype=int, label="New true positives"),
+            ss.Result('new_false_neg', dtype=int, label="New false negatives"),
+            ss.Result('new_true_neg', dtype=int, label="New true negatives"),
+            ss.Result('new_false_pos_f', dtype=int, label="New false positives - F"),
+            ss.Result('new_true_pos_f', dtype=int, label="New true positives - F"),
+            ss.Result('new_false_neg_f', dtype=int, label="New false negatives - F"),
+            ss.Result('new_true_neg_f', dtype=int, label="New true negatives - F"),
+            ss.Result('new_false_pos_m', dtype=int, label="New false positives - M"),
+            ss.Result('new_true_pos_m', dtype=int, label="New true positives - M"),
+            ss.Result('new_false_neg_m', dtype=int, label="New false negatives - M"),
+            ss.Result('new_true_neg_m', dtype=int, label="New true negatives - M"),
+            ss.Result('new_treated_success', dtype=int, label="Successful treatments"),
+            ss.Result('new_treated_failure', dtype=int, label="Unsuccessful treatments"),
+            ss.Result('new_treated_unnecessary', dtype=int, label="Unnecessary treatments"),
+            ss.Result('new_treated_success_symp', dtype=int, label="Successful treatments (symptomatic)"),
+            ss.Result('new_treated_success_asymp', dtype=int, label="Successful treatments (asymptomatic)"),
+            ss.Result('new_treated', dtype=int, label="Treatments"),
+        )
 
         # Age/sex results
         for rkey in self.age_sex_result_keys:

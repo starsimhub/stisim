@@ -215,61 +215,61 @@ class Syphilis(BaseSTI):
         self.set_prognoses(initial_latent_cases, ti=ti_init_cases)
         self.set_secondary_prognoses(initial_latent_cases)
         time_to_tertiary = self.pars.time_to_tertiary.rvs(initial_latent_cases)
-        self.ti_tertiary[initial_latent_cases] = self.ti_latent[initial_latent_cases] + rr(time_to_tertiary / self.sim.dt)
+        self.ti_tertiary[initial_latent_cases] = self.ti_latent[initial_latent_cases] + rr(time_to_tertiary / self.dt)
 
         return
 
     def init_results(self):
         """ Initialize results """
         super().init_results()
-        npts = self.sim.npts
-        self.results += ss.Result(self.name, 'n_active', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'pregnant_prevalence', npts, dtype=float, scale=False)
-        self.results += ss.Result(self.name, 'detected_pregnant_prevalence', npts, dtype=float, scale=False)
-        self.results += ss.Result(self.name, 'adult_prevalence', npts, dtype=float, scale=False)
-        self.results += ss.Result(self.name, 'active_adult_prevalence', npts, dtype=float, scale=False)
-        self.results += ss.Result(self.name, 'active_prevalence', npts, dtype=float, scale=False)
-        self.results += ss.Result(self.name, 'new_nnds', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_stillborns',  npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_congenital',  npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_congenital_deaths', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'cum_congenital',  npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'cum_congenital_deaths', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_deaths', npts, dtype=int, scale=True)
+        self.define_results(
+            ss.Result('n_active', dtype=int, label="Number of active cases"),
+            ss.Result('pregnant_prevalence', dtype=float, scale=False, label="Pregnant prevalence"),
+            ss.Result('detected_pregnant_prevalence', dtype=float, scale=False, label="ANC prevalence"),
+            ss.Result('adult_prevalence', dtype=float, scale=False, label="Adult prevalence"),
+            ss.Result('active_adult_prevalence', dtype=float, scale=False, label="Active adult prevalence"),
+            ss.Result('active_prevalence', dtype=float, scale=False, label="Active prevalence"),
+            ss.Result('new_nnds', dtype=int, label="Neonatal deaths"),
+            ss.Result('new_stillborns', dtype=int, label="Stillbirths"),
+            ss.Result('new_congenital', dtype=int, label="Congenital cases"),
+            ss.Result('new_congenital_deaths', dtype=int, label="Congenital deaths"),
+            ss.Result('cum_congenital', dtype=int, label="Cumulative congenital cases"),
+            ss.Result('cum_congenital_deaths', dtype=int, label="Cumulative congenital deaths"),
+            ss.Result('new_deaths', dtype=int, label="Deaths"),
 
-        # Add FSW and clients to results:
-        self.results += ss.Result(self.name, 'prevalence_sw', npts, dtype=float)
-        self.results += ss.Result(self.name, 'new_infections_sw', npts, dtype=float, scale=True)
-        self.results += ss.Result(self.name, 'new_infections_not_sw', npts, dtype=float, scale=True)
-        self.results += ss.Result(self.name, 'prevalence_client', npts, dtype=float)
-        self.results += ss.Result(self.name, 'new_infections_client', npts, dtype=float, scale=True)
-        self.results += ss.Result(self.name, 'new_infections_not_client', npts, dtype=float, scale=True)
+            # Add FSW and clients to results:
+            ss.Result('prevalence_sw', dtype=float, scale=False, label="Prevalence - FSW"),
+            ss.Result('new_infections_sw', dtype=int, label="Infections - FSW"),
+            ss.Result('new_infections_not_sw', dtype=int, label="Infections - other F"),
+            ss.Result('prevalence_client', dtype=float, scale=False, label="Prevalence - clients"),
+            ss.Result('new_infections_client', dtype=int, label="Infections - clients"),
+            ss.Result('new_infections_not_client', dtype=int, label="Infections - other M"),
 
-        # Add risk groups to results
-        for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
-            for sex in ['female', 'male']:
-                self.results += ss.Result(self.name, 'prevalence_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float)
-                self.results += ss.Result(self.name, 'new_infections_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float, scale=True)
-
-        # Add overall testing and treatment results, which might be assembled from numerous interventions
-        self.results += ss.Result(self.name, 'new_false_pos', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_true_pos', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_false_neg', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_true_neg', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_treated_success', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_treated_failure', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_treated_unnecessary', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_treated', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_fetus_treated_success', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_fetus_treated_unnecessary', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_fetus_treated_failure', npts, dtype=int, scale=True)
-
+            # Add overall testing and treatment results, which might be assembled from numerous interventions
+            ss.Result('new_false_pos', dtype=int, label="False positives"),
+            ss.Result('new_true_pos', dtype=int, label="True positives"),
+            ss.Result('new_false_neg', dtype=int, label="False negatives"),
+            ss.Result('new_true_neg', dtype=int, label="True negatives"),
+            ss.Result('new_treated_success', dtype=int, label="Treatment success"),
+            ss.Result('new_treated_failure', dtype=int, label="Treatment failure"),
+            ss.Result('new_treated_unnecessary', dtype=int, label="Overtreatment"),
+            ss.Result('new_treated', dtype=int, label="Treatments"),
+            ss.Result('new_fetus_treated_success', dtype=int, label="Fetal treatment success"),
+            ss.Result('new_fetus_treated_unnecessary', dtype=int, label="Fetal overtreatment"),
+            ss.Result('new_fetus_treated_failure', dtype=int, label="Fetal treatment failure"),
+        )
+            # # Add risk groups to results
+            # for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
+            #     for sex in ['female', 'male']:
+            #         self.results += ss.Result(self.name, 'prevalence_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float)
+            #         self.results += ss.Result(self.name, 'new_infections_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float, scale=True)
+            #
         return
 
     def update_pre(self):
         """ Updates prior to interventions """
         ti = self.sim.ti
-        dt = self.sim.dt
+        dt = self.dt
 
         # Reset susceptibility and infectiousness
         self.rel_sus[:] = 1
@@ -378,14 +378,14 @@ class Syphilis(BaseSTI):
             self.results['new_infections_client'][ti] = len(((self.ti_infected == ti) & self.sim.networks.structuredsexual.client).uids)
             self.results['new_infections_not_client'][ti] = len(((self.ti_infected == ti) & ~self.sim.networks.structuredsexual.client).uids)
 
-        # Add risk groups
-        for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
-            for sex in ['female', 'male']:
-                risk_group_infected = self.infected[(self.sim.networks.structuredsexual.risk_group == risk_group) & (self.sim.people[sex])]
-                risk_group_new_inf = ((self.ti_infected == ti) & (self.sim.networks.structuredsexual.risk_group == risk_group) &  (self.sim.people[sex])).uids
-                if len(risk_group_infected) > 0:
-                    self.results['prevalence_risk_group_' + str(risk_group) + '_' + sex][ti] = sum(risk_group_infected) / len(risk_group_infected)
-                    self.results['new_infections_risk_group_' + str(risk_group) + '_' + sex][ti] = len(risk_group_new_inf)
+        # # Add risk groups
+        # for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
+        #     for sex in ['female', 'male']:
+        #         risk_group_infected = self.infected[(self.sim.networks.structuredsexual.risk_group == risk_group) & (self.sim.people[sex])]
+        #         risk_group_new_inf = ((self.ti_infected == ti) & (self.sim.networks.structuredsexual.risk_group == risk_group) &  (self.sim.people[sex])).uids
+        #         if len(risk_group_infected) > 0:
+        #             self.results['prevalence_risk_group_' + str(risk_group) + '_' + sex][ti] = sum(risk_group_infected) / len(risk_group_infected)
+        #             self.results['new_infections_risk_group_' + str(risk_group) + '_' + sex][ti] = len(risk_group_new_inf)
 
         return
 
@@ -397,7 +397,7 @@ class Syphilis(BaseSTI):
 
     def set_latent_trans(self, ti=None):
         if ti is None: ti = self.sim.ti
-        dt = self.sim.dt
+        dt = self.dt
         dur_latent = ti - self.ti_latent[self.latent]
         hl = self.pars.rel_trans_latent_half_life
         decay_rate = np.log(2) / hl if ~np.isnan(hl) else 0.
@@ -426,7 +426,7 @@ class Syphilis(BaseSTI):
                 errormsg = 'ti for set_prognoses must be int or array of length uids'
                 raise ValueError(errormsg)
 
-        dt = self.sim.dt
+        dt = self.dt
         self.new_transmissions[:] = 0  # Reset this every timestep
 
         # If someone has been infected by >1 person, remove duplicates
@@ -456,20 +456,18 @@ class Syphilis(BaseSTI):
 
     def set_secondary_prognoses(self, uids):
         """ Set prognoses for people who have just progressed to secondary infection """
-        dt = self.sim.dt
+        dt = self.dt
         dur_secondary = self.pars.dur_secondary.rvs(uids)
         self.ti_latent[uids] = self.ti_secondary[uids] + rr(dur_secondary / dt)
         return
 
     def set_latent_prognoses(self, uids):
-        ti = self.sim.ti
-        dt = self.sim.dt
         # Reactivators
         will_reactivate = self.pars.p_reactivate.rvs(uids)
         reactivate_uids = uids[will_reactivate]
         if len(reactivate_uids) > 0:
             time_to_reactivate = self.pars.time_to_reactivate.rvs(reactivate_uids)
-            self.ti_secondary[reactivate_uids] = self.ti_latent[reactivate_uids] + rr(time_to_reactivate / dt)
+            self.ti_secondary[reactivate_uids] = self.ti_latent[reactivate_uids] + rr(time_to_reactivate / self.dt)
 
         # Latent to tertiary
         nonreactivate_uids = uids[~will_reactivate]
@@ -478,14 +476,14 @@ class Syphilis(BaseSTI):
             tertiary_uids = nonreactivate_uids[is_tertiary]
             if len(tertiary_uids) > 0:
                 time_to_tertiary = self.pars.time_to_tertiary.rvs(tertiary_uids)
-                self.ti_tertiary[tertiary_uids] = self.ti_latent[tertiary_uids] + rr(time_to_tertiary / dt)
+                self.ti_tertiary[tertiary_uids] = self.ti_latent[tertiary_uids] + rr(time_to_tertiary / self.dt)
 
                 # Tertiary to dead
                 will_die = self.pars.p_death.rvs(tertiary_uids)
                 dead_uids = tertiary_uids[will_die]
                 if len(dead_uids) > 0:
                     time_to_death = self.pars.time_to_death.rvs(dead_uids)
-                    self.ti_dead[dead_uids] = self.ti_tertiary[dead_uids] + rr(time_to_death / dt)
+                    self.ti_dead[dead_uids] = self.ti_tertiary[dead_uids] + rr(time_to_death / self.dt)
 
         return
 
@@ -494,7 +492,7 @@ class Syphilis(BaseSTI):
         Natural history of syphilis for congenital infection
         """
         ti = self.sim.ti
-        dt = self.sim.dt
+        dt = self.dt
 
         # Determine outcomes
         for state in ['early', 'late']:
