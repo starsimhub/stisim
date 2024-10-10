@@ -150,6 +150,7 @@ class HIV(BaseSTI):
             ss.Result('new_infections_client', dtype=int, label='New infections - Clients'),
             ss.Result('new_infections_not_client', dtype=int, label='New infections - Other M'),
             ss.Result('p_on_art', dtype=float, label='Proportion on ART', scale=False),
+            ss.Result('n_on_art', dtype=int, label='Number on ART'),
         )
 
         # if self.include_mtct:
