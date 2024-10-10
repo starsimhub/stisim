@@ -36,7 +36,7 @@ class SyphilisPlaceholder(ss.Disease):
             ts = sti.TimeSeries(assumption=self.pars.prevalence)
         else:
             ts = self.pars.prevalence
-        self._target_prevalence = ts.interpolate(sim.yearvec)
+        self._target_prevalence = ts.interpolate(sim.timevec)
 
     def set_prognoses(self, target_uids, source_uids=None):
         self.active[target_uids] = True
@@ -134,17 +134,17 @@ class Syphilis(BaseSTI):
 
         self.define_states(
             # Adult syphilis states
-            ss.BoolArr('primary'),      # Primary chancres
-            ss.BoolArr('secondary'),    # Inclusive of those who may still have primary chancres
-            ss.BoolArr('early'),        # Early latent
-            ss.BoolArr('late'),         # Late latent
-            ss.BoolArr('latent'),       # Can relapse to secondary, remain in latent, or progress to tertiary,
-            ss.BoolArr('tertiary'),     # Includes complications (cardio/neuro/disfigurement)
-            ss.BoolArr('immune'),       # After effective treatment people may acquire temp immunity
-            ss.BoolArr('ever_exposed'), # Anyone ever exposed - stays true after treatment
+            ss.State('primary'),      # Primary chancres
+            ss.State('secondary'),    # Inclusive of those who may still have primary chancres
+            ss.State('early'),        # Early latent
+            ss.State('late'),         # Late latent
+            ss.State('latent'),       # Can relapse to secondary, remain in latent, or progress to tertiary,
+            ss.State('tertiary'),     # Includes complications (cardio/neuro/disfigurement)
+            ss.State('immune'),       # After effective treatment people may acquire temp immunity
+            ss.State('ever_exposed'), # Anyone ever exposed - stays true after treatment
 
             # Congenital syphilis states
-            ss.BoolArr('congenital'),
+            ss.State('congenital'),
 
             # Timestep of state changes
             ss.FloatArr('ti_transmitted'),

@@ -37,6 +37,10 @@ class BaseSTI(ss.Infection):
     def make_init_prev_fn(module, sim, uids):
         return make_init_prev_fn(module, sim, uids, active=True)
 
+    def init_results(self):
+        super().init_results()
+        return
+
     def make_new_cases(self):
         """
         Create new cases via contact networks. Most of this is copied from the Starsim class,
