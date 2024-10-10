@@ -18,7 +18,7 @@ class HIV(BaseSTI):
         self.requires = 'structuredsexual'
 
         # Parameters
-        self.default_pars(
+        self.define_pars(
             # Natural history without treatment
             cd4_start=ss.normal(loc=800, scale=50),
             cd4_latent=ss.normal(loc=500, scale=50),

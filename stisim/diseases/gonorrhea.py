@@ -15,7 +15,7 @@ class Gonorrhea(SEIS):
     def __init__(self, name='ng', pars=None, init_prev_data=None, **kwargs):
         super().__init__(name=name, init_prev_data=init_prev_data)
 
-        self.default_pars(
+        self.define_pars(
             dur_exp=ss.constant(0),  # Initial latent period: how long after exposure before you can infect others
             p_symp=[
                 ss.bernoulli(p=0.3),  # Women: https://doi.org/10.1371/journal.pone.0143304

@@ -18,7 +18,7 @@ class SyphilisPlaceholder(ss.Disease):
     def __init__(self, pars=None, **kwargs):
         super().__init__(name='syphilis')
 
-        self.default_pars(
+        self.define_pars(
             prevalence=0.1,  # Target prevalance. If None, no automatic infections will be applied
         )
         self.update_pars(pars, **kwargs)
@@ -74,7 +74,7 @@ class Syphilis(BaseSTI):
         super().__init__()
         self.requires = 'structuredsexual'
 
-        self.default_pars(
+        self.define_pars(
             # Adult syphilis natural history, all specified in years
             dur_primary = ss.uniform(low=3/52, high=10/52),  # https://pubmed.ncbi.nlm.nih.gov/9101629/
             dur_secondary = ss.lognorm_ex(mean=3.6/12, stdev=1.5/12),  # https://pubmed.ncbi.nlm.nih.gov/9101629/

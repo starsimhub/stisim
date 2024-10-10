@@ -16,7 +16,7 @@ class Placeholder(ss.Disease):
     def __init__(self, pars=None, name=None, **kwargs):
         super().__init__(name=name)
 
-        self.default_pars(
+        self.define_pars(
             prevalence=0.1,  # Target prevalance. If None, no automatic infections will be applied
             care_seeking=ss.bernoulli(p=0.5),
         )
@@ -87,7 +87,7 @@ class GUD(ss.Infection):
 
     def __init__(self, pars=None, init_prev_data=None, **kwargs):
         super().__init__()
-        self.default_pars(
+        self.define_pars(
             dur_inf = ss.lognorm_ex(mean=3/12, stdev=1/12),
             beta=1.0,  # Placeholder
             init_prev=0,  # See make_init_prev_fn

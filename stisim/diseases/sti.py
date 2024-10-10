@@ -20,7 +20,7 @@ class BaseSTI(ss.Infection):
     def __init__(self, pars=None, init_prev_data=None, **kwargs):
         super().__init__()
         self.requires = 'structuredsexual'
-        self.default_pars(
+        self.define_pars(
             eff_condom=1,
             rel_init_prev=1,
         )
@@ -102,7 +102,7 @@ class SEIS(BaseSTI):
 
     def __init__(self, pars=None, name=None, init_prev_data=None, **kwargs):
         super().__init__(name=name, init_prev_data=init_prev_data)
-        self.default_pars(
+        self.define_pars(
 
             # Natural history
             dur_exp=ss.constant(1/52),  # Initial latent period: how long after exposure before you can infect others

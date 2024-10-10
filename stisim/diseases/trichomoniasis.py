@@ -14,7 +14,7 @@ class Trichomoniasis(SEIS):
         super().__init__(name=name, init_prev_data=init_prev_data)
         self.requires = 'structuredsexual'
 
-        self.default_pars(
+        self.define_pars(
             dur_exp=ss.constant(0),
             p_symp=[
                 ss.bernoulli(p=0.4),  # Women: https://sti.bmj.com/content/76/4/248
