@@ -25,7 +25,7 @@ class SyphTx(STITreatment):
 
     def __init__(self, pars=None, max_capacity=None, years=None, eligibility=None, **kwargs):
         super().__init__(disease='syphilis', eligibility=eligibility, years=years, max_capacity=max_capacity)
-        self.default_pars(
+        self.define_pars(
             rel_treat_prob=1,
             treat_prob=ss.bernoulli(p=1),
             treat_eff=ss.bernoulli(p=0.95),
@@ -169,7 +169,7 @@ class SyphTest(STITest):
     """ Base class for syphilis tests """
     def __init__(self, test_prob_data=None, years=None, start=None, end=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
         super().__init__(test_prob_data=test_prob_data, years=years, start=start, end=end, eligibility=eligibility, product=product, name=name, label=label, **kwargs)
-        self.default_pars(
+        self.define_pars(
             linked=True,
         )
         self.update_pars(pars, **kwargs)
@@ -280,7 +280,7 @@ class ANCSyphTest(SyphTest):
     """
     def __init__(self, test_prob_data=None, years=None, start=None, end=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
         super().__init__(test_prob_data=test_prob_data, years=years, start=start, end=end, eligibility=eligibility, product=product, name=name, label=label, **kwargs)
-        self.default_pars(
+        self.define_pars(
             linked=True,
         )
         self.update_pars(pars, **kwargs)

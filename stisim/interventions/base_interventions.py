@@ -60,7 +60,7 @@ class STITest(ss.Intervention):
 
     def __init__(self, pars=None, test_prob_data=None, years=None, start=None, end=None, eligibility=None, product=None, name=None, label=None, **kwargs):
         super().__init__(name=name, label=label)
-        self.default_pars(
+        self.define_pars(
             rel_test=1,
             dt_scale=True,
         )
@@ -87,7 +87,7 @@ class STITest(ss.Intervention):
         self.test_prob = ss.bernoulli(self.make_test_prob_fn)
 
         # States
-        self.add_states(
+        self.define_states(
             ss.BoolArr('tested'),
             ss.BoolArr('diagnosed'),
             ss.FloatArr('ti_tested'),
@@ -211,7 +211,7 @@ class SymptomaticTesting(STITest):
 
     def __init__(self, pars=None, treatments=None, diseases=None, disease_treatment_map=None, treat_prob_data=None, years=None, start=None, end=None, eligibility=None, name=None, label=None, **kwargs):
         super().__init__(years=years, start=start, end=end, eligibility=eligibility, name=name, label=label)
-        self.default_pars(
+        self.define_pars(
             sens=dict(
                 ng=[ss.bernoulli(0.6919), ss.bernoulli(0.93)],
                 ct=[ss.bernoulli(0.6919), ss.bernoulli(0.93)],
@@ -235,7 +235,7 @@ class SymptomaticTesting(STITest):
             disease_treatment_map = {t.disease: t for t in self.treatments}
         self.disease_treatment_map = disease_treatment_map
 
-        self.add_states(
+        self.define_states(
             ss.FloatArr('ti_referred'),
             ss.FloatArr('ti_dismissed'),
         )
@@ -363,7 +363,7 @@ class STITreatment(ss.Intervention):
     def __init__(self, pars=None, disease=None, eligibility=None, max_capacity=None, years=None, *args, **kwargs):
         super().__init__(*args)
         self.requires = disease
-        self.default_pars(
+        self.define_pars(
             treat_prob=ss.bernoulli(p=1.),
             treat_eff=ss.bernoulli(p=0.9),
         )
@@ -377,7 +377,7 @@ class STITreatment(ss.Intervention):
         self.years = years
 
         # States
-        self.add_states(
+        self.define_states(
             ss.BoolArr('treated'),
             ss.FloatArr('ti_treated'),
         )

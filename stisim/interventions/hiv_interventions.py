@@ -53,7 +53,7 @@ class ART(ss.Intervention):
 
     def __init__(self, pars=None, coverage_data=None, start_year=None, **kwargs):
         super().__init__()
-        self.default_pars(
+        self.define_pars(
             init_prob=ss.bernoulli(p=0.9),  # Probability that a newly diagnosed person will initiate treatment
             future_coverage={'year': 2022, 'prop': 0.85},
         )
@@ -184,7 +184,7 @@ class ART(ss.Intervention):
 class VMMC(ss.Intervention):
     def __init__(self, pars=None, coverage_data=None, eligibility=None, **kwargs):
         super().__init__()
-        self.default_pars(
+        self.define_pars(
             future_coverage={'year': 2022, 'prop': 0.1},
             eff_circ = 0.6,  # Evidence of a 60% reduction in risk of HIV acquisition: https://www.who.int/teams/global-hiv-hepatitis-and-stis-programmes/hiv/prevention/voluntary-medical-male-circumcision
         )

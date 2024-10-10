@@ -26,7 +26,7 @@ class GonorrheaTreatment(STITreatment):
     def __init__(self, pars=None, eligibility=None, max_capacity=None, years=None, *args, **kwargs):
         super().__init__(disease='ng', eligibility=eligibility, max_capacity=max_capacity, years=years, *args)
         self.requires = ['ng', 'structuredsexual']
-        self.default_pars(
+        self.define_pars(
             base_treat_eff=0.96,
             treat_eff=ss.bernoulli(p=0),  # Reset each time step depending on base_treat_eff and population AMR
             rel_treat_unsucc=0.01,
@@ -35,7 +35,7 @@ class GonorrheaTreatment(STITreatment):
         self.update_pars(pars, **kwargs)
 
         # States
-        self.add_states(
+        self.define_states(
             ss.FloatArr('rel_treat', default=1),  # How well a person will respond to treatment
         )
 
@@ -80,13 +80,13 @@ class UpdateDrugs(ss.Intervention):
     def __init__(self, pars=None, eligibility=None, years=None, *args, **kwargs):
         super().__init__(*args)
         self.requires = ['ng', 'gonorrheatreatment']
-        self.default_pars(
+        self.define_pars(
             threshold_amr=0.05
         )
         self.update_pars(pars, **kwargs)
         self.eligibility = eligibility
         self.years = years
-        self.add_states(
+        self.define_states(
             ss.BoolArr('rel_treat_prev'),  # Store a copy of AMR to the previous regimen
         )
         self.change_time = None
