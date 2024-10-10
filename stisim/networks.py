@@ -171,12 +171,11 @@ class StructuredSexual(ss.SexualNetwork):
         return
 
     def init_results(self):
-        npts = self.sim.npts
-        self.results += [
-            ss.Result(self.name, 'share_active', npts, dtype=float, scale=False),
-            ss.Result(self.name, 'partners_f_mean', npts, dtype=float, scale=False),
-            ss.Result(self.name, 'partners_m_mean', npts, dtype=float, scale=False),
-        ]
+        self.define_results(
+            ss.Result('share_active', dtype=float, scale=False),
+            ss.Result('partners_f_mean', dtype=float, scale=False),
+            ss.Result('partners_m_mean', dtype=float, scale=False),
+        )
         return
 
     def init_post(self):
@@ -274,7 +273,7 @@ class StructuredSexual(ss.SexualNetwork):
     def add_pairs(self, ti=None):
         """ Add pairs """
         ppl = self.sim.people
-        dt = self.sim.dt
+        dt = self.dt
 
         # Obtain new pairs
         try:
@@ -354,7 +353,7 @@ class StructuredSexual(ss.SexualNetwork):
     def add_sex_work(self, ppl):
         """ Match sex workers to clients """
 
-        dt = self.sim.dt
+        dt = self.dt
         # Find people eligible for a relationship
         active_fsw = self.active(ppl) & ppl.female & self.fsw
         active_clients = self.active(ppl) & ppl.male & self.client
@@ -415,7 +414,7 @@ class StructuredSexual(ss.SexualNetwork):
 
     def end_pairs(self):
         people = self.sim.people
-        dt = self.sim.dt
+        dt = self.dt
 
         self.edges.dur = self.edges.dur - dt
 
@@ -469,7 +468,7 @@ class StructuredSexual(ss.SexualNetwork):
 
     def update(self):
         self.end_pairs()
-        self.set_network_states(upper_age=self.sim.dt)
+        self.set_network_states(upper_age=self.dt)
         self.add_pairs()
         self.set_condom_use()
         # self.update_results()

@@ -137,28 +137,29 @@ class HIV(BaseSTI):
         Initialize results
         """
         super().init_results()
-        npts = self.sim.npts
-        self.results += ss.Result(self.name, 'new_deaths', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'cum_deaths', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_diagnoses', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'cum_diagnoses', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_agents_on_art', npts, dtype=float, scale=True)
-        self.results += ss.Result(self.name, 'cum_agents_on_art', npts, dtype=float, scale=True)
-        self.results += ss.Result(self.name, 'prevalence_sw', npts, dtype=float)
-        self.results += ss.Result(self.name, 'new_infections_sw', npts, dtype=float, scale=True)
-        self.results += ss.Result(self.name, 'new_infections_not_sw', npts, dtype=float, scale=True)
-        self.results += ss.Result(self.name, 'prevalence_client', npts, dtype=float)
-        self.results += ss.Result(self.name, 'new_infections_client', npts, dtype=float, scale=True)
-        self.results += ss.Result(self.name, 'new_infections_not_client', npts, dtype=float, scale=True)
-        self.results += ss.Result(self.name, 'p_on_art', npts, dtype=float, scale=False)
-        if self.include_mtct:
-            self.results += ss.Result(self.name, 'n_on_art_pregnant', npts, dtype=float, scale=True)
+        self.define_results(
+            ss.Result('new_deaths', dtype=int, label='Deaths'),
+            ss.Result('cum_deaths', dtype=int, label='Cumulative deaths'),
+            ss.Result('new_diagnoses', dtype=int, label='Diagnoses'),
+            ss.Result('cum_diagnoses', dtype=int, label='Cumulative diagnoses'),
+            ss.Result('new_agents_on_art', dtype=int, label='New treated'),
+            ss.Result('prevalence_sw', dtype=float, label='FSW prevalence', scale=False),
+            ss.Result('new_infections_sw', dtype=int, label='New infections - FSW'),
+            ss.Result('new_infections_not_sw', dtype=int, label='New infections - Other F'),
+            ss.Result('prevalence_client', dtype=float, label='Client prevalence', scale=False),
+            ss.Result('new_infections_client', dtype=int, label='New infections - Clients'),
+            ss.Result('new_infections_not_client', dtype=int, label='New infections - Other M'),
+            ss.Result('p_on_art', dtype=float, label='Proportion on ART', scale=False),
+        )
 
-        # Add FSW and clients to results:
-        for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
-            for sex in ['female', 'male']:
-                self.results += ss.Result(self.name, 'prevalence_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float)
-                self.results += ss.Result(self.name, 'new_infections_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float, scale=True)
+        # if self.include_mtct:
+        #     self.results += ss.Result(self.name, 'n_on_art_pregnant', npts, dtype=float, scale=True)
+        #
+        # # Add FSW and clients to results:
+        # for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
+        #     for sex in ['female', 'male']:
+        #         self.results += ss.Result(self.name, 'prevalence_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float)
+        #         self.results += ss.Result(self.name, 'new_infections_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float, scale=True)
 
         return
 
@@ -400,21 +401,20 @@ class HIV(BaseSTI):
         self.results['new_diagnoses'][ti] = np.count_nonzero(self.ti_diagnosed == ti)
         self.results['cum_diagnoses'][ti] = np.sum(self.results['new_diagnoses'][:ti + 1])
         self.results['new_agents_on_art'][ti] = np.count_nonzero(self.ti_art == ti)
-        self.results['cum_agents_on_art'][ti] = np.sum(self.results['new_agents_on_art'][:ti + 1])
-        if self.include_mtct:
-            self.results['n_on_art_pregnant'][ti] = np.count_nonzero(self.on_art & self.sim.people.pregnancy.pregnant)
+        # if self.include_mtct:
+        #     self.results['n_on_art_pregnant'][ti] = np.count_nonzero(self.on_art & self.sim.people.pregnancy.pregnant)
         self.results['p_on_art'][ti] = sc.safedivide(self.results['n_on_art'][ti], self.results['n_infected'][ti])
 
         # Subset by FSW and client:
         fsw_infected = self.infected[self.sim.networks.structuredsexual.fsw]
         client_infected = self.infected[self.sim.networks.structuredsexual.client]
-        for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
-            for sex in ['female', 'male']:
-                risk_group_infected = self.infected[(self.sim.networks.structuredsexual.risk_group == risk_group) & (self.sim.people[sex])]
-                risk_group_new_inf = ((self.ti_infected == ti) & (self.sim.networks.structuredsexual.risk_group == risk_group) &  (self.sim.people[sex])).uids
-                if len(risk_group_infected) > 0:
-                    self.results['prevalence_risk_group_' + str(risk_group) + '_' + sex][ti] = sum(risk_group_infected) / len(risk_group_infected)
-                    self.results['new_infections_risk_group_' + str(risk_group) + '_' + sex][ti] = len(risk_group_new_inf)
+        # for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
+        #     for sex in ['female', 'male']:
+        #         risk_group_infected = self.infected[(self.sim.networks.structuredsexual.risk_group == risk_group) & (self.sim.people[sex])]
+        #         risk_group_new_inf = ((self.ti_infected == ti) & (self.sim.networks.structuredsexual.risk_group == risk_group) &  (self.sim.people[sex])).uids
+        #         if len(risk_group_infected) > 0:
+        #             self.results['prevalence_risk_group_' + str(risk_group) + '_' + sex][ti] = sum(risk_group_infected) / len(risk_group_infected)
+        #             self.results['new_infections_risk_group_' + str(risk_group) + '_' + sex][ti] = len(risk_group_new_inf)
 
         # Add FSW and clients to results:
         if len(fsw_infected) > 0:
@@ -447,7 +447,7 @@ class HIV(BaseSTI):
                 errormsg = 'ti for set_prognoses must be int or array of length uids'
                 raise ValueError(errormsg)
 
-        dt = self.sim.dt
+        dt = self.dt
 
         self.susceptible[uids] = False
         self.infected[uids] = True

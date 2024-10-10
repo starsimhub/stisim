@@ -72,7 +72,7 @@ class ART(ss.Intervention):
                 raise ValueError(errormsg)
             colname = data.columns[0]
             self.coverage_format = colname
-            self.coverage = sc.smoothinterp(sim.yearvec, data.index.values, data[colname].values)
+            self.coverage = sc.smoothinterp(self.timevec, data.index.values, data[colname].values)
         self.initialized = True
         return
 
@@ -214,9 +214,7 @@ class VMMC(ss.Intervention):
                 raise ValueError(errormsg)
             colname = data.columns[0]
             self.coverage_format = colname
-            self.coverage = sc.smoothinterp(sim.yearvec, data.index.values, data[colname].values)
-
-        self.init_results()
+            self.coverage = sc.smoothinterp(self.timevec, data.index.values, data[colname].values)
 
         return
 
@@ -225,11 +223,11 @@ class VMMC(ss.Intervention):
         return
 
     def init_results(self):
-        npts = self.sim.npts
-        self.results += [
-            ss.Result(self.name, 'new_circumcisions', npts, dtype=float, scale=True, label="New circumcisions"),
-            ss.Result(self.name, 'n_circumcised', npts, dtype=float, scale=True, label="Number circumcised")
-        ]
+        super().init_results()
+        self.define_results(
+            ss.Result('new_circumcisions', dtype=int, label="New circumcisions"),
+            ss.Result('n_circumcised', dtype=int, label="Number circumcised")
+        )
         return
 
     def apply(self, sim):

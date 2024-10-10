@@ -58,7 +58,7 @@ class STITest(ss.Intervention):
     Base class for STI testing
     """
 
-    def __init__(self, pars=None, test_prob_data=None, years=None, start=None, end=None, eligibility=None, product=None, name=None, label=None, **kwargs):
+    def __init__(self, pars=None, test_prob_data=None, years=None, start=None, stop=None, eligibility=None, product=None, name=None, label=None, **kwargs):
         super().__init__(name=name, label=label)
         self.define_pars(
             rel_test=1,
@@ -72,13 +72,13 @@ class STITest(ss.Intervention):
             raise ValueError(errormsg)
         self.years = years
         self.start = start
-        self.end = end
+        self.stop = stop
         if self.start is None:
             if self.years is not None:
                 self.start = self.years[0]
-        if self.end is None:
+        if self.stop is None:
             if self.years is not None:
-                self.end = self.years[-1]
+                self.stop = self.years[-1]
 
         # Testing eligibility and uptake
         self.eligibility = eligibility
@@ -113,18 +113,15 @@ class STITest(ss.Intervention):
     def init_pre(self, sim):
         super().init_pre(sim)
         if self.start is None: self.start = sim.pars.start
-        if self.end is None: self.end = sim.pars.end
-        self.init_results()
+        if self.stop is None: self.stop = sim.pars.stop
         return
 
     def init_results(self):
-        npts = self.sim.npts
-        results = [
-            ss.Result(self.name, 'new_diagnoses', npts, dtype=float, scale=True, label="New diagnoses"),
-            ss.Result(self.name, 'new_tests', npts, dtype=int, scale=True, label="New tests"),
-        ]
-        self.results += results
-
+        super().init_results()
+        self.define_results(
+            ss.Result('new_diagnoses', dtype=int, label="New diagnoses"),
+            ss.Result('new_tests', dtype=int, label="New tests"),
+        )
         return
 
     @staticmethod
@@ -170,7 +167,7 @@ class STITest(ss.Intervention):
         self.last_outcomes = outcomes
 
         # Apply if within the start years
-        if (sim.year >= self.start) & (sim.year < self.end):
+        if (sim.year >= self.start) & (sim.year < self.stop):
 
             if uids is None:
                 uids = self.get_testers(sim)
@@ -209,8 +206,8 @@ class SymptomaticTesting(STITest):
     Rather, the testing intervention itself contains a linked treatment intervention.
     """
 
-    def __init__(self, pars=None, treatments=None, diseases=None, disease_treatment_map=None, treat_prob_data=None, years=None, start=None, end=None, eligibility=None, name=None, label=None, **kwargs):
-        super().__init__(years=years, start=start, end=end, eligibility=eligibility, name=name, label=label)
+    def __init__(self, pars=None, treatments=None, diseases=None, disease_treatment_map=None, treat_prob_data=None, years=None, start=None, stop=None, eligibility=None, name=None, label=None, **kwargs):
+        super().__init__(years=years, start=start, stop=stop, eligibility=eligibility, name=name, label=label)
         self.define_pars(
             sens=dict(
                 ng=[ss.bernoulli(0.6919), ss.bernoulli(0.93)],
@@ -270,7 +267,7 @@ class SymptomaticTesting(STITest):
 
 
         # If this intervention has stopped, reset eligibility for all associated treatments
-        if (sim.year >= self.end):
+        if (sim.year >= self.stop):
             for treatment in self.treatments:
                 treatment.eligibility = ss.uids()  # Reset
             return

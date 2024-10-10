@@ -130,13 +130,13 @@ class SyphTx(STITreatment):
 class NewbornTreatment(SyphTx):
 
     def init_results(self):
-        results = [
-            ss.Result(self.name, 'new_treated', self.sim.npts, dtype=int, scale=True, label="Number treated"),
-            ss.Result(self.name, 'new_treated_success', self.sim.npts, dtype=int, scale=True, label="Successfully treated"),
-            ss.Result(self.name, 'new_treated_failure', self.sim.npts, dtype=int, scale=True, label="Treatment failure"),
-            ss.Result(self.name, 'new_treated_unnecessary', self.sim.npts, dtype=int, scale=True, label="Overtreatment"),
-        ]
-        self.results += results
+        super().init_results()
+        self.define_results(
+            ss.Result('new_treated', dtype=int, label="Number treated"),
+            ss.Result('new_treated_success', dtype=int, label="Successfully treated"),
+            ss.Result('new_treated_failure', dtype=int, label="Treatment failure"),
+            ss.Result('new_treated_unnecessary', dtype=int, label="Overtreatment"),
+        )
         return
 
     def change_states(self, disease, treat_succ):
@@ -167,8 +167,8 @@ class NewbornTreatment(SyphTx):
 
 class SyphTest(STITest):
     """ Base class for syphilis tests """
-    def __init__(self, test_prob_data=None, years=None, start=None, end=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
-        super().__init__(test_prob_data=test_prob_data, years=years, start=start, end=end, eligibility=eligibility, product=product, name=name, label=label, **kwargs)
+    def __init__(self, test_prob_data=None, years=None, start=None, stop=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
+        super().__init__(test_prob_data=test_prob_data, years=years, start=start, stop=stop, eligibility=eligibility, product=product, name=name, label=label, **kwargs)
         self.define_pars(
             linked=True,
         )
@@ -230,7 +230,7 @@ class SyphTest(STITest):
 
     def apply(self, sim, uids=None):
         super().apply(sim, uids=uids)
-        if (sim.year >= self.start) & (sim.year < self.end):
+        if (sim.year >= self.start) & (sim.year < self.stop):
             # Schedule newborn tests if the mother is positive
             if self.newborn_test is not None:
                 new_pos = self.ti_positive == self.sim.ti
@@ -278,8 +278,8 @@ class ANCSyphTest(SyphTest):
     Test given to pregnant women
     Need to adjust timing using Trivedi (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7138526/)
     """
-    def __init__(self, test_prob_data=None, years=None, start=None, end=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
-        super().__init__(test_prob_data=test_prob_data, years=years, start=start, end=end, eligibility=eligibility, product=product, name=name, label=label, **kwargs)
+    def __init__(self, test_prob_data=None, years=None, start=None, stop=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
+        super().__init__(test_prob_data=test_prob_data, years=years, start=start, stop=stop, eligibility=eligibility, product=product, name=name, label=label, **kwargs)
         self.define_pars(
             linked=True,
         )

@@ -28,7 +28,7 @@ def test_hiv_sim(n_agents=500, dt=1):
     sim = ss.Sim(
         dt=dt,
         start=1990,
-        n_years=40,
+        dur=40,
         n_agents=n_agents,
         diseases=hiv,
         networks=[sexual, maternal],
