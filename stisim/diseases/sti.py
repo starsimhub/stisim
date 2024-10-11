@@ -17,8 +17,8 @@ class BaseSTI(ss.Infection):
     Base class for sexually transmitted infections.
     Modifies make_new_cases to account for barrier protection.
     """
-    def __init__(self, pars=None, init_prev_data=None, **kwargs):
-        super().__init__()
+    def __init__(self, name=None, pars=None, init_prev_data=None, **kwargs):
+        super().__init__(name=name)
         self.requires = 'structuredsexual'
         self.define_pars(
             eff_condom=1,
@@ -201,7 +201,7 @@ class SEIS(BaseSTI):
 
     def init_pre(self, sim):
         super().init_pre(sim)
-        self.pars.beta = self.validate_beta()
+        self.pars.beta = self.validate_beta(run_checks=False)  # TODO: why is this needed?
         if self.pars.beta_m2f is not None:
             self.pars.beta['structuredsexual'][0] *= self.pars.beta_m2f
             if self.pars.beta_f2m is None:

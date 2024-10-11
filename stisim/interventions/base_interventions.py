@@ -357,8 +357,8 @@ class STITreatment(ss.Intervention):
         pars:
         disease (str): should match the name of one of the diseases in the simulation
     """
-    def __init__(self, pars=None, diseases=None, eligibility=None, max_capacity=None, years=None, *args, **kwargs):
-        super().__init__(*args)
+    def __init__(self, name=None, pars=None, diseases=None, eligibility=None, max_capacity=None, years=None, *args, **kwargs):
+        super().__init__(*args, name=name)
         self.requires = diseases
         self.define_pars(
             treat_prob=ss.bernoulli(p=1.),

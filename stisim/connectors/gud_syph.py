@@ -5,7 +5,7 @@ class gud_syph(ss.Connector):
 
     def __init__(self, pars=None, **kwargs):
         super().__init__(label='GUD-Syphilis', requires=[sti.GUD, sti.Syphilis])
-        self.default_pars(
+        self.define_pars(
             rel_sus_syph_gud=2,     # People with GUD are 2x more likely to acquire syphilis
             rel_trans_syph_gud=2,   # People with GUD are 2x more likely to transmit syphilis
             rel_sus_gud_syph=2,     # People with syphilis are 2x more likely to acquire GUD
