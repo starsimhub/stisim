@@ -117,7 +117,6 @@ class STITest(ss.Intervention):
         return
 
     def init_results(self):
-        super().init_results()
         self.define_results(
             ss.Result('new_diagnoses', dtype=int, label="New diagnoses"),
             ss.Result('new_tests', dtype=int, label="New tests"),
@@ -140,7 +139,7 @@ class STITest(ss.Intervention):
 
         # Scale and validate
         test_prob *= self.pars.rel_test
-        if self.pars.dt_scale: test_prob *= sim.dt
+        if self.pars.dt_scale: test_prob *= self.dt
         test_prob = np.clip(test_prob, a_min=0, a_max=1)
 
         return test_prob
@@ -151,7 +150,7 @@ class STITest(ss.Intervention):
         """
         # Select UIDs for testing based on eligibility and test_prob
         accept_uids = ss.uids()
-        eligible_uids = self.check_eligibility(sim)  # Apply eligiblity
+        eligible_uids = self.check_eligibility()  # Apply eligiblity
         if len(eligible_uids):
             accept_uids = self.test_prob.filter(eligible_uids)
         scheduled_uids = (self.ti_scheduled == sim.ti).uids  # Add on scheduled tests
@@ -168,7 +167,7 @@ class STITest(ss.Intervention):
         self.last_outcomes = outcomes
 
         # Apply if within the start years
-        if (sim.year >= self.start) & (sim.year < self.stop):
+        if (sim.now >= self.start) & (sim.now < self.stop):
 
             if uids is None:
                 uids = self.get_testers(sim)
