@@ -134,7 +134,7 @@ if __name__ == '__main__':
     
     kw = dict(
         n_agents = 2_000, # 10_000 is very slow, but matches the results
-        n_years = 10,
+        dur = 10,
         dt = 1/12,
     )
     

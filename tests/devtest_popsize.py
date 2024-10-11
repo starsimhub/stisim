@@ -22,7 +22,7 @@ def make_sim(n_agents=500, dt=1):
         dt=dt,
         start=1990,
         total_pop=9980999,
-        n_years=35,
+        dur=35,
         people=ppl,
         demographics=[pregnancy, death],
     )
@@ -42,7 +42,7 @@ def test_n_agents():
 
     fig, ax = pl.subplots(1, 1)
     for n_agents in n_agent_list:
-        ax.plot(sim.yearvec, results[n_agents], label=int(n_agents))
+        ax.plot(sim.timevec, results[n_agents], label=int(n_agents))
     ax.legend()
 
     return sims
