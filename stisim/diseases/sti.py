@@ -37,10 +37,6 @@ class BaseSTI(ss.Infection):
     def make_init_prev_fn(module, sim, uids):
         return make_init_prev_fn(module, sim, uids, active=True)
 
-    def init_results(self):
-        super().init_results()
-        return
-
     def make_new_cases(self):
         """
         Create new cases via contact networks. Most of this is copied from the Starsim class,
@@ -70,9 +66,9 @@ class BaseSTI(ss.Infection):
 
                 # Calculate probability of a->b transmission.
                 if net.postnatal or net.prenatal:
-                    beta_per_dt = net.beta_per_dt(disease_beta=beta, dt=self.sim.dt)
+                    beta_per_dt = net.beta_per_dt(disease_beta=beta, dt=self.dt)
                 else:
-                    beta_per_dt = net.beta_per_dt(disease_beta=beta, dt=self.sim.dt, disease=self)
+                    beta_per_dt = net.beta_per_dt(disease_beta=beta, dt=self.dt, disease=self)
                 p_transmit = rel_trans[src] * rel_sus[trg] * beta_per_dt
 
                 # Generate a new random number based on the two other random numbers
@@ -171,13 +167,13 @@ class SEIS(BaseSTI):
 
         self.define_states(
             # Natural history
-            ss.BoolArr('exposed'),
-            ss.BoolArr('infected'),
-            ss.BoolArr('asymptomatic'),
-            ss.BoolArr('symptomatic'),
-            ss.BoolArr('postsymptomatic'),
-            ss.BoolArr('pid'),
-            ss.BoolArr('seeking_care'),
+            ss.State('exposed'),
+            ss.State('infected'),
+            ss.State('asymptomatic'),
+            ss.State('symptomatic'),
+            ss.State('postsymptomatic'),
+            ss.State('pid'),
+            ss.State('seeking_care'),
             ss.FloatArr('dur_inf'),
             ss.FloatArr('ti_exposed'),
             ss.FloatArr('ti_symptomatic'),
@@ -283,8 +279,8 @@ class SEIS(BaseSTI):
             # self.sex_results[rkey] = sc.objdict()
             self.age_sex_results[rkey] = sc.objdict()
             for skey in ['female', 'male', 'both']:
-                # self.sex_results[rkey][skey] = np.zeros(len(self.sim.yearvec))
-                self.age_sex_results[rkey][skey] = np.zeros((len(self.age_bins)-1, len(self.sim.yearvec)))
+                # self.sex_results[rkey][skey] = np.zeros(len(self.sim.timevec))
+                self.age_sex_results[rkey][skey] = np.zeros((len(self.age_bins)-1, len(self.sim.timevec)))
 
         return
  
@@ -436,7 +432,7 @@ class SEIS(BaseSTI):
         self.asymptomatic[uids] = True
         self.ti_exposed[uids] = self.sim.ti
         dur_exp = self.pars.dur_exp.rvs(uids)
-        self.ti_infected[uids] = self.sim.ti + dur_exp/self.sim.dt
+        self.ti_infected[uids] = self.sim.ti + dur_exp/self.dt
         return
 
     def set_symptoms(self, p, f_uids, m_uids):
@@ -444,8 +440,8 @@ class SEIS(BaseSTI):
         m_symp, m_asymp = p.p_symp[1].split(m_uids)
         f_dur_presymp = self.pars.dur_presymp[0].rvs(f_symp)
         m_dur_presymp = self.pars.dur_presymp[1].rvs(m_symp)
-        self.ti_symptomatic[f_symp] = self.ti_infected[f_symp] + f_dur_presymp/self.sim.dt
-        self.ti_symptomatic[m_symp] = self.ti_infected[m_symp] + m_dur_presymp/self.sim.dt
+        self.ti_symptomatic[f_symp] = self.ti_infected[f_symp] + f_dur_presymp/self.dt
+        self.ti_symptomatic[m_symp] = self.ti_infected[m_symp] + m_dur_presymp/self.dt
         return f_symp, m_symp, f_asymp, m_asymp
 
     def set_symp_clearance(self, p, f_symp, m_symp):
@@ -453,8 +449,8 @@ class SEIS(BaseSTI):
         m_symp_clear, m_symp_persist = p.p_symp_clear[1].split(m_symp)
         f_dur_symp = self.pars.dur_symp[0].rvs(f_symp_clear)
         m_dur_symp = self.pars.dur_symp[1].rvs(m_symp_clear)
-        self.ti_symp_clear[f_symp_clear] = self.ti_symptomatic[f_symp_clear] + f_dur_symp/self.sim.dt
-        self.ti_symp_clear[m_symp_clear] = self.ti_symptomatic[m_symp_clear] + m_dur_symp/self.sim.dt
+        self.ti_symp_clear[f_symp_clear] = self.ti_symptomatic[f_symp_clear] + f_dur_symp/self.dt
+        self.ti_symp_clear[m_symp_clear] = self.ti_symptomatic[m_symp_clear] + m_dur_symp/self.dt
         return f_symp_clear, m_symp_clear, f_symp_persist, m_symp_persist
 
     def set_care_seeking(self, p, f_symp, m_symp):
@@ -462,25 +458,25 @@ class SEIS(BaseSTI):
         m_symp_care = p.p_symp_care[1].filter(m_symp)
         f_dur_symp2care = p.dur_symp2care[0].rvs(f_symp_care)
         m_dur_symp2care = p.dur_symp2care[1].rvs(m_symp_care)
-        self.ti_seeks_care[f_symp_care] = self.ti_symptomatic[f_symp_care] + f_dur_symp2care/self.sim.dt
-        self.ti_seeks_care[m_symp_care] = self.ti_symptomatic[m_symp_care] + m_dur_symp2care/self.sim.dt
+        self.ti_seeks_care[f_symp_care] = self.ti_symptomatic[f_symp_care] + f_dur_symp2care/self.dt
+        self.ti_seeks_care[m_symp_care] = self.ti_symptomatic[m_symp_care] + m_dur_symp2care/self.dt
         return
 
     def set_pid(self, p, f_uids):
         pid = p.p_pid.filter(f_uids)
         dur_prepid = p.dur_prepid.rvs(pid)
-        self.ti_pid[pid] = self.ti_infected[pid] + dur_prepid/self.sim.dt
+        self.ti_pid[pid] = self.ti_infected[pid] + dur_prepid/self.dt
         return pid
 
     def set_pid_care_seeking(self, p, pid):
-        dt = self.sim.dt
+        dt = self.dt
         pid_care = p.p_pid_care.filter(pid)
         dur_pid2care = p.dur_pid2care.rvs(pid_care)
         self.ti_seeks_care[pid_care] = np.minimum(self.ti_seeks_care[pid_care], self.ti_infected[pid_care] + dur_pid2care/dt)
         return
 
     def set_duration(self, p, f_symp_clear, m_symp_clear, f_symp_persist, m_symp_persist, f_asymp, m_asymp, pid):
-        dt = self.sim.dt
+        dt = self.dt
 
         # Duration of infection for those with persistant symptoms, transient symptoms, and asymptomatic infection
         dur_inf_f_symp_clear = p.dur_postsymp2clear[0].rvs(f_symp_clear)
@@ -532,7 +528,7 @@ class SEIS(BaseSTI):
         self.set_duration(p, f_symp_clear, m_symp_clear, f_symp_persist, m_symp_persist, f_asymp, m_asymp, pid)
 
         # Determine overall duration of infection
-        self.dur_inf[uids] = (self.ti_clearance[uids] - self.ti_infected[uids])*self.sim.dt
+        self.dur_inf[uids] = (self.ti_clearance[uids] - self.ti_infected[uids])*self.dt
 
         if (self.dur_inf[uids] < 0).any():
             errormsg = 'Invalid durations of infection'

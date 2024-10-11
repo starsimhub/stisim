@@ -57,7 +57,7 @@ class TrackValues(ss.Analyzer):
             y_ev = []
             for i, events in enumerate(agents.values()):
                 for event in events:
-                    x_ev.append(self.sim.yearvec[event[1]])
+                    x_ev.append(self.sim.timevec[event[1]])
                     y_ev.append(y[event[1], i])
             ax.scatter(x_ev, y_ev, marker='*', color='yellow', edgecolor='red', s=100, linewidths=0.5, zorder=100)
             ax.set_title(title)
@@ -70,14 +70,14 @@ class TrackValues(ss.Analyzer):
 
         ax = ax.ravel()
 
-        h = plot_with_events(ax[0], self.sim.yearvec, self.cd4, agents, 'CD4')
-        # h = plot_with_events(ax[1], self.sim.yearvec, self.hiv_rel_sus, agents, 'HIV rel_sus')
-        h = plot_with_events(ax[1], self.sim.yearvec, self.hiv_rel_trans, agents, 'HIV rel_trans')
-        # h = plot_with_events(ax[3], self.sim.yearvec, self.care_seeking, agents, 'HIV care seeking')
+        h = plot_with_events(ax[0], self.sim.timevec, self.cd4, agents, 'CD4')
+        # h = plot_with_events(ax[1], self.sim.timevec, self.hiv_rel_sus, agents, 'HIV rel_sus')
+        h = plot_with_events(ax[1], self.sim.timevec, self.hiv_rel_trans, agents, 'HIV rel_trans')
+        # h = plot_with_events(ax[3], self.sim.timevec, self.care_seeking, agents, 'HIV care seeking')
 
         if self.has_syph:
-            h = plot_with_events(ax[4], self.sim.yearvec, self.syph_rel_sus, agents, 'Syphilis rel_sus')
-            h = plot_with_events(ax[5], self.sim.yearvec, self.syph_rel_trans, agents, 'Syphilis rel_trans')
+            h = plot_with_events(ax[4], self.sim.timevec, self.syph_rel_sus, agents, 'Syphilis rel_sus')
+            h = plot_with_events(ax[5], self.sim.timevec, self.syph_rel_trans, agents, 'Syphilis rel_trans')
 
         # fig.legend(h, agents.keys(), loc='upper right', bbox_to_anchor=(1.1, 1))
 
@@ -141,11 +141,11 @@ def test_hiv():
     agents = sc.odict()
     agents['No infection'] = []
     agents['Infection without ART'] = [('hiv_infection', 1)]
-    # agents['Goes onto ART early (CD4 > 200) and stays on forever'] = [('hiv_infection', 1), ('art_start', 1 * 12)]
-    # agents['Goes onto ART late (CD4 < 200) and stays on forever'] = [('hiv_infection', 1), ('art_start', 10 * 12)]
-    # agents['Goes off ART with CD4 > 200'] = [('hiv_infection', 1), ('art_start', 5 * 12), ('art_stop', 12 * 12)]
-    # agents['Goes off ART with CD4 < 200'] = [('hiv_infection', 1), ('art_start', 9 * 12), ('art_stop', 12 * 12)]
-    # agents['pregnant'] = [('pregnant', 5), ('hiv_infection', 10)]
+    agents['Goes onto ART early (CD4 > 200) and stays on forever'] = [('hiv_infection', 1), ('art_start', 1 * 12)]
+    agents['Goes onto ART late (CD4 < 200) and stays on forever'] = [('hiv_infection', 1), ('art_start', 10 * 12)]
+    agents['Goes off ART with CD4 > 200'] = [('hiv_infection', 1), ('art_start', 5 * 12), ('art_stop', 12 * 12)]
+    agents['Goes off ART with CD4 < 200'] = [('hiv_infection', 1), ('art_start', 9 * 12), ('art_stop', 12 * 12)]
+    agents['pregnant'] = [('pregnant', 5), ('hiv_infection', 10)]
 
     events = []
     for i, x in enumerate(agents.values()):
@@ -155,7 +155,7 @@ def test_hiv():
     pars = {}
     pars['n_agents'] = len(agents)
     pars['start'] = 2020
-    pars['end'] = 2040
+    pars['stop'] = 2040
     pars['dt'] = 1 / 12
     hiv = sti.HIV(init_prev=0, p_hiv_death=0, include_aids_deaths=False, beta={'structuredsexual': [0, 0], 'maternal': [0, 0]})
     pars['diseases'] = [hiv]
@@ -186,7 +186,7 @@ def test_hiv_syph():
     pars = {}
     pars['n_agents'] = len(agents)
     pars['start'] = 2020
-    pars['end'] = 2040
+    pars['stop'] = 2040
     pars['dt'] = 1 / 12
     hiv = sti.HIV(init_prev=0, p_hiv_death=0, include_aids_deaths=False, beta={'structuredsexual': [0, 0], 'maternal': [0, 0]})
     syphilis = sti.SyphilisPlaceholder(prevalence=None)

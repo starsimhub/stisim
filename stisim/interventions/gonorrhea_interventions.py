@@ -24,7 +24,7 @@ class GonorrheaTreatment(STITreatment):
         - unnecessary treatment results in lower rel_treat
     """
     def __init__(self, pars=None, eligibility=None, max_capacity=None, years=None, *args, **kwargs):
-        super().__init__(disease='ng', eligibility=eligibility, max_capacity=max_capacity, years=years, *args)
+        super().__init__(diseases='ng', eligibility=eligibility, max_capacity=max_capacity, years=years, *args)
         self.requires = ['ng', 'structuredsexual']
         self.define_pars(
             base_treat_eff=0.96,
@@ -87,7 +87,7 @@ class UpdateDrugs(ss.Intervention):
         self.eligibility = eligibility
         self.years = years
         self.define_states(
-            ss.BoolArr('rel_treat_prev'),  # Store a copy of AMR to the previous regimen
+            ss.FloatArr('rel_treat_prev'),  # Store a copy of AMR to the previous regimen
         )
         self.change_time = None
 

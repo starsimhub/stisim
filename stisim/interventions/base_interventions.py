@@ -88,8 +88,8 @@ class STITest(ss.Intervention):
 
         # States
         self.define_states(
-            ss.BoolArr('tested'),
-            ss.BoolArr('diagnosed'),
+            ss.State('tested'),
+            ss.State('diagnosed'),
             ss.FloatArr('ti_tested'),
             ss.FloatArr('ti_scheduled'),
             ss.FloatArr('ti_positive'),
@@ -265,7 +265,6 @@ class SymptomaticTesting(STITest):
         self.treated_by_uid = None
         ti = sim.ti
 
-
         # If this intervention has stopped, reset eligibility for all associated treatments
         if (sim.year >= self.stop):
             for treatment in self.treatments:
@@ -357,14 +356,14 @@ class STITreatment(ss.Intervention):
         pars:
         disease (str): should match the name of one of the diseases in the simulation
     """
-    def __init__(self, pars=None, disease=None, eligibility=None, max_capacity=None, years=None, *args, **kwargs):
+    def __init__(self, pars=None, diseases=None, eligibility=None, max_capacity=None, years=None, *args, **kwargs):
         super().__init__(*args)
-        self.requires = disease
+        self.requires = diseases
         self.define_pars(
             treat_prob=ss.bernoulli(p=1.),
             treat_eff=ss.bernoulli(p=0.9),
         )
-        self.diseases = sc.promotetolist(disease)
+        self.diseases = sc.promotetolist(diseases)
         self.update_pars(pars, **kwargs)
         self.eligibility = eligibility
         if self.eligibility is None:
@@ -375,7 +374,7 @@ class STITreatment(ss.Intervention):
 
         # States
         self.define_states(
-            ss.BoolArr('treated'),
+            ss.State('treated'),
             ss.FloatArr('ti_treated'),
         )
 

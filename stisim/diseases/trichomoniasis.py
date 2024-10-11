@@ -69,7 +69,7 @@ class Trichomoniasis(SEIS):
 
         # Next, overwrite time of clearance for a subset of asymptomatic and postsymptomatic women
         potential_persist = f_symp_clear | f_asymp
-        dt = self.sim.dt
+        dt = self.dt
         _, f_persist = p.p_clear[0].split(potential_persist)
         self.ti_clearance[f_persist] = self.ti_infected[f_persist] + 1e2/dt
         return

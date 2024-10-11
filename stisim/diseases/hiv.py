@@ -76,20 +76,20 @@ class HIV(BaseSTI):
         self.define_states(
             # Natural history
             ss.FloatArr('ti_acute'),
-            ss.BoolArr('acute'),
+            ss.State('acute'),
             ss.FloatArr('ti_latent'),
-            ss.BoolArr('latent'),
+            ss.State('latent'),
             ss.FloatArr('ti_falling'),
-            ss.BoolArr('falling'),
-            ss.BoolArr('post_art'),  # After stopping ART, CD4 falls linearly until death
+            ss.State('falling'),
+            ss.State('post_art'),  # After stopping ART, CD4 falls linearly until death
             ss.FloatArr('ti_zero'),  # Time of zero CD4 count - generally corresponds to AIDS death
             ss.FloatArr('ti_dead'),  # Time of HIV/AIDS death
 
             # Care and treatment states
             ss.FloatArr('baseline_care_seeking'),
             ss.FloatArr('care_seeking'),
-            ss.BoolArr('never_art', default=True),
-            ss.BoolArr('on_art'),
+            ss.State('never_art', default=True),
+            ss.State('on_art'),
             ss.FloatArr('ti_art'),
             ss.FloatArr('ti_stop_art'),
 
@@ -103,7 +103,7 @@ class HIV(BaseSTI):
             ss.FloatArr('cd4_postart'),     # CD4 after stopping ART
 
             # Knowledge of HIV status
-            ss.BoolArr('diagnosed'),
+            ss.State('diagnosed'),
             ss.FloatArr('ti_diagnosed'),
         )
 

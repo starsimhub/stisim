@@ -22,9 +22,9 @@ class Placeholder(ss.Disease):
         )
         self.update_pars(pars, **kwargs)
         self.define_states(
-            ss.BoolArr('symptomatic'),  # Symptomatic
+            ss.State('symptomatic'),  # Symptomatic
             ss.FloatArr('ti_symptomatic'),  # Time of active symptoms
-            ss.BoolArr('seeking_care'),  # Care seeking
+            ss.State('seeking_care'),  # Care seeking
             ss.FloatArr('ti_seeks_care'),  # Time of active symptoms
         )
         self._prev_dist = ss.bernoulli(p=0)
@@ -37,7 +37,7 @@ class Placeholder(ss.Disease):
             ts = sti.TimeSeries(assumption=self.pars.prevalence)
         else:
             ts = self.pars.prevalence
-        self._target_prevalence = ts.interpolate(sim.yearvec)
+        self._target_prevalence = ts.interpolate(sim.timevec)
 
     def set_prognoses(self, target_uids, source_uids=None):
         self.symptomatic[target_uids] = True
@@ -122,7 +122,7 @@ class GUD(ss.Infection):
         Set initial prognoses for adults newly infected with syphilis
         """
         ti = self.sim.ti
-        dt = self.sim.dt
+        dt = self.dt
 
         self.susceptible[uids] = False
         self.infected[uids] = True
