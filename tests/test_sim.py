@@ -53,7 +53,7 @@ def test_sti_sim(n_agents=500, dt=1, start=2000, dur=40):
     sim = ss.Sim(
         dt=dt,
         start=start,
-        n_years=dur,
+        dur=dur,
         n_agents=n_agents,
         diseases=bv,
         networks=sexual,
