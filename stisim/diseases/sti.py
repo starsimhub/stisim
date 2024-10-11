@@ -201,6 +201,7 @@ class SEIS(BaseSTI):
 
     def init_pre(self, sim):
         super().init_pre(sim)
+        self.pars.beta = self.validate_beta()
         if self.pars.beta_m2f is not None:
             self.pars.beta['structuredsexual'][0] *= self.pars.beta_m2f
             if self.pars.beta_f2m is None:

@@ -39,19 +39,19 @@ def test_gon(n_agents=500, dt=1/12, start=2000, dur=40):
     # Testing interventions
     def seeking_care_discharge(sim):
         ng_care = sim.diseases.ng.symptomatic & (sim.diseases.ng.ti_seeks_care == sim.ti)
-        tv_care = sim.diseases.tv.symptomatic & (sim.diseases.tv.ti_seeks_care == sim.ti)
         ct_care = sim.diseases.ct.symptomatic & (sim.diseases.ct.ti_seeks_care == sim.ti)
-        vd_care = sim.diseases.vd.symptomatic & (sim.diseases.vd.ti_seeks_care == sim.ti)
-        return (ng_care | tv_care | ct_care | vd_care).uids
+        tv_care = sim.diseases.tv.symptomatic & (sim.diseases.tv.ti_seeks_care == sim.ti)
+        bv_care = sim.diseases.bv.symptomatic & (sim.diseases.bv.ti_seeks_care == sim.ti)
+        return (ng_care | tv_care | ct_care | bv_care).uids
 
     ng_tx = sti.GonorrheaTreatment()
     ct_tx = sti.STITreatment(diseases='ct', name='ct_tx', label='ct_tx')
-    metro = sti.STITreatment(diseases=['tv', 'vd'], name='metro', label='metro')
+    metro = sti.STITreatment(diseases=['tv', 'bv'], name='metro', label='metro')
     syndromic = sti.SymptomaticTesting(
         diseases=[ng, tv, ct, vd],
         eligibility=seeking_care_discharge,
         treatments=[ng_tx, ct_tx, metro],
-        disease_treatment_map={'ng': ng_tx, 'ct': ct_tx, 'tv': metro, 'vd': metro}
+        disease_treatment_map={'ng': ng_tx, 'ct': ct_tx, 'tv': metro, 'bv': metro}
     )
 
     pregnancy = ss.Pregnancy(fertility_rate=10)

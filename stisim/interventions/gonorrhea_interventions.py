@@ -44,12 +44,12 @@ class GonorrheaTreatment(STITreatment):
         self.pars.treat_eff.set(new_treat_eff)
         return
 
-    def apply(self, sim):
+    def step(self):
         """
         Apply treatment. On each timestep, this method will add eligible people who are willing to accept treatment to a
         queue, and then will treat as many people in the queue as there is capacity for.
         """
-        treat_uids = super().apply(sim)
+        treat_uids = super().step()
 
         # Change treatment resistance for those unsuccessfully treated
         treat_unsucc = self.outcomes['ng']['unsuccessful']
@@ -96,7 +96,8 @@ class UpdateDrugs(ss.Intervention):
         self.results += [
         ]
 
-    def apply(self, sim):
+    def step(self):
+        sim = self.sim
         target_uids = self.check_eligibility(sim)
         pop_rel_treat = np.mean(self.sim.people.rel_treat[target_uids])
         if pop_rel_treat < self.pars.threshold_amr:
