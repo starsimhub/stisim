@@ -166,7 +166,7 @@ class StructuredSexual(ss.SexualNetwork):
         if self.condom_data is not None:
             if isinstance(self.condom_data, dict):
                 for rgtuple, valdict in self.condom_data.items():
-                    self.condom_data[rgtuple]['simvals'] = np.interp(sim.yearvec, valdict['year'], valdict['val'])
+                    self.condom_data[rgtuple]['simvals'] = np.interp(sim.timevec, valdict['year'], valdict['val'])
         # self.init_results()
         return
 
