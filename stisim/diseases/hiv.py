@@ -251,7 +251,7 @@ class HIV(BaseSTI):
     @staticmethod
     def death_prob(module, sim=None, uids=None):
         cd4_bins = np.array([1000, 500, 350, 200, 50, 0])
-        death_prob = sim.dt*np.array([0.003, 0.003, 0.005, 0.01, 0.05, 0.300])  # Values smaller than the first bin edge get assigned to the last bin.
+        death_prob = self.dt*np.array([0.003, 0.003, 0.005, 0.01, 0.05, 0.300])  # Values smaller than the first bin edge get assigned to the last bin.
         return death_prob[np.digitize(module.cd4[uids], cd4_bins)]
 
     @staticmethod
@@ -382,10 +382,10 @@ class HIV(BaseSTI):
             time_to_full_eff = self.pars.time_to_art_efficacy
             art_uids = self.on_art.uids
             dur_art = ti - self.ti_art[art_uids]
-            months_on_art = dur_art*sim.dt*12
-            new_on_art = months_on_art < (time_to_full_eff/sim.dt)
+            months_on_art = dur_art*self.dt*12  # TODO: make this more robust
+            new_on_art = months_on_art < (time_to_full_eff/self.dt)
             efficacy_to_date = np.full_like(art_uids, fill_value=full_eff, dtype=float)
-            efficacy_to_date[new_on_art] = months_on_art[new_on_art]*full_eff/(time_to_full_eff/sim.dt)
+            efficacy_to_date[new_on_art] = months_on_art[new_on_art]*full_eff/(time_to_full_eff/self.dt)
             self.rel_trans[art_uids] *= 1 - efficacy_to_date
 
         return
@@ -482,7 +482,7 @@ class HIV(BaseSTI):
         Check who is ready to start ART treatment and put them on ART
         """
         ti = self.sim.ti
-        dt = self.sim.dt
+        dt = self.dt
 
         self.on_art[uids] = True
         newly_treated = uids[self.never_art[uids]]
@@ -542,7 +542,7 @@ class HIV(BaseSTI):
         Check who is stopping ART treatment and put them off ART
         """
         ti = self.sim.ti
-        dt = self.sim.dt
+        dt = self.dt
 
         # Remove agents from ART
         if uids is None: uids = self.on_art & (self.ti_stop_art <= ti)
