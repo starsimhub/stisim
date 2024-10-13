@@ -38,8 +38,9 @@ class HIVTest(STITest):
         if self.eligibility is None:
             self.eligibility = lambda sim: ~sim.diseases.hiv.diagnosed
 
-    def apply(self, sim, uids=None):
-        outcomes = super().apply(sim, uids=uids)
+    def step(self, uids=None):
+        sim = self.sim
+        outcomes = super().apply(uids=uids)
         pos_uids = outcomes['positive']
         sim.diseases.hiv.diagnosed[pos_uids] = True
         sim.diseases.hiv.ti_diagnosed[pos_uids] = sim.ti
@@ -76,10 +77,11 @@ class ART(ss.Intervention):
         self.initialized = True
         return
 
-    def apply(self, sim):
+    def step(self):
         """
         Apply the ART intervention at each time step. Put agents on and off ART and adjust based on data.
         """
+        sim = self.sim
         hiv = sim.diseases.hiv
         inf_uids = hiv.infected.uids
 
@@ -218,10 +220,6 @@ class VMMC(ss.Intervention):
 
         return
 
-    def init_post(self):
-        super().init_post()
-        return
-
     def init_results(self):
         super().init_results()
         self.define_results(
@@ -230,7 +228,8 @@ class VMMC(ss.Intervention):
         )
         return
 
-    def apply(self, sim):
+    def step(self):
+        sim = self.sim
         m_uids = sim.people.male.uids
 
         # Figure out how many people should be circumcised
