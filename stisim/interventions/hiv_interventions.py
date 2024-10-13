@@ -86,7 +86,7 @@ class ART(ss.Intervention):
         inf_uids = hiv.infected.uids
 
         # Figure out how many people should be treated
-        if sim.year < self.pars.future_coverage['year']:
+        if sim.now < self.pars.future_coverage['year']:
             if self.coverage is None:
                 n_to_treat = 0
             else:
@@ -233,7 +233,7 @@ class VMMC(ss.Intervention):
         m_uids = sim.people.male.uids
 
         # Figure out how many people should be circumcised
-        if sim.year < self.pars.future_coverage['year']:
+        if sim.now < self.pars.future_coverage['year']:
             if self.coverage is None:
                 n_to_circ = 0
             else:

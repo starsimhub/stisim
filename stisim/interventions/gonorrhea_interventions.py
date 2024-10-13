@@ -23,8 +23,8 @@ class GonorrheaTreatment(STITreatment):
         - unsuccessful treatment reduces dur_inf and rel_trans, but results in lower rel_treat
         - unnecessary treatment results in lower rel_treat
     """
-    def __init__(self, pars=None, eligibility=None, max_capacity=None, years=None, *args, **kwargs):
-        super().__init__(diseases='ng', eligibility=eligibility, max_capacity=max_capacity, years=years, *args)
+    def __init__(self, pars=None, eligibility=None, max_capacity=None, years=None, name=None, *args, **kwargs):
+        super().__init__(diseases='ng', name=name, eligibility=eligibility, max_capacity=max_capacity, years=years, *args)
         self.requires = ['ng', 'structuredsexual']
         self.define_pars(
             base_treat_eff=0.96,
