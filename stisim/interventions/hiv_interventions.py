@@ -238,12 +238,12 @@ class VMMC(ss.Intervention):
                 n_to_circ = 0
             else:
                 if self.coverage_format == 'n_vmmc':
-                    n_to_circ = int(sim.dt*self.coverage[sim.ti]/sim.pars.pop_scale)
+                    n_to_circ = int(self.dt*self.coverage[sim.ti]/sim.pars.pop_scale)
                 elif self.coverage_format == 'p_vmmc':
-                    n_to_circ = int(sim.dt*self.coverage[sim.ti]*len(m_uids))
+                    n_to_circ = int(self.dt*self.coverage[sim.ti]*len(m_uids))
         else:
             p_cov = self.pars.future_coverage['prop']
-            n_to_circ = int(sim.dt*p_cov*len(m_uids))
+            n_to_circ = int(self.dt*p_cov*len(m_uids))
 
         if n_to_circ > 0:
             # Find who's eligible to circumcise

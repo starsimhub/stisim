@@ -131,7 +131,7 @@ class STITest(ss.Intervention):
             test_prob = self.test_prob_data
 
         elif sc.checktype(self.test_prob_data, 'arraylike'):
-            year_ind = sc.findnearest(self.years, sim.year)
+            year_ind = sc.findnearest(self.years, sim.now)
             test_prob = self.test_prob_data[year_ind]
         else:
             errormsg = 'Format of test_prob_data must be float or array.'
