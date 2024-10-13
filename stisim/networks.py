@@ -34,7 +34,7 @@ class StructuredSexual(ss.SexualNetwork):
     Structured sexual network
     """
 
-    def __init__(self, pars=None, key_dict=None, condom_data=None, **kwargs):
+    def __init__(self, pars=None, key_dict=None, condom_data=None, name=None, **kwargs):
 
         key_dict = sc.mergedicts({
             'sw': bool,
@@ -43,7 +43,7 @@ class StructuredSexual(ss.SexualNetwork):
             'age_p2': ss_float_,
         }, key_dict)
 
-        super().__init__(key_dict=key_dict)
+        super().__init__(key_dict=key_dict, name=name)
 
         self.define_pars(
             # Settings - generally shouldn't be adjusted

@@ -40,7 +40,7 @@ class HIVTest(STITest):
 
     def step(self, uids=None):
         sim = self.sim
-        outcomes = super().apply(uids=uids)
+        outcomes = super().step(uids=uids)
         pos_uids = outcomes['positive']
         sim.diseases.hiv.diagnosed[pos_uids] = True
         sim.diseases.hiv.ti_diagnosed[pos_uids] = sim.ti
