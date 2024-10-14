@@ -25,7 +25,6 @@ def make_sim():
     hiv = sti.HIV(
         beta={'structuredsexual': [1, 1], 'maternal': [1, 0]},
         beta_m2f=0.05,
-        beta_f2m=0.025,
         beta_m2c=0.025,
         init_prev=0.15,
     )
