@@ -285,7 +285,7 @@ class StructuredSexual(ss.SexualNetwork):
         beta = np.ones(len(p2), dtype=ss_float_)
         condoms = np.zeros(len(p2), dtype=ss_float_)  # FILLED IN LATER
         dur = np.full(len(p2), dtype=ss_float_, fill_value=dt)  # Default duration is dt, replaced for stable matches
-        acts = (self.pars.acts.rvs(p2) * dt).astype(int)  # Number of acts does not depend on commitment/risk group
+        acts = (self.pars.acts.rvs(p2) * dt).astype(int)  # Number of acts per timestep - does not depend on commitment/risk group
         sw = np.full_like(p1, False, dtype=bool)
         age_p1 = ppl.age[p1]
         age_p2 = ppl.age[p2]
@@ -438,7 +438,7 @@ class StructuredSexual(ss.SexualNetwork):
         ti = self.sim.ti
         self.results.share_active[ti] = len(self.active(self.sim.people).uids)/len(self.sim.people)
 
-    def beta_per_dt(self, disease_beta=None, dt=None, uids=None, disease=None):
+    def net_beta(self, disease_beta=None, uids=None, disease=None):
         if uids is None: uids = Ellipsis
         p_condom = self.edges.condoms[uids]
         eff_condom = disease.pars.eff_condom
@@ -466,12 +466,11 @@ class StructuredSexual(ss.SexualNetwork):
 
         return
 
-    def update(self):
+    def step(self):
         self.end_pairs()
         self.set_network_states(upper_age=self.dt)
         self.add_pairs()
         self.set_condom_use()
-        # self.update_results()
 
         return
 

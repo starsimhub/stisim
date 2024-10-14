@@ -37,63 +37,42 @@ class BaseSTI(ss.Infection):
     def make_init_prev_fn(module, sim, uids):
         return make_init_prev_fn(module, sim, uids, active=True)
 
-    def make_new_cases(self):
-        """
-        Create new cases via contact networks. Most of this is copied from the Starsim class,
-        but the main difference is that beta_per_dt takes the disease module.
-        """
+    def infect(self):
+        """ Determine who gets infected on this timestep via transmission on the network """
         new_cases = []
         sources = []
         networks = []
-        betamap = self._check_betas()
+        betamap = self.validate_beta()
+
+        rel_trans = self.rel_trans.asnew(self.infectious * self.rel_trans)
+        rel_sus   = self.rel_sus.asnew(self.susceptible * self.rel_sus)
 
         for i, (nkey,net) in enumerate(self.sim.networks.items()):
-            if not len(net):
-                break
+            nk = ss.standardize_netkey(nkey)
+            if len(net): # Skip networks with no edges
+                edges = net.edges
+                p1p2b0 = [edges.p1, edges.p2, betamap[nk][0]] # Person 1, person 2, beta 0
+                p2p1b1 = [edges.p2, edges.p1, betamap[nk][1]] # Person 2, person 1, beta 1
+                for src, trg, beta in [p1p2b0, p2p1b1]:
+                    if beta: # Skip networks with no transmission
+                        beta_per_dt = net.net_beta(disease_beta=beta, disease=self) # Compute beta for this network and timestep
+                        randvals = self.trans_rng.rvs(src, trg) # Generate a new random number based on the two other random numbers
+                        args = (src, trg, rel_trans, rel_sus, beta_per_dt, randvals) # Set up the arguments to calculate transmission
+                        target_uids, source_uids = self.compute_transmission(*args) # Actually calculate it
+                        new_cases.append(target_uids)
+                        sources.append(source_uids)
+                        networks.append(np.full(len(target_uids), dtype=ss_int_, fill_value=i))
 
-            nbetas = betamap[nkey]
-            edges = net.edges
-
-            rel_trans = self.rel_trans.asnew(self.infectious * self.rel_trans)
-            rel_sus   = self.rel_sus.asnew(self.susceptible * self.rel_sus)
-            p1p2b0 = [edges.p1, edges.p2, nbetas[0]]
-            p2p1b1 = [edges.p2, edges.p1, nbetas[1]]
-            for src, trg, beta in [p1p2b0, p2p1b1]:
-
-                # Skip networks with no transmission
-                if beta == 0:
-                    continue
-
-                # Calculate probability of a->b transmission.
-                if net.postnatal or net.prenatal:
-                    beta_per_dt = net.beta_per_dt(disease_beta=beta, dt=self.dt)
-                else:
-                    beta_per_dt = net.beta_per_dt(disease_beta=beta, dt=self.dt, disease=self)
-                p_transmit = rel_trans[src] * rel_sus[trg] * beta_per_dt
-
-                # Generate a new random number based on the two other random numbers
-                rvs_s = self.rng_source.rvs(src)
-                rvs_t = self.rng_target.rvs(trg)
-                rvs = ss.combine_rands(rvs_s, rvs_t)
-
-                new_cases_bool = rvs < p_transmit
-                new_cases.append(trg[new_cases_bool])
-                sources.append(src[new_cases_bool])
-                networks.append(np.full(np.count_nonzero(new_cases_bool), dtype=ss_int_, fill_value=i))
-
-        # Tidy up
+        # Finalize
         if len(new_cases) and len(sources):
             new_cases = ss.uids.cat(new_cases)
             new_cases, inds = new_cases.unique(return_index=True)
             sources = ss.uids.cat(sources)[inds]
             networks = np.concatenate(networks)[inds]
         else:
-            new_cases = np.empty(0, dtype=int)
-            sources = np.empty(0, dtype=int)
-            networks = np.empty(0, dtype=int)
-
-        if len(new_cases):
-            self._set_cases(new_cases, sources)
+            new_cases = ss.uids()
+            sources = ss.uids()
+            networks = np.empty(0, dtype=ss_int_)
 
         return new_cases, sources, networks
 
