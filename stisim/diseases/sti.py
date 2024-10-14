@@ -418,10 +418,6 @@ class SEIS(BaseSTI):
 
         return
 
-    def finalize_results(self):
-        super().finalize_results()
-        return
-
     def set_exposure(self, uids):
         self.susceptible[uids] = False
         self.exposed[uids] = True
