@@ -186,9 +186,6 @@ class STITest(ss.Intervention):
                 self.ti_negative[outcomes['negative']] = sim.ti
                 self.ti_positive[outcomes['positive']] = sim.ti
 
-            # Update results
-            self.update_results()
-
         return outcomes
 
     def update_results(self):
@@ -324,9 +321,6 @@ class SymptomaticTesting(STITest):
                 self.ti_referred[referred_uids] = sim.ti
                 self.ti_dismissed[dismissed_uids] = sim.ti
                 self.treated_by_uid = treated_by_uid
-
-            # Update results
-            self.update_results()
 
             return
 
@@ -513,9 +507,6 @@ class STITreatment(ss.Intervention):
         self.outcomes['unsuccessful'] = unsuccessful
         # self.outcomes['successful_symp'] = self.outcomes[disease]['successful_symp']
         # self.outcomes['successful_asymp'] = self.outcomes[disease]['successful_asymp']
-
-        # Update results
-        self.update_results()
 
         return treat_uids
 
