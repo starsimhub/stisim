@@ -37,8 +37,18 @@ class BaseSTI(ss.Infection):
     def make_init_prev_fn(module, sim, uids):
         return make_init_prev_fn(module, sim, uids, active=True)
 
+    def validate_beta(self, run_checks=False):
+        betamap = super().validate_beta(run_checks=run_checks)
+        if self.pars.beta_m2f is not None:
+            betamap['structuredsexual'][0] = self.pars.beta_m2f
+            betamap['structuredsexual'][1] = self.pars.beta_m2f * self.pars.rel_beta_f2m
+        if self.pars.beta_m2c is not None:
+            betamap['maternal'][1] = self.pars.beta_m2c
+        return betamap
+
     def infect(self):
         """ Determine who gets infected on this timestep via transmission on the network """
+
         new_cases = []
         sources = []
         networks = []
@@ -136,7 +146,7 @@ class SEIS(BaseSTI):
             # Transmission
             beta=1.0,  # Placeholder
             beta_m2f=None,
-            beta_f2m=None,
+            rel_beta_f2m=0.5,
             beta_m2c=None,
 
             # Initial conditions
@@ -177,19 +187,6 @@ class SEIS(BaseSTI):
     def treatable(self):
         """ Active bacterial presence -- includes exposed and infected, and responds to treatment """
         return self.exposed | self.infected
-
-    def init_pre(self, sim):
-        super().init_pre(sim)
-        self.pars.beta = self.validate_beta(run_checks=False)  # TODO: why is this needed?
-        if self.pars.beta_m2f is not None:
-            self.pars.beta['structuredsexual'][0] *= self.pars.beta_m2f
-            if self.pars.beta_f2m is None:
-                self.pars.beta_f2m = self.pars.beta_m2f / 2
-        if self.pars.beta_f2m is not None:
-            self.pars.beta['structuredsexual'][1] *= self.pars.beta_f2m
-        if self.pars.beta_m2c is not None:
-            self.pars.beta['maternalnet'][1] *= self.pars.beta_m2c
-        return
 
     def init_results(self):
         """ Initialize results """
@@ -258,7 +255,7 @@ class SEIS(BaseSTI):
                 self.age_sex_results[rkey][skey] = np.zeros((len(self.age_bins)-1, len(self.sim.timevec)))
 
         return
- 
+
     def clear_infection(self, uids):
         self.exposed[uids] = False
         self.infected[uids] = False

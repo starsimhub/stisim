@@ -31,7 +31,7 @@ class HIV(BaseSTI):
             # Transmission
             beta=1,  # Placeholder, replaced by network-specific betas
             beta_m2f=None,
-            beta_f2m=None,
+            rel_beta_f2m=0.5,
             beta_m2c=None,
             rel_trans_acute=ss.normal(loc=6, scale=0.5),  # Increase transmissibility during acute HIV infection
             rel_trans_falling=ss.normal(loc=8, scale=0.5),  # Increase transmissibility during late HIV infection
@@ -116,21 +116,21 @@ class HIV(BaseSTI):
     @property
     def include_mtct(self): return 'pregnancy' in self.sim.demographics
 
-    def init_pre(self, sim):
-        """
-        Initialize
-        """
-        super().init_pre(sim)
-
-        # Optionally scale betas
-        if self.pars.beta_m2f is not None:
-            self.pars.beta['structuredsexual'][0] *= self.pars.beta_m2f
-        if self.pars.beta_f2m is not None:
-            self.pars.beta['structuredsexual'][1] *= self.pars.beta_f2m
-        if self.pars.beta_m2c is not None:
-            self.pars.beta['maternal'][0] *= self.pars.beta_m2c
-
-        return
+    # def init_pre(self, sim):
+    #     """
+    #     Initialize
+    #     """
+    #     super().init_pre(sim)
+    #
+    #     # Optionally scale betas
+    #     if self.pars.beta_m2f is not None:
+    #         self.pars.beta['structuredsexual'][0] *= self.pars.beta_m2f
+    #     if self.pars.beta_f2m is not None:
+    #         self.pars.beta['structuredsexual'][1] *= self.pars.beta_f2m
+    #     if self.pars.beta_m2c is not None:
+    #         self.pars.beta['maternal'][0] *= self.pars.beta_m2c
+    #
+    #     return
 
     def init_results(self):
         """
