@@ -44,7 +44,6 @@ def test_sti_sim(n_agents=500, dt=1, start=2000, dur=40):
 
     bv = sti.DischargingSTI(
         beta_m2f=0.1,
-        beta_f2m=0.05,
         init_prev=0.025,
     )
     pregnancy = ss.Pregnancy(fertility_rate=10)

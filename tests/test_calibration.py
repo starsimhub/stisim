@@ -57,7 +57,6 @@ def test_calibration(do_plot=True):
     # Define the calibration parameters
     calib_pars = dict(
         beta_m2f = dict(low=0.01, high=0.10, guess=0.05, path=('diseases', 'hiv', 'beta_m2f')),
-        beta_f2m = dict(low=0.005, high=0.05, guess=0.025, path=('diseases', 'hiv', 'beta_f2m')),
         rel_trans_latent = dict(low=0.00, high=0.2, guess=0.1, path=('diseases', 'syphilis', 'rel_trans_latent')),
         prop_f1 = dict(low=0.1, high=0.45, guess=0.15, path=('networks', 'structuredsexual', 'prop_f1')),
         prop_m1 = dict(low=0.15, high=0.5, guess=0.21, path=('networks', 'structuredsexual', 'prop_m1')),
