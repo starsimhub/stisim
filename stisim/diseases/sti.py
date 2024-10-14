@@ -37,6 +37,11 @@ class BaseSTI(ss.Infection):
     def make_init_prev_fn(module, sim, uids):
         return make_init_prev_fn(module, sim, uids, active=True)
 
+    def init_post(self):
+        super().init_post()
+        a = 4
+        return
+
     def make_new_cases(self):
         """
         Create new cases via contact networks. Most of this is copied from the Starsim class,
@@ -212,11 +217,6 @@ class SEIS(BaseSTI):
             self.pars.beta['maternalnet'][1] *= self.pars.beta_m2c
         return
 
-    def init_post(self):
-        """ Make initial cases """
-        super().init_post()
-        return
-
     def init_results(self):
         """ Initialize results """
         super().init_results()
@@ -298,8 +298,8 @@ class SEIS(BaseSTI):
         self.ti_seeks_care[past_care_seekers] = np.nan
         self.ti_clearance[uids] = self.sim.ti
 
-    def update_pre(self):
-        """ Updates prior to interventions """
+    def step_state(self):
+        """ Updates for this timestep """
         ti = self.sim.ti
 
         # Reset susceptibility and infectiousness

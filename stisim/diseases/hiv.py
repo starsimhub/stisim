@@ -278,7 +278,7 @@ class HIV(BaseSTI):
         self.baseline_care_seeking[uids] = sc.dcp(self.care_seeking[uids])  # Copy it so pregnancy can modify it
         return
 
-    def update_pre(self):
+    def step_state(self):
         """
         Carry out autonomous updates at the start of the timestep (prior to transmission)
         """
@@ -426,13 +426,6 @@ class HIV(BaseSTI):
             self.results['new_infections_client'][ti] = len(((self.ti_infected == ti) & self.sim.networks.structuredsexual.client).uids)
             self.results['new_infections_not_client'][ti] = len(((self.ti_infected == ti) & ~self.sim.networks.structuredsexual.client).uids)
 
-        return
-
-    def make_new_cases(self):
-        """
-        Add new HIV cases
-        """
-        super().make_new_cases()
         return
 
     def set_prognoses(self, uids, source_uids=None, ti=None):
