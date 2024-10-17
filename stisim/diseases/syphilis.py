@@ -212,7 +212,7 @@ class Syphilis(BaseSTI):
     def init_results(self):
         """ Initialize results """
         super().init_results()
-        self.define_results(
+        results = [
             ss.Result('n_active', dtype=int, label="Number of active cases"),
             ss.Result('pregnant_prevalence', dtype=float, scale=False, label="Pregnant prevalence"),
             ss.Result('detected_pregnant_prevalence', dtype=float, scale=False, label="ANC prevalence"),
@@ -247,13 +247,17 @@ class Syphilis(BaseSTI):
             ss.Result('new_fetus_treated_success', dtype=int, label="Fetal treatment success"),
             ss.Result('new_fetus_treated_unnecessary', dtype=int, label="Fetal overtreatment"),
             ss.Result('new_fetus_treated_failure', dtype=int, label="Fetal treatment failure"),
-        )
-            # # Add risk groups to results
-            # for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
-            #     for sex in ['female', 'male']:
-            #         self.results += ss.Result(self.name, 'prevalence_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float)
-            #         self.results += ss.Result(self.name, 'new_infections_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float, scale=True)
-            #
+        ]
+        # Add risk groups to results
+        for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
+            for sex in ['female', 'male']:
+                results += [
+                    ss.Result('prevalence_risk_group_' + str(risk_group) + '_' + sex, scale=False),
+                    ss.Result('new_infections_risk_group_' + str(risk_group) + '_' + sex, dtype=int),
+                ]
+
+        self.define_results(*results)
+
         return
 
     def step_state(self):
@@ -271,9 +275,6 @@ class Syphilis(BaseSTI):
             self.secondary[secondary_from_primary] = True
             self.primary[secondary_from_primary] = False
             self.set_secondary_prognoses(secondary_from_primary.uids)
-
-        # Hack to reset MultiRNGs in set_secondary_prognoses so they can be called again this timestep. TODO: Refactor
-        self.pars.dur_secondary.jump(ti+1)
 
         # Secondary reactivation from latent
         secondary_from_latent = self.latent & (self.ti_latent >= ti) & (self.ti_secondary <= ti)
@@ -301,7 +302,7 @@ class Syphilis(BaseSTI):
 
         # Congenital syphilis deaths
         # if self.sim.ti > 20:
-        print('hi')
+        #     print('hi')
         nnd = (self.ti_nnd <= ti).uids
         stillborn = (self.ti_stillborn <= ti).uids
         self.sim.people.request_death(nnd)
@@ -396,15 +397,6 @@ class Syphilis(BaseSTI):
         latent_trans = self.pars.rel_trans_latent * np.exp(-decay_rate * dur_latent * dt)
         self.rel_trans[self.latent] = latent_trans
         return
-
-    def infect(self):
-        """
-        Add new syphilis cases
-        """
-        targets, sources, networks = super().infect()
-        for source, target, network in zip(sources, targets, networks):
-            self.log.append(source, target, t=self.sim.year, network=self.sim.networks[network].name)
-        return sources, targets, networks
 
     def set_prognoses(self, uids, source_uids=None, ti=None):
         """
