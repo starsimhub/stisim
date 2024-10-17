@@ -14,7 +14,7 @@ class DischargingSTI(SEIS):
     def __init__(self, pars=None, name='bv', init_prev_data=None, **kwargs):
         super().__init__(name=name, init_prev_data=init_prev_data)
 
-        self.default_pars(
+        self.define_pars(
             p_symp=[
                 # Amsel score or Nugent score, clinical diagnosis for BV, cal be asymptomatic
                 # Asymptomatic still has the same risk for STIs/HIV

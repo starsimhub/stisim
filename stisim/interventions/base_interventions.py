@@ -58,9 +58,9 @@ class STITest(ss.Intervention):
     Base class for STI testing
     """
 
-    def __init__(self, pars=None, test_prob_data=None, years=None, start=None, end=None, eligibility=None, product=None, name=None, label=None, **kwargs):
+    def __init__(self, pars=None, test_prob_data=None, years=None, start=None, stop=None, eligibility=None, product=None, name=None, label=None, **kwargs):
         super().__init__(name=name, label=label)
-        self.default_pars(
+        self.define_pars(
             rel_test=1,
             dt_scale=True,
         )
@@ -72,13 +72,13 @@ class STITest(ss.Intervention):
             raise ValueError(errormsg)
         self.years = years
         self.start = start
-        self.end = end
+        self.stop = stop
         if self.start is None:
             if self.years is not None:
                 self.start = self.years[0]
-        if self.end is None:
+        if self.stop is None:
             if self.years is not None:
-                self.end = self.years[-1]
+                self.stop = self.years[-1]
 
         # Testing eligibility and uptake
         self.eligibility = eligibility
@@ -87,9 +87,9 @@ class STITest(ss.Intervention):
         self.test_prob = ss.bernoulli(self.make_test_prob_fn)
 
         # States
-        self.add_states(
-            ss.BoolArr('tested'),
-            ss.BoolArr('diagnosed'),
+        self.define_states(
+            ss.State('tested'),
+            ss.State('diagnosed'),
             ss.FloatArr('ti_tested'),
             ss.FloatArr('ti_scheduled'),
             ss.FloatArr('ti_positive'),
@@ -113,18 +113,14 @@ class STITest(ss.Intervention):
     def init_pre(self, sim):
         super().init_pre(sim)
         if self.start is None: self.start = sim.pars.start
-        if self.end is None: self.end = sim.pars.end
-        self.init_results()
+        if self.stop is None: self.stop = sim.pars.stop
         return
 
     def init_results(self):
-        npts = self.sim.npts
-        results = [
-            ss.Result(self.name, 'new_diagnoses', npts, dtype=float, scale=True, label="New diagnoses"),
-            ss.Result(self.name, 'new_tests', npts, dtype=int, scale=True, label="New tests"),
-        ]
-        self.results += results
-
+        self.define_results(
+            ss.Result('new_diagnoses', dtype=int, label="New diagnoses"),
+            ss.Result('new_tests', dtype=int, label="New tests"),
+        )
         return
 
     @staticmethod
@@ -135,7 +131,7 @@ class STITest(ss.Intervention):
             test_prob = self.test_prob_data
 
         elif sc.checktype(self.test_prob_data, 'arraylike'):
-            year_ind = sc.findnearest(self.years, sim.year)
+            year_ind = sc.findnearest(self.years, sim.now)
             test_prob = self.test_prob_data[year_ind]
         else:
             errormsg = 'Format of test_prob_data must be float or array.'
@@ -143,7 +139,7 @@ class STITest(ss.Intervention):
 
         # Scale and validate
         test_prob *= self.pars.rel_test
-        if self.pars.dt_scale: test_prob *= sim.dt
+        if self.pars.dt_scale: test_prob *= self.dt
         test_prob = np.clip(test_prob, a_min=0, a_max=1)
 
         return test_prob
@@ -154,7 +150,7 @@ class STITest(ss.Intervention):
         """
         # Select UIDs for testing based on eligibility and test_prob
         accept_uids = ss.uids()
-        eligible_uids = self.check_eligibility(sim)  # Apply eligiblity
+        eligible_uids = self.check_eligibility()  # Apply eligiblity
         if len(eligible_uids):
             accept_uids = self.test_prob.filter(eligible_uids)
         scheduled_uids = (self.ti_scheduled == sim.ti).uids  # Add on scheduled tests
@@ -164,13 +160,14 @@ class STITest(ss.Intervention):
         # Schedule a future test for specified UIDs at specified time indices
         self.ti_scheduled[uids] = ti
 
-    def apply(self, sim, uids=None):
+    def step(self, uids=None):
         """ Apply the testing intervention """
+        sim = self.sim
         outcomes = {outcome: ss.uids() for outcome in self.product.result_list}
         self.last_outcomes = outcomes
 
         # Apply if within the start years
-        if (sim.year >= self.start) & (sim.year < self.end):
+        if (sim.now >= self.start) & (sim.now < self.stop):
 
             if uids is None:
                 uids = self.get_testers(sim)
@@ -189,9 +186,6 @@ class STITest(ss.Intervention):
                 self.ti_negative[outcomes['negative']] = sim.ti
                 self.ti_positive[outcomes['positive']] = sim.ti
 
-            # Update results
-            self.update_results()
-
         return outcomes
 
     def update_results(self):
@@ -209,9 +203,9 @@ class SymptomaticTesting(STITest):
     Rather, the testing intervention itself contains a linked treatment intervention.
     """
 
-    def __init__(self, pars=None, treatments=None, diseases=None, disease_treatment_map=None, treat_prob_data=None, years=None, start=None, end=None, eligibility=None, name=None, label=None, **kwargs):
-        super().__init__(years=years, start=start, end=end, eligibility=eligibility, name=name, label=label)
-        self.default_pars(
+    def __init__(self, pars=None, treatments=None, diseases=None, disease_treatment_map=None, treat_prob_data=None, years=None, start=None, stop=None, eligibility=None, name=None, label=None, **kwargs):
+        super().__init__(years=years, start=start, stop=stop, eligibility=eligibility, name=name, label=label)
+        self.define_pars(
             sens=dict(
                 ng=[ss.bernoulli(0.6919), ss.bernoulli(0.93)],
                 ct=[ss.bernoulli(0.6919), ss.bernoulli(0.93)],
@@ -235,7 +229,7 @@ class SymptomaticTesting(STITest):
             disease_treatment_map = {t.disease: t for t in self.treatments}
         self.disease_treatment_map = disease_treatment_map
 
-        self.add_states(
+        self.define_states(
             ss.FloatArr('ti_referred'),
             ss.FloatArr('ti_dismissed'),
         )
@@ -253,32 +247,31 @@ class SymptomaticTesting(STITest):
 
     def init_results(self):
         super().init_results()
-        npts = self.sim.npts
-        self.results += [
-            ss.Result(self.name, 'new_care_seekers', npts, dtype=int, scale=True, label="Care seekers"),
-            ss.Result(self.name, 'new_tx0', npts, dtype=int, scale=True, label="No treatment"),
-            ss.Result(self.name, 'new_tx1', npts, dtype=int, scale=True, label="1 treatment"),
-            ss.Result(self.name, 'new_tx2', npts, dtype=int, scale=True, label="2 treatment"),
-            ss.Result(self.name, 'new_tx3', npts, dtype=int, scale=True, label="3 treatments"),
-        ]
+        self.define_results(
+            ss.Result('new_care_seekers', dtype=int, label="Care seekers"),
+            ss.Result('new_tx0', dtype=int, label="No treatment"),
+            ss.Result('new_tx1', dtype=int, label="1 treatment"),
+            ss.Result('new_tx2', dtype=int, label="2 treatment"),
+            ss.Result('new_tx3', dtype=int, label="3 treatments"),
+        )
         return
 
-    def apply(self, sim, uids=None):
+    def step(self, uids=None):
         """ Apply syndromic management """
+        sim = self.sim
         self.treated_by_uid = None
         ti = sim.ti
 
-
         # If this intervention has stopped, reset eligibility for all associated treatments
-        if (sim.year >= self.end):
+        if (sim.now >= self.stop):
             for treatment in self.treatments:
                 treatment.eligibility = ss.uids()  # Reset
             return
 
-        if (sim.year >= self.start):
+        if (sim.now >= self.start):
 
             if uids is None:
-                uids = self.check_eligibility(sim)
+                uids = self.check_eligibility()
                 self.ti_tested[uids] = sim.ti
 
             if len(uids):
@@ -329,9 +322,6 @@ class SymptomaticTesting(STITest):
                 self.ti_dismissed[dismissed_uids] = sim.ti
                 self.treated_by_uid = treated_by_uid
 
-            # Update results
-            self.update_results()
-
             return
 
     def update_results(self):
@@ -360,14 +350,14 @@ class STITreatment(ss.Intervention):
         pars:
         disease (str): should match the name of one of the diseases in the simulation
     """
-    def __init__(self, pars=None, disease=None, eligibility=None, max_capacity=None, years=None, *args, **kwargs):
-        super().__init__(*args)
-        self.requires = disease
-        self.default_pars(
+    def __init__(self, name=None, pars=None, diseases=None, eligibility=None, max_capacity=None, years=None, *args, **kwargs):
+        super().__init__(*args, name=name)
+        self.requires = diseases
+        self.define_pars(
             treat_prob=ss.bernoulli(p=1.),
             treat_eff=ss.bernoulli(p=0.9),
         )
-        self.diseases = sc.promotetolist(disease)
+        self.diseases = sc.promotetolist(diseases)
         self.update_pars(pars, **kwargs)
         self.eligibility = eligibility
         if self.eligibility is None:
@@ -377,68 +367,37 @@ class STITreatment(ss.Intervention):
         self.years = years
 
         # States
-        self.add_states(
-            ss.BoolArr('treated'),
+        self.define_states(
+            ss.State('treated'),
             ss.FloatArr('ti_treated'),
         )
 
         return
 
-    def init_pre(self, sim):
-        super().init_pre(sim)
-        self.init_results()
-        return
-
     def init_results(self):
-        results = [
-            ss.Result(self.name, 'new_treated', self.sim.npts, dtype=int, scale=True, label="Number treated"),
-            ss.Result(self.name, 'new_treated_success', self.sim.npts, dtype=int, scale=True, label="Successfully treated"),
-            ss.Result(self.name, 'new_treated_failure', self.sim.npts, dtype=int, scale=True, label="Treatment failure"),
-            ss.Result(self.name, 'new_treated_unnecessary', self.sim.npts, dtype=int, scale=True, label="Overtreatment"),
-            ss.Result(self.name, 'new_treated_success_symp', self.sim.npts, dtype=int, scale=True, label="Successfully treated (symptomatic)"),
-            ss.Result(self.name, 'new_treated_success_asymp', self.sim.npts, dtype=int, scale=True, label="Successfully treated (asymptomatic)"),
-        ]
-        self.results += results
-        return
-
-    def add_to_queue(self, sim):
-        """
-        Add people who are willing to accept treatment to the queue
-        """
-        accept_uids = ss.uids()
-        if callable(self.eligibility):
-            eligible_uids = self.check_eligibility(sim)  # Apply eligiblity - uses base class from ss.Intervention
-        else:
-            eligible_uids = self.eligibility
-        if len(eligible_uids):
-            accept_uids = self.pars.treat_prob.filter(eligible_uids)
-        if len(accept_uids): self.queue += accept_uids.tolist()
+        super().init_results()
+        self.define_results(
+            ss.Result('new_treated', dtype=int, label="Number treated"),
+            ss.Result('new_treated_success', dtype=int, label="Successfully treated"),
+            ss.Result('new_treated_failure', dtype=int, label="Treatment failure"),
+            ss.Result('new_treated_unnecessary', dtype=int, label="Overtreatment"),
+            ss.Result('new_treated_success_symp', dtype=int, label="Successfully treated (symptomatic)"),
+            ss.Result('new_treated_success_asymp',  dtype=int, label="Successfully treated (asymptomatic)"),
+        )
         return
 
     def get_candidates(self, sim):
         """
-        Get the indices of people who are candidates for treatment
+        Get people who are willing to accept treatment
         """
-        treat_candidates = np.array([], dtype=int)
-
-        if len(self.queue):
-
-            if self.max_capacity is None:
-                treat_candidates = self.queue[:]
-
-            else:
-                if sc.isnumber(self.max_capacity):
-                    max_capacity = self.max_capacity
-                elif sc.checktype(self.max_capacity, 'arraylike'):
-                    year_ind = sc.findnearest(self.years, sim.year)
-                    max_capacity = self.max_capacity[year_ind]
-
-                if max_capacity > len(self.queue):
-                    treat_candidates = self.queue[:]
-                else:
-                    treat_candidates = self.queue[:self.max_capacity]
-
-        return ss.uids(treat_candidates)
+        accept_uids = ss.uids()
+        if callable(self.eligibility):
+            eligible_uids = self.check_eligibility()  # Apply eligiblity - uses base class from ss.Intervention
+        else:
+            eligible_uids = self.eligibility
+        if len(eligible_uids):
+            accept_uids = self.pars.treat_prob.filter(eligible_uids)
+        return accept_uids
 
     def set_treat_eff(self, uids):
         """ Can be changed by derived classes """
@@ -472,17 +431,18 @@ class STITreatment(ss.Intervention):
         self.sim.diseases[disease].wipe_dates(treat_succ)
         return
 
-    def apply(self, sim):
+    def step(self):
         """
         Apply treatment. On each timestep, this method will add eligible people who are willing to accept treatment to a
         queue, and then will treat as many people in the queue as there is capacity for.
         """
+        sim = self.sim
         self.outcomes = sc.objdict()
         for disease in self.diseases:
             self.outcomes[disease] = sc.objdict(successful=ss.uids(), unsuccessful=ss.uids(), unnecessary=ss.uids(), successful_symp=ss.uids(), successful_asymp=ss.uids())
 
         # Figure out who to treat
-        self.add_to_queue(sim)
+        # self.add_to_queue(sim)
         treat_uids = self.get_candidates(sim)
         self.treated[treat_uids] = True
         self.ti_treated[treat_uids] = sim.ti
@@ -496,9 +456,6 @@ class STITreatment(ss.Intervention):
                 treat_succ = self.outcomes[disease]['successful']
                 if len(treat_succ):
                     self.change_states(disease, treat_succ)
-
-            # Recreate the queue
-            self.queue = [e for e in self.queue if e not in treat_uids]  # Recreate the queue, removing treated people
 
             # If eligibility is a list of UIDS, remove the treated ones. WARNING, FRAGILE!!!
             if isinstance(self.eligibility, ss.uids):
@@ -521,9 +478,6 @@ class STITreatment(ss.Intervention):
         self.outcomes['unsuccessful'] = unsuccessful
         # self.outcomes['successful_symp'] = self.outcomes[disease]['successful_symp']
         # self.outcomes['successful_asymp'] = self.outcomes[disease]['successful_asymp']
-
-        # Update results
-        self.update_results()
 
         return treat_uids
 
@@ -601,7 +555,8 @@ class PartnerNotification(ss.Intervention):
         # Could include a parameter here for acceptance of testing (if separating out probabilities of notification and testing)
         return self.test.schedule(uids, sim.ti+1)
 
-    def apply(self, sim):
+    def step(self):
+        sim = self.sim
         uids = self.eligible(sim)
         uids = self.identify_contacts(sim, uids)
         return self.notify(sim, uids)
@@ -633,7 +588,7 @@ class ProductMix(ss.Product):
 
     def init_pre(self, sim):
         super().init_pre(sim)
-        self.product_mix = self.f_out(sim.yearvec)
+        self.product_mix = self.f_out(sim.timevec)
 
     def administer(self, sim, uids):
         """

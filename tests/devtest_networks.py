@@ -17,25 +17,17 @@ class network_stats(ss.Analyzer):
         self.name = 'network_stats'
         return
 
-    def init_pre(self, sim):
-        super().init_pre(sim)
-        self.init_results()
-        return
-
-    def init_post(self):
-        super().init_post()
-        return
-
     def init_results(self):
-        npts = self.sim.npts
-        self.results += [
-            ss.Result(self.name, 'share_active', npts, dtype=float, scale=False),
-            ss.Result(self.name, 'partners_f_mean', npts, dtype=float, scale=False),
-            ss.Result(self.name, 'partners_m_mean', npts, dtype=float, scale=False),
-        ]
+        super().init_results()
+        self.define_results(
+            ss.Result('share_active', scale=False),
+            ss.Result('partners_f_mean', scale=False),
+            ss.Result('partners_m_mean', scale=False),
+        )
         return
 
-    def apply(self, sim):
+    def step(self):
+        sim = self.sim
         ti = sim.ti
         nw = sim.networks.structuredsexual
 
@@ -62,7 +54,7 @@ def make_sim(n_agents=500, dt=1):
         dt=dt,
         start=1990,
         total_pop=9980999,
-        n_years=35,
+        dur=35,
         people=ppl,
         networks=sexual,
         demographics=[pregnancy, death],
@@ -91,9 +83,9 @@ def test_n_agents():
     fig, axes = pl.subplots(3, 1)
     axes = axes.ravel()
     for n_agents in n_agent_list:
-        axes[0].plot(sim.yearvec, share_active[n_agents], label=int(n_agents))
-        axes[1].plot(sim.yearvec, partners_f_mean[n_agents], label=int(n_agents))
-        axes[2].plot(sim.yearvec, partners_m_mean[n_agents], label=int(n_agents))
+        axes[0].plot(sim.timevec, share_active[n_agents], label=int(n_agents))
+        axes[1].plot(sim.timevec, partners_f_mean[n_agents], label=int(n_agents))
+        axes[2].plot(sim.timevec, partners_m_mean[n_agents], label=int(n_agents))
     axes[0].legend()
 
     axes[0].set_title('Share active')

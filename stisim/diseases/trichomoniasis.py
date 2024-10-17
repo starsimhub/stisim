@@ -14,7 +14,7 @@ class Trichomoniasis(SEIS):
         super().__init__(name=name, init_prev_data=init_prev_data)
         self.requires = 'structuredsexual'
 
-        self.default_pars(
+        self.define_pars(
             dur_exp=ss.constant(0),
             p_symp=[
                 ss.bernoulli(p=0.4),  # Women: https://sti.bmj.com/content/76/4/248
@@ -69,7 +69,7 @@ class Trichomoniasis(SEIS):
 
         # Next, overwrite time of clearance for a subset of asymptomatic and postsymptomatic women
         potential_persist = f_symp_clear | f_asymp
-        dt = self.sim.dt
+        dt = self.dt
         _, f_persist = p.p_clear[0].split(potential_persist)
         self.ti_clearance[f_persist] = self.ti_infected[f_persist] + 1e2/dt
         return

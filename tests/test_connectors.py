@@ -38,8 +38,8 @@ def test_hiv_syph():
     assert r0 <= r1, f'The hiv-syph connector should increase HIV infections, but {r1}<{r0}'
     print(f'✓ ({r0} <= {r1})')
 
-    pl.plot(s0.yearvec, s0.results.hiv.prevalence, label='No connector')
-    pl.plot(s1.yearvec, s1.results.hiv.prevalence, label='With connector')
+    pl.plot(s0.timevec, s0.results.hiv.prevalence, label='No connector')
+    pl.plot(s1.timevec, s1.results.hiv.prevalence, label='With connector')
     pl.ylim(0, 1)
     pl.legend()
     pl.xlabel('Year')

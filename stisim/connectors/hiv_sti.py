@@ -16,7 +16,7 @@ class hiv_syph(ss.Connector):
 
         self.hiv = hiv_module
         self.syphilis = syphilis_module
-        self.default_pars(
+        self.define_pars(
             # Changes to HIV due to syphilis coinfection
             rel_sus_hiv_syph=2.67,  # Relative increase in susceptibility to HIV due to syphilis
             rel_trans_hiv_syph=1.2,  # Relative increase in transmission due to syphilis
@@ -29,7 +29,7 @@ class hiv_syph(ss.Connector):
         )
         self.update_pars(pars, **kwargs)
 
-        self.add_states(
+        self.define_states(
             ss.FloatArr('rel_sus_hiv_syph', default=self.pars.rel_sus_hiv_syph),
             ss.FloatArr('rel_trans_hiv_syph', default=self.pars.rel_trans_hiv_syph),
             ss.FloatArr('rel_sus_syph_hiv', default=self.pars.rel_sus_syph_hiv),
@@ -69,7 +69,7 @@ class hiv_tv(ss.Connector):
 
         self.hiv = hiv_module
         self.tv = tv_module
-        self.default_pars(
+        self.define_pars(
             # Changes to HIV due to trichonomiasis coinfection
             # Sources:
             #   - https://www.who.int/news-room/fact-sheets/detail/trichomoniasis
@@ -92,7 +92,7 @@ class hiv_ng(ss.Connector):
 
         self.hiv = hiv_module
         self.ng = ng_module
-        self.default_pars(
+        self.define_pars(
             # Changes to HIV due to gonorrhea coinfection
             # Sources:
             #   - TODO
@@ -115,7 +115,7 @@ class hiv_ct(ss.Connector):
 
         self.hiv = hiv_module
         self.ct = ct_module
-        self.default_pars(
+        self.define_pars(
             # Changes to HIV due to chlamydia coinfection
             # Sources:
             #   - TODO
