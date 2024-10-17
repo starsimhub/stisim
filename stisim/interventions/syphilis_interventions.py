@@ -23,8 +23,8 @@ class SyphTx(STITreatment):
     Treat a fixed number of people each timestep.
     """
 
-    def __init__(self, pars=None, max_capacity=None, years=None, eligibility=None, **kwargs):
-        super().__init__(disease='syphilis', eligibility=eligibility, years=years, max_capacity=max_capacity)
+    def __init__(self, pars=None, max_capacity=None, years=None, eligibility=None, name=None, **kwargs):
+        super().__init__(diseases='syphilis', name=name, eligibility=eligibility, years=years, max_capacity=max_capacity)
         self.define_pars(
             rel_treat_prob=1,
             treat_prob=ss.bernoulli(p=1),

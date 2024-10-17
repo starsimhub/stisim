@@ -77,19 +77,19 @@ class Syphilis(BaseSTI):
         self.define_pars(
             # Adult syphilis natural history, all specified in years
             dur_primary = ss.uniform(low=3/52, high=10/52),  # https://pubmed.ncbi.nlm.nih.gov/9101629/
-            dur_secondary = ss.lognorm_ex(mean=3.6/12, stdev=1.5/12),  # https://pubmed.ncbi.nlm.nih.gov/9101629/
+            dur_secondary = ss.lognorm_ex(mean=3.6/12, sigma=1.5/12),  # https://pubmed.ncbi.nlm.nih.gov/9101629/
             dur_early = ss.normal(1.5, 2/12),  # Assumption
             p_reactivate = ss.bernoulli(p=0.35),  # Probability of reactivating from latent to secondary
-            time_to_reactivate = ss.lognorm_ex(mean=1, stdev=1),  # Time to reactivation
+            time_to_reactivate = ss.lognorm_ex(mean=1, sigma=1),  # Time to reactivation
             p_tertiary = ss.bernoulli(p=0.35),  # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4917057/
-            time_to_tertiary = ss.lognorm_ex(mean=20, stdev=8),  # Time to tertiary
+            time_to_tertiary = ss.lognorm_ex(mean=20, sigma=8),  # Time to tertiary
             p_death = ss.bernoulli(p=0.05),  # probability of dying of tertiary syphilis
-            time_to_death = ss.lognorm_ex(mean=5, stdev=5),  # Time to death
+            time_to_death = ss.lognorm_ex(mean=5, sigma=5),  # Time to death
 
             # Transmission by stage
             beta=1.0,  # Placeholder
             beta_m2f=None,
-            beta_f2m=None,
+            rel_beta_f2m=0.5,
             beta_m2c=None,
             eff_condom=0.0,
             rel_trans_primary=1,
@@ -192,16 +192,6 @@ class Syphilis(BaseSTI):
     def infectious(self):
         """ Infectious """
         return self.active | self.latent
-
-    def init_pre(self, sim):
-        super().init_pre(sim)
-        if self.pars.beta_m2f is not None:
-            self.pars.beta['structuredsexual'][0] *= self.pars.beta_m2f
-        if self.pars.beta_f2m is not None:
-            self.pars.beta['structuredsexual'][1] *= self.pars.beta_f2m
-        if self.pars.beta_m2c is not None:
-            self.pars.beta['maternal'][0] *= self.pars.beta_m2c
-        return
 
     def init_post(self):
         """ Make initial cases - TODO, figure out how to incorporate active syphilis here """
