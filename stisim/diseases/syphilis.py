@@ -256,8 +256,8 @@ class Syphilis(BaseSTI):
             #
         return
 
-    def update_pre(self):
-        """ Updates prior to interventions """
+    def step_state(self):
+        """ Updates to states """
         ti = self.sim.ti
         dt = self.dt
 
@@ -300,6 +300,8 @@ class Syphilis(BaseSTI):
             self.sim.people.request_death(deaths)
 
         # Congenital syphilis deaths
+        # if self.sim.ti > 20:
+        print('hi')
         nnd = (self.ti_nnd <= ti).uids
         stillborn = (self.ti_stillborn <= ti).uids
         self.sim.people.request_death(nnd)
@@ -395,11 +397,11 @@ class Syphilis(BaseSTI):
         self.rel_trans[self.latent] = latent_trans
         return
 
-    def make_new_cases(self):
+    def infect(self):
         """
         Add new syphilis cases
         """
-        targets, sources, networks = super().make_new_cases()
+        targets, sources, networks = super().infect()
         for source, target, network in zip(sources, targets, networks):
             self.log.append(source, target, t=self.sim.year, network=self.sim.networks[network].name)
         return sources, targets, networks
