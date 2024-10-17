@@ -301,8 +301,6 @@ class Syphilis(BaseSTI):
             self.sim.people.request_death(deaths)
 
         # Congenital syphilis deaths
-        # if self.sim.ti > 20:
-        #     print('hi')
         nnd = (self.ti_nnd <= ti).uids
         stillborn = (self.ti_stillborn <= ti).uids
         self.sim.people.request_death(nnd)

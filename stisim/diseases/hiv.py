@@ -116,28 +116,12 @@ class HIV(BaseSTI):
     @property
     def include_mtct(self): return 'pregnancy' in self.sim.demographics
 
-    # def init_pre(self, sim):
-    #     """
-    #     Initialize
-    #     """
-    #     super().init_pre(sim)
-    #
-    #     # Optionally scale betas
-    #     if self.pars.beta_m2f is not None:
-    #         self.pars.beta['structuredsexual'][0] *= self.pars.beta_m2f
-    #     if self.pars.beta_f2m is not None:
-    #         self.pars.beta['structuredsexual'][1] *= self.pars.beta_f2m
-    #     if self.pars.beta_m2c is not None:
-    #         self.pars.beta['maternal'][0] *= self.pars.beta_m2c
-    #
-    #     return
-
     def init_results(self):
         """
         Initialize results
         """
         super().init_results()
-        self.define_results(
+        results = [
             ss.Result('new_deaths', dtype=int, label='Deaths'),
             ss.Result('cum_deaths', dtype=int, label='Cumulative deaths'),
             ss.Result('new_diagnoses', dtype=int, label='Diagnoses'),
@@ -150,16 +134,20 @@ class HIV(BaseSTI):
             ss.Result('new_infections_client', dtype=int, label='New infections - Clients'),
             ss.Result('new_infections_not_client', dtype=int, label='New infections - Other M'),
             ss.Result('p_on_art', dtype=float, label='Proportion on ART', scale=False),
-        )
+        ]
 
-        # if self.include_mtct:
-        #     self.results += ss.Result(self.name, 'n_on_art_pregnant', npts, dtype=float, scale=True)
-        #
-        # # Add FSW and clients to results:
-        # for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
-        #     for sex in ['female', 'male']:
-        #         self.results += ss.Result(self.name, 'prevalence_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float)
-        #         self.results += ss.Result(self.name, 'new_infections_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float, scale=True)
+        if self.include_mtct:
+            results += [ss.Result('n_on_art_pregnant', dtype=int)]
+
+        # Add FSW and clients to results:
+        for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
+            for sex in ['female', 'male']:
+                results += [
+                    ss.Result('prevalence_risk_group_' + str(risk_group) + '_' + sex, scale=False),
+                    ss.Result('new_infections_risk_group_' + str(risk_group) + '_' + sex, dtype=int),
+                ]
+
+        self.define_results(*results)
 
         return
 
