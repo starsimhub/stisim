@@ -129,16 +129,6 @@ class SyphTx(STITreatment):
 
 class NewbornTreatment(SyphTx):
 
-    def init_results(self):
-        super().init_results()
-        self.define_results(
-            ss.Result('new_treated', dtype=int, label="Number treated"),
-            ss.Result('new_treated_success', dtype=int, label="Successfully treated"),
-            ss.Result('new_treated_failure', dtype=int, label="Treatment failure"),
-            ss.Result('new_treated_unnecessary', dtype=int, label="Overtreatment"),
-        )
-        return
-
     def change_states(self, disease, treat_succ):
         """ Change states of congenital cases """
         self.sim.diseases[disease].congenital[treat_succ] = False
@@ -189,7 +179,7 @@ class SyphTest(STITest):
             df = df.pivot(columns='year', values='symp_test_prob')
             dd = df.to_dict(orient='index')
             for group, vals in dd.items():
-                dd[group] = sc.smoothinterp(sim.yearvec, list(vals.keys()), list(vals.values()), smoothness=0)
+                dd[group] = sc.smoothinterp(sim.timevec, list(vals.keys()), list(vals.values()), smoothness=0)
             return dd
         else: return self.test_prob_data
 

@@ -386,44 +386,18 @@ class STITreatment(ss.Intervention):
         )
         return
 
-    def add_to_queue(self, sim):
+    def get_candidates(self, sim):
         """
-        Add people who are willing to accept treatment to the queue
+        Get people who are willing to accept treatment
         """
         accept_uids = ss.uids()
         if callable(self.eligibility):
-            eligible_uids = self.check_eligibility(sim)  # Apply eligiblity - uses base class from ss.Intervention
+            eligible_uids = self.check_eligibility()  # Apply eligiblity - uses base class from ss.Intervention
         else:
             eligible_uids = self.eligibility
         if len(eligible_uids):
             accept_uids = self.pars.treat_prob.filter(eligible_uids)
-        if len(accept_uids): self.queue += accept_uids.tolist()
-        return
-
-    def get_candidates(self, sim):
-        """
-        Get the indices of people who are candidates for treatment
-        """
-        treat_candidates = np.array([], dtype=int)
-
-        if len(self.queue):
-
-            if self.max_capacity is None:
-                treat_candidates = self.queue[:]
-
-            else:
-                if sc.isnumber(self.max_capacity):
-                    max_capacity = self.max_capacity
-                elif sc.checktype(self.max_capacity, 'arraylike'):
-                    year_ind = sc.findnearest(self.years, sim.ow)
-                    max_capacity = self.max_capacity[year_ind]
-
-                if max_capacity > len(self.queue):
-                    treat_candidates = self.queue[:]
-                else:
-                    treat_candidates = self.queue[:self.max_capacity]
-
-        return ss.uids(treat_candidates)
+        return accept_uids
 
     def set_treat_eff(self, uids):
         """ Can be changed by derived classes """
@@ -468,7 +442,7 @@ class STITreatment(ss.Intervention):
             self.outcomes[disease] = sc.objdict(successful=ss.uids(), unsuccessful=ss.uids(), unnecessary=ss.uids(), successful_symp=ss.uids(), successful_asymp=ss.uids())
 
         # Figure out who to treat
-        self.add_to_queue(sim)
+        # self.add_to_queue(sim)
         treat_uids = self.get_candidates(sim)
         self.treated[treat_uids] = True
         self.ti_treated[treat_uids] = sim.ti
@@ -482,9 +456,6 @@ class STITreatment(ss.Intervention):
                 treat_succ = self.outcomes[disease]['successful']
                 if len(treat_succ):
                     self.change_states(disease, treat_succ)
-
-            # Recreate the queue
-            self.queue = [e for e in self.queue if e not in treat_uids]  # Recreate the queue, removing treated people
 
             # If eligibility is a list of UIDS, remove the treated ones. WARNING, FRAGILE!!!
             if isinstance(self.eligibility, ss.uids):
