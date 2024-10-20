@@ -16,15 +16,15 @@ class Placeholder(ss.Disease):
     def __init__(self, pars=None, name=None, **kwargs):
         super().__init__(name=name)
 
-        self.default_pars(
+        self.define_pars(
             prevalence=0.1,  # Target prevalance. If None, no automatic infections will be applied
             care_seeking=ss.bernoulli(p=0.5),
         )
         self.update_pars(pars, **kwargs)
-        self.add_states(
-            ss.BoolArr('symptomatic'),  # Symptomatic
+        self.define_states(
+            ss.State('symptomatic'),  # Symptomatic
             ss.FloatArr('ti_symptomatic'),  # Time of active symptoms
-            ss.BoolArr('seeking_care'),  # Care seeking
+            ss.State('seeking_care'),  # Care seeking
             ss.FloatArr('ti_seeks_care'),  # Time of active symptoms
         )
         self._prev_dist = ss.bernoulli(p=0)
@@ -37,7 +37,7 @@ class Placeholder(ss.Disease):
             ts = sti.TimeSeries(assumption=self.pars.prevalence)
         else:
             ts = self.pars.prevalence
-        self._target_prevalence = ts.interpolate(sim.yearvec)
+        self._target_prevalence = ts.interpolate(sim.timevec)
 
     def set_prognoses(self, target_uids, source_uids=None):
         self.symptomatic[target_uids] = True
@@ -87,7 +87,7 @@ class GUD(ss.Infection):
 
     def __init__(self, pars=None, init_prev_data=None, **kwargs):
         super().__init__()
-        self.default_pars(
+        self.define_pars(
             dur_inf = ss.lognorm_ex(mean=3/12, stdev=1/12),
             beta=1.0,  # Placeholder
             init_prev=0,  # See make_init_prev_fn
@@ -101,7 +101,7 @@ class GUD(ss.Infection):
             self.pars.init_prev = ss.bernoulli(self.make_init_prev_fn)
 
         # Add states
-        self.add_states(
+        self.define_states(
             ss.FloatArr('ti_recovered'),
         )
         return
@@ -122,7 +122,7 @@ class GUD(ss.Infection):
         Set initial prognoses for adults newly infected with syphilis
         """
         ti = self.sim.ti
-        dt = self.sim.dt
+        dt = self.dt
 
         self.susceptible[uids] = False
         self.infected[uids] = True

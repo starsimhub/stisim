@@ -23,9 +23,9 @@ class SyphTx(STITreatment):
     Treat a fixed number of people each timestep.
     """
 
-    def __init__(self, pars=None, max_capacity=None, years=None, eligibility=None, **kwargs):
-        super().__init__(disease='syphilis', eligibility=eligibility, years=years, max_capacity=max_capacity)
-        self.default_pars(
+    def __init__(self, pars=None, max_capacity=None, years=None, eligibility=None, name=None, **kwargs):
+        super().__init__(diseases='syphilis', name=name, eligibility=eligibility, years=years, max_capacity=max_capacity)
+        self.define_pars(
             rel_treat_prob=1,
             treat_prob=ss.bernoulli(p=1),
             treat_eff=ss.bernoulli(p=0.95),
@@ -115,11 +115,12 @@ class SyphTx(STITreatment):
 
         return
 
-    def apply(self, sim):
+    def step(self):
         """
         Apply treatment
         """
-        treat_uids = super().apply(sim)
+        sim = self.sim
+        treat_uids = super().step()
         # Treat unborn babies of successfully treated mothers
         treat_pregnant_uids = sim.people.pregnancy.pregnant.uids & self.outcomes['successful']
         if len(treat_pregnant_uids):
@@ -128,16 +129,6 @@ class SyphTx(STITreatment):
 
 
 class NewbornTreatment(SyphTx):
-
-    def init_results(self):
-        results = [
-            ss.Result(self.name, 'new_treated', self.sim.npts, dtype=int, scale=True, label="Number treated"),
-            ss.Result(self.name, 'new_treated_success', self.sim.npts, dtype=int, scale=True, label="Successfully treated"),
-            ss.Result(self.name, 'new_treated_failure', self.sim.npts, dtype=int, scale=True, label="Treatment failure"),
-            ss.Result(self.name, 'new_treated_unnecessary', self.sim.npts, dtype=int, scale=True, label="Overtreatment"),
-        ]
-        self.results += results
-        return
 
     def change_states(self, disease, treat_succ):
         """ Change states of congenital cases """
@@ -167,9 +158,9 @@ class NewbornTreatment(SyphTx):
 
 class SyphTest(STITest):
     """ Base class for syphilis tests """
-    def __init__(self, test_prob_data=None, years=None, start=None, end=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
-        super().__init__(test_prob_data=test_prob_data, years=years, start=start, end=end, eligibility=eligibility, product=product, name=name, label=label, **kwargs)
-        self.default_pars(
+    def __init__(self, test_prob_data=None, years=None, start=None, stop=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
+        super().__init__(test_prob_data=test_prob_data, years=years, start=start, stop=stop, eligibility=eligibility, product=product, name=name, label=label, **kwargs)
+        self.define_pars(
             linked=True,
         )
         self.update_pars(pars, **kwargs)
@@ -189,7 +180,7 @@ class SyphTest(STITest):
             df = df.pivot(columns='year', values='symp_test_prob')
             dd = df.to_dict(orient='index')
             for group, vals in dd.items():
-                dd[group] = sc.smoothinterp(sim.yearvec, list(vals.keys()), list(vals.values()), smoothness=0)
+                dd[group] = sc.smoothinterp(sim.timevec, list(vals.keys()), list(vals.values()), smoothness=0)
             return dd
         else: return self.test_prob_data
 
@@ -200,9 +191,9 @@ class SyphTest(STITest):
         if sc.isnumber(self.test_prob_data):
             test_prob = self.test_prob_data
         elif isinstance(self.test_prob_data, TimeSeries):
-            test_prob = self.test_prob_data.interpolate(sim.year)
+            test_prob = self.test_prob_data.interpolate(sim.now)
         elif sc.checktype(self.test_prob_data, 'arraylike'):
-            year_ind = sc.findnearest(self.years, sim.year)
+            year_ind = sc.findnearest(self.years, sim.now)
             test_prob = self.test_prob_data[year_ind]
         elif isinstance(self.test_prob_data, dict):
             test_prob = pd.Series(index=uids)
@@ -223,14 +214,15 @@ class SyphTest(STITest):
         # Scale and validate
         test_prob = test_prob * self.pars.rel_test
         if not self.pars.linked:
-            test_prob = test_prob * sim.dt
+            test_prob = test_prob * self.dt
         test_prob = np.clip(test_prob, a_min=0, a_max=1)
 
         return test_prob
 
-    def apply(self, sim, uids=None):
-        super().apply(sim, uids=uids)
-        if (sim.year >= self.start) & (sim.year < self.end):
+    def step(self, uids=None):
+        super().step(uids=uids)
+        sim = self.sim
+        if (sim.now >= self.start) & (sim.now < self.stop):
             # Schedule newborn tests if the mother is positive
             if self.newborn_test is not None:
                 new_pos = self.ti_positive == self.sim.ti
@@ -278,9 +270,9 @@ class ANCSyphTest(SyphTest):
     Test given to pregnant women
     Need to adjust timing using Trivedi (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7138526/)
     """
-    def __init__(self, test_prob_data=None, years=None, start=None, end=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
-        super().__init__(test_prob_data=test_prob_data, years=years, start=start, end=end, eligibility=eligibility, product=product, name=name, label=label, **kwargs)
-        self.default_pars(
+    def __init__(self, test_prob_data=None, years=None, start=None, stop=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
+        super().__init__(test_prob_data=test_prob_data, years=years, start=start, stop=stop, eligibility=eligibility, product=product, name=name, label=label, **kwargs)
+        self.define_pars(
             linked=True,
         )
         self.update_pars(pars, **kwargs)
@@ -293,17 +285,18 @@ class ANCSyphTest(SyphTest):
         # For ANC testing, only administer scheduled tests
         return (self.ti_scheduled == sim.ti).uids
 
-    def schedule_tests(self, sim):
+    def schedule_tests(self):
         """ Schedule a test for newly pregnant women """
+        sim = self.sim
         newly_preg = (sim.demographics.pregnancy.ti_pregnant == sim.ti).uids
         self.test_prob.pars['p'] = self.make_test_prob_fn(self, sim, newly_preg)
         will_test = self.test_prob.filter(newly_preg)
         ti_test = sim.ti + self.test_timing.rvs(will_test)
         self.ti_scheduled[will_test] = ti_test
 
-    def apply(self, sim):
-        self.schedule_tests(sim)  # Check for newly pregnant women so they can be added to the schedule
-        return super().apply(sim)
+    def step(self):
+        self.schedule_tests()  # Check for newly pregnant women so they can be added to the schedule
+        return super().step()
 
 
 class NewbornSyphTest(SyphTest):

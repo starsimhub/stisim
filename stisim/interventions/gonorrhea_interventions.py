@@ -23,10 +23,10 @@ class GonorrheaTreatment(STITreatment):
         - unsuccessful treatment reduces dur_inf and rel_trans, but results in lower rel_treat
         - unnecessary treatment results in lower rel_treat
     """
-    def __init__(self, pars=None, eligibility=None, max_capacity=None, years=None, *args, **kwargs):
-        super().__init__(disease='ng', eligibility=eligibility, max_capacity=max_capacity, years=years, *args)
+    def __init__(self, pars=None, eligibility=None, max_capacity=None, years=None, name=None, *args, **kwargs):
+        super().__init__(diseases='ng', name=name, eligibility=eligibility, max_capacity=max_capacity, years=years, *args)
         self.requires = ['ng', 'structuredsexual']
-        self.default_pars(
+        self.define_pars(
             base_treat_eff=0.96,
             treat_eff=ss.bernoulli(p=0),  # Reset each time step depending on base_treat_eff and population AMR
             rel_treat_unsucc=0.01,
@@ -35,7 +35,7 @@ class GonorrheaTreatment(STITreatment):
         self.update_pars(pars, **kwargs)
 
         # States
-        self.add_states(
+        self.define_states(
             ss.FloatArr('rel_treat', default=1),  # How well a person will respond to treatment
         )
 
@@ -44,12 +44,12 @@ class GonorrheaTreatment(STITreatment):
         self.pars.treat_eff.set(new_treat_eff)
         return
 
-    def apply(self, sim):
+    def step(self):
         """
         Apply treatment. On each timestep, this method will add eligible people who are willing to accept treatment to a
         queue, and then will treat as many people in the queue as there is capacity for.
         """
-        treat_uids = super().apply(sim)
+        treat_uids = super().step()
 
         # Change treatment resistance for those unsuccessfully treated
         treat_unsucc = self.outcomes['ng']['unsuccessful']
@@ -80,14 +80,14 @@ class UpdateDrugs(ss.Intervention):
     def __init__(self, pars=None, eligibility=None, years=None, *args, **kwargs):
         super().__init__(*args)
         self.requires = ['ng', 'gonorrheatreatment']
-        self.default_pars(
+        self.define_pars(
             threshold_amr=0.05
         )
         self.update_pars(pars, **kwargs)
         self.eligibility = eligibility
         self.years = years
-        self.add_states(
-            ss.BoolArr('rel_treat_prev'),  # Store a copy of AMR to the previous regimen
+        self.define_states(
+            ss.FloatArr('rel_treat_prev'),  # Store a copy of AMR to the previous regimen
         )
         self.change_time = None
 
@@ -96,7 +96,8 @@ class UpdateDrugs(ss.Intervention):
         self.results += [
         ]
 
-    def apply(self, sim):
+    def step(self):
+        sim = self.sim
         target_uids = self.check_eligibility(sim)
         pop_rel_treat = np.mean(self.sim.people.rel_treat[target_uids])
         if pop_rel_treat < self.pars.threshold_amr:

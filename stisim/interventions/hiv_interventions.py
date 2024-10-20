@@ -38,8 +38,9 @@ class HIVTest(STITest):
         if self.eligibility is None:
             self.eligibility = lambda sim: ~sim.diseases.hiv.diagnosed
 
-    def apply(self, sim, uids=None):
-        outcomes = super().apply(sim, uids=uids)
+    def step(self, uids=None):
+        sim = self.sim
+        outcomes = super().step(uids=uids)
         pos_uids = outcomes['positive']
         sim.diseases.hiv.diagnosed[pos_uids] = True
         sim.diseases.hiv.ti_diagnosed[pos_uids] = sim.ti
@@ -53,7 +54,7 @@ class ART(ss.Intervention):
 
     def __init__(self, pars=None, coverage_data=None, start_year=None, **kwargs):
         super().__init__()
-        self.default_pars(
+        self.define_pars(
             init_prob=ss.bernoulli(p=0.9),  # Probability that a newly diagnosed person will initiate treatment
             future_coverage={'year': 2022, 'prop': 0.85},
         )
@@ -72,19 +73,20 @@ class ART(ss.Intervention):
                 raise ValueError(errormsg)
             colname = data.columns[0]
             self.coverage_format = colname
-            self.coverage = sc.smoothinterp(sim.yearvec, data.index.values, data[colname].values)
+            self.coverage = sc.smoothinterp(self.timevec, data.index.values, data[colname].values)
         self.initialized = True
         return
 
-    def apply(self, sim):
+    def step(self):
         """
         Apply the ART intervention at each time step. Put agents on and off ART and adjust based on data.
         """
+        sim = self.sim
         hiv = sim.diseases.hiv
         inf_uids = hiv.infected.uids
 
         # Figure out how many people should be treated
-        if sim.year < self.pars.future_coverage['year']:
+        if sim.now < self.pars.future_coverage['year']:
             if self.coverage is None:
                 n_to_treat = 0
             else:
@@ -184,7 +186,7 @@ class ART(ss.Intervention):
 class VMMC(ss.Intervention):
     def __init__(self, pars=None, coverage_data=None, eligibility=None, **kwargs):
         super().__init__()
-        self.default_pars(
+        self.define_pars(
             future_coverage={'year': 2022, 'prop': 0.1},
             eff_circ = 0.6,  # Evidence of a 60% reduction in risk of HIV acquisition: https://www.who.int/teams/global-hiv-hepatitis-and-stis-programmes/hiv/prevention/voluntary-medical-male-circumcision
         )
@@ -214,39 +216,34 @@ class VMMC(ss.Intervention):
                 raise ValueError(errormsg)
             colname = data.columns[0]
             self.coverage_format = colname
-            self.coverage = sc.smoothinterp(sim.yearvec, data.index.values, data[colname].values)
+            self.coverage = sc.smoothinterp(self.timevec, data.index.values, data[colname].values)
 
-        self.init_results()
-
-        return
-
-    def init_post(self):
-        super().init_post()
         return
 
     def init_results(self):
-        npts = self.sim.npts
-        self.results += [
-            ss.Result(self.name, 'new_circumcisions', npts, dtype=float, scale=True, label="New circumcisions"),
-            ss.Result(self.name, 'n_circumcised', npts, dtype=float, scale=True, label="Number circumcised")
-        ]
+        super().init_results()
+        self.define_results(
+            ss.Result('new_circumcisions', dtype=int, label="New circumcisions"),
+            ss.Result('n_circumcised', dtype=int, label="Number circumcised")
+        )
         return
 
-    def apply(self, sim):
+    def step(self):
+        sim = self.sim
         m_uids = sim.people.male.uids
 
         # Figure out how many people should be circumcised
-        if sim.year < self.pars.future_coverage['year']:
+        if sim.now < self.pars.future_coverage['year']:
             if self.coverage is None:
                 n_to_circ = 0
             else:
                 if self.coverage_format == 'n_vmmc':
-                    n_to_circ = int(sim.dt*self.coverage[sim.ti]/sim.pars.pop_scale)
+                    n_to_circ = int(self.dt*self.coverage[sim.ti]/sim.pars.pop_scale)
                 elif self.coverage_format == 'p_vmmc':
-                    n_to_circ = int(sim.dt*self.coverage[sim.ti]*len(m_uids))
+                    n_to_circ = int(self.dt*self.coverage[sim.ti]*len(m_uids))
         else:
             p_cov = self.pars.future_coverage['prop']
-            n_to_circ = int(sim.dt*p_cov*len(m_uids))
+            n_to_circ = int(self.dt*p_cov*len(m_uids))
 
         if n_to_circ > 0:
             # Find who's eligible to circumcise

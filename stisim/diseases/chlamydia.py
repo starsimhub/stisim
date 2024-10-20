@@ -14,7 +14,7 @@ class Chlamydia(SEIS):
     def __init__(self, pars=None, name='ct', init_prev_data=None, **kwargs):
         super().__init__(name=name, init_prev_data=init_prev_data)
 
-        self.default_pars(
+        self.define_pars(
             dur_exp=ss.constant(1/52),
             p_symp=[
                 ss.bernoulli(p=0.25),  # Women: 80% asymptomatic (https://doi.org/10.1016/j.epidem.2010.04.002)
@@ -68,7 +68,7 @@ class ChlamydiaBL(Chlamydia):
     def __init__(self, pars=None, **kwargs):
         super().__init__()
 
-        self.default_pars(
+        self.define_pars(
             # Bacterial load dynamics
             init_load=1,
             peak_load=10e7,
@@ -78,7 +78,7 @@ class ChlamydiaBL(Chlamydia):
         )
         self.update_pars(pars, **kwargs)
 
-        self.add_states(
+        self.define_states(
             # Bacterial load
             ss.FloatArr('ct_load'),
             ss.FloatArr('ct_peak_time'),

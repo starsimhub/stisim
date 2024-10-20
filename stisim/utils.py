@@ -423,27 +423,27 @@ def finalize_results(sim, modules_to_drop=None):
     modules_to_drop += ['yearvec']
 
     # Drop modules
-    for mod in modules_to_drop:
-        if mod in sim.results: del sim.results[mod]
+    for res in modules_to_drop:
+        if res in sim.results: del sim.results[res]
 
     # Make new results
     newres = ss.Results(module=None)
-    newres.yearvec = np.arange(sim.pars.start, sim.pars.end)  # np.unique(sim.yearvec.astype(int))[:-1]
+    newres.yearvec = np.arange(sim.pars.start, sim.pars.stop)  # np.unique(sim.yearvec.astype(int))[:-1]
 
-    periods = int(1/sim.dt)
-    for modname, mod in sim.results.items():
-        if isinstance(mod, ss.Results):
-            newres[modname] = ss.Results(module=mod)
-            for resname, res in mod.items():
-                if resname.startswith('new_'):
-                    newres[modname][resname] = np.sum(res[:-1].reshape(-1, periods), axis=1)
-                elif 'prev' in resname or 'inci' in resname or 'rel_' in resname or resname.startswith('n_'):
-                    newres[modname][resname] = np.mean(res[:-1].reshape(-1, periods), axis=1)
+    periods = int(1/sim.pars.dt)
+    for rname, res in sim.results.items():
+        if isinstance(res, ss.Results):
+            newres[rname] = ss.Results(module=res)
+            for mrname, modres in res.items():
+                if mrname.startswith('new_'):
+                    newres[rname][mrname] = np.sum(modres[:-1].reshape(-1, periods), axis=1)
+                elif 'prev' in mrname or 'inci' in mrname or 'rel_' in mrname or mrname.startswith('n_'):
+                    newres[rname][mrname] = np.mean(modres[:-1].reshape(-1, periods), axis=1)
         else:
-            if modname.startswith('new_'):
-                newres[modname] = np.sum(mod[:-1].reshape(-1, periods), axis=1)
-            elif 'prev' in resname or 'inci' in resname or 'rel_' in resname or resname.startswith('n_'):
-                newres[modname] = np.mean(mod[:-1].reshape(-1, periods), axis=1)
+            if rname.startswith('new_'):
+                newres[rname] = np.sum(res[:-1].reshape(-1, periods), axis=1)
+            elif 'prev' in rname or 'inci' in rname or 'rel_' in rname or rname.startswith('n_'):
+                newres[rname] = np.mean(res[:-1].reshape(-1, periods), axis=1)
 
     def flatten_results(d, prefix=''):
         flat = {}
