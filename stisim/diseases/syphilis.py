@@ -41,7 +41,7 @@ class SyphilisPlaceholder(ss.Disease):
     def set_prognoses(self, target_uids, source_uids=None):
         self.active[target_uids] = True
 
-    def update_pre(self):
+    def step_state(self):
         """
         When using a connector to the syphilis module, this is not needed. The connector should update the syphilis-positive state.
         """

@@ -201,7 +201,7 @@ def test_hiv_syph():
 
     sim = ss.Sim(pars, copy_inputs=False).run()
 
-    fig = output.plot(agents)
+    # fig = output.plot(agents)
 
     return sim
 
