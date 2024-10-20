@@ -369,21 +369,21 @@ class Syphilis(BaseSTI):
             self.results['new_infections_client'][ti] = len(((self.ti_infected == ti) & self.sim.networks.structuredsexual.client).uids)
             self.results['new_infections_not_client'][ti] = len(((self.ti_infected == ti) & ~self.sim.networks.structuredsexual.client).uids)
 
-        # # Add risk groups
-        # for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
-        #     for sex in ['female', 'male']:
-        #         risk_group_infected = self.infected[(self.sim.networks.structuredsexual.risk_group == risk_group) & (self.sim.people[sex])]
-        #         risk_group_new_inf = ((self.ti_infected == ti) & (self.sim.networks.structuredsexual.risk_group == risk_group) &  (self.sim.people[sex])).uids
-        #         if len(risk_group_infected) > 0:
-        #             self.results['prevalence_risk_group_' + str(risk_group) + '_' + sex][ti] = sum(risk_group_infected) / len(risk_group_infected)
-        #             self.results['new_infections_risk_group_' + str(risk_group) + '_' + sex][ti] = len(risk_group_new_inf)
+        # Add risk groups
+        for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
+            for sex in ['female', 'male']:
+                risk_group_infected = self.infected[(self.sim.networks.structuredsexual.risk_group == risk_group) & (self.sim.people[sex])]
+                risk_group_new_inf = ((self.ti_infected == ti) & (self.sim.networks.structuredsexual.risk_group == risk_group) &  (self.sim.people[sex])).uids
+                if len(risk_group_infected) > 0:
+                    self.results['prevalence_risk_group_' + str(risk_group) + '_' + sex][ti] = sum(risk_group_infected) / len(risk_group_infected)
+                    self.results['new_infections_risk_group_' + str(risk_group) + '_' + sex][ti] = len(risk_group_new_inf)
 
         return
 
     def finalize_results(self):
+        super().finalize_results()
         self.results['cum_congenital'] = np.cumsum(self.results['new_congenital'])
         self.results['cum_congenital_deaths'] = np.cumsum(self.results['new_congenital_deaths'])
-        super().finalize_results()
         return
 
     def set_latent_trans(self, ti=None):
@@ -431,7 +431,6 @@ class Syphilis(BaseSTI):
         # Primary to secondary
         dur_primary = self.pars.dur_primary.rvs(uids)
         self.ti_secondary[uids] = self.ti_primary[uids] + rr(dur_primary / dt)
-
         self.dur_early[uids] = self.pars.dur_early.rvs(uids)
 
         return

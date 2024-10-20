@@ -115,10 +115,11 @@ class SyphTx(STITreatment):
 
         return
 
-    def apply(self, sim):
+    def step(self):
         """
         Apply treatment
         """
+        sim = self.sim
         treat_uids = super().apply(sim)
         # Treat unborn babies of successfully treated mothers
         treat_pregnant_uids = sim.people.pregnancy.pregnant.uids & self.outcomes['successful']
@@ -218,9 +219,10 @@ class SyphTest(STITest):
 
         return test_prob
 
-    def apply(self, sim, uids=None):
-        super().apply(sim, uids=uids)
-        if (sim.year >= self.start) & (sim.year < self.stop):
+    def step(self, uids=None):
+        super().step(uids=uids)
+        sim = self.sim
+        if (sim.now >= self.start) & (sim.now < self.stop):
             # Schedule newborn tests if the mother is positive
             if self.newborn_test is not None:
                 new_pos = self.ti_positive == self.sim.ti
@@ -283,17 +285,18 @@ class ANCSyphTest(SyphTest):
         # For ANC testing, only administer scheduled tests
         return (self.ti_scheduled == sim.ti).uids
 
-    def schedule_tests(self, sim):
+    def schedule_tests(self):
         """ Schedule a test for newly pregnant women """
+        sim = self.sim
         newly_preg = (sim.demographics.pregnancy.ti_pregnant == sim.ti).uids
         self.test_prob.pars['p'] = self.make_test_prob_fn(self, sim, newly_preg)
         will_test = self.test_prob.filter(newly_preg)
         ti_test = sim.ti + self.test_timing.rvs(will_test)
         self.ti_scheduled[will_test] = ti_test
 
-    def apply(self, sim):
-        self.schedule_tests(sim)  # Check for newly pregnant women so they can be added to the schedule
-        return super().apply(sim)
+    def step(self):
+        self.schedule_tests()  # Check for newly pregnant women so they can be added to the schedule
+        return super().step()
 
 
 class NewbornSyphTest(SyphTest):
