@@ -120,7 +120,7 @@ class SyphTx(STITreatment):
         Apply treatment
         """
         sim = self.sim
-        treat_uids = super().apply(sim)
+        treat_uids = super().step()
         # Treat unborn babies of successfully treated mothers
         treat_pregnant_uids = sim.people.pregnancy.pregnant.uids & self.outcomes['successful']
         if len(treat_pregnant_uids):
@@ -191,9 +191,9 @@ class SyphTest(STITest):
         if sc.isnumber(self.test_prob_data):
             test_prob = self.test_prob_data
         elif isinstance(self.test_prob_data, TimeSeries):
-            test_prob = self.test_prob_data.interpolate(sim.year)
+            test_prob = self.test_prob_data.interpolate(sim.now)
         elif sc.checktype(self.test_prob_data, 'arraylike'):
-            year_ind = sc.findnearest(self.years, sim.year)
+            year_ind = sc.findnearest(self.years, sim.now)
             test_prob = self.test_prob_data[year_ind]
         elif isinstance(self.test_prob_data, dict):
             test_prob = pd.Series(index=uids)
@@ -214,7 +214,7 @@ class SyphTest(STITest):
         # Scale and validate
         test_prob = test_prob * self.pars.rel_test
         if not self.pars.linked:
-            test_prob = test_prob * sim.dt
+            test_prob = test_prob * self.dt
         test_prob = np.clip(test_prob, a_min=0, a_max=1)
 
         return test_prob
