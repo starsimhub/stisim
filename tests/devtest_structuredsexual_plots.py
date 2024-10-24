@@ -20,7 +20,7 @@ class animate_network(ss.Analyzer):
     
     def init_pre(self, sim):
         self.count = 0
-        self.yearvec = sim.yearvec
+        self.timevec = sim.timevec
         return
         
     def apply(self, sim):
@@ -56,7 +56,7 @@ class animate_network(ss.Analyzer):
             fig = pl.figure(figsize=(8,10))
             pl.set_cmap('turbo')
         
-        pl.title(f'Year = {self.yearvec[i]:0.1f}, step = {self.ti[i]}/{len(self.ti)}')
+        pl.title(f'Year = {self.timevec[i]:0.1f}, step = {self.ti[i]}/{len(self.ti)}')
         pl.xticks([0,1], ['Male', 'Female'])
         pl.ylabel('Age')
         for tf,marker in enumerate(['s','o']):
@@ -101,7 +101,7 @@ class count_partners(ss.Analyzer):
         return
     
     def finalize(self):
-        self.yearvec = sim.yearvec
+        self.timevec = sim.timevec
         self.uids = sim.people.uid
         self.fem = sim.people.female.raw
         self.age = sim.people.age.raw
@@ -123,8 +123,8 @@ class count_partners(ss.Analyzer):
         pl.ylabel('Partner counts')
         pl.xlabel('Time')
         for u in self.uids:
-            r = (np.random.rand(len(self.yearvec))-0.5)*1.0
-            pl.plot(self.yearvec, self.counts[u,:]+r, alpha=0.3)
+            r = (np.random.rand(len(self.timevec))-0.5)*1.0
+            pl.plot(self.timevec, self.counts[u,:]+r, alpha=0.3)
         pl.ylim(bottom=0)
         sc.figlayout()
         return fig
@@ -133,8 +133,9 @@ class count_partners(ss.Analyzer):
 if __name__ == '__main__':
     
     kw = dict(
+        start=1990,
         n_agents = 2_000, # 10_000 is very slow, but matches the results
-        n_years = 10,
+        dur = 10,
         dt = 1/12,
     )
     

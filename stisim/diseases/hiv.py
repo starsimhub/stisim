@@ -18,7 +18,7 @@ class HIV(BaseSTI):
         self.requires = 'structuredsexual'
 
         # Parameters
-        self.default_pars(
+        self.define_pars(
             # Natural history without treatment
             cd4_start=ss.normal(loc=800, scale=50),
             cd4_latent=ss.normal(loc=500, scale=50),
@@ -31,7 +31,7 @@ class HIV(BaseSTI):
             # Transmission
             beta=1,  # Placeholder, replaced by network-specific betas
             beta_m2f=None,
-            beta_f2m=None,
+            rel_beta_f2m=0.5,
             beta_m2c=None,
             rel_trans_acute=ss.normal(loc=6, scale=0.5),  # Increase transmissibility during acute HIV infection
             rel_trans_falling=ss.normal(loc=8, scale=0.5),  # Increase transmissibility during late HIV infection
@@ -73,23 +73,23 @@ class HIV(BaseSTI):
             self.pars.init_prev = ss.bernoulli(self.make_init_prev_fn)
 
         # States
-        self.add_states(
+        self.define_states(
             # Natural history
             ss.FloatArr('ti_acute'),
-            ss.BoolArr('acute'),
+            ss.State('acute'),
             ss.FloatArr('ti_latent'),
-            ss.BoolArr('latent'),
+            ss.State('latent'),
             ss.FloatArr('ti_falling'),
-            ss.BoolArr('falling'),
-            ss.BoolArr('post_art'),  # After stopping ART, CD4 falls linearly until death
+            ss.State('falling'),
+            ss.State('post_art'),  # After stopping ART, CD4 falls linearly until death
             ss.FloatArr('ti_zero'),  # Time of zero CD4 count - generally corresponds to AIDS death
             ss.FloatArr('ti_dead'),  # Time of HIV/AIDS death
 
             # Care and treatment states
             ss.FloatArr('baseline_care_seeking'),
             ss.FloatArr('care_seeking'),
-            ss.BoolArr('never_art', default=True),
-            ss.BoolArr('on_art'),
+            ss.State('never_art', default=True),
+            ss.State('on_art'),
             ss.FloatArr('ti_art'),
             ss.FloatArr('ti_stop_art'),
 
@@ -103,7 +103,7 @@ class HIV(BaseSTI):
             ss.FloatArr('cd4_postart'),     # CD4 after stopping ART
 
             # Knowledge of HIV status
-            ss.BoolArr('diagnosed'),
+            ss.State('diagnosed'),
             ss.FloatArr('ti_diagnosed'),
         )
 
@@ -116,49 +116,38 @@ class HIV(BaseSTI):
     @property
     def include_mtct(self): return 'pregnancy' in self.sim.demographics
 
-    def init_pre(self, sim):
-        """
-        Initialize
-        """
-        super().init_pre(sim)
-
-        # Optionally scale betas
-        if self.pars.beta_m2f is not None:
-            self.pars.beta['structuredsexual'][0] *= self.pars.beta_m2f
-        if self.pars.beta_f2m is not None:
-            self.pars.beta['structuredsexual'][1] *= self.pars.beta_f2m
-        if self.pars.beta_m2c is not None:
-            self.pars.beta['maternal'][0] *= self.pars.beta_m2c
-
-        return
-
     def init_results(self):
         """
         Initialize results
         """
         super().init_results()
-        npts = self.sim.npts
-        self.results += ss.Result(self.name, 'new_deaths', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'cum_deaths', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_diagnoses', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'cum_diagnoses', npts, dtype=int, scale=True)
-        self.results += ss.Result(self.name, 'new_agents_on_art', npts, dtype=float, scale=True)
-        self.results += ss.Result(self.name, 'cum_agents_on_art', npts, dtype=float, scale=True)
-        self.results += ss.Result(self.name, 'prevalence_sw', npts, dtype=float)
-        self.results += ss.Result(self.name, 'new_infections_sw', npts, dtype=float, scale=True)
-        self.results += ss.Result(self.name, 'new_infections_not_sw', npts, dtype=float, scale=True)
-        self.results += ss.Result(self.name, 'prevalence_client', npts, dtype=float)
-        self.results += ss.Result(self.name, 'new_infections_client', npts, dtype=float, scale=True)
-        self.results += ss.Result(self.name, 'new_infections_not_client', npts, dtype=float, scale=True)
-        self.results += ss.Result(self.name, 'p_on_art', npts, dtype=float, scale=False)
+        results = [
+            ss.Result('new_deaths', dtype=int, label='Deaths'),
+            ss.Result('cum_deaths', dtype=int, label='Cumulative deaths'),
+            ss.Result('new_diagnoses', dtype=int, label='Diagnoses'),
+            ss.Result('cum_diagnoses', dtype=int, label='Cumulative diagnoses'),
+            ss.Result('new_agents_on_art', dtype=int, label='New treated'),
+            ss.Result('prevalence_sw', dtype=float, label='FSW prevalence', scale=False),
+            ss.Result('new_infections_sw', dtype=int, label='New infections - FSW'),
+            ss.Result('new_infections_not_sw', dtype=int, label='New infections - Other F'),
+            ss.Result('prevalence_client', dtype=float, label='Client prevalence', scale=False),
+            ss.Result('new_infections_client', dtype=int, label='New infections - Clients'),
+            ss.Result('new_infections_not_client', dtype=int, label='New infections - Other M'),
+            ss.Result('p_on_art', dtype=float, label='Proportion on ART', scale=False),
+        ]
+
         if self.include_mtct:
-            self.results += ss.Result(self.name, 'n_on_art_pregnant', npts, dtype=float, scale=True)
+            results += [ss.Result('n_on_art_pregnant', dtype=int)]
 
         # Add FSW and clients to results:
         for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
             for sex in ['female', 'male']:
-                self.results += ss.Result(self.name, 'prevalence_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float)
-                self.results += ss.Result(self.name, 'new_infections_risk_group_' + str(risk_group) + '_' + sex, npts, dtype=float, scale=True)
+                results += [
+                    ss.Result('prevalence_risk_group_' + str(risk_group) + '_' + sex, scale=False),
+                    ss.Result('new_infections_risk_group_' + str(risk_group) + '_' + sex, dtype=int),
+                ]
+
+        self.define_results(*results)
 
         return
 
@@ -248,9 +237,9 @@ class HIV(BaseSTI):
         return self.infectious
 
     @staticmethod
-    def death_prob(module, sim=None, uids=None):
+    def death_prob(module, sim, uids=None):
         cd4_bins = np.array([1000, 500, 350, 200, 50, 0])
-        death_prob = sim.dt*np.array([0.003, 0.003, 0.005, 0.01, 0.05, 0.300])  # Values smaller than the first bin edge get assigned to the last bin.
+        death_prob = module.dt*np.array([0.003, 0.003, 0.005, 0.01, 0.05, 0.300])  # Values smaller than the first bin edge get assigned to the last bin.
         return death_prob[np.digitize(module.cd4[uids], cd4_bins)]
 
     @staticmethod
@@ -277,7 +266,7 @@ class HIV(BaseSTI):
         self.baseline_care_seeking[uids] = sc.dcp(self.care_seeking[uids])  # Copy it so pregnancy can modify it
         return
 
-    def update_pre(self):
+    def step_state(self):
         """
         Carry out autonomous updates at the start of the timestep (prior to transmission)
         """
@@ -381,10 +370,10 @@ class HIV(BaseSTI):
             time_to_full_eff = self.pars.time_to_art_efficacy
             art_uids = self.on_art.uids
             dur_art = ti - self.ti_art[art_uids]
-            months_on_art = dur_art*sim.dt*12
-            new_on_art = months_on_art < (time_to_full_eff/sim.dt)
+            months_on_art = dur_art*self.dt*12  # TODO: make this more robust
+            new_on_art = months_on_art < (time_to_full_eff/self.dt)
             efficacy_to_date = np.full_like(art_uids, fill_value=full_eff, dtype=float)
-            efficacy_to_date[new_on_art] = months_on_art[new_on_art]*full_eff/(time_to_full_eff/sim.dt)
+            efficacy_to_date[new_on_art] = months_on_art[new_on_art]*full_eff/(time_to_full_eff/self.dt)
             self.rel_trans[art_uids] *= 1 - efficacy_to_date
 
         return
@@ -400,21 +389,20 @@ class HIV(BaseSTI):
         self.results['new_diagnoses'][ti] = np.count_nonzero(self.ti_diagnosed == ti)
         self.results['cum_diagnoses'][ti] = np.sum(self.results['new_diagnoses'][:ti + 1])
         self.results['new_agents_on_art'][ti] = np.count_nonzero(self.ti_art == ti)
-        self.results['cum_agents_on_art'][ti] = np.sum(self.results['new_agents_on_art'][:ti + 1])
-        if self.include_mtct:
-            self.results['n_on_art_pregnant'][ti] = np.count_nonzero(self.on_art & self.sim.people.pregnancy.pregnant)
+        # if self.include_mtct:
+        #     self.results['n_on_art_pregnant'][ti] = np.count_nonzero(self.on_art & self.sim.people.pregnancy.pregnant)
         self.results['p_on_art'][ti] = sc.safedivide(self.results['n_on_art'][ti], self.results['n_infected'][ti])
 
         # Subset by FSW and client:
         fsw_infected = self.infected[self.sim.networks.structuredsexual.fsw]
         client_infected = self.infected[self.sim.networks.structuredsexual.client]
-        for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
-            for sex in ['female', 'male']:
-                risk_group_infected = self.infected[(self.sim.networks.structuredsexual.risk_group == risk_group) & (self.sim.people[sex])]
-                risk_group_new_inf = ((self.ti_infected == ti) & (self.sim.networks.structuredsexual.risk_group == risk_group) &  (self.sim.people[sex])).uids
-                if len(risk_group_infected) > 0:
-                    self.results['prevalence_risk_group_' + str(risk_group) + '_' + sex][ti] = sum(risk_group_infected) / len(risk_group_infected)
-                    self.results['new_infections_risk_group_' + str(risk_group) + '_' + sex][ti] = len(risk_group_new_inf)
+        # for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
+        #     for sex in ['female', 'male']:
+        #         risk_group_infected = self.infected[(self.sim.networks.structuredsexual.risk_group == risk_group) & (self.sim.people[sex])]
+        #         risk_group_new_inf = ((self.ti_infected == ti) & (self.sim.networks.structuredsexual.risk_group == risk_group) &  (self.sim.people[sex])).uids
+        #         if len(risk_group_infected) > 0:
+        #             self.results['prevalence_risk_group_' + str(risk_group) + '_' + sex][ti] = sum(risk_group_infected) / len(risk_group_infected)
+        #             self.results['new_infections_risk_group_' + str(risk_group) + '_' + sex][ti] = len(risk_group_new_inf)
 
         # Add FSW and clients to results:
         if len(fsw_infected) > 0:
@@ -426,13 +414,6 @@ class HIV(BaseSTI):
             self.results['new_infections_client'][ti] = len(((self.ti_infected == ti) & self.sim.networks.structuredsexual.client).uids)
             self.results['new_infections_not_client'][ti] = len(((self.ti_infected == ti) & ~self.sim.networks.structuredsexual.client).uids)
 
-        return
-
-    def make_new_cases(self):
-        """
-        Add new HIV cases
-        """
-        super().make_new_cases()
         return
 
     def set_prognoses(self, uids, source_uids=None, ti=None):
@@ -447,7 +428,7 @@ class HIV(BaseSTI):
                 errormsg = 'ti for set_prognoses must be int or array of length uids'
                 raise ValueError(errormsg)
 
-        dt = self.sim.dt
+        dt = self.dt
 
         self.susceptible[uids] = False
         self.infected[uids] = True
@@ -482,7 +463,7 @@ class HIV(BaseSTI):
         Check who is ready to start ART treatment and put them on ART
         """
         ti = self.sim.ti
-        dt = self.sim.dt
+        dt = self.dt
 
         self.on_art[uids] = True
         newly_treated = uids[self.never_art[uids]]
@@ -542,7 +523,7 @@ class HIV(BaseSTI):
         Check who is stopping ART treatment and put them off ART
         """
         ti = self.sim.ti
-        dt = self.sim.dt
+        dt = self.dt
 
         # Remove agents from ART
         if uids is None: uids = self.on_art & (self.ti_stop_art <= ti)
