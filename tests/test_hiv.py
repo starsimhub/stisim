@@ -208,4 +208,4 @@ def test_hiv_syph():
 
 if __name__ == '__main__':
     s0 = test_hiv()
-    # s1 = test_hiv_syph()
+    s1 = test_hiv_syph()

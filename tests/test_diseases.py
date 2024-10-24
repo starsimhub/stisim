@@ -8,11 +8,12 @@ import starsim as ss
 import stisim as sti
 import pandas as pd
 
+n_agents = 2000
 
 def test_syph_epi():
     sc.heading('Test epi dynamics of syphilis')
 
-    base_pars = dict(n_agents=500, networks=sti.StructuredSexual())
+    base_pars = dict(n_agents=n_agents, networks=sti.StructuredSexual())
 
     # Define the parameters to vary
     par_effects = dict(
@@ -59,7 +60,7 @@ def test_syph_epi():
 def test_hiv_epi():
     sc.heading('Test epi dynamics of hiv')
 
-    base_pars = dict(n_agents=500, networks=sti.StructuredSexual())
+    base_pars = dict(n_agents=n_agents, networks=sti.StructuredSexual())
 
     # Define the parameters to vary
     par_effects = dict(

@@ -24,7 +24,7 @@ def test_hiv_syph():
     syphilis = sti.SyphilisPlaceholder(prevalence=0.9)
 
     pars = dict(
-        n_agents=1000,
+        n_agents=5000,
         networks=sti.StructuredSexual(),
         diseases=[hiv, syphilis]
     )

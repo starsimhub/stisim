@@ -115,6 +115,7 @@ class Calibration(sc.prettyobj):
     A class to handle calibration of STIsim simulations. Uses the Optuna hyperparameter
     optimization library (optuna.org), which must be installed separately (via
     pip install optuna).
+
     Args:
         sim          (Sim)  : the simulation to calibrate
         data         (df)   : pandas dataframe
@@ -136,7 +137,6 @@ class Calibration(sc.prettyobj):
 
     Returns:
         A Calibration object
-
     """
 
     def __init__(self, sim, data, calib_pars=None, weights=None, fit_args=None, par_samplers=None, n_trials=None, n_workers=None,
@@ -227,6 +227,7 @@ class Calibration(sc.prettyobj):
         """
         Take in an optuna trial and sample from pars, after extracting them from the structure they're provided in
         Different use cases:
+        
             - pardict is self.calib_pars, i.e. {'diseases':{'hiv':{'art_efficacy':[0.96, 0.9, 0.99]}}}, need to sample
             - pardict is self.initial_pars, i.e. {'diseases':{'hiv':{'art_efficacy':[0.96, 0.9, 0.99]}}}, pull 1st vals
             - pardict is self.best_pars, i.e. {'diseases':{'hiv':{'art_efficacy':0.96786}}}, pull single vals
@@ -380,6 +381,7 @@ class Calibration(sc.prettyobj):
     def calibrate(self, calib_pars=None, confirm_fit=False, load=True, tidyup=True, **kwargs):
         '''
         Perform calibration.
+        
         Args:
             calib_pars (dict): if supplied, overwrite stored calib_pars
             verbose (bool): whether to print output from each trial

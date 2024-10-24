@@ -1,0 +1,8 @@
+sphinxext.remoteliteralinclude
+sphinx
+pydata-sphinx-theme
+plantweb
+sphinxcontrib-programoutput
+nbsphinx
+jupyterlab
+pygithub

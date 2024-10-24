@@ -7,8 +7,9 @@ import sciris as sc
 from sciris import randround as rr # Since used frequently
 import starsim as ss
 import stisim as sti
+from stisim.diseases.sti import BaseSTI
 
-__all__ = ['Syphilis','SyphilisPlaceholder']
+__all__ = ['Syphilis', 'SyphilisPlaceholder']
 
 
 class SyphilisPlaceholder(ss.Disease):
@@ -67,7 +68,7 @@ class SyphilisPlaceholder(ss.Disease):
             self.active[self._prev_dist.filter(uids)] = False
 
 
-class Syphilis(ss.Infection):
+class Syphilis(BaseSTI):
 
     def __init__(self, pars=None, init_prev_data=None, init_prev_latent_data=None, **kwargs):
         super().__init__()
@@ -75,8 +76,9 @@ class Syphilis(ss.Infection):
 
         self.default_pars(
             # Adult syphilis natural history, all specified in years
-            dur_primary = ss.lognorm_ex(mean=1.5/12, stdev=1/36),  # https://pubmed.ncbi.nlm.nih.gov/9101629/
+            dur_primary = ss.uniform(low=3/52, high=10/52),  # https://pubmed.ncbi.nlm.nih.gov/9101629/
             dur_secondary = ss.lognorm_ex(mean=3.6/12, stdev=1.5/12),  # https://pubmed.ncbi.nlm.nih.gov/9101629/
+            dur_early = ss.normal(1.5, 2/12),  # Assumption
             p_reactivate = ss.bernoulli(p=0.35),  # Probability of reactivating from latent to secondary
             time_to_reactivate = ss.lognorm_ex(mean=1, stdev=1),  # Time to reactivation
             p_tertiary = ss.bernoulli(p=0.35),  # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4917057/
@@ -89,6 +91,7 @@ class Syphilis(ss.Infection):
             beta_m2f=None,
             beta_f2m=None,
             beta_m2c=None,
+            eff_condom=0.0,
             rel_trans_primary=1,
             rel_trans_secondary=1,
             rel_trans_latent=1,  # Baseline level; this decays exponentially with duration of latent infection
@@ -106,10 +109,11 @@ class Syphilis(ss.Infection):
             #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5973824/)
             #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2819963/
             birth_outcomes=sc.objdict(
-                active = ss.choice(a=5, p=np.array([0.10, 0.15, 0.10, 0.50, 0.15])), # Probabilities of active by birth outcome
-                latent = ss.choice(a=5, p=np.array([0.05, 0.05, 0.05, 0.10, 0.75])), # Probabilities of latent
+                early = ss.choice(a=5, p=np.array([0.10, 0.15, 0.10, 0.50, 0.15])), # Outcomes for babies born to mothers with primary, secondary, or early latent infection
+                late = ss.choice(a=5, p=np.array([0.05, 0.05, 0.05, 0.10, 0.75])), # Outcomes for babies born to mothers with late latent infection
             ),
             birth_outcome_keys=['miscarriage', 'nnd', 'stillborn', 'congenital'],
+            anc_detection=0.8,
 
             # Initial conditions
             init_prev=ss.bernoulli(p=0),
@@ -132,6 +136,8 @@ class Syphilis(ss.Infection):
             # Adult syphilis states
             ss.BoolArr('primary'),      # Primary chancres
             ss.BoolArr('secondary'),    # Inclusive of those who may still have primary chancres
+            ss.BoolArr('early'),        # Early latent
+            ss.BoolArr('late'),         # Late latent
             ss.BoolArr('latent'),       # Can relapse to secondary, remain in latent, or progress to tertiary,
             ss.BoolArr('tertiary'),     # Includes complications (cardio/neuro/disfigurement)
             ss.BoolArr('immune'),       # Immunity may be conferred by some treatment/vaccine options
@@ -148,6 +154,7 @@ class Syphilis(ss.Infection):
             ss.FloatArr('ti_primary'),
             ss.FloatArr('ti_secondary'),
             ss.FloatArr('ti_latent'),
+            ss.FloatArr('dur_early'),
             ss.FloatArr('ti_tertiary'),
             ss.FloatArr('ti_dead'),
             ss.FloatArr('ti_immune'),
@@ -219,6 +226,8 @@ class Syphilis(ss.Infection):
         super().init_results()
         npts = self.sim.npts
         self.results += ss.Result(self.name, 'n_active', npts, dtype=int, scale=True)
+        self.results += ss.Result(self.name, 'pregnant_prevalence', npts, dtype=float, scale=False)
+        self.results += ss.Result(self.name, 'detected_pregnant_prevalence', npts, dtype=float, scale=False)
         self.results += ss.Result(self.name, 'adult_prevalence', npts, dtype=float, scale=False)
         self.results += ss.Result(self.name, 'active_adult_prevalence', npts, dtype=float, scale=False)
         self.results += ss.Result(self.name, 'active_prevalence', npts, dtype=float, scale=False)
@@ -326,18 +335,39 @@ class Syphilis(ss.Infection):
         if len(self.latent.uids) > 0:
             self.set_latent_trans()
 
+            # Set people to early
+            lu = self.latent.uids
+            is_early = lu[(ti - self.ti_latent[lu])*dt <= self.dur_early[lu]]
+            is_late = lu[(ti - self.ti_latent[lu])*dt > self.dur_early[lu]]
+            self.early[is_early] = True
+            self.early[is_late] = False
+            self.late[is_early] = False
+            self.late[is_late] = True
+
         return
 
     def update_results(self):
         super().update_results()
         ti = self.sim.ti
+
         self.results['n_active'][ti] = self.results['n_primary'][ti] + self.results['n_secondary'][ti]
         self.results['active_prevalence'][ti] = self.results['n_active'][ti] / np.count_nonzero(self.sim.people.alive)
         active_adults_num = len(((self.sim.people.age >= 15) & (self.sim.people.age < 50) & (self.active)).uids)
         infected_adults_num = len(((self.sim.people.age >= 15) & (self.sim.people.age < 50)& (self.infected)).uids)
         adults_denom = len(((self.sim.people.age >= 15) & (self.sim.people.age < 50)).uids)
+
         self.results['adult_prevalence'][ti] = sc.safedivide(infected_adults_num, adults_denom)
         self.results['active_adult_prevalence'][ti] = sc.safedivide(active_adults_num, adults_denom)
+
+        # Pregnant women prevalence, if present
+        if 'pregnancy' in self.sim.demographics.keys():
+            preg_denom = np.count_nonzero(self.sim.people.pregnancy.pregnant)
+            preg_num = np.count_nonzero(self.sim.people.pregnancy.pregnant & self.infected)
+            detected_preg_num = preg_num*self.pars.anc_detection
+            self.results['pregnant_prevalence'][ti] = sc.safedivide(preg_num, preg_denom)
+            self.results['detected_pregnant_prevalence'][ti] = sc.safedivide(detected_preg_num, preg_denom)
+
+        # Congenital results
         self.results['new_nnds'][ti]       = np.count_nonzero(self.ti_nnd == ti)
         self.results['new_stillborns'][ti] = np.count_nonzero(self.ti_stillborn == ti)
         self.results['new_congenital'][ti] = np.count_nonzero(self.ti_congenital == ti)
@@ -482,6 +512,8 @@ class Syphilis(ss.Infection):
         dur_primary = self.pars.dur_primary.rvs(uids)
         self.ti_secondary[uids] = self.ti_primary[uids] + rr(dur_primary / dt)
 
+        self.dur_early[uids] = self.pars.dur_early.rvs(uids)
+
         return
 
     def set_secondary_prognoses(self, uids):
@@ -527,7 +559,7 @@ class Syphilis(ss.Infection):
         dt = self.sim.dt
 
         # Determine outcomes
-        for state in ['active', 'latent']:
+        for state in ['early', 'late']:
 
             source_state_inds = getattr(self, state)[source_uids].nonzero()[-1]
             uids = target_uids[source_state_inds]
