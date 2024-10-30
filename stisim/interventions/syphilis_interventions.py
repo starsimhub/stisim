@@ -326,7 +326,7 @@ class SyphVaccine(ss.Intervention):
         self.define_pars(
             # Dose parameters
             daily_num_doses=None,  # Daily supply of vaccine doses (unscaled), None equals unlimited supply
-            dose_interval=ss.lognorm_ex(mean=3, stdev=1 / 12),  # Assume every 3 years for now
+            dose_interval=ss.lognorm_ex(mean=3, std=1 / 12),  # Assume every 3 years for now
             p_second_dose=ss.bernoulli(p=0.6),  # Probability that a a person, who received 1 dose, comes back for a second dose
             p_third_dose=ss.bernoulli(p=0.6),  # Probability that a person, who receieved 2 doses, comes back for a third dose. More likely?
 
@@ -340,7 +340,7 @@ class SyphVaccine(ss.Intervention):
             dur_protection=5,  # in years, expected duration of protection, half-life of exponential decay
             dur_reach_peak=0.5,  # in years, Assume 6 months until efficacy is reached
             # - Update immunity
-            immunity_init=ss.lognorm_ex(mean=0.001, stdev=0.001),
+            immunity_init=ss.lognorm_ex(mean=0.001, std=0.001),
             nab_boost_infection=0.05,  # Multiply base immunity by this factor. 1=no change in immunity, 0=full immunity, no reinfection
 
             prevent_infection=0.05,
@@ -409,7 +409,7 @@ class SyphVaccine(ss.Intervention):
 
         # Scale number of doses
         if self.pars.daily_num_doses is not None:
-            self.num_doses = rr((self.pars.daily_num_doses * 365 * sim.dt) / sim.pars.pop_scale)
+            self.num_doses = rr((self.pars.daily_num_doses * 365 * sim.dt_year) / sim.pars.pop_scale)
         else:
             self.num_doses = None
 
@@ -448,7 +448,7 @@ class SyphVaccine(ss.Intervention):
         """
         Return an array of length t with values for the immunity at each time step
         """
-        dt = self.sim.dt
+        dt = self.sim.dt_year
         decay_rate = 3 * dt  # Decay rate reprsenting how quickly y decays
         D = 0  # Value of immunity when t -> inf
         y = init_val + (D - init_val) / (1 + np.exp(-decay_rate * (t - rr(self.pars.dur_protection / dt))))
@@ -465,7 +465,7 @@ class SyphVaccine(ss.Intervention):
                 dur_protection: Parameter to describe how long protection lasts. This will be the half-life of the exponential decay
 
         """
-        dt = self.sim.dt
+        dt = self.sim.dt_year
         # Efficacy will increase linearly to its peak value
         linear_increase = self.linear_increase(length=rr(dur_reach_peak / dt), init_val=0, slope=efficacy / rr(dur_reach_peak / dt))
         # Efficacy will then drop exponentially, with half-time corresponding to the duration of protection
@@ -617,7 +617,7 @@ class SyphVaccine(ss.Intervention):
         """
         Get linear boost values
         """
-        dt = sim.dt
+        dt = sim.dt_year
         hiv = sim.diseases.hiv
         hiv_pos = hiv.infected.uids
         hiv_pos_uids = uids & hiv_pos
@@ -823,7 +823,7 @@ class SyphVaccine(ss.Intervention):
             self.update_immunity_by_vaccination(sim)
 
         # Schedule a second dose for a proportion of agents who received their first vaccination
-        dt = sim.dt
+        dt = sim.dt_year
         first_dose_uids = uids[self.doses[uids] == 1]
         will_get_second_dose = first_dose_uids[self.pars.p_second_dose.rvs(first_dose_uids)]
         self.ti_second_dose[will_get_second_dose] = sim.ti + rr(self.pars.dose_interval.rvs(will_get_second_dose) / dt)

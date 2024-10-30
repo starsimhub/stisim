@@ -53,8 +53,8 @@ class TrackValues(ss.Analyzer):
     def has_syph(self):
         return isinstance(self.sim.diseases.get('syphilis'), sti.Syphilis)
 
-    def apply(self, sim):
-
+    def step(self):
+        sim = self.sim
         if len(sim.people.alive.uids):
             if self.has_hiv:
                 self.hiv_rel_sus[sim.ti, :self.n] = sim.diseases.hiv.rel_sus.values[:self.n]
@@ -200,7 +200,8 @@ class PerformTest(ss.Intervention):
         self.sim.demographics.pregnancy.pregnant[ss.uids(uids)] = True
         self.sim.demographics.pregnancy.ti_pregnant[ss.uids(uids)] = self.sim.ti
 
-    def apply(self, sim):
+    def step(self):
+        sim = self.sim
         if len(sim.people.alive.uids):
             if 'hiv' in sim.diseases:
                 self.sim.diseases.hiv.set_prognoses(ss.uids(self.hiv_infections[sim.ti]))
