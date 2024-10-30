@@ -847,11 +847,12 @@ class SyphVaccine(ss.Intervention):
         self.results['new_vaccinated'][ti] = len(((self.ti_vaccinated == ti) & (self.doses == 1)).uids)
         return
 
-    def apply(self, sim):
+    def step(self):
+        sim = self.sim
         syph = sim.diseases.syphilis
         # self.update_natural_immunity(sim) # Taking this out for now
 
-        if sim.year > self.start_year:
+        if np.floor(sim.timevec[sim.ti]) > self.start_year:
             # Get this time steps target coverage
             target_coverage = self.target_coverage[sim.ti]
 
