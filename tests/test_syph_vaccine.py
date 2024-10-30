@@ -266,9 +266,9 @@ def test_syph_vacc():
 
     # # Add Syphilis Treatment
     treat = SyphTx(rel_treat_prob=0, name='treat', label='treat')
-    #
-    # pars['interventions'] = [PerformTest(events), treat]
-    pars['interventions'] = [syph_vaccine]
+
+    pars['interventions'] = [PerformTest(events), treat, syph_vaccine]
+
     output = TrackValues()
     pars['analyzers'] = output
 
