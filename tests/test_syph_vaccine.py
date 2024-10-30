@@ -19,7 +19,7 @@ import sciris as sc
 import matplotlib.patches as mpatches
 from matplotlib.lines import Line2D
 import matplotlib.colors as mcolors
-from syph_tests import TreatNum
+from stisim.interventions import SyphTx
 
 
 class TrackValues(ss.Analyzer):
@@ -99,14 +99,14 @@ class TrackValues(ss.Analyzer):
             for idx, agent in enumerate(agents):
                 syph_state_array = self.syph_state[:, idx].astype(int)
                 h = ax.scatter(x, y[:, idx], c= [colors[k] for k in syph_state_array])
-            
+
             x_ev = []
             y_ev = []
             colors = []
             labels = []
             for i, events in enumerate(agents.values()):
                 for event in events:
-                    x_ev.append(self.sim.yearvec[event[1]])
+                    x_ev.append(self.sim.timevec[event[1]])
                     y_ev.append(y[event[1], i])
                     if event[0] == 'syphilis_infection':
                         colors.append('red')
@@ -129,15 +129,15 @@ class TrackValues(ss.Analyzer):
             fig, ax = plt.subplots(1, 2)
 
         ax = ax.ravel()
-        h = plot_with_events(ax[0], self.sim.yearvec, self.syph_immunity, agents, 'Immunity', colors)
-        h = plot_with_events(ax[1], self.sim.yearvec, self.syph_rel_sus_immunity, agents, 'Syphilis rel_sus_immunity', colors)
-        h = plot_with_events(ax[2], self.sim.yearvec, self.syph_rel_trans_immunity, agents, 'Syphilis rel_trans_immunity', colors)
-        h = plot_with_events(ax[3], self.sim.yearvec, self.syph_rel_trans_immunity_maternal, agents, 'Syphilis rel_trans_immunity_maternal', colors)
+        h = plot_with_events(ax[0], self.sim.timevec, self.syph_immunity, agents, 'Immunity', colors)
+        h = plot_with_events(ax[1], self.sim.timevec, self.syph_rel_sus_immunity, agents, 'Syphilis rel_sus_immunity', colors)
+        h = plot_with_events(ax[2], self.sim.timevec, self.syph_rel_trans_immunity, agents, 'Syphilis rel_trans_immunity', colors)
+        h = plot_with_events(ax[3], self.sim.timevec, self.syph_rel_trans_immunity_maternal, agents, 'Syphilis rel_trans_immunity_maternal', colors)
 
         if self.has_syph:
-            h = plot_with_events(ax[5], self.sim.yearvec, self.syph_rel_sus, agents, 'Syphilis rel_sus', colors)
-            h = plot_with_events(ax[6], self.sim.yearvec, self.syph_rel_trans, agents, 'Syphilis rel_trans', colors)
-            h = plot_with_events(ax[7], self.sim.yearvec, self.rel_trans_maternal, agents, 'Syphilis maternal rel_trans', colors)
+            h = plot_with_events(ax[5], self.sim.timevec, self.syph_rel_sus, agents, 'Syphilis rel_sus', colors)
+            h = plot_with_events(ax[6], self.sim.timevec, self.syph_rel_trans, agents, 'Syphilis rel_trans', colors)
+            h = plot_with_events(ax[7], self.sim.timevec, self.rel_trans_maternal, agents, 'Syphilis maternal rel_trans', colors)
 
         # for axis in ax:
         #   axis.set_xlim([2020, 2024])
@@ -191,7 +191,7 @@ class PerformTest(ss.Intervention):
             # if (self.sim.interventions.syph_vaccine.doses[ss.uids(uids)] > 1).any():
             #     uids_boost = ss.uids(uids)[self.sim.interventions.syph_vaccine.doses[ss.uids(uids)] > 1]
             #     self.sim.interventions.syph_vaccine.boost_immunity_by_vaccination(self.sim, ss.uids(uids_boost))
-                
+
     def administer_treatment(self, uids):
         if len(uids):
             self.sim.interventions.treat.change_states(self.sim, ss.uids(uids))
@@ -208,7 +208,7 @@ class PerformTest(ss.Intervention):
                 self.sim.diseases.syphilis.set_prognoses(ss.uids(self.syphilis_infections[sim.ti]))
                 self.administer_vaccine(self.syph_vaccine[sim.ti])
                 self.administer_treatment(self.syphilis_treatment[sim.ti])
-    
+
             # Set pregnancies:
             self.set_pregnancy(self.pregnant[sim.ti])
 
@@ -237,7 +237,7 @@ def test_syph_vacc():
     pars = {}
     pars['n_agents'] = len(agents)
     pars['start'] = 2020
-    pars['end'] = 2050
+    pars['stop'] = 2050
     pars['dt'] = 1 / 12
     syph = sti.Syphilis(init_prev=0, beta={'structuredsexual': [0, 0], 'maternal': [0, 0]})
     hiv = sti.HIV(init_prev=0, beta={'structuredsexual': [0, 0], 'maternal': [0, 0]})
@@ -250,7 +250,7 @@ def test_syph_vacc():
         eligible = sim.people.age < 0 # Noone is eligible
         return eligible
 
-    syph_vaccine = sti.SyphVaccine(
+    syph_vaccine = sti.interventions.SyphVaccine(
         start_year=1981,
         eligibility=vaccine_eligible,
         first_dose_efficacy=0.3,
@@ -264,10 +264,11 @@ def test_syph_vacc():
         dur_protection=5,  # Assume 5 years
     )
 
-    # Add Syphilis Treatment
-    treat = TreatNum(rel_treat_prob=0, name='treat', label='treat')
-    
-    pars['interventions'] = [PerformTest(events), treat, syph_vaccine]
+    # # Add Syphilis Treatment
+    treat = SyphTx(rel_treat_prob=0, name='treat', label='treat')
+    #
+    # pars['interventions'] = [PerformTest(events), treat]
+    pars['interventions'] = [syph_vaccine]
     output = TrackValues()
     pars['analyzers'] = output
 
@@ -275,7 +276,6 @@ def test_syph_vacc():
     fig = output.plot(agents)
     fig.show()
     return sim
-
 
 
 if __name__ == '__main__':
