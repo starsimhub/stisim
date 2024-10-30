@@ -436,7 +436,7 @@ class StructuredSexual(ss.SexualNetwork):
 
     def update_results(self):
         ti = self.sim.ti
-        self.results.share_active[ti] = len(self.active(self.sim.people).uids)/len(self.sim.people)
+        self.results.share_active[ti] = sc.safedivide(len(self.active(self.sim.people).uids), len(self.sim.people))
 
     def net_beta(self, disease_beta=None, uids=None, disease=None):
         if uids is None: uids = Ellipsis
