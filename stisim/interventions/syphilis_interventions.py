@@ -407,9 +407,6 @@ class SyphVaccine(ss.Intervention):
         else:
             self.target_coverage = np.ones(sim.npts)
 
-        # Initialize results
-        self.init_results()
-
         # Scale number of doses
         if self.pars.daily_num_doses is not None:
             self.num_doses = rr((self.pars.daily_num_doses * 365 * sim.dt) / sim.pars.pop_scale)
@@ -419,14 +416,16 @@ class SyphVaccine(ss.Intervention):
         return
 
     def init_results(self):
-        npts = self.sim.npts
-        self.results += [
-            ss.Result(self.name, 'new_vaccinated', npts, dtype=float, scale=True),
-            ss.Result(self.name, 'n_vaccinated', npts, dtype=int, scale=True),
-            ss.Result(self.name, 'n_vaccinated_twice', npts, dtype=int, scale=True),
-            ss.Result(self.name, 'n_vaccinated_triple', npts, dtype=int, scale=True),
-            ss.Result(self.name, 'n_doses', npts, dtype=float, scale=True),
+        super().init_results()
+        results = [
+            ss.Result('new_vaccinated', dtype=float, scale=True, label='Newly vaccinated'),
+            ss.Result('n_vaccinated', dtype=int, scale=True, label='Number of vaccinated individuals'),
+            ss.Result('n_vaccinated_twice', dtype=int, scale=True, label='Number of vaccinated individuals with two doses'),
+            ss.Result('n_vaccinated_triple', dtype=int, scale=True, label='Number of vaccinated individuals with three dose'),
+            ss.Result('n_doses', dtype=float, scale=True, label='Number of doses administered'),
         ]
+        self.define_results(*results)
+
         return
 
     def linear_increase(self, length, init_val, slope):
@@ -836,15 +835,16 @@ class SyphVaccine(ss.Intervention):
 
         return
 
-    def update_results(self, sim):
+    def update_results(self):
         """
         Update results
         """
-        self.results['n_doses'][sim.ti] = sum(self.doses.values)
-        self.results['n_vaccinated'][sim.ti] = len(self.vaccinated.uids)
-        self.results['n_vaccinated_twice'][sim.ti] = len((self.doses == 2).uids)
-        self.results['n_vaccinated_triple'][sim.ti] = len((self.doses == 3).uids)
-        self.results['new_vaccinated'][sim.ti] = len(((self.ti_vaccinated == sim.ti) & (self.doses == 1)).uids)
+        ti = self.sim.ti
+        self.results['n_doses'][ti] = sum(self.doses.values)
+        self.results['n_vaccinated'][ti] = len(self.vaccinated.uids)
+        self.results['n_vaccinated_twice'][ti] = len((self.doses == 2).uids)
+        self.results['n_vaccinated_triple'][ti] = len((self.doses == 3).uids)
+        self.results['new_vaccinated'][ti] = len(((self.ti_vaccinated == ti) & (self.doses == 1)).uids)
         return
 
     def apply(self, sim):
@@ -873,6 +873,6 @@ class SyphVaccine(ss.Intervention):
             self.update_latent_prognoses(sim)
 
             # Update Results
-            self.update_results(sim)
+            self.update_results()
 
         return

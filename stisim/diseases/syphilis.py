@@ -142,7 +142,7 @@ class Syphilis(BaseSTI):
             ss.State('tertiary'),     # Includes complications (cardio/neuro/disfigurement)
             ss.State('immune'),       # After effective treatment people may acquire temp immunity
             ss.State('ever_exposed'), # Anyone ever exposed - stays true after treatment
-            ss.State('reinfected'),   # Anyone reinfected - (infected & ever exopsed) 
+            ss.State('reinfected'),   # Anyone reinfected - (infected & ever exposed)
 
             # Congenital syphilis states
             ss.State('congenital'),
