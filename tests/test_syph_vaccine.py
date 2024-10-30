@@ -29,21 +29,21 @@ class TrackValues(ss.Analyzer):
         super().init_pre(sim)
         self.n = len(sim.people)
 
-        self.hiv_rel_sus = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
-        self.hiv_rel_trans = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
+        self.hiv_rel_sus = np.empty((sim.npts, self.n))
+        self.hiv_rel_trans = np.empty((sim.npts, self.n))
 
-        self.syph_rel_sus = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
-        self.syph_rel_trans = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
-        self.rel_trans_maternal = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
+        self.syph_rel_sus = np.empty((sim.npts, self.n))
+        self.syph_rel_trans = np.empty((sim.npts, self.n))
+        self.rel_trans_maternal = np.empty((sim.npts, self.n))
 
-        self.syph_immunity = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
-        self.syph_rel_sus_immunity = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
-        self.syph_rel_trans_immunity = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
-        self.syph_rel_trans_immunity_maternal = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
+        self.syph_immunity = np.empty((sim.npts, self.n))
+        self.syph_rel_sus_immunity = np.empty((sim.npts, self.n))
+        self.syph_rel_trans_immunity = np.empty((sim.npts, self.n))
+        self.syph_rel_trans_immunity_maternal = np.empty((sim.npts, self.n))
 
         self.syph_state = np.empty((sim.npts, self.n))
-        self.ti_secondary = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
-        self.ti_latent = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
+        self.ti_secondary = np.empty((sim.npts, self.n))
+        self.ti_latent = np.empty((sim.npts, self.n))
 
     @property
     def has_hiv(self):
