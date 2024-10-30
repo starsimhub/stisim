@@ -194,7 +194,7 @@ class PerformTest(ss.Intervention):
 
     def administer_treatment(self, uids):
         if len(uids):
-            self.sim.interventions.treat.change_states(self.sim, ss.uids(uids))
+            self.sim.interventions.treat.change_states('syphilis', ss.uids(uids))
 
     def set_pregnancy(self, uids):
         self.sim.demographics.pregnancy.pregnant[ss.uids(uids)] = True
