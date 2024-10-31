@@ -18,7 +18,6 @@ import matplotlib.pyplot as plt
 import sciris as sc
 import matplotlib.patches as mpatches
 from matplotlib.lines import Line2D
-import matplotlib.colors as mcolors
 from stisim.interventions import SyphTx
 
 
@@ -104,7 +103,6 @@ class TrackValues(ss.Analyzer):
             x_ev = []
             y_ev = []
             colors = []
-            labels = []
             for i, events in enumerate(agents.values()):
                 for event in events:
                     x_ev.append(self.sim.timevec[event[1]])
@@ -121,7 +119,6 @@ class TrackValues(ss.Analyzer):
                         colors.append('black')
             ax.scatter(x_ev, y_ev, marker='*', color=colors, edgecolor='red', s=150, linewidths=0.5, zorder=100)
             ax.set_title(title)
-            # ax.set_ylim([0, 1])
             return h
 
         if self.has_syph:
@@ -140,8 +137,6 @@ class TrackValues(ss.Analyzer):
             h = plot_with_events(ax[6], self.sim.timevec, self.syph_rel_trans, agents, 'Syphilis rel_trans', colors)
             h = plot_with_events(ax[7], self.sim.timevec, self.rel_trans_maternal, agents, 'Syphilis maternal rel_trans', colors)
 
-        # for axis in ax:
-        #   axis.set_xlim([2020, 2024])
 
         # Add Legend
         ax[4].axis('off')
