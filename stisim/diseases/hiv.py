@@ -241,7 +241,7 @@ class HIV(BaseSTI):
     @staticmethod
     def death_prob(module, sim, uids=None):
         cd4_bins = np.array([1000, 500, 350, 200, 50, 0])
-        death_prob = module.dt*np.array([0.003, 0.003, 0.005, 0.01, 0.05, 0.300])  # Values smaller than the first bin edge get assigned to the last bin.
+        death_prob = module.t.dt*np.array([0.003, 0.003, 0.005, 0.01, 0.05, 0.300])  # Values smaller than the first bin edge get assigned to the last bin.
         return death_prob[np.digitize(module.cd4[uids], cd4_bins)]
 
     @staticmethod
