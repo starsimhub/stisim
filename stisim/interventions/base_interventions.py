@@ -139,7 +139,7 @@ class STITest(ss.Intervention):
 
         # Scale and validate
         test_prob *= self.pars.rel_test
-        if self.pars.dt_scale: test_prob *= self.dt
+        if self.pars.dt_scale: test_prob *= self.t.dt
         test_prob = np.clip(test_prob, a_min=0, a_max=1)
 
         return test_prob
