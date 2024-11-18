@@ -40,7 +40,7 @@ class hiv_syph(ss.Connector):
 
         return
 
-    def update(self):
+    def step(self):
 
         # HIV changes due to syphilis
         syphilis = self.syphilis.active
@@ -79,7 +79,7 @@ class hiv_tv(ss.Connector):
         self.update_pars(pars, **kwargs)
         return
 
-    def update(self):
+    def step(self):
         tv = self.tv.infected
         self.hiv.rel_sus[tv] *= self.pars.rel_sus_hiv_tv
         return
@@ -102,7 +102,7 @@ class hiv_ng(ss.Connector):
 
         return
 
-    def update(self):
+    def step(self):
         ng = self.ng.infected
         self.hiv.rel_sus[ng] *= self.pars.rel_sus_hiv_ng
         return
@@ -125,7 +125,7 @@ class hiv_ct(ss.Connector):
 
         return
 
-    def update(self):
+    def step(self):
         ct = self.ct.infected
         self.hiv.rel_sus[ct] *= self.pars.rel_sus_hiv_ct
         return

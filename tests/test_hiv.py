@@ -32,18 +32,18 @@ class TrackValues(ss.Analyzer):
     def has_syph(self):
         return isinstance(self.sim.diseases.get('syphilis'), sti.Syphilis)
 
-    def apply(self, sim):
+    def step(self):
 
         if self.has_hiv:
-            self.hiv_rel_sus[sim.ti, :self.n] = sim.diseases.hiv.rel_sus.values[:self.n]
-            self.hiv_rel_trans[sim.ti, :self.n] = sim.diseases.hiv.rel_trans.values[:self.n]
+            self.hiv_rel_sus[self.sim.ti, :self.n] = self.sim.diseases.hiv.rel_sus.values[:self.n]
+            self.hiv_rel_trans[self.sim.ti, :self.n] = self.sim.diseases.hiv.rel_trans.values[:self.n]
 
         if self.has_syph:
-            self.syph_rel_sus[sim.ti, :self.n] = sim.diseases.syphilis.rel_sus.values[:self.n]
-            self.syph_rel_trans[sim.ti, :self.n] = sim.diseases.syphilis.rel_trans.values[:self.n]
+            self.syph_rel_sus[self.sim.ti, :self.n] = self.sim.diseases.syphilis.rel_sus.values[:self.n]
+            self.syph_rel_trans[self.sim.ti, :self.n] = self.sim.diseases.syphilis.rel_trans.values[:self.n]
 
-        self.cd4[sim.ti, :self.n] = sim.diseases.hiv.cd4.values[:self.n]
-        self.care_seeking[sim.ti, :self.n] = sim.diseases.hiv.care_seeking[:self.n]
+        self.cd4[self.sim.ti, :self.n] = self.sim.diseases.hiv.cd4.values[:self.n]
+        self.care_seeking[self.sim.ti, :self.n] = self.sim.diseases.hiv.care_seeking[:self.n]
 
     def plot(self, agents: dict):
         """
@@ -124,7 +124,8 @@ class PerformTest(ss.Intervention):
         self.sim.demographics.pregnancy.pregnant[ss.uids(uids)] = True
         self.sim.demographics.pregnancy.ti_pregnant[ss.uids(uids)] = self.sim.ti
 
-    def step(self, sim):
+    def step(self):
+        sim = self.sim
         self.initiate_ART(self.art_start[sim.ti])
         self.end_ART(self.art_stop[sim.ti])
         if 'hiv' in sim.diseases:
