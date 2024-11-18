@@ -273,7 +273,7 @@ class StructuredSexual(ss.SexualNetwork):
     def add_pairs(self, ti=None):
         """ Add pairs """
         ppl = self.sim.people
-        dt = self.dt
+        dt = self.t.dt
 
         # Obtain new pairs
         try:
@@ -353,7 +353,7 @@ class StructuredSexual(ss.SexualNetwork):
     def add_sex_work(self, ppl):
         """ Match sex workers to clients """
 
-        dt = self.dt
+        dt = self.t.dt
         # Find people eligible for a relationship
         active_fsw = self.active(ppl) & ppl.female & self.fsw
         active_clients = self.active(ppl) & ppl.male & self.client
@@ -414,7 +414,7 @@ class StructuredSexual(ss.SexualNetwork):
 
     def end_pairs(self):
         people = self.sim.people
-        dt = self.dt
+        dt = self.t.dt
 
         self.edges.dur = self.edges.dur - dt
 
@@ -468,7 +468,7 @@ class StructuredSexual(ss.SexualNetwork):
 
     def step(self):
         self.end_pairs()
-        self.set_network_states(upper_age=self.dt)
+        self.set_network_states(upper_age=self.t.dt)
         self.add_pairs()
         self.set_condom_use()
 

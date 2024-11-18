@@ -14,15 +14,15 @@ class TrackValues(ss.Analyzer):
         super().init_pre(sim)
         self.n = len(sim.people)
 
-        self.hiv_rel_sus = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
-        self.hiv_rel_trans = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
+        self.hiv_rel_sus = np.empty((sim.t.npts, self.n), dtype=ss.dtypes.float)
+        self.hiv_rel_trans = np.empty((sim.t.npts, self.n), dtype=ss.dtypes.float)
 
-        self.syph_rel_sus = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
-        self.syph_rel_trans = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
+        self.syph_rel_sus = np.empty((sim.t.npts, self.n), dtype=ss.dtypes.float)
+        self.syph_rel_trans = np.empty((sim.t.npts, self.n), dtype=ss.dtypes.float)
 
-        self.cd4 = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
+        self.cd4 = np.empty((sim.t.npts, self.n), dtype=ss.dtypes.float)
 
-        self.care_seeking = np.empty((sim.npts, self.n), dtype=ss.dtypes.float)
+        self.care_seeking = np.empty((sim.t.npts, self.n), dtype=ss.dtypes.float)
 
     @property
     def has_hiv(self):
@@ -124,7 +124,7 @@ class PerformTest(ss.Intervention):
         self.sim.demographics.pregnancy.pregnant[ss.uids(uids)] = True
         self.sim.demographics.pregnancy.ti_pregnant[ss.uids(uids)] = self.sim.ti
 
-    def apply(self, sim):
+    def step(self, sim):
         self.initiate_ART(self.art_start[sim.ti])
         self.end_ART(self.art_stop[sim.ti])
         if 'hiv' in sim.diseases:

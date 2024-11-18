@@ -19,12 +19,14 @@ class HIV(BaseSTI):
 
         # Parameters
         self.define_pars(
+            unit='month',
+
             # Natural history without treatment
             cd4_start=ss.normal(loc=800, scale=50),
             cd4_latent=ss.normal(loc=500, scale=50),
-            dur_acute=ss.lognorm_ex(3/12, 1/12),    # Duration of acute HIV infection
-            dur_latent=ss.lognorm_ex(10, 3),        # Duration of latent, untreated HIV infection
-            dur_falling=ss.lognorm_ex(3, 1),        # Duration of late-stage HIV when CD4 counts fall
+            dur_acute=ss.lognorm_ex(3, 1),          # Duration of acute HIV infection (months)
+            dur_latent=ss.lognorm_ex(10*12, 3*12),  # Duration of latent, untreated HIV infection
+            dur_falling=ss.lognorm_ex(3*12, 12),    # Duration of late-stage HIV when CD4 counts fall
             p_hiv_death=None,  # Probability of death from HIV-related complications - default is to use HIV.death_prob(), otherwise can pass in a Dist or anything supported by ss.bernoulli)
             include_aids_deaths=True,
 
@@ -50,9 +52,9 @@ class HIV(BaseSTI):
             # Treatment effects
             art_cd4_growth=0.1,  # How quickly CD4 reconstitutes after starting ART - used in a logistic growth function
             art_efficacy=0.96,  # Efficacy of ART
-            time_to_art_efficacy=0.5,  # Time to reach full ART efficacy (in years) - linear increase in efficacy
+            time_to_art_efficacy=6,  # Time to reach full ART efficacy (in months) - linear increase in efficacy
             art_cd4_pars=dict(cd4_max=1000, cd4_healthy=500),
-            dur_on_art=ss.lognorm_ex(18, 5),
+            dur_on_art=ss.lognorm_ex(18*12, 5),
             dur_post_art=ss.normal(loc=self.dur_post_art_mean, scale=self.dur_post_art_scale),
             dur_post_art_scale_factor=0.1,
         )
@@ -369,11 +371,10 @@ class HIV(BaseSTI):
             full_eff = self.pars.art_efficacy
             time_to_full_eff = self.pars.time_to_art_efficacy
             art_uids = self.on_art.uids
-            dur_art = ti - self.ti_art[art_uids]
-            months_on_art = dur_art*self.dt*12  # TODO: make this more robust
-            new_on_art = months_on_art < (time_to_full_eff/self.dt)
+            months_on_art = ti - self.ti_art[art_uids]
+            new_on_art = months_on_art < time_to_full_eff
             efficacy_to_date = np.full_like(art_uids, fill_value=full_eff, dtype=float)
-            efficacy_to_date[new_on_art] = months_on_art[new_on_art]*full_eff/(time_to_full_eff/self.dt)
+            efficacy_to_date[new_on_art] = months_on_art[new_on_art]*full_eff/time_to_full_eff
             self.rel_trans[art_uids] *= 1 - efficacy_to_date
 
         return
@@ -428,8 +429,6 @@ class HIV(BaseSTI):
                 errormsg = 'ti for set_prognoses must be int or array of length uids'
                 raise ValueError(errormsg)
 
-        dt = self.dt
-
         self.susceptible[uids] = False
         self.infected[uids] = True
         self.acute[uids] = True
@@ -440,14 +439,14 @@ class HIV(BaseSTI):
 
         # Set timing and CD4 count of latent infection
         dur_acute = self.pars.dur_acute.rvs(uids)
-        self.ti_latent[uids] = self.ti_acute[uids] + (dur_acute / dt).astype(int)
+        self.ti_latent[uids] = self.ti_acute[uids] + dur_acute.astype(int)
         self.cd4_latent[uids] = self.pars.cd4_latent.rvs(uids)
 
         # Set time of onset of late-stage CD4 decline
         dur_latent = self.pars.dur_latent.rvs(uids)
-        self.ti_falling[uids] = self.ti_latent[uids] + (dur_latent / dt).astype(int)
+        self.ti_falling[uids] = self.ti_latent[uids] + dur_latent.astype(int)
         dur_falling = self.pars.dur_falling.rvs(uids)
-        self.ti_zero[uids] = self.ti_falling[uids] + (dur_falling / dt).astype(int)
+        self.ti_zero[uids] = self.ti_falling[uids] + dur_falling.astype(int)
 
         return
 
@@ -463,7 +462,6 @@ class HIV(BaseSTI):
         Check who is ready to start ART treatment and put them on ART
         """
         ti = self.sim.ti
-        dt = self.dt
 
         self.on_art[uids] = True
         newly_treated = uids[self.never_art[uids]]
@@ -473,7 +471,7 @@ class HIV(BaseSTI):
 
         # Determine when agents goes off ART
         dur_on_art = self.pars.dur_on_art.rvs(uids)
-        self.ti_stop_art[uids] = ti + (dur_on_art / dt).astype(int)
+        self.ti_stop_art[uids] = ti + dur_on_art.astype(int)
 
         # ART nullifies all states and all future dates in the natural history
         self.acute[uids] = False
@@ -523,7 +521,6 @@ class HIV(BaseSTI):
         Check who is stopping ART treatment and put them off ART
         """
         ti = self.sim.ti
-        dt = self.dt
 
         # Remove agents from ART
         if uids is None: uids = self.on_art & (self.ti_stop_art <= ti)
@@ -536,7 +533,7 @@ class HIV(BaseSTI):
         if np.isnan(dur_post_art).any():
             errormsg = 'Invalid entry for post-ART duration'
             raise ValueError(errormsg)
-        self.ti_zero[uids] = ti + (dur_post_art / dt).astype(int)
+        self.ti_zero[uids] = ti + dur_post_art.astype(int)
 
         return
 

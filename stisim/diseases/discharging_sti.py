@@ -16,9 +16,8 @@ class DischargingSTI(SEIS):
 
         self.define_pars(
             p_symp=[
-                # Amsel score or Nugent score, clinical diagnosis for BV, cal be asymptomatic
+                # Amsel score or Nugent score, clinical diagnosis for BV, can be asymptomatic
                 # Asymptomatic still has the same risk for STIs/HIV
-                #
                 ss.bernoulli(p=0.1),  # Women
                 ss.bernoulli(p=0.0),  # Men
             ],
