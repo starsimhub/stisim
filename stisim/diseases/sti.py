@@ -12,6 +12,10 @@ ss_int_ = ss.dtypes.int
 __all__ = ['BaseSTI', 'SEIS']
 
 
+def true(arr):
+    return np.count_nonzero(arr)
+
+
 class BaseSTI(ss.Infection):
     """
     Base class for sexually transmitted infections.
@@ -21,6 +25,7 @@ class BaseSTI(ss.Infection):
         super().__init__(name=name)
         self.requires = 'structuredsexual'
         self.define_pars(
+            unit='week',
             eff_condom=1,
             rel_init_prev=1,
         )
@@ -43,7 +48,7 @@ class BaseSTI(ss.Infection):
             betamap['structuredsexual'][0] = self.pars.beta_m2f
             betamap['structuredsexual'][1] = self.pars.beta_m2f * self.pars.rel_beta_f2m
         if self.pars.beta_m2c is not None:
-            betamap['maternal'][0] = self.pars.beta_m2c
+            betamap['maternal'][0] = ss.beta(self.pars.beta_m2c, 'month')
         return betamap
 
     def infect(self):
@@ -92,9 +97,12 @@ class SEIS(BaseSTI):
     def __init__(self, pars=None, name=None, init_prev_data=None, **kwargs):
         super().__init__(name=name, init_prev_data=init_prev_data)
         self.define_pars(
+            # Settings
+            unit='week',
+            include_care=True,  # Determines whether testing results are included
 
             # Natural history
-            dur_exp=ss.constant(1/52),  # Initial latent period: how long after exposure before you can infect others
+            dur_exp=ss.constant(ss.dur(1, 'week')),  # Initial latent period: how long after exposure before you can infect others
 
             # Symptoms and symptomatic testing
             p_symp=[
@@ -102,49 +110,49 @@ class SEIS(BaseSTI):
                 ss.bernoulli(p=0.375),  # Men
             ],
             dur_presymp=[  # For those who develop symptoms, how long before symptoms appear
-                ss.lognorm_ex(1/52, 12/52),  # Women:
-                ss.lognorm_ex(0.5/52, 12/52),  # Men: symptoms should appear within days
+                ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(12, 'week')),  # Women
+                ss.lognorm_ex(ss.dur(0.25, 'week'), ss.dur(3, 'week')), # Men
             ],
             p_symp_clear=[
                 ss.bernoulli(p=0.0),  # Women
                 ss.bernoulli(p=0.0),  # Men
             ],
             dur_symp=[
-                ss.lognorm_ex(1/52, 26/52),  # Duration of symptoms
-                ss.lognorm_ex(1/52, 26/52),  # Duration of symptoms
+                ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(26, 'week')),  # Duration of symptoms
+                ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(26, 'week')),  # Duration of symptoms
             ],
             p_symp_care=[
                 ss.bernoulli(p=0.3),  # Women: 0.2*1+0.8*.2
                 ss.bernoulli(p=0.2),  # Men: 0.5*1+0.5*.25
             ],
             dur_symp2care=[  # For those who test, how long before they seek care
-                ss.lognorm_ex(1/12, 1/12),  # Women
-                ss.lognorm_ex(1.5/12, 1/12),  # Men
+                ss.lognorm_ex(ss.dur(4, 'week'), ss.dur(4, 'week')),  # Women
+                ss.lognorm_ex(ss.dur(6, 'week'), ss.dur(4, 'week')),  # Men
             ],
 
             # PID and PID care-seeking
             p_pid=ss.bernoulli(p=0.2),
-            dur_prepid=ss.lognorm_ex(1.5/12, 1/12),
+            dur_prepid=ss.lognorm_ex(ss.dur(6, 'week'), ss.dur(4, 'week')),
             p_pid_care=ss.bernoulli(p=0.1),  # Women
-            dur_pid2care=ss.lognorm_ex(0.5/12, 1/12),  # Women
+            dur_pid2care=ss.lognorm_ex(ss.dur(2, 'week'), ss.dur(4, 'week')),  # Women
 
             # Clearance
             dur_asymp2clear=[  # Duration of untreated asymptomatic infection (excl initial latent)
-                ss.lognorm_ex(52/52, 5/52),  # Women
-                ss.lognorm_ex(52/52, 5/52),  # Men
+                ss.lognorm_ex(ss.dur(52, 'week'), ss.dur(5, 'week')),  # Women
+                ss.lognorm_ex(ss.dur(52, 'week'), ss.dur(5, 'week')),  # Men
             ],
             dur_symp2clear=[  # Duration of untreated symptomatic infection (excl initial latent)
-                ss.lognorm_ex(52/52, 5/52),  # Women
-                ss.lognorm_ex(52/52, 5/52),  # Men
+                ss.lognorm_ex(ss.dur(52, 'week'), ss.dur(5, 'week')),  # Women
+                ss.lognorm_ex(ss.dur(52, 'week'), ss.dur(5, 'week')),  # Men
             ],
             dur_postsymp2clear=[
-                ss.lognorm_ex(52/52, 5/52),  # Women
-                ss.lognorm_ex(52/52, 5/52),  # Men
+                ss.lognorm_ex(ss.dur(52, 'week'), ss.dur(5, 'week')),  # Women
+                ss.lognorm_ex(ss.dur(52, 'week'), ss.dur(5, 'week')),  # Men
             ],
-            dur_pid2clear=ss.lognorm_ex(52/52, 5/52),
+            dur_pid2clear=ss.lognorm_ex(ss.dur(52, 'week'), ss.dur(5, 'week')),
 
             # Transmission
-            beta=1.0,  # Placeholder
+            beta=ss.beta(1),  # Placeholder
             beta_m2f=None,
             rel_beta_f2m=0.5,
             beta_m2c=None,
@@ -191,7 +199,7 @@ class SEIS(BaseSTI):
     def init_results(self):
         """ Initialize results """
         super().init_results()
-        self.define_results(
+        results = [
             ss.Result('female_prevalence', scale=False, label="Prevalence - F"),
             ss.Result('male_prevalence', scale=False, label="Prevalence - M"),
 
@@ -222,29 +230,34 @@ class SEIS(BaseSTI):
             ss.Result('new_symptomatic', dtype=int, label="New symptomatic"),
             ss.Result('new_female_symptomatic', dtype=int, label="New symptomatic - F"),
             ss.Result('new_male_symptomatic', dtype=int, label="New symptomatic - F"),
+        ]
 
-            ss.Result('new_care_seekers', dtype=int, label="New care seekers"),
+        if self.pars.include_care:
+            results += [
+                ss.Result('new_care_seekers', dtype=int, label="New care seekers"),
 
-            # Add overall testing and treatment results, which might be assembled from numerous interventions
-            ss.Result('new_false_pos', dtype=int, label="New false positives"),
-            ss.Result('new_true_pos', dtype=int, label="New true positives"),
-            ss.Result('new_false_neg', dtype=int, label="New false negatives"),
-            ss.Result('new_true_neg', dtype=int, label="New true negatives"),
-            ss.Result('new_false_pos_f', dtype=int, label="New false positives - F"),
-            ss.Result('new_true_pos_f', dtype=int, label="New true positives - F"),
-            ss.Result('new_false_neg_f', dtype=int, label="New false negatives - F"),
-            ss.Result('new_true_neg_f', dtype=int, label="New true negatives - F"),
-            ss.Result('new_false_pos_m', dtype=int, label="New false positives - M"),
-            ss.Result('new_true_pos_m', dtype=int, label="New true positives - M"),
-            ss.Result('new_false_neg_m', dtype=int, label="New false negatives - M"),
-            ss.Result('new_true_neg_m', dtype=int, label="New true negatives - M"),
-            ss.Result('new_treated_success', dtype=int, label="Successful treatments"),
-            ss.Result('new_treated_failure', dtype=int, label="Unsuccessful treatments"),
-            ss.Result('new_treated_unnecessary', dtype=int, label="Unnecessary treatments"),
-            ss.Result('new_treated_success_symp', dtype=int, label="Successful treatments (symptomatic)"),
-            ss.Result('new_treated_success_asymp', dtype=int, label="Successful treatments (asymptomatic)"),
-            ss.Result('new_treated', dtype=int, label="Treatments"),
-        )
+                # Add overall testing and treatment results, which might be assembled from numerous interventions
+                ss.Result('new_false_pos', dtype=int, label="New false positives"),
+                ss.Result('new_true_pos', dtype=int, label="New true positives"),
+                ss.Result('new_false_neg', dtype=int, label="New false negatives"),
+                ss.Result('new_true_neg', dtype=int, label="New true negatives"),
+                ss.Result('new_false_pos_f', dtype=int, label="New false positives - F"),
+                ss.Result('new_true_pos_f', dtype=int, label="New true positives - F"),
+                ss.Result('new_false_neg_f', dtype=int, label="New false negatives - F"),
+                ss.Result('new_true_neg_f', dtype=int, label="New true negatives - F"),
+                ss.Result('new_false_pos_m', dtype=int, label="New false positives - M"),
+                ss.Result('new_true_pos_m', dtype=int, label="New true positives - M"),
+                ss.Result('new_false_neg_m', dtype=int, label="New false negatives - M"),
+                ss.Result('new_true_neg_m', dtype=int, label="New true negatives - M"),
+                ss.Result('new_treated_success', dtype=int, label="Successful treatments"),
+                ss.Result('new_treated_failure', dtype=int, label="Unsuccessful treatments"),
+                ss.Result('new_treated_unnecessary', dtype=int, label="Unnecessary treatments"),
+                ss.Result('new_treated_success_symp', dtype=int, label="Successful treatments (symptomatic)"),
+                ss.Result('new_treated_success_asymp', dtype=int, label="Successful treatments (asymptomatic)"),
+                ss.Result('new_treated', dtype=int, label="Treatments"),
+            ]
+
+        self.define_results(*results)
 
         # Age/sex results
         for rkey in self.age_sex_result_keys:
@@ -252,7 +265,7 @@ class SEIS(BaseSTI):
             self.age_sex_results[rkey] = sc.objdict()
             for skey in ['female', 'male', 'both']:
                 # self.sex_results[rkey][skey] = np.zeros(len(self.sim.timevec))
-                self.age_sex_results[rkey][skey] = np.zeros((len(self.age_bins)-1, len(self.sim.timevec)))
+                self.age_sex_results[rkey][skey] = np.zeros((len(self.age_bins)-1, self.t.npts))
 
         return
 
@@ -265,7 +278,7 @@ class SEIS(BaseSTI):
         self.pid[uids] = False
         self.seeking_care[uids] = False
         self.susceptible[uids] = True
-        past_care_seekers = uids[(self.ti_seeks_care[uids]<self.sim.ti).nonzero()[-1]]
+        past_care_seekers = uids[(self.ti_seeks_care[uids] < self.sim.ti).nonzero()[-1]]
         self.ti_seeks_care[past_care_seekers] = np.nan
         self.ti_clearance[uids] = self.sim.ti
 
@@ -317,7 +330,8 @@ class SEIS(BaseSTI):
         # If we don't update this results here, it's possible that someone could seek care,
         # then get reinfected, and the reinfection would wipe all their dates so we'd miss
         # counting them in the results.
-        self.results['new_care_seekers'][ti] = np.count_nonzero(self.ti_seeks_care == ti)
+        if self.pars.include_care:
+            self.results['new_care_seekers'][ti] = true(self.ti_seeks_care == ti)
 
         return
 
@@ -334,34 +348,34 @@ class SEIS(BaseSTI):
         infected_women = women & self.infected
         infected_men = men & self.infected
 
-        self.results['female_prevalence'][ti] = np.count_nonzero(self.infected & self.sim.people.female) / np.count_nonzero(self.sim.people.female)
-        self.results['male_prevalence'][ti] = np.count_nonzero(self.infected & self.sim.people.male) / np.count_nonzero(self.sim.people.male)
+        self.results['female_prevalence'][ti] = true(self.infected & self.sim.people.female) / true(self.sim.people.female)
+        self.results['male_prevalence'][ti] = true(self.infected & self.sim.people.male) / true(self.sim.people.male)
 
-        self.results['symp_prevalence'][ti] = np.count_nonzero(self.symptomatic) / np.count_nonzero(self.sim.people.alive)
-        self.results['female_symp_prevalence'][ti] = np.count_nonzero(self.symptomatic & self.sim.people.female) / np.count_nonzero(self.sim.people.female)
-        self.results['male_symp_prevalence'][ti] = np.count_nonzero(self.symptomatic & self.sim.people.male) / np.count_nonzero(self.sim.people.male)
+        self.results['symp_prevalence'][ti] = true(self.symptomatic) / true(self.sim.people.alive)
+        self.results['female_symp_prevalence'][ti] = true(self.symptomatic & self.sim.people.female) / true(self.sim.people.female)
+        self.results['male_symp_prevalence'][ti] = true(self.symptomatic & self.sim.people.male) / true(self.sim.people.male)
 
-        self.results['adult_prevalence'][ti] = np.count_nonzero(self.infected & adults) / np.count_nonzero(adults)
-        self.results['female_adult_prevalence'][ti] = np.count_nonzero(self.infected & women) / np.count_nonzero(women)
-        self.results['male_adult_prevalence'][ti] = np.count_nonzero(self.infected & men) / np.count_nonzero(men)
+        self.results['adult_prevalence'][ti] = true(infected_adults) / true(adults)
+        self.results['female_adult_prevalence'][ti] = true(infected_women) / true(women)
+        self.results['male_adult_prevalence'][ti] = true(infected_men) / true(men)
 
-        self.results['new_female_infections'][ti] = np.count_nonzero((self.ti_infected == ti) & self.sim.people.female)
-        self.results['new_male_infections'][ti] = np.count_nonzero((self.ti_infected == ti) & self.sim.people.male)
+        self.results['new_female_infections'][ti] = true((self.ti_infected == ti) & self.sim.people.female)
+        self.results['new_male_infections'][ti] = true((self.ti_infected == ti) & self.sim.people.male)
 
-        self.results['symp_adult_prevalence'][ti] = np.count_nonzero(self.symptomatic & adults) / np.count_nonzero(adults)
-        self.results['female_symp_adult_prevalence'][ti] = np.count_nonzero(self.symptomatic & women) / np.count_nonzero(women)
-        self.results['male_symp_adult_prevalence'][ti] = np.count_nonzero(self.symptomatic & men) / np.count_nonzero(men)
+        self.results['symp_adult_prevalence'][ti] = true(self.symptomatic & adults) / true(adults)
+        self.results['female_symp_adult_prevalence'][ti] = true(self.symptomatic & women) / true(women)
+        self.results['male_symp_adult_prevalence'][ti] = true(self.symptomatic & men) / true(men)
 
-        self.results['n_female_infected'][ti] = np.count_nonzero(self.infected & women)
-        self.results['n_male_infected'][ti] = np.count_nonzero(self.infected & men)
-        self.results['n_female_symptomatic'][ti] = np.count_nonzero(self.symptomatic & women)
-        self.results['n_male_symptomatic'][ti] = np.count_nonzero(self.symptomatic & men)
+        self.results['n_female_infected'][ti] = true(self.infected & women)
+        self.results['n_male_infected'][ti] = true(self.infected & men)
+        self.results['n_female_symptomatic'][ti] = true(self.symptomatic & women)
+        self.results['n_male_symptomatic'][ti] = true(self.symptomatic & men)
 
-        self.results['new_symptomatic'][ti] = np.count_nonzero(self.ti_symptomatic == ti)
-        self.results['new_female_symptomatic'][ti] = np.count_nonzero((self.ti_symptomatic == ti) & self.sim.people.female)
-        self.results['new_male_symptomatic'][ti] = np.count_nonzero((self.ti_symptomatic == ti) & self.sim.people.male)
+        self.results['new_symptomatic'][ti] = true(self.ti_symptomatic == ti)
+        self.results['new_female_symptomatic'][ti] = true((self.ti_symptomatic == ti) & self.sim.people.female)
+        self.results['new_male_symptomatic'][ti] = true((self.ti_symptomatic == ti) & self.sim.people.male)
 
-        self.results['incidence'][ti] = self.results['new_infections'][ti] / self.results['n_susceptible'][ti]
+        self.results['incidence'][ti] = sc.safedivide(self.results['new_infections'][ti], self.results['n_susceptible'][ti])
 
         # rmap = {'alive': 'both', 'female': 'female', 'male': 'male'}
         rmap = {'female': 'female', 'male': 'male'}
@@ -400,7 +414,7 @@ class SEIS(BaseSTI):
         self.asymptomatic[uids] = True
         self.ti_exposed[uids] = self.sim.ti
         dur_exp = self.pars.dur_exp.rvs(uids)
-        self.ti_infected[uids] = self.sim.ti + dur_exp/self.dt
+        self.ti_infected[uids] = self.sim.ti + dur_exp
         return
 
     def set_symptoms(self, p, f_uids, m_uids):
@@ -408,8 +422,8 @@ class SEIS(BaseSTI):
         m_symp, m_asymp = p.p_symp[1].split(m_uids)
         f_dur_presymp = self.pars.dur_presymp[0].rvs(f_symp)
         m_dur_presymp = self.pars.dur_presymp[1].rvs(m_symp)
-        self.ti_symptomatic[f_symp] = self.ti_infected[f_symp] + f_dur_presymp/self.dt
-        self.ti_symptomatic[m_symp] = self.ti_infected[m_symp] + m_dur_presymp/self.dt
+        self.ti_symptomatic[f_symp] = self.ti_infected[f_symp] + f_dur_presymp
+        self.ti_symptomatic[m_symp] = self.ti_infected[m_symp] + m_dur_presymp
         return f_symp, m_symp, f_asymp, m_asymp
 
     def set_symp_clearance(self, p, f_symp, m_symp):
@@ -417,8 +431,8 @@ class SEIS(BaseSTI):
         m_symp_clear, m_symp_persist = p.p_symp_clear[1].split(m_symp)
         f_dur_symp = self.pars.dur_symp[0].rvs(f_symp_clear)
         m_dur_symp = self.pars.dur_symp[1].rvs(m_symp_clear)
-        self.ti_symp_clear[f_symp_clear] = self.ti_symptomatic[f_symp_clear] + f_dur_symp/self.dt
-        self.ti_symp_clear[m_symp_clear] = self.ti_symptomatic[m_symp_clear] + m_dur_symp/self.dt
+        self.ti_symp_clear[f_symp_clear] = self.ti_symptomatic[f_symp_clear] + f_dur_symp
+        self.ti_symp_clear[m_symp_clear] = self.ti_symptomatic[m_symp_clear] + m_dur_symp
         return f_symp_clear, m_symp_clear, f_symp_persist, m_symp_persist
 
     def set_care_seeking(self, p, f_symp, m_symp):
@@ -426,25 +440,23 @@ class SEIS(BaseSTI):
         m_symp_care = p.p_symp_care[1].filter(m_symp)
         f_dur_symp2care = p.dur_symp2care[0].rvs(f_symp_care)
         m_dur_symp2care = p.dur_symp2care[1].rvs(m_symp_care)
-        self.ti_seeks_care[f_symp_care] = self.ti_symptomatic[f_symp_care] + f_dur_symp2care/self.dt
-        self.ti_seeks_care[m_symp_care] = self.ti_symptomatic[m_symp_care] + m_dur_symp2care/self.dt
+        self.ti_seeks_care[f_symp_care] = self.ti_symptomatic[f_symp_care] + f_dur_symp2care
+        self.ti_seeks_care[m_symp_care] = self.ti_symptomatic[m_symp_care] + m_dur_symp2care
         return
 
     def set_pid(self, p, f_uids):
         pid = p.p_pid.filter(f_uids)
         dur_prepid = p.dur_prepid.rvs(pid)
-        self.ti_pid[pid] = self.ti_infected[pid] + dur_prepid/self.dt
+        self.ti_pid[pid] = self.ti_infected[pid] + dur_prepid
         return pid
 
     def set_pid_care_seeking(self, p, pid):
-        dt = self.dt
         pid_care = p.p_pid_care.filter(pid)
         dur_pid2care = p.dur_pid2care.rvs(pid_care)
-        self.ti_seeks_care[pid_care] = np.minimum(self.ti_seeks_care[pid_care], self.ti_infected[pid_care] + dur_pid2care/dt)
+        self.ti_seeks_care[pid_care] = np.minimum(self.ti_seeks_care[pid_care], self.ti_infected[pid_care] + dur_pid2care)
         return
 
     def set_duration(self, p, f_symp_clear, m_symp_clear, f_symp_persist, m_symp_persist, f_asymp, m_asymp, pid):
-        dt = self.dt
 
         # Duration of infection for those with persistant symptoms, transient symptoms, and asymptomatic infection
         dur_inf_f_symp_clear = p.dur_postsymp2clear[0].rvs(f_symp_clear)
@@ -454,13 +466,13 @@ class SEIS(BaseSTI):
         dur_inf_f_asymp = p.dur_asymp2clear[0].rvs(f_asymp)
         dur_inf_m_asymp = p.dur_asymp2clear[1].rvs(m_asymp)
         dur_inf_pid = p.dur_pid2clear.rvs(pid)
-        self.ti_clearance[f_symp_clear] = dur_inf_f_symp_clear/dt + self.ti_symp_clear[f_symp_clear]
-        self.ti_clearance[m_symp_clear] = dur_inf_m_symp_clear/dt + self.ti_symp_clear[m_symp_clear]
-        self.ti_clearance[f_symp_persist] = dur_inf_f_symp_persist/dt + self.ti_symptomatic[f_symp_persist]
-        self.ti_clearance[m_symp_persist] = dur_inf_m_symp_persist/dt + self.ti_symptomatic[m_symp_persist]
-        self.ti_clearance[f_asymp] = dur_inf_f_asymp/dt + self.ti_infected[f_asymp]
-        self.ti_clearance[m_asymp] = dur_inf_m_asymp/dt + self.ti_infected[m_asymp]
-        self.ti_clearance[pid] = np.maximum(self.ti_clearance[pid], dur_inf_pid/dt + self.ti_pid[pid])
+        self.ti_clearance[f_symp_clear] = dur_inf_f_symp_clear + self.ti_symp_clear[f_symp_clear]
+        self.ti_clearance[m_symp_clear] = dur_inf_m_symp_clear + self.ti_symp_clear[m_symp_clear]
+        self.ti_clearance[f_symp_persist] = dur_inf_f_symp_persist + self.ti_symptomatic[f_symp_persist]
+        self.ti_clearance[m_symp_persist] = dur_inf_m_symp_persist + self.ti_symptomatic[m_symp_persist]
+        self.ti_clearance[f_asymp] = dur_inf_f_asymp + self.ti_infected[f_asymp]
+        self.ti_clearance[m_asymp] = dur_inf_m_asymp + self.ti_infected[m_asymp]
+        self.ti_clearance[pid] = np.maximum(self.ti_clearance[pid], dur_inf_pid + self.ti_pid[pid])
         return
 
     def wipe_dates(self, uids):
@@ -496,7 +508,7 @@ class SEIS(BaseSTI):
         self.set_duration(p, f_symp_clear, m_symp_clear, f_symp_persist, m_symp_persist, f_asymp, m_asymp, pid)
 
         # Determine overall duration of infection
-        self.dur_inf[uids] = (self.ti_clearance[uids] - self.ti_infected[uids])*self.dt
+        self.dur_inf[uids] = self.ti_clearance[uids] - self.ti_infected[uids]
 
         if (self.dur_inf[uids] < 0).any():
             errormsg = 'Invalid durations of infection'

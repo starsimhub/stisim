@@ -24,6 +24,7 @@ ss_float_ = ss.dtypes.float
 # Specify all externally visible functions this file defines; see also more definitions below
 __all__ = ['StructuredSexual', 'FastStructuredSexual']
 
+
 class NoPartnersFound(Exception):
     # Raise this exception if the matching algorithm wasn't able to match any partners
     pass
@@ -47,6 +48,7 @@ class StructuredSexual(ss.SexualNetwork):
 
         self.define_pars(
             # Settings - generally shouldn't be adjusted
+            unit='month',
             n_risk_groups=3,
             f_age_group_bins=dict(  # For separating women into age groups: teens, young women, adult women
                 teens=(0, 20),
@@ -54,7 +56,7 @@ class StructuredSexual(ss.SexualNetwork):
                 adult=(25, np.inf),
             ),
 
-            # Debut
+            # Age of sexual debut
             debut_f=ss.lognorm_ex(20, 3),
             debut_m=ss.lognorm_ex(21, 3),
 
@@ -73,7 +75,7 @@ class StructuredSexual(ss.SexualNetwork):
                 adult=[(8, 3), (7, 3), (5, 2)],
             ),
 
-            # Concurrency preferences - TODO, tidy
+            # Concurrency preferences
             f0_conc=ss.poisson(lam=0.0001),
             f1_conc=ss.poisson(lam=0.01),
             f2_conc=ss.poisson(lam=0.1),
@@ -86,24 +88,51 @@ class StructuredSexual(ss.SexualNetwork):
             p_matched_stable = [ss.bernoulli(p=0.9),ss.bernoulli(p=0.5),ss.bernoulli(p=0)],  # Probability of a stable pair forming between matched people (otherwise casual)
             p_mismatched_casual = [ss.bernoulli(p=0.5),ss.bernoulli(p=0.5),ss.bernoulli(p=0.5)],  # Probability of a casual pair forming between mismatched people (otherwise instantanous)
 
+            # Durations of stable and casual relationships
+            stable_teens_0=ss.lognorm_ex(ss.dur(100, 'year'), ss.dur(1, 'year')),
+            stable_teens_1=ss.lognorm_ex(ss.dur(8, 'year'), ss.dur(2, 'year')),
+            stable_teens_2=ss.lognorm_ex(ss.dur(1e-4, 'month'), ss.dur(1e-4, 'month')),
+            stable_young_0=ss.lognorm_ex(ss.dur(100, 'year'), ss.dur(1, 'year')),
+            stable_young_1=ss.lognorm_ex(ss.dur(10, 'year'), ss.dur(3, 'year')),
+            stable_young_2=ss.lognorm_ex(ss.dur(1e-4, 'month'), ss.dur(1e-4, 'month')),
+            stable_adult_0=ss.lognorm_ex(ss.dur(100, 'year'), ss.dur(1, 'year')),
+            stable_adult_1=ss.lognorm_ex(ss.dur(12, 'year'), ss.dur(3, 'year')),
+            stable_adult_2=ss.lognorm_ex(ss.dur(1e-4, 'month'), ss.dur(1e-4, 'month')),
+            casual_teens=ss.lognorm_ex(ss.dur(1, 'year'), ss.dur(3, 'year')),
+            casual_young=ss.lognorm_ex(ss.dur(1, 'year'), ss.dur(3, 'year')),
+            casual_adult=ss.lognorm_ex(ss.dur(1, 'year'), ss.dur(3, 'year')),
+
             stable_dur_pars=dict(
-                teens=[(100, 1),  (8, 2), (1e-4, 1e-4)],  # (mu,stdev) for levels 0, 1, 2
-                young=[(100, 1), (10, 3), (1e-4, 1e-4)],
-                adult=[(100, 1), (12, 3), (1e-4, 1e-4)],
+                teens=[
+                    # (mu,stdev) for levels 0, 1, 2
+                    [ss.dur(100, 'year'),  ss.dur(1, 'year')],
+                    [ss.dur(8, 'year'),  ss.dur(2, 'year')],
+                    [ss.dur(1e-4, 'month'), ss.dur(1e-4, 'month')]
+                ],
+                young=[
+                    [ss.dur(100, 'year'),  ss.dur(1, 'year')],
+                    [ss.dur(10, 'year'),  ss.dur(3, 'year')],
+                    [ss.dur(1e-4, 'month'), ss.dur(1e-4, 'month')]
+                ],
+                adult=[
+                    [ss.dur(100, 'year'),  ss.dur(1, 'year')],
+                    [ss.dur(12, 'year'),  ss.dur(3, 'year')],
+                    [ss.dur(1e-4, 'month'), ss.dur(1e-4, 'month')]
+                ],
             ),
             casual_dur_pars=dict(
-                teens=[(0.1, 0.25)]*3,  # (mu,stdev) for levels 0, 1, 2
-                young=[(0.1, 0.25)]*3,
-                adult=[(0.1, 0.25)]*3,
+                teens=[[ss.dur(1, 'year'), ss.dur(3, 'year')]]*3,
+                young=[[ss.dur(1, 'year'), ss.dur(3, 'year')]]*3,
+                adult=[[ss.dur(1, 'year'), ss.dur(3, 'year')]]*3,
             ),
 
             # Acts
-            acts=ss.lognorm_ex(90, 30),  # Annual acts
+            acts=ss.lognorm_ex(8, 3),  # Coital acts per month - lognormal distribution
 
             # Sex work parameters
             fsw_shares=ss.bernoulli(p=0.05),
             client_shares=ss.bernoulli(p=0.12),
-            sw_seeking_rate=12,  # Annual rate at which clients seek FSWs (12 = 1 new SW partner every month)
+            sw_seeking_rate=ss.rate(1, 'month'),  # Monthly rate at which clients seek FSWs (1 new SW partner / month)
             sw_seeking_dist=ss.bernoulli(p=0.5),  # Placeholder value replaced by dt-adjusted sw_seeking_rate
             sw_beta=1,  
             sw_intensity=ss.random(),  # At each time step, FSW may work with varying intensity
@@ -285,7 +314,7 @@ class StructuredSexual(ss.SexualNetwork):
         beta = np.ones(len(p2), dtype=ss_float_)
         condoms = np.zeros(len(p2), dtype=ss_float_)  # FILLED IN LATER
         dur = np.full(len(p2), dtype=ss_float_, fill_value=dt)  # Default duration is dt, replaced for stable matches
-        acts = (self.pars.acts.rvs(p2) * dt).astype(int)  # Number of acts per timestep - does not depend on commitment/risk group
+        acts = (self.pars.acts.rvs(p2)).astype(int)  # Number of acts per timestep - does not depend on commitment/risk group
         sw = np.full_like(p1, False, dtype=bool)
         age_p1 = ppl.age[p1]
         age_p2 = ppl.age[p2]
@@ -353,14 +382,13 @@ class StructuredSexual(ss.SexualNetwork):
     def add_sex_work(self, ppl):
         """ Match sex workers to clients """
 
-        dt = self.t.dt
         # Find people eligible for a relationship
         active_fsw = self.active(ppl) & ppl.female & self.fsw
         active_clients = self.active(ppl) & ppl.male & self.client
         self.sw_intensity[active_fsw.uids] = self.pars.sw_intensity.rvs(active_fsw.uids)
 
         # Find clients who will seek FSW
-        self.pars.sw_seeking_dist.pars.p = np.clip(self.pars.sw_seeking_rate * dt, 0, 1)
+        self.pars.sw_seeking_dist.pars.p = np.clip(self.pars.sw_seeking_rate, 0, 1)
         m_looking = self.pars.sw_seeking_dist.filter(active_clients.uids)
 
         # Attempt to assign a sex worker to every client by repeat sampling the sex workers.
@@ -393,8 +421,8 @@ class StructuredSexual(ss.SexualNetwork):
 
         # Beta, acts, duration
         beta = pd.Series(self.pars.sw_beta, index=p2)
-        dur = pd.Series(dt, index=p2)  # Assumed instantaneous
-        acts = (self.pars.acts.rvs(p2) * dt).astype(int)  # Could alternatively set to 1 and adjust beta
+        dur = pd.Series(self.t.dt, index=p2)  # Assumed instantaneous
+        acts = (self.pars.acts.rvs(p2)).astype(int)  # Could alternatively set to 1 and adjust beta
         sw = np.full_like(p1, True, dtype=bool)
 
         unique_p1, counts_p1 = np.unique(p1, return_counts=True)
