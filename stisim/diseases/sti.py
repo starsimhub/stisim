@@ -48,7 +48,7 @@ class BaseSTI(ss.Infection):
             betamap['structuredsexual'][0] = self.pars.beta_m2f
             betamap['structuredsexual'][1] = self.pars.beta_m2f * self.pars.rel_beta_f2m
         if self.pars.beta_m2c is not None:
-            betamap['maternal'][0] = ss.beta(self.pars.beta_m2c, 'month')
+            betamap['maternal'][0] = ss.beta(self.pars.beta_m2c, 'month').init(parent=self.sim.t)
         return betamap
 
     def infect(self):

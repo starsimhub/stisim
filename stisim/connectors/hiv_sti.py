@@ -130,3 +130,24 @@ class hiv_ct(ss.Connector):
         self.hiv.rel_sus[ct] *= self.pars.rel_sus_hiv_ct
         return
 
+
+class hiv_bv(ss.Connector):
+
+    def __init__(self, hiv_module, bv_module, pars=None, **kwargs):
+        super().__init__()
+
+        self.hiv = hiv_module
+        self.bv = bv_module
+        self.define_pars(
+            # Changes to HIV due to BV
+            rel_sus_hiv_bv=2,  # PLACEHOLDER: BV leads to 2x risk of HIV acquisition
+        )
+        self.update_pars(pars, **kwargs)
+
+        return
+
+    def step(self):
+        bv = self.bv.infected
+        self.hiv.rel_sus[bv] *= self.pars.rel_sus_hiv_bv
+        return
+

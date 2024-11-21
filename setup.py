@@ -39,7 +39,7 @@ setup(
     include_package_data=True,
     classifiers=CLASSIFIERS,
     install_requires=[
-        'starsim>=2.0.0',
+        'starsim>=2.2.0',
         'optuna',
     ],
 )

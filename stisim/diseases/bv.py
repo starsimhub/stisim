@@ -1,5 +1,5 @@
 """
-Chlamydia trachomatis disease module
+BV module
 """
 
 import numpy as np
@@ -7,10 +7,10 @@ import starsim as ss
 import sciris as sc
 from stisim.diseases.sti import SEIS
 
-__all__ = ['DischargingSTI']
+__all__ = ['BV']
 
 
-class DischargingSTI(SEIS):
+class BV(SEIS):
 
     def __init__(self, pars=None, name='bv', init_prev_data=None, **kwargs):
         super().__init__(name=name, init_prev_data=init_prev_data)
