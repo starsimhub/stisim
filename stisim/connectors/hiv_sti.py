@@ -6,7 +6,7 @@ import starsim as ss
 from stisim.diseases.syphilis import SyphilisPlaceholder
 
 
-__all__ = ['hiv_syph', 'hiv_tv', 'hiv_ng', 'hiv_ct']
+__all__ = ['hiv_syph', 'hiv_tv', 'hiv_ng', 'hiv_ct', 'hiv_bv']
 
 
 class hiv_syph(ss.Connector):
