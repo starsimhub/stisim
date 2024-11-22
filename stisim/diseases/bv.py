@@ -51,7 +51,7 @@ class BV(SEIS):
             # model to calculate the probability of spontaneous occurrence. The model is flexible
             # but should always include an intercept term.
             p_bv=ss.bernoulli(p=0.01),  # Probability of BV in the general population. Overwritten by the model below
-            p_base=0.01                 # Used to calculate the baseline (intercept) probability of spontaneous occurrence
+            p_base=0.01,                 # Used to calculate the baseline (intercept) probability of spontaneous occurrence
             p_spontaneous=sc.objdict(
                 douching=3,             # OR of BV for douching
                 prior_bv=2,             # OR of BV for prior episodes of BV
