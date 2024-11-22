@@ -89,19 +89,6 @@ class StructuredSexual(ss.SexualNetwork):
             p_mismatched_casual = [ss.bernoulli(p=0.5),ss.bernoulli(p=0.5),ss.bernoulli(p=0.5)],  # Probability of a casual pair forming between mismatched people (otherwise instantanous)
 
             # Durations of stable and casual relationships
-            stable_teens_0=ss.lognorm_ex(ss.dur(100, 'year'), ss.dur(1, 'year')),
-            stable_teens_1=ss.lognorm_ex(ss.dur(8, 'year'), ss.dur(2, 'year')),
-            stable_teens_2=ss.lognorm_ex(ss.dur(1e-4, 'month'), ss.dur(1e-4, 'month')),
-            stable_young_0=ss.lognorm_ex(ss.dur(100, 'year'), ss.dur(1, 'year')),
-            stable_young_1=ss.lognorm_ex(ss.dur(10, 'year'), ss.dur(3, 'year')),
-            stable_young_2=ss.lognorm_ex(ss.dur(1e-4, 'month'), ss.dur(1e-4, 'month')),
-            stable_adult_0=ss.lognorm_ex(ss.dur(100, 'year'), ss.dur(1, 'year')),
-            stable_adult_1=ss.lognorm_ex(ss.dur(12, 'year'), ss.dur(3, 'year')),
-            stable_adult_2=ss.lognorm_ex(ss.dur(1e-4, 'month'), ss.dur(1e-4, 'month')),
-            casual_teens=ss.lognorm_ex(ss.dur(1, 'year'), ss.dur(3, 'year')),
-            casual_young=ss.lognorm_ex(ss.dur(1, 'year'), ss.dur(3, 'year')),
-            casual_adult=ss.lognorm_ex(ss.dur(1, 'year'), ss.dur(3, 'year')),
-
             stable_dur_pars=dict(
                 teens=[
                     # (mu,stdev) for levels 0, 1, 2
@@ -127,7 +114,7 @@ class StructuredSexual(ss.SexualNetwork):
             ),
 
             # Acts
-            acts=ss.lognorm_ex(8, 3),  # Coital acts per month - lognormal distribution
+            acts=ss.lognorm_ex(ss.peryear(90), ss.peryear(30)),  # Coital acts/year
 
             # Sex work parameters
             fsw_shares=ss.bernoulli(p=0.05),
