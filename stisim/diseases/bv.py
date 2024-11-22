@@ -76,7 +76,7 @@ class BV(SEIS):
         """
         # Set intercept
         p = sc.dcp(self.pars.p_spontaneous)
-        intercept = -np.log(1/self.pars.p_spontaneous_base-1)
+        intercept = -np.log(1/self.pars.p_base-1)
         rhs = np.full_like(uids, fill_value=intercept, dtype=float)
 
         # Add all covariates
