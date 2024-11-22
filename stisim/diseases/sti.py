@@ -26,6 +26,7 @@ class BaseSTI(ss.Infection):
         self.requires = 'structuredsexual'
         self.define_pars(
             unit='week',
+            beta=0,  # Placeholder: no transmission. This will be set in validate_beta
             eff_condom=1,
             rel_init_prev=1,
         )
@@ -151,8 +152,7 @@ class SEIS(BaseSTI):
             ],
             dur_pid2clear=ss.lognorm_ex(ss.dur(52, 'week'), ss.dur(5, 'week')),
 
-            # Transmission
-            beta=ss.beta(1),  # Placeholder
+            # Transmission. In the parent class, beta is set to 1. Here, we set beta_m2f and beta_m2c
             beta_m2f=None,
             rel_beta_f2m=0.5,
             beta_m2c=None,

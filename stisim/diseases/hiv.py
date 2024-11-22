@@ -31,10 +31,10 @@ class HIV(BaseSTI):
             include_aids_deaths=True,
 
             # Transmission
-            beta=1,  # Placeholder, replaced by network-specific betas
+            beta=0,  # Placeholder, replaced by network-specific betas
             beta_m2f=None,
             rel_beta_f2m=0.5,
-            beta_m2c=None,
+            beta_m2c=ss.beta(0.025, 'month'),  # Approx 0.2 over the course of the pregnany
             rel_trans_acute=ss.normal(loc=6, scale=0.5),  # Increase transmissibility during acute HIV infection
             rel_trans_falling=ss.normal(loc=8, scale=0.5),  # Increase transmissibility during late HIV infection
             eff_condom=0.9,

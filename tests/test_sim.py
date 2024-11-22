@@ -44,12 +44,12 @@ def test_sti_sim(n_agents=500, start=2000, n_years=20):
 
     bv = sti.BV(
         beta_m2f=0.1,
-        beta_m2c=0.1,  # ss.beta(0.1, 'month'),
         init_prev=0.025,
         include_care=False,
     )
     hiv = sti.HIV(
-        beta={'structuredsexual': [0.05, 0.25], 'maternal': [0.05, 0.]},
+        beta_m2f=0.1,
+        beta_m2c=0.03,
         init_prev=0.05,
     )
     pregnancy = ss.Pregnancy(fertility_rate=10)
