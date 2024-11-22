@@ -51,32 +51,51 @@ class BV(SEIS):
             # model to calculate the probability of spontaneous occurrence. The model is flexible
             # but should always include an intercept term.
             p_bv=ss.bernoulli(p=0.01),  # Probability of BV in the general population. Overwritten by the model below
-            p_base=0.01,                 # Used to calculate the baseline (intercept) probability of spontaneous occurrence
+            p_douching=ss.bernoulli(p=0.1),  # Share of population douching
+            p_poor_menstrual_hygiene=ss.bernoulli(p=0.1),  # Share of population with poor menstrual hygiene
+            p_base=0.1,                 # Used to calculate the baseline (intercept) probability of spontaneous occurrence
             p_spontaneous=sc.objdict(
                 douching=3,             # OR of BV for douching
-                prior_bv=2,             # OR of BV for prior episodes of BV
-                n_partners_12m=2,       # OR of BV for each additional partner in the previous 12 months
+                n_partners_12m=2,       # OR of BV for each additional partner in the past 12 months - not working yet
                 poor_menstrual_hygiene=2,    # OR of BV for poor menstrual hygiene
             )
         )
         self.update_pars(pars, **kwargs)
 
+        # States that elevate risk of BV
         self.define_states(
             ss.BoolArr('douching'),
-            ss.BoolArr('prior_bv'),
             ss.FloatArr('n_partners_12m', 0),
             ss.BoolArr('poor_menstrual_hygiene'),
         )
 
         return
 
+    def _get_uids(self, upper_age=None):
+        """ Get uids of females younger than upper_age """
+        people = self.sim.people
+        if upper_age is None: upper_age = 1000
+        within_age = people.age < upper_age
+        return (within_age & people.female).uids
+
+    def set_hygiene_states(self, upper_age=None):
+        """ Set vaginal hygiene states """
+        f_uids = self._get_uids(upper_age=upper_age)
+        self.douching[f_uids] = self.pars.p_douching.rvs(f_uids)
+        self.poor_menstrual_hygiene[f_uids] = self.pars.p_poor_menstrual_hygiene.rvs(f_uids)
+        return
+
+    def init_post(self):
+        """ Initialize with sim properties """
+        super().init_post()
+        self.set_hygiene_states()
+        return
+
     def spontaneous(self, uids):
-        """
-        Create new cases via spontaneous occurrence
-        """
+        """ Create new cases via spontaneous occurrence """
         # Set intercept
         p = sc.dcp(self.pars.p_spontaneous)
-        intercept = -np.log(1/self.pars.p_base-1)
+        intercept = -np.log(1/self.pars.p_base-1)  # Use a transformation consistent with the logistic regression
         rhs = np.full_like(uids, fill_value=intercept, dtype=float)
 
         # Add all covariates
@@ -94,6 +113,9 @@ class BV(SEIS):
         """
         # Create new cases via sexual transmission
         new_cases, sources, networks = self.infect()
+
+        # Update VMB-relevant states
+        self.set_hygiene_states()
 
         # Create new cases via spontaneous occurrence
         f_uids = (self.sim.people.female & (self.sim.people.age > 15)).uids
