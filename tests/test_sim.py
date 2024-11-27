@@ -93,10 +93,8 @@ def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
             return
 
     bv = sti.BV(
-        beta_m2f=0,  # Don't include sexual transmission
         p_poor_menstrual_hygiene=0.3,  # Proportion with poor menstrual hygiene
         init_prev=0.025,
-        include_care=False,
     )
     # sexual = sti.FastStructuredSexual()
     nets = []
@@ -129,12 +127,10 @@ def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
     sim_args = dict(unit='year', dt=1/12, start=start, dur=n_years, n_agents=n_agents, diseases=dis, networks=nets, demographics=dem, connectors=con)
 
     s0 = ss.Sim(**sim_args, interventions=intvs)
-    s0.run()
-    return s0
-    # s1 = ss.Sim(**sim_args, interventions=intvs + [menstrual_hygiene(start=2020, new_val=0.1)])
-    # ss.parallel(s0, s1)
-    #
-    # return [s0, s1]
+    s1 = ss.Sim(**sim_args, interventions=intvs + [menstrual_hygiene(start=2020, new_val=0.1)])
+    ss.parallel(s0, s1)
+
+    return [s0, s1]
 
 
 
@@ -146,23 +142,13 @@ if __name__ == '__main__':
     sims = test_bv()
 
     import pylab as pl
-    r0 = sims.results.bv.female_adult_prevalence
-    t = sims.results.bv.timevec
+    r0 = sims[0].results.bv.prevalence
+    r1 = sims[1].results.bv.prevalence
+    t = sims[0].results.bv.timevec
     pl.figure()
     pl.plot(t, r0, label='Baseline')
+    pl.plot(t, r1, label='Improved menstrual hygiene')
     # pl.axvline(x=2020, color='k', ls='--')
     pl.title('BV prevalence')
     pl.legend()
     pl.show()
-
-    # import pylab as pl
-    # r0 = sims[0].results.bv.female_adult_prevalence
-    # r1 = sims[1].results.bv.female_adult_prevalence
-    # t = sims[0].results.bv.timevec
-    # pl.figure()
-    # pl.plot(t, r0, label='Baseline')
-    # pl.plot(t, r1, label='Improved menstrual hygiene')
-    # # pl.axvline(x=2020, color='k', ls='--')
-    # pl.title('BV prevalence')
-    # pl.legend()
-    # pl.show()

@@ -5,48 +5,22 @@ BV module
 import numpy as np
 import starsim as ss
 import sciris as sc
-from stisim.diseases.sti import SEIS
 
 __all__ = ['BV']
 
 
-class BV(SEIS):
+class BV(ss.Disease):
 
-    def __init__(self, pars=None, name='bv', init_prev_data=None, **kwargs):
-        super().__init__(name=name, init_prev_data=init_prev_data)
+    def __init__(self, pars=None, name='bv', **kwargs):
+        super().__init__(name=name)
 
         self.define_pars(
             unit='month',
-            dur_exp=ss.constant(0),  # No exposure period
-            p_symp=[
-                # Amsel score or Nugent score, clinical diagnosis for BV, can be asymptomatic
-                # Asymptomatic still has the same risk for STIs/HIV
-                ss.bernoulli(p=0.1),  # Women
-                ss.bernoulli(p=0.0),  # Men
-            ],
-            p_symp_care=[
-                ss.bernoulli(p=0.4),
-                ss.bernoulli(p=0.0),
-            ],
-            dur_asymp2clear=[  # Duration of untreated asymptomatic infection (excl initial latent)
-                ss.uniform(ss.dur(1, 'week'), ss.dur(18, 'week')),  # Women
-                ss.constant(ss.dur(100, 'year')),  # Men
-            ],
-            dur_symp2clear=[  # Duration of untreated symptomatic infection (excl initial latent)
-                ss.uniform(ss.dur(1, 'week'), ss.dur(18, 'week')),  # Women
-                ss.constant(ss.dur(100, 'year')),  # Men
-            ],
-            # Care-seeking based on partner dynamics - if their partner notices changes
-            dur_symp2care=[  # For those who test, how long before they seek care
-                ss.uniform(ss.dur(1, 'week'), ss.dur(18, 'week')),  # Women
-                ss.constant(ss.dur(100, 'year')),  # Men
-            ],
-            p_pid=ss.bernoulli(p=0),
-
-            # Transmission parameters
+            p_symp=ss.bernoulli(p=0.1),  # Women
+            dur_presymp=ss.uniform(ss.dur(1, 'week'), ss.dur(8, 'week')),
+            dur_asymp2clear=ss.uniform(ss.dur(1, 'week'), ss.dur(18, 'week')),
+            dur_symp2clear=ss.uniform(ss.dur(1, 'week'), ss.dur(18, 'week')),
             init_prev=ss.bernoulli(p=0.025),
-            eff_condom=0.0,
-            rel_beta_f2m=0,
 
             # Spontaneous occurrence parameters. These will be used within a logistic regression
             # model to calculate the probability of spontaneous occurrence. The model is flexible
@@ -65,11 +39,34 @@ class BV(SEIS):
 
         # States that elevate risk of BV
         self.define_states(
-            ss.BoolArr('douching'),
-            ss.FloatArr('n_partners_12m', 0),
-            ss.BoolArr('poor_menstrual_hygiene'),
+            ss.State('susceptible', default=True, label='Susceptible'),
+            ss.State('infected', label='Infected'),
+            ss.State('asymptomatic', label='Asymptomatic'),
+            ss.State('symptomatic', label='Symptomatic'),
+            ss.FloatArr('rel_sus', default=1.0, label='Relative susceptibility'),
+            ss.FloatArr('rel_trans', default=1.0, label='Relative transmission'),
+            ss.FloatArr('ti_infected', label='Time of infection'),
+            ss.FloatArr('ti_clearance', label='Time of clearance'),
+            ss.FloatArr('ti_symptomatic', label='Time of symptoms'),
+            ss.FloatArr('dur_inf', label='Duration of infection'),
+            ss.BoolArr('douching', label='Douching'),
+            ss.FloatArr('n_partners_12m', 0, label='Number of partners in the past 12 months'),
+            ss.BoolArr('poor_menstrual_hygiene', label='Poor menstrual hygiene'),
         )
 
+        return
+
+    def init_results(self):
+        """ Initialize results """
+        super().init_results()
+        results = [
+            ss.Result('prevalence', scale=False, label="Prevalence"),
+            ss.Result('symp_prevalence', scale=False, label="Symptomatic prevalence"),
+            ss.Result('incidence', scale=False, label="Incidence"),
+            ss.Result('new_infections', dtype=int, label="New infections"),
+            ss.Result('new_symptomatic', dtype=int, label="New symptomatic"),
+        ]
+        self.define_results(*results)
         return
 
     def _get_uids(self, upper_age=None):
@@ -96,8 +93,9 @@ class BV(SEIS):
                 state.init_vals()
         self.initialized = True
 
-        # Set hygiene states, but don't create any initial infections
+        # Set hygiene states and initial infections
         self.set_hygiene_states()
+        self.infect()
 
         return
 
@@ -117,13 +115,7 @@ class BV(SEIS):
 
         return p_bv
 
-    def step(self):
-        """
-        Create new cases (via both sexual transmission and spontaneous occurence), and set prognoses
-        """
-        # Update VMB-relevant states
-        self.set_hygiene_states()
-
+    def infect(self):
         # Create new cases via spontaneous occurrence
         uids = self.bv_sus().uids
         p_bv = self.spontaneous(uids)
@@ -133,5 +125,100 @@ class BV(SEIS):
         # Set prognoses
         if len(bv_cases):
             self.set_prognoses(bv_cases)
+        return
+
+    def step(self):
+        self.set_hygiene_states()
+        self.infect()
+
+    def clear_infection(self, uids):
+        self.infected[uids] = False
+        self.symptomatic[uids] = False
+        self.asymptomatic[uids] = False
+        self.susceptible[uids] = True
+        self.ti_clearance[uids] = self.sim.ti
+
+    def step_state(self):
+        """ Updates for this timestep """
+        ti = self.sim.ti
+
+        # Reset susceptibility and infectiousness
+        self.rel_sus[:] = 1
+        self.rel_trans[:] = 1
+
+        # Presymptomatic -> symptomatic
+        new_symptomatic = (self.asymptomatic & (self.ti_symptomatic <= ti)).uids
+        if len(new_symptomatic):
+            self.asymptomatic[new_symptomatic] = False
+            self.symptomatic[new_symptomatic] = True
+            self.ti_symptomatic[new_symptomatic] = ti
+
+        # Clear infections
+        new_cleared = (self.infected & (self.ti_clearance <= ti)).uids
+        self.clear_infection(new_cleared)
+
+        return
+
+    def wipe_dates(self, uids):
+        """ Clear all previous dates """
+        self.ti_infected[uids] = np.nan
+        self.ti_symptomatic[uids] = np.nan
+        self.ti_clearance[uids] = np.nan
+        self.dur_inf[uids] = np.nan
+        return
+
+    def set_infection(self, uids):
+        self.susceptible[uids] = False
+        self.infected[uids] = True
+        self.asymptomatic[uids] = True
+        self.ti_infected[uids] = self.ti
+        return
+
+    def set_symptoms(self, uids):
+        p = self.pars
+        symp, asymp = p.p_symp.split(uids)
+        dur_presymp = self.pars.dur_presymp.rvs(symp)
+        self.ti_symptomatic[symp] = self.ti_infected[symp] + dur_presymp
+        return symp, asymp
+
+    def set_duration(self, symp, asymp):
+        dur_inf_symp = self.pars.dur_symp2clear.rvs(symp)
+        dur_inf_asymp = self.pars.dur_asymp2clear.rvs(asymp)
+        self.ti_clearance[symp] = dur_inf_symp + self.ti_symptomatic[symp]
+        self.ti_clearance[asymp] = dur_inf_asymp + self.ti_infected[asymp]
+        return
+
+    def set_prognoses(self, uids, source_uids=None):
+        """
+        Set initial prognoses for adults newly infected
+        """
+        self.wipe_dates(uids)  # Clear prior dates
+        self.set_infection(uids)  # Set infection
+        symp, asymp = self.set_symptoms(uids)  # Set symptoms & presymptomatic duration
+        self.set_duration(symp, asymp)
+
+        # Determine overall duration of infection
+        self.dur_inf[uids] = self.ti_clearance[uids] - self.ti_infected[uids]
+
+        if (self.dur_inf[uids] < 0).any():
+            errormsg = 'Invalid durations of infection'
+            raise ValueError(errormsg)
+
+        return
+
+    def update_results(self):
+        super().update_results()
+        ti = self.ti
+        women = (self.sim.people.age >= 15) & self.sim.people.female
+
+        def cond_prob(num, denom):
+            n_num = np.count_nonzero(num & denom)
+            n_denom = np.count_nonzero(denom)
+            return sc.safedivide(n_num, n_denom)
+
+        self.results['prevalence'][ti] = cond_prob(self.infected, women)
+        self.results['symp_prevalence'][ti] = cond_prob(self.symptomatic, women)
+        self.results['new_infections'][ti] = np.count_nonzero(self.ti_infected == ti)
+        self.results['new_symptomatic'][ti] = np.count_nonzero(self.ti_symptomatic == ti)
 
         return

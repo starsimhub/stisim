@@ -284,7 +284,7 @@ class SEIS(BaseSTI):
 
     def step_state(self):
         """ Updates for this timestep """
-        ti = self.sim.ti
+        ti = self.ti
 
         # Reset susceptibility and infectiousness
         self.rel_sus[:] = 1
