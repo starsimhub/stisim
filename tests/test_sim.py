@@ -97,7 +97,7 @@ def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
     return [s0, s1]
 
 
-def test_stis(n_agents=5e3):
+def test_stis(n_agents=5e3, start=2010, stop=2020):
     sc.heading('Test STI sim')
 
     ng = sti.Gonorrhea(beta_m2f=0.06, init_prev=0.02)
@@ -112,14 +112,14 @@ def test_stis(n_agents=5e3):
     sim = ss.Sim(
         dt=1/12,
         n_agents=n_agents,
-        start=1990,
-        stop=2020,
+        start=start,
+        stop=stop,
         diseases=stis,
         networks=sexual,
         demographics=[pregnancy, death],
     )
 
-    sim.run()
+    sim.run(verbose=1/12)
 
     return sim
 
@@ -129,7 +129,7 @@ if __name__ == '__main__':
     do_plot = True
 
     # s0 = test_hiv_sim()
-    s1 = test_stis(n_agents=5e3)
+    s1 = test_stis()
 
     if do_plot:
         s1.plot("ng")
