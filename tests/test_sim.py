@@ -40,41 +40,6 @@ def test_hiv_sim(n_agents=500, dt=1):
     return sim
 
 
-def test_sti_sim(n_agents=500, start=2000, n_years=20):
-
-    bv = sti.BV(
-        beta_m2f=0.1,
-        init_prev=0.025,
-        include_care=False,
-    )
-    hiv = sti.HIV(
-        beta_m2f=0.1,
-        beta_m2c=0.03,
-        init_prev=0.05,
-    )
-    pregnancy = ss.Pregnancy(fertility_rate=10)
-    death = ss.Deaths(death_rate=10)
-    sexual = sti.StructuredSexual()
-    maternal = ss.MaternalNet()
-    testing = sti.HIVTest(test_prob_data=0.2, start=2000)
-    art = sti.ART(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_art': np.linspace(0, 0.9, 21)}))
-    vmmc = sti.VMMC(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_vmmc': np.linspace(0.025, 0.125, 21)}))
-    sim = ss.Sim(
-        unit='year',
-        dt=1/12,
-        start=start,
-        dur=n_years,
-        n_agents=n_agents,
-        diseases=[bv, hiv],
-        networks=[sexual, maternal],
-        demographics=[pregnancy, death],
-        interventions=[testing, art, vmmc]
-    )
-    sim.run(verbose=1/12)
-
-    return sim
-
-
 def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
 
     class menstrual_hygiene(ss.Intervention):
@@ -96,7 +61,6 @@ def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
         p_poor_menstrual_hygiene=0.3,  # Proportion with poor menstrual hygiene
         init_prev=0.025,
     )
-    # sexual = sti.FastStructuredSexual()
     nets = []
     dem = []
     intvs = []
@@ -105,12 +69,12 @@ def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
 
     if include_hiv:
         hiv = sti.HIV(
-            beta_m2f=0.1,
-            beta_m2c=0.03,
-            init_prev=0.05,
+            beta_m2f=0.5,
+            beta_m2c=0.1,
+            init_prev=0.1,
         )
 
-        nets += [ss.MaternalNet()]
+        nets += [sti.FastStructuredSexual(), ss.MaternalNet()]
 
         pregnancy = ss.Pregnancy(fertility_rate=10)
         death = ss.Deaths(death_rate=10)
@@ -133,22 +97,52 @@ def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
     return [s0, s1]
 
 
+def test_stis(n_agents=5e3):
+    sc.heading('Test STI sim')
+
+    ng = sti.Gonorrhea(beta_m2f=0.06, init_prev=0.02)
+    ct = sti.Chlamydia(beta_m2f=0.06, init_prev=0.05)
+    tv = sti.Trichomoniasis(beta_m2f=0.1, init_prev=0.1)
+    stis = [ng, ct, tv]
+
+    pregnancy = ss.Pregnancy(fertility_rate=10)
+    death = ss.Deaths(death_rate=10)
+    sexual = sti.FastStructuredSexual()
+
+    sim = ss.Sim(
+        dt=1,
+        n_agents=n_agents,
+        start=1990,
+        stop=2020,
+        diseases=stis,
+        networks=sexual,
+        demographics=[pregnancy, death],
+    )
+
+    return sim
+
 
 if __name__ == '__main__':
-    # s0 = test_hiv_sim()
-    # s1 = test_sti_sim(n_agents=5e3, n_years=20)
-    # s1.plot("bv")
-    # pl.show()
-    sims = test_bv()
 
-    import pylab as pl
-    r0 = sims[0].results.bv.prevalence
-    r1 = sims[1].results.bv.prevalence
-    t = sims[0].results.bv.timevec
-    pl.figure()
-    pl.plot(t, r0, label='Baseline')
-    pl.plot(t, r1, label='Improved menstrual hygiene')
-    # pl.axvline(x=2020, color='k', ls='--')
-    pl.title('BV prevalence')
-    pl.legend()
-    pl.show()
+    do_plot = True
+
+    # s0 = test_hiv_sim()
+    s1 = test_stis(n_agents=5e3, n_years=20)
+
+    if do_plot:
+        s1.plot("ng")
+        pl.show()
+
+    # sims = test_bv(include_hiv=True)
+    # if do_plot:
+    #     import pylab as pl
+    #     r0 = sims[0].results.bv.prevalence
+    #     r1 = sims[1].results.bv.prevalence
+    #     t = sims[0].results.bv.timevec
+    #     pl.figure()
+    #     pl.plot(t, r0, label='Baseline')
+    #     pl.plot(t, r1, label='Improved menstrual hygiene')
+    #     # pl.axvline(x=2020, color='k', ls='--')
+    #     pl.title('BV prevalence')
+    #     pl.legend()
+    #     pl.show()
