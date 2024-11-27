@@ -17,6 +17,7 @@ class BV(SEIS):
 
         self.define_pars(
             unit='month',
+            dur_exp=ss.constant(0),  # No exposure period
             p_symp=[
                 # Amsel score or Nugent score, clinical diagnosis for BV, can be asymptomatic
                 # Asymptomatic still has the same risk for STIs/HIV
@@ -78,6 +79,9 @@ class BV(SEIS):
         within_age = people.age < upper_age
         return (within_age & people.female).uids
 
+    def bv_sus(self):
+        return self.sim.people.female & (self.sim.people.age > 15) & self.susceptible
+
     def set_hygiene_states(self, upper_age=None):
         """ Set vaginal hygiene states """
         f_uids = self._get_uids(upper_age=upper_age)
@@ -87,8 +91,14 @@ class BV(SEIS):
 
     def init_post(self):
         """ Initialize with sim properties """
-        super().init_post()
+        for state in self.states:
+            if not state.initialized:
+                state.init_vals()
+        self.initialized = True
+
+        # Set hygiene states, but don't create any initial infections
         self.set_hygiene_states()
+
         return
 
     def spontaneous(self, uids):
@@ -111,21 +121,17 @@ class BV(SEIS):
         """
         Create new cases (via both sexual transmission and spontaneous occurence), and set prognoses
         """
-        # Create new cases via sexual transmission
-        new_cases, sources, networks = self.infect()
-
         # Update VMB-relevant states
         self.set_hygiene_states()
 
         # Create new cases via spontaneous occurrence
-        f_uids = (self.sim.people.female & (self.sim.people.age > 15)).uids
-        p_bv = self.spontaneous(f_uids)
+        uids = self.bv_sus().uids
+        p_bv = self.spontaneous(uids)
         self.pars.p_bv.set(p_bv)
-        bv_cases = self.pars.p_bv.filter(f_uids)
-        new_cases = new_cases | bv_cases
+        bv_cases = self.pars.p_bv.filter(uids)
 
         # Set prognoses
-        if len(new_cases):
-            self.set_prognoses(new_cases)
+        if len(bv_cases):
+            self.set_prognoses(bv_cases)
 
-        return new_cases, sources, networks
+        return
