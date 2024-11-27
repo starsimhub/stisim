@@ -15,45 +15,45 @@ class Chlamydia(SEIS):
         super().__init__(name=name, init_prev_data=init_prev_data)
 
         self.define_pars(
-            dur_exp=ss.constant(1/52),
+            dur_exp=ss.constant(ss.dur(1, 'week')),
             p_symp=[
                 ss.bernoulli(p=0.25),  # Women: 80% asymptomatic (https://doi.org/10.1016/j.epidem.2010.04.002)
                 ss.bernoulli(p=0.50),  # Men: as above
             ],
             dur_presymp=[  # For those who develop symptoms, how long before symptoms appear
-                ss.lognorm_ex(1/52, 10/52),  # Women:
-                ss.lognorm_ex(0.25/52, 1/52),  # Men: symptoms should appear within days
+                ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(10, 'week')),  # Women
+                ss.lognorm_ex(ss.dur(0.25, 'week'), ss.dur(1, 'week')),  # Men: symptoms should appear within days
             ],
             p_symp_clear=[
                 ss.bernoulli(p=0.0),
                 ss.bernoulli(p=0.0),
             ],
             dur_symp=[
-                ss.lognorm_ex(1/52, 2/52),  # Duration of symptoms
-                ss.lognorm_ex(1/52, 2/52),  # Duration of symptoms
+                ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(2, 'week')),  # Duration of symptoms
+                ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(2, 'week')),  # Duration of symptoms
             ],
             p_symp_care=[
                 ss.bernoulli(p=0.5),
                 ss.bernoulli(p=0.85),
             ],
             dur_asymp2clear=[
-                ss.normal(14/12, 1/12),  # Women: 433 days (https://doi.org/10.1016/j.epidem.2010.04.002)
-                ss.normal(14/12, 1/12),  # Men: as above
+                ss.normal(ss.dur(14, 'month'), ss.dur(1, 'month')),  # Women: 433 days (https://doi.org/10.1016/j.epidem.2010.04.002)
+                ss.normal(ss.dur(14, 'month'), ss.dur(1, 'month')),  # Men: as above
             ],
             dur_symp2clear=[
-                ss.lognorm_ex(14/12, 1/12),  # Assumption
-                ss.lognorm_ex(14/12, 1/12),  # Assumption
+                ss.normal(ss.dur(14, 'month'), ss.dur(1, 'month')),  # Assumption
+                ss.normal(ss.dur(14, 'month'), ss.dur(1, 'month')),  # Assumption
             ],
             dur_postsymp2clear=[
-                ss.lognorm_ex(4/52, 1/52),  # Women
-                ss.lognorm_ex(4/52, 1/52),  # Men
+                ss.normal(ss.dur(4, 'week'), ss.dur(1, 'week')),  # Women
+                ss.normal(ss.dur(4, 'week'), ss.dur(1, 'week')),  # Men
             ],
             dur_symp2care=[  # For those who test, how long before they seek care
-                ss.lognorm_ex(0.5/12, 1/52),  # Women
-                ss.lognorm_ex(1/52, 1/52),  # Men
+                ss.lognorm_ex(ss.dur(2, 'week'), ss.dur(1, 'week')),  # Women
+                ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(1, 'week')),  # Men
             ],
             p_pid=ss.bernoulli(p=0.2),  # Assumption used in https://doi.org/10.1086/598983, based on https://doi.org/10.1016/s0029-7844(02)02118-x
-            dur_prepid=ss.lognorm_ex(1.5/12, 3/12),
+            dur_prepid=ss.lognorm_ex(ss.dur(1.5, 'month'), ss.dur(3, 'month')),
 
             init_prev=ss.bernoulli(p=0.01),
             eff_condom=0.0,  # doi:10.1001/archpedi.159.6.536

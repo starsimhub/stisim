@@ -110,7 +110,7 @@ def test_stis(n_agents=5e3):
     sexual = sti.FastStructuredSexual()
 
     sim = ss.Sim(
-        dt=1,
+        dt=1/12,
         n_agents=n_agents,
         start=1990,
         stop=2020,
@@ -118,6 +118,8 @@ def test_stis(n_agents=5e3):
         networks=sexual,
         demographics=[pregnancy, death],
     )
+
+    sim.run()
 
     return sim
 
@@ -127,7 +129,7 @@ if __name__ == '__main__':
     do_plot = True
 
     # s0 = test_hiv_sim()
-    s1 = test_stis(n_agents=5e3, n_years=20)
+    s1 = test_stis(n_agents=5e3)
 
     if do_plot:
         s1.plot("ng")

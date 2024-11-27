@@ -99,7 +99,7 @@ class SEIS(BaseSTI):
         super().__init__(name=name, init_prev_data=init_prev_data)
         self.define_pars(
             # Settings
-            unit='week',
+            unit='month',
             include_care=True,  # Determines whether testing results are included
 
             # Natural history
