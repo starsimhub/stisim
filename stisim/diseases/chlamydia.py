@@ -17,24 +17,24 @@ class Chlamydia(SEIS):
         self.define_pars(
             dur_exp=ss.constant(ss.dur(1, 'week')),
             p_symp=[
-                ss.bernoulli(p=0.25),  # Women: 80% asymptomatic (https://doi.org/10.1016/j.epidem.2010.04.002)
-                ss.bernoulli(p=0.50),  # Men: as above
+                ss.bernoulli(p=0.20),  # Women: 80% asymptomatic (https://doi.org/10.1016/j.epidem.2010.04.002)
+                ss.bernoulli(p=0.54),  # Men: as above
             ],
             dur_presymp=[  # For those who develop symptoms, how long before symptoms appear
                 ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(10, 'week')),  # Women
                 ss.lognorm_ex(ss.dur(0.25, 'week'), ss.dur(1, 'week')),  # Men: symptoms should appear within days
             ],
-            p_symp_clear=[
+            p_symp_clear=[  # Symptoms do not clear without treatment
                 ss.bernoulli(p=0.0),
                 ss.bernoulli(p=0.0),
             ],
-            dur_symp=[
-                ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(2, 'week')),  # Duration of symptoms
-                ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(2, 'week')),  # Duration of symptoms
+            dur_symp=[  # NOT USED
+                ss.constant(ss.dur(1)),  # Duration of symptoms: not used, as symptoms don't self-resolve
+                ss.constant(ss.dur(1)),  # Duration of symptoms
             ],
-            p_symp_care=[
-                ss.bernoulli(p=0.5),
-                ss.bernoulli(p=0.85),
+            p_symp_care=[  # See Table 2 in https://docs.google.com/document/d/16t46nTL2qMHmA0C1gSPz8OhI6ccy6vVv3OCfkmYFUtw/edit?tab=t.0
+                ss.bernoulli(p=0.42),   # Women:
+                ss.bernoulli(p=0.83),   # Men
             ],
             dur_asymp2clear=[
                 ss.normal(ss.dur(14, 'month'), ss.dur(1, 'month')),  # Women: 433 days (https://doi.org/10.1016/j.epidem.2010.04.002)
@@ -44,13 +44,13 @@ class Chlamydia(SEIS):
                 ss.normal(ss.dur(14, 'month'), ss.dur(1, 'month')),  # Assumption
                 ss.normal(ss.dur(14, 'month'), ss.dur(1, 'month')),  # Assumption
             ],
-            dur_postsymp2clear=[
-                ss.normal(ss.dur(4, 'week'), ss.dur(1, 'week')),  # Women
-                ss.normal(ss.dur(4, 'week'), ss.dur(1, 'week')),  # Men
+            dur_postsymp2clear=[  # NOT USED
+                ss.constant(ss.dur(1)),  # Duration of infection after symptom clearance: not used, as symptoms don't self-resolve
+                ss.constant(ss.dur(1)),  # As above
             ],
             dur_symp2care=[  # For those who test, how long before they seek care
-                ss.lognorm_ex(ss.dur(2, 'week'), ss.dur(1, 'week')),  # Women
-                ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(1, 'week')),  # Men
+                ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(2, 'week')),  # Women
+                ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(2, 'week')),  # Men
             ],
             p_pid=ss.bernoulli(p=0.2),  # Assumption used in https://doi.org/10.1086/598983, based on https://doi.org/10.1016/s0029-7844(02)02118-x
             dur_prepid=ss.lognorm_ex(ss.dur(1.5, 'month'), ss.dur(3, 'month')),
@@ -72,8 +72,8 @@ class ChlamydiaBL(Chlamydia):
             # Bacterial load dynamics
             init_load=1,
             peak_load=10e7,
-            time_to_peak=8/52,
-            half_life=ss.lognorm_ex(2.5/52, 0.5/52),
+            time_to_peak=ss.dur(8, 'week'),
+            half_life=ss.lognorm_ex(ss.dur(2.5, 'week'), ss.dur(0.5, 'week')),
             ct_beta=0.5,  # Growth rate in logistic function mapping CT load to rel_trans
         )
         self.update_pars(pars, **kwargs)
@@ -110,9 +110,8 @@ class ChlamydiaBL(Chlamydia):
     def set_ct_load(self, uids):
         """ Bacterial load dynamics """
         ti = self.sim.ti
-        dt = self.sim.dt
         p = self.pars
-        timesteps_to_peak = p.time_to_peak/dt
+        timesteps_to_peak = p.time_to_peak
         if timesteps_to_peak < 1:
             self.ct_load[uids] = p.peak_load
         else:
@@ -121,8 +120,8 @@ class ChlamydiaBL(Chlamydia):
         self.ct_peak_time[uids] = ti + timesteps_to_peak
         self.ct_half_life[uids] = p.half_life.rvs(uids)
         self.ct_growth_rate[uids] = np.log(p.peak_load/p.init_load)/timesteps_to_peak
-        self.ct_decay_rate[uids] = np.log(2) / (self.ct_half_life[uids]/dt)
-        dur_inf = (-np.log(p.init_load/p.peak_load)/self.ct_decay_rate[uids])*dt
+        self.ct_decay_rate[uids] = np.log(2) / (self.ct_half_life[uids])
+        dur_inf = (-np.log(p.init_load/p.peak_load)/self.ct_decay_rate[uids])
 
         return dur_inf
 
@@ -142,7 +141,7 @@ class ChlamydiaBL(Chlamydia):
         self.set_pid(p, f_uids)
 
         # Determine when people recover
-        self.ti_clearance[uids] = self.ti_infected[uids] + self.dur_inf[uids]/self.sim.dt
+        self.ti_clearance[uids] = self.ti_infected[uids] + self.dur_inf[uids]
 
         return
 

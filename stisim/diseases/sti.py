@@ -59,7 +59,6 @@ class SEIS(BaseSTI):
         super().__init__(name=name, init_prev_data=init_prev_data)
         self.define_pars(
             # Settings
-            unit='month',
             include_care=True,  # Determines whether testing results are included
 
             # Natural history
@@ -71,7 +70,7 @@ class SEIS(BaseSTI):
                 ss.bernoulli(p=0.375),  # Men
             ],
             dur_presymp=[  # For those who develop symptoms, how long before symptoms appear
-                ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(12, 'week')),  # Women
+                ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(12, 'week')),   # Women
                 ss.lognorm_ex(ss.dur(0.25, 'week'), ss.dur(3, 'week')), # Men
             ],
             p_symp_clear=[
@@ -83,10 +82,10 @@ class SEIS(BaseSTI):
                 ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(26, 'week')),  # Duration of symptoms
             ],
             p_symp_care=[
-                ss.bernoulli(p=0.3),  # Women: 0.2*1+0.8*.2
-                ss.bernoulli(p=0.2),  # Men: 0.5*1+0.5*.25
+                ss.bernoulli(p=0.3),  # Reset for each individual STI
+                ss.bernoulli(p=0.2),  # As above
             ],
-            dur_symp2care=[  # For those who test, how long before they seek care
+            dur_symp2care=[  # For those who test, how long before they seek care - reset for each individual STI
                 ss.lognorm_ex(ss.dur(4, 'week'), ss.dur(4, 'week')),  # Women
                 ss.lognorm_ex(ss.dur(6, 'week'), ss.dur(4, 'week')),  # Men
             ],
@@ -163,7 +162,7 @@ class SEIS(BaseSTI):
             ss.Result('female_prevalence', scale=False, label="Prevalence - F"),
             ss.Result('male_prevalence', scale=False, label="Prevalence - M"),
 
-            ss.Result('symp_prevalence',scale=False, label="Symptomatic prevalence"),
+            ss.Result('symp_prevalence', scale=False, label="Symptomatic prevalence"),
             ss.Result('female_symp_prevalence', scale=False, label="Symptomatic prevalence - F"),
             ss.Result('male_symp_prevalence', scale=False, label="Symptomatic prevalence - M"),
 
