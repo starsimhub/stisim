@@ -128,23 +128,23 @@ if __name__ == '__main__':
 
     do_plot = True
 
-    # s0 = test_hiv_sim()
+    s0 = test_hiv_sim()
     s1 = test_stis()
 
     if do_plot:
         s1.plot("ng")
         pl.show()
 
-    # sims = test_bv(include_hiv=True)
-    # if do_plot:
-    #     import pylab as pl
-    #     r0 = sims[0].results.bv.prevalence
-    #     r1 = sims[1].results.bv.prevalence
-    #     t = sims[0].results.bv.timevec
-    #     pl.figure()
-    #     pl.plot(t, r0, label='Baseline')
-    #     pl.plot(t, r1, label='Improved menstrual hygiene')
-    #     # pl.axvline(x=2020, color='k', ls='--')
-    #     pl.title('BV prevalence')
-    #     pl.legend()
-    #     pl.show()
+    sims = test_bv(include_hiv=True)
+    if do_plot:
+        import pylab as pl
+        r0 = sims[0].results.bv.prevalence
+        r1 = sims[1].results.bv.prevalence
+        t = sims[0].results.bv.timevec
+        pl.figure()
+        pl.plot(t, r0, label='Baseline')
+        pl.plot(t, r1, label='Improved menstrual hygiene')
+        # pl.axvline(x=2020, color='k', ls='--')
+        pl.title('BV prevalence')
+        pl.legend()
+        pl.show()
