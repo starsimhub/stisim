@@ -140,7 +140,8 @@ class hiv_bv(ss.Connector):
         self.bv = bv_module
         self.define_pars(
             # Changes to HIV due to BV
-            rel_sus_hiv_bv=2,  # PLACEHOLDER: BV leads to 2x risk of HIV acquisition
+            rel_sus_hiv_bv=2,       # PLACEHOLDER: BV leads to 2x risk of HIV acquisition
+            rel_trans_hiv_bv=2,     # PLACEHOLDER: BV leads to 2x risk of HIV transmission
         )
         self.update_pars(pars, **kwargs)
 
@@ -148,6 +149,7 @@ class hiv_bv(ss.Connector):
 
     def step(self):
         bv = self.bv.infected
+        self.hiv.rel_trans[bv] *= self.pars.rel_trans_hiv_bv
         self.hiv.rel_sus[bv] *= self.pars.rel_sus_hiv_bv
         return
 
