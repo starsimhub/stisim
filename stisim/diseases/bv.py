@@ -17,9 +17,9 @@ class BV(ss.Disease):
         self.define_pars(
             unit='month',
             p_symp=ss.bernoulli(p=0.1),  # Women
-            dur_presymp=ss.uniform(ss.dur(1, 'week'), ss.dur(8, 'week')),
-            dur_asymp2clear=ss.uniform(ss.dur(1, 'week'), ss.dur(18, 'week')),
-            dur_symp2clear=ss.uniform(ss.dur(1, 'week'), ss.dur(18, 'week')),
+            dur_presymp=ss.uniform(ss.dur(1, 'week'), ss.dur(8, 'week')),  # Duration of presymptomatic period
+            dur_asymp2clear=ss.uniform(ss.dur(1, 'week'), ss.dur(18, 'week')),  # Duration of asymptomatic infection
+            dur_symp2clear=ss.uniform(ss.dur(1, 'week'), ss.dur(18, 'week')),  # Duration of symptoms
             init_prev=ss.bernoulli(p=0.025),
 
             # Spontaneous occurrence parameters. These will be used within a logistic regression
@@ -44,7 +44,7 @@ class BV(ss.Disease):
             ss.State('asymptomatic', label='Asymptomatic'),
             ss.State('symptomatic', label='Symptomatic'),
             ss.FloatArr('rel_sus', default=1.0, label='Relative susceptibility'),
-            ss.FloatArr('rel_trans', default=1.0, label='Relative transmission'),
+            ss.FloatArr('rel_trans', default=1.0, label='Relative transmissibility'),  # NOT USED
             ss.FloatArr('ti_infected', label='Time of infection'),
             ss.FloatArr('ti_clearance', label='Time of clearance'),
             ss.FloatArr('ti_symptomatic', label='Time of symptoms'),

@@ -128,12 +128,12 @@ if __name__ == '__main__':
 
     do_plot = True
 
-    s0 = test_hiv_sim()
-    s1 = test_stis()
-
-    if do_plot:
-        s1.plot("ng")
-        pl.show()
+    # s0 = test_hiv_sim()
+    # s1 = test_stis()
+    #
+    # if do_plot:
+    #     s1.plot("ng")
+    #     pl.show()
 
     sims = test_bv(include_hiv=True)
     if do_plot:

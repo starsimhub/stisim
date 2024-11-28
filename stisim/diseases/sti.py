@@ -25,7 +25,7 @@ class BaseSTI(ss.Infection):
         super().__init__(name=name)
         self.requires = 'structuredsexual'
         self.define_pars(
-            unit='week',
+            unit='month',
             beta=0,  # Placeholder: no transmission. This will be set in validate_beta
             eff_condom=1,
             rel_init_prev=1,
@@ -51,46 +51,6 @@ class BaseSTI(ss.Infection):
         if self.pars.beta_m2c is not None and betamap:
             betamap['maternal'][0] = ss.beta(self.pars.beta_m2c, 'month').init(parent=self.sim.t)
         return betamap
-
-    def infect(self):
-        """ Determine who gets infected on this timestep via transmission on the network """
-
-        new_cases = []
-        sources = []
-        networks = []
-        betamap = self.validate_beta()
-
-        rel_trans = self.rel_trans.asnew(self.infectious * self.rel_trans)
-        rel_sus   = self.rel_sus.asnew(self.susceptible * self.rel_sus)
-
-        for i, (nkey,net) in enumerate(self.sim.networks.items()):
-            nk = ss.standardize_netkey(nkey)
-            if len(net): # Skip networks with no edges
-                edges = net.edges
-                p1p2b0 = [edges.p1, edges.p2, betamap[nk][0]] # Person 1, person 2, beta 0
-                p2p1b1 = [edges.p2, edges.p1, betamap[nk][1]] # Person 2, person 1, beta 1
-                for src, trg, beta in [p1p2b0, p2p1b1]:
-                    if beta: # Skip networks with no transmission
-                        beta_per_dt = net.net_beta(disease_beta=beta, disease=self) # Compute beta for this network and timestep
-                        randvals = self.trans_rng.rvs(src, trg) # Generate a new random number based on the two other random numbers
-                        args = (src, trg, rel_trans, rel_sus, beta_per_dt, randvals) # Set up the arguments to calculate transmission
-                        target_uids, source_uids = self.compute_transmission(*args) # Actually calculate it
-                        new_cases.append(target_uids)
-                        sources.append(source_uids)
-                        networks.append(np.full(len(target_uids), dtype=ss_int_, fill_value=i))
-
-        # Finalize
-        if len(new_cases) and len(sources):
-            new_cases = ss.uids.cat(new_cases)
-            new_cases, inds = new_cases.unique(return_index=True)
-            sources = ss.uids.cat(sources)[inds]
-            networks = np.concatenate(networks)[inds]
-        else:
-            new_cases = ss.uids()
-            sources = ss.uids()
-            networks = np.empty(0, dtype=ss_int_)
-
-        return new_cases, sources, networks
 
 
 class SEIS(BaseSTI):
