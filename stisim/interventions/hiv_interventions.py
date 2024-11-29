@@ -1,5 +1,6 @@
 """
 Define HIV interventions for STIsim
+By default, these all have units of a year and timesteps of 1/12
 """
 
 import starsim as ss

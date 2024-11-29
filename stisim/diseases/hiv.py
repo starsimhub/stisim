@@ -1,5 +1,5 @@
 """
-Define default HIV disease module and related interventions
+Define HIV disease module
 """
 
 import numpy as np
@@ -19,14 +19,12 @@ class HIV(BaseSTI):
 
         # Parameters
         self.define_pars(
-            unit='month',
-
             # Natural history without treatment
             cd4_start=ss.normal(loc=800, scale=50),
             cd4_latent=ss.normal(loc=500, scale=50),
-            dur_acute=ss.lognorm_ex(3, 1),          # Duration of acute HIV infection (months)
-            dur_latent=ss.lognorm_ex(10*12, 3*12),  # Duration of latent, untreated HIV infection
-            dur_falling=ss.lognorm_ex(3*12, 12),    # Duration of late-stage HIV when CD4 counts fall
+            dur_acute=ss.lognorm_ex(ss.dur(3, 'month'), ss.dur(1, 'month')),  # Duration of acute HIV infection (months)
+            dur_latent=ss.lognorm_ex(ss.years(10), ss.years(3)),  # Duration of latent, untreated HIV infection
+            dur_falling=ss.lognorm_ex(ss.years(3), ss.years(1)),    # Duration of late-stage HIV when CD4 counts fall
             p_hiv_death=None,  # Probability of death from HIV-related complications - default is to use HIV.death_prob(), otherwise can pass in a Dist or anything supported by ss.bernoulli)
             include_aids_deaths=True,
 
@@ -43,18 +41,18 @@ class HIV(BaseSTI):
             init_prev=ss.bernoulli(p=0.05),
             rel_init_prev=1,
             init_diagnosed=ss.bernoulli(p=0),
-            dist_ti_init_infected=ss.uniform(low=-10 * 12, high=0),
+            dist_ti_init_infected=ss.constant(0),  # Experimented with negative values, but safer to use 0
 
             # Care seeking
             care_seeking=ss.normal(loc=1, scale=0.1),  # Distribution of relative care-seeking behavior
             maternal_care_scale=2,  # Factor for scaling up care-seeking behavior during pregnancy
 
             # Treatment effects
-            art_cd4_growth=0.1,  # How quickly CD4 reconstitutes after starting ART - used in a logistic growth function
+            art_cd4_growth=0.1,  # Unitless parameter defining how CD4 reconstitutes after starting ART - used in a logistic growth function
             art_efficacy=0.96,  # Efficacy of ART
-            time_to_art_efficacy=6,  # Time to reach full ART efficacy (in months) - linear increase in efficacy
+            time_to_art_efficacy=ss.dur(6, 'months'),  # Time to reach full ART efficacy (in months) - linear increase in efficacy
             art_cd4_pars=dict(cd4_max=1000, cd4_healthy=500),
-            dur_on_art=ss.lognorm_ex(18*12, 5),
+            dur_on_art=ss.lognorm_ex(ss.years(18), ss.years(5)),
             dur_post_art=ss.normal(loc=self.dur_post_art_mean, scale=self.dur_post_art_scale),
             dur_post_art_scale_factor=0.1,
         )
@@ -172,13 +170,13 @@ class HIV(BaseSTI):
     # CD4 functions
     def acute_decline(self, uids):
         """ Acute decline in CD4 """
-        acute_start = self.ti_acute[uids] - self.sim.ti
-        acute_end = self.ti_latent[uids]
-        acute_dur = acute_end - acute_start
+        acute_start = self.ti_acute[uids]   # Time of infection
+        acute_end = self.ti_latent[uids]    # Time to latent infection
+        acute_dur = acute_end - acute_start  # Total time in acute phase, rounded to timesteps
         cd4_start = self.cd4_start[uids]
         cd4_end = self.cd4_latent[uids]
         per_timestep_decline = sc.safedivide(cd4_start-cd4_end, acute_dur)
-        cd4 = cd4_start + per_timestep_decline*acute_start
+        cd4 = self.cd4[uids] - per_timestep_decline
         return cd4
 
     def falling_decline(self, uids):
@@ -186,11 +184,12 @@ class HIV(BaseSTI):
         falling_start = self.ti_falling[uids]
         falling_end = self.ti_zero[uids]
         falling_dur = falling_end - falling_start
-        time_falling = self.sim.ti - self.ti_falling[uids]
+        time_falling = self.ti - self.ti_falling[uids]
         cd4_start = self.cd4_latent[uids]
         cd4_end = 1  # To avoid divide by zero problems
         per_timestep_decline = sc.safedivide(cd4_start-cd4_end, falling_dur)
-        cd4 = np.maximum(0, cd4_start - per_timestep_decline*time_falling)
+        cd4 = np.maximum(0, self.cd4[uids] - per_timestep_decline)
+        # cd4 = np.maximum(0, cd4_start - per_timestep_decline*time_falling)
         return cd4
 
     def post_art_decline(self, uids):
@@ -203,7 +202,7 @@ class HIV(BaseSTI):
         ti_stop_art = self.ti_stop_art[uids]
         ti_zero = self.ti_zero[uids]
         post_art_dur = ti_zero - ti_stop_art
-        time_post_art = self.sim.ti - ti_stop_art
+        time_post_art = self.ti - ti_stop_art
         cd4_start = self.cd4_postart[uids]
         cd4_end = 1  # To avoid divide by zero problems
         per_timestep_decline = (cd4_start-cd4_end)/post_art_dur
@@ -225,7 +224,7 @@ class HIV(BaseSTI):
         # Calculate time on ART and CD4 prior to starting
         ti_art = self.ti_art[uids]
         cd4_preart = self.cd4_preart[uids]
-        dur_art = self.sim.ti - ti_art
+        dur_art = self.ti - ti_art
 
         # Extract growth parameters
         growth_rate = self.pars.art_cd4_growth
@@ -272,7 +271,7 @@ class HIV(BaseSTI):
         """
         Carry out autonomous updates at the start of the timestep (prior to transmission)
         """
-        ti = self.sim.ti
+        ti = self.ti
 
         # Set initial CD4 counts for new agents:
         self.init_cd4()
@@ -298,23 +297,18 @@ class HIV(BaseSTI):
 
         # Update states for people who have never been on ART (ART removes these)
         # Acute & not on ART
-        acute = self.acute
-        self.cd4[acute.uids] = self.acute_decline(acute.uids)
-
-        # Latent & not on ART
         latent = self.acute & (self.ti_latent <= ti)
+        falling = self.latent & (self.ti_falling <= ti)
         self.acute[latent] = False
         self.latent[latent] = True
-
-        untreated_latent = self.latent
-        self.cd4[untreated_latent.uids] = self.cd4_latent[untreated_latent.uids]
-
-        # Falling & not on ART
-        falling = self.latent & (self.ti_falling <= ti)
         self.latent[falling] = False
         self.falling[falling] = True
 
-        untreated_falling = self.falling 
+        # Update CD4 counts
+        self.cd4[self.acute.uids] = self.acute_decline(self.acute.uids)
+        untreated_latent = self.latent
+        self.cd4[untreated_latent.uids] = self.cd4_latent[untreated_latent.uids]
+        untreated_falling = self.falling
         if untreated_falling.any():
             self.cd4[untreated_falling.uids] = self.falling_decline(untreated_falling.uids)
 
@@ -353,8 +347,7 @@ class HIV(BaseSTI):
            - rel_trans for all people on treatment (including pregnant women) below
            - rel_sus for unborn babies of pregnant WLHIV receiving treatment is adjusted in the ART intervention
         """
-        sim = self.sim
-        ti = sim.ti
+        ti = self.ti
 
         # Reset susceptibility and infectiousness
         self.rel_sus[:] = 1
@@ -371,10 +364,10 @@ class HIV(BaseSTI):
             full_eff = self.pars.art_efficacy
             time_to_full_eff = self.pars.time_to_art_efficacy
             art_uids = self.on_art.uids
-            months_on_art = ti - self.ti_art[art_uids]
-            new_on_art = months_on_art < time_to_full_eff
+            timesteps_on_art = ti - self.ti_art[art_uids]
+            new_on_art = timesteps_on_art < time_to_full_eff.v
             efficacy_to_date = np.full_like(art_uids, fill_value=full_eff, dtype=float)
-            efficacy_to_date[new_on_art] = months_on_art[new_on_art]*full_eff/time_to_full_eff
+            efficacy_to_date[new_on_art] = timesteps_on_art[new_on_art]*full_eff/time_to_full_eff
             self.rel_trans[art_uids] *= 1 - efficacy_to_date
 
         return
@@ -384,14 +377,14 @@ class HIV(BaseSTI):
         Update results at each time step
         """
         super().update_results()
-        ti = self.sim.ti
+        ti = self.ti
         self.results['new_deaths'][ti] = np.count_nonzero(self.ti_dead == ti)
         self.results['cum_deaths'][ti] = np.sum(self.results['new_deaths'][:ti + 1])
         self.results['new_diagnoses'][ti] = np.count_nonzero(self.ti_diagnosed == ti)
         self.results['cum_diagnoses'][ti] = np.sum(self.results['new_diagnoses'][:ti + 1])
         self.results['new_agents_on_art'][ti] = np.count_nonzero(self.ti_art == ti)
-        # if self.include_mtct:
-        #     self.results['n_on_art_pregnant'][ti] = np.count_nonzero(self.on_art & self.sim.people.pregnancy.pregnant)
+        if self.include_mtct:
+            self.results['n_on_art_pregnant'][ti] = np.count_nonzero(self.on_art & self.sim.people.pregnancy.pregnant)
         self.results['p_on_art'][ti] = sc.safedivide(self.results['n_on_art'][ti], self.results['n_infected'][ti])
 
         # Subset by FSW and client:
@@ -422,7 +415,7 @@ class HIV(BaseSTI):
         Set prognoses upon infection
         """
         if ti is None:
-            ti = self.sim.ti
+            ti = self.ti
         else:
             # Check that ti is consistent with uids
             if not (sc.isnumber(ti) or len(ti) == len(uids)):
@@ -461,7 +454,7 @@ class HIV(BaseSTI):
         """
         Check who is ready to start ART treatment and put them on ART
         """
-        ti = self.sim.ti
+        ti = self.ti
 
         self.on_art[uids] = True
         newly_treated = uids[self.never_art[uids]]
@@ -520,7 +513,7 @@ class HIV(BaseSTI):
         """
         Check who is stopping ART treatment and put them off ART
         """
-        ti = self.sim.ti
+        ti = self.ti
 
         # Remove agents from ART
         if uids is None: uids = self.on_art & (self.ti_stop_art <= ti)

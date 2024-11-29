@@ -11,7 +11,7 @@ import numpy as np
 import pylab as pl
 
  
-def test_hiv_sim(n_agents=500, dt=1):
+def test_hiv_sim(n_agents=500):
     sc.heading('Test simplest possible HIV sim ')
 
     hiv = sti.HIV(
@@ -26,7 +26,7 @@ def test_hiv_sim(n_agents=500, dt=1):
     art = sti.ART(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_art': np.linspace(0, 0.9, 21)}))
     vmmc = sti.VMMC(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_vmmc': np.linspace(0.025, 0.125, 21)}))
     sim = ss.Sim(
-        dt=dt,
+        dt=1/12,
         start=1990,
         dur=40,
         n_agents=n_agents,
@@ -35,7 +35,7 @@ def test_hiv_sim(n_agents=500, dt=1):
         demographics=[pregnancy, death],
         interventions=[testing, art, vmmc]
     )
-    sim.run()
+    sim.run(verbose=1/12)
 
     return sim
 
@@ -128,23 +128,23 @@ if __name__ == '__main__':
 
     do_plot = True
 
-    # s0 = test_hiv_sim()
+    s0 = test_hiv_sim()
     # s1 = test_stis()
     #
     # if do_plot:
     #     s1.plot("ng")
     #     pl.show()
 
-    sims = test_bv(include_hiv=True)
-    if do_plot:
-        import pylab as pl
-        r0 = sims[0].results.bv.prevalence
-        r1 = sims[1].results.bv.prevalence
-        t = sims[0].results.bv.timevec
-        pl.figure()
-        pl.plot(t, r0, label='Baseline')
-        pl.plot(t, r1, label='Improved menstrual hygiene')
-        # pl.axvline(x=2020, color='k', ls='--')
-        pl.title('BV prevalence')
-        pl.legend()
-        pl.show()
+    # sims = test_bv(include_hiv=True)
+    # if do_plot:
+    #     import pylab as pl
+    #     r0 = sims[0].results.bv.prevalence
+    #     r1 = sims[1].results.bv.prevalence
+    #     t = sims[0].results.bv.timevec
+    #     pl.figure()
+    #     pl.plot(t, r0, label='Baseline')
+    #     pl.plot(t, r1, label='Improved menstrual hygiene')
+    #     # pl.axvline(x=2020, color='k', ls='--')
+    #     pl.title('BV prevalence')
+    #     pl.legend()
+    #     pl.show()
