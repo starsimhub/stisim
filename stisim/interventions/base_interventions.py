@@ -153,7 +153,7 @@ class STITest(ss.Intervention):
         eligible_uids = self.check_eligibility()  # Apply eligiblity
         if len(eligible_uids):
             accept_uids = self.test_prob.filter(eligible_uids)
-        scheduled_uids = (self.ti_scheduled == sim.ti).uids  # Add on scheduled tests
+        scheduled_uids = (self.ti_scheduled == self.ti).uids  # Add on scheduled tests
         return accept_uids | scheduled_uids
 
     def schedule(self, uids, ti):
@@ -171,26 +171,26 @@ class STITest(ss.Intervention):
 
             if uids is None:
                 uids = self.get_testers(sim)
-                self.ti_tested[uids] = sim.ti
+                self.ti_tested[uids] = self.ti
 
             if len(uids):
                 outcomes = self.product.administer(sim, uids)
                 self.last_outcomes = outcomes
                 for k in self.product.result_list:
-                    self.outcomes[k][self.last_outcomes[k]] = sim.ti
+                    self.outcomes[k][self.last_outcomes[k]] = self.ti
             else:
                 return outcomes
 
             # If it's a binary test, set the time of positive/negative outcome
             if 'positive' in outcomes.keys():
-                self.ti_negative[outcomes['negative']] = sim.ti
-                self.ti_positive[outcomes['positive']] = sim.ti
+                self.ti_negative[outcomes['negative']] = self.ti
+                self.ti_positive[outcomes['positive']] = self.ti
 
         return outcomes
 
     def update_results(self):
         # Store results
-        ti = self.sim.ti
+        ti = self.ti
         self.results['new_diagnoses'][ti] += count(self.ti_positive == ti)
         self.results['new_tests'][ti] += count(self.ti_tested == ti)
 
@@ -260,7 +260,7 @@ class SymptomaticTesting(STITest):
         """ Apply syndromic management """
         sim = self.sim
         self.treated_by_uid = None
-        ti = sim.ti
+        ti = self.ti
 
         # If this intervention has stopped, reset eligibility for all associated treatments
         if (sim.now >= self.stop):
@@ -272,7 +272,7 @@ class SymptomaticTesting(STITest):
 
             if uids is None:
                 uids = self.check_eligibility()
-                self.ti_tested[uids] = sim.ti
+                self.ti_tested[uids] = self.ti
 
             if len(uids):
 
@@ -318,15 +318,15 @@ class SymptomaticTesting(STITest):
                 # Update states: time referred to treatment for anyone referred
                 referred_uids = uids[treated_by_uid.any(axis=1)]
                 dismissed_uids = uids.remove(referred_uids)
-                self.ti_referred[referred_uids] = sim.ti
-                self.ti_dismissed[dismissed_uids] = sim.ti
+                self.ti_referred[referred_uids] = self.ti
+                self.ti_dismissed[dismissed_uids] = self.ti
                 self.treated_by_uid = treated_by_uid
 
             return
 
     def update_results(self):
         super().update_results()
-        ti = self.sim.ti
+        ti = self.ti
         just_tested = self.ti_tested == ti
         self.results['new_care_seekers'][ti] += count(just_tested)
 
@@ -445,7 +445,7 @@ class STITreatment(ss.Intervention):
         # self.add_to_queue(sim)
         treat_uids = self.get_candidates(sim)
         self.treated[treat_uids] = True
-        self.ti_treated[treat_uids] = sim.ti
+        self.ti_treated[treat_uids] = self.ti
 
         # Treat people
         if len(treat_uids):
@@ -482,7 +482,7 @@ class STITreatment(ss.Intervention):
         return treat_uids
 
     def update_results(self):
-        ti = self.sim.ti
+        ti = self.ti
         treat_uids = (self.ti_treated == ti).uids
 
         # Store new treatment results in the disease module results
@@ -549,11 +549,10 @@ class PartnerNotification(ss.Intervention):
         # Filter by test_prob and return UIDs
         return self.test_prob.filter(ss.uids(contacts))
 
-
     def notify(self, sim, uids):
         # Schedule a test for identified contacts at the next timestep (this also ensures that contacts tracing will take place for partners that test positive)
         # Could include a parameter here for acceptance of testing (if separating out probabilities of notification and testing)
-        return self.test.schedule(uids, sim.ti+1)
+        return self.test.schedule(uids, self.ti+1)
 
     def step(self):
         sim = self.sim
@@ -595,7 +594,7 @@ class ProductMix(ss.Product):
         Apply a testing algorithm
         """
         outcomes = {r: ss.uids() for r in self.result_list}
-        self.product_dist.set(p=self.product_mix[:, sim.ti])
+        self.product_dist.set(p=self.product_mix[:, self.ti])
         this_result = self.product_dist.rvs(uids)
         if len(this_result):
             for res in self.result_list:

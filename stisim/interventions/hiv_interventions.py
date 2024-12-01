@@ -44,7 +44,7 @@ class HIVTest(STITest):
         outcomes = super().step(uids=uids)
         pos_uids = outcomes['positive']
         sim.diseases.hiv.diagnosed[pos_uids] = True
-        sim.diseases.hiv.ti_diagnosed[pos_uids] = sim.ti
+        sim.diseases.hiv.ti_diagnosed[pos_uids] = self.ti
         return outcomes
 
 
@@ -92,16 +92,16 @@ class ART(ss.Intervention):
                 n_to_treat = 0
             else:
                 if self.coverage_format == 'n_art':
-                    n_to_treat = int(self.coverage[sim.ti]/sim.pars.pop_scale)
+                    n_to_treat = int(self.coverage[self.ti]/sim.pars.pop_scale)
                 elif self.coverage_format == 'p_art':
-                    n_to_treat = int(self.coverage[sim.ti]*len(inf_uids))
+                    n_to_treat = int(self.coverage[self.ti]*len(inf_uids))
         else:
             p_cov = self.pars.future_coverage['prop']
             n_to_treat = int(p_cov*len(inf_uids))
 
         # Firstly, check who is stopping ART
         if hiv.on_art.any():
-            stopping = hiv.on_art & (hiv.ti_stop_art <= sim.ti)
+            stopping = hiv.on_art & (hiv.ti_stop_art <= self.ti)
             if stopping.any():
                 hiv.stop_art(stopping.uids)
 
@@ -109,7 +109,7 @@ class ART(ss.Intervention):
         on_art = hiv.on_art
 
         # A proportion of newly diagnosed agents onto ART will be willing to initiate ART
-        diagnosed = hiv.ti_diagnosed == sim.ti
+        diagnosed = hiv.ti_diagnosed == self.ti
         if len(diagnosed.uids):
             dx_to_treat = self.pars.init_prob.filter(diagnosed.uids)
 
@@ -174,7 +174,7 @@ class ART(ss.Intervention):
             choices = np.argsort(-weights)[:n_to_stop]
             stop_uids = on_art_uids[choices]
 
-            hiv.ti_stop_art[stop_uids] = sim.ti
+            hiv.ti_stop_art[stop_uids] = self.ti
             hiv.stop_art(stop_uids)
 
         # Not enough agents on treatment -> add
@@ -239,9 +239,9 @@ class VMMC(ss.Intervention):
                 n_to_circ = 0
             else:
                 if self.coverage_format == 'n_vmmc':
-                    n_to_circ = int(self.coverage[sim.ti]/sim.pars.pop_scale)
+                    n_to_circ = int(self.coverage[self.ti]/sim.pars.pop_scale)
                 elif self.coverage_format == 'p_vmmc':
-                    n_to_circ = int(self.coverage[sim.ti]*len(m_uids))
+                    n_to_circ = int(self.coverage[self.ti]*len(m_uids))
         else:
             p_cov = self.pars.future_coverage['prop']
             n_to_circ = int(p_cov*len(m_uids))
@@ -254,10 +254,10 @@ class VMMC(ss.Intervention):
             new_circs = eligible_uids[choices]
 
             self.circumcised[new_circs] = True
-            self.ti_circumcised[new_circs] = sim.ti
+            self.ti_circumcised[new_circs] = self.ti
 
-        self.results['new_circumcisions'][sim.ti] = n_to_circ
-        self.results['n_circumcised'][sim.ti] = count(self.circumcised)
+        self.results['new_circumcisions'][self.ti] = n_to_circ
+        self.results['n_circumcised'][self.ti] = count(self.circumcised)
 
         # Reduce rel_sus
         sim.diseases.hiv.rel_sus[self.circumcised] *= 1-self.pars.eff_circ
