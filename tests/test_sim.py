@@ -97,13 +97,18 @@ def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
     return [s0, s1]
 
 
-def test_stis(n_agents=5e3, start=2010, stop=2020):
+def test_stis(which='discharging', n_agents=5e3, start=2010, stop=2020):
     sc.heading('Test STI sim')
 
-    ng = sti.Gonorrhea(beta_m2f=0.06, init_prev=0.02)
-    ct = sti.Chlamydia(beta_m2f=0.06, init_prev=0.05)
-    tv = sti.Trichomoniasis(beta_m2f=0.1, init_prev=0.1)
-    stis = [ng, ct, tv]
+    if which == 'discharging':
+        ng = sti.Gonorrhea(beta_m2f=0.06, init_prev=0.02)
+        ct = sti.Chlamydia(beta_m2f=0.06, init_prev=0.05)
+        tv = sti.Trichomoniasis(beta_m2f=0.1, init_prev=0.1)
+        stis = [ng, ct, tv]
+    elif which == 'ulcerative':
+        sy = sti.Syphilis(beta_m2f=0.1, init_prev=0.01)
+        gud = sti.GUDPlaceholder(prevalence=0.05)
+        stis = [sy, gud]
 
     pregnancy = ss.Pregnancy(fertility_rate=10)
     death = ss.Deaths(death_rate=10)
@@ -128,23 +133,23 @@ if __name__ == '__main__':
 
     do_plot = True
 
-    s0 = test_hiv_sim()
-    s1 = test_stis()
+    # s0 = test_hiv_sim()
+    s1 = test_stis(which='ulcerative')
 
     if do_plot:
-        s1.plot("ng")
+        s1.plot("syphilis")
         pl.show()
 
-    sims = test_bv(include_hiv=True)
-    if do_plot:
-        import pylab as pl
-        r0 = sims[0].results.bv.prevalence
-        r1 = sims[1].results.bv.prevalence
-        t = sims[0].results.bv.timevec
-        pl.figure()
-        pl.plot(t, r0, label='Baseline')
-        pl.plot(t, r1, label='Improved menstrual hygiene')
-        # pl.axvline(x=2020, color='k', ls='--')
-        pl.title('BV prevalence')
-        pl.legend()
-        pl.show()
+    # sims = test_bv(include_hiv=True)
+    # if do_plot:
+    #     import pylab as pl
+    #     r0 = sims[0].results.bv.prevalence
+    #     r1 = sims[1].results.bv.prevalence
+    #     t = sims[0].results.bv.timevec
+    #     pl.figure()
+    #     pl.plot(t, r0, label='Baseline')
+    #     pl.plot(t, r1, label='Improved menstrual hygiene')
+    #     # pl.axvline(x=2020, color='k', ls='--')
+    #     pl.title('BV prevalence')
+    #     pl.legend()
+    #     pl.show()
