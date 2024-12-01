@@ -78,7 +78,7 @@ class Syphilis(BaseSTI):
             # Adult syphilis natural history, all specified in years
             dur_primary=ss.uniform(low=ss.dur(3, 'week'), high=ss.dur(10, 'week')),  # https://pubmed.ncbi.nlm.nih.gov/9101629/
             dur_secondary=ss.lognorm_ex(mean=ss.dur(3.6, 'month'), sigma=ss.dur(1.5, 'month')),  # https://pubmed.ncbi.nlm.nih.gov/9101629/
-            dur_early=ss.normal(ss.years(1.5), ss.dur(2, 'month')),  # Assumption
+            dur_early=ss.normal(ss.dur(18, 'month'), ss.dur(2, 'month')),  # Assumption
             p_reactivate=ss.bernoulli(p=0.35),  # Probability of reactivating from latent to secondary
             time_to_reactivate=ss.lognorm_ex(mean=ss.years(1), sigma=ss.years(1)),  # Time to reactivation
             p_tertiary=ss.bernoulli(p=0.35),  # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4917057/
@@ -435,7 +435,6 @@ class Syphilis(BaseSTI):
 
     def set_secondary_prognoses(self, uids):
         """ Set prognoses for people who have just progressed to secondary infection """
-        dt = self.dt
         dur_secondary = self.pars.dur_secondary.rvs(uids)
         self.ti_latent[uids] = self.ti_secondary[uids] + rr(dur_secondary)
         return
