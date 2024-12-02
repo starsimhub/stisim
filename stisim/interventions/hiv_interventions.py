@@ -181,8 +181,6 @@ class ART(ss.Intervention):
         elif len(on_art.uids) < target_coverage:
             n_to_add = target_coverage - len(on_art.uids)
             awaiting_art_uids = (hiv.diagnosed & ~hiv.on_art).uids
-            if self.ti > 229:
-                print('hi')
             self.prioritize_art(sim, n=n_to_add, awaiting_art_uids=awaiting_art_uids)
 
 

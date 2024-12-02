@@ -273,9 +273,6 @@ class HIV(BaseSTI):
         """
         ti = self.ti
 
-        # if (ti>229):
-        #     print('hi')
-
         # Set initial CD4 counts for new agents:
         self.init_cd4()
 
