@@ -96,7 +96,7 @@ class Syphilis(BaseSTI):
             rel_trans_secondary=1,
             rel_trans_latent=1,  # Baseline level; this decays exponentially with duration of latent infection
             rel_trans_tertiary=0.0,
-            rel_trans_latent_half_life=1,
+            rel_trans_latent_half_life=ss.years(1),
 
             # Congenital syphilis outcomes
             # Birth outcomes coded as:
