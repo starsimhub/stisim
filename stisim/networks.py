@@ -114,7 +114,7 @@ class StructuredSexual(ss.SexualNetwork):
             ),
 
             # Acts
-            acts=ss.lognorm_ex(ss.peryear(90), ss.peryear(30)),  # Coital acts/year
+            acts=ss.lognorm_ex(ss.peryear(80), ss.peryear(30)),  # Coital acts/year
 
             # Sex work parameters
             fsw_shares=ss.bernoulli(p=0.05),
