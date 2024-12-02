@@ -119,7 +119,6 @@ class Syphilis(BaseSTI):
             init_prev=ss.bernoulli(p=0),
             init_latent_prev=ss.bernoulli(p=0),
             dist_ti_init_infected=ss.constant(0),  # Experimented with negative values, but safer to use 0
-            # dist_ti_init_infected=ss.uniform(low=-10 * 12, high=1),
             rel_init_prev=1,
         )
 

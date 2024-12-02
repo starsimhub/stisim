@@ -53,7 +53,7 @@ class HIV(BaseSTI):
             time_to_art_efficacy=ss.dur(6, 'months'),  # Time to reach full ART efficacy (in months) - linear increase in efficacy
             art_cd4_pars=dict(cd4_max=1000, cd4_healthy=500),
             dur_on_art=ss.lognorm_ex(ss.years(18), ss.years(5)),
-            dur_post_art=ss.normal(loc=self.dur_post_art_mean, scale=self.dur_post_art_scale),
+            dur_post_art=ss.normal(loc=self.dur_post_art_mean, scale=self.dur_post_art_scale),  # Note defined in years!
             dur_post_art_scale_factor=0.1,
         )
 
@@ -188,7 +188,7 @@ class HIV(BaseSTI):
         cd4_start = self.cd4_latent[uids]
         cd4_end = 1  # To avoid divide by zero problems
         per_timestep_decline = sc.safedivide(cd4_start-cd4_end, falling_dur)
-        cd4 = np.maximum(0, self.cd4[uids] - per_timestep_decline)
+        cd4 = np.maximum(cd4_end, self.cd4[uids] - per_timestep_decline)
         # cd4 = np.maximum(0, cd4_start - per_timestep_decline*time_falling)
         return cd4
 
@@ -206,7 +206,7 @@ class HIV(BaseSTI):
         cd4_start = self.cd4_postart[uids]
         cd4_end = 1  # To avoid divide by zero problems
         per_timestep_decline = (cd4_start-cd4_end)/post_art_dur
-        cd4 = np.maximum(0, cd4_start - per_timestep_decline*time_post_art)
+        cd4 = np.maximum(cd4_end, cd4_start - per_timestep_decline*time_post_art)
         return cd4
 
     def cd4_increase(self, uids):
@@ -273,6 +273,9 @@ class HIV(BaseSTI):
         """
         ti = self.ti
 
+        # if (ti>229):
+        #     print('hi')
+
         # Set initial CD4 counts for new agents:
         self.init_cd4()
 
@@ -336,6 +339,47 @@ class HIV(BaseSTI):
             if len(aids_deaths):
                 self.ti_dead[aids_deaths] = ti
                 self.sim.people.request_death(aids_deaths)
+        return
+
+    def step_die(self, uids):
+        """ Clear all states for dead agents """
+
+        # Reset boolean states
+        self.susceptible[uids] = False
+        self.infected[uids] = False
+        self.acute[uids] = False
+        self.latent[uids] = False
+        self.falling[uids] = False
+        self.post_art[uids] = False
+        self.never_art[uids] = False
+        self.on_art[uids] = False
+        self.diagnosed[uids] = False
+
+        # Clear time states except for ti_dead
+        self.ti_infected[uids] = np.nan
+        self.ti_acute[uids] = np.nan
+        self.ti_latent[uids] = np.nan
+        self.ti_falling[uids] = np.nan
+        self.ti_zero[uids] = np.nan
+        self.ti_art[uids] = np.nan
+        self.ti_stop_art[uids] = np.nan
+        self.ti_diagnosed[uids] = np.nan
+
+        # Clear CD4 states
+        self.cd4[uids] = np.nan
+        self.cd4_start[uids] = np.nan
+        self.cd4_preart[uids] = np.nan
+        self.cd4_latent[uids] = np.nan
+        self.cd4_nadir[uids] = np.nan
+        self.cd4_potential[uids] = np.nan
+        self.cd4_postart[uids] = np.nan
+
+        # Clear all other states
+        self.rel_sus[uids] = np.nan
+        self.rel_trans[uids] = np.nan
+        self.baseline_care_seeking[uids] = np.nan
+        self.care_seeking[uids] = np.nan
+
         return
 
     def update_transmission(self):
@@ -486,6 +530,8 @@ class HIV(BaseSTI):
 
             # Calculate potential CD4 increase - assuming that growth follows the concave part of a logistic function
             # and that the total gain depends on the CD4 count at initiation
+            if (cd4_preart == 0).any():
+                raise ValueError('CD4 count is zero at initiation of ART')
             cd4_scale_factor = (cd4_max-cd4_preart)/cd4_healthy*np.log(cd4_max/cd4_preart)
             cd4_total_gain = cd4_preart*cd4_scale_factor
             self.cd4_potential[newly_treated] = self.cd4_preart[newly_treated] + cd4_total_gain
@@ -497,6 +543,8 @@ class HIV(BaseSTI):
         hiv = sim.diseases.hiv
         dur_mean = np.log(hiv.cd4_preart[uids])*hiv.cd4[uids]/hiv.cd4_potential[uids]
         dur_scale = dur_mean * module.pars.dur_post_art_scale_factor
+        dur_mean = ss.dur(dur_mean, 'year').init(parent=sim.t)
+        dur_scale = ss.dur(dur_scale, 'year').init(parent=sim.t)
         return dur_mean, dur_scale
 
     @staticmethod
