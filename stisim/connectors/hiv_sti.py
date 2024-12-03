@@ -17,6 +17,8 @@ class hiv_syph(ss.Connector):
         self.hiv = hiv_module
         self.syphilis = syphilis_module
         self.define_pars(
+            unit='month',
+
             # Changes to HIV due to syphilis coinfection
             rel_sus_hiv_syph=2.67,  # Relative increase in susceptibility to HIV due to syphilis
             rel_trans_hiv_syph=1.2,  # Relative increase in transmission due to syphilis
