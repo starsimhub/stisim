@@ -24,8 +24,10 @@ def test_hiv_syph():
     syphilis = sti.SyphilisPlaceholder(prevalence=0.9)
 
     pars = dict(
-        n_agents=5000,
-        networks=sti.StructuredSexual(),
+        dt=1/12,
+        verbose=1/12,
+        n_agents=1000,
+        networks=sti.FastStructuredSexual(),
         diseases=[hiv, syphilis]
     )
     s0 = ss.Sim(pars).run()
@@ -38,13 +40,6 @@ def test_hiv_syph():
     assert r0 <= r1, f'The hiv-syph connector should increase HIV infections, but {r1}<{r0}'
     print(f'✓ ({r0} <= {r1})')
 
-    pl.plot(s0.timevec, s0.results.hiv.prevalence, label='No connector')
-    pl.plot(s1.timevec, s1.results.hiv.prevalence, label='With connector')
-    pl.ylim(0, 1)
-    pl.legend()
-    pl.xlabel('Year')
-    pl.ylabel('Prevalence')
-
     return s0, s1
 
 
@@ -54,6 +49,14 @@ if __name__ == '__main__':
     T = sc.tic()
 
     s0, s1 = test_hiv_syph()
+
+    pl.plot(s0.results.hiv.timevec, s0.results.hiv.prevalence, label='No connector')
+    pl.plot(s1.results.hiv.timevec, s1.results.hiv.prevalence, label='With connector')
+    pl.ylim(0, 1)
+    pl.legend()
+    pl.xlabel('Year')
+    pl.ylabel('Prevalence')
+    pl.show()
 
     sc.toc(T)
     print('Done.')

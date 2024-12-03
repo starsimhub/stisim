@@ -108,5 +108,5 @@ def test_hiv_epi():
 
 if __name__ == '__main__':
     sc.options(interactive=False)
-    # s1, s2 = test_syph_epi()
+    s1, s2 = test_syph_epi()
     s3, s4 = test_hiv_epi()
