@@ -45,10 +45,10 @@ class BaseSTI(ss.Infection):
 
     def validate_beta(self, run_checks=False):
         betamap = super().validate_beta(run_checks=run_checks)
-        if self.pars.beta_m2f is not None and betamap:
+        if self.pars.beta_m2f is not None and betamap and 'structuredsexual' in betamap.keys():
             betamap['structuredsexual'][0] = self.pars.beta_m2f
             betamap['structuredsexual'][1] = self.pars.beta_m2f * self.pars.rel_beta_f2m
-        if self.pars.beta_m2c is not None and betamap:
+        if self.pars.beta_m2c is not None and betamap and 'maternal' in betamap.keys():
             betamap['maternal'][0] = ss.beta(self.pars.beta_m2c, 'month').init(parent=self.sim.t)
         return betamap
 
