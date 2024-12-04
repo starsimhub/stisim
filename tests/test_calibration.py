@@ -98,7 +98,7 @@ def run_calib(calib_pars=None):
     # Perform the calibration
     sc.printcyan('\nPeforming calibration...')
     calib.calibrate()
-    return calib
+    return sim, calib
 
 
 #%% Run as a script

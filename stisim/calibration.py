@@ -315,7 +315,6 @@ class Calibration(sc.prettyobj): # pragma: no cover
                 losses *= self.weights[skey]
             mismatch = losses.sum()
             fit += mismatch
-
         return fit
 
     def worker(self):
