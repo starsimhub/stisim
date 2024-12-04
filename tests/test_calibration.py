@@ -6,28 +6,21 @@ Test calibration
 import starsim as ss
 import sciris as sc
 import stisim as sti
-import numpy as np
-import pylab as pl
 import pandas as pd
 
 do_plot = 1
 do_save = 0
 n_agents = 2e3
 
+# Settings
+debug = True  # If True, this will do smaller runs that can be run locally for debugging
+do_save = True
 
-#%% Define the tests
+
 def make_sim():
 
-    syph = sti.Syphilis(
-        beta={'structuredsexual': [0.5, 0.25], 'maternal': [0.99, 0]},
-        init_prev=0.05,
-    )
-    hiv = sti.HIV(
-        beta={'structuredsexual': [1, 1], 'maternal': [1, 0]},
-        beta_m2f=0.05,
-        beta_m2c=0.025,
-        init_prev=0.15,
-    )
+    syph = sti.Syphilis(beta_m2f=0.06, init_prev=0.05)
+    hiv = sti.HIV(beta_m2f=0.05, beta_m2c=0.025, init_prev=0.15)
     connector = sti.hiv_syph(hiv, syph, rel_sus_hiv_syph=2, rel_trans_hiv_syph=2)
     pregnancy = ss.Pregnancy(fertility_rate=20)
     death = ss.Deaths(death_rate=10)
@@ -49,55 +42,63 @@ def make_sim():
     return sim
 
 
-def test_calibration(do_plot=True):
+def build_sim(sim, calib_pars):
 
-    sc.heading('Testing calibration')
+    hiv = sim.diseases.hiv
+    syph = sim.diseases.syphilis
+    nw = sim.networks.structuredsexual
 
-    # Define the calibration parameters
-    calib_pars = dict(
-        beta_m2f = dict(low=0.01, high=0.10, guess=0.05, path=('diseases', 'hiv', 'beta_m2f')),
-        rel_trans_latent = dict(low=0.00, high=0.2, guess=0.1, path=('diseases', 'syphilis', 'rel_trans_latent')),
-        prop_f1 = dict(low=0.1, high=0.45, guess=0.15, path=('networks', 'structuredsexual', 'prop_f1')),
-        prop_m1 = dict(low=0.15, high=0.5, guess=0.21, path=('networks', 'structuredsexual', 'prop_m1')),
-        f1_conc = dict(low=0.005, high=0.1, guess=0.01, path=('networks', 'structuredsexual', 'f1_conc')),
-        m1_conc = dict(low=0.005, high=0.1, guess=0.01, path=('networks', 'structuredsexual', 'f1_conc')),
-        p_pair_form = dict(low=0.4, high=0.9, guess=0.5, path=('networks', 'structuredsexual', 'p_pair_form')),
-    )
+    # Apply the calibration parameters
+    for k, pars in calib_pars.items():  # Loop over the calibration parameters
+        if k == 'rand_seed':
+            sim.pars.rand_seed = v
+            continue
 
-    # Make the sim
+        v = pars['value']
+        if 'hiv_' in k:  # HIV parameters
+            k = k.replace('hiv_', '')  # Strip off indentifying part of parameter name
+            hiv.pars[k] = v
+        elif 'syph_' in k:  # Syphilis parameters
+            k = k.replace('syph_', '')  # As above
+            syph.pars[k] = v
+        elif 'nw_' in k:  # Network parameters
+            k = k.replace('nw_', '')  # As above
+            if 'conc' in k:
+                nw.pars[k].set(v)
+            elif 'pair_form' in k:
+                nw.pars[k].set(v)
+            else:
+                nw.pars[k] = v
+        else:
+            raise NotImplementedError(f'Parameter {k} not recognized')
+
+    return sim
+
+
+def run_calib(calib_pars=None):
+    sc.heading('Beginning calibration')
+
+    # Make the sim and data
     sim = make_sim()
-
-    # Weight the data
-    weights = {
-        'n_alive': 1,
-        'hiv.prevalence': 1,
-        'hiv.n_infected': 1,
-        'hiv.new_infections': 1,
-        'hiv.new_deaths': 1,
-        'syphilis.prevalence': 1
-        }
-
-    data = pd.read_csv(sti.root/'tests'/'test_data'/'zimbabwe_calib.csv')
+    data = pd.read_csv('test_data/zimbabwe_calib.csv')
 
     # Make the calibration
-    calib = ss.Calibration(
-        calib_pars=calib_pars,
+    calib = sti.Calibration(
         sim=sim,
         data=data,
-        weights=weights,
-        total_trials=4, n_workers=2, die=True
+        calib_pars=calib_pars,
+        build_fn = build_sim,
+        total_trials = 2,
+        n_workers = 1,
+        die = True,
+        reseed=False,
+        debug = debug,
     )
 
-    calib.calibrate(confirm_fit=True)
-
-    print(f'Fit with original pars: {calib.before_fit}')
-    print(f'Fit with best-fit pars: {calib.after_fit}')
-    if calib.after_fit <= calib.before_fit:
-        print(f'✓ Calibration improved fit ({calib.after_fit} <= {calib.before_fit})')
-    else:
-        print(f"✗ Calibration did not improve fit, but this isn't guaranteed ({calib.after_fit} > {calib.before_fit})")
-
-    return sim, calib
+    # Perform the calibration
+    sc.printcyan('\nPeforming calibration...')
+    calib.calibrate()
+    return calib
 
 
 #%% Run as a script
@@ -105,7 +106,23 @@ if __name__ == '__main__':
 
     T = sc.tic()
 
-    sim, calib = test_calibration()
+    # Define the calibration parameters
+    calib_pars = dict(
+        hiv_beta_m2f = dict(low=0.01, high=0.10, guess=0.05),
+        syph_beta_m2f = dict(low=0.01, high=0.10, guess=0.05),
+        syph_rel_trans_latent = dict(low=0.00, high=0.2, guess=0.1),
+        nw_prop_f1 = dict(low=0.1, high=0.45, guess=0.15),
+        nw_prop_m1 = dict(low=0.15, high=0.5, guess=0.21),
+        nw_f1_conc = dict(low=0.005, high=0.1, guess=0.01),
+        nw_m1_conc = dict(low=0.005, high=0.1, guess=0.01),
+        nw_p_pair_form = dict(low=0.4, high=0.9, guess=0.5),
+    )
+
+    sim, calib = run_calib(calib_pars=calib_pars)
 
     sc.toc(T)
     print('Done.')
+
+
+
+

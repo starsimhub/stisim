@@ -265,14 +265,14 @@ class Calibration(sc.prettyobj): # pragma: no cover
 
         return pars
 
-    @staticmethod
-    def sim_to_df(sim): # TODO: remove this method
-        """ Convert a sim to the expected dataframe type """
-        df_res = sim.to_df(sep='.')
-        df_res['t'] = df_res['timevec']
-        df_res = df_res.set_index('t')
-        df_res['time'] = np.floor(np.round(df_res.index, 1)).astype(int)
-        return df_res
+    # @staticmethod
+    # def sim_to_df(sim):  # TODO: remove this method
+    #     """ Convert a sim to the expected dataframe type """
+    #     df_res = sim.to_df(sep='.')
+    #     df_res['t'] = df_res['timevec']
+    #     df_res = df_res.set_index('t')
+    #     df_res['time'] = np.floor(np.round(df_res.index, 1)).astype(int)
+    #     return df_res
 
     def run_trial(self, trial):
         """ Define the objective for Optuna """
@@ -282,22 +282,17 @@ class Calibration(sc.prettyobj): # pragma: no cover
             calib_pars = None
 
         if self.reseed:
-            calib_pars['rand_seed'] = trial.suggest_int('rand_seed', 0, 1_000_000) # Choose a random rand_seed
+            calib_pars['rand_seed'] = trial.suggest_int('rand_seed', 0, 1_000_000)  # Choose a random rand_seed
 
         sim = self.run_sim(calib_pars)
 
-        # Export results # TODO: make more robust
-        df_res = self.sim_to_df(sim)
+        # Export results
+        df_res = sim.to_df(resample='year', use_years=True)
         sim_results = sc.objdict()
-
         for skey in self.sim_result_list:
-            if 'prevalence' in skey or skey.startswith('n_'):
-                model_output = df_res.groupby(by='time')[skey].mean()
-            else:
-                model_output = df_res.groupby(by='time')[skey].sum()
-            sim_results[skey] = model_output.values
+            sim_results[skey] = df_res[skey].values
+        sim_results['time'] = df_res['timevec'].values
 
-        sim_results['time'] = model_output.index.values
         # Store results in temporary files
         if self.save_results:
             filename = self.tmp_filename % trial.number
