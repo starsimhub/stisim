@@ -289,9 +289,10 @@ class Calibration(sc.prettyobj): # pragma: no cover
         # Export results
         df_res = sim.to_df(resample='year', use_years=True)
         sim_results = sc.objdict()
+        sim_results['time'] = df_res['timevec'].values
         for skey in self.sim_result_list:
             sim_results[skey] = df_res[skey].values
-        sim_results['time'] = df_res['timevec'].values
+        sim_res_df = sc.dataframe(sim_results)
 
         # Store results in temporary files
         if self.save_results:
@@ -299,28 +300,17 @@ class Calibration(sc.prettyobj): # pragma: no cover
             sc.save(filename, sim_results)
 
         # Compute fit
-        fit = self.compute_fit(df_res=df_res)
+        fit = self.compute_fit(df_res=sim_res_df)
         return fit
 
-    def compute_fit(self, sim=None, df_res=None):
+    def compute_fit(self, df_res=None):
         """ Compute goodness-of-fit """
         fit = 0
-
-        # TODO: reduce duplication with above
-        if df_res is None:
-            df_res = self.sim_to_df(sim)
+        combined = pd.merge(self.data, df_res, how='left', on='time')
         for skey in self.sim_result_list:
-            if 'prevalence' in skey or skey.startswith('n_'):
-                model_output = df_res.groupby(by='time')[skey].mean()
-            else:
-                model_output = df_res.groupby(by='time')[skey].sum()
-
-            data = self.data[skey]
-            combined = pd.merge(data, model_output, how='left', on='time')
             combined['diffs'] = combined[skey+'_x'] - combined[skey+'_y']
             gofs = compute_gof(combined.dropna()[skey+'_x'], combined.dropna()[skey+'_y'])
-
-            losses = gofs  #* self.weights[skey]
+            losses = gofs * self.weights[skey]
             mismatch = losses.sum()
             fit += mismatch
 
