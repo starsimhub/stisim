@@ -310,7 +310,9 @@ class Calibration(sc.prettyobj): # pragma: no cover
         for skey in self.sim_result_list:
             combined['diffs'] = combined[skey+'_x'] - combined[skey+'_y']
             gofs = compute_gof(combined.dropna()[skey+'_x'], combined.dropna()[skey+'_y'])
-            losses = gofs * self.weights[skey]
+            losses = gofs
+            if self.weights and self.weights.get(skey) and self.weights[skey] != 1:
+                losses *= self.weights[skey]
             mismatch = losses.sum()
             fit += mismatch
 
