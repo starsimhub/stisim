@@ -208,7 +208,7 @@ class BV(ss.Disease):
 
     def update_results(self):
         super().update_results()
-        ti = self.ti
+        ti = self.sim.ti
         women = (self.sim.people.age >= 15) & self.sim.people.female
 
         def cond_prob(num, denom):

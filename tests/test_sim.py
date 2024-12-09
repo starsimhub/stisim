@@ -91,10 +91,12 @@ def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
     sim_args = dict(unit='year', dt=1/12, start=start, dur=n_years, n_agents=n_agents, diseases=dis, networks=nets, demographics=dem, connectors=con)
 
     s0 = ss.Sim(**sim_args, interventions=intvs)
-    s1 = ss.Sim(**sim_args, interventions=intvs + [menstrual_hygiene(start=2020, new_val=0.1)])
-    ss.parallel(s0, s1)
+    s0.run()
+    return s0
+    # s1 = ss.Sim(**sim_args, interventions=intvs + [menstrual_hygiene(start=2020, new_val=0.1)])
+    # ss.parallel(s0, s1)
 
-    return [s0, s1]
+    # return [s0, s1]
 
 
 def test_stis(which='discharging', n_agents=5e3, start=2010, stop=2020):
@@ -134,13 +136,14 @@ if __name__ == '__main__':
     do_plot = True
 
     # s0 = test_hiv_sim()
-    s1 = test_stis(which='ulcerative')
-
-    if do_plot:
-        s1.plot("syphilis")
-        pl.show()
+    # s1 = test_stis(which='ulcerative')
+    #
+    # if do_plot:
+    #     s1.plot("syphilis")
+    #     pl.show()
 
     # sims = test_bv(include_hiv=True)
+    sim = test_bv(include_hiv=True)
     # if do_plot:
     #     import pylab as pl
     #     r0 = sims[0].results.bv.prevalence
