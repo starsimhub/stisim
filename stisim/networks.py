@@ -57,16 +57,20 @@ class StructuredSexual(ss.SexualNetwork):
             ),
 
             # Age of sexual debut
-            debut_f=ss.lognorm_ex(20, 3),
-            debut_m=ss.lognorm_ex(21, 3),
+            debut=ss.lognorm_ex(20, 3),
+            debut_pars_f=[20, 3],
+            debut_pars_m=[21, 3],
 
             # Risk groups
-            prop_f1=0.15,
-            prop_m1=0.2,
+            p_lo_risk=ss.bernoulli(p=0),
+            p_hi_risk=ss.bernoulli(p=0),
+            prop_f0=0.85,
+            prop_m0=0.8,
             prop_f2=0.01,
             prop_m2=0.02,
-            risk_groups_f = ss.choice(a=3),
-            risk_groups_m = ss.choice(a=3),
+
+            # risk_groups_f = ss.choice(a=3),
+            # risk_groups_m = ss.choice(a=3),
 
             # Age difference preferences
             age_diff_pars=dict(
@@ -76,12 +80,13 @@ class StructuredSexual(ss.SexualNetwork):
             ),
 
             # Concurrency preferences
-            f0_conc=ss.poisson(lam=0.0001),
-            f1_conc=ss.poisson(lam=0.01),
-            f2_conc=ss.poisson(lam=0.1),
-            m0_conc=ss.poisson(lam=0.0001),
-            m1_conc=ss.poisson(lam=0.2),
-            m2_conc=ss.poisson(lam=0.5),
+            concurrency_dist=ss.poisson(lam=1),
+            f0_conc=0.0001,
+            f1_conc=0.01,
+            f2_conc=0.1,
+            m0_conc=0.0001,
+            m1_conc=0.2,
+            m2_conc=0.5,
 
             # Relationship initiation, stability, and duration
             p_pair_form=ss.bernoulli(p=0.5),  # Probability of a (stable) pair forming between two matched people
@@ -220,13 +225,24 @@ class StructuredSexual(ss.SexualNetwork):
 
     def set_risk_groups(self, upper_age=None):
         """ Assign each person to a risk group """
-        f_uids, m_uids = self._get_uids(upper_age=upper_age)
-        risk_groups_f = np.array([1-self.pars.prop_f1-self.pars.prop_f2, self.pars.prop_f1, self.pars.prop_f2])
-        self.pars.risk_groups_f.set(p=risk_groups_f)
-        risk_groups_m = np.array([1-self.pars.prop_m1-self.pars.prop_m2, self.pars.prop_m1, self.pars.prop_m2])
-        self.pars.risk_groups_m.set(p=risk_groups_m)
-        self.risk_group[f_uids] = self.pars.risk_groups_f.rvs(f_uids)
-        self.risk_group[m_uids] = self.pars.risk_groups_m.rvs(m_uids)
+        ppl = self.sim.people
+        uids = self._get_uids(upper_age=upper_age, by_sex=False)
+
+        p_lo = np.full(len(uids), fill_value=np.nan, dtype=ss_float_)
+        p_lo[ppl.female[uids]] = self.pars.prop_f0
+        p_lo[ppl.male[uids]] = self.pars.prop_m0
+        self.pars.p_lo_risk.set(p=p_lo)
+        lo_risk, hi_med_risk = self.pars.p_lo_risk.split(uids)
+
+        p_hi = np.full(len(hi_med_risk), fill_value=np.nan, dtype=ss_float_)
+        p_hi[ppl.female[hi_med_risk]] = self.pars.prop_f2/(1-self.pars.prop_f0)
+        p_hi[ppl.male[hi_med_risk]] = self.pars.prop_m2/(1-self.pars.prop_m0)
+        self.pars.p_hi_risk.set(p=p_hi)
+        hi_risk, med_risk = self.pars.p_hi_risk.split(hi_med_risk)
+
+        self.risk_group[lo_risk] = 0
+        self.risk_group[med_risk] = 1
+        self.risk_group[hi_risk] = 2
         return
 
     def set_concurrency(self, upper_age=None):
@@ -234,15 +250,22 @@ class StructuredSexual(ss.SexualNetwork):
         people = self.sim.people
         if upper_age is None: upper_age = 1000
         in_age_lim = (people.age < upper_age)
+        uids = in_age_lim.uids
+
+        lam = np.full(uids.shape, fill_value=np.nan, dtype=ss_float_)
         for rg in range(self.pars.n_risk_groups):
             f_conc = self.pars[f'f{rg}_conc']
             m_conc = self.pars[f'm{rg}_conc']
             in_risk_group = self.risk_group == rg
             in_group = in_risk_group & in_age_lim
-            f_uids = (people.female & in_group).uids
-            m_uids = (people.male   & in_group).uids
-            self.concurrency[f_uids] = f_conc.rvs(f_uids) + 1
-            self.concurrency[m_uids] = m_conc.rvs(m_uids) + 1
+            f_in = (people.female & in_group)[uids]
+            m_in = (people.male   & in_group)[uids]
+            if f_in.any(): lam[f_in] = f_conc
+            if m_in.any(): lam[m_in] = m_conc
+
+        self.pars.concurrency_dist.set(lam=lam)
+        self.concurrency[uids] = self.pars.concurrency_dist.rvs(uids) + 1
+
         return
 
     def set_sex_work(self, upper_age=None):
@@ -252,9 +275,15 @@ class StructuredSexual(ss.SexualNetwork):
         return
 
     def set_debut(self, upper_age=None):
-        f_uids, m_uids = self._get_uids(upper_age=upper_age)
-        self.debut[f_uids] = self.pars.debut_f.rvs(f_uids)
-        self.debut[m_uids] = self.pars.debut_m.rvs(m_uids)
+        uids = self._get_uids(upper_age=upper_age, by_sex=False)
+        par1 = np.full(len(uids), fill_value=np.nan, dtype=ss_float_)
+        par2 = np.full(len(uids), fill_value=np.nan, dtype=ss_float_)
+        par1[self.sim.people.female[uids]] = self.pars.debut_pars_f[0]
+        par2[self.sim.people.female[uids]] = self.pars.debut_pars_f[1]
+        par1[self.sim.people.male[uids]] = self.pars.debut_pars_m[0]
+        par2[self.sim.people.male[uids]] = self.pars.debut_pars_m[1]
+        self.pars.debut.set(loc=par1, scale=par2)
+        self.debut[uids] = self.pars.debut.rvs(uids)
         return
 
     def match_pairs(self, ppl):
@@ -307,6 +336,9 @@ class StructuredSexual(ss.SexualNetwork):
         age_p2 = ppl.age[p2]
 
         # If both partners are in the same risk group, determine the probability they'll commit
+        # matched = self.risk_group[p1] == self.risk_group[p2]
+        # p_stable = self.pars.p_matched_stable[self.risk_group[p1]]
+        #
         for rg in range(self.pars.n_risk_groups):
             matched_risk = (self.risk_group[p1] == rg) & (self.risk_group[p2] == rg)
             mismatched_risk = (self.risk_group[p1] == rg) & (self.risk_group[p2] != rg)

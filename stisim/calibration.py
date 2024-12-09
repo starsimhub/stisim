@@ -306,8 +306,11 @@ class Calibration(sc.prettyobj): # pragma: no cover
     def compute_fit(self, df_res=None):
         """ Compute goodness-of-fit """
         fit = 0
-        combined = pd.merge(self.data, df_res, how='left', on='time')
         for skey in self.sim_result_list:
+            data_df = self.data[skey].reset_index()
+            model_df = df_res[['time', skey]]
+
+            combined = pd.merge(data_df, model_df, how='left', on='time')
             combined['diffs'] = combined[skey+'_x'] - combined[skey+'_y']
             gofs = compute_gof(combined.dropna()[skey+'_x'], combined.dropna()[skey+'_y'])
             losses = gofs

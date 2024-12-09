@@ -541,7 +541,7 @@ class HIV(BaseSTI):
         dur_mean = np.log(hiv.cd4_preart[uids])*hiv.cd4[uids]/hiv.cd4_potential[uids]
         dur_scale = dur_mean * module.pars.dur_post_art_scale_factor
         dur_mean = ss.dur(dur_mean, 'year').init(parent=sim.t)
-        dur_scale = ss.dur(dur_scale, 'year').init(parent=sim.t)
+        dur_scale = np.maximum(ss.dur(dur_scale, 'year').init(parent=sim.t), 1e-3)  # Ensure it's not zero
         return dur_mean, dur_scale
 
     @staticmethod

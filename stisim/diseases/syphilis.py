@@ -132,6 +132,10 @@ class Syphilis(BaseSTI):
         if init_prev_latent_data is not None:
             self.pars.init_latent_prev = ss.bernoulli(self.make_init_prev_latent_fn)
 
+        # Whether to store detailed results
+        self.store_sw = False
+        self.store_risk_groups = False
+
         self.define_states(
             # Adult syphilis states
             ss.State('primary'),      # Primary chancres
@@ -227,14 +231,6 @@ class Syphilis(BaseSTI):
             ss.Result('cum_congenital_deaths', dtype=int, label="Cumulative congenital deaths"),
             ss.Result('new_deaths', dtype=int, label="Deaths"),
 
-            # Add FSW and clients to results:
-            ss.Result('prevalence_sw', dtype=float, scale=False, label="Prevalence - FSW"),
-            ss.Result('new_infections_sw', dtype=int, label="Infections - FSW"),
-            ss.Result('new_infections_not_sw', dtype=int, label="Infections - other F"),
-            ss.Result('prevalence_client', dtype=float, scale=False, label="Prevalence - clients"),
-            ss.Result('new_infections_client', dtype=int, label="Infections - clients"),
-            ss.Result('new_infections_not_client', dtype=int, label="Infections - other M"),
-
             # Add overall testing and treatment results, which might be assembled from numerous interventions
             ss.Result('new_false_pos', dtype=int, label="False positives"),
             ss.Result('new_true_pos', dtype=int, label="True positives"),
@@ -248,13 +244,26 @@ class Syphilis(BaseSTI):
             ss.Result('new_fetus_treated_unnecessary', dtype=int, label="Fetal overtreatment"),
             ss.Result('new_fetus_treated_failure', dtype=int, label="Fetal treatment failure"),
         ]
+
+        # Add FSW and clients to results:
+        if self.store_sw:
+            results += [
+                ss.Result('prevalence_sw', dtype=float, scale=False, label="Prevalence - FSW"),
+                ss.Result('new_infections_sw', dtype=int, label="Infections - FSW"),
+                ss.Result('new_infections_not_sw', dtype=int, label="Infections - other F"),
+                ss.Result('prevalence_client', dtype=float, scale=False, label="Prevalence - clients"),
+                ss.Result('new_infections_client', dtype=int, label="Infections - clients"),
+                ss.Result('new_infections_not_client', dtype=int, label="Infections - other M"),
+            ]
+
         # Add risk groups to results
-        for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
-            for sex in ['female', 'male']:
-                results += [
-                    ss.Result('prevalence_risk_group_' + str(risk_group) + '_' + sex, scale=False),
-                    ss.Result('new_infections_risk_group_' + str(risk_group) + '_' + sex, dtype=int),
-                ]
+        if self.store_risk_groups:
+            for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
+                for sex in ['female', 'male']:
+                    results += [
+                        ss.Result('prevalence_risk_group_' + str(risk_group) + '_' + sex, scale=False),
+                        ss.Result('new_infections_risk_group_' + str(risk_group) + '_' + sex, dtype=int),
+                    ]
 
         self.define_results(*results)
 
@@ -332,22 +341,28 @@ class Syphilis(BaseSTI):
     def update_results(self):
         super().update_results()
         ti = self.ti
+        res = self.results
+        ppl = self.sim.people
 
-        self.results['n_active'][ti] = self.results['n_primary'][ti] + self.results['n_secondary'][ti]
-        self.results['active_prevalence'][ti] = self.results['n_active'][ti] / np.count_nonzero(self.sim.people.alive)
-        active_adults_num = len(((self.sim.people.age >= 15) & (self.sim.people.age < 50) & (self.active)).uids)
-        infected_adults_num = len(((self.sim.people.age >= 15) & (self.sim.people.age < 50) & (self.infected)).uids)
-        adults_denom = len(((self.sim.people.age >= 15) & (self.sim.people.age < 50)).uids)
-        self.results['adult_prevalence'][ti] = infected_adults_num / adults_denom
-        self.results['active_adult_prevalence'][ti] = active_adults_num / adults_denom
+        def cond_prob(num, denom):
+            n_num = np.count_nonzero(num & denom)
+            n_denom = np.count_nonzero(denom)
+            return sc.safedivide(n_num, n_denom)
+
+        n_active = res['n_primary'][ti] + res['n_secondary'][ti]
+        adults = (ppl.age >= 15) & (ppl.age < 50)
+        active_adults = adults & self.active
+
+        # Overwrite prevalence so we're always storing prevalence of syphilis among sexually active adults
+        self.results['prevalence'][ti] = cond_prob(self.infected, active_adults)
+        self.results['active_prevalence'][ti] = cond_prob(self.active, active_adults)
+        self.results['n_active'][ti] = n_active
 
         # Pregnant women prevalence, if present
         if 'pregnancy' in self.sim.demographics.keys():
-            preg_denom = np.count_nonzero(self.sim.people.pregnancy.pregnant)
-            preg_num = np.count_nonzero(self.sim.people.pregnancy.pregnant & self.infected)
-            detected_preg_num = preg_num*self.pars.anc_detection
-            self.results['pregnant_prevalence'][ti] = sc.safedivide(preg_num, preg_denom)
-            self.results['detected_pregnant_prevalence'][ti] = sc.safedivide(detected_preg_num, preg_denom)
+            preg_prev = cond_prob(self.infected, ppl.pregnancy.pregnant)
+            self.results['pregnant_prevalence'][ti] = preg_prev
+            self.results['detected_pregnant_prevalence'][ti] = preg_prev * self.pars.anc_detection
 
         # Congenital results
         self.results['new_nnds'][ti]       = np.count_nonzero(self.ti_nnd == ti)
@@ -357,25 +372,25 @@ class Syphilis(BaseSTI):
         self.results['new_deaths'][ti] = np.count_nonzero(self.ti_dead == ti)
 
         # Add FSW and clients to results:
-        fsw_infected = self.infected[self.sim.networks.structuredsexual.fsw]
-        client_infected = self.infected[self.sim.networks.structuredsexual.client]
-        if len(fsw_infected) > 0:
-            self.results['prevalence_sw'][ti] = sum(fsw_infected) / len(fsw_infected)
-            self.results['new_infections_sw'][ti] = len(((self.ti_infected == ti) & self.sim.networks.structuredsexual.fsw).uids)
-            self.results['new_infections_not_sw'][ti] = len(((self.ti_infected == ti) & ~self.sim.networks.structuredsexual.fsw).uids)
-        if len(client_infected) > 0:
-            self.results['prevalence_client'][ti] = sum(client_infected) / len(client_infected)
-            self.results['new_infections_client'][ti] = len(((self.ti_infected == ti) & self.sim.networks.structuredsexual.client).uids)
-            self.results['new_infections_not_client'][ti] = len(((self.ti_infected == ti) & ~self.sim.networks.structuredsexual.client).uids)
+        if self.store_sw:
+            fsw = self.sim.networks.structuredsexual.fsw
+            clients = self.sim.networks.structuredsexual.client
+            self.results['prevalence_sw'][ti] = cond_prob(self.infected, fsw)
+            self.results['new_infections_sw'][ti] = np.count_nonzero((self.ti_infected == ti) & fsw)
+            self.results['new_infections_not_sw'][ti] = np.count_nonzero((self.ti_infected == ti) & ~fsw)
+            self.results['prevalence_client'][ti] = cond_prob(self.infected, clients)
+            self.results['new_infections_client'][ti] = np.count_nonzero((self.ti_infected == ti) & clients)
+            self.results['new_infections_not_client'][ti] = np.count_nonzero((self.ti_infected == ti) & ~clients)
 
         # Add risk groups
-        for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
-            for sex in ['female', 'male']:
-                risk_group_infected = self.infected[(self.sim.networks.structuredsexual.risk_group == risk_group) & (self.sim.people[sex])]
-                risk_group_new_inf = ((self.ti_infected == ti) & (self.sim.networks.structuredsexual.risk_group == risk_group) &  (self.sim.people[sex])).uids
-                if len(risk_group_infected) > 0:
-                    self.results['prevalence_risk_group_' + str(risk_group) + '_' + sex][ti] = sum(risk_group_infected) / len(risk_group_infected)
-                    self.results['new_infections_risk_group_' + str(risk_group) + '_' + sex][ti] = len(risk_group_new_inf)
+        if self.store_risk_groups:
+            for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
+                for sex in ['female', 'male']:
+                    prev_denom = (self.sim.networks.structuredsexual.risk_group == risk_group) & (self.sim.people[sex])
+                    risk_group_new_inf = (self.ti_infected == ti) & (self.sim.networks.structuredsexual.risk_group == risk_group) & (self.sim.people[sex])
+                    if risk_group_new_inf.any():
+                        self.results['prevalence_risk_group_' + str(risk_group) + '_' + sex][ti] = cond_prob(self.infected, prev_denom)
+                        self.results['new_infections_risk_group_' + str(risk_group) + '_' + sex][ti] = np.count_nonzero(risk_group_new_inf)
 
         return
 
