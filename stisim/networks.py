@@ -90,8 +90,9 @@ class StructuredSexual(ss.SexualNetwork):
 
             # Relationship initiation, stability, and duration
             p_pair_form=ss.bernoulli(p=0.5),  # Probability of a (stable) pair forming between two matched people
-            p_matched_stable = [ss.bernoulli(p=0.9),ss.bernoulli(p=0.5),ss.bernoulli(p=0)],  # Probability of a stable pair forming between matched people (otherwise casual)
-            p_mismatched_casual = [ss.bernoulli(p=0.5),ss.bernoulli(p=0.5),ss.bernoulli(p=0.5)],  # Probability of a casual pair forming between mismatched people (otherwise instantanous)
+            match_dist=ss.bernoulli(p=0),  # Placeholder value replaced by risk-group stratified values below
+            p_matched_stable=[0.9, 0.5, 0],  # Probability of a stable pair forming between matched people (otherwise casual)
+            p_mismatched_casual=[0.5, 0.5, 0.5],  # Probability of a casual pair forming between mismatched people (otherwise instantanous)
 
             # Durations of stable and casual relationships
             stable_dur_pars=dict(
@@ -131,8 +132,7 @@ class StructuredSexual(ss.SexualNetwork):
 
             # Distributions derived from parameters above - don't adjust
             age_diffs=ss.normal(),
-            dur_stable=ss.lognorm_ex(),
-            dur_casual=ss.lognorm_ex(),
+            dur_dist=ss.lognorm_ex(),
         )
 
         self.update_pars(pars=pars, **kwargs)
@@ -210,6 +210,9 @@ class StructuredSexual(ss.SexualNetwork):
         self.set_sex_work(upper_age=upper_age)
         self.set_debut(upper_age=upper_age)
         return
+
+    def over_debut(self):
+        return self.sim.people.age > self.debut
 
     def _get_uids(self, upper_age=None, by_sex=True):
         people = self.sim.people
@@ -292,11 +295,10 @@ class StructuredSexual(ss.SexualNetwork):
         """
 
         # Find people eligible for a relationship
-        f_active = self.active(ppl) & ppl.female
-        m_active = self.active(ppl) & ppl.male
+        active = self.over_debut()
         underpartnered = self.partners < self.concurrency
-        f_eligible = f_active & underpartnered
-        m_eligible = m_active & underpartnered
+        f_eligible = active & ppl.female & underpartnered
+        m_eligible = active & ppl.male & underpartnered
         f_looking = self.pars.p_pair_form.filter(f_eligible.uids)  # ss.uids of women looking for partners
 
         if len(f_looking) == 0 or m_eligible.count() == 0:
@@ -322,55 +324,51 @@ class StructuredSexual(ss.SexualNetwork):
 
         # Obtain new pairs
         try:
-            p1, p2 = self.match_pairs(ppl)
+            p1_gp, p2_gp = self.match_pairs(ppl)
+            p1_sw, p2_sw = self.match_sex_workers(ppl)
         except NoPartnersFound:
             return
+
+        p1 = p1_gp.concat(p1_sw)
+        p2 = p2_gp.concat(p2_sw)
+        sw = np.array([False]*len(p1_gp) + [True]*len(p1_sw))
 
         # Initialize beta, acts, duration
         beta = np.ones(len(p2), dtype=ss_float_)
         condoms = np.zeros(len(p2), dtype=ss_float_)  # FILLED IN LATER
-        dur = np.full(len(p2), dtype=ss_float_, fill_value=dt)  # Default duration is dt, replaced for stable matches
         acts = (self.pars.acts.rvs(p2)).astype(int)  # Number of acts per timestep - does not depend on commitment/risk group
-        sw = np.full_like(p1, False, dtype=bool)
+        dur = np.full(len(p2), dtype=ss_float_, fill_value=dt)  # Default duration is dt, replaced for stable matches
         age_p1 = ppl.age[p1]
         age_p2 = ppl.age[p2]
 
-        # If both partners are in the same risk group, determine the probability they'll commit
-        # matched = self.risk_group[p1] == self.risk_group[p2]
-        # p_stable = self.pars.p_matched_stable[self.risk_group[p1]]
-        #
+        # Determine whether the pair have matched risk profiles
+        # Partners with mismatched risk profiles may still form a casual partnership
+        matched_risk = (self.risk_group[p1] == self.risk_group[p2]) & ~sw
+        mismatched_risk = (self.risk_group[p1] != self.risk_group[p2]) & ~sw
+
+        # Set the probability of forming a partnership
+        p_match = np.full(len(p1), fill_value=np.nan, dtype=ss_float_)
         for rg in range(self.pars.n_risk_groups):
-            matched_risk = (self.risk_group[p1] == rg) & (self.risk_group[p2] == rg)
-            mismatched_risk = (self.risk_group[p1] == rg) & (self.risk_group[p2] != rg)
+            p_match[matched_risk & (self.risk_group[p1] == rg)] = self.pars.p_matched_stable[rg]
+            p_match[mismatched_risk & (self.risk_group[p2] == rg)] = self.pars.p_mismatched_casual[rg]
+        self.pars.match_dist.set(p=p_match)
+        matches = self.pars.match_dist.rvs(p2)
+        stable = matches & matched_risk
+        casual = matches & mismatched_risk
+        any_match = stable | casual
 
-            # For matched pairs, there is a probability of forming a stable pair, and failing that, forming a casual pair
-            if matched_risk.any():
-                stable_dist = self.pars.p_matched_stable[rg]  # To do: let p vary by age
-                stable = stable_dist.rvs(p2)
-                stable_bool = stable & matched_risk
-                casual_bool = ~stable & matched_risk
-
-                if stable_bool.any():
-                    uids = p2[stable_bool]
-                    loc, scale = self.get_age_risk_pars(uids, self.pars.stable_dur_pars)
-                    self.pars.dur_stable.set(loc=loc, scale=scale)
-                    dur[stable_bool] = self.pars.dur_stable.rvs(uids) # nb. must use stable_bool on the LHS to support repeated edges. Todo: use different durations for each partnership for the same UID
-
-                if casual_bool.any():
-                    uids = p2[casual_bool]
-                    loc, scale = self.get_age_risk_pars(uids, self.pars.casual_dur_pars)
-                    self.pars.dur_casual.set(loc=loc, scale=scale)
-                    dur[casual_bool] = self.pars.dur_casual.rvs(uids)
-
-            # If there are any mismatched pairs, determine the probability they'll have a non-instantaneous partnership
-            if mismatched_risk.any():
-                casual_dist = self.pars.p_mismatched_casual[rg]  # To do: let p vary by age
-                casual = casual_dist.rvs(p2)
-                casual_bool = casual & mismatched_risk
-                uids = p2[casual_bool]
-                loc, scale = self.get_age_risk_pars(uids, self.pars.casual_dur_pars)
-                self.pars.dur_casual.set(loc=loc, scale=scale)
-                dur[casual_bool] = self.pars.dur_casual.rvs(uids)
+        # Set duration
+        dur_loc = np.full(sum(any_match), fill_value=np.nan, dtype=ss_float_)
+        dur_scale = np.full(sum(any_match), fill_value=np.nan, dtype=ss_float_)
+        for which, bools in {'stable': stable, 'casual': casual}.items():
+            if bools.any():
+                uids = p2[bools]
+                loc, scale = self.get_age_risk_pars(uids, self.pars[f'{which}_dur_pars'])
+                inds = bools[any_match].nonzero()[-1]
+                dur_loc[inds] = loc
+                dur_scale[inds] = scale
+        self.pars.dur_dist.set(mean=dur_loc, std=dur_scale)
+        dur[any_match] = self.pars.dur_dist.rvs(p2[any_match])
 
         self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, sw=sw, age_p1=age_p1, age_p2=age_p2)
 
@@ -382,13 +380,6 @@ class StructuredSexual(ss.SexualNetwork):
             errormsg = 'Unequal lengths in edge list'
             raise ValueError(errormsg)
 
-        # Get sex work values
-        p1_sw, p2_sw, beta_sw, dur_sw, acts_sw, sw_sw, age_p1_sw, age_p2_sw = self.add_sex_work(ppl)
-
-        # Finalize adding the edges to the network
-        condoms_sw = np.zeros(len(p2_sw), dtype=ss_float_)
-        self.append(p1=p1_sw, p2=p2_sw, beta=beta_sw, condoms=condoms_sw, dur=dur_sw, acts=acts_sw, sw=sw_sw, age_p1=age_p1_sw, age_p2=age_p2_sw)
-
         unique_p1, counts_p1 = np.unique(p1, return_counts=True)
         unique_p2, counts_p2 = np.unique(p2, return_counts=True)
         self.partners[unique_p1] += counts_p1
@@ -398,12 +389,13 @@ class StructuredSexual(ss.SexualNetwork):
 
         return
 
-    def add_sex_work(self, ppl):
+    def match_sex_workers(self, ppl):
         """ Match sex workers to clients """
 
         # Find people eligible for a relationship
-        active_fsw = self.active(ppl) & ppl.female & self.fsw
-        active_clients = self.active(ppl) & ppl.male & self.client
+        active = self.over_debut()
+        active_fsw = active & self.fsw
+        active_clients = active & self.client
         self.sw_intensity[active_fsw.uids] = self.pars.sw_intensity.rvs(active_fsw.uids)
 
         # Find clients who will seek FSW
@@ -438,26 +430,7 @@ class StructuredSexual(ss.SexualNetwork):
             p2 = active_fsw.uids[choices]
             p1 = m_looking
 
-        # Beta, acts, duration
-        beta = pd.Series(self.pars.sw_beta, index=p2)
-        dur = pd.Series(self.t.dt, index=p2)  # Assumed instantaneous
-        acts = (self.pars.acts.rvs(p2)).astype(int)  # Could alternatively set to 1 and adjust beta
-        sw = np.full_like(p1, True, dtype=bool)
-
-        unique_p1, counts_p1 = np.unique(p1, return_counts=True)
-        unique_p2, counts_p2 = np.unique(p2, return_counts=True)
-        self.lifetime_partners[unique_p1] += counts_p1
-        self.lifetime_partners[unique_p2] += counts_p2
-
-        # Check
-        if self.sim.people.female[p1].any() or self.sim.people.male[p2].any():
-            errormsg = 'Same-sex sex work pairings should not be possible within in this network'
-            raise ValueError(errormsg)
-        if len(p1) != len(p2):
-            errormsg = 'Unequal lengths in edge list'
-            raise ValueError(errormsg)
-
-        return p1, p2, beta, dur, acts, sw, ppl.age[p1], ppl.age[p2]
+        return p1, p2
 
     def end_pairs(self):
         people = self.sim.people
@@ -533,11 +506,10 @@ class FastStructuredSexual(StructuredSexual):
         """
 
         # Find people eligible for a relationship
-        f_active = self.active(ppl) & ppl.female
-        m_active = self.active(ppl) & ppl.male
+        active = self.over_debut()
         underpartnered = self.partners < self.concurrency
-        f_eligible = f_active & underpartnered
-        m_eligible = m_active & underpartnered
+        f_eligible = active & ppl.female & underpartnered
+        m_eligible = active & ppl.male & underpartnered
         f_looking = self.pars.p_pair_form.filter(f_eligible.uids)  # ss.uids of women looking for partners
 
         if len(f_looking) == 0 or m_eligible.count() == 0:

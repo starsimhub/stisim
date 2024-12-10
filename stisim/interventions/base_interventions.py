@@ -29,27 +29,35 @@ class STIDx(ss.Product):
         self.df = df
         self.health_states = df.state.unique()
         self.result_list = ['positive', 'negative']
+        self.probs = {state: df.loc[df.state == state].p_positive.values[0] for state in self.health_states}
 
         # Store the probability of returning each possible result
-        self.result_dist = dict()
+        self.result_dist = ss.bernoulli(p=0)
+        return
+
+    def p_positive(self):
         for state in self.health_states:
             thisdf = self.df.loc[self.df.state == state]
             self.result_dist[state] = ss.bernoulli(thisdf.p_positive.values)
-        return
 
     def administer(self, sim, uids):
         """
         Administer a testing product.
         """
-        outcomes = {r: ss.uids() for r in self.result_list}
+        p_pos = np.full(len(uids), np.nan, dtype=ss.dtypes.float)  # Default to negative
         for state in self.health_states:
             this_state = getattr(sim.diseases[self.disease], state)
-            true_uids = this_state.uids  # Find people for which this state is true
-            if len(true_uids):
-                these_uids = true_uids.intersect(uids)  # Find intersection of people in this state and supplied UIDs
-                pos, neg = self.result_dist[state].split(these_uids)
-                if len(pos): outcomes['positive'] = outcomes['positive'] | pos
-                if len(neg): outcomes['negative'] = outcomes['negative'] | neg
+            in_this_state = this_state[uids]  # Find people for which this state is true
+            if in_this_state.any():
+                p_pos[in_this_state] = self.probs[state]
+
+        # Apply the test
+        self.result_dist.set(p_pos)
+        pos, neg = self.result_dist.split(uids)
+        outcomes = {r: ss.uids() for r in self.result_list}
+        outcomes['positive'] = pos
+        outcomes['negative'] = neg
+
         return outcomes
 
 
