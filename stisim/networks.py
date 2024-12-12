@@ -69,9 +69,6 @@ class StructuredSexual(ss.SexualNetwork):
             prop_f2=0.01,
             prop_m2=0.02,
 
-            # risk_groups_f = ss.choice(a=3),
-            # risk_groups_m = ss.choice(a=3),
-
             # Age difference preferences
             age_diff_pars=dict(
                 teens=[(7, 3), (6, 3), (5, 1)],  # (mu,stdev) for levels 0, 1, 2
@@ -162,7 +159,7 @@ class StructuredSexual(ss.SexualNetwork):
             df = condom_data.melt(id_vars=['partnership'])
             dd = dict()
             for pcombo in df.partnership.unique():
-                key = tuple(map(int, pcombo[1:-1].split(','))) if pcombo != '(fsw,client)' else '(fsw,client)'
+                key = tuple(map(int, pcombo[1:-1].split(','))) if pcombo != '(fsw,client)' else ('fsw','client')
                 thisdf = df.loc[df.partnership == pcombo]
                 dd[key] = dict()
                 dd[key]['year'] = thisdf.variable.values.astype(int)
@@ -187,7 +184,7 @@ class StructuredSexual(ss.SexualNetwork):
         if self.condom_data is not None:
             if isinstance(self.condom_data, dict):
                 for rgtuple, valdict in self.condom_data.items():
-                    self.condom_data[rgtuple]['simvals'] = np.interp(sim.timevec, valdict['year'], valdict['val'])
+                    self.condom_data[rgtuple]['simvals'] = sc.smoothinterp(sim.timevec, valdict['year'], valdict['val'])
         # self.init_results()
         return
 
@@ -285,7 +282,7 @@ class StructuredSexual(ss.SexualNetwork):
         par2[self.sim.people.female[uids]] = self.pars.debut_pars_f[1]
         par1[self.sim.people.male[uids]] = self.pars.debut_pars_m[0]
         par2[self.sim.people.male[uids]] = self.pars.debut_pars_m[1]
-        self.pars.debut.set(loc=par1, scale=par2)
+        self.pars.debut.set(mean=par1, std=par2)
         self.debut[uids] = self.pars.debut.rvs(uids)
         return
 
@@ -358,16 +355,16 @@ class StructuredSexual(ss.SexualNetwork):
         any_match = stable | casual
 
         # Set duration
-        dur_loc = np.full(sum(any_match), fill_value=np.nan, dtype=ss_float_)
-        dur_scale = np.full(sum(any_match), fill_value=np.nan, dtype=ss_float_)
+        dur_mean = np.full(sum(any_match), fill_value=np.nan, dtype=ss_float_)
+        dur_std = np.full(sum(any_match), fill_value=np.nan, dtype=ss_float_)
         for which, bools in {'stable': stable, 'casual': casual}.items():
             if bools.any():
                 uids = p2[bools]
-                loc, scale = self.get_age_risk_pars(uids, self.pars[f'{which}_dur_pars'])
+                mean, std = self.get_age_risk_pars(uids, self.pars[f'{which}_dur_pars'])
                 inds = bools[any_match].nonzero()[-1]
-                dur_loc[inds] = loc
-                dur_scale[inds] = scale
-        self.pars.dur_dist.set(mean=dur_loc, std=dur_scale)
+                dur_mean[inds] = mean
+                dur_std[inds] = std
+        self.pars.dur_dist.set(mean=dur_mean, std=dur_std)
         dur[any_match] = self.pars.dur_dist.rvs(p2[any_match])
 
         self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, sw=sw, age_p1=age_p1, age_p2=age_p2)
@@ -380,8 +377,9 @@ class StructuredSexual(ss.SexualNetwork):
             errormsg = 'Unequal lengths in edge list'
             raise ValueError(errormsg)
 
-        unique_p1, counts_p1 = np.unique(p1, return_counts=True)
-        unique_p2, counts_p2 = np.unique(p2, return_counts=True)
+        # Add partner counts, not including SW partners
+        unique_p1, counts_p1 = np.unique(p1_gp, return_counts=True)
+        unique_p2, counts_p2 = np.unique(p2_gp, return_counts=True)
         self.partners[unique_p1] += counts_p1
         self.partners[unique_p2] += counts_p2
         self.lifetime_partners[unique_p1] += counts_p1
@@ -434,9 +432,8 @@ class StructuredSexual(ss.SexualNetwork):
 
     def end_pairs(self):
         people = self.sim.people
-        dt = self.t.dt
 
-        self.edges.dur = self.edges.dur - dt
+        self.edges.dur = self.edges.dur - 1  # Decrement the duration of each partnership, noting that dur is timesteps
 
         # Non-alive agents are removed
         alive_bools = people.alive[ss.uids(self.edges.p1)] & people.alive[ss.uids(self.edges.p2)]
@@ -455,7 +452,7 @@ class StructuredSexual(ss.SexualNetwork):
         return
 
     def update_results(self):
-        ti = self.sim.ti
+        ti = self.ti
         self.results.share_active[ti] = len(self.active(self.sim.people).uids)/len(self.sim.people)
 
     def net_beta(self, disease_beta=None, uids=None, disease=None):
@@ -475,8 +472,8 @@ class StructuredSexual(ss.SexualNetwork):
                 for rgm in range(self.pars.n_risk_groups):
                     for rgf in range(self.pars.n_risk_groups):
                         risk_pairing = (self.risk_group[self.p1] == rgm) & (self.risk_group[self.p2] == rgf)
-                        self.edges.condoms[risk_pairing] = self.condom_data[(rgm, rgf)]['simvals'][self.sim.ti]
-                self.edges.condoms[self.edges.sw] = self.condom_data['(fsw,client)']['simvals'][self.sim.ti]
+                        self.edges.condoms[risk_pairing] = self.condom_data[(rgm, rgf)]['simvals'][self.ti]
+                self.edges.condoms[self.edges.sw] = self.condom_data[('fsw','client')]['simvals'][self.ti]
 
             elif sc.isnumber(self.condom_data):
                 self.edges.condoms[:] = self.condom_data
@@ -521,7 +518,7 @@ class FastStructuredSexual(StructuredSexual):
         age_gaps = self.pars.age_diffs.rvs(f_looking)   # Sample the age differences
         desired_ages = ppl.age[f_looking] + age_gaps    # Desired ages of the male partners
         m_ages = ppl.age[m_eligible]            # Ages of eligible males
-        ind_m = np.argsort(m_ages) # Use sort instead of linear_sum_agreement
+        ind_m = np.argsort(m_ages)  # Use sort instead of linear_sum_agreement
         ind_f = np.argsort(desired_ages)
         p1 = m_eligible.uids[ind_m]
         p2 = f_looking[ind_f]

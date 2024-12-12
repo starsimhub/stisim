@@ -16,7 +16,8 @@ class BV(ss.Disease):
 
         self.define_pars(
             unit='month',
-            p_symp=ss.bernoulli(p=0.1),  # Women
+            include_care=True,
+            p_symp=ss.bernoulli(p=0.1),
             dur_presymp=ss.uniform(ss.dur(1, 'week'), ss.dur(8, 'week')),  # Duration of presymptomatic period
             dur_asymp2clear=ss.uniform(ss.dur(1, 'week'), ss.dur(18, 'week')),  # Duration of asymptomatic infection
             dur_symp2clear=ss.uniform(ss.dur(1, 'week'), ss.dur(18, 'week')),  # Duration of symptoms
@@ -26,25 +27,34 @@ class BV(ss.Disease):
             # model to calculate the probability of spontaneous occurrence. The model is flexible
             # but should always include an intercept term.
             p_bv=ss.bernoulli(p=0.01),  # Probability of BV in the general population. Overwritten by the model below
-            p_douching=ss.bernoulli(p=0.1),  # Share of population douching
-            p_poor_menstrual_hygiene=ss.bernoulli(p=0.1),  # Share of population with poor menstrual hygiene
+            p_douching=ss.bernoulli(p=0),  # Share of population douching
+            p_poor_menstrual_hygiene=ss.bernoulli(p=0),  # Share of population with poor menstrual hygiene
             p_base=0.1,                 # Used to calculate the baseline (intercept) probability of spontaneous occurrence
             p_spontaneous=sc.objdict(
                 douching=3,             # OR of BV for douching
                 n_partners_12m=2,       # OR of BV for each additional partner in the past 12 months - not working yet
                 poor_menstrual_hygiene=2,    # OR of BV for poor menstrual hygiene
-            )
+            ),
+
+            # Care-seeking and clearance
+            dur_symp2care=ss.lognorm_ex(ss.dur(4, 'week'), ss.dur(4, 'week')),
+            p_symp_care=ss.bernoulli(p=0.3),
+            p_clear=ss.bernoulli(p=0.5),
+            dur_persist=ss.constant(ss.dur(100, 'year')),
         )
         self.update_pars(pars, **kwargs)
 
         # States that elevate risk of BV
         self.define_states(
             ss.State('susceptible', default=True, label='Susceptible'),
+            ss.State('bv_prone', label='Prone to BV', default=ss.bernoulli(p=0.1)),  # Percentage of women "prone" to BV
             ss.State('infected', label='Infected'),
             ss.State('asymptomatic', label='Asymptomatic'),
             ss.State('symptomatic', label='Symptomatic'),
             ss.FloatArr('rel_sus', default=1.0, label='Relative susceptibility'),
             ss.FloatArr('rel_trans', default=1.0, label='Relative transmissibility'),  # NOT USED
+            ss.FloatArr('ti_seeks_care', label='Time of care seeking'),
+            ss.BoolArr('seeking_care', label='Seeking care'),
             ss.FloatArr('ti_infected', label='Time of infection'),
             ss.FloatArr('ti_clearance', label='Time of clearance'),
             ss.FloatArr('ti_symptomatic', label='Time of symptoms'),
@@ -56,6 +66,11 @@ class BV(ss.Disease):
 
         return
 
+    @property
+    def treatable(self):
+        """ Responds to treatment """
+        return self.infected
+
     def init_results(self):
         """ Initialize results """
         super().init_results()
@@ -66,6 +81,22 @@ class BV(ss.Disease):
             ss.Result('new_infections', dtype=int, label="New infections"),
             ss.Result('new_symptomatic', dtype=int, label="New symptomatic"),
         ]
+
+        if self.pars.include_care:
+            results += [
+                ss.Result('new_care_seekers', dtype=int, label="New care seekers"),
+
+                # Add overall testing and treatment results
+                ss.Result('new_false_pos', dtype=int, label="New false positives"),
+                ss.Result('new_true_pos', dtype=int, label="New true positives"),
+                ss.Result('new_false_neg', dtype=int, label="New false negatives"),
+                ss.Result('new_true_neg', dtype=int, label="New true negatives"),
+                ss.Result('new_treated_success', dtype=int, label="Successful treatments"),
+                ss.Result('new_treated_failure', dtype=int, label="Unsuccessful treatments"),
+                ss.Result('new_treated_unnecessary', dtype=int, label="Unnecessary treatments"),
+                ss.Result('new_treated', dtype=int, label="Treatments"),
+            ]
+
         self.define_results(*results)
         return
 
@@ -77,7 +108,7 @@ class BV(ss.Disease):
         return (within_age & people.female).uids
 
     def bv_sus(self):
-        return self.sim.people.female & (self.sim.people.age > 15) & self.susceptible
+        return self.sim.people.female & (self.sim.people.age > 15) & self.susceptible & self.bv_prone
 
     def set_hygiene_states(self, upper_age=None):
         """ Set vaginal hygiene states """
@@ -157,6 +188,16 @@ class BV(ss.Disease):
         new_cleared = (self.infected & (self.ti_clearance <= ti)).uids
         self.clear_infection(new_cleared)
 
+        # Symptomatic/PID care seeking
+        old_seekers = self.seeking_care
+        self.seeking_care[old_seekers] = False
+        self.ti_seeks_care[old_seekers] = np.nan  # Remove the old
+        new_seekers = (self.infected & (self.ti_seeks_care <= ti)).uids
+        self.seeking_care[new_seekers] = True
+        self.ti_seeks_care[new_seekers] = ti
+        if self.pars.include_care:
+            self.results['new_care_seekers'][ti] = np.count_nonzero(self.ti_seeks_care == ti)
+
         return
 
     def wipe_dates(self, uids):
@@ -181,11 +222,28 @@ class BV(ss.Disease):
         self.ti_symptomatic[symp] = self.ti_infected[symp] + dur_presymp
         return symp, asymp
 
+    def set_care_seeking(self, symp):
+        symp_care = self.pars.p_symp_care.filter(symp)
+        dur_symp2care = self.pars.dur_symp2care.rvs(symp_care)
+        self.ti_seeks_care[symp_care] = self.ti_symptomatic[symp_care] + dur_symp2care
+        return
+
     def set_duration(self, symp, asymp):
-        dur_inf_symp = self.pars.dur_symp2clear.rvs(symp)
-        dur_inf_asymp = self.pars.dur_asymp2clear.rvs(asymp)
-        self.ti_clearance[symp] = dur_inf_symp + self.ti_symptomatic[symp]
-        self.ti_clearance[asymp] = dur_inf_asymp + self.ti_infected[asymp]
+        """ Set duration of infection """
+        # Extract people who have persistent infection and set their clearance time
+        clear, persist = self.pars.p_clear.split(symp | asymp)
+        self.ti_clearance[persist] = self.ti_infected[persist] + self.pars.dur_persist.rvs(persist)
+
+        # Set clearance times for the rest
+        symp_clear = symp.intersect(clear)
+        asymp_clear = asymp.intersect(clear)
+        if len(symp_clear):
+            dur_inf_symp = self.pars.dur_symp2clear.rvs(symp_clear)
+            self.ti_clearance[symp_clear] = dur_inf_symp + self.ti_symptomatic[symp_clear]
+        if len(asymp_clear):
+            dur_inf_asymp = self.pars.dur_asymp2clear.rvs(asymp_clear)
+            self.ti_clearance[asymp_clear] = dur_inf_asymp + self.ti_infected[asymp_clear]
+
         return
 
     def set_prognoses(self, uids, source_uids=None):
@@ -195,6 +253,7 @@ class BV(ss.Disease):
         self.wipe_dates(uids)  # Clear prior dates
         self.set_infection(uids)  # Set infection
         symp, asymp = self.set_symptoms(uids)  # Set symptoms & presymptomatic duration
+        self.set_care_seeking(symp)  # Determine who seeks care and when
         self.set_duration(symp, asymp)
 
         # Determine overall duration of infection
@@ -208,7 +267,7 @@ class BV(ss.Disease):
 
     def update_results(self):
         super().update_results()
-        ti = self.sim.ti
+        ti = self.ti
         women = (self.sim.people.age >= 15) & self.sim.people.female
 
         def cond_prob(num, denom):

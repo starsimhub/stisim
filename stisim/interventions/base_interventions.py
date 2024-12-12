@@ -308,14 +308,14 @@ class SymptomaticTesting(STITest):
                     disease.results['new_false_pos'][ti] += len(false_pos_f) + len(false_pos_m) 
                     disease.results['new_true_neg'][ti] += len(true_neg_f) + len(true_neg_m)
                     disease.results['new_false_neg'][ti] += len(false_neg_f) + len(false_neg_m)
-                    disease.results['new_true_pos_f'][ti] += len(true_pos_f)
-                    disease.results['new_false_pos_f'][ti] += len(false_pos_f)
-                    disease.results['new_true_neg_f'][ti] += len(true_neg_f)
-                    disease.results['new_false_neg_f'][ti] += len(false_neg_f)
-                    disease.results['new_true_pos_m'][ti] += len(true_pos_m)
-                    disease.results['new_false_pos_m'][ti] += len(false_pos_m) 
-                    disease.results['new_true_neg_m'][ti] += len(true_neg_m)
-                    disease.results['new_false_neg_m'][ti] += len(false_neg_m)
+                    # disease.results['new_true_pos_f'][ti] += len(true_pos_f)
+                    # disease.results['new_false_pos_f'][ti] += len(false_pos_f)
+                    # disease.results['new_true_neg_f'][ti] += len(true_neg_f)
+                    # disease.results['new_false_neg_f'][ti] += len(false_neg_f)
+                    # disease.results['new_true_pos_m'][ti] += len(true_pos_m)
+                    # disease.results['new_false_pos_m'][ti] += len(false_pos_m)
+                    # disease.results['new_true_neg_m'][ti] += len(true_neg_m)
+                    # disease.results['new_false_neg_m'][ti] += len(false_neg_m)
 
                     tx = self.disease_treatment_map[disease.name]
                     if tx is not None:

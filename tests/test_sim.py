@@ -58,7 +58,7 @@ def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
             return
 
     bv = sti.BV(
-        p_poor_menstrual_hygiene=0.3,  # Proportion with poor menstrual hygiene
+        # p_poor_menstrual_hygiene=0.3,  # Proportion with poor menstrual hygiene
         init_prev=0.025,
     )
     nets = []
@@ -95,7 +95,6 @@ def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
     return s0
     # s1 = ss.Sim(**sim_args, interventions=intvs + [menstrual_hygiene(start=2020, new_val=0.1)])
     # ss.parallel(s0, s1)
-
     # return [s0, s1]
 
 

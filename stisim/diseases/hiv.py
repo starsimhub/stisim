@@ -41,7 +41,8 @@ class HIV(BaseSTI):
             init_prev=ss.bernoulli(p=0.05),
             rel_init_prev=1,
             init_diagnosed=ss.bernoulli(p=0),
-            dist_ti_init_infected=ss.constant(0),  # Experimented with negative values, but safer to use 0
+            dist_ti_init_infected=ss.uniform(low=-10 * 12, high=-5),
+            # dist_ti_init_infected=ss.constant(0),  # Experimented with negative values, but safer to use 0
 
             # Care seeking
             care_seeking=ss.normal(loc=1, scale=0.1),  # Distribution of relative care-seeking behavior
@@ -199,14 +200,27 @@ class HIV(BaseSTI):
         who goes on ART for a year and then off again might have a slightly shorter
         lifespan than if they'd never started treatment.
         """
-        ti_stop_art = self.ti_stop_art[uids]
-        ti_zero = self.ti_zero[uids]
+        cd4_end = 1  # To avoid divide by zero problems
+
+        # Death immediately
+        zero_now_inds = (self.ti_zero[uids] <= self.ti).nonzero()[-1]
+        zero_later_inds = (self.ti_zero[uids] > self.ti).nonzero()[-1]
+        cd4 = self.cd4[uids]
+        cd4[zero_now_inds] = cd4_end
+
+        # Death later
+        zero_later_uids = uids.remove(uids[zero_now_inds])
+        ti_zero = self.ti_zero[zero_later_uids]
+        ti_stop_art = self.ti_stop_art[zero_later_uids]
         post_art_dur = ti_zero - ti_stop_art
         time_post_art = self.ti - ti_stop_art
-        cd4_start = self.cd4_postart[uids]
-        cd4_end = 1  # To avoid divide by zero problems
+        cd4_start = self.cd4_postart[zero_later_uids]
+        if post_art_dur.any() <= 0:
+            error_msg = 'Post-ART duration is negative'
+            raise ValueError(error_msg)
         per_timestep_decline = (cd4_start-cd4_end)/post_art_dur
-        cd4 = np.maximum(cd4_end, cd4_start - per_timestep_decline*time_post_art)
+        cd4[zero_later_inds] = np.maximum(cd4_end, cd4_start - per_timestep_decline*time_post_art)
+
         return cd4
 
     def cd4_increase(self, uids):

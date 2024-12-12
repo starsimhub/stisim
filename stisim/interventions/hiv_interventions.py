@@ -14,7 +14,7 @@ def count(arr): return np.count_nonzero(arr)
 
 
 # %% HIV classes
-__all__ = ["HIVDx", "HIVTest", "ART", "VMMC"]
+__all__ = ["HIVDx", "HIVTest", "ART", "VMMC", "Prep"]
 
 
 class HIVDx(ss.Product):
@@ -263,4 +263,32 @@ class VMMC(ss.Intervention):
         sim.diseases.hiv.rel_sus[self.circumcised] *= 1-self.pars.eff_circ
 
         return
+
+
+class Prep(ss.Intervention):
+    """ Prep for FSW """
+    def __init__(self, pars=None, eligibility=None, **kwargs):
+        super().__init__()
+        self.define_pars(
+            coverage_dist=ss.bernoulli(p=0),
+            coverage=[0, 0.01, 0.5, 0.8],
+            years=[2004, 2005, 2015, 2025],
+            eff_prep=0.8,
+        )
+        self.update_pars(pars, **kwargs)
+        self.eligibility = eligibility
+        self.define_states(
+            ss.BoolArr('on_prep', label='On PrEP'),
+        )
+        return
+
+    def step(self):
+        sim = self.sim
+        self.coverage = np.interp(self.timevec, self.pars.years, self.pars.coverage)
+        if self.coverage[self.ti] > 0:
+            self.pars.coverage_dist.set(p=self.coverage[self.ti])
+            el_fsw = self.sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected & ~self.on_prep
+            fsw_on_prep = self.pars.coverage_dist.filter(el_fsw)
+            self.sim.diseases.hiv.rel_sus[fsw_on_prep] *= 1-self.pars.eff_prep
+
 
