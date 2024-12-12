@@ -496,6 +496,16 @@ class Calibration(sc.prettyobj): # pragma: no cover
         self.df = self.df.sort_values(by=['mismatch']) # Sort
         return
 
+    @staticmethod
+    def shrink(calib, n_results=100):
+        """ Shrink the results to only the best fit """
+        cal = sc.objdict()
+        plot_indices = calib.df.iloc[:n_results, 0].values
+        cal.sim_results = [calib.sim_results[i] for i in plot_indices]
+        cal.target_data = calib.target_data
+        cal.df = calib.df.iloc[0:n_results, ]
+        return cal
+
     def to_json(self, filename=None, indent=2, **kwargs):
         """ Convert the results to JSON """
         order = np.argsort(self.df['mismatch'])
