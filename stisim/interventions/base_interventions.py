@@ -215,17 +215,19 @@ class SymptomaticTesting(STITest):
         super().__init__(years=years, start=start, stop=stop, eligibility=eligibility, name=name, label=label)
         self.define_pars(
             sens=dict(
-                ng=[ss.bernoulli(0.6919), ss.bernoulli(0.93)],
-                ct=[ss.bernoulli(0.6919), ss.bernoulli(0.93)],
-                tv=[ss.bernoulli(0.5988), ss.bernoulli(0.93)],
-                bv=[ss.bernoulli(0.5988), ss.bernoulli(0.0)],
+                ng=[0.6919, 0.93],
+                ct=[0.6919, 0.93],
+                tv=[0.5988, 0.93],
+                bv=[0.5988],
             ),
             spec=dict(
-                ng=[ss.bernoulli(0.4833), ss.bernoulli(0.4812)],
-                ct=[ss.bernoulli(0.4833), ss.bernoulli(0.4812)],
-                tv=[ss.bernoulli(0.7011), ss.bernoulli(0.4812)],
-                bv=[ss.bernoulli(0.7011), ss.bernoulli(0.0)],
+                ng=[0.4833, 0.4812],
+                ct=[0.4833, 0.4812],
+                tv=[0.7011, 0.4812],
+                bv=[0.7011],
             ),
+            sens_dist=ss.bernoulli(p=0),
+            spec_dist=ss.bernoulli(p=0),
             dt_scale=False,
         )
         self.update_pars(pars, **kwargs)
@@ -271,30 +273,40 @@ class SymptomaticTesting(STITest):
         ti = self.ti
 
         # If this intervention has stopped, reset eligibility for all associated treatments
-        if (sim.now >= self.stop):
+        if sim.now >= self.stop:
             for treatment in self.treatments:
                 treatment.eligibility = ss.uids()  # Reset
             return
 
-        if (sim.now >= self.start):
+        if sim.now >= self.start:
 
             if uids is None:
                 uids = self.check_eligibility()
                 self.ti_tested[uids] = self.ti
 
             if len(uids):
-
                 treated_by_uid = np.zeros((len(uids), len(self.treatments)), dtype=bool)
-                for disease in self.diseases:
-                    inf_f = uids & disease.treatable & sim.people.female # Treatable includes exposed + infected
-                    sus_f = uids & disease.susceptible & sim.people.female
-                    inf_m = uids & disease.treatable & sim.people.male # Treatable includes exposed + infected
-                    sus_m = uids & disease.susceptible & sim.people.male
 
-                    sens_f = self.pars.sens[disease.name][0]
-                    spec_f = self.pars.spec[disease.name][0]
-                    sens_m = self.pars.sens[disease.name][1]
-                    spec_m = self.pars.spec[disease.name][1]
+                f_uids = sim.people.female[uids]
+                m_uids = sim.people.male[uids]
+
+                for disease in self.diseases:
+
+                    # Pull out parameters, initialize probabilities
+                    spec = self.pars.sens[disease.name]
+                    sens = self.pars.spec[disease.name]
+                    p_sens = np.full(np.count_nonzero(disease.treatable[uids]), np.nan)
+                    p_spec = np.full(np.count_nonzero(disease.susceptible[uids]), np.nan)
+
+                    inf_f = f_uids & disease.treatable[uids]  # Treatable includes exposed + infected
+                    sus_f = f_uids & disease.susceptible[uids]
+                    inf_m = m_uids & disease.treatable[uids]
+                    sus_m = m_uids & disease.susceptible[uids]
+
+                    p_sens[inf_f] = sens[0]
+                    p_spec[sus_f] = spec[0]
+                    p_sens[inf_m] = sens[1]
+                    p_spec[sus_m] = spec[1]
 
                     true_pos_f, false_neg_f = sens_f.split(inf_f)
                     true_neg_f, false_pos_f = spec_f.split(sus_f)

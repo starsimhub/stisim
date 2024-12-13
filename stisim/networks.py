@@ -49,6 +49,7 @@ class StructuredSexual(ss.SexualNetwork):
         self.define_pars(
             # Settings - generally shouldn't be adjusted
             unit='month',
+            store_register=False,
             n_risk_groups=3,
             f_age_group_bins=dict(  # For separating women into age groups: teens, young women, adult women
                 teens=(0, 20),
@@ -139,15 +140,22 @@ class StructuredSexual(ss.SexualNetwork):
         if condom_data is not None:
             self.condom_data = self.process_condom_data(condom_data)
 
+        # Store register
+        if self.pars.store_register:
+            self.breakup_register = [[]]*12
+
         # Add states
-        self.participant = ss.BoolArr('participant', default=True)
-        self.risk_group = ss.FloatArr('risk_group')     # Which risk group an agent belongs to
-        self.fsw = ss.BoolArr('fsw')                    # Whether an agent is a female sex worker
-        self.client = ss.BoolArr('client')              # Whether an agent is a client of sex workers
-        self.concurrency = ss.FloatArr('concurrency')   # Preferred number of concurrent partners
-        self.partners = ss.FloatArr('partners', default=0)  # Actual number of concurrent partners
-        self.lifetime_partners = ss.FloatArr('lifetime_partners', default=0)   # Lifetime total number of partners
-        self.sw_intensity = ss.FloatArr('sw_intensity')  # Intensity of sex work
+        self.define_states(
+            ss.BoolArr('participant', default=True),
+            ss.FloatArr('risk_group'),  # Which risk group an agent belongs to
+            ss.BoolArr('fsw'),  # Whether an agent is a female sex worker
+            ss.BoolArr('client'),  # Whether an agent is a client of sex workers
+            ss.FloatArr('concurrency'),  # Preferred number of concurrent partners
+            ss.FloatArr('partners', default=0),  # Actual number of concurrent partners
+            ss.FloatArr('partners_12', default=0),  # Number of partners over the past 12m
+            ss.FloatArr('lifetime_partners', default=0),  # Lifetime total number of partners
+            ss.FloatArr('sw_intensity'),  # Intensity of sex work
+        )
 
         return
 
@@ -439,6 +447,22 @@ class StructuredSexual(ss.SexualNetwork):
         alive_bools = people.alive[ss.uids(self.edges.p1)] & people.alive[ss.uids(self.edges.p2)]
         active = (self.edges.dur > 0) & alive_bools
 
+        # Update the breakup register
+        if self.pars.store_register:
+            over_12m = self.breakup_register[11]
+            if len(over_12m):
+                u, c = np.unique(over_12m, return_counts=True)
+                self.partners_12[u] -= c
+            self.breakup_register = self.breakup_register[:11]  # Forget partners from >12m ago
+            just_ended = (self.edges.dur == 0) & alive_bools
+            je1 = ss.uids(self.edges.p1[just_ended])
+            je2 = ss.uids(self.edges.p2[just_ended])
+            je_uids = je1.concat(je2)
+            self.breakup_register.insert(0, je1.concat(je2))
+            if len(je_uids):
+                u, c = np.unique(je_uids, return_counts=True)
+                self.partners_12[u] += c
+
         # For gen pop contacts that are due to expire, decrement the partner count
         inactive_gp = ~active & (~self.edges.sw)
         self.partners[ss.uids(self.edges.p1[inactive_gp])] -= 1
@@ -483,11 +507,18 @@ class StructuredSexual(ss.SexualNetwork):
 
         return
 
+    def count_partners(self):
+        """ Count the number of partners each person has had over the past 3/12 months """
+        self.lifetime_partners
+        return
+
     def step(self):
         self.end_pairs()
         self.set_network_states(upper_age=self.t.dt)
         self.add_pairs()
         self.set_condom_use()
+
+        self.count_partners()
 
         return
 

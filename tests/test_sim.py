@@ -74,7 +74,7 @@ def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
             init_prev=0.1,
         )
 
-        nets += [sti.FastStructuredSexual(), ss.MaternalNet()]
+        nets += [sti.FastStructuredSexual(store_register=True), ss.MaternalNet()]
 
         pregnancy = ss.Pregnancy(fertility_rate=10)
         death = ss.Deaths(death_rate=10)
