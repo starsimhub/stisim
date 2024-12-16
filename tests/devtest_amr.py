@@ -11,7 +11,9 @@ import numpy as np
 import pylab as pl
 
 
-def test_gon(n_agents=500, dt=1/12, start=2000, n_years=40):
+def test_gon(n_agents=500, dt=1/12, start=2000, dur=40):
+
+    default_beta = dict(structuredsexual=[1, 1], maternal=[0.99, 0])
 
     ng = sti.Gonorrhea(
         beta_m2f=0.038,
@@ -37,19 +39,19 @@ def test_gon(n_agents=500, dt=1/12, start=2000, n_years=40):
     # Testing interventions
     def seeking_care_discharge(sim):
         ng_care = sim.diseases.ng.symptomatic & (sim.diseases.ng.ti_seeks_care == sim.ti)
-        tv_care = sim.diseases.tv.symptomatic & (sim.diseases.tv.ti_seeks_care == sim.ti)
         ct_care = sim.diseases.ct.symptomatic & (sim.diseases.ct.ti_seeks_care == sim.ti)
-        vd_care = sim.diseases.vd.symptomatic & (sim.diseases.vd.ti_seeks_care == sim.ti)
-        return (ng_care | tv_care | ct_care | vd_care).uids
+        tv_care = sim.diseases.tv.symptomatic & (sim.diseases.tv.ti_seeks_care == sim.ti)
+        bv_care = sim.diseases.bv.symptomatic & (sim.diseases.bv.ti_seeks_care == sim.ti)
+        return (ng_care | tv_care | ct_care | bv_care).uids
 
     ng_tx = sti.GonorrheaTreatment()
-    tv_tx = sti.STITreatment(disease='tv', name='tv_tx', label='tv_tx')
-    ct_tx = sti.STITreatment(disease='ct', name='ct_tx', label='ct_tx')
-    vd_tx = sti.STITreatment(disease='vd', name='vd_tx', label='vd_tx')
-    syndromic = sti.SyndromicMgmt(
+    ct_tx = sti.STITreatment(diseases='ct', name='ct_tx', label='ct_tx')
+    metro = sti.STITreatment(diseases=['tv', 'bv'], name='metro', label='metro')
+    syndromic = sti.SymptomaticTesting(
         diseases=[ng, tv, ct, vd],
         eligibility=seeking_care_discharge,
-        treatments=[ng_tx, tv_tx, ct_tx, vd_tx],
+        treatments=[ng_tx, ct_tx, metro],
+        disease_treatment_map={'ng': ng_tx, 'ct': ct_tx, 'tv': metro, 'bv': metro}
     )
 
     pregnancy = ss.Pregnancy(fertility_rate=10)
@@ -58,12 +60,12 @@ def test_gon(n_agents=500, dt=1/12, start=2000, n_years=40):
     sim = ss.Sim(
         dt=dt,
         start=start,
-        n_years=n_years,
+        dur=dur,
         n_agents=n_agents,
         diseases=[ng, tv, ct, vd],
         networks=sexual,
         demographics=[pregnancy, death],
-        interventions=[syndromic, ng_tx, tv_tx, ct_tx, vd_tx],
+        interventions=[syndromic, ng_tx, ct_tx, metro],
         analyzers=[],
     )
     sim.run(verbose=0.1)
@@ -72,6 +74,6 @@ def test_gon(n_agents=500, dt=1/12, start=2000, n_years=40):
 
 
 if __name__ == '__main__':
-    sim = test_gon(n_agents=5e3, dt=1/12, n_years=20)
+    sim = test_gon(n_agents=5e3, dt=1/12, dur=20)
     sim.plot('gonorrheatreatment')
     pl.show()
