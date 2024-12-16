@@ -88,7 +88,7 @@ class GUD(ss.Infection):
     def __init__(self, pars=None, init_prev_data=None, **kwargs):
         super().__init__()
         self.define_pars(
-            dur_inf = ss.lognorm_ex(mean=3/12, stdev=1/12),
+            dur_inf = ss.lognorm_ex(ss.dur(3, 'month'), ss.dur(1, 'month')),
             beta=1.0,  # Placeholder
             init_prev=0,  # See make_init_prev_fn
             rel_init_prev=1,
@@ -110,8 +110,11 @@ class GUD(ss.Infection):
     def make_init_prev_fn(self, sim, uids):
         return sti.make_init_prev_fn(self, sim, uids)
 
-    def update_pre(self):
-        """ Updates prior to interventions """
+    def step_state(self):
+        """ Update states """
+        self.rel_sus[:] = 1
+        self.rel_trans[:] = 1
+
         recovered = (self.infected & (self.ti_recovered <= self.sim.ti)).uids
         self.infected[recovered] = False
         self.susceptible[recovered] = True
@@ -121,8 +124,7 @@ class GUD(ss.Infection):
         """
         Set initial prognoses for adults newly infected with syphilis
         """
-        ti = self.sim.ti
-        dt = self.dt
+        ti = self.ti
 
         self.susceptible[uids] = False
         self.infected[uids] = True
@@ -130,6 +132,6 @@ class GUD(ss.Infection):
 
         # Set future recovery
         dur_inf = self.pars.dur_inf.rvs(uids)
-        self.ti_recovered[uids] = ti + dur_inf / dt
+        self.ti_recovered[uids] = ti + dur_inf
 
         return

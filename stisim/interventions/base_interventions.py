@@ -29,27 +29,35 @@ class STIDx(ss.Product):
         self.df = df
         self.health_states = df.state.unique()
         self.result_list = ['positive', 'negative']
+        self.probs = {state: df.loc[df.state == state].p_positive.values[0] for state in self.health_states}
 
         # Store the probability of returning each possible result
-        self.result_dist = dict()
+        self.result_dist = ss.bernoulli(p=0)
+        return
+
+    def p_positive(self):
         for state in self.health_states:
             thisdf = self.df.loc[self.df.state == state]
             self.result_dist[state] = ss.bernoulli(thisdf.p_positive.values)
-        return
 
     def administer(self, sim, uids):
         """
         Administer a testing product.
         """
-        outcomes = {r: ss.uids() for r in self.result_list}
+        p_pos = np.full(len(uids), np.nan, dtype=ss.dtypes.float)  # Default to negative
         for state in self.health_states:
             this_state = getattr(sim.diseases[self.disease], state)
-            true_uids = this_state.uids  # Find people for which this state is true
-            if len(true_uids):
-                these_uids = true_uids.intersect(uids)  # Find intersection of people in this state and supplied UIDs
-                pos, neg = self.result_dist[state].split(these_uids)
-                if len(pos): outcomes['positive'] = outcomes['positive'] | pos
-                if len(neg): outcomes['negative'] = outcomes['negative'] | neg
+            in_this_state = this_state[uids]  # Find people for which this state is true
+            if in_this_state.any():
+                p_pos[in_this_state] = self.probs[state]
+
+        # Apply the test
+        self.result_dist.set(p_pos)
+        pos, neg = self.result_dist.split(uids)
+        outcomes = {r: ss.uids() for r in self.result_list}
+        outcomes['positive'] = pos
+        outcomes['negative'] = neg
+
         return outcomes
 
 
@@ -139,7 +147,7 @@ class STITest(ss.Intervention):
 
         # Scale and validate
         test_prob *= self.pars.rel_test
-        if self.pars.dt_scale: test_prob *= self.dt
+        if self.pars.dt_scale: test_prob *= self.t.dt
         test_prob = np.clip(test_prob, a_min=0, a_max=1)
 
         return test_prob
@@ -153,7 +161,7 @@ class STITest(ss.Intervention):
         eligible_uids = self.check_eligibility()  # Apply eligiblity
         if len(eligible_uids):
             accept_uids = self.test_prob.filter(eligible_uids)
-        scheduled_uids = (self.ti_scheduled == sim.ti).uids  # Add on scheduled tests
+        scheduled_uids = (self.ti_scheduled == self.ti).uids  # Add on scheduled tests
         return accept_uids | scheduled_uids
 
     def schedule(self, uids, ti):
@@ -171,26 +179,26 @@ class STITest(ss.Intervention):
 
             if uids is None:
                 uids = self.get_testers(sim)
-                self.ti_tested[uids] = sim.ti
+                self.ti_tested[uids] = self.ti
 
             if len(uids):
                 outcomes = self.product.administer(sim, uids)
                 self.last_outcomes = outcomes
                 for k in self.product.result_list:
-                    self.outcomes[k][self.last_outcomes[k]] = sim.ti
+                    self.outcomes[k][self.last_outcomes[k]] = self.ti
             else:
                 return outcomes
 
             # If it's a binary test, set the time of positive/negative outcome
             if 'positive' in outcomes.keys():
-                self.ti_negative[outcomes['negative']] = sim.ti
-                self.ti_positive[outcomes['positive']] = sim.ti
+                self.ti_negative[outcomes['negative']] = self.ti
+                self.ti_positive[outcomes['positive']] = self.ti
 
         return outcomes
 
     def update_results(self):
         # Store results
-        ti = self.sim.ti
+        ti = self.ti
         self.results['new_diagnoses'][ti] += count(self.ti_positive == ti)
         self.results['new_tests'][ti] += count(self.ti_tested == ti)
 
@@ -207,17 +215,19 @@ class SymptomaticTesting(STITest):
         super().__init__(years=years, start=start, stop=stop, eligibility=eligibility, name=name, label=label)
         self.define_pars(
             sens=dict(
-                ng=[ss.bernoulli(0.6919), ss.bernoulli(0.93)],
-                ct=[ss.bernoulli(0.6919), ss.bernoulli(0.93)],
-                tv=[ss.bernoulli(0.5988), ss.bernoulli(0.93)],
-                bv=[ss.bernoulli(0.5988), ss.bernoulli(0.0)],
+                ng=[0.6919, 0.93],
+                ct=[0.6919, 0.93],
+                tv=[0.5988, 0.93],
+                bv=[0.5988],
             ),
             spec=dict(
-                ng=[ss.bernoulli(0.4833), ss.bernoulli(0.4812)],
-                ct=[ss.bernoulli(0.4833), ss.bernoulli(0.4812)],
-                tv=[ss.bernoulli(0.7011), ss.bernoulli(0.4812)],
-                bv=[ss.bernoulli(0.7011), ss.bernoulli(0.0)],
+                ng=[0.4833, 0.4812],
+                ct=[0.4833, 0.4812],
+                tv=[0.7011, 0.4812],
+                bv=[0.7011],
             ),
+            sens_dist=ss.bernoulli(p=0),
+            spec_dist=ss.bernoulli(p=0),
             dt_scale=False,
         )
         self.update_pars(pars, **kwargs)
@@ -260,54 +270,62 @@ class SymptomaticTesting(STITest):
         """ Apply syndromic management """
         sim = self.sim
         self.treated_by_uid = None
-        ti = sim.ti
+        ti = self.ti
 
         # If this intervention has stopped, reset eligibility for all associated treatments
-        if (sim.now >= self.stop):
+        if sim.now >= self.stop:
             for treatment in self.treatments:
                 treatment.eligibility = ss.uids()  # Reset
             return
 
-        if (sim.now >= self.start):
+        if sim.now >= self.start:
 
             if uids is None:
                 uids = self.check_eligibility()
-                self.ti_tested[uids] = sim.ti
+                self.ti_tested[uids] = self.ti
 
             if len(uids):
-
                 treated_by_uid = np.zeros((len(uids), len(self.treatments)), dtype=bool)
+
+                f_uids = sim.people.female[uids]
+                m_uids = sim.people.male[uids]
+
+                # This set-up assumes the existence of an etiological test
                 for disease in self.diseases:
-                    inf_f = uids & disease.treatable & sim.people.female # Treatable includes exposed + infected
-                    sus_f = uids & disease.susceptible & sim.people.female
-                    inf_m = uids & disease.treatable & sim.people.male # Treatable includes exposed + infected
-                    sus_m = uids & disease.susceptible & sim.people.male
 
-                    sens_f = self.pars.sens[disease.name][0]
-                    spec_f = self.pars.spec[disease.name][0]
-                    sens_m = self.pars.sens[disease.name][1]
-                    spec_m = self.pars.spec[disease.name][1]
+                    # Pull out parameters, initialize probabilities
+                    sens = self.pars.sens[disease.name]
+                    spec = self.pars.spec[disease.name]
+                    treatable = disease.treatable[uids]
+                    susceptible = disease.susceptible[uids]
 
-                    true_pos_f, false_neg_f = sens_f.split(inf_f)
-                    true_neg_f, false_pos_f = spec_f.split(sus_f)
-                    true_pos_m, false_neg_m = sens_m.split(inf_m)
-                    true_neg_m, false_pos_m = spec_m.split(sus_m)
-                    treat_uids = true_pos_f | true_pos_m | false_pos_f | false_pos_m
+                    p_sens = np.full(np.count_nonzero(treatable), np.nan)
+                    p_spec = np.full(np.count_nonzero(susceptible), np.nan)
+
+                    inf_f = f_uids[treatable]   # Treatable includes exposed + infected
+                    sus_f = f_uids[susceptible]
+                    inf_m = m_uids[treatable]
+                    sus_m = m_uids[susceptible]
+
+                    p_sens[inf_f] = sens[0]
+                    p_spec[sus_f] = spec[0]
+                    if disease.name != 'bv':
+                        p_sens[inf_m] = sens[1]
+                        p_spec[sus_m] = spec[1]
+
+                    # Apply the test
+                    self.pars.sens_dist.set(p_sens)
+                    self.pars.spec_dist.set(p_spec)
+                    true_pos, false_neg = self.pars.sens_dist.split(uids[treatable])
+                    true_neg, false_pos = self.pars.spec_dist.split(uids[susceptible])
+                    treat_uids = true_pos | false_pos
                     do_treat = np.array([True if u in treat_uids else False for u in uids])
 
                     # Add to results
-                    disease.results['new_true_pos'][ti] += len(true_pos_f) + len(true_pos_m)
-                    disease.results['new_false_pos'][ti] += len(false_pos_f) + len(false_pos_m) 
-                    disease.results['new_true_neg'][ti] += len(true_neg_f) + len(true_neg_m)
-                    disease.results['new_false_neg'][ti] += len(false_neg_f) + len(false_neg_m)
-                    disease.results['new_true_pos_f'][ti] += len(true_pos_f)
-                    disease.results['new_false_pos_f'][ti] += len(false_pos_f)
-                    disease.results['new_true_neg_f'][ti] += len(true_neg_f)
-                    disease.results['new_false_neg_f'][ti] += len(false_neg_f)
-                    disease.results['new_true_pos_m'][ti] += len(true_pos_m)
-                    disease.results['new_false_pos_m'][ti] += len(false_pos_m) 
-                    disease.results['new_true_neg_m'][ti] += len(true_neg_m)
-                    disease.results['new_false_neg_m'][ti] += len(false_neg_m)
+                    disease.results['new_true_pos'][ti] += len(true_pos)
+                    disease.results['new_false_pos'][ti] += len(false_pos)
+                    disease.results['new_true_neg'][ti] += len(true_neg)
+                    disease.results['new_false_neg'][ti] += len(false_neg)
 
                     tx = self.disease_treatment_map[disease.name]
                     if tx is not None:
@@ -318,15 +336,15 @@ class SymptomaticTesting(STITest):
                 # Update states: time referred to treatment for anyone referred
                 referred_uids = uids[treated_by_uid.any(axis=1)]
                 dismissed_uids = uids.remove(referred_uids)
-                self.ti_referred[referred_uids] = sim.ti
-                self.ti_dismissed[dismissed_uids] = sim.ti
+                self.ti_referred[referred_uids] = self.ti
+                self.ti_dismissed[dismissed_uids] = self.ti
                 self.treated_by_uid = treated_by_uid
 
             return
 
     def update_results(self):
         super().update_results()
-        ti = self.sim.ti
+        ti = self.ti
         just_tested = self.ti_tested == ti
         self.results['new_care_seekers'][ti] += count(just_tested)
 
@@ -445,7 +463,7 @@ class STITreatment(ss.Intervention):
         # self.add_to_queue(sim)
         treat_uids = self.get_candidates(sim)
         self.treated[treat_uids] = True
-        self.ti_treated[treat_uids] = sim.ti
+        self.ti_treated[treat_uids] = self.ti
 
         # Treat people
         if len(treat_uids):
@@ -482,7 +500,7 @@ class STITreatment(ss.Intervention):
         return treat_uids
 
     def update_results(self):
-        ti = self.sim.ti
+        ti = self.ti
         treat_uids = (self.ti_treated == ti).uids
 
         # Store new treatment results in the disease module results
@@ -549,11 +567,10 @@ class PartnerNotification(ss.Intervention):
         # Filter by test_prob and return UIDs
         return self.test_prob.filter(ss.uids(contacts))
 
-
     def notify(self, sim, uids):
         # Schedule a test for identified contacts at the next timestep (this also ensures that contacts tracing will take place for partners that test positive)
         # Could include a parameter here for acceptance of testing (if separating out probabilities of notification and testing)
-        return self.test.schedule(uids, sim.ti+1)
+        return self.test.schedule(uids, self.ti+1)
 
     def step(self):
         sim = self.sim
@@ -595,7 +612,7 @@ class ProductMix(ss.Product):
         Apply a testing algorithm
         """
         outcomes = {r: ss.uids() for r in self.result_list}
-        self.product_dist.set(p=self.product_mix[:, sim.ti])
+        self.product_dist.set(p=self.product_mix[:, self.ti])
         this_result = self.product_dist.rvs(uids)
         if len(this_result):
             for res in self.result_list:

@@ -7,6 +7,12 @@ What's new
 All notable changes to the codebase are documented in this file.
 
 
+Version 1.0.0 (2024-12-11)
+--------------------------
+- Updates to work with Starsim v2.2.1
+- *GitHub info*: PR `63 <https://github.com/starsimhub/stisim/pull/63>`_
+
+
 Version 0.2.0 (2024-11-01)
 --------------------------
 - Updates to work with Starsim v2.0

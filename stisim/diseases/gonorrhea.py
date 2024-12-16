@@ -17,44 +17,33 @@ class Gonorrhea(SEIS):
 
         self.define_pars(
             dur_exp=ss.constant(0),  # Initial latent period: how long after exposure before you can infect others
-            p_symp=[
-                ss.bernoulli(p=0.3),  # Women: https://doi.org/10.1371/journal.pone.0143304
-                ss.bernoulli(p=0.6),  # Men:   https://doi.org/10.1371/journal.pone.0143304
-            ],
+
+            # Symptoms
+            p_symp=[0.35, 0.65],  # https://doi.org/10.1371/journal.pone.0143304
             dur_presymp=[  # For those who develop symptoms, how long before symptoms appear
-                ss.lognorm_ex(1/52, 12/52),  # Women:
-                ss.lognorm_ex(0.25/52, 1/52),  # Men: symptoms should appear within days
+                [ss.dur(1, 'week'), ss.dur(12, 'week')],  # Women:
+                [ss.dur(0.25, 'week'), ss.dur(1, 'week')],  # Men: symptoms should appear within days
             ],
-            p_symp_clear=[
-                ss.bernoulli(p=0.0),
-                ss.bernoulli(p=0.0),
+
+            # Care seeking
+            p_symp_care=[0.66, 0.83],  # See Table 2: https://docs.google.com/document/d/16t46nTL2qMHmA0C1gSPz8OhI6ccy6vVv3OCfkmYFUtw/edit?tab=t.0
+            dur_symp2care=[  # For those who test, how long before they seek care
+                [ss.dur(1, 'month'), ss.dur(1, 'month')],  # Women
+                [ss.dur(1, 'week'), ss.dur(2, 'week')],  # Men
             ],
-            p_symp_care=[
-                ss.bernoulli(p=0.5),
-                ss.bernoulli(p=0.8),
-            ],
-            dur_symp=[
-                ss.lognorm_ex(1/12, 1/12),  # Women
-                ss.lognorm_ex(1/12, 1/12),  # Men
-            ],
+
+            # Clearance: lognormal distribution
             dur_asymp2clear=[
-                ss.lognorm_ex(7/12, 2/12),  # Women
-                ss.lognorm_ex(5/12, 3/12),  # Men
+                [ss.dur(7, 'month'), ss.dur(2, 'month')],  # Women
+                [ss.dur(5, 'month'), ss.dur(3, 'month')],  # Men
             ],
             dur_symp2clear=[
-                ss.lognorm_ex(7/12, 2/12),  # Assumption
-                ss.lognorm_ex(5/12, 3/12),  # Assumption
+                [ss.dur(7, 'month'), ss.dur(2, 'month')],  # Assumption
+                [ss.dur(5, 'month'), ss.dur(3, 'month')],  # Assumption
             ],
-            dur_postsymp2clear=[
-                ss.lognorm_ex(7/12, 1.5/12),  # Women
-                ss.lognorm_ex(4/12, 1.5/12),  # Men
-            ],
-            dur_symp2care=[  # For those who test, how long before they seek care
-                ss.lognorm_ex(1/12, 1/12),  # Women
-                ss.lognorm_ex(1/52, 1/52),  # Men
-            ],
+
             p_pid=ss.bernoulli(p=0.2),  # TODO
-            dur_prepid=ss.lognorm_ex(1.5/12, 3/12),
+            dur_prepid=ss.lognorm_ex(ss.dur(1.5, 'month'), ss.dur(3, 'month')),
 
             # Initial conditions
             init_prev=ss.bernoulli(p=0.01),

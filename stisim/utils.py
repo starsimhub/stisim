@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import starsim as ss
 
-__all__ = ['TimeSeries', 'make_init_prev_fn', "finalize_results"]
+__all__ = ['TimeSeries', 'make_init_prev_fn', "finalize_results", "shrink_calib"]
 
 
 class TimeSeries:
@@ -458,3 +458,14 @@ def finalize_results(sim, modules_to_drop=None):
     df = sc.dataframe.from_dict(resdict).set_index('yearvec')
 
     return df
+
+
+def shrink_calib(calib, n_results=100):
+    cal = sc.objdict()
+    plot_indices = calib.df.iloc[0:n_results, 0].values
+    cal.sim_results = [calib.sim_results[i] for i in plot_indices]
+    cal.analyzer_results = [calib.analyzer_results[i] for i in plot_indices]
+    cal.target_data = calib.target_data
+    cal.df = calib.df.iloc[0:n_results, ]
+    return cal
+

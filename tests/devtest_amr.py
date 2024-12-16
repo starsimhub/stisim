@@ -25,7 +25,7 @@ def test_gon(n_agents=500, dt=1/12, start=2000, dur=40):
         beta_f2m=0.01,
         init_prev=0.05,
     )
-    vd = sti.DischargingSTI(
+    vd = sti.BV(
         beta_m2f=0.1,
         beta_f2m=0.05,
         init_prev=0.025,

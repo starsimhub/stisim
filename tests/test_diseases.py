@@ -13,7 +13,7 @@ n_agents = 2000
 def test_syph_epi():
     sc.heading('Test epi dynamics of syphilis')
 
-    base_pars = dict(n_agents=n_agents, networks=sti.StructuredSexual())
+    base_pars = dict(n_agents=n_agents, networks=sti.FastStructuredSexual())
 
     # Define the parameters to vary
     par_effects = dict(
@@ -42,8 +42,9 @@ def test_syph_epi():
         pars1['diseases'] = sti.Syphilis(**simpardict_hi)
 
         # Run the simulations and pull out the results
-        s0 = ss.Sim(pars0, label=f'{par} {par_val[0]}').run()
-        s1 = ss.Sim(pars1, label=f'{par} {par_val[1]}').run()
+        s0 = ss.Sim(pars0, label=f'{par} {par_val[0]}')
+        s1 = ss.Sim(pars1, label=f'{par} {par_val[1]}')
+        ss.parallel(s0, s1)
 
         # Check results
         ind = 1 if par == 'init_prev' else -1
@@ -60,11 +61,11 @@ def test_syph_epi():
 def test_hiv_epi():
     sc.heading('Test epi dynamics of hiv')
 
-    base_pars = dict(n_agents=n_agents, networks=sti.StructuredSexual())
+    base_pars = dict(n_agents=n_agents, networks=sti.FastStructuredSexual())
 
     # Define the parameters to vary
     par_effects = dict(
-        dur_acute=[1/12, 24/12],
+        dur_acute=[ss.dur(1, 'month'), ss.dur(24, 'month')],
         init_prev=[0.01, 0.1],
         beta=[0.01, 0.2]  # Beta for male to female transmission; opposite direction uses half this value
     )
@@ -89,8 +90,9 @@ def test_hiv_epi():
         pars1['diseases'] = sti.HIV(**simpardict_hi)
 
         # Run the simulations and pull out the results
-        s0 = ss.Sim(pars0, label=f'{par} {par_val[0]}').run()
-        s1 = ss.Sim(pars1, label=f'{par} {par_val[1]}').run()
+        s0 = ss.Sim(pars0, label=f'{par} {par_val[0]}')
+        s1 = ss.Sim(pars1, label=f'{par} {par_val[1]}')
+        ss.parallel(s0, s1)
 
         # Check results
         ind = 1 if par == 'init_prev' else -1

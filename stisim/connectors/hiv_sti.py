@@ -6,7 +6,7 @@ import starsim as ss
 from stisim.diseases.syphilis import SyphilisPlaceholder
 
 
-__all__ = ['hiv_syph', 'hiv_tv', 'hiv_ng', 'hiv_ct']
+__all__ = ['hiv_syph', 'hiv_tv', 'hiv_ng', 'hiv_ct', 'hiv_bv']
 
 
 class hiv_syph(ss.Connector):
@@ -17,6 +17,8 @@ class hiv_syph(ss.Connector):
         self.hiv = hiv_module
         self.syphilis = syphilis_module
         self.define_pars(
+            unit='month',
+
             # Changes to HIV due to syphilis coinfection
             rel_sus_hiv_syph=2.67,  # Relative increase in susceptibility to HIV due to syphilis
             rel_trans_hiv_syph=1.2,  # Relative increase in transmission due to syphilis
@@ -40,7 +42,7 @@ class hiv_syph(ss.Connector):
 
         return
 
-    def update(self):
+    def step(self):
 
         # HIV changes due to syphilis
         syphilis = self.syphilis.active
@@ -79,7 +81,7 @@ class hiv_tv(ss.Connector):
         self.update_pars(pars, **kwargs)
         return
 
-    def update(self):
+    def step(self):
         tv = self.tv.infected
         self.hiv.rel_sus[tv] *= self.pars.rel_sus_hiv_tv
         return
@@ -102,7 +104,7 @@ class hiv_ng(ss.Connector):
 
         return
 
-    def update(self):
+    def step(self):
         ng = self.ng.infected
         self.hiv.rel_sus[ng] *= self.pars.rel_sus_hiv_ng
         return
@@ -125,8 +127,31 @@ class hiv_ct(ss.Connector):
 
         return
 
-    def update(self):
+    def step(self):
         ct = self.ct.infected
         self.hiv.rel_sus[ct] *= self.pars.rel_sus_hiv_ct
+        return
+
+
+class hiv_bv(ss.Connector):
+
+    def __init__(self, hiv_module, bv_module, pars=None, **kwargs):
+        super().__init__()
+
+        self.hiv = hiv_module
+        self.bv = bv_module
+        self.define_pars(
+            # Changes to HIV due to BV
+            rel_sus_hiv_bv=2,       # PLACEHOLDER: BV leads to 2x risk of HIV acquisition
+            rel_trans_hiv_bv=2,     # PLACEHOLDER: BV leads to 2x risk of HIV transmission
+        )
+        self.update_pars(pars, **kwargs)
+
+        return
+
+    def step(self):
+        bv = self.bv.infected
+        self.hiv.rel_trans[bv] *= self.pars.rel_trans_hiv_bv
+        self.hiv.rel_sus[bv] *= self.pars.rel_sus_hiv_bv
         return
 
