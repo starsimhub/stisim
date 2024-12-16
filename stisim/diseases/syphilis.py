@@ -349,11 +349,11 @@ class Syphilis(BaseSTI):
 
         n_active = res['n_primary'][ti] + res['n_secondary'][ti]
         adults = (ppl.age >= 15) & (ppl.age < 50)
-        active_adults = adults & self.active
+        sexually_active_adults = adults & self.sim.networks.structuredsexual.active(self.sim.people)
 
         # Overwrite prevalence so we're always storing prevalence of syphilis among sexually active adults
-        self.results['prevalence'][ti] = cond_prob(self.infected, active_adults)
-        self.results['active_prevalence'][ti] = cond_prob(self.active, active_adults)
+        self.results['prevalence'][ti] = cond_prob(self.infected, sexually_active_adults)
+        self.results['active_prevalence'][ti] = cond_prob(self.active, sexually_active_adults)
         self.results['n_active'][ti] = n_active
 
         # Pregnant women prevalence, if present
