@@ -265,15 +265,6 @@ class Calibration(sc.prettyobj): # pragma: no cover
 
         return pars
 
-    # @staticmethod
-    # def sim_to_df(sim):  # TODO: remove this method
-    #     """ Convert a sim to the expected dataframe type """
-    #     df_res = sim.to_df(sep='.')
-    #     df_res['t'] = df_res['timevec']
-    #     df_res = df_res.set_index('t')
-    #     df_res['time'] = np.floor(np.round(df_res.index, 1)).astype(int)
-    #     return df_res
-
     def run_trial(self, trial):
         """ Define the objective for Optuna """
         if self.calib_pars is not None:
