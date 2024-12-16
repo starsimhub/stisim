@@ -39,8 +39,7 @@ class Trichomoniasis(SEIS):
                 [ss.dur(20, 'week'), ss.dur(4, 'week')],  # Women - assumptions
                 [ss.dur(18, 'week'), ss.dur(4, 'week')],  # Men - assumptions
             ],
-            p_clear_dist=ss.bernoulli(),
-            p_clear=[0.1, 1],   # Most women do not spontaneously clear, men do (https://sti.bmj.com/content/76/4/248)
+            p_clear=ss.bernoulli(p=0.1),  # Most women do not spontaneously clear, men do (https://sti.bmj.com/content/76/4/248)
             dur_persist=ss.years(100),
 
             p_pid=ss.bernoulli(p=0.025),
@@ -61,6 +60,6 @@ class Trichomoniasis(SEIS):
 
         # Next, overwrite time of clearance for a subset of asymptomatic women
         potential_persist = asymp[self.sim.people.female[asymp]]
-        _, f_persist = p.p_clear[0].split(potential_persist)
+        _, f_persist = p.p_clear.split(potential_persist)
         self.ti_clearance[f_persist] = self.ti_infected[f_persist] + self.pars.dur_persist
         return

@@ -135,14 +135,14 @@ if __name__ == '__main__':
     do_plot = True
 
     # s0 = test_hiv_sim()
-    # s1 = test_stis(which='ulcerative')
-    #
+    s1 = test_stis(which='discharging')
+
     # if do_plot:
     #     s1.plot("syphilis")
     #     pl.show()
 
     # sims = test_bv(include_hiv=True)
-    sim = test_bv(include_hiv=True)
+    # sim = test_bv(include_hiv=True)
     # if do_plot:
     #     import pylab as pl
     #     r0 = sims[0].results.bv.prevalence
