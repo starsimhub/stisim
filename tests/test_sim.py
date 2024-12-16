@@ -138,7 +138,7 @@ if __name__ == '__main__':
     s1 = test_stis(which='discharging')
 
     if do_plot:
-        s1.plot("gonorrhea")
+        s1.plot("ng")
         pl.show()
 
     sims = test_bv(include_hiv=True)
