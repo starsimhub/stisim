@@ -16,42 +16,32 @@ class Chlamydia(SEIS):
 
         self.define_pars(
             dur_exp=ss.constant(ss.dur(1, 'week')),
-            p_symp=[
-                ss.bernoulli(p=0.20),  # Women: 80% asymptomatic (https://doi.org/10.1016/j.epidem.2010.04.002)
-                ss.bernoulli(p=0.54),  # Men: as above
-            ],
+
+            # Symptoms
+            p_symp=[0.20, 0.54], # https://doi.org/10.1016/j.epidem.2010.04.002
             dur_presymp=[  # For those who develop symptoms, how long before symptoms appear
-                ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(10, 'week')),  # Women
-                ss.lognorm_ex(ss.dur(0.25, 'week'), ss.dur(1, 'week')),  # Men: symptoms should appear within days
+                [ss.dur(1, 'week'), ss.dur(10, 'week')],  # Women
+                [ss.dur(0.25, 'week'), ss.dur(1, 'week')],  # Men: symptoms should appear within days
             ],
-            p_symp_clear=[  # Symptoms do not clear without treatment
-                ss.bernoulli(p=0.0),
-                ss.bernoulli(p=0.0),
+
+            # Care seeking
+            p_symp_care=[0.42, 0.83],  # See Table 2 in https://docs.google.com/document/d/16t46nTL2qMHmA0C1gSPz8OhI6ccy6vVv3OCfkmYFUtw/edit?tab=t.0
+            dur_symp2care=[  # For those who test, how long before they seek care
+                [ss.dur(1, 'week'), ss.dur(2, 'week')],  # Women
+                [ss.dur(1, 'week'), ss.dur(2, 'week')],  # Men
             ],
-            dur_symp=[  # NOT USED
-                ss.constant(ss.dur(1)),  # Duration of symptoms: not used, as symptoms don't self-resolve
-                ss.constant(ss.dur(1)),  # Duration of symptoms
-            ],
-            p_symp_care=[  # See Table 2 in https://docs.google.com/document/d/16t46nTL2qMHmA0C1gSPz8OhI6ccy6vVv3OCfkmYFUtw/edit?tab=t.0
-                ss.bernoulli(p=0.42),   # Women:
-                ss.bernoulli(p=0.83),   # Men
-            ],
+
+            # Clearance
             dur_asymp2clear=[
-                ss.normal(ss.dur(14, 'month'), ss.dur(1, 'month')),  # Women: 433 days (https://doi.org/10.1016/j.epidem.2010.04.002)
-                ss.normal(ss.dur(14, 'month'), ss.dur(1, 'month')),  # Men: as above
+                [ss.dur(14, 'month'), ss.dur(1, 'month')],  # Women: 433 days (https://doi.org/10.1016/j.epidem.2010.04.002)
+                [ss.dur(14, 'month'), ss.dur(1, 'month')],  # Men: as above
             ],
             dur_symp2clear=[
-                ss.normal(ss.dur(14, 'month'), ss.dur(1, 'month')),  # Assumption
-                ss.normal(ss.dur(14, 'month'), ss.dur(1, 'month')),  # Assumption
+                [ss.dur(14, 'month'), ss.dur(1, 'month')],  # Assumption
+                [ss.dur(14, 'month'), ss.dur(1, 'month')],  # Assumption
             ],
-            dur_postsymp2clear=[  # NOT USED
-                ss.constant(ss.dur(1)),  # Duration of infection after symptom clearance: not used, as symptoms don't self-resolve
-                ss.constant(ss.dur(1)),  # As above
-            ],
-            dur_symp2care=[  # For those who test, how long before they seek care
-                ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(2, 'week')),  # Women
-                ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(2, 'week')),  # Men
-            ],
+
+            # PID
             p_pid=ss.bernoulli(p=0.2),  # Assumption used in https://doi.org/10.1086/598983, based on https://doi.org/10.1016/s0029-7844(02)02118-x
             dur_prepid=ss.lognorm_ex(ss.dur(1.5, 'month'), ss.dur(3, 'month')),
 

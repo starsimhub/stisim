@@ -106,29 +106,25 @@ class SEIS(BaseSTI):
             dur_exp=ss.constant(ss.dur(1, 'week')),  # Initial latent period: how long after exposure before you can infect others
 
             # Symptoms and symptomatic testing
-            p_symp=[
-                ss.bernoulli(p=0.375),  # Women
-                ss.bernoulli(p=0.375),  # Men
-            ],
+            p_symp_dist=ss.bernoulli(p=0.5),  # Distribution of symptomatic vs asymptomatic
+            p_symp=[0.375, 0.375],  # Men
+            dur_presymp_dist=ss.lognorm_ex(),
             dur_presymp=[  # For those who develop symptoms, how long before symptoms appear
-                ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(12, 'week')),   # Women
-                ss.lognorm_ex(ss.dur(0.25, 'week'), ss.dur(3, 'week')), # Men
+                [ss.dur(1, 'week'), ss.dur(12, 'week')],   # Women
+                [ss.dur(0.25, 'week'), ss.dur(3, 'week')], # Men
             ],
-            p_symp_clear=[
-                ss.bernoulli(p=0.0),  # Women
-                ss.bernoulli(p=0.0),  # Men
-            ],
+            p_symp_clear_dist=ss.bernoulli(p=0),
+            p_symp_clear=[0.0, 0.0],
             dur_symp=[
                 ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(26, 'week')),  # Duration of symptoms
                 ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(26, 'week')),  # Duration of symptoms
             ],
-            p_symp_care=[
-                ss.bernoulli(p=0.3),  # Reset for each individual STI
-                ss.bernoulli(p=0.2),  # As above
-            ],
-            dur_symp2care=[  # For those who test, how long before they seek care - reset for each individual STI
-                ss.lognorm_ex(ss.dur(4, 'week'), ss.dur(4, 'week')),  # Women
-                ss.lognorm_ex(ss.dur(6, 'week'), ss.dur(4, 'week')),  # Men
+            p_symp_care_dist=ss.bernoulli(p=0),
+            p_symp_care=[0.3, 0.2],
+            dur_symp2care_dist=ss.lognorm_ex(),
+            dur_symp2care = [  # For those who test, how long before they seek care - reset for each individual STI
+                [ss.dur(4, 'week'), ss.dur(4, 'week')],  # Women
+                [ss.dur(6, 'week'), ss.dur(4, 'week')],  # Men
             ],
 
             # PID and PID care-seeking
@@ -138,17 +134,15 @@ class SEIS(BaseSTI):
             dur_pid2care=ss.lognorm_ex(ss.dur(2, 'week'), ss.dur(4, 'week')),  # Women
 
             # Clearance
+            dur_asymp2clear_dist=ss.lognorm_ex(),
             dur_asymp2clear=[  # Duration of untreated asymptomatic infection (excl initial latent)
-                ss.lognorm_ex(ss.dur(52, 'week'), ss.dur(5, 'week')),  # Women
-                ss.lognorm_ex(ss.dur(52, 'week'), ss.dur(5, 'week')),  # Men
+                [ss.dur(52, 'week'), ss.dur(5, 'week')],  # Women
+                [ss.dur(52, 'week'), ss.dur(5, 'week')],  # Men
             ],
+            dur_symp2clear_dist=ss.lognorm_ex(),
             dur_symp2clear=[  # Duration of untreated symptomatic infection (excl initial latent)
-                ss.lognorm_ex(ss.dur(52, 'week'), ss.dur(5, 'week')),  # Women
-                ss.lognorm_ex(ss.dur(52, 'week'), ss.dur(5, 'week')),  # Men
-            ],
-            dur_postsymp2clear=[
-                ss.lognorm_ex(ss.dur(52, 'week'), ss.dur(5, 'week')),  # Women
-                ss.lognorm_ex(ss.dur(52, 'week'), ss.dur(5, 'week')),  # Men
+                [ss.dur(52, 'week'), ss.dur(5, 'week')],  # Women
+                [ss.dur(52, 'week'), ss.dur(5, 'week')],  # Men
             ],
             dur_pid2clear=ss.lognorm_ex(ss.dur(52, 'week'), ss.dur(5, 'week')),
 
@@ -168,7 +162,6 @@ class SEIS(BaseSTI):
             ss.State('infected'),
             ss.State('asymptomatic'),
             ss.State('symptomatic'),
-            ss.State('postsymptomatic'),
             ss.State('pid'),
             ss.State('seeking_care'),
             ss.FloatArr('dur_inf'),
@@ -274,13 +267,12 @@ class SEIS(BaseSTI):
         self.infected[uids] = False
         self.symptomatic[uids] = False
         self.asymptomatic[uids] = False
-        self.postsymptomatic[uids] = False
         self.pid[uids] = False
         self.seeking_care[uids] = False
         self.susceptible[uids] = True
-        past_care_seekers = uids[(self.ti_seeks_care[uids] < self.sim.ti).nonzero()[-1]]
+        past_care_seekers = uids[(self.ti_seeks_care[uids] < self.ti).nonzero()[-1]]
         self.ti_seeks_care[past_care_seekers] = np.nan
-        self.ti_clearance[uids] = self.sim.ti
+        self.ti_clearance[uids] = self.ti
 
     def step_state(self):
         """ Updates for this timestep """
@@ -303,13 +295,6 @@ class SEIS(BaseSTI):
             self.asymptomatic[new_symptomatic] = False
             self.symptomatic[new_symptomatic] = True
             self.ti_symptomatic[new_symptomatic] = ti
-
-        # Symptomatic -> post-symptomatic
-        new_postsymptomatic = (self.symptomatic & (self.ti_symp_clear <= ti)).uids
-        if len(new_postsymptomatic):
-            self.symptomatic[new_postsymptomatic] = False
-            self.postsymptomatic[new_postsymptomatic] = True
-            self.ti_symp_clear[new_postsymptomatic] = ti
 
         # Clear infections
         new_cleared = (self.infected & (self.ti_clearance <= ti)).uids
@@ -337,7 +322,7 @@ class SEIS(BaseSTI):
 
     def update_results(self):
         super().update_results()
-        ti = self.sim.ti
+        ti = self.ti
         ppl = self.sim.people
         bins = self.age_bins
 
@@ -412,36 +397,47 @@ class SEIS(BaseSTI):
         self.susceptible[uids] = False
         self.exposed[uids] = True
         self.asymptomatic[uids] = True
-        self.ti_exposed[uids] = self.sim.ti
+        self.ti_exposed[uids] = self.ti
         dur_exp = self.pars.dur_exp.rvs(uids)
-        self.ti_infected[uids] = self.sim.ti + dur_exp
+        self.ti_infected[uids] = self.ti + dur_exp
         return
 
-    def set_symptoms(self, p, f_uids, m_uids):
-        f_symp, f_asymp = p.p_symp[0].split(f_uids)
-        m_symp, m_asymp = p.p_symp[1].split(m_uids)
-        f_dur_presymp = self.pars.dur_presymp[0].rvs(f_symp)
-        m_dur_presymp = self.pars.dur_presymp[1].rvs(m_symp)
-        self.ti_symptomatic[f_symp] = self.ti_infected[f_symp] + f_dur_presymp
-        self.ti_symptomatic[m_symp] = self.ti_infected[m_symp] + m_dur_presymp
-        return f_symp, m_symp, f_asymp, m_asymp
+    def set_pars(self, par, uids):
+        if sc.isnumber(par[0]):  # Single par, e.g. for bernoulli
+            arr = np.full(len(uids), np.nan)
+            arr[self.sim.people.female[uids]] = par[0]
+            arr[self.sim.people.male[uids]] = par[1]
+        elif len(par[0]) > 1:
+            arr = np.full((len(uids), 2), np.nan)
+            for idx in range(2):
+                arr[self.sim.people.female[uids], idx] = par[0][idx]
+                arr[self.sim.people.male[uids], idx] = par[1][idx]
+        return arr
 
-    def set_symp_clearance(self, p, f_symp, m_symp):
-        f_symp_clear, f_symp_persist = p.p_symp_clear[0].split(f_symp)
-        m_symp_clear, m_symp_persist = p.p_symp_clear[1].split(m_symp)
-        f_dur_symp = self.pars.dur_symp[0].rvs(f_symp_clear)
-        m_dur_symp = self.pars.dur_symp[1].rvs(m_symp_clear)
-        self.ti_symp_clear[f_symp_clear] = self.ti_symptomatic[f_symp_clear] + f_dur_symp
-        self.ti_symp_clear[m_symp_clear] = self.ti_symptomatic[m_symp_clear] + m_dur_symp
-        return f_symp_clear, m_symp_clear, f_symp_persist, m_symp_persist
+    def set_symptoms(self, p, uids):
+        # Probability of symptoms
+        p_symp_vals = self.set_pars(p.p_symp, uids)
+        p.p_symp_dist.set(p_symp_vals)
+        symp, asymp = p.p_symp_dist.split(uids)
 
-    def set_care_seeking(self, p, f_symp, m_symp):
-        f_symp_care = p.p_symp_care[0].filter(f_symp)
-        m_symp_care = p.p_symp_care[1].filter(m_symp)
-        f_dur_symp2care = p.dur_symp2care[0].rvs(f_symp_care)
-        m_dur_symp2care = p.dur_symp2care[1].rvs(m_symp_care)
-        self.ti_seeks_care[f_symp_care] = self.ti_symptomatic[f_symp_care] + f_dur_symp2care
-        self.ti_seeks_care[m_symp_care] = self.ti_symptomatic[m_symp_care] + m_dur_symp2care
+        # Duration of presymptomatic period
+        dur_presymp_vals = self.set_pars(p.dur_presymp, symp)
+        p.dur_presymp_dist.set(mean=dur_presymp_vals[:,0], std=dur_presymp_vals[:,1])
+        dur_presymp = self.pars.dur_presymp_dist.rvs(symp)
+        self.ti_symptomatic[symp] = self.ti_infected[symp] + dur_presymp
+        return symp, asymp
+
+    def set_care_seeking(self, p, symp):
+        # Probability of symptoms
+        p_care_vals = self.set_pars(p.p_symp_care, symp)
+        p.p_symp_care_dist.set(p_care_vals)
+        care, no_care = p.p_symp_care_dist.split(symp)
+
+        # Duration before seeking care
+        dur_precare_vals = self.set_pars(p.dur_symp2care, care)
+        p.dur_symp2care_dist.set(mean=dur_precare_vals[:, 0], std=dur_precare_vals[:, 1])
+        dur_symp2care = p.dur_symp2care_dist.rvs(care)
+        self.ti_seeks_care[care] = self.ti_symptomatic[care] + dur_symp2care
         return
 
     def set_pid(self, p, f_uids):
@@ -456,22 +452,18 @@ class SEIS(BaseSTI):
         self.ti_seeks_care[pid_care] = np.minimum(self.ti_seeks_care[pid_care], self.ti_infected[pid_care] + dur_pid2care)
         return
 
-    def set_duration(self, p, f_symp_clear, m_symp_clear, f_symp_persist, m_symp_persist, f_asymp, m_asymp, pid):
+    def set_duration(self, p, symp, asymp, pid):
+        dur_symp2clear_vals = self.set_pars(p.dur_symp2clear, symp)
+        p.dur_symp2clear_dist.set(mean=dur_symp2clear_vals[:, 0], std=dur_symp2clear_vals[:, 1])
+        dur_symp2clear = p.dur_symp2clear_dist.rvs(symp)
+        self.ti_clearance[symp] = self.ti_symptomatic[symp] + dur_symp2clear
 
-        # Duration of infection for those with persistant symptoms, transient symptoms, and asymptomatic infection
-        dur_inf_f_symp_clear = p.dur_postsymp2clear[0].rvs(f_symp_clear)
-        dur_inf_m_symp_clear = p.dur_postsymp2clear[1].rvs(m_symp_clear)
-        dur_inf_f_symp_persist = p.dur_symp2clear[0].rvs(f_symp_persist)
-        dur_inf_m_symp_persist = p.dur_symp2clear[1].rvs(m_symp_persist)
-        dur_inf_f_asymp = p.dur_asymp2clear[0].rvs(f_asymp)
-        dur_inf_m_asymp = p.dur_asymp2clear[1].rvs(m_asymp)
+        dur_asymp2clear_vals = self.set_pars(p.dur_asymp2clear, asymp)
+        p.dur_asymp2clear_dist.set(mean=dur_asymp2clear_vals[:, 0], std=dur_asymp2clear_vals[:, 1])
+        dur_asymp2clear = p.dur_asymp2clear_dist.rvs(asymp)
+        self.ti_clearance[asymp] = self.ti_symptomatic[asymp] + dur_asymp2clear
+
         dur_inf_pid = p.dur_pid2clear.rvs(pid)
-        self.ti_clearance[f_symp_clear] = dur_inf_f_symp_clear + self.ti_symp_clear[f_symp_clear]
-        self.ti_clearance[m_symp_clear] = dur_inf_m_symp_clear + self.ti_symp_clear[m_symp_clear]
-        self.ti_clearance[f_symp_persist] = dur_inf_f_symp_persist + self.ti_symptomatic[f_symp_persist]
-        self.ti_clearance[m_symp_persist] = dur_inf_m_symp_persist + self.ti_symptomatic[m_symp_persist]
-        self.ti_clearance[f_asymp] = dur_inf_f_asymp + self.ti_infected[f_asymp]
-        self.ti_clearance[m_asymp] = dur_inf_m_asymp + self.ti_infected[m_asymp]
         self.ti_clearance[pid] = np.maximum(self.ti_clearance[pid], dur_inf_pid + self.ti_pid[pid])
         return
 
@@ -496,16 +488,14 @@ class SEIS(BaseSTI):
 
         ppl = self.sim.people
         p = self.pars
-        f_uids = ppl.female.uids.intersect(uids)
-        m_uids = ppl.male.uids.intersect(uids)
+        f_uids = ppl.female.uids.intersect(uids)  # For PID
 
         self.set_exposure(uids)  # Set exposure
-        f_symp, m_symp, f_asymp, m_asymp = self.set_symptoms(p, f_uids, m_uids)  # Set symptoms & presymptomatic duration
-        f_symp_clear, m_symp_clear, f_symp_persist, m_symp_persist = self.set_symp_clearance(p, f_symp, m_symp)
-        self.set_care_seeking(p, f_symp, m_symp)  # Determine who seeks care and when
+        symp, asymp = self.set_symptoms(p, uids)  # Set symptoms & presymptomatic duration
+        self.set_care_seeking(p, symp)  # Determine who seeks care and when
         pid = self.set_pid(p, f_uids)  # Determine who developes PID and when
         self.set_pid_care_seeking(p, pid)
-        self.set_duration(p, f_symp_clear, m_symp_clear, f_symp_persist, m_symp_persist, f_asymp, m_asymp, pid)
+        self.set_duration(p, symp, asymp, pid)
 
         # Determine overall duration of infection
         self.dur_inf[uids] = self.ti_clearance[uids] - self.ti_infected[uids]

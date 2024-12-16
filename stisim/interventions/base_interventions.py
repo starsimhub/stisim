@@ -290,44 +290,42 @@ class SymptomaticTesting(STITest):
                 f_uids = sim.people.female[uids]
                 m_uids = sim.people.male[uids]
 
+                # This set-up assumes the existence of an etiological test
                 for disease in self.diseases:
 
                     # Pull out parameters, initialize probabilities
-                    spec = self.pars.sens[disease.name]
-                    sens = self.pars.spec[disease.name]
-                    p_sens = np.full(np.count_nonzero(disease.treatable[uids]), np.nan)
-                    p_spec = np.full(np.count_nonzero(disease.susceptible[uids]), np.nan)
+                    sens = self.pars.sens[disease.name]
+                    spec = self.pars.spec[disease.name]
+                    treatable = disease.treatable[uids]
+                    susceptible = disease.susceptible[uids]
 
-                    inf_f = f_uids & disease.treatable[uids]  # Treatable includes exposed + infected
-                    sus_f = f_uids & disease.susceptible[uids]
-                    inf_m = m_uids & disease.treatable[uids]
-                    sus_m = m_uids & disease.susceptible[uids]
+                    p_sens = np.full(np.count_nonzero(treatable), np.nan)
+                    p_spec = np.full(np.count_nonzero(susceptible), np.nan)
+
+                    inf_f = f_uids[treatable]   # Treatable includes exposed + infected
+                    sus_f = f_uids[susceptible]
+                    inf_m = m_uids[treatable]
+                    sus_m = m_uids[susceptible]
 
                     p_sens[inf_f] = sens[0]
                     p_spec[sus_f] = spec[0]
-                    p_sens[inf_m] = sens[1]
-                    p_spec[sus_m] = spec[1]
+                    if disease.name != 'bv':
+                        p_sens[inf_m] = sens[1]
+                        p_spec[sus_m] = spec[1]
 
-                    true_pos_f, false_neg_f = sens_f.split(inf_f)
-                    true_neg_f, false_pos_f = spec_f.split(sus_f)
-                    true_pos_m, false_neg_m = sens_m.split(inf_m)
-                    true_neg_m, false_pos_m = spec_m.split(sus_m)
-                    treat_uids = true_pos_f | true_pos_m | false_pos_f | false_pos_m
+                    # Apply the test
+                    self.pars.sens_dist.set(p_sens)
+                    self.pars.spec_dist.set(p_spec)
+                    true_pos, false_neg = self.pars.sens_dist.split(uids[treatable])
+                    true_neg, false_pos = self.pars.spec_dist.split(uids[susceptible])
+                    treat_uids = true_pos | false_pos
                     do_treat = np.array([True if u in treat_uids else False for u in uids])
 
                     # Add to results
-                    disease.results['new_true_pos'][ti] += len(true_pos_f) + len(true_pos_m)
-                    disease.results['new_false_pos'][ti] += len(false_pos_f) + len(false_pos_m) 
-                    disease.results['new_true_neg'][ti] += len(true_neg_f) + len(true_neg_m)
-                    disease.results['new_false_neg'][ti] += len(false_neg_f) + len(false_neg_m)
-                    # disease.results['new_true_pos_f'][ti] += len(true_pos_f)
-                    # disease.results['new_false_pos_f'][ti] += len(false_pos_f)
-                    # disease.results['new_true_neg_f'][ti] += len(true_neg_f)
-                    # disease.results['new_false_neg_f'][ti] += len(false_neg_f)
-                    # disease.results['new_true_pos_m'][ti] += len(true_pos_m)
-                    # disease.results['new_false_pos_m'][ti] += len(false_pos_m)
-                    # disease.results['new_true_neg_m'][ti] += len(true_neg_m)
-                    # disease.results['new_false_neg_m'][ti] += len(false_neg_m)
+                    disease.results['new_true_pos'][ti] += len(true_pos)
+                    disease.results['new_false_pos'][ti] += len(false_pos)
+                    disease.results['new_true_neg'][ti] += len(true_neg)
+                    disease.results['new_false_neg'][ti] += len(false_neg)
 
                     tx = self.disease_treatment_map[disease.name]
                     if tx is not None:
