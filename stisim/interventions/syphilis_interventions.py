@@ -90,9 +90,9 @@ class SyphTx(STITreatment):
         treat_uids = treat_gt_cutoff.concat(treat_st_cutoff)
 
         # Store results - Failure
-        sim.diseases.syphilis.results['new_fetus_treated_failure'][sim.ti] = len(fetus_gt_cutoff) + len(fetus_st_cutoff) - len(treat_uids)
+        sim.diseases.syphilis.results['new_fetus_treated_failure'][self.ti] = len(fetus_gt_cutoff) + len(fetus_st_cutoff) - len(treat_uids)
         # Store results - Unnecessary. Subtract successful uids below
-        sim.diseases.syphilis.results['new_fetus_treated_unnecessary'][sim.ti] += len(treat_uids)
+        sim.diseases.syphilis.results['new_fetus_treated_unnecessary'][self.ti] += len(treat_uids)
 
         # Change birth outcomes for successfully treated unborn babies
         # If fetus is not yet infected, this will do nothing
@@ -109,9 +109,9 @@ class SyphTx(STITreatment):
                 setattr(sim.diseases.syphilis, ti_outcome, vals)
 
                 # Store results - Success
-                sim.diseases.syphilis.results['new_fetus_treated_success'][sim.ti] += len(successful_uids)
+                sim.diseases.syphilis.results['new_fetus_treated_success'][self.ti] += len(successful_uids)
                 # Store results - Unnecessary. Subtract the uids that were successful
-                sim.diseases.syphilis.results['new_fetus_treated_unnecessary'][sim.ti] -= len(successful_uids)
+                sim.diseases.syphilis.results['new_fetus_treated_unnecessary'][self.ti] -= len(successful_uids)
 
         return
 
@@ -206,7 +206,7 @@ class SyphTest(STITest):
                         if sw:
                             if sex == 'female': conditions = conditions & sim.networks.structuredsexual.fsw
                             if sex == 'male':   conditions = conditions & sim.networks.structuredsexual.client
-                        test_prob[conditions[uids]] = self.test_prob_data[dkey][sim.ti]
+                        test_prob[conditions[uids]] = self.test_prob_data[dkey][self.ti]
         else:
             errormsg = 'Format of test_prob_data must be float, array, or dict.'
             raise ValueError(errormsg)
@@ -225,7 +225,7 @@ class SyphTest(STITest):
         if (sim.now >= self.start) & (sim.now < self.stop):
             # Schedule newborn tests if the mother is positive
             if self.newborn_test is not None:
-                new_pos = self.ti_positive == self.sim.ti
+                new_pos = self.ti_positive == self.ti
                 if new_pos.any():
                     pos_mother_inds = np.in1d(sim.networks.maternalnet.p1, new_pos.uids)
                     unborn_uids = sim.networks.maternalnet.p2[pos_mother_inds]
@@ -235,7 +235,7 @@ class SyphTest(STITest):
         return
 
     def update_results(self):
-        ti = self.sim.ti
+        ti = self.ti
         super().update_results()
         if 'positive' in self.outcomes.keys() and (self.ti_positive == ti).any():
             self.update_positives()
@@ -245,7 +245,7 @@ class SyphTest(STITest):
         return
 
     def update_positives(self):
-        ti = self.sim.ti
+        ti = self.ti
         new_pos = self.ti_positive == ti
         # Count true/false positives
         false_pos = np.count_nonzero(self.sim.diseases.syphilis.susceptible[new_pos])
@@ -255,7 +255,7 @@ class SyphTest(STITest):
         return
 
     def update_negatives(self):
-        ti = self.sim.ti
+        ti = self.ti
         new_neg = self.ti_negative == ti
         # Count true/false negatives
         false_neg = np.count_nonzero(self.sim.diseases.syphilis.infected[new_neg])
@@ -283,15 +283,15 @@ class ANCSyphTest(SyphTest):
 
     def get_testers(self, sim):
         # For ANC testing, only administer scheduled tests
-        return (self.ti_scheduled == sim.ti).uids
+        return (self.ti_scheduled == self.ti).uids
 
     def schedule_tests(self):
         """ Schedule a test for newly pregnant women """
         sim = self.sim
-        newly_preg = (sim.demographics.pregnancy.ti_pregnant == sim.ti).uids
+        newly_preg = (sim.demographics.pregnancy.ti_pregnant == self.ti).uids
         self.test_prob.pars['p'] = self.make_test_prob_fn(self, sim, newly_preg)
         will_test = self.test_prob.filter(newly_preg)
-        ti_test = sim.ti + self.test_timing.rvs(will_test)
+        ti_test = self.ti + self.test_timing.rvs(will_test)
         self.ti_scheduled[will_test] = ti_test
 
     def step(self):
@@ -306,7 +306,7 @@ class NewbornSyphTest(SyphTest):
 
     def get_testers(self, sim):
         # For newborn testing, only administer scheduled tests, and account for probability of testing at this point
-        eligible_uids = (self.ti_scheduled == sim.ti).uids
+        eligible_uids = (self.ti_scheduled == self.ti).uids
         accept_uids = self.test_prob.filter(eligible_uids)
         return accept_uids
 
