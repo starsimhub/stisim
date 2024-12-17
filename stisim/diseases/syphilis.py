@@ -220,8 +220,6 @@ class Syphilis(BaseSTI):
             ss.Result('n_active', dtype=int, label="Number of active cases"),
             ss.Result('pregnant_prevalence', dtype=float, scale=False, label="Pregnant prevalence"),
             ss.Result('detected_pregnant_prevalence', dtype=float, scale=False, label="ANC prevalence"),
-            ss.Result('adult_prevalence', dtype=float, scale=False, label="Adult prevalence"),
-            ss.Result('active_adult_prevalence', dtype=float, scale=False, label="Active adult prevalence"),
             ss.Result('active_prevalence', dtype=float, scale=False, label="Active prevalence"),
             ss.Result('new_nnds', dtype=int, label="Neonatal deaths"),
             ss.Result('new_stillborns', dtype=int, label="Stillbirths"),
@@ -351,11 +349,11 @@ class Syphilis(BaseSTI):
 
         n_active = res['n_primary'][ti] + res['n_secondary'][ti]
         adults = (ppl.age >= 15) & (ppl.age < 50)
-        active_adults = adults & self.active
+        sexually_active_adults = adults & self.sim.networks.structuredsexual.active(self.sim.people)
 
         # Overwrite prevalence so we're always storing prevalence of syphilis among sexually active adults
-        self.results['prevalence'][ti] = cond_prob(self.infected, active_adults)
-        self.results['active_prevalence'][ti] = cond_prob(self.active, active_adults)
+        self.results['prevalence'][ti] = cond_prob(self.infected, sexually_active_adults)
+        self.results['active_prevalence'][ti] = cond_prob(self.active, sexually_active_adults)
         self.results['n_active'][ti] = n_active
 
         # Pregnant women prevalence, if present
