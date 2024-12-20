@@ -93,7 +93,6 @@ class BaseSTI(ss.Infection):
         return new_cases, sources, networks
 
 
-
 class SEIS(BaseSTI):
 
     def __init__(self, pars=None, name=None, init_prev_data=None, **kwargs):
@@ -107,11 +106,11 @@ class SEIS(BaseSTI):
 
             # Symptoms and symptomatic testing
             p_symp_dist=ss.bernoulli(p=0.5),  # Distribution of symptomatic vs asymptomatic
-            p_symp=[0.375, 0.375],  # Men
+            p_symp=[0.375, 0.375],
             dur_presymp_dist=ss.lognorm_ex(),
             dur_presymp=[  # For those who develop symptoms, how long before symptoms appear
-                [ss.dur(1, 'week'), ss.dur(12, 'week')],   # Women
-                [ss.dur(0.25, 'week'), ss.dur(3, 'week')], # Men
+                [ss.dur(1, 'week'), ss.dur(12, 'week')],    # Women
+                [ss.dur(0.25, 'week'), ss.dur(3, 'week')],  # Men
             ],
             p_symp_clear_dist=ss.bernoulli(p=0),
             p_symp_clear=[0.0, 0.0],
@@ -461,7 +460,7 @@ class SEIS(BaseSTI):
         dur_asymp2clear_vals = self.set_pars(p.dur_asymp2clear, asymp)
         p.dur_asymp2clear_dist.set(mean=dur_asymp2clear_vals[:, 0], std=dur_asymp2clear_vals[:, 1])
         dur_asymp2clear = p.dur_asymp2clear_dist.rvs(asymp)
-        self.ti_clearance[asymp] = self.ti_symptomatic[asymp] + dur_asymp2clear
+        self.ti_clearance[asymp] = self.ti_infected[asymp] + dur_asymp2clear
 
         dur_inf_pid = p.dur_pid2clear.rvs(pid)
         self.ti_clearance[pid] = np.maximum(self.ti_clearance[pid], dur_inf_pid + self.ti_pid[pid])
