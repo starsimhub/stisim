@@ -22,7 +22,7 @@ import scipy.spatial as spsp
 ss_float_ = ss.dtypes.float
 
 # Specify all externally visible functions this file defines; see also more definitions below
-__all__ = ['StructuredSexual', 'FastStructuredSexual']
+__all__ = ['StructuredSexual', 'FastStructuredSexual', 'AgeMatchedMSM', 'AgeApproxMSM']
 
 
 class NoPartnersFound(Exception):
@@ -378,7 +378,7 @@ class StructuredSexual(ss.SexualNetwork):
         self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, sw=sw, age_p1=age_p1, age_p2=age_p2)
 
         # Checks
-        if self.sim.people.female[p1].any() or self.sim.people.male[p2].any():
+        if (self.sim.people.female[p1].any() or self.sim.people.male[p2].any()) and (self.name == 'structuredsexual'):
             errormsg = 'Same-sex pairings should not be possible in this network'
             raise ValueError(errormsg)
         if len(p1) != len(p2):
@@ -553,6 +553,75 @@ class FastStructuredSexual(StructuredSexual):
         ind_f = np.argsort(desired_ages)
         p1 = m_eligible.uids[ind_m]
         p2 = f_looking[ind_f]
+        maxlen = min(len(p1), len(p2))
+        p1 = p1[:maxlen]
+        p2 = p2[:maxlen]
+
+        return p1, p2
+
+
+class AgeMatchedMSM(StructuredSexual):
+
+    def __init__(self, **kwargs):
+        super().__init__(name='msm', **kwargs)
+
+    def match_pairs(self, ppl):
+        """ Match males by age using sorting """
+
+        # Find people eligible for a relationship
+        active = self.over_debut()
+        underpartnered = self.partners < self.concurrency
+        m_eligible = active & ppl.male & underpartnered
+        m_looking = self.pars.p_pair_form.filter(m_eligible.uids)
+
+        if len(m_looking) == 0:
+            raise NoPartnersFound()
+
+        # Match mairs by sorting the men looking for partners by age, then matching pairs by taking
+        # 2 people at a time from the sorted list
+        m_ages = ppl.age[m_looking]
+        ind_m = np.argsort(m_ages)
+        p1 = m_looking[ind_m][::2]
+        p2 = m_looking[ind_m][1::2]
+        maxlen = min(len(p1), len(p2))
+        p1 = p1[:maxlen]
+        p2 = p2[:maxlen]
+
+        # Make sure everyone only appears once (?)
+        if len(np.intersect1d(p1, p2)):
+            errormsg = 'Some people appear in both p1 and p2'
+            raise ValueError(errormsg)
+
+        return p1, p2
+
+
+class AgeApproxMSM(StructuredSexual):
+
+    def __init__(self, **kwargs):
+        super().__init__(name='msm', **kwargs)
+
+    def match_pairs(self, ppl):
+        """ Match"""
+
+        # Find people eligible for a relationship
+        active = self.over_debut()
+        underpartnered = self.partners < self.concurrency
+        m_eligible = active & ppl.male & underpartnered
+        m_looking = self.pars.p_pair_form.filter(m_eligible.uids)
+
+        # Split the total number of males looking for partners into 2 groups
+        # The first group will be matched with the second group
+        group1 = m_looking[::2]
+        group2 = m_looking[1::2]
+        loc, scale = self.get_age_risk_pars(group1, self.pars.age_diff_pars)
+        self.pars.age_diffs.set(loc=loc, scale=scale)
+        age_gaps = self.pars.age_diffs.rvs(group1)
+        desired_ages = ppl.age[group1] + age_gaps
+        g2_ages = ppl.age[group2]
+        ind_p1 = np.argsort(g2_ages)
+        ind_p2 = np.argsort(desired_ages)
+        p1 = m_eligible.uids[ind_p1]
+        p2 = group2[ind_p2]
         maxlen = min(len(p1), len(p2))
         p1 = p1[:maxlen]
         p2 = p2[:maxlen]
