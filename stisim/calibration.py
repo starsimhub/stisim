@@ -133,7 +133,7 @@ class Calibration(sc.prettyobj): # pragma: no cover
     Returns:
         A Calibration object
     """
-    def __init__(self, sim, data, calib_pars, n_trials=None, n_workers=None, total_trials=None, reseed=True,
+    def __init__(self, sim, data, calib_pars, n_trials=None, n_workers=None, total_trials=None, reseed=False,
                  weights=None, fit_args=None, build_fn=None, sep='.', name=None, db_name=None, keep_db=None, storage=None,
                  rand_seed=None, sampler=None, label=None, die=False, debug=False, verbose=True, save_results=False):
 
