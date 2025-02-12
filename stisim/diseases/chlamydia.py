@@ -33,12 +33,12 @@ class Chlamydia(SEIS):
 
             # Clearance
             dur_asymp2clear=[
-                [ss.dur(14, 'month'), ss.dur(1, 'month')],  # Women: 433 days (https://doi.org/10.1016/j.epidem.2010.04.002)
-                [ss.dur(14, 'month'), ss.dur(1, 'month')],  # Men: as above
+                [ss.dur(15, 'month'), ss.dur(1, 'month')],  # Women: 433 days (https://doi.org/10.1016/j.epidem.2010.04.002)
+                [ss.dur(15, 'month'), ss.dur(1, 'month')],  # Men: as above
             ],
             dur_symp2clear=[
-                [ss.dur(14, 'month'), ss.dur(1, 'month')],  # Assumption
-                [ss.dur(14, 'month'), ss.dur(1, 'month')],  # Assumption
+                [ss.dur(15, 'month'), ss.dur(1, 'month')],  # Assumption
+                [ss.dur(15, 'month'), ss.dur(1, 'month')],  # Assumption
             ],
 
             # PID

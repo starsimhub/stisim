@@ -215,17 +215,17 @@ class SymptomaticTesting(STITest):
     def __init__(self, pars=None, treatments=None, diseases=None, disease_treatment_map=None, treat_prob_data=None, years=None, start=None, stop=None, eligibility=None, name=None, label=None, **kwargs):
         super().__init__(years=years, start=start, stop=stop, eligibility=eligibility, name=name, label=label)
         self.define_pars(
-            sens=dict(
-                ng=[0.6919, 0.93],
-                ct=[0.6919, 0.93],
-                tv=[0.5988, 0.93],
-                bv=[0.5988],
+            sens=dict(  # VDS: treat-all approach. UDS: treat most for NG+CT, rarely treat for TV
+                ng=[1, 0.9],
+                ct=[1, 0.9],
+                tv=[1, 0.2],
+                bv=[1],
             ),
             spec=dict(
-                ng=[0.4833, 0.4812],
-                ct=[0.4833, 0.4812],
-                tv=[0.7011, 0.4812],
-                bv=[0.7011],
+                ng=[0, 0.1],
+                ct=[0, 0.1],
+                tv=[0, 0.8],
+                bv=[0],
             ),
             sens_dist=ss.bernoulli(p=0),
             spec_dist=ss.bernoulli(p=0),
@@ -291,7 +291,7 @@ class SymptomaticTesting(STITest):
                 f_uids = sim.people.female[uids]
                 m_uids = sim.people.male[uids]
 
-                # This set-up assumes the existence of an etiological test
+                # Loop over diseases
                 for disease in self.diseases:
 
                     # Pull out parameters, initialize probabilities
