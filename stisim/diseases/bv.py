@@ -17,7 +17,7 @@ class BV(ss.Disease):
         self.define_pars(
             unit='month',
             include_care=True,
-            p_symp=ss.bernoulli(p=0.1),
+            p_symp=ss.bernoulli(p=0.5),
             dur_presymp=ss.uniform(ss.dur(1, 'week'), ss.dur(8, 'week')),  # Duration of presymptomatic period
             dur_asymp2clear=ss.uniform(ss.dur(1, 'week'), ss.dur(18, 'week')),  # Duration of asymptomatic infection
             dur_symp2clear=ss.uniform(ss.dur(1, 'week'), ss.dur(18, 'week')),  # Duration of symptoms
@@ -29,7 +29,7 @@ class BV(ss.Disease):
             p_bv=ss.bernoulli(p=0.01),  # Probability of BV in the general population. Overwritten by the model below
             p_douching=ss.bernoulli(p=0),  # Share of population douching
             p_poor_menstrual_hygiene=ss.bernoulli(p=0),  # Share of population with poor menstrual hygiene
-            p_base=0.1,                 # Used to calculate the baseline (intercept) probability of spontaneous occurrence
+            p_base=0.45,                 # Used to calculate the baseline (intercept) probability of spontaneous occurrence
             p_spontaneous=sc.objdict(
                 douching=3,             # OR of BV for douching
                 n_partners_12m=2,       # OR of BV for each additional partner in the past 12 months - not working yet
@@ -47,7 +47,7 @@ class BV(ss.Disease):
         # States that elevate risk of BV
         self.define_states(
             ss.State('susceptible', default=True, label='Susceptible'),
-            ss.State('bv_prone', label='Prone to BV', default=ss.bernoulli(p=0.1)),  # Percentage of women "prone" to BV
+            ss.State('bv_prone', label='Prone to BV', default=ss.bernoulli(p=0.5)),  # Percentage of women "prone" to BV
             ss.State('infected', label='Infected'),
             ss.State('asymptomatic', label='Asymptomatic'),
             ss.State('symptomatic', label='Symptomatic'),
@@ -83,19 +83,21 @@ class BV(ss.Disease):
         ]
 
         if self.pars.include_care:
-            results += [
-                ss.Result('new_care_seekers', dtype=int, label="New care seekers"),
-
-                # Add overall testing and treatment results
-                ss.Result('new_false_pos', dtype=int, label="New false positives"),
-                ss.Result('new_true_pos', dtype=int, label="New true positives"),
-                ss.Result('new_false_neg', dtype=int, label="New false negatives"),
-                ss.Result('new_true_neg', dtype=int, label="New true negatives"),
-                ss.Result('new_treated_success', dtype=int, label="Successful treatments"),
-                ss.Result('new_treated_failure', dtype=int, label="Unsuccessful treatments"),
-                ss.Result('new_treated_unnecessary', dtype=int, label="Unnecessary treatments"),
-                ss.Result('new_treated', dtype=int, label="Treatments"),
-            ]
+            sexkeys = ['', 'f', 'm']
+            for sk in sexkeys:
+                skk = '' if sk == '' else f'_{sk}'
+                skl = '' if sk == '' else f' - {sk.upper()}'
+                results += [
+                    ss.Result('new_care_seekers'+skk, dtype=int, label="New care seekers"+skl),
+                    ss.Result('new_false_pos'+skk, dtype=int, label="New false positives"+skl),
+                    ss.Result('new_true_pos'+skk, dtype=int, label="New true positives"+skl),
+                    ss.Result('new_false_neg'+skk, dtype=int, label="New false negatives"+skl),
+                    ss.Result('new_true_neg'+skk, dtype=int, label="New true negatives"+skl),
+                    ss.Result('new_treated_success'+skk, dtype=int, label="Successful treatments"+skl),
+                    ss.Result('new_treated_failure'+skk, dtype=int, label="Unsuccessful treatments"+skl),
+                    ss.Result('new_treated_unnecessary'+skk, dtype=int, label="Unnecessary treatments"+skl),
+                    ss.Result('new_treated'+skk, dtype=int, label="Treatments"+skl),
+                ]
 
         self.define_results(*results)
         return
