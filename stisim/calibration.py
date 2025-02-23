@@ -134,8 +134,9 @@ class Calibration(sc.prettyobj): # pragma: no cover
         A Calibration object
     """
     def __init__(self, sim, data, calib_pars, n_trials=None, n_workers=None, total_trials=None, reseed=False,
-                 weights=None, fit_args=None, build_fn=None, sep='.', name=None, db_name=None, keep_db=None, storage=None,
-                 rand_seed=None, sampler=None, label=None, die=False, debug=False, verbose=True, save_results=False):
+                 weights=None, fit_args=None, build_fn=None, sep='.', name=None, extra_results=None,
+                 db_name=None, keep_db=None, storage=None, save_results=False,
+                 rand_seed=None, sampler=None, label=None, die=False, debug=False, verbose=True):
 
         # Handle run arguments
         if n_trials  is None: n_trials  = 20
@@ -160,6 +161,7 @@ class Calibration(sc.prettyobj): # pragma: no cover
         self.fit_args   = sc.mergedicts(fit_args)
         self.die        = die
         self.verbose    = verbose
+        self.extra_results = extra_results
         self.save_results = save_results
         self.calibrated = False
         self.before_sim = None
@@ -284,6 +286,12 @@ class Calibration(sc.prettyobj): # pragma: no cover
         for skey in self.sim_result_list:
             sim_results[skey] = df_res[skey].values
         sim_res_df = sc.dataframe(sim_results)
+
+        # Extra results to save
+        extra_res = sc.objdict()
+        for skey in self.extra_results:
+            extra_res[skey] = df_res[skey].values
+        sim_results.update(extra_res)
 
         # Store results in temporary files
         if self.save_results:
