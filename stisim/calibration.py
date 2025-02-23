@@ -493,6 +493,7 @@ class Calibration(sc.prettyobj): # pragma: no cover
         self.study_data = data
         self.df = sc.dataframe.from_dict(data)
         self.df = self.df.sort_values(by=['mismatch']) # Sort
+        self.sim_results = [self.sim_results[i] for i in self.df['index'].values]  # Sort results
         return
 
     @staticmethod
