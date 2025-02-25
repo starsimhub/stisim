@@ -212,23 +212,23 @@ class SymptomaticTesting(STITest):
     Rather, the testing intervention itself contains a linked treatment intervention.
     """
 
-    def __init__(self, pars=None, treatments=None, diseases=None, disease_treatment_map=None, treat_prob_data=None, years=None, start=None, stop=None, eligibility=None, name=None, label=None, **kwargs):
+    def __init__(self, pars=None, treatments=None, diseases=None, disease_treatment_map=None, negative_treatments=None,
+                treat_prob_data=None, years=None, start=None, stop=None, eligibility=None, name=None, label=None, **kwargs):
         super().__init__(years=years, start=start, stop=stop, eligibility=eligibility, name=name, label=label)
         self.define_pars(
             sens=dict(  # VDS: treat-all approach. UDS: treat most for NG+CT, rarely treat for TV
-                ng=[1, 0.9],
-                ct=[1, 0.9],
-                tv=[1, 0.2],
-                bv=[1],
+                ng=[0.95, 0.95],
+                ct=[0.95, 0.95],
+                tv=[0.95, 0.95],
             ),
             spec=dict(
-                ng=[0, 0.1],
-                ct=[0, 0.1],
-                tv=[0, 0.8],
-                bv=[0],
+                ng=[0.95, 0.95],
+                ct=[0.95, 0.95],
+                tv=[0.95, 0.95],
             ),
             sens_dist=ss.bernoulli(p=0),
             spec_dist=ss.bernoulli(p=0),
+            p_mtnz=ss.bernoulli(p=0),
             dt_scale=False,
         )
         self.update_pars(pars, **kwargs)
@@ -239,6 +239,7 @@ class SymptomaticTesting(STITest):
         if disease_treatment_map is None:
             disease_treatment_map = {t.disease: t for t in self.treatments}
         self.disease_treatment_map = disease_treatment_map
+        self.negative_treatments = negative_treatments
 
         self.define_states(
             ss.FloatArr('ti_referred'),
@@ -247,6 +248,7 @@ class SymptomaticTesting(STITest):
         self.treat_prob_data = treat_prob_data
         self.treat_prob = None
         self.treated_by_uid = None
+        self.n_treatments = 0
 
         return
 
@@ -337,9 +339,24 @@ class SymptomaticTesting(STITest):
                 # Update states: time referred to treatment for anyone referred
                 referred_uids = uids[treated_by_uid.any(axis=1)]
                 dismissed_uids = uids.remove(referred_uids)
+
+                # For females who test negative for NG/CT/TV, refer some to BV treatment
+                neg_f = dismissed_uids[self.sim.people.female[dismissed_uids]]
+                mtnz = self.pars.p_mtnz.filter(neg_f)
+                for neg_tx in self.negative_treatments:
+                    neg_tx.eligibility = neg_tx.eligibility | mtnz
+
+                # Update referred and dismissed
+                referred_uids = referred_uids | mtnz
+                dismissed_uids = uids.remove(referred_uids)
                 self.ti_referred[referred_uids] = self.ti
                 self.ti_dismissed[dismissed_uids] = self.ti
-                self.treated_by_uid = treated_by_uid
+
+                # Calculate number of treatments
+                n_treatments = treated_by_uid.sum(axis=1)
+                mtnz_inds = np.searchsorted(uids, mtnz)
+                n_treatments[mtnz_inds] += 1
+                self.n_treatments = n_treatments
 
             return
 
@@ -350,12 +367,10 @@ class SymptomaticTesting(STITest):
         self.results['new_care_seekers'][ti] += count(just_tested)
 
         # Record the number of people who received 0-3 treatments
-        if self.treated_by_uid is not None:
-            n_treatments = self.treated_by_uid.sum(axis=1)
-            self.results['new_tx0'][ti] += count(n_treatments == 0)
-            self.results['new_tx1'][ti] += count(n_treatments == 1)
-            self.results['new_tx2'][ti] += count(n_treatments == 2)
-            self.results['new_tx3'][ti] += count(n_treatments == 3)
+        self.results['new_tx0'][ti] += count(self.n_treatments == 0)
+        self.results['new_tx1'][ti] += count(self.n_treatments == 1)
+        self.results['new_tx2'][ti] += count(self.n_treatments == 2)
+        self.results['new_tx3'][ti] += count(self.n_treatments == 3)
 
         return
 
