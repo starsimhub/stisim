@@ -11,7 +11,7 @@ import pandas as pd
 import stisim as sti
 import pylab as pl
 
-__all__ = ["coinfection_stats", "sw_stats"]
+__all__ = ["result_grouper", "coinfection_stats", "sw_stats"]
 
 
 class result_grouper(ss.Analyzer):
