@@ -85,8 +85,8 @@ class sw_stats(result_grouper):
         results = sc.autolist()
         for d in self.diseases:
             results += [
-                ss.Result('share_new_infections_fsw_'+d, scale=False),
-                ss.Result('share_new_infections_client_'+d,scale=False),
+                ss.Result('share_new_infections_fsw_'+d, scale=False, summarize_by='mean'),
+                ss.Result('share_new_infections_client_'+d,scale=False, summarize_by='mean'),
                 ss.Result('new_infections_fsw_'+d, dtype=int),
                 ss.Result('new_infections_client_'+d, dtype=int),
                 ss.Result('new_infections_non_fsw_'+d, dtype=int),
@@ -112,7 +112,7 @@ class sw_stats(result_grouper):
                 client = nw.client
                 non_fsw = sim.people.female & ~nw.fsw
                 non_client = sim.people.male & ~nw.client
-                newly_infected = dis.ti_infected == ti
+                newly_infected = dis.ti_exposed == ti
                 total_acq = len(newly_infected.uids)
 
                 newly_transmitting_fsw = (dis.ti_transmitted == ti) & fsw

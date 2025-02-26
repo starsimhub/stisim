@@ -107,6 +107,7 @@ class BaseSTI(ss.Infection):
         Set initial prognoses for adults newly infected
         """
         super().set_prognoses(uids, source_uids)
+        ti = self.ti
         self.new_transmissions[:] = 0  # Reset this every timestep
 
         # If someone has been infected by >1 person, remove duplicates
