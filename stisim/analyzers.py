@@ -75,25 +75,27 @@ class coinfection_stats(result_grouper):
 
 
 class sw_stats(result_grouper):
-    def __init__(self, disease=None, *args, **kwargs):
+    def __init__(self, diseases=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = 'sw_stats'
-        self.disease = disease
+        self.diseases = diseases
         return
 
     def init_results(self):
-        results = [
-            ss.Result('share_new_infections_fsw', scale=False),
-            ss.Result('share_new_infections_client',scale=False),
-            ss.Result('new_infections_fsw', dtype=int),
-            ss.Result('new_infections_client', dtype=int),
-            ss.Result('new_infections_non_fsw', dtype=int),
-            ss.Result('new_infections_non_client', dtype=int),
-            ss.Result('new_transmissions_fsw', dtype=int),
-            ss.Result('new_transmissions_client', dtype=int),
-            ss.Result('new_transmissions_non_fsw', dtype=int),
-            ss.Result('new_transmissions_non_client', dtype=int),
-        ]
+        results = sc.autolist()
+        for d in self.diseases:
+            results += [
+                ss.Result('share_new_infections_fsw_'+d, scale=False),
+                ss.Result('share_new_infections_client_'+d,scale=False),
+                ss.Result('new_infections_fsw_'+d, dtype=int),
+                ss.Result('new_infections_client_'+d, dtype=int),
+                ss.Result('new_infections_non_fsw_'+d, dtype=int),
+                ss.Result('new_infections_non_client_'+d, dtype=int),
+                ss.Result('new_transmissions_fsw_'+d, dtype=int),
+                ss.Result('new_transmissions_client_'+d, dtype=int),
+                ss.Result('new_transmissions_non_fsw_'+d, dtype=int),
+                ss.Result('new_transmissions_non_client_'+d, dtype=int),
+            ]
         self.define_results(*results)
         return
 
@@ -103,42 +105,43 @@ class sw_stats(result_grouper):
 
         if ti > 0:
 
-            dis = sim.diseases[self.disease]
-            nw = sim.networks.structuredsexual
-            fsw = nw.fsw
-            client = nw.client
-            non_fsw = sim.people.female & ~nw.fsw
-            non_client = sim.people.male & ~nw.client
-            newly_infected = syph.ti_infected == ti
-            total_acq = len(newly_infected.uids)
+            for d in self.diseases:
+                dis = sim.diseases[d]
+                nw = sim.networks.structuredsexual
+                fsw = nw.fsw
+                client = nw.client
+                non_fsw = sim.people.female & ~nw.fsw
+                non_client = sim.people.male & ~nw.client
+                newly_infected = syph.ti_infected == ti
+                total_acq = len(newly_infected.uids)
 
-            newly_transmitting_fsw = (dis.ti_transmitted == ti) & fsw
-            newly_transmitting_clients = (dis.ti_transmitted == ti) & client
-            newly_transmitting_non_fsw = (dis.ti_transmitted == ti) & non_fsw
-            newly_transmitting_non_client = (dis.ti_transmitted == ti) & non_client
+                newly_transmitting_fsw = (dis.ti_transmitted == ti) & fsw
+                newly_transmitting_clients = (dis.ti_transmitted == ti) & client
+                newly_transmitting_non_fsw = (dis.ti_transmitted == ti) & non_fsw
+                newly_transmitting_non_client = (dis.ti_transmitted == ti) & non_client
 
-            new_transmissions_fsw = dis.new_transmissions[newly_transmitting_fsw]
-            new_transmissions_client = dis.new_transmissions[newly_transmitting_clients]
-            new_transmissions_non_fsw = dis.new_transmissions[newly_transmitting_non_fsw]
-            new_transmissions_non_client = dis.new_transmissions[newly_transmitting_non_client]
+                new_transmissions_fsw = dis.new_transmissions[newly_transmitting_fsw]
+                new_transmissions_client = dis.new_transmissions[newly_transmitting_clients]
+                new_transmissions_non_fsw = dis.new_transmissions[newly_transmitting_non_fsw]
+                new_transmissions_non_client = dis.new_transmissions[newly_transmitting_non_client]
 
-            self.results['share_new_infections_fsw'][sim.ti] = self.cond_prob(fsw, newly_infected)
-            self.results['share_new_infections_client'][sim.ti] = self.cond_prob(client, newly_infected)
+                self.results['share_new_infections_fsw_'+d][ti] = self.cond_prob(fsw, newly_infected)
+                self.results['share_new_infections_client_'+d][ti] = self.cond_prob(client, newly_infected)
 
-            self.results['new_infections_fsw'][sim.ti] = len((fsw & newly_infected).uids)
-            self.results['new_infections_client'][sim.ti] = len((client & newly_infected).uids)
-            self.results['new_infections_non_fsw'][sim.ti] = len((non_fsw & newly_infected).uids)
-            self.results['new_infections_non_client'][sim.ti] = len((non_client & newly_infected).uids)
+                self.results['new_infections_fsw_'+d][ti] = len((fsw & newly_infected).uids)
+                self.results['new_infections_client_'+d][ti] = len((client & newly_infected).uids)
+                self.results['new_infections_non_fsw_'+d][ti] = len((non_fsw & newly_infected).uids)
+                self.results['new_infections_non_client_'+d][ti] = len((non_client & newly_infected).uids)
 
-            self.results['new_transmissions_fsw'][sim.ti] = sum(new_transmissions_fsw)
-            self.results['new_transmissions_client'][sim.ti] = sum(new_transmissions_client)
-            self.results['new_transmissions_non_fsw'][sim.ti] = sum(new_transmissions_non_fsw)
-            self.results['new_transmissions_non_client'][sim.ti] = sum(new_transmissions_non_client)
+                self.results['new_transmissions_fsw_'+d][ti] = sum(new_transmissions_fsw)
+                self.results['new_transmissions_client_'+d][ti] = sum(new_transmissions_client)
+                self.results['new_transmissions_non_fsw_'+d][ti] = sum(new_transmissions_non_fsw)
+                self.results['new_transmissions_non_client_'+d][ti] = sum(new_transmissions_non_client)
 
-            total_trans = sum(new_transmissions_fsw) + sum(new_transmissions_client) + sum(new_transmissions_non_fsw) + sum(new_transmissions_non_client)
-            if total_trans != len(newly_infected.uids):
-                errormsg = f'Infections acquired should equal number transmitted: {total_acq} vs {total_trans}'
-                raise ValueError(errormsg)
+                total_trans = sum(new_transmissions_fsw) + sum(new_transmissions_client) + sum(new_transmissions_non_fsw) + sum(new_transmissions_non_client)
+                if total_trans != len(newly_infected.uids):
+                    errormsg = f'Infections acquired should equal number transmitted: {total_acq} vs {total_trans}'
+                    raise ValueError(errormsg)
 
         return
 
