@@ -151,9 +151,6 @@ class Syphilis(BaseSTI):
             ss.State('congenital'),
 
             # Timestep of state changes
-            ss.FloatArr('ti_transmitted'),
-            ss.FloatArr('new_transmissions'),
-            ss.FloatArr('cum_transmissions'),
             ss.FloatArr('ti_primary'),
             ss.FloatArr('ti_secondary'),
             ss.FloatArr('ti_latent'),
