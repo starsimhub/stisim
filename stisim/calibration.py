@@ -161,7 +161,7 @@ class Calibration(sc.prettyobj): # pragma: no cover
         self.fit_args   = sc.mergedicts(fit_args)
         self.die        = die
         self.verbose    = verbose
-        self.extra_results = extra_results
+        self.extra_results = extra_results or []
         self.save_results = save_results
         self.calibrated = False
         self.before_sim = None
@@ -496,14 +496,13 @@ class Calibration(sc.prettyobj): # pragma: no cover
         self.sim_results = [self.sim_results[i] for i in self.df['index'].values]  # Sort results
         return
 
-    @staticmethod
-    def shrink(calib, n_results=100):
+    def shrink(self, n_results=100):
         """ Shrink the results to only the best fit """
         cal = sc.objdict()
-        plot_indices = calib.df.iloc[:n_results, 0].values
-        cal.sim_results = [calib.sim_results[i] for i in plot_indices]
-        cal.target_data = calib.target_data
-        cal.df = calib.df.iloc[0:n_results, ]
+        plot_indices = self.df.iloc[:n_results, 0].values
+        cal.sim_results = [self.sim_results[i] for i in plot_indices]
+        cal.data = self.data
+        cal.df = self.df.iloc[0:n_results, ]
         return cal
 
     def to_json(self, filename=None, indent=2, **kwargs):
