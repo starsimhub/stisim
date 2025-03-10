@@ -217,9 +217,9 @@ class SymptomaticTesting(STITest):
         super().__init__(years=years, start=start, stop=stop, eligibility=eligibility, name=name, label=label)
         self.define_pars(
             sens=dict(  # VDS: treat-all approach. UDS: treat most for NG+CT, rarely treat for TV
-                ng=[0.95, 0.95],
-                ct=[0.95, 0.95],
-                tv=[0.95, 0.95],
+                ng=[0.98, 0.98],
+                ct=[0.98, 0.98],
+                tv=[0.98, 0.98],
             ),
             spec=dict(
                 ng=[0.95, 0.95],
