@@ -202,7 +202,7 @@ class SEIS(BaseSTI):
 
         # Results
         self.age_range = [15, 65]  # Age range for main results
-        self.age_bins = np.array([0, 15, 25, 35, 65, 100])  # Age bins for results
+        self.age_bins = np.array([0, 15, 20, 25, 30, 100])  # Age bins for results
         self.sex_keys = {'': 'alive', 'f': 'female', 'm': 'male'}
 
         return
