@@ -96,8 +96,6 @@ class hiv_ng(ss.Connector):
         self.ng = ng_module
         self.define_pars(
             # Changes to HIV due to gonorrhea coinfection
-            # Sources:
-            #   - TODO
             rel_sus_hiv_ng=1.2,  # Having an NG infection leads to XXx risk of HIV acquisition.
         )
         self.update_pars(pars, **kwargs)
@@ -119,8 +117,6 @@ class hiv_ct(ss.Connector):
         self.ct = ct_module
         self.define_pars(
             # Changes to HIV due to chlamydia coinfection
-            # Sources:
-            #   - TODO
             rel_sus_hiv_ct=1,  # Having an CT infection leads to XXx risk of HIV acquisition.
         )
         self.update_pars(pars, **kwargs)

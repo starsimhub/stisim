@@ -500,6 +500,7 @@ class Calibration(sc.prettyobj): # pragma: no cover
         """ Shrink the results to only the best fit """
         cal = sc.objdict()
         plot_indices = self.df.iloc[:n_results, 0].values
+        cal.extra_results = [self.extra_results[i] for i in plot_indices]
         cal.sim_results = [self.sim_results[i] for i in plot_indices]
         cal.data = self.data
         cal.df = self.df.iloc[0:n_results, ]
