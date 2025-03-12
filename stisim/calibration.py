@@ -500,14 +500,17 @@ class Calibration(sc.prettyobj): # pragma: no cover
         """ Shrink the results to only the best fit """
         cal = sc.objdict()
         plot_indices = self.df.iloc[:n_results, 0].values
-        cal.extra_results = [self.extra_results[i] for i in plot_indices]
+        cal.extra_results = [self.extra_results[i] for i in plot_indices] if self.extra_results else None
         cal.sim_results = [self.sim_results[i] for i in plot_indices]
 
         # Make a dataframe with the best sim and extra results
         if make_df:
             dfs = sc.autolist()
             for i in range(n_results):
-                md = sc.mergedicts(cal.sim_results[i], cal.extra_results[i])
+                if cal.extra_results:
+                    md = sc.mergedicts(cal.sim_results[i], cal.extra_results[i])
+                else:
+                    md = cal.sim_results[i]
                 df = pd.DataFrame(md)
                 df['index'] = i
                 dfs += df
