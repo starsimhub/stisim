@@ -27,18 +27,18 @@ class Chlamydia(SEIS):
             # Care seeking
             p_symp_care=[0.42, 0.83],  # See Table 2 in https://docs.google.com/document/d/16t46nTL2qMHmA0C1gSPz8OhI6ccy6vVv3OCfkmYFUtw/edit?tab=t.0
             dur_symp2care=[  # For those who test, how long before they seek care
-                [ss.dur(1, 'week'), ss.dur(2, 'week')],  # Women
+                [ss.dur(2, 'month'), ss.dur(1, 'month')],  # Women
                 [ss.dur(1, 'week'), ss.dur(2, 'week')],  # Men
             ],
 
             # Clearance
             dur_asymp2clear=[
-                [ss.dur(15, 'month'), ss.dur(1, 'month')],  # Women: 433 days (https://doi.org/10.1016/j.epidem.2010.04.002)
-                [ss.dur(15, 'month'), ss.dur(1, 'month')],  # Men: as above
+                [ss.dur(18, 'month'), ss.dur(1, 'month')],  # Women: 433 days (https://doi.org/10.1016/j.epidem.2010.04.002)
+                [ss.dur(12, 'month'), ss.dur(1, 'month')],  # Men: as above
             ],
             dur_symp2clear=[
-                [ss.dur(15, 'month'), ss.dur(1, 'month')],  # Assumption
-                [ss.dur(15, 'month'), ss.dur(1, 'month')],  # Assumption
+                [ss.dur(18, 'month'), ss.dur(1, 'month')],  # Assumption
+                [ss.dur(12, 'month'), ss.dur(1, 'month')],  # Assumption
             ],
 
             # PID
