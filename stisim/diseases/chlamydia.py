@@ -42,7 +42,7 @@ class Chlamydia(SEIS):
             ],
 
             # PID
-            p_pid=ss.bernoulli(p=0.2),  # Assumption used in https://doi.org/10.1086/598983, based on https://doi.org/10.1016/s0029-7844(02)02118-x
+            p_pid=ss.bernoulli(p=0.0),  # Assumption used in https://doi.org/10.1086/598983, based on https://doi.org/10.1016/s0029-7844(02)02118-x
             dur_prepid=ss.lognorm_ex(ss.dur(1.5, 'month'), ss.dur(3, 'month')),
 
             init_prev=ss.bernoulli(p=0.01),

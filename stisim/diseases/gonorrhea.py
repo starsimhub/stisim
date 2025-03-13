@@ -42,7 +42,7 @@ class Gonorrhea(SEIS):
                 [ss.dur(6, 'month'), ss.dur(3, 'month')],  # Assumption
             ],
 
-            p_pid=ss.bernoulli(p=0.2),  # TODO
+            p_pid=ss.bernoulli(p=0.0),  # TODO
             dur_prepid=ss.lognorm_ex(ss.dur(1.5, 'month'), ss.dur(3, 'month')),
 
             # Initial conditions

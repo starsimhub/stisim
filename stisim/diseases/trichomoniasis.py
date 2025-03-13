@@ -46,7 +46,7 @@ class Trichomoniasis(SEIS):
             p_clear=ss.bernoulli(p=0.1),  # Most women do not spontaneously clear, men do (https://sti.bmj.com/content/76/4/248)
             dur_persist=ss.years(100),
 
-            p_pid=ss.bernoulli(p=0.025),
+            p_pid=ss.bernoulli(p=0.00),
             dur_prepid=ss.lognorm_ex(ss.dur(6, 'week'), ss.dur(4, 'week')),
             eff_condom=0.0,
 
