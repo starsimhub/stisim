@@ -496,11 +496,23 @@ class Calibration(sc.prettyobj): # pragma: no cover
         self.sim_results = [self.sim_results[i] for i in self.df['index'].values]  # Sort results
         return
 
-    def shrink(self, n_results=100):
+    def shrink(self, n_results=100, make_df=True):
         """ Shrink the results to only the best fit """
         cal = sc.objdict()
+        n_results = min(n_results, len(self.df))
         plot_indices = self.df.iloc[:n_results, 0].values
         cal.sim_results = [self.sim_results[i] for i in plot_indices]
+
+        # Make a dataframe with the best sim and extra results
+        if make_df:
+            dfs = sc.autolist()
+            for i in range(n_results):
+                md = cal.sim_results[i]
+                df = pd.DataFrame(md)
+                df['index'] = i
+                dfs += df
+            cal.resdf = pd.concat(dfs)
+
         cal.data = self.data
         cal.df = self.df.iloc[0:n_results, ]
         return cal
