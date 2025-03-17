@@ -28,21 +28,21 @@ class Gonorrhea(SEIS):
             # Care seeking
             p_symp_care=[0.66, 0.83],  # See Table 2: https://docs.google.com/document/d/16t46nTL2qMHmA0C1gSPz8OhI6ccy6vVv3OCfkmYFUtw/edit?tab=t.0
             dur_symp2care=[  # For those who test, how long before they seek care
-                [ss.dur(1, 'month'), ss.dur(1, 'month')],  # Women
+                [ss.dur(2, 'month'), ss.dur(1, 'month')],  # Women
                 [ss.dur(1, 'week'), ss.dur(2, 'week')],  # Men
             ],
 
             # Clearance: lognormal distribution
             dur_asymp2clear=[
-                [ss.dur(7, 'month'), ss.dur(2, 'month')],  # Women
-                [ss.dur(5, 'month'), ss.dur(3, 'month')],  # Men
+                [ss.dur(8, 'month'), ss.dur(2, 'month')],  # Women
+                [ss.dur(6, 'month'), ss.dur(3, 'month')],  # Men
             ],
             dur_symp2clear=[
-                [ss.dur(7, 'month'), ss.dur(2, 'month')],  # Assumption
-                [ss.dur(5, 'month'), ss.dur(3, 'month')],  # Assumption
+                [ss.dur(9, 'month'), ss.dur(2, 'month')],  # Assumption
+                [ss.dur(6, 'month'), ss.dur(3, 'month')],  # Assumption
             ],
 
-            p_pid=ss.bernoulli(p=0.2),  # TODO
+            p_pid=ss.bernoulli(p=0.0),  # TODO
             dur_prepid=ss.lognorm_ex(ss.dur(1.5, 'month'), ss.dur(3, 'month')),
 
             # Initial conditions

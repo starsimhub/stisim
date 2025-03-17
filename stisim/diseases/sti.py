@@ -244,6 +244,7 @@ class SEIS(BaseSTI):
                 asl = f' ({skl}, {ab2}-{ab2})'
                 results += [
                     ss.Result(f'new_infections{ask}', dtype=int, label=f"New infections{asl}"),
+                    ss.Result(f'n_infected{ask}', dtype=int, label=f"Number infected{asl}"),
                     ss.Result(f'new_symptomatic{ask}', dtype=int, label=f"New symptomatic{asl}"),
                     ss.Result(f'incidence{ask}', scale=False, label=f"Incidence{asl}"),
                     ss.Result(f'prevalence{ask}', scale=False, label=f"Prevalence{asl}"),
@@ -339,9 +340,6 @@ class SEIS(BaseSTI):
         adults = (self.sim.people.age >= 15) & (self.sim.people.age <= 65)
         women = adults & self.sim.people.female
         men = adults & self.sim.people.male
-        infected_adults = adults & self.infected
-        infected_women = women & self.infected
-        infected_men = men & self.infected
 
         # Main results, looping over people keys and attributes
         for pkey, pattr in self.sex_keys.items():
@@ -366,6 +364,7 @@ class SEIS(BaseSTI):
             # Compute age results
             age_results = dict(
                 new_infections  = self.agehist(new_inf),
+                n_infected      = self.agehist(n_inf),
                 new_symptomatic = self.agehist(new_sym),
                 incidence       = div(self.agehist(new_inf), self.agehist(n_sus)),
                 prevalence      = div(self.agehist(n_inf), self.agehist(ppl[pattr])),
