@@ -15,13 +15,13 @@ __all__ = ['Syphilis', 'SyphilisPlaceholder']
 class SyphilisPlaceholder(ss.Disease):
     # A simple placeholder module to use when testing connectors
 
-    def __init__(self, pars=None, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(name='syphilis')
 
         self.define_pars(
             prevalence=0.1,  # Target prevalance. If None, no automatic infections will be applied
         )
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
         self.define_states(
             ss.BoolArr('active'), # Active syphilis
             ss.FloatArr('ti_active'), # Time of active syphilis
@@ -70,15 +70,15 @@ class SyphilisPlaceholder(ss.Disease):
 
 class Syphilis(BaseSTI):
 
-    def __init__(self, pars=None, init_prev_data=None, init_prev_latent_data=None, **kwargs):
+    def __init__(self, init_prev_data=None, init_prev_latent_data=None, **kwargs):
         super().__init__()
         self.requires = 'structuredsexual'
 
         self.define_pars(
             # Adult syphilis natural history, all specified in years
-            dur_primary=ss.uniform(low=ss.dur(3, 'week'), high=ss.dur(10, 'week')),  # https://pubmed.ncbi.nlm.nih.gov/9101629/
-            dur_secondary=ss.lognorm_ex(mean=ss.dur(3.6, 'month'), sigma=ss.dur(1.5, 'month')),  # https://pubmed.ncbi.nlm.nih.gov/9101629/
-            dur_early=ss.normal(ss.dur(18, 'month'), ss.dur(2, 'month')),  # Assumption
+            dur_primary=ss.uniform(low=ss.weeks(3), high=ss.weeks(10)),  # https://pubmed.ncbi.nlm.nih.gov/9101629/
+            dur_secondary=ss.lognorm_ex(mean=ss.months(3.6), sigma=ss.months(1.5)),  # https://pubmed.ncbi.nlm.nih.gov/9101629/
+            dur_early=ss.normal(ss.months(18), ss.months(2)),  # Assumption
             p_reactivate=ss.bernoulli(p=0.35),  # Probability of reactivating from latent to secondary
             time_to_reactivate=ss.lognorm_ex(mean=ss.years(1), sigma=ss.years(1)),  # Time to reactivation
             p_tertiary=ss.bernoulli(p=0.35),  # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4917057/
@@ -122,7 +122,7 @@ class Syphilis(BaseSTI):
             rel_init_prev=1,
         )
 
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
 
         # Set initial prevalence
         self.init_prev_data = init_prev_data
@@ -401,8 +401,8 @@ class Syphilis(BaseSTI):
     def set_latent_trans(self, ti=None):
         if ti is None: ti = self.ti
         dur_latent = ti - self.ti_latent[self.latent]
-        hl = self.pars.rel_trans_latent_half_life
-        decay_rate = np.log(2) / hl if ~np.isnan(hl) else 0.
+        hl = self.pars.rel_trans_latent_half_life/self.t.dt
+        decay_rate = np.log(2) / hl if hl else 0.
         latent_trans = self.pars.rel_trans_latent * np.exp(-decay_rate * dur_latent)
         self.rel_trans[self.latent] = latent_trans
         return

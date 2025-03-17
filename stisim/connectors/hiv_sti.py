@@ -11,7 +11,7 @@ __all__ = ['hiv_syph', 'hiv_tv', 'hiv_ng', 'hiv_ct', 'hiv_bv']
 
 class hiv_syph(ss.Connector):
 
-    def __init__(self, hiv_module, syphilis_module, pars=None, **kwargs):
+    def __init__(self, hiv_module, syphilis_module, **kwargs):
         super().__init__()
 
         self.hiv = hiv_module
@@ -29,7 +29,7 @@ class hiv_syph(ss.Connector):
             rel_trans_syph_hiv=1,       # People with HIV are x more likely to transmit syphilis
             rel_trans_syph_aids=1,      # People with AIDS are x more likely to transmit syphilis
         )
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
 
         self.define_states(
             ss.FloatArr('rel_sus_hiv_syph', default=self.pars.rel_sus_hiv_syph),
@@ -66,7 +66,7 @@ class hiv_syph(ss.Connector):
 
 class hiv_tv(ss.Connector):
 
-    def __init__(self, hiv_module, tv_module, pars=None, **kwargs):
+    def __init__(self, hiv_module, tv_module, **kwargs):
         super().__init__()
 
         self.hiv = hiv_module
@@ -78,7 +78,7 @@ class hiv_tv(ss.Connector):
             #   - https://pubmed.ncbi.nlm.nih.gov/30341233/
             rel_sus_hiv_tv=1.5,  # Trich infections: 1.5x risk of HIV acquisition.
         )
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
         return
 
     def step(self):
@@ -89,7 +89,7 @@ class hiv_tv(ss.Connector):
 
 class hiv_ng(ss.Connector):
 
-    def __init__(self, hiv_module, ng_module, pars=None, **kwargs):
+    def __init__(self, hiv_module, ng_module, **kwargs):
         super().__init__()
 
         self.hiv = hiv_module
@@ -100,7 +100,7 @@ class hiv_ng(ss.Connector):
             #   - TODO
             rel_sus_hiv_ng=1.2,  # Having an NG infection leads to XXx risk of HIV acquisition.
         )
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
 
         return
 
@@ -112,7 +112,7 @@ class hiv_ng(ss.Connector):
 
 class hiv_ct(ss.Connector):
 
-    def __init__(self, hiv_module, ct_module, pars=None, **kwargs):
+    def __init__(self, hiv_module, ct_module, **kwargs):
         super().__init__()
 
         self.hiv = hiv_module
@@ -123,7 +123,7 @@ class hiv_ct(ss.Connector):
             #   - TODO
             rel_sus_hiv_ct=1,  # Having an CT infection leads to XXx risk of HIV acquisition.
         )
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
 
         return
 
@@ -135,7 +135,7 @@ class hiv_ct(ss.Connector):
 
 class hiv_bv(ss.Connector):
 
-    def __init__(self, hiv_module, bv_module, pars=None, **kwargs):
+    def __init__(self, hiv_module, bv_module, **kwargs):
         super().__init__()
 
         self.hiv = hiv_module
@@ -145,7 +145,7 @@ class hiv_bv(ss.Connector):
             rel_sus_hiv_bv=2,       # PLACEHOLDER: BV leads to 2x risk of HIV acquisition
             rel_trans_hiv_bv=2,     # PLACEHOLDER: BV leads to 2x risk of HIV transmission
         )
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
 
         return
 

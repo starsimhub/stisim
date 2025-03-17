@@ -12,7 +12,7 @@ __all__ = ['Gonorrhea']
 
 class Gonorrhea(SEIS):
 
-    def __init__(self, name='ng', pars=None, init_prev_data=None, **kwargs):
+    def __init__(self, name='ng', init_prev_data=None, **kwargs):
         super().__init__(name=name, init_prev_data=init_prev_data)
 
         self.define_pars(
@@ -21,35 +21,35 @@ class Gonorrhea(SEIS):
             # Symptoms
             p_symp=[0.35, 0.65],  # https://doi.org/10.1371/journal.pone.0143304
             dur_presymp=[  # For those who develop symptoms, how long before symptoms appear
-                [ss.dur(1, 'week'), ss.dur(12, 'week')],  # Women:
-                [ss.dur(0.25, 'week'), ss.dur(1, 'week')],  # Men: symptoms should appear within days
+                [ss.weeks(1), ss.weeks(12)],  # Women:
+                [ss.weeks(0.25), ss.weeks(1)],  # Men: symptoms should appear within days
             ],
 
             # Care seeking
             p_symp_care=[0.66, 0.83],  # See Table 2: https://docs.google.com/document/d/16t46nTL2qMHmA0C1gSPz8OhI6ccy6vVv3OCfkmYFUtw/edit?tab=t.0
             dur_symp2care=[  # For those who test, how long before they seek care
-                [ss.dur(1, 'month'), ss.dur(1, 'month')],  # Women
-                [ss.dur(1, 'week'), ss.dur(2, 'week')],  # Men
+                [ss.months(1), ss.months(1)],  # Women
+                [ss.weeks(1), ss.weeks(2)],  # Men
             ],
 
             # Clearance: lognormal distribution
             dur_asymp2clear=[
-                [ss.dur(7, 'month'), ss.dur(2, 'month')],  # Women
-                [ss.dur(5, 'month'), ss.dur(3, 'month')],  # Men
+                [ss.months(7), ss.months(2)],  # Women
+                [ss.months(5), ss.months(3)],  # Men
             ],
             dur_symp2clear=[
-                [ss.dur(7, 'month'), ss.dur(2, 'month')],  # Assumption
-                [ss.dur(5, 'month'), ss.dur(3, 'month')],  # Assumption
+                [ss.months(7), ss.months(2)],  # Assumption
+                [ss.months(5), ss.months(3)],  # Assumption
             ],
 
             p_pid=ss.bernoulli(p=0.2),  # TODO
-            dur_prepid=ss.lognorm_ex(ss.dur(1.5, 'month'), ss.dur(3, 'month')),
+            dur_prepid=ss.lognorm_ex(ss.months(1.5), ss.months(3)),
 
             # Initial conditions
             init_prev=ss.bernoulli(p=0.01),
             eff_condom=0.0,
         )
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
 
         return
 

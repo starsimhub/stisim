@@ -13,7 +13,7 @@ import pylab as pl
 def make_sim(n_agents=500, dt=1):
 
     fertility_rates = {'fertility_rate': pd.read_csv('test_data/zimbabwe_asfr.csv')}
-    pregnancy = ss.Pregnancy(pars=fertility_rates)
+    pregnancy = ss.Pregnancy(**fertility_rates)
     death_rates = {'death_rate': pd.read_csv('test_data/zimbabwe_deaths.csv'), 'units': 1}
     death = ss.Deaths(death_rates)
     ppl = ss.People(n_agents, age_data=pd.read_csv('test_data/zimbabwe_age.csv'))

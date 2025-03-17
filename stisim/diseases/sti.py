@@ -21,7 +21,7 @@ class BaseSTI(ss.Infection):
     Base class for sexually transmitted infections.
     Modifies make_new_cases to account for barrier protection.
     """
-    def __init__(self, name=None, pars=None, init_prev_data=None, **kwargs):
+    def __init__(self, name=None, init_prev_data=None, **kwargs):
         super().__init__(name=name)
         self.requires = 'structuredsexual'
         self.define_pars(
@@ -30,7 +30,7 @@ class BaseSTI(ss.Infection):
             eff_condom=1,
             rel_init_prev=1,
         )
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
 
         # Set initial prevalence
         self.init_prev_data = init_prev_data
@@ -49,7 +49,7 @@ class BaseSTI(ss.Infection):
             betamap['structuredsexual'][0] = self.pars.beta_m2f
             betamap['structuredsexual'][1] = self.pars.beta_m2f * self.pars.rel_beta_f2m
         if self.pars.beta_m2c is not None and betamap and 'maternal' in betamap.keys():
-            betamap['maternal'][0] = ss.beta(self.pars.beta_m2c, 'month').init(parent=self.sim.t)
+            betamap['maternal'][0] = self.pars.beta_m2c
         return betamap
 
     def infect(self):
@@ -71,7 +71,7 @@ class BaseSTI(ss.Infection):
                 p2p1b1 = [edges.p2, edges.p1, betamap[nk][1]] # Person 2, person 1, beta 1
                 for src, trg, beta in [p1p2b0, p2p1b1]:
                     if beta: # Skip networks with no transmission
-                        beta_per_dt = net.net_beta(disease_beta=beta, disease=self) # Compute beta for this network and timestep
+                        beta_per_dt = net.net_beta(disease_beta=beta*self.t.dt if isinstance(beta, ss.Rate) else beta, disease=self) # Compute beta for this network and timestep
                         randvals = self.trans_rng.rvs(src, trg) # Generate a new random number based on the two other random numbers
                         args = (src, trg, rel_trans, rel_sus, beta_per_dt, randvals) # Set up the arguments to calculate transmission
                         target_uids, source_uids = self.compute_transmission(*args) # Actually calculate it
@@ -95,55 +95,55 @@ class BaseSTI(ss.Infection):
 
 class SEIS(BaseSTI):
 
-    def __init__(self, pars=None, name=None, init_prev_data=None, **kwargs):
+    def __init__(self, name=None, init_prev_data=None, **kwargs):
         super().__init__(name=name, init_prev_data=init_prev_data)
         self.define_pars(
             # Settings
             include_care=True,  # Determines whether testing results are included
 
             # Natural history
-            dur_exp=ss.constant(ss.dur(1, 'week')),  # Initial latent period: how long after exposure before you can infect others
+            dur_exp=ss.constant(ss.weeks(1)),  # Initial latent period: how long after exposure before you can infect others
 
             # Symptoms and symptomatic testing
             p_symp_dist=ss.bernoulli(p=0.5),  # Distribution of symptomatic vs asymptomatic
             p_symp=[0.375, 0.375],
             dur_presymp_dist=ss.lognorm_ex(),
             dur_presymp=[  # For those who develop symptoms, how long before symptoms appear
-                [ss.dur(1, 'week'), ss.dur(12, 'week')],    # Women
-                [ss.dur(0.25, 'week'), ss.dur(3, 'week')],  # Men
+                [ss.weeks(1), ss.weeks(12)],    # Women
+                [ss.weeks(0.25), ss.weeks(3)],  # Men
             ],
             p_symp_clear_dist=ss.bernoulli(p=0),
             p_symp_clear=[0.0, 0.0],
             dur_symp=[
-                ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(26, 'week')),  # Duration of symptoms
-                ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(26, 'week')),  # Duration of symptoms
+                ss.lognorm_ex(ss.weeks(1), ss.weeks(26)),  # Duration of symptoms
+                ss.lognorm_ex(ss.weeks(1), ss.weeks(26)),  # Duration of symptoms
             ],
             p_symp_care_dist=ss.bernoulli(p=0),
             p_symp_care=[0.3, 0.2],
             dur_symp2care_dist=ss.lognorm_ex(),
             dur_symp2care = [  # For those who test, how long before they seek care - reset for each individual STI
-                [ss.dur(4, 'week'), ss.dur(4, 'week')],  # Women
-                [ss.dur(6, 'week'), ss.dur(4, 'week')],  # Men
+                [ss.weeks(4), ss.weeks(4)],  # Women
+                [ss.weeks(6), ss.weeks(4)],  # Men
             ],
 
             # PID and PID care-seeking
             p_pid=ss.bernoulli(p=0.2),
-            dur_prepid=ss.lognorm_ex(ss.dur(6, 'week'), ss.dur(4, 'week')),
+            dur_prepid=ss.lognorm_ex(ss.weeks(6), ss.weeks(4)),
             p_pid_care=ss.bernoulli(p=0.1),  # Women
-            dur_pid2care=ss.lognorm_ex(ss.dur(2, 'week'), ss.dur(4, 'week')),  # Women
+            dur_pid2care=ss.lognorm_ex(ss.weeks(2), ss.weeks(4)),  # Women
 
             # Clearance
             dur_asymp2clear_dist=ss.lognorm_ex(),
             dur_asymp2clear=[  # Duration of untreated asymptomatic infection (excl initial latent)
-                [ss.dur(52, 'week'), ss.dur(5, 'week')],  # Women
-                [ss.dur(52, 'week'), ss.dur(5, 'week')],  # Men
+                [ss.weeks(52), ss.weeks(5)],  # Women
+                [ss.weeks(52), ss.weeks(5)],  # Men
             ],
             dur_symp2clear_dist=ss.lognorm_ex(),
             dur_symp2clear=[  # Duration of untreated symptomatic infection (excl initial latent)
-                [ss.dur(52, 'week'), ss.dur(5, 'week')],  # Women
-                [ss.dur(52, 'week'), ss.dur(5, 'week')],  # Men
+                [ss.weeks(52), ss.weeks(5)],  # Women
+                [ss.weeks(52), ss.weeks(5)],  # Men
             ],
-            dur_pid2clear=ss.lognorm_ex(ss.dur(52, 'week'), ss.dur(5, 'week')),
+            dur_pid2clear=ss.lognorm_ex(ss.weeks(52), ss.weeks(5)),
 
             # Transmission. In the parent class, beta is set to 1. Here, we set beta_m2f and beta_m2c
             beta_m2f=None,
@@ -153,7 +153,7 @@ class SEIS(BaseSTI):
             # Initial conditions
             init_prev=ss.bernoulli(p=0.01)
         )
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
 
         self.define_states(
             # Natural history

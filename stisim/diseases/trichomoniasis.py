@@ -10,7 +10,7 @@ __all__ = ['Trichomoniasis']
 
 class Trichomoniasis(SEIS):
 
-    def __init__(self, pars=None, name='tv', init_prev_data=None, **kwargs):
+    def __init__(self, name='tv', init_prev_data=None, **kwargs):
         super().__init__(name=name, init_prev_data=init_prev_data)
         self.requires = 'structuredsexual'
 
@@ -21,8 +21,8 @@ class Trichomoniasis(SEIS):
             # Symptoms
             p_symp=[0.4, 0.5],  # https://sti.bmj.com/content/76/4/248
             dur_presymp=[  # For those who develop symptoms, how long before symptoms appear
-                [ss.dur(1, 'week'), ss.dur(12, 'week')],  # Women:
-                [ss.dur(0.25, 'week'), ss.dur(1, 'week')],  # Men: symptoms should appear within days
+                [ss.weeks(1), ss.weeks(12)],  # Women:
+                [ss.weeks(0.25), ss.weeks(1)],  # Men: symptoms should appear within days
             ],
 
             # Care seeking
@@ -32,24 +32,24 @@ class Trichomoniasis(SEIS):
             dur_asymp2clear=[
                 # Average duration of infection in women is at least 3–5 years and approximately 4 months for men
                 # Source: https://sti.bmj.com/content/76/4/248
-                [ss.dur(15, 'week'), ss.dur(5, 'week')],  # Women
-                [ss.dur(26, 'week'), ss.dur(4, 'week')],  # Men
+                [ss.weeks(15), ss.weeks(5)],  # Women
+                [ss.weeks(26), ss.weeks(4)],  # Men
             ],
             dur_symp2clear=[
-                [ss.dur(20, 'week'), ss.dur(4, 'week')],  # Women - assumptions
-                [ss.dur(18, 'week'), ss.dur(4, 'week')],  # Men - assumptions
+                [ss.weeks(20), ss.weeks(4)],  # Women - assumptions
+                [ss.weeks(18), ss.weeks(4)],  # Men - assumptions
             ],
             p_clear=ss.bernoulli(p=0.1),  # Most women do not spontaneously clear, men do (https://sti.bmj.com/content/76/4/248)
             dur_persist=ss.years(100),
 
             p_pid=ss.bernoulli(p=0.025),
-            dur_prepid=ss.lognorm_ex(ss.dur(6, 'week'), ss.dur(4, 'week')),
+            dur_prepid=ss.lognorm_ex(ss.weeks(6), ss.weeks(4)),
             eff_condom=0.0,
 
             # Initial conditions
             init_prev=ss.bernoulli(p=0.01)
         )
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
 
         return
 

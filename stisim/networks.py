@@ -35,7 +35,7 @@ class StructuredSexual(ss.SexualNetwork):
     Structured sexual network
     """
 
-    def __init__(self, pars=None, key_dict=None, condom_data=None, name=None, **kwargs):
+    def __init__(self, key_dict=None, condom_data=None, name=None, **kwargs):
 
         key_dict = sc.mergedicts(
             {
@@ -105,34 +105,32 @@ class StructuredSexual(ss.SexualNetwork):
             stable_dur_pars=dict(
                 teens=[
                     # (mu,stdev) for levels 0, 1, 2
-                    [ss.dur(100, "year"), ss.dur(1, "year")],
-                    [ss.dur(8, "year"), ss.dur(2, "year")],
-                    [ss.dur(1e-4, "month"), ss.dur(1e-4, "month")],
+                    [ss.years(100), ss.years(1)],
+                    [ss.years(8), ss.years(2)],
+                    [ss.months(1e-4), ss.months(1e-4)],
                 ],
                 young=[
-                    [ss.dur(100, "year"), ss.dur(1, "year")],
-                    [ss.dur(10, "year"), ss.dur(3, "year")],
-                    [ss.dur(1e-4, "month"), ss.dur(1e-4, "month")],
+                    [ss.years(100), ss.years(1)],
+                    [ss.years(10), ss.years(3)],
+                    [ss.months(1e-4), ss.months(1e-4)],
                 ],
                 adult=[
-                    [ss.dur(100, "year"), ss.dur(1, "year")],
-                    [ss.dur(12, "year"), ss.dur(3, "year")],
-                    [ss.dur(1e-4, "month"), ss.dur(1e-4, "month")],
+                    [ss.years(100), ss.years(1)],
+                    [ss.years(12), ss.years(3)],
+                    [ss.months(1e-4), ss.months(1e-4)],
                 ],
             ),
             casual_dur_pars=dict(
-                teens=[[ss.dur(1, "year"), ss.dur(3, "year")]] * 3,
-                young=[[ss.dur(1, "year"), ss.dur(3, "year")]] * 3,
-                adult=[[ss.dur(1, "year"), ss.dur(3, "year")]] * 3,
+                teens=[[ss.years(1), ss.years(3)]] * 3,
+                young=[[ss.years(1), ss.years(3)]] * 3,
+                adult=[[ss.years(1), ss.years(3)]] * 3,
             ),
             # Acts
             acts=ss.lognorm_ex(ss.peryear(80), ss.peryear(30)),  # Coital acts/year
             # Sex work parameters
             fsw_shares=ss.bernoulli(p=0.05),
             client_shares=ss.bernoulli(p=0.12),
-            sw_seeking_rate=ss.rate(
-                1, "month"
-            ),  # Monthly rate at which clients seek FSWs (1 new SW partner / month)
+            sw_seeking_rate=ss.permonth(1),  # Monthly rate at which clients seek FSWs (1 new SW partner / month)
             sw_seeking_dist=ss.bernoulli(
                 p=0.5
             ),  # Placeholder value replaced by dt-adjusted sw_seeking_rate
@@ -143,7 +141,7 @@ class StructuredSexual(ss.SexualNetwork):
             dur_dist=ss.lognorm_ex(),
         )
 
-        self.update_pars(pars=pars, **kwargs)
+        self.update_pars(**kwargs)
 
         # Set condom use
         self.condom_data = None
@@ -459,7 +457,7 @@ class StructuredSexual(ss.SexualNetwork):
         self.sw_intensity[active_fsw.uids] = self.pars.sw_intensity.rvs(active_fsw.uids)
 
         # Find clients who will seek FSW
-        self.pars.sw_seeking_dist.pars.p = np.clip(self.pars.sw_seeking_rate, 0, 1)
+        self.pars.sw_seeking_dist.pars.p = np.clip(self.pars.sw_seeking_rate*self.t.dt, 0, 1)
         m_looking = self.pars.sw_seeking_dist.filter(active_clients.uids)
 
         # Attempt to assign a sex worker to every client by repeat sampling the sex workers.

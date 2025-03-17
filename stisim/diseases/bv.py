@@ -11,16 +11,16 @@ __all__ = ['BV']
 
 class BV(ss.Disease):
 
-    def __init__(self, pars=None, name='bv', **kwargs):
+    def __init__(self, name='bv', **kwargs):
         super().__init__(name=name)
 
         self.define_pars(
             unit='month',
             include_care=True,
             p_symp=ss.bernoulli(p=0.1),
-            dur_presymp=ss.uniform(ss.dur(1, 'week'), ss.dur(8, 'week')),  # Duration of presymptomatic period
-            dur_asymp2clear=ss.uniform(ss.dur(1, 'week'), ss.dur(18, 'week')),  # Duration of asymptomatic infection
-            dur_symp2clear=ss.uniform(ss.dur(1, 'week'), ss.dur(18, 'week')),  # Duration of symptoms
+            dur_presymp=ss.uniform(ss.weeks(1), ss.weeks(8)),  # Duration of presymptomatic period
+            dur_asymp2clear=ss.uniform(ss.weeks(1), ss.weeks(18)),  # Duration of asymptomatic infection
+            dur_symp2clear=ss.uniform(ss.weeks(1), ss.weeks(18)),  # Duration of symptoms
             init_prev=ss.bernoulli(p=0.025),
 
             # Spontaneous occurrence parameters. These will be used within a logistic regression
@@ -37,12 +37,12 @@ class BV(ss.Disease):
             ),
 
             # Care-seeking and clearance
-            dur_symp2care=ss.lognorm_ex(ss.dur(4, 'week'), ss.dur(4, 'week')),
+            dur_symp2care=ss.lognorm_ex(ss.weeks(4), ss.weeks(4)),
             p_symp_care=ss.bernoulli(p=0.3),
             p_clear=ss.bernoulli(p=0.5),
-            dur_persist=ss.constant(ss.dur(100, 'year')),
+            dur_persist=ss.constant(ss.years(100)),
         )
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
 
         # States that elevate risk of BV
         self.define_states(

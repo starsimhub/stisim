@@ -66,14 +66,13 @@ class STITest(ss.Intervention):
     Base class for STI testing
     """
 
-    def __init__(self, pars=None, test_prob_data=None, years=None, start=None, stop=None, eligibility=None, product=None, name=None, label=None, **kwargs):
+    def __init__(self, test_prob_data=None, years=None, start=None, stop=None, eligibility=None, product=None, name=None, label=None, **kwargs):
         super().__init__(name=name, label=label)
         self.define_pars(
-            unit='month',
             rel_test=1,
             dt_scale=True,
         )
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
 
         # Years
         if years is not None and start is not None:
@@ -176,7 +175,7 @@ class STITest(ss.Intervention):
         self.last_outcomes = outcomes
 
         # Apply if within the start years
-        if (sim.now >= self.start) & (sim.now < self.stop):
+        if (sim.now >= self.start) & (self.stop is None or sim.now < self.stop):
 
             if uids is None:
                 uids = self.get_testers(sim)
@@ -212,7 +211,7 @@ class SymptomaticTesting(STITest):
     Rather, the testing intervention itself contains a linked treatment intervention.
     """
 
-    def __init__(self, pars=None, treatments=None, diseases=None, disease_treatment_map=None, treat_prob_data=None, years=None, start=None, stop=None, eligibility=None, name=None, label=None, **kwargs):
+    def __init__(self, treatments=None, diseases=None, disease_treatment_map=None, treat_prob_data=None, years=None, start=None, stop=None, eligibility=None, name=None, label=None, **kwargs):
         super().__init__(years=years, start=start, stop=stop, eligibility=eligibility, name=name, label=label)
         self.define_pars(
             sens=dict(
@@ -231,7 +230,7 @@ class SymptomaticTesting(STITest):
             spec_dist=ss.bernoulli(p=0),
             dt_scale=False,
         )
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
 
         # Store treatments and diseases
         self.treatments = sc.tolist(treatments)
@@ -369,16 +368,15 @@ class STITreatment(ss.Intervention):
         pars:
         disease (str): should match the name of one of the diseases in the simulation
     """
-    def __init__(self, name=None, pars=None, diseases=None, eligibility=None, max_capacity=None, years=None, *args, **kwargs):
-        super().__init__(*args, name=name)
+    def __init__(self, name=None, diseases=None, eligibility=None, max_capacity=None, years=None, **kwargs):
+        super().__init__(name=name)
         self.requires = diseases
         self.define_pars(
-            unit='month',
             treat_prob=ss.bernoulli(p=1.),
             treat_eff=ss.bernoulli(p=0.9),
         )
         self.diseases = sc.promotetolist(diseases)
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
         self.eligibility = eligibility
         if self.eligibility is None:
             self.eligibility = ss.uids()

@@ -13,14 +13,14 @@ __all__ = ['Placeholder', 'GUDPlaceholder', 'VDPlaceholder', 'GUD']
 class Placeholder(ss.Disease):
     # A simple placeholder module to use when testing connectors
 
-    def __init__(self, pars=None, name=None, **kwargs):
+    def __init__(self, name=None, **kwargs):
         super().__init__(name=name)
 
         self.define_pars(
             prevalence=0.1,  # Target prevalance. If None, no automatic infections will be applied
             care_seeking=ss.bernoulli(p=0.5),
         )
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
         self.define_states(
             ss.State('symptomatic'),  # Symptomatic
             ss.FloatArr('ti_symptomatic'),  # Time of active symptoms
@@ -71,29 +71,29 @@ class Placeholder(ss.Disease):
 
 class VDPlaceholder(Placeholder):
     # Background prevalence of vaginal discharge
-    def __init__(self, pars=None, name='vd', **kwargs):
-        super().__init__(pars=pars, name=name, **kwargs)
+    def __init__(self, name='vd', **kwargs):
+        super().__init__(name=name, **kwargs)
         return
 
 
 class GUDPlaceholder(Placeholder):
     # Background prevalence of genital ulcerative disease
-    def __init__(self, pars=None, name='gud', **kwargs):
-        super().__init__(pars=pars, name=name, **kwargs)
+    def __init__(self, name='gud', **kwargs):
+        super().__init__(name=name, **kwargs)
         return
 
 
 class GUD(ss.Infection):
 
-    def __init__(self, pars=None, init_prev_data=None, **kwargs):
+    def __init__(self, init_prev_data=None, **kwargs):
         super().__init__()
         self.define_pars(
-            dur_inf = ss.lognorm_ex(ss.dur(3, 'month'), ss.dur(1, 'month')),
+            dur_inf = ss.lognorm_ex(sss.months(3), ss.months(1)),
             beta=1.0,  # Placeholder
             init_prev=0,  # See make_init_prev_fn
             rel_init_prev=1,
         )
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
 
         # Set initial prevalence
         self.init_prev_data = init_prev_data

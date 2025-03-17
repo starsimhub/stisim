@@ -23,8 +23,8 @@ class GonorrheaTreatment(STITreatment):
         - unsuccessful treatment reduces dur_inf and rel_trans, but results in lower rel_treat
         - unnecessary treatment results in lower rel_treat
     """
-    def __init__(self, pars=None, eligibility=None, max_capacity=None, years=None, name=None, *args, **kwargs):
-        super().__init__(diseases='ng', name=name, eligibility=eligibility, max_capacity=max_capacity, years=years, *args)
+    def __init__(self, eligibility=None, max_capacity=None, years=None, name=None, **kwargs):
+        super().__init__(diseases='ng', name=name, eligibility=eligibility, max_capacity=max_capacity, years=years)
         self.requires = ['ng', 'structuredsexual']
         self.define_pars(
             base_treat_eff=0.96,
@@ -32,7 +32,7 @@ class GonorrheaTreatment(STITreatment):
             rel_treat_unsucc=0.01,
             rel_treat_unneed=0.005,
         )
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
 
         # States
         self.define_states(
@@ -77,13 +77,13 @@ class UpdateDrugs(ss.Intervention):
     An intervention that samples rel_treat and updates the rel_treat values if they fall below
     a given level.
     """
-    def __init__(self, pars=None, eligibility=None, years=None, *args, **kwargs):
-        super().__init__(*args)
+    def __init__(self, eligibility=None, years=None, **kwargs):
+        super().__init__()
         self.requires = ['ng', 'gonorrheatreatment']
         self.define_pars(
             threshold_amr=0.05
         )
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
         self.eligibility = eligibility
         self.years = years
         self.define_states(

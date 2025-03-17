@@ -33,9 +33,9 @@ class HIVTest(STITest):
     """
     Base class for HIV testing
     """
-    def __init__(self, product=None, pars=None, test_prob_data=None, years=None, start=None, eligibility=None, name=None, label=None, **kwargs):
+    def __init__(self, product=None, test_prob_data=None, years=None, start=None, eligibility=None, name=None, label=None, **kwargs):
         if product is None: product = HIVDx()
-        super().__init__(product=product, pars=pars, test_prob_data=test_prob_data, years=years, start=start, eligibility=eligibility, name=name, label=label, **kwargs)
+        super().__init__(product=product, test_prob_data=test_prob_data, years=years, start=start, eligibility=eligibility, name=name, label=label, **kwargs)
         if self.eligibility is None:
             self.eligibility = lambda sim: ~sim.diseases.hiv.diagnosed
 
@@ -53,13 +53,13 @@ class ART(ss.Intervention):
     ART-treatment intervention by Robyn Stuart, Daniel Klein and Cliff Kerr, edited by Alina Muellenmeister
     """
 
-    def __init__(self, pars=None, coverage_data=None, start_year=None, **kwargs):
+    def __init__(self, coverage_data=None, start_year=None, **kwargs):
         super().__init__()
         self.define_pars(
             init_prob=ss.bernoulli(p=0.9),  # Probability that a newly diagnosed person will initiate treatment
             future_coverage={'year': 2022, 'prop': 0.85},
         )
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
         self.coverage_data = coverage_data
         self.coverage = None  # Set below
         self.coverage_format = None  # Set below
@@ -185,13 +185,13 @@ class ART(ss.Intervention):
 
 
 class VMMC(ss.Intervention):
-    def __init__(self, pars=None, coverage_data=None, eligibility=None, **kwargs):
+    def __init__(self, coverage_data=None, eligibility=None, **kwargs):
         super().__init__()
         self.define_pars(
             future_coverage={'year': 2022, 'prop': 0.1},
             eff_circ = 0.6,  # Evidence of a 60% reduction in risk of HIV acquisition: https://www.who.int/teams/global-hiv-hepatitis-and-stis-programmes/hiv/prevention/voluntary-medical-male-circumcision
         )
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
 
         # Coverage data - can be number or proportion
         self.coverage_data = coverage_data
@@ -267,7 +267,7 @@ class VMMC(ss.Intervention):
 
 class Prep(ss.Intervention):
     """ Prep for FSW """
-    def __init__(self, pars=None, eligibility=None, **kwargs):
+    def __init__(self, eligibility=None, **kwargs):
         super().__init__()
         self.define_pars(
             coverage_dist=ss.bernoulli(p=0),
@@ -275,7 +275,7 @@ class Prep(ss.Intervention):
             years=[2004, 2005, 2015, 2025],
             eff_prep=0.8,
         )
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
         self.eligibility = eligibility
         self.define_states(
             ss.BoolArr('on_prep', label='On PrEP'),

@@ -13,7 +13,7 @@ __all__ = ['HIV']
 
 class HIV(BaseSTI):
 
-    def __init__(self, pars=None, init_prev_data=None, **kwargs):
+    def __init__(self, init_prev_data=None, **kwargs):
         super().__init__()
         # self.requires = 'structuredsexual'
 
@@ -22,7 +22,7 @@ class HIV(BaseSTI):
             # Natural history without treatment
             cd4_start=ss.normal(loc=800, scale=50),
             cd4_latent=ss.normal(loc=500, scale=50),
-            dur_acute=ss.lognorm_ex(ss.dur(3, 'month'), ss.dur(1, 'month')),  # Duration of acute HIV infection (months)
+            dur_acute=ss.lognorm_ex(ss.months(3), ss.months(1)),  # Duration of acute HIV infection (months)
             dur_latent=ss.lognorm_ex(ss.years(10), ss.years(3)),  # Duration of latent, untreated HIV infection
             dur_falling=ss.lognorm_ex(ss.years(3), ss.years(1)),    # Duration of late-stage HIV when CD4 counts fall
             p_hiv_death=None,  # Probability of death from HIV-related complications - default is to use HIV.death_prob(), otherwise can pass in a Dist or anything supported by ss.bernoulli)
@@ -32,7 +32,7 @@ class HIV(BaseSTI):
             beta=0,  # Placeholder, replaced by network-specific betas
             beta_m2f=None,
             rel_beta_f2m=0.5,
-            beta_m2c=ss.beta(0.025, 'month'),  # Approx 0.2 over the course of the pregnany
+            beta_m2c=ss.TimeProb(0.025, ss.months(1)),  # Approx 0.2 over the course of the pregnancy - TODO: should be able to write this as ss.TimeProb(0.2, ss.months(9))
             rel_trans_acute=ss.normal(loc=6, scale=0.5),  # Increase transmissibility during acute HIV infection
             rel_trans_falling=ss.normal(loc=8, scale=0.5),  # Increase transmissibility during late HIV infection
             eff_condom=0.9,
@@ -51,14 +51,14 @@ class HIV(BaseSTI):
             # Treatment effects
             art_cd4_growth=0.1,  # Unitless parameter defining how CD4 reconstitutes after starting ART - used in a logistic growth function
             art_efficacy=0.96,  # Efficacy of ART
-            time_to_art_efficacy=ss.dur(6, 'months'),  # Time to reach full ART efficacy (in months) - linear increase in efficacy
+            time_to_art_efficacy=ss.months(6),  # Time to reach full ART efficacy (in months) - linear increase in efficacy
             art_cd4_pars=dict(cd4_max=1000, cd4_healthy=500),
             dur_on_art=ss.lognorm_ex(ss.years(18), ss.years(5)),
             dur_post_art=ss.normal(loc=self.dur_post_art_mean, scale=self.dur_post_art_scale),  # Note defined in years!
             dur_post_art_scale_factor=0.1,
         )
 
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
 
         # Set death probabilities from HIV-related illness. Note that AIDS deaths are captured separately
         if self.pars.p_hiv_death is None:
@@ -422,9 +422,9 @@ class HIV(BaseSTI):
             time_to_full_eff = self.pars.time_to_art_efficacy
             art_uids = self.on_art.uids
             timesteps_on_art = ti - self.ti_art[art_uids]
-            new_on_art = timesteps_on_art < time_to_full_eff.v
+            new_on_art = timesteps_on_art < time_to_full_eff/self.t.dt
             efficacy_to_date = np.full_like(art_uids, fill_value=full_eff, dtype=float)
-            efficacy_to_date[new_on_art] = timesteps_on_art[new_on_art]*full_eff/time_to_full_eff
+            efficacy_to_date[new_on_art] = timesteps_on_art[new_on_art]*full_eff/(time_to_full_eff/self.t.dt)
             self.rel_trans[art_uids] *= 1 - efficacy_to_date
 
         return
@@ -550,8 +550,8 @@ class HIV(BaseSTI):
         hiv = sim.diseases.hiv
         dur_mean = np.log(hiv.cd4_preart[uids])*hiv.cd4[uids]/hiv.cd4_potential[uids]
         dur_scale = dur_mean * module.pars.dur_post_art_scale_factor
-        dur_mean = ss.dur(dur_mean, 'year').init(parent=sim.t)
-        dur_scale = np.maximum(ss.dur(dur_scale, 'year').init(parent=sim.t), 1e-3)  # Ensure it's not zero
+        dur_mean = dur_mean
+        dur_scale = np.maximum(dur_scale, 1e-3)  # Ensure it's not zero
         return dur_mean, dur_scale
 
     @staticmethod

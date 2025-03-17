@@ -428,9 +428,9 @@ def finalize_results(sim, modules_to_drop=None):
 
     # Make new results
     newres = ss.Results(module=None)
-    newres.yearvec = np.arange(sim.pars.start, sim.pars.stop)  # np.unique(sim.yearvec.astype(int))[:-1]
+    newres.yearvec = np.arange(sim.t.start.years, sim.t.stop.years)  # np.unique(sim.yearvec.astype(int))[:-1]
 
-    periods = int(1/sim.pars.dt)
+    periods = int(ss.years(1)/sim.t.dt)
     for rname, res in sim.results.items():
         if isinstance(res, ss.Results):
             newres[rname] = ss.Results(module=res)

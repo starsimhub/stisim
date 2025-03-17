@@ -23,7 +23,7 @@ class SyphTx(STITreatment):
     Treat a fixed number of people each timestep.
     """
 
-    def __init__(self, pars=None, max_capacity=None, years=None, eligibility=None, name=None, **kwargs):
+    def __init__(self, max_capacity=None, years=None, eligibility=None, name=None, **kwargs):
         super().__init__(diseases='syphilis', name=name, eligibility=eligibility, years=years, max_capacity=max_capacity)
         self.define_pars(
             rel_treat_prob=1,
@@ -32,7 +32,7 @@ class SyphTx(STITreatment):
             fetus_age_cutoff_treat_eff=-0.25,  # Reduced treatment efficacy for fetuses in the last trimester
             treat_eff_reduced=ss.bernoulli(p=0.2)  # Reduced efficacy for fetuses older than cut off
         )
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
         return
 
     def administer(self, sim, uids, disease='syphilis', return_format='dict'):
@@ -158,12 +158,12 @@ class NewbornTreatment(SyphTx):
 
 class SyphTest(STITest):
     """ Base class for syphilis tests """
-    def __init__(self, test_prob_data=None, years=None, start=None, stop=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
-        super().__init__(test_prob_data=test_prob_data, years=years, start=start, stop=stop, eligibility=eligibility, product=product, name=name, label=label, **kwargs)
+    def __init__(self, test_prob_data=None, years=None, start=None, stop=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
+        super().__init__(test_prob_data=test_prob_data, years=years, start=start, stop=stop, eligibility=eligibility, product=product, name=name, label=label)
         self.define_pars(
             linked=True,
         )
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
         # Store optional newborn test intervention
         self.newborn_test = newborn_test
         return
@@ -270,12 +270,12 @@ class ANCSyphTest(SyphTest):
     Test given to pregnant women
     Need to adjust timing using Trivedi (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7138526/)
     """
-    def __init__(self, test_prob_data=None, years=None, start=None, stop=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
-        super().__init__(test_prob_data=test_prob_data, years=years, start=start, stop=stop, eligibility=eligibility, product=product, name=name, label=label, **kwargs)
+    def __init__(self, test_prob_data=None, years=None, start=None, stop=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
+        super().__init__(test_prob_data=test_prob_data, years=years, start=start, stop=stop, eligibility=eligibility, product=product, name=name, label=label)
         self.define_pars(
             linked=True,
         )
-        self.update_pars(pars, **kwargs)
+        self.update_pars(**kwargs)
         self.test_timing = ss.randint(1, 9)
         if self.eligibility is None:
             self.eligibility = lambda sim: sim.demographics.pregnancy.pregnant
