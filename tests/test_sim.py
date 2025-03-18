@@ -22,9 +22,9 @@ def test_hiv_sim(n_agents=500):
     death = ss.Deaths(death_rate=10)
     sexual = sti.FastStructuredSexual()
     maternal = ss.MaternalNet()
-    testing = sti.HIVTest(test_prob_data=0.2, start=2000)
-    art = sti.ART(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_art': np.linspace(0, 0.9, 21)}))
-    vmmc = sti.VMMC(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_vmmc': np.linspace(0.025, 0.125, 21)}))
+    testing = sti.HIVTest(test_prob_data=0.2, start=ss.Date(2000))
+    art = sti.ART(coverage_data=pd.DataFrame(index=ss.Date.arange(2000, 2021), data={'p_art': np.linspace(0, 0.9, 21)}))
+    vmmc = sti.VMMC(coverage_data=pd.DataFrame(index=ss.Date.arange(2000, 2021), data={'p_vmmc': np.linspace(0.025, 0.125, 21)}))
     sim = ss.Sim(
         dt=1/12,
         start=1990,
