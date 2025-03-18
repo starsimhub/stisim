@@ -284,7 +284,7 @@ class Prep(ss.Intervention):
 
     def step(self):
         sim = self.sim
-        self.coverage = np.interp(self.timevec, self.pars.years, self.pars.coverage)
+        self.coverage = np.interp(self.t.yearvec, self.pars.years, self.pars.coverage)
         if self.coverage[self.ti] > 0:
             self.pars.coverage_dist.set(p=self.coverage[self.ti])
             el_fsw = self.sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected & ~self.on_prep
