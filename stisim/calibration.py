@@ -509,7 +509,7 @@ class Calibration(sc.prettyobj): # pragma: no cover
             for i in range(n_results):
                 md = cal.sim_results[i]
                 df = pd.DataFrame(md)
-                df['index'] = i
+                df['res_no'] = i
                 dfs += df
             cal.resdf = pd.concat(dfs)
 
