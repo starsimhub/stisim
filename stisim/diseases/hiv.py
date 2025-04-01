@@ -128,6 +128,7 @@ class HIV(BaseSTI):
             ss.Result('new_diagnoses', dtype=int, label='Diagnoses'),
             ss.Result('cum_diagnoses', dtype=int, label='Cumulative diagnoses'),
             ss.Result('new_agents_on_art', dtype=int, label='New treated'),
+            ss.Result('prevalence_15_49', dtype=float, label='Prevalence 15-49', scale=False),
             ss.Result('prevalence_sw', dtype=float, label='FSW prevalence', scale=False),
             ss.Result('new_infections_sw', dtype=int, label='New infections - FSW'),
             ss.Result('new_infections_not_sw', dtype=int, label='New infections - Other F'),
@@ -443,6 +444,10 @@ class HIV(BaseSTI):
         if self.include_mtct:
             self.results['n_on_art_pregnant'][ti] = np.count_nonzero(self.on_art & self.sim.people.pregnancy.pregnant)
         self.results['p_on_art'][ti] = sc.safedivide(self.results['n_on_art'][ti], self.results['n_infected'][ti])
+
+        # Subset by age group:
+        infected_15_19 = self.infected[(self.sim.people.age >= 15) & (self.sim.people.age < 50)]
+        self.results['prevalence_15_49'][ti] = sum(infected_15_19) / len(infected_15_19)
 
         # Subset by FSW and client:
         if 'structuredsexual' in self.sim.networks.keys():
