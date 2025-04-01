@@ -7,6 +7,12 @@ What's new
 All notable changes to the codebase are documented in this file.
 
 
+Version 1.0.1 (2025-03-31)
+--------------------------
+- Track HIV prevalence for 15-49 year olds
+- *GitHub info*: PR `https://github.com/starsimhub/stisim/pull/79`_
+
+
 Version 1.0.0 (2024-12-11)
 --------------------------
 - Updates to work with Starsim v2.2.1
