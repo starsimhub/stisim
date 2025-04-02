@@ -410,6 +410,7 @@ class Syphilis(BaseSTI):
         """
         Set initial prognoses for adults newly infected with syphilis
         """
+
         if ti is None:
             ti = self.ti
         else:
@@ -417,7 +418,11 @@ class Syphilis(BaseSTI):
             if not (sc.isnumber(ti) or len(ti) == len(uids)):
                 errormsg = 'ti for set_prognoses must be int or array of length uids'
                 raise ValueError(errormsg)
-                
+
+        # Call super method, which records transmissions
+        super().set_prognoses(uids, source_uids)
+
+        # Set initial states upon exposure
         self.susceptible[uids] = False
         self.ever_exposed[uids] = True
         self.primary[uids] = True

@@ -391,6 +391,7 @@ class STITreatment(ss.Intervention):
             unit='month',
             treat_prob=ss.bernoulli(p=1.),
             treat_eff=ss.bernoulli(p=0.9),
+            by_sex=True,  # Whether or not to store outcomes by sex
         )
         self.diseases = sc.promotetolist(diseases)
         self.update_pars(pars, **kwargs)
@@ -400,6 +401,10 @@ class STITreatment(ss.Intervention):
         self.queue = []
         self.max_capacity = max_capacity
         self.years = years
+
+        # Results by sex - set during init_results
+        self.sexkeys = None
+        self.sexdict = None
 
         # States
         self.define_states(
@@ -411,9 +416,14 @@ class STITreatment(ss.Intervention):
 
     def init_results(self):
         super().init_results()
-        sexkeys = ['', 'f', 'm']
+        if self.pars.by_sex:
+            self.sexkeys = ['', 'f', 'm']
+            self.sexdict = {'': 'alive', 'f': 'female', 'm': 'male'}
+        else:
+            self.sexkeys = ['']
+            self.sexdict = {'': 'alive'}
         results = sc.autolist()
-        for sk in sexkeys:
+        for sk in self.sexkeys:
             skk = '' if sk == '' else f'_{sk}'
             skl = '' if sk == '' else f' - {sk.upper()}'
             results += [
@@ -453,18 +463,21 @@ class STITreatment(ss.Intervention):
         unsuccessful = np.setdiff1d(inf, successful)
         unnecessary = sus
 
-        successful_f = successful[sim.people.female[successful]]
-        unsuccessful_f = unsuccessful[sim.people.female[unsuccessful]]
-        unnecessary_f = unnecessary[sim.people.female[unnecessary]]
-        successful_m = successful[sim.people.male[successful]]
-        unsuccessful_m = unsuccessful[sim.people.male[unsuccessful]]
-        unnecessary_m = unnecessary[sim.people.male[unnecessary]]
+        if self.pars.by_sex:
+            successful_f = successful[sim.people.female[successful]]
+            unsuccessful_f = unsuccessful[sim.people.female[unsuccessful]]
+            unnecessary_f = unnecessary[sim.people.female[unnecessary]]
+            successful_m = successful[sim.people.male[successful]]
+            unsuccessful_m = unsuccessful[sim.people.male[unsuccessful]]
+            unnecessary_m = unnecessary[sim.people.male[unnecessary]]
 
         # Return outcomes
         if return_format == 'dict':
-            output = {'successful': successful, 'unsuccessful': unsuccessful, 'unnecessary': unnecessary,
-                      'successful_f': successful_f, 'unsuccessful_f': unsuccessful_f, 'unnecessary_f': unnecessary_f,
-                      'successful_m': successful_m, 'unsuccessful_m': unsuccessful_m, 'unnecessary_m': unnecessary_m}
+            output = {'successful': successful, 'unsuccessful': unsuccessful, 'unnecessary': unnecessary}
+            if self.pars.by_sex:
+                output = sc.mergedicts(output,
+                    {'successful_f': successful_f, 'unsuccessful_f': unsuccessful_f, 'unnecessary_f': unnecessary_f,
+                     'successful_m': successful_m, 'unsuccessful_m': unsuccessful_m, 'unnecessary_m': unnecessary_m})
         elif return_format == 'array':
             output = successful
 
@@ -484,12 +497,12 @@ class STITreatment(ss.Intervention):
         sim = self.sim
         self.outcomes = sc.objdict()
         for disease in self.diseases:
-            self.outcomes[disease] = sc.objdict(successful=ss.uids(), unsuccessful=ss.uids(), unnecessary=ss.uids(),
-                                                successful_f=ss.uids(), unsuccessful_f=ss.uids(), unnecessary_f=ss.uids(),
-                                                successful_m=ss.uids(), unsuccessful_m=ss.uids(), unnecessary_m=ss.uids())
+            self.outcomes[disease] = sc.objdict(successful=ss.uids(), unsuccessful=ss.uids(), unnecessary=ss.uids())
+            if self.pars.by_sex:
+                self.outcomes[disease].update(successful_f=ss.uids(), unsuccessful_f=ss.uids(), unnecessary_f=ss.uids(),
+                                              successful_m=ss.uids(), unsuccessful_m=ss.uids(), unnecessary_m=ss.uids())
 
         # Figure out who to treat
-        # self.add_to_queue(sim)
         treat_uids = self.get_candidates(sim)
         self.treated[treat_uids] = True
         self.ti_treated[treat_uids] = self.ti
@@ -520,8 +533,7 @@ class STITreatment(ss.Intervention):
             # Unsuccessful if it's unsuccessful for all diseases
             unsuccessful = unsuccessful & self.outcomes[disease]['unsuccessful']
 
-        sexdict = {'': 'alive', 'f': 'female', 'm': 'male'}
-        for sk, sl in sexdict.items():
+        for sk, sl in self.sexdict.items():
             skk = '' if sk == '' else f'_{sk}'
             self.outcomes['unnecessary'+skk] = unneeded[sim.people[sl][unneeded]]
             self.outcomes['successful'+skk] = successful[sim.people[sl][successful]]
@@ -534,18 +546,20 @@ class STITreatment(ss.Intervention):
         just_treated = self.ti_treated == ti
 
         # Store new treatment results in the disease module results
-        sexdict = {'': 'alive', 'f': 'female', 'm': 'male'}
-        for sk, sl in sexdict.items():
+        for sk, sl in self.sexdict.items():
             skk = '' if sk == '' else f'_{sk}'
             self.results['new_treated_success'+skk][ti] = len(self.outcomes['successful'+skk])
             self.results['new_treated_failure'+skk][ti] = len(self.outcomes['unsuccessful'+skk])
             self.results['new_treated_unnecessary'+skk][ti] = len(self.outcomes['unnecessary'+skk])
             self.results['new_treated'+skk][ti] = count(just_treated & self.sim.people[sl])
             for disease in self.diseases:
-                self.sim.diseases[disease].results['new_treated_success'+skk][ti] += len(self.outcomes[disease]['successful'+skk])
-                self.sim.diseases[disease].results['new_treated_failure'+skk][ti] += len(self.outcomes[disease]['unsuccessful'+skk])
-                self.sim.diseases[disease].results['new_treated_unnecessary'+skk][ti] += len(self.outcomes[disease]['unnecessary'+skk])
-                self.sim.diseases[disease].results['new_treated'+skk][ti] += count(just_treated & self.sim.people[sl])
+                try:
+                    self.sim.diseases[disease].results['new_treated_success'+skk][ti] += len(self.outcomes[disease]['successful'+skk])
+                    self.sim.diseases[disease].results['new_treated_failure'+skk][ti] += len(self.outcomes[disease]['unsuccessful'+skk])
+                    self.sim.diseases[disease].results['new_treated_unnecessary'+skk][ti] += len(self.outcomes[disease]['unnecessary'+skk])
+                    self.sim.diseases[disease].results['new_treated'+skk][ti] += count(just_treated & self.sim.people[sl])
+                except:
+                    print('error')
 
         # Debugging
         if self.name in ['ng_tx', 'ct_tx']:
