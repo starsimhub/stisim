@@ -29,6 +29,7 @@ class BaseSTI(ss.Infection):
         super().__init__(name=name)
         self.requires = 'structuredsexual'
         self.define_pars(
+            include_care=True,  # Determines whether testing results are included
             unit='month',
             beta=0,  # Placeholder: no transmission. This will be set in validate_beta
             eff_condom=1,
@@ -99,6 +100,22 @@ class BaseSTI(ss.Infection):
                     ss.Result(f'n_infected{ask}', dtype=int, label=f"Number infected{asl}"),
                     ss.Result(f'incidence{ask}', scale=False, label=f"Incidence{asl}"),
                     ss.Result(f'prevalence{ask}', scale=False, label=f"Prevalence{asl}"),
+                ]
+
+        if self.pars.include_care:
+            for sk in self.sex_keys.keys():
+                skk = '' if sk == '' else f'_{sk}'
+                skl = '' if sk == '' else f' ({sk.upper()})'
+                results += [
+                    ss.Result('new_care_seekers'+skk, dtype=int, label="New care seekers"+skl),
+                    ss.Result('new_false_pos'+skk, dtype=int, label="New false positives"+skl),
+                    ss.Result('new_true_pos'+skk, dtype=int, label="New true positives"+skl),
+                    ss.Result('new_false_neg'+skk, dtype=int, label="New false negatives"+skl),
+                    ss.Result('new_true_neg'+skk, dtype=int, label="New true negatives"+skl),
+                    ss.Result('new_treated_success'+skk, dtype=int, label="Successful treatments"+skl),
+                    ss.Result('new_treated_failure'+skk, dtype=int, label="Unsuccessful treatments"+skl),
+                    ss.Result('new_treated_unnecessary'+skk, dtype=int, label="Unnecessary treatments"+skl),
+                    ss.Result('new_treated'+skk, dtype=int, label="Treatments"+skl),
                 ]
 
         self.define_results(*results)
@@ -209,9 +226,6 @@ class SEIS(BaseSTI):
     def __init__(self, pars=None, name=None, init_prev_data=None, **kwargs):
         super().__init__(name=name, init_prev_data=init_prev_data)
         self.define_pars(
-            # Settings
-            include_care=True,  # Determines whether testing results are included
-
             # Natural history
             dur_exp=ss.constant(ss.dur(1, 'week')),  # Initial latent period: how long after exposure before you can infect others
 
@@ -314,22 +328,6 @@ class SEIS(BaseSTI):
                 results += [
                     ss.Result(f'new_symptomatic{ask}', dtype=int, label=f"New symptomatic{asl}"),
                     ss.Result(f'symp_prevalence{ask}', scale=False, label=f"Symptomatic prevalence{asl}"),
-                ]
-
-        if self.pars.include_care:
-            for sk in self.sex_keys.keys():
-                skk = '' if sk == '' else f'_{sk}'
-                skl = '' if sk == '' else f' ({sk.upper()})'
-                results += [
-                    ss.Result('new_care_seekers'+skk, dtype=int, label="New care seekers"+skl),
-                    ss.Result('new_false_pos'+skk, dtype=int, label="New false positives"+skl),
-                    ss.Result('new_true_pos'+skk, dtype=int, label="New true positives"+skl),
-                    ss.Result('new_false_neg'+skk, dtype=int, label="New false negatives"+skl),
-                    ss.Result('new_true_neg'+skk, dtype=int, label="New true negatives"+skl),
-                    ss.Result('new_treated_success'+skk, dtype=int, label="Successful treatments"+skl),
-                    ss.Result('new_treated_failure'+skk, dtype=int, label="Unsuccessful treatments"+skl),
-                    ss.Result('new_treated_unnecessary'+skk, dtype=int, label="Unnecessary treatments"+skl),
-                    ss.Result('new_treated'+skk, dtype=int, label="Treatments"+skl),
                 ]
 
         self.define_results(*results)
