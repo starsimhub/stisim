@@ -446,7 +446,6 @@ class STITreatment(ss.Intervention):
         """ Administer treatment, keeping track of unnecessarily treated individuals """
 
         inf = uids & sim.diseases[disease].treatable
-        sym = uids & sim.diseases[disease].symptomatic
         sus = uids & sim.diseases[disease].susceptible
 
         self.set_treat_eff(inf)

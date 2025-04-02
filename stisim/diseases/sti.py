@@ -73,6 +73,21 @@ class BaseSTI(ss.Infection):
         aa = self.sim.people.age[a]
         return np.histogram(aa, bins=self.age_bins)[0]
 
+    @property
+    def exposed(self):
+        """ Default is that exposure equals infection """
+        return self.infected
+
+    @property
+    def ti_exposed(self):
+        """ Alias for ti_infected """
+        return self.ti_infected
+
+    @property
+    def treatable(self):
+        """ Assume infected people are treatable, can be overwritten in subclasses """
+        return self.infected
+
     def init_results(self):
         """ Initialize results """
         super().init_results()

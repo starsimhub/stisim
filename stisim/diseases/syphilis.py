@@ -226,15 +226,7 @@ class Syphilis(BaseSTI):
             ss.Result('cum_congenital_deaths', dtype=int, label="Cumulative congenital deaths"),
             ss.Result('new_deaths', dtype=int, label="Deaths"),
 
-            # Add overall testing and treatment results, which might be assembled from numerous interventions
-            ss.Result('new_false_pos', dtype=int, label="False positives"),
-            ss.Result('new_true_pos', dtype=int, label="True positives"),
-            ss.Result('new_false_neg', dtype=int, label="False negatives"),
-            ss.Result('new_true_neg', dtype=int, label="True negatives"),
-            ss.Result('new_treated_success', dtype=int, label="Treatment success"),
-            ss.Result('new_treated_failure', dtype=int, label="Treatment failure"),
-            ss.Result('new_treated_unnecessary', dtype=int, label="Overtreatment"),
-            ss.Result('new_treated', dtype=int, label="Treatments"),
+            # Add fetus testing and treatment results, which might be assembled from numerous interventions
             ss.Result('new_fetus_treated_success', dtype=int, label="Fetal treatment success"),
             ss.Result('new_fetus_treated_unnecessary', dtype=int, label="Fetal overtreatment"),
             ss.Result('new_fetus_treated_failure', dtype=int, label="Fetal treatment failure"),

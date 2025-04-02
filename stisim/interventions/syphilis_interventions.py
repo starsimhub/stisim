@@ -34,26 +34,26 @@ class SyphTx(STITreatment):
         )
         self.update_pars(pars, **kwargs)
         return
-
-    def administer(self, sim, uids, disease='syphilis', return_format='dict'):
-        """ Administer treatment, keeping track of unnecessarily treated individuals """
-
-        inf = sim.diseases[disease].infected
-        sus = sim.diseases[disease].susceptible
-        inf_uids = uids[inf[uids]]
-        sus_uids = uids[sus[uids]]
-
-        successful = self.pars.treat_eff.filter(inf_uids)
-        unsuccessful = np.setdiff1d(inf_uids, successful)
-        unnecessary = sus_uids
-
-        # Return outcomes
-        if return_format == 'dict':
-            output = {'successful': successful, 'unsuccessful': unsuccessful, 'unnecessary': unnecessary}
-        elif return_format == 'array':
-            output = successful
-
-        return output
+    
+    # def administer(self, sim, uids, disease='syphilis', return_format='dict'):
+    #     """ Administer treatment, keeping track of unnecessarily treated individuals """
+    #
+    #     inf = sim.diseases[disease].infected
+    #     sus = sim.diseases[disease].susceptible
+    #     inf_uids = uids[inf[uids]]
+    #     sus_uids = uids[sus[uids]]
+    #
+    #     successful = self.pars.treat_eff.filter(inf_uids)
+    #     unsuccessful = np.setdiff1d(inf_uids, successful)
+    #     unnecessary = sus_uids
+    #
+    #     # Return outcomes
+    #     if return_format == 'dict':
+    #         output = {'successful': successful, 'unsuccessful': unsuccessful, 'unnecessary': unnecessary}
+    #     elif return_format == 'array':
+    #         output = successful
+    #
+    #     return output
 
     def change_states(self, disease, treat_succ):
         """ Change the states of people who are treated """
