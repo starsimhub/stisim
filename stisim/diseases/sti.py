@@ -202,7 +202,7 @@ class SEIS(BaseSTI):
 
         # Results
         self.age_range = [15, 65]  # Age range for main results
-        self.age_bins = np.array([0, 15, 25, 35, 50, 65, 100])  # Age bins for results
+        self.age_bins = np.array([0, 15, 20, 25, 30, 35, 50, 65, 100])  # Age bins for results
         self.sex_keys = {'': 'alive', 'f': 'female', 'm': 'male'}
 
         return
@@ -335,11 +335,8 @@ class SEIS(BaseSTI):
         super().update_results()
         ti = self.ti
         ppl = self.sim.people
-        bins = self.age_bins
 
-        adults = (self.sim.people.age >= 15) & (self.sim.people.age <= 65)
-        women = adults & self.sim.people.female
-        men = adults & self.sim.people.male
+        adults = (self.sim.people.age >= self.age_range[0]) & (self.sim.people.age <= self.age_range[1])
 
         # Main results, looping over people keys and attributes
         for pkey, pattr in self.sex_keys.items():
