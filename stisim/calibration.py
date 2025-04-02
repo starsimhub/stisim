@@ -501,7 +501,7 @@ class Calibration(sc.prettyobj): # pragma: no cover
         cal = sc.objdict()
         n_results = min(n_results, len(self.df))
         # plot_indices = self.df.iloc[:n_results, 0].values
-        cal.sim_results = [self.sim_results[i] for i in n_results]
+        cal.sim_results = [self.sim_results[i] for i in range(n_results)]
 
         # Make a dataframe with the best sim and extra results
         if make_df:
