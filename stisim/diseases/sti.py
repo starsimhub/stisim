@@ -302,6 +302,9 @@ class SEIS(BaseSTI):
             ss.FloatArr('ti_clearance'),
         )
 
+        self.age_range = [15, 65]  # Age range for main results e.g. prevalence
+        self.age_bins = np.array([0, 15, 20, 25, 30, 35, 50, 65, 100])  # Age bins for results
+
         return
 
     @property
