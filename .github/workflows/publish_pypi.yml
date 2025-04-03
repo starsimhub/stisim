@@ -54,7 +54,6 @@ jobs:
   github-release:
     name: >-
       GitHub release
-      and upload them to GitHub Release
     needs:
     - publish-to-pypi
     runs-on: ubuntu-latest
