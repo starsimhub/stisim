@@ -16,7 +16,7 @@ STIsim is an agent-based modeling framework in which users can design and config
 Requirements
 ------------
 
-Python 3.9-3.12.
+Python 3.9-3.13.
 
 We recommend, but do not require, installing STIsim in a virtual environment, such as `Anaconda <https://www.anaconda.com/products>`__.
 
@@ -39,6 +39,8 @@ Contributing
 ------------
 
 Questions or comments can be directed to `info@starsim.org <mailto:info@starsim.org>`__ , or on this project’s `GitHub <https://github.com/starsimhub/stisim>`__ page.
+
+See `.github/workflows/README.md` for details on publishing new releases of STIsim.
 
 
 Disclaimer
