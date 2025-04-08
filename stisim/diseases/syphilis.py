@@ -393,8 +393,8 @@ class Syphilis(BaseSTI):
 
     def finalize_results(self):
         super().finalize_results()
-        self.results['cum_congenital'] = np.cumsum(self.results['new_congenital'])
-        self.results['cum_congenital_deaths'] = np.cumsum(self.results['new_congenital_deaths'])
+        self.results['cum_congenital'][:] = np.cumsum(self.results['new_congenital'])
+        self.results['cum_congenital_deaths'][:] = np.cumsum(self.results['new_congenital_deaths'])
         return
 
     def set_latent_trans(self, ti=None):
