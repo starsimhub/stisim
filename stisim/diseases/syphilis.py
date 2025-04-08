@@ -104,13 +104,14 @@ class Syphilis(BaseSTI):
             #   1: Neonatal death
             #   2: Stillborn
             #   3: Congenital syphilis
-            #   4: Live birth without syphilis-related complications
+            #   4: Live birth without syphilis-related complications - may be preterm or low birth weight
             # Sources:
             #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5973824/)
             #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2819963/
             birth_outcomes=sc.objdict(
-                early=ss.choice(a=5, p=np.array([0.10, 0.15, 0.10, 0.50, 0.15])), # Outcomes for babies born to mothers with primary, secondary, or early latent infection
-                late=ss.choice(a=5, p=np.array([0.05, 0.05, 0.05, 0.10, 0.75])), # Outcomes for babies born to mothers with late latent infection
+                active=ss.choice(a=5, p=np.array([0.05, 0.10, 0.20, 0.45, 0.20])),  # Outcomes for babies born to mothers with primary or secondary infection
+                early=ss.choice(a=5, p=np.array([0.00, 0.05, 0.10, 0.40, 0.45])),  # Outcomes for babies born to mothers with early latent infection
+                late=ss.choice(a=5, p=np.array([0.00, 0.00, 0.10, 0.10, 0.80])),  # Outcomes for babies born to mothers with late latent infection
             ),
             birth_outcome_keys=['miscarriage', 'nnd', 'stillborn', 'congenital'],
             anc_detection=0.8,
@@ -476,7 +477,7 @@ class Syphilis(BaseSTI):
         ti = self.ti
 
         # Determine outcomes
-        for state in ['early', 'late']:
+        for state in ['active', 'early', 'late']:
 
             source_state_inds = getattr(self, state)[source_uids].nonzero()[-1]
             uids = target_uids[source_state_inds]
