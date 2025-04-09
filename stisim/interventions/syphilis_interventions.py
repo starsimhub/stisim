@@ -39,6 +39,8 @@ class SyphTx(STITreatment):
         """ Change the states of people who are treated """
         self.sim.diseases[disease].primary[treat_succ] = False
         self.sim.diseases[disease].secondary[treat_succ] = False
+        self.sim.diseases[disease].early[treat_succ] = False
+        self.sim.diseases[disease].late[treat_succ] = False
         self.sim.diseases[disease].latent[treat_succ] = False
         self.sim.diseases[disease].tertiary[treat_succ] = False
         self.sim.diseases[disease].ti_primary[treat_succ] = np.nan
