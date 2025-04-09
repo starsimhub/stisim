@@ -118,10 +118,10 @@ class Syphilis(BaseSTI):
             birth_outcomes=sc.objdict(
                 active=ss.choice(a=5, p=np.array([0.05, 0.10, 0.20, 0.45, 0.20])),  # Outcomes for babies born to mothers with primary or secondary infection
                 early=ss.choice(a=5, p=np.array([0.00, 0.05, 0.10, 0.40, 0.45])),  # Outcomes for babies born to mothers with early latent infection
-                late=ss.choice(a=5, p=np.array([0.00, 0.00, 0.10, 0.10, 0.80])),  # Outcomes for babies born to mothers with late latent infection
+                late=ss.choice(a=5, p=np.array([0.00, 0.00, 0.10, 0.05, 0.85])),  # Outcomes for babies born to mothers with late latent infection
             ),
             birth_outcome_keys=['miscarriage', 'nnd', 'stillborn', 'congenital'],
-            anc_detection=0.4,
+            anc_detection=0.8,
 
             # Initial conditions
             init_prev=ss.bernoulli(p=0),
