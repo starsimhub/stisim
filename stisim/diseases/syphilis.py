@@ -228,6 +228,7 @@ class Syphilis(BaseSTI):
             ss.Result('n_active', dtype=int, label="Number of active cases"),
             ss.Result('pregnant_prevalence', dtype=float, scale=False, label="Pregnant prevalence"),
             ss.Result('detected_pregnant_prevalence', dtype=float, scale=False, label="ANC prevalence"),
+            ss.Result('delivery_prevalence', dtype=float, scale=False, label="Delivery prevalence"),
             ss.Result('active_prevalence', dtype=float, scale=False, label="Active prevalence"),
             ss.Result('new_nnds', dtype=int, label="Neonatal deaths"),
             ss.Result('new_stillborns', dtype=int, label="Stillbirths"),
