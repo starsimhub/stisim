@@ -35,11 +35,6 @@ class STIDx(ss.Product):
         self.result_dist = ss.bernoulli(p=0)
         return
 
-    def p_positive(self):
-        for state in self.health_states:
-            thisdf = self.df.loc[self.df.state == state]
-            self.result_dist[state] = ss.bernoulli(thisdf.p_positive.values)
-
     def administer(self, sim, uids):
         """
         Administer a testing product.

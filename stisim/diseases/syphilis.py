@@ -361,6 +361,8 @@ class Syphilis(BaseSTI):
             preg_prev = cond_prob(self.infected, ppl.pregnancy.pregnant)
             self.results['pregnant_prevalence'][ti] = preg_prev
             self.results['detected_pregnant_prevalence'][ti] = preg_prev * self.pars.anc_detection
+            deliv_prev = cond_prob(self.infected, ppl.pregnancy.ti_delivery == ti)
+            self.results['delivery_prevalence'][ti] = deliv_prev
 
         # Congenital results
         self.results['new_nnds'][ti]       = np.count_nonzero(self.ti_nnd == ti)
