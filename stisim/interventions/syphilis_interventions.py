@@ -202,7 +202,7 @@ class SyphTest(STITest):
         # Scale and validate
         test_prob = test_prob * self.pars.rel_test
         if self.pars.dt_scale:
-            test_prob = test_prob * self.dt
+            test_prob = test_prob * self.t.dt
         test_prob = np.clip(test_prob, a_min=0, a_max=1)
 
         return test_prob
