@@ -147,9 +147,9 @@ class NewbornTreatment(SyphTx):
 class SyphTest(STITest):
     """ Base class for syphilis tests """
     def __init__(self, test_prob_data=None, years=None, start=None, stop=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
-        super().__init__(test_prob_data=test_prob_data, years=years, start=start, stop=stop, eligibility=eligibility, product=product, name=name, label=label, **kwargs)
+        super().__init__(test_prob_data=test_prob_data, years=years, start=start, stop=stop, eligibility=eligibility, product=product, name=name, label=label)
         self.define_pars(
-            linked=True,
+            dt_scale=True,
         )
         self.update_pars(pars, **kwargs)
         # Store optional newborn test intervention
@@ -201,7 +201,7 @@ class SyphTest(STITest):
 
         # Scale and validate
         test_prob = test_prob * self.pars.rel_test
-        if not self.pars.linked:
+        if self.pars.dt_scale:
             test_prob = test_prob * self.dt
         test_prob = np.clip(test_prob, a_min=0, a_max=1)
 
@@ -261,7 +261,7 @@ class ANCSyphTest(SyphTest):
     def __init__(self, test_prob_data=None, years=None, start=None, stop=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
         super().__init__(test_prob_data=test_prob_data, years=years, start=start, stop=stop, eligibility=eligibility, product=product, name=name, label=label, **kwargs)
         self.define_pars(
-            linked=True,
+            dt_scale=False,
         )
         self.update_pars(pars, **kwargs)
         self.test_timing = ss.randint(1, 9)
