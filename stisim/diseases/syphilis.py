@@ -12,6 +12,13 @@ from stisim.diseases.sti import BaseSTI
 __all__ = ['Syphilis', 'SyphilisPlaceholder']
 
 
+# Define some helper functions
+def count(arr): return np.count_nonzero(arr)
+def div(a, b): return sc.safedivide(a, b)
+def countdiv(a, b): return sc.safedivide(count(a), count(b))
+def cond_prob(a, b): return sc.safedivide(count(a & b), count(b))
+
+
 class SyphilisPlaceholder(ss.Disease):
     # A simple placeholder module to use when testing connectors
 
@@ -244,6 +251,22 @@ class Syphilis(BaseSTI):
             ss.Result('new_fetus_treated_failure', dtype=int, label="Fetal treatment failure"),
         ]
 
+        # Most results are stored by age and sex
+        for sk in self.sex_keys.keys():
+            skk = '' if sk == '' else f'_{sk}'
+            skl = '' if sk == '' else f' ({sk.upper()})'
+            if skk != '':
+                results += [
+                    ss.Result(f'active_prevalence{skk}', scale=False, label=f"Active prevalence{skl}"),
+                ]
+
+            for ab1,ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
+                ask = f'{skk}_{ab1}_{ab2}'
+                asl = f' ({skl}, {ab2}-{ab2})'
+                results += [
+                    ss.Result(f'active_prevalence{ask}', scale=False, label=f"Active prevalence{asl}"),
+                ]
+
         # Add FSW and clients to results:
         if self.store_sw:
             results += [
@@ -343,18 +366,13 @@ class Syphilis(BaseSTI):
         res = self.results
         ppl = self.sim.people
 
-        def cond_prob(num, denom):
-            n_num = np.count_nonzero(num & denom)
-            n_denom = np.count_nonzero(denom)
-            return sc.safedivide(n_num, n_denom)
-
         n_active = res['n_primary'][ti] + res['n_secondary'][ti]
         adults = (ppl.age >= 15) & (ppl.age < 50)
         sexually_active_adults = adults & self.sim.networks.structuredsexual.active(self.sim.people)
 
         # Overwrite prevalence so we're always storing prevalence of syphilis among sexually active adults
         self.results['prevalence'][ti] = cond_prob(self.infected, sexually_active_adults)
-        self.results['active_prevalence'][ti] = cond_prob(self.active, sexually_active_adults)
+        # self.results['active_prevalence'][ti] = cond_prob(self.active, sexually_active_adults)
         self.results['n_active'][ti] = n_active
 
         # Pregnant women prevalence, if present
@@ -392,6 +410,24 @@ class Syphilis(BaseSTI):
                     if risk_group_new_inf.any():
                         self.results['prevalence_risk_group_' + str(risk_group) + '_' + sex][ti] = cond_prob(self.infected, prev_denom)
                         self.results['new_infections_risk_group_' + str(risk_group) + '_' + sex][ti] = np.count_nonzero(risk_group_new_inf)
+
+        # Results by age and sex
+        for pkey, pattr in self.sex_keys.items():
+            skk = '' if pkey == '' else f'_{pkey}'
+
+            n_act = self.active & ppl[pattr]
+            self.results[f'active_prevalence{skk}'][ti] = cond_prob(self.active, adults & ppl[pattr])
+
+            # Compute age results
+            age_results = dict(active_prevalence = div(self.agehist(n_act), self.agehist(ppl[pattr])))
+
+            # Store age results
+            for akey, ares in age_results.items():
+                ai = 0
+                for ab1, ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
+                    ask = f'{skk}_{ab1}_{ab2}'
+                    self.results[f'{akey}{ask}'][ti] = ares[ai]
+                    ai += 1
 
         return
 
