@@ -284,7 +284,8 @@ class ANCSyphTest(SyphTest):
 
     def step(self):
         self.schedule_tests()  # Check for newly pregnant women so they can be added to the schedule
-        return super().step()
+        super().step()
+        return
 
 
 class NewbornSyphTest(SyphTest):
