@@ -29,6 +29,7 @@ class SyphTx(STITreatment):
             rel_treat_prob=1,
             treat_prob=ss.bernoulli(p=1),
             treat_eff=ss.bernoulli(p=0.95),
+            fetus_treat_eff=ss.bernoulli(p=0.75),
             fetus_age_cutoff_treat_eff=-0.25,  # Reduced treatment efficacy for fetuses in the last trimester
             treat_eff_reduced=ss.bernoulli(p=0.2)  # Reduced efficacy for fetuses older than cut off
         )
@@ -66,7 +67,7 @@ class SyphTx(STITreatment):
         treat_gt_cutoff = self.pars.treat_eff_reduced.filter(fetus_gt_cutoff)
 
         # Treat fetuses below cutoff age (e.g. in the first two trimesters)
-        treat_st_cutoff = self.pars.treat_eff.filter(fetus_st_cutoff)
+        treat_st_cutoff = self.pars.fetus_treat_eff.filter(fetus_st_cutoff)
 
         # Combine
         treat_uids = treat_gt_cutoff.concat(treat_st_cutoff)

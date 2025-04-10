@@ -117,8 +117,8 @@ class Syphilis(BaseSTI):
             #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2819963/
             birth_outcomes=sc.objdict(
                 active=ss.choice(a=5, p=np.array([0.05, 0.10, 0.20, 0.45, 0.20])),  # Outcomes for babies born to mothers with primary or secondary infection
-                early=ss.choice(a=5, p=np.array([0.00, 0.05, 0.10, 0.30, 0.55])),  # Outcomes for babies born to mothers with early latent infection
-                late=ss.choice(a=5, p=np.array([0.00, 0.00, 0.05, 0.05, 0.90])),  # Outcomes for babies born to mothers with late latent infection
+                early=ss.choice(a=5, p=np.array([0.00, 0.05, 0.10, 0.40, 0.45])),  # Outcomes for babies born to mothers with early latent infection
+                late=ss.choice(a=5, p=np.array([0.00, 0.00, 0.10, 0.10, 0.80])),  # Outcomes for babies born to mothers with late latent infection
             ),
             birth_outcome_keys=['miscarriage', 'nnd', 'stillborn', 'congenital', 'normal'],
             anc_detection=0.8,
@@ -521,6 +521,7 @@ class Syphilis(BaseSTI):
 
             source_state_inds = getattr(self, state)[source_uids].nonzero()[-1]
             uids = target_uids[source_state_inds]
+            source_state_uids = source_uids[source_state_inds]
 
             if len(uids) > 0:
 
@@ -532,7 +533,7 @@ class Syphilis(BaseSTI):
 
                 # Schedule events
                 for oi, outcome in enumerate(self.pars.birth_outcome_keys):
-                    m_uids = source_uids[assigned_outcomes == oi]
+                    m_uids = source_state_uids[assigned_outcomes == oi]
                     o_uids = uids[assigned_outcomes == oi]
                     if len(o_uids) > 0:
                         ti_outcome = f'ti_{outcome}'
