@@ -117,10 +117,10 @@ class Syphilis(BaseSTI):
             #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2819963/
             birth_outcomes=sc.objdict(
                 active=ss.choice(a=5, p=np.array([0.05, 0.10, 0.20, 0.45, 0.20])),  # Outcomes for babies born to mothers with primary or secondary infection
-                early=ss.choice(a=5, p=np.array([0.00, 0.05, 0.10, 0.40, 0.45])),  # Outcomes for babies born to mothers with early latent infection
-                late=ss.choice(a=5, p=np.array([0.00, 0.00, 0.10, 0.05, 0.85])),  # Outcomes for babies born to mothers with late latent infection
+                early=ss.choice(a=5, p=np.array([0.00, 0.05, 0.10, 0.30, 0.55])),  # Outcomes for babies born to mothers with early latent infection
+                late=ss.choice(a=5, p=np.array([0.00, 0.00, 0.05, 0.05, 0.90])),  # Outcomes for babies born to mothers with late latent infection
             ),
-            birth_outcome_keys=['miscarriage', 'nnd', 'stillborn', 'congenital'],
+            birth_outcome_keys=['miscarriage', 'nnd', 'stillborn', 'congenital', 'normal'],
             anc_detection=0.8,
 
             # Initial conditions
@@ -170,6 +170,7 @@ class Syphilis(BaseSTI):
             ss.FloatArr('ti_nnd'),
             ss.FloatArr('ti_stillborn'),
             ss.FloatArr('ti_congenital'),
+            ss.FloatArr('ti_normal'),
         )
 
         return
@@ -527,14 +528,16 @@ class Syphilis(BaseSTI):
                 birth_outcomes = self.pars.birth_outcomes[state]
                 assigned_outcomes = birth_outcomes.rvs(uids)
                 ages = self.sim.people.age
+                timesteps_til_delivery = self.sim.demographics.pregnancy.ti_delivery - self.ti
 
                 # Schedule events
                 for oi, outcome in enumerate(self.pars.birth_outcome_keys):
+                    m_uids = source_uids[assigned_outcomes == oi]
                     o_uids = uids[assigned_outcomes == oi]
                     if len(o_uids) > 0:
                         ti_outcome = f'ti_{outcome}'
                         vals = getattr(self, ti_outcome)
-                        vals[o_uids] = ti + rr(-ages[o_uids])
+                        vals[o_uids] = timesteps_til_delivery[m_uids]
 
                         setattr(self, ti_outcome, vals)
 
