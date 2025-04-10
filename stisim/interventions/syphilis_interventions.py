@@ -28,10 +28,10 @@ class SyphTx(STITreatment):
         self.define_pars(
             rel_treat_prob=1,
             treat_prob=ss.bernoulli(p=1),
-            treat_eff=ss.bernoulli(p=0.95),
-            fetus_treat_eff=ss.bernoulli(p=0.75),
+            treat_eff=ss.bernoulli(p=1.0),
+            fetus_treat_eff=ss.bernoulli(p=1.),
             fetus_age_cutoff_treat_eff=-0.25,  # Reduced treatment efficacy for fetuses in the last trimester
-            treat_eff_reduced=ss.bernoulli(p=0.2)  # Reduced efficacy for fetuses older than cut off
+            treat_eff_reduced=ss.bernoulli(p=1.0)  # Reduced efficacy for fetuses older than cut off
         )
         self.update_pars(pars, **kwargs)
         return
@@ -107,6 +107,7 @@ class SyphTx(STITreatment):
         # Treat unborn babies of successfully treated mothers
         treat_pregnant_uids = sim.people.pregnancy.pregnant.uids & self.outcomes['successful']
         if len(treat_pregnant_uids):
+            # print(f'{self.ti}: Treating {len(treat_pregnant_uids)} fetuses of successfully treated mothers')
             self.treat_fetus(sim, mother_uids=treat_pregnant_uids)
         return treat_uids
 
@@ -267,7 +268,7 @@ class ANCSyphTest(SyphTest):
             dt_scale=False,
         )
         self.update_pars(pars, **kwargs)
-        self.test_timing = ss.randint(1, 9)
+        self.test_timing = ss.randint(1, 8)
         if self.eligibility is None:
             self.eligibility = lambda sim: sim.demographics.pregnancy.pregnant
         return
@@ -279,7 +280,7 @@ class ANCSyphTest(SyphTest):
     def schedule_tests(self):
         """ Schedule a test for newly pregnant women """
         sim = self.sim
-        newly_preg = (sim.demographics.pregnancy.ti_pregnant == self.ti).uids
+        newly_preg = (sim.demographics.pregnancy.ti_pregnant == (self.ti)).uids
         self.test_prob.pars['p'] = self.make_test_prob_fn(self, sim, newly_preg)
         will_test = self.test_prob.filter(newly_preg)
         ti_test = self.ti + self.test_timing.rvs(will_test)

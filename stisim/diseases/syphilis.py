@@ -389,6 +389,8 @@ class Syphilis(BaseSTI):
         self.results['new_stillborns'][ti] = np.count_nonzero(self.ti_stillborn == ti)
         self.results['new_congenital'][ti] = np.count_nonzero(self.ti_congenital == ti)
         self.results['new_congenital_deaths'][ti] = self.results['new_nnds'][ti] + self.results['new_stillborns'][ti]
+        # if self.results['new_congenital_deaths'][ti]>0:
+        #     print('hi')
         self.results['new_deaths'][ti] = np.count_nonzero(self.ti_dead == ti)
 
         # Add FSW and clients to results:
@@ -515,6 +517,9 @@ class Syphilis(BaseSTI):
         Natural history of syphilis for congenital infection
         """
         ti = self.ti
+        # printstr = f'{ti=}, len(uids): {len(target_uids)}'
+        birth_outcome_keys=['miscarriage', 'nnd', 'stillborn', 'congenital', 'normal'],
+        new_outcomes = {k:0 for k in self.pars.birth_outcome_keys}
 
         # Determine outcomes
         for state in ['active', 'early', 'late']:
@@ -524,6 +529,8 @@ class Syphilis(BaseSTI):
             source_state_uids = source_uids[source_state_inds]
 
             if len(uids) > 0:
+
+                # printstr += f', # {state}={len(uids)}'
 
                 # Birth outcomes must be modified to add probability of susceptible birth
                 birth_outcomes = self.pars.birth_outcomes[state]
@@ -538,9 +545,16 @@ class Syphilis(BaseSTI):
                     if len(o_uids) > 0:
                         ti_outcome = f'ti_{outcome}'
                         vals = getattr(self, ti_outcome)
-                        vals[o_uids] = timesteps_til_delivery[m_uids]
+                        vals[o_uids] = ti + timesteps_til_delivery[m_uids]
 
                         setattr(self, ti_outcome, vals)
+                        new_outcomes[outcome] += len(o_uids)
+
+        # printstr += f'\nSB: {new_outcomes["stillborn"]}, NND: {new_outcomes["nnd"]}, '
+        # printstr +=   f'SB: {new_outcomes["stillborn"]}, CS: {new_outcomes["congenital"]}\n'
+        #
+        # print(printstr)
+        # print(self.ti_nnd[self.ti_nnd.notnan.uids])
 
         return
 
