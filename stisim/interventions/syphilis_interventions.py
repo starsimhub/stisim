@@ -28,10 +28,10 @@ class SyphTx(STITreatment):
         self.define_pars(
             rel_treat_prob=1,
             treat_prob=ss.bernoulli(p=1),
-            treat_eff=ss.bernoulli(p=1.0),
-            fetus_treat_eff=ss.bernoulli(p=1.),
+            treat_eff=ss.bernoulli(p=.98),
+            fetus_treat_eff=ss.bernoulli(p=.98),
             fetus_age_cutoff_treat_eff=-0.25,  # Reduced treatment efficacy for fetuses in the last trimester
-            treat_eff_reduced=ss.bernoulli(p=1.0)  # Reduced efficacy for fetuses older than cut off
+            treat_eff_reduced=ss.bernoulli(p=.75)  # Reduced efficacy for fetuses older than cut off
         )
         self.update_pars(pars, **kwargs)
         return
@@ -85,11 +85,12 @@ class SyphTx(STITreatment):
 
             # Change states
             for oi, outcome in enumerate(birth_outcomes):
-                ti_outcome = f'ti_{outcome}'
-                vals = getattr(sim.diseases.syphilis, ti_outcome)
-                successful_uids = treat_uids & vals.notnan.uids
-                vals[successful_uids] = np.nan
-                setattr(sim.diseases.syphilis, ti_outcome, vals)
+                if outcome != 'normal':
+                    ti_outcome = f'ti_{outcome}'
+                    vals = getattr(sim.diseases.syphilis, ti_outcome)
+                    successful_uids = treat_uids & vals.notnan.uids
+                    vals[successful_uids] = np.nan
+                    setattr(sim.diseases.syphilis, ti_outcome, vals)
 
                 # Store results - Success
                 sim.diseases.syphilis.results['new_fetus_treated_success'][self.ti] += len(successful_uids)
@@ -107,7 +108,6 @@ class SyphTx(STITreatment):
         # Treat unborn babies of successfully treated mothers
         treat_pregnant_uids = sim.people.pregnancy.pregnant.uids & self.outcomes['successful']
         if len(treat_pregnant_uids):
-            # print(f'{self.ti}: Treating {len(treat_pregnant_uids)} fetuses of successfully treated mothers')
             self.treat_fetus(sim, mother_uids=treat_pregnant_uids)
         return treat_uids
 

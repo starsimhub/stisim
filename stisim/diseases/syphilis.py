@@ -157,6 +157,7 @@ class Syphilis(BaseSTI):
 
             # Congenital syphilis states
             ss.State('congenital'),
+            ss.FloatArr('cs_outcome'),
 
             # Timestep of state changes
             ss.FloatArr('ti_primary'),
@@ -517,7 +518,7 @@ class Syphilis(BaseSTI):
         Natural history of syphilis for congenital infection
         """
         ti = self.ti
-        # printstr = f'{ti=}, len(uids): {len(target_uids)}'
+        self.susceptible[target_uids] = False
         birth_outcome_keys=['miscarriage', 'nnd', 'stillborn', 'congenital', 'normal'],
         new_outcomes = {k:0 for k in self.pars.birth_outcome_keys}
 
@@ -530,11 +531,10 @@ class Syphilis(BaseSTI):
 
             if len(uids) > 0:
 
-                # printstr += f', # {state}={len(uids)}'
-
                 # Birth outcomes must be modified to add probability of susceptible birth
                 birth_outcomes = self.pars.birth_outcomes[state]
                 assigned_outcomes = birth_outcomes.rvs(uids)
+                self.cs_outcome[uids] = assigned_outcomes
                 ages = self.sim.people.age
                 timesteps_til_delivery = self.sim.demographics.pregnancy.ti_delivery - self.ti
 
@@ -550,11 +550,18 @@ class Syphilis(BaseSTI):
                         setattr(self, ti_outcome, vals)
                         new_outcomes[outcome] += len(o_uids)
 
-        # printstr += f'\nSB: {new_outcomes["stillborn"]}, NND: {new_outcomes["nnd"]}, '
-        # printstr +=   f'SB: {new_outcomes["stillborn"]}, CS: {new_outcomes["congenital"]}\n'
-        #
-        # print(printstr)
-        # print(self.ti_nnd[self.ti_nnd.notnan.uids])
+        # Check that the birth outcomes are mutually exclusive
+        if not sum(new_outcomes.values()) == len(target_uids):
+            raise ValueError('Birth outcomes are not mutually exclusive')
+
+        # Check that the birth outcomes are not greater than the number of congenital cases
+        for o1, out1 in enumerate(self.pars.birth_outcome_keys):
+            for o2, out2 in enumerate(self.pars.birth_outcome_keys):
+                if o1 != o2:
+                    val1 = getattr(self, f'ti_{out1}')
+                    val2 = getattr(self, f'ti_{out2}')
+                    if (val1.notnan & val2.notnan).any() :
+                        raise ValueError(f'Birth outcomes {out1} and {out2} are not mutually exclusive')
 
         return
 
