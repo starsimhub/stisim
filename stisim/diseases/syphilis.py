@@ -116,7 +116,7 @@ class Syphilis(BaseSTI):
             #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5973824/)
             #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2819963/
             birth_outcomes=sc.objdict(
-                active=ss.choice(a=5, p=np.array([0.05, 0.10, 0.20, 0.45, 0.20])),  # Outcomes for babies born to mothers with primary or secondary infection
+                active=ss.choice(a=5, p=np.array([0.00, 0.10, 0.20, 0.45, 0.25])),  # Outcomes for babies born to mothers with primary or secondary infection
                 early=ss.choice(a=5, p=np.array([0.00, 0.05, 0.10, 0.40, 0.45])),  # Outcomes for babies born to mothers with early latent infection
                 late=ss.choice(a=5, p=np.array([0.00, 0.00, 0.10, 0.10, 0.80])),  # Outcomes for babies born to mothers with late latent infection
             ),
@@ -389,7 +389,7 @@ class Syphilis(BaseSTI):
         self.results['new_nnds'][ti]       = np.count_nonzero(self.ti_nnd == ti)
         self.results['new_stillborns'][ti] = np.count_nonzero(self.ti_stillborn == ti)
         self.results['new_congenital'][ti] = np.count_nonzero(self.ti_congenital == ti)
-        self.results['new_congenital_deaths'][ti] = self.results['new_nnds'][ti] + self.results['new_stillborns'][ti]
+        self.results['new_congenital_deaths'][ti] = self.results['new_nnds'][ti] #  + self.results['new_stillborns'][ti]
         # if self.results['new_congenital_deaths'][ti]>0:
         #     print('hi')
         self.results['new_deaths'][ti] = np.count_nonzero(self.ti_dead == ti)
