@@ -563,7 +563,22 @@ class FastStructuredSexual(StructuredSexual):
 class AgeMatchedMSM(StructuredSexual):
 
     def __init__(self, **kwargs):
-        super().__init__(name='msm', **kwargs)
+        super().__init__(name='msm')
+        self.define_pars(
+            msm_share=0.015,
+        )
+        self.update_pars(pars=pars, **kwargs)
+
+        return
+
+    def set_network_states(self, upper_age=None):
+        self.set_msm(upper_age=upper_age)
+        return
+
+    def set_msm(self, upper_age=None):
+        _, m_uids = self._get_uids(upper_age=upper_age)
+        self.participant[m_uids] = self.pars.msm_shares.rvs(m_uids)
+        return
 
     def match_pairs(self, ppl):
         """ Match males by age using sorting """
@@ -601,7 +616,7 @@ class AgeApproxMSM(StructuredSexual):
         super().__init__(name='msm', **kwargs)
 
     def match_pairs(self, ppl):
-        """ Match"""
+        """ Match pairs using age preferences """
 
         # Find people eligible for a relationship
         active = self.over_debut()
