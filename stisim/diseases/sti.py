@@ -16,7 +16,7 @@ __all__ = ['BaseSTI', 'SEIS']
 def count(arr): return np.count_nonzero(arr)
 def div(a, b): return sc.safedivide(a, b)
 def countdiv(a, b): return sc.safedivide(count(a), count(b))
-def cond_prob(a, b): return count(a & b) / count(b)
+def cond_prob(a, b): return sc.safedivide(count(a & b), count(b))
 
 
 # Main class
