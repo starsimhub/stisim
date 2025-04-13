@@ -12,6 +12,13 @@ from stisim.diseases.sti import BaseSTI
 __all__ = ['Syphilis', 'SyphilisPlaceholder']
 
 
+# Define some helper functions
+def count(arr): return np.count_nonzero(arr)
+def div(a, b): return sc.safedivide(a, b)
+def countdiv(a, b): return sc.safedivide(count(a), count(b))
+def cond_prob(a, b): return sc.safedivide(count(a & b), count(b))
+
+
 class SyphilisPlaceholder(ss.Disease):
     # A simple placeholder module to use when testing connectors
 
@@ -70,21 +77,21 @@ class SyphilisPlaceholder(ss.Disease):
 
 class Syphilis(BaseSTI):
 
-    def __init__(self, pars=None, init_prev_data=None, init_prev_latent_data=None, **kwargs):
-        super().__init__()
+    def __init__(self, pars=None, name='syphilis', init_prev_data=None, init_prev_latent_data=None, **kwargs):
+        super().__init__(name=name)
         self.requires = 'structuredsexual'
 
         self.define_pars(
             # Adult syphilis natural history, all specified in years
             dur_primary=ss.uniform(low=ss.dur(3, 'week'), high=ss.dur(10, 'week')),  # https://pubmed.ncbi.nlm.nih.gov/9101629/
-            dur_secondary=ss.lognorm_ex(mean=ss.dur(3.6, 'month'), sigma=ss.dur(1.5, 'month')),  # https://pubmed.ncbi.nlm.nih.gov/9101629/
-            dur_early=ss.normal(ss.dur(18, 'month'), ss.dur(2, 'month')),  # Assumption
+            dur_secondary=ss.lognorm_ex(ss.dur(3.6, 'month'), ss.dur(1.5, 'month')),  # https://pubmed.ncbi.nlm.nih.gov/9101629/
+            dur_early=ss.uniform(ss.dur(12, 'month'), ss.dur(14, 'month')),  # Assumption
             p_reactivate=ss.bernoulli(p=0.35),  # Probability of reactivating from latent to secondary
-            time_to_reactivate=ss.lognorm_ex(mean=ss.years(1), sigma=ss.years(1)),  # Time to reactivation
+            time_to_reactivate=ss.lognorm_ex(ss.years(1), ss.years(1)),  # Time to reactivation
             p_tertiary=ss.bernoulli(p=0.35),  # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4917057/
-            time_to_tertiary=ss.lognorm_ex(mean=ss.years(20), sigma=ss.years(8)),  # Time to tertiary
+            time_to_tertiary=ss.normal(ss.years(20), ss.years(2)),  # Time to tertiary
             p_death=ss.bernoulli(p=0.05),  # probability of dying of tertiary syphilis
-            time_to_death=ss.lognorm_ex(mean=ss.years(5), sigma=ss.years(5)),  # Time to death
+            time_to_death=ss.lognorm_ex(ss.years(5), ss.years(5)),  # Time to death
 
             # Transmission by stage
             beta=1.0,  # Placeholder
@@ -104,15 +111,16 @@ class Syphilis(BaseSTI):
             #   1: Neonatal death
             #   2: Stillborn
             #   3: Congenital syphilis
-            #   4: Live birth without syphilis-related complications
+            #   4: Live birth without syphilis-related complications - may be preterm or low birth weight
             # Sources:
             #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5973824/)
             #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2819963/
             birth_outcomes=sc.objdict(
-                early=ss.choice(a=5, p=np.array([0.10, 0.15, 0.10, 0.50, 0.15])), # Outcomes for babies born to mothers with primary, secondary, or early latent infection
-                late=ss.choice(a=5, p=np.array([0.05, 0.05, 0.05, 0.10, 0.75])), # Outcomes for babies born to mothers with late latent infection
+                active=ss.choice(a=5, p=np.array([0.00, 0.10, 0.20, 0.45, 0.25])),  # Outcomes for babies born to mothers with primary or secondary infection
+                early=ss.choice(a=5, p=np.array([0.00, 0.05, 0.10, 0.40, 0.45])),  # Outcomes for babies born to mothers with early latent infection
+                late=ss.choice(a=5, p=np.array([0.00, 0.00, 0.10, 0.10, 0.80])),  # Outcomes for babies born to mothers with late latent infection
             ),
-            birth_outcome_keys=['miscarriage', 'nnd', 'stillborn', 'congenital'],
+            birth_outcome_keys=['miscarriage', 'nnd', 'stillborn', 'congenital', 'normal'],
             anc_detection=0.8,
 
             # Initial conditions
@@ -149,6 +157,7 @@ class Syphilis(BaseSTI):
 
             # Congenital syphilis states
             ss.State('congenital'),
+            ss.FloatArr('cs_outcome'),
 
             # Timestep of state changes
             ss.FloatArr('ti_primary'),
@@ -162,6 +171,7 @@ class Syphilis(BaseSTI):
             ss.FloatArr('ti_nnd'),
             ss.FloatArr('ti_stillborn'),
             ss.FloatArr('ti_congenital'),
+            ss.FloatArr('ti_normal'),
         )
 
         return
@@ -173,6 +183,16 @@ class Syphilis(BaseSTI):
     @staticmethod
     def make_init_prev_latent_fn(module, sim, uids):
         return sti.make_init_prev_fn(module, sim, uids, active=True, data=module.init_prev_latent_data)
+
+    @property
+    def exposed(self):
+        """ Default is that exposure equals infection """
+        return self.infected
+
+    @property
+    def ti_exposed(self):
+        """ Alias for ti_infected """
+        return self.ti_infected
 
     @property
     def naive(self):
@@ -217,6 +237,7 @@ class Syphilis(BaseSTI):
             ss.Result('n_active', dtype=int, label="Number of active cases"),
             ss.Result('pregnant_prevalence', dtype=float, scale=False, label="Pregnant prevalence"),
             ss.Result('detected_pregnant_prevalence', dtype=float, scale=False, label="ANC prevalence"),
+            ss.Result('delivery_prevalence', dtype=float, scale=False, label="Delivery prevalence"),
             ss.Result('active_prevalence', dtype=float, scale=False, label="Active prevalence"),
             ss.Result('new_nnds', dtype=int, label="Neonatal deaths"),
             ss.Result('new_stillborns', dtype=int, label="Stillbirths"),
@@ -226,19 +247,27 @@ class Syphilis(BaseSTI):
             ss.Result('cum_congenital_deaths', dtype=int, label="Cumulative congenital deaths"),
             ss.Result('new_deaths', dtype=int, label="Deaths"),
 
-            # Add overall testing and treatment results, which might be assembled from numerous interventions
-            ss.Result('new_false_pos', dtype=int, label="False positives"),
-            ss.Result('new_true_pos', dtype=int, label="True positives"),
-            ss.Result('new_false_neg', dtype=int, label="False negatives"),
-            ss.Result('new_true_neg', dtype=int, label="True negatives"),
-            ss.Result('new_treated_success', dtype=int, label="Treatment success"),
-            ss.Result('new_treated_failure', dtype=int, label="Treatment failure"),
-            ss.Result('new_treated_unnecessary', dtype=int, label="Overtreatment"),
-            ss.Result('new_treated', dtype=int, label="Treatments"),
+            # Add fetus testing and treatment results, which might be assembled from numerous interventions
             ss.Result('new_fetus_treated_success', dtype=int, label="Fetal treatment success"),
             ss.Result('new_fetus_treated_unnecessary', dtype=int, label="Fetal overtreatment"),
             ss.Result('new_fetus_treated_failure', dtype=int, label="Fetal treatment failure"),
         ]
+
+        # Most results are stored by age and sex
+        for sk in self.sex_keys.keys():
+            skk = '' if sk == '' else f'_{sk}'
+            skl = '' if sk == '' else f' ({sk.upper()})'
+            if skk != '':
+                results += [
+                    ss.Result(f'active_prevalence{skk}', scale=False, label=f"Active prevalence{skl}"),
+                ]
+
+            for ab1,ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
+                ask = f'{skk}_{ab1}_{ab2}'
+                asl = f' ({skl}, {ab2}-{ab2})'
+                results += [
+                    ss.Result(f'active_prevalence{ask}', scale=False, label=f"Active prevalence{asl}"),
+                ]
 
         # Add FSW and clients to results:
         if self.store_sw:
@@ -339,18 +368,13 @@ class Syphilis(BaseSTI):
         res = self.results
         ppl = self.sim.people
 
-        def cond_prob(num, denom):
-            n_num = np.count_nonzero(num & denom)
-            n_denom = np.count_nonzero(denom)
-            return sc.safedivide(n_num, n_denom)
-
         n_active = res['n_primary'][ti] + res['n_secondary'][ti]
         adults = (ppl.age >= 15) & (ppl.age < 50)
         sexually_active_adults = adults & self.sim.networks.structuredsexual.active(self.sim.people)
 
         # Overwrite prevalence so we're always storing prevalence of syphilis among sexually active adults
         self.results['prevalence'][ti] = cond_prob(self.infected, sexually_active_adults)
-        self.results['active_prevalence'][ti] = cond_prob(self.active, sexually_active_adults)
+        # self.results['active_prevalence'][ti] = cond_prob(self.active, sexually_active_adults)
         self.results['n_active'][ti] = n_active
 
         # Pregnant women prevalence, if present
@@ -358,12 +382,16 @@ class Syphilis(BaseSTI):
             preg_prev = cond_prob(self.infected, ppl.pregnancy.pregnant)
             self.results['pregnant_prevalence'][ti] = preg_prev
             self.results['detected_pregnant_prevalence'][ti] = preg_prev * self.pars.anc_detection
+            deliv_prev = cond_prob(self.infected, ppl.pregnancy.ti_delivery == ti)
+            self.results['delivery_prevalence'][ti] = deliv_prev
 
         # Congenital results
         self.results['new_nnds'][ti]       = np.count_nonzero(self.ti_nnd == ti)
         self.results['new_stillborns'][ti] = np.count_nonzero(self.ti_stillborn == ti)
         self.results['new_congenital'][ti] = np.count_nonzero(self.ti_congenital == ti)
-        self.results['new_congenital_deaths'][ti] = self.results['new_nnds'][ti] + self.results['new_stillborns'][ti]
+        self.results['new_congenital_deaths'][ti] = self.results['new_nnds'][ti] #  + self.results['new_stillborns'][ti]
+        # if self.results['new_congenital_deaths'][ti]>0:
+        #     print('hi')
         self.results['new_deaths'][ti] = np.count_nonzero(self.ti_dead == ti)
 
         # Add FSW and clients to results:
@@ -387,12 +415,30 @@ class Syphilis(BaseSTI):
                         self.results['prevalence_risk_group_' + str(risk_group) + '_' + sex][ti] = cond_prob(self.infected, prev_denom)
                         self.results['new_infections_risk_group_' + str(risk_group) + '_' + sex][ti] = np.count_nonzero(risk_group_new_inf)
 
+        # Results by age and sex
+        for pkey, pattr in self.sex_keys.items():
+            skk = '' if pkey == '' else f'_{pkey}'
+
+            n_act = self.active & ppl[pattr]
+            self.results[f'active_prevalence{skk}'][ti] = cond_prob(self.active, adults & ppl[pattr])
+
+            # Compute age results
+            age_results = dict(active_prevalence = div(self.agehist(n_act), self.agehist(ppl[pattr])))
+
+            # Store age results
+            for akey, ares in age_results.items():
+                ai = 0
+                for ab1, ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
+                    ask = f'{skk}_{ab1}_{ab2}'
+                    self.results[f'{akey}{ask}'][ti] = ares[ai]
+                    ai += 1
+
         return
 
     def finalize_results(self):
         super().finalize_results()
-        self.results['cum_congenital'] = np.cumsum(self.results['new_congenital'])
-        self.results['cum_congenital_deaths'] = np.cumsum(self.results['new_congenital_deaths'])
+        self.results['cum_congenital'][:] = np.cumsum(self.results['new_congenital'])
+        self.results['cum_congenital_deaths'][:] = np.cumsum(self.results['new_congenital_deaths'])
         return
 
     def set_latent_trans(self, ti=None):
@@ -408,6 +454,7 @@ class Syphilis(BaseSTI):
         """
         Set initial prognoses for adults newly infected with syphilis
         """
+
         if ti is None:
             ti = self.ti
         else:
@@ -415,7 +462,11 @@ class Syphilis(BaseSTI):
             if not (sc.isnumber(ti) or len(ti) == len(uids)):
                 errormsg = 'ti for set_prognoses must be int or array of length uids'
                 raise ValueError(errormsg)
-                
+
+        # Call super method, which records transmissions
+        super().set_prognoses(uids, source_uids)
+
+        # Set initial states upon exposure
         self.susceptible[uids] = False
         self.ever_exposed[uids] = True
         self.primary[uids] = True
@@ -467,29 +518,50 @@ class Syphilis(BaseSTI):
         Natural history of syphilis for congenital infection
         """
         ti = self.ti
+        self.susceptible[target_uids] = False
+        birth_outcome_keys=['miscarriage', 'nnd', 'stillborn', 'congenital', 'normal'],
+        new_outcomes = {k:0 for k in self.pars.birth_outcome_keys}
 
         # Determine outcomes
-        for state in ['early', 'late']:
+        for state in ['active', 'early', 'late']:
 
             source_state_inds = getattr(self, state)[source_uids].nonzero()[-1]
             uids = target_uids[source_state_inds]
+            source_state_uids = source_uids[source_state_inds]
 
             if len(uids) > 0:
 
                 # Birth outcomes must be modified to add probability of susceptible birth
                 birth_outcomes = self.pars.birth_outcomes[state]
                 assigned_outcomes = birth_outcomes.rvs(uids)
+                self.cs_outcome[uids] = assigned_outcomes
                 ages = self.sim.people.age
+                timesteps_til_delivery = self.sim.demographics.pregnancy.ti_delivery - self.ti
 
                 # Schedule events
                 for oi, outcome in enumerate(self.pars.birth_outcome_keys):
+                    m_uids = source_state_uids[assigned_outcomes == oi]
                     o_uids = uids[assigned_outcomes == oi]
                     if len(o_uids) > 0:
                         ti_outcome = f'ti_{outcome}'
                         vals = getattr(self, ti_outcome)
-                        vals[o_uids] = ti + rr(-ages[o_uids])
+                        vals[o_uids] = ti + timesteps_til_delivery[m_uids]
 
                         setattr(self, ti_outcome, vals)
+                        new_outcomes[outcome] += len(o_uids)
+
+        # Check that the birth outcomes are mutually exclusive
+        if not sum(new_outcomes.values()) == len(target_uids):
+            raise ValueError('Birth outcomes are not mutually exclusive')
+
+        # Check that the birth outcomes are not greater than the number of congenital cases
+        for o1, out1 in enumerate(self.pars.birth_outcome_keys):
+            for o2, out2 in enumerate(self.pars.birth_outcome_keys):
+                if o1 != o2:
+                    val1 = getattr(self, f'ti_{out1}')
+                    val2 = getattr(self, f'ti_{out2}')
+                    if (val1.notnan & val2.notnan).any() :
+                        raise ValueError(f'Birth outcomes {out1} and {out2} are not mutually exclusive')
 
         return
 

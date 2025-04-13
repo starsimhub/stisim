@@ -28,37 +28,20 @@ class SyphTx(STITreatment):
         self.define_pars(
             rel_treat_prob=1,
             treat_prob=ss.bernoulli(p=1),
-            treat_eff=ss.bernoulli(p=0.95),
+            treat_eff=ss.bernoulli(p=.98),
+            fetus_treat_eff=ss.bernoulli(p=.98),
             fetus_age_cutoff_treat_eff=-0.25,  # Reduced treatment efficacy for fetuses in the last trimester
-            treat_eff_reduced=ss.bernoulli(p=0.2)  # Reduced efficacy for fetuses older than cut off
+            treat_eff_reduced=ss.bernoulli(p=.75)  # Reduced efficacy for fetuses older than cut off
         )
         self.update_pars(pars, **kwargs)
         return
-
-    def administer(self, sim, uids, disease='syphilis', return_format='dict'):
-        """ Administer treatment, keeping track of unnecessarily treated individuals """
-
-        inf = sim.diseases[disease].infected
-        sus = sim.diseases[disease].susceptible
-        inf_uids = uids[inf[uids]]
-        sus_uids = uids[sus[uids]]
-
-        successful = self.pars.treat_eff.filter(inf_uids)
-        unsuccessful = np.setdiff1d(inf_uids, successful)
-        unnecessary = sus_uids
-
-        # Return outcomes
-        if return_format == 'dict':
-            output = {'successful': successful, 'unsuccessful': unsuccessful, 'unnecessary': unnecessary}
-        elif return_format == 'array':
-            output = successful
-
-        return output
 
     def change_states(self, disease, treat_succ):
         """ Change the states of people who are treated """
         self.sim.diseases[disease].primary[treat_succ] = False
         self.sim.diseases[disease].secondary[treat_succ] = False
+        self.sim.diseases[disease].early[treat_succ] = False
+        self.sim.diseases[disease].late[treat_succ] = False
         self.sim.diseases[disease].latent[treat_succ] = False
         self.sim.diseases[disease].tertiary[treat_succ] = False
         self.sim.diseases[disease].ti_primary[treat_succ] = np.nan
@@ -84,7 +67,7 @@ class SyphTx(STITreatment):
         treat_gt_cutoff = self.pars.treat_eff_reduced.filter(fetus_gt_cutoff)
 
         # Treat fetuses below cutoff age (e.g. in the first two trimesters)
-        treat_st_cutoff = self.pars.treat_eff.filter(fetus_st_cutoff)
+        treat_st_cutoff = self.pars.fetus_treat_eff.filter(fetus_st_cutoff)
 
         # Combine
         treat_uids = treat_gt_cutoff.concat(treat_st_cutoff)
@@ -102,11 +85,12 @@ class SyphTx(STITreatment):
 
             # Change states
             for oi, outcome in enumerate(birth_outcomes):
-                ti_outcome = f'ti_{outcome}'
-                vals = getattr(sim.diseases.syphilis, ti_outcome)
-                successful_uids = treat_uids & vals.notnan.uids
-                vals[successful_uids] = np.nan
-                setattr(sim.diseases.syphilis, ti_outcome, vals)
+                if outcome != 'normal':
+                    ti_outcome = f'ti_{outcome}'
+                    vals = getattr(sim.diseases.syphilis, ti_outcome)
+                    successful_uids = treat_uids & vals.notnan.uids
+                    vals[successful_uids] = np.nan
+                    setattr(sim.diseases.syphilis, ti_outcome, vals)
 
                 # Store results - Success
                 sim.diseases.syphilis.results['new_fetus_treated_success'][self.ti] += len(successful_uids)
@@ -129,6 +113,14 @@ class SyphTx(STITreatment):
 
 
 class NewbornTreatment(SyphTx):
+
+    def __init__(self, pars=None, eligibility=None, max_capacity=None, years=None, name=None, *args, **kwargs):
+        super().__init__(name=name, eligibility=eligibility, max_capacity=max_capacity, years=years, *args)
+        self.define_pars(
+            by_sex=False,
+        )
+        self.update_pars(pars, **kwargs)
+        return
 
     def change_states(self, disease, treat_succ):
         """ Change states of congenital cases """
@@ -159,9 +151,9 @@ class NewbornTreatment(SyphTx):
 class SyphTest(STITest):
     """ Base class for syphilis tests """
     def __init__(self, test_prob_data=None, years=None, start=None, stop=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
-        super().__init__(test_prob_data=test_prob_data, years=years, start=start, stop=stop, eligibility=eligibility, product=product, name=name, label=label, **kwargs)
+        super().__init__(test_prob_data=test_prob_data, years=years, start=start, stop=stop, eligibility=eligibility, product=product, name=name, label=label)
         self.define_pars(
-            linked=True,
+            dt_scale=True,
         )
         self.update_pars(pars, **kwargs)
         # Store optional newborn test intervention
@@ -213,8 +205,8 @@ class SyphTest(STITest):
 
         # Scale and validate
         test_prob = test_prob * self.pars.rel_test
-        if not self.pars.linked:
-            test_prob = test_prob * self.dt
+        if self.pars.dt_scale:
+            test_prob = test_prob * self.t.dt
         test_prob = np.clip(test_prob, a_min=0, a_max=1)
 
         return test_prob
@@ -273,10 +265,10 @@ class ANCSyphTest(SyphTest):
     def __init__(self, test_prob_data=None, years=None, start=None, stop=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
         super().__init__(test_prob_data=test_prob_data, years=years, start=start, stop=stop, eligibility=eligibility, product=product, name=name, label=label, **kwargs)
         self.define_pars(
-            linked=True,
+            dt_scale=False,
         )
         self.update_pars(pars, **kwargs)
-        self.test_timing = ss.randint(1, 9)
+        self.test_timing = ss.randint(1, 8)
         if self.eligibility is None:
             self.eligibility = lambda sim: sim.demographics.pregnancy.pregnant
         return
@@ -288,7 +280,7 @@ class ANCSyphTest(SyphTest):
     def schedule_tests(self):
         """ Schedule a test for newly pregnant women """
         sim = self.sim
-        newly_preg = (sim.demographics.pregnancy.ti_pregnant == self.ti).uids
+        newly_preg = (sim.demographics.pregnancy.ti_pregnant == (self.ti)).uids
         self.test_prob.pars['p'] = self.make_test_prob_fn(self, sim, newly_preg)
         will_test = self.test_prob.filter(newly_preg)
         ti_test = self.ti + self.test_timing.rvs(will_test)
@@ -296,7 +288,8 @@ class ANCSyphTest(SyphTest):
 
     def step(self):
         self.schedule_tests()  # Check for newly pregnant women so they can be added to the schedule
-        return super().step()
+        super().step()
+        return
 
 
 class NewbornSyphTest(SyphTest):

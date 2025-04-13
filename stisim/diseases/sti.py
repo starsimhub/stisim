@@ -16,7 +16,7 @@ __all__ = ['BaseSTI', 'SEIS']
 def count(arr): return np.count_nonzero(arr)
 def div(a, b): return sc.safedivide(a, b)
 def countdiv(a, b): return sc.safedivide(count(a), count(b))
-def cond_prob(a, b): return count(a & b) / count(b)
+def cond_prob(a, b): return sc.safedivide(count(a & b), count(b))
 
 
 # Main class
@@ -29,6 +29,7 @@ class BaseSTI(ss.Infection):
         super().__init__(name=name)
         self.requires = 'structuredsexual'
         self.define_pars(
+            include_care=True,  # Determines whether testing results are included
             unit='month',
             beta=0,  # Placeholder: no transmission. This will be set in validate_beta
             eff_condom=1,
@@ -47,6 +48,11 @@ class BaseSTI(ss.Infection):
         if init_prev_data is not None:
             self.pars.init_prev = ss.bernoulli(self.make_init_prev_fn)
 
+        # Results
+        self.age_range = [15, 50]  # Age range for main results e.g. prevalence
+        self.age_bins = np.array([0, 15, 25, 35, 50, 100])  # Age bins for results
+        self.sex_keys = {'': 'alive', 'f': 'female', 'm': 'male'}
+
         return
 
     @staticmethod
@@ -61,6 +67,65 @@ class BaseSTI(ss.Infection):
         if self.pars.beta_m2c is not None and betamap and 'maternal' in betamap.keys():
             betamap['maternal'][0] = ss.beta(self.pars.beta_m2c, 'month').init(parent=self.sim.t)
         return betamap
+
+    def agehist(self, a):
+        """ Return an age histogram """
+        aa = self.sim.people.age[a]
+        return np.histogram(aa, bins=self.age_bins)[0]
+
+    @property
+    def treatable(self):
+        """ Assume infected people are treatable, can be overwritten in subclasses """
+        return self.infected
+
+    def init_results(self):
+        """ Initialize results """
+        super().init_results()
+        results = sc.autolist()
+
+        # Most results are stored by age and sex
+        for sk in self.sex_keys.keys():
+            skk = '' if sk == '' else f'_{sk}'
+            skl = '' if sk == '' else f' ({sk.upper()})'
+            results += [
+                ss.Result(f'incidence{skk}', scale=False, label=f"Incidence{skl}"),
+            ]
+            if skk != '':
+                results += [
+                    ss.Result(f'new_infections{skk}', dtype=int, label=f"New infections{skl}"),
+                    ss.Result(f'prevalence{skk}', scale=False, label=f"Prevalence{skl}"),
+                    ss.Result(f'n_infected{skk}', dtype=int, label=f"Number infected{skl}"),
+                ]
+
+            for ab1,ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
+                ask = f'{skk}_{ab1}_{ab2}'
+                asl = f' ({skl}, {ab2}-{ab2})'
+                results += [
+                    ss.Result(f'new_infections{ask}', dtype=int, label=f"New infections{asl}"),
+                    ss.Result(f'n_infected{ask}', dtype=int, label=f"Number infected{asl}"),
+                    ss.Result(f'incidence{ask}', scale=False, label=f"Incidence{asl}"),
+                    ss.Result(f'prevalence{ask}', scale=False, label=f"Prevalence{asl}"),
+                ]
+
+        if self.pars.include_care:
+            for sk in self.sex_keys.keys():
+                skk = '' if sk == '' else f'_{sk}'
+                skl = '' if sk == '' else f' ({sk.upper()})'
+                results += [
+                    ss.Result('new_care_seekers'+skk, dtype=int, label="New care seekers"+skl),
+                    ss.Result('new_false_pos'+skk, dtype=int, label="New false positives"+skl),
+                    ss.Result('new_true_pos'+skk, dtype=int, label="New true positives"+skl),
+                    ss.Result('new_false_neg'+skk, dtype=int, label="New false negatives"+skl),
+                    ss.Result('new_true_neg'+skk, dtype=int, label="New true negatives"+skl),
+                    ss.Result('new_treated_success'+skk, dtype=int, label="Successful treatments"+skl),
+                    ss.Result('new_treated_failure'+skk, dtype=int, label="Unsuccessful treatments"+skl),
+                    ss.Result('new_treated_unnecessary'+skk, dtype=int, label="Unnecessary treatments"+skl),
+                    ss.Result('new_treated'+skk, dtype=int, label="Treatments"+skl),
+                ]
+
+        self.define_results(*results)
+
+        return
 
     def infect(self):
         """ Determine who gets infected on this timestep via transmission on the network """
@@ -121,14 +186,51 @@ class BaseSTI(ss.Infection):
             self.cum_transmissions[unique_sources] += counts
         return
 
+    def update_results(self):
+        super().update_results()
+        ti = self.ti
+        ppl = self.sim.people
+
+        adults = (self.sim.people.age >= self.age_range[0]) & (self.sim.people.age <= self.age_range[1])
+
+        # Main results, looping over people keys and attributes
+        for pkey, pattr in self.sex_keys.items():
+            skk = '' if pkey == '' else f'_{pkey}'
+
+            # Collate results
+            new_inf = (self.ti_infected == ti) & ppl[pattr]
+            n_sus = self.susceptible & ppl[pattr]
+            n_inf = self.infected & ppl[pattr]
+
+            # Store main results
+            self.results[f'prevalence{skk}'][ti] = cond_prob(self.infected, adults & ppl[pattr])
+            self.results[f'new_infections{skk}'][ti] = count(new_inf)
+            self.results[f'n_infected{skk}'][ti] = count(n_inf)
+            self.results[f'incidence{skk}'][ti] = countdiv(new_inf, n_sus)
+
+            # Compute age results
+            age_results = dict(
+                new_infections  = self.agehist(new_inf),
+                n_infected      = self.agehist(n_inf),
+                incidence       = div(self.agehist(new_inf), self.agehist(n_sus)),
+                prevalence      = div(self.agehist(n_inf), self.agehist(ppl[pattr])),
+            )
+
+            # Store age results
+            for akey, ares in age_results.items():
+                ai = 0
+                for ab1, ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
+                    ask = f'{skk}_{ab1}_{ab2}'
+                    self.results[f'{akey}{ask}'][ti] = ares[ai]
+                    ai += 1
+        return
+
+
 class SEIS(BaseSTI):
 
     def __init__(self, pars=None, name=None, init_prev_data=None, **kwargs):
         super().__init__(name=name, init_prev_data=init_prev_data)
         self.define_pars(
-            # Settings
-            include_care=True,  # Determines whether testing results are included
-
             # Natural history
             dur_exp=ss.constant(ss.dur(1, 'week')),  # Initial latent period: how long after exposure before you can infect others
 
@@ -200,17 +302,10 @@ class SEIS(BaseSTI):
             ss.FloatArr('ti_clearance'),
         )
 
-        # Results
-        self.age_range = [15, 65]  # Age range for main results
+        self.age_range = [15, 65]  # Age range for main results e.g. prevalence
         self.age_bins = np.array([0, 15, 20, 25, 30, 35, 50, 65, 100])  # Age bins for results
-        self.sex_keys = {'': 'alive', 'f': 'female', 'm': 'male'}
 
         return
-
-    def agehist(self, a):
-        """ Return an age histogram """
-        aa = self.sim.people.age[a]
-        return np.histogram(aa, bins=self.age_bins)[0]
 
     @property
     def treatable(self):
@@ -228,14 +323,10 @@ class SEIS(BaseSTI):
             skl = '' if sk == '' else f' ({sk.upper()})'
             results += [
                 ss.Result(f'new_symptomatic{skk}', dtype=int, label=f"New symptomatic{skl}"),
-                ss.Result(f'incidence{skk}', scale=False, label=f"Incidence{skl}"),
                 ss.Result(f'symp_prevalence{skk}', scale=False, label=f"Symptomatic prevalence{skl}"),
             ]
             if skk != '':
                 results += [
-                    ss.Result(f'new_infections{skk}', dtype=int, label=f"New infections{skl}"),
-                    ss.Result(f'prevalence{skk}', scale=False, label=f"Prevalence{skl}"),
-                    ss.Result(f'n_infected{skk}', dtype=int, label=f"Number infected{skl}"),
                     ss.Result(f'n_symptomatic{skk}', dtype=int, label=f"Number symptomatic{skl}"),
                 ]
 
@@ -243,28 +334,8 @@ class SEIS(BaseSTI):
                 ask = f'{skk}_{ab1}_{ab2}'
                 asl = f' ({skl}, {ab2}-{ab2})'
                 results += [
-                    ss.Result(f'new_infections{ask}', dtype=int, label=f"New infections{asl}"),
-                    ss.Result(f'n_infected{ask}', dtype=int, label=f"Number infected{asl}"),
                     ss.Result(f'new_symptomatic{ask}', dtype=int, label=f"New symptomatic{asl}"),
-                    ss.Result(f'incidence{ask}', scale=False, label=f"Incidence{asl}"),
-                    ss.Result(f'prevalence{ask}', scale=False, label=f"Prevalence{asl}"),
                     ss.Result(f'symp_prevalence{ask}', scale=False, label=f"Symptomatic prevalence{asl}"),
-                ]
-
-        if self.pars.include_care:
-            for sk in self.sex_keys.keys():
-                skk = '' if sk == '' else f'_{sk}'
-                skl = '' if sk == '' else f' ({sk.upper()})'
-                results += [
-                    ss.Result('new_care_seekers'+skk, dtype=int, label="New care seekers"+skl),
-                    ss.Result('new_false_pos'+skk, dtype=int, label="New false positives"+skl),
-                    ss.Result('new_true_pos'+skk, dtype=int, label="New true positives"+skl),
-                    ss.Result('new_false_neg'+skk, dtype=int, label="New false negatives"+skl),
-                    ss.Result('new_true_neg'+skk, dtype=int, label="New true negatives"+skl),
-                    ss.Result('new_treated_success'+skk, dtype=int, label="Successful treatments"+skl),
-                    ss.Result('new_treated_failure'+skk, dtype=int, label="Unsuccessful treatments"+skl),
-                    ss.Result('new_treated_unnecessary'+skk, dtype=int, label="Unnecessary treatments"+skl),
-                    ss.Result('new_treated'+skk, dtype=int, label="Treatments"+skl),
                 ]
 
         self.define_results(*results)
@@ -343,28 +414,17 @@ class SEIS(BaseSTI):
             skk = '' if pkey == '' else f'_{pkey}'
 
             # Collate results
-            new_inf = (self.ti_infected == ti) & ppl[pattr]
             new_sym = (self.ti_symptomatic == ti) & ppl[pattr]
-            n_sus = self.susceptible & ppl[pattr]
-            n_inf = self.infected & ppl[pattr]
             n_sym = self.symptomatic & ppl[pattr]
 
             # Store main results
-            self.results[f'prevalence{skk}'][ti] = cond_prob(self.infected, adults & ppl[pattr])
             self.results[f'symp_prevalence{skk}'][ti] = count(self.symptomatic & adults & ppl[pattr]) / count(adults & ppl[pattr])
-            self.results[f'new_infections{skk}'][ti] = count(new_inf)
             self.results[f'new_symptomatic{skk}'][ti] = count(new_sym)
-            self.results[f'n_infected{skk}'][ti] = count(n_inf)
             self.results[f'n_symptomatic{skk}'][ti] = count(n_sym)
-            self.results[f'incidence{skk}'][ti] = countdiv(new_inf, n_sus)
 
             # Compute age results
             age_results = dict(
-                new_infections  = self.agehist(new_inf),
-                n_infected      = self.agehist(n_inf),
                 new_symptomatic = self.agehist(new_sym),
-                incidence       = div(self.agehist(new_inf), self.agehist(n_sus)),
-                prevalence      = div(self.agehist(n_inf), self.agehist(ppl[pattr])),
                 symp_prevalence = div(self.agehist(n_sym), self.agehist(ppl[pattr]))
             )
 

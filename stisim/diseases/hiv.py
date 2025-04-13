@@ -436,6 +436,10 @@ class HIV(BaseSTI):
         """
         super().update_results()
         ti = self.ti
+
+        # Recalculate prevalence so it's for the whole population - the STI module calculates it for adults
+        self.results[f'prevalence'][ti] = sum(self.infected) / len(self.infected)
+
         self.results['new_deaths'][ti] = np.count_nonzero(self.ti_dead == ti)
         self.results['cum_deaths'][ti] = np.sum(self.results['new_deaths'][:ti + 1])
         self.results['new_diagnoses'][ti] = np.count_nonzero(self.ti_diagnosed == ti)
