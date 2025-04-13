@@ -389,9 +389,7 @@ class Syphilis(BaseSTI):
         self.results['new_nnds'][ti]       = np.count_nonzero(self.ti_nnd == ti)
         self.results['new_stillborns'][ti] = np.count_nonzero(self.ti_stillborn == ti)
         self.results['new_congenital'][ti] = np.count_nonzero(self.ti_congenital == ti)
-        self.results['new_congenital_deaths'][ti] = self.results['new_nnds'][ti] #  + self.results['new_stillborns'][ti]
-        # if self.results['new_congenital_deaths'][ti]>0:
-        #     print('hi')
+        self.results['new_congenital_deaths'][ti] = self.results['new_nnds'][ti] + self.results['new_stillborns'][ti]
         self.results['new_deaths'][ti] = np.count_nonzero(self.ti_dead == ti)
 
         # Add FSW and clients to results:
