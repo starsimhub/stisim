@@ -32,6 +32,10 @@ class BaseSTI(ss.Infection):
             include_care=True,  # Determines whether testing results are included
             unit='month',
             beta=0,  # Placeholder: no transmission. This will be set in validate_beta
+            beta_m2f=None,
+            rel_beta_f2m=0.5,
+            beta_m2c=None,
+            beta_m2m=None,
             eff_condom=1,
             rel_init_prev=1,
         )
