@@ -562,7 +562,7 @@ class FastStructuredSexual(StructuredSexual):
 
 class AgeMatchedMSM(StructuredSexual):
 
-    def __init__(self, **kwargs):
+    def __init__(self, pars=None, **kwargs):
         super().__init__(name='msm')
         self.define_pars(
             msm_share=0.015,
