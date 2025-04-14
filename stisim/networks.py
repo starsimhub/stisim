@@ -565,7 +565,7 @@ class AgeMatchedMSM(StructuredSexual):
     def __init__(self, pars=None, **kwargs):
         super().__init__(name='msm')
         self.define_pars(
-            msm_share=0.015,
+            msm_share=ss.bernoulli(p=0.015),
         )
         self.update_pars(pars=pars, **kwargs)
 
@@ -577,7 +577,7 @@ class AgeMatchedMSM(StructuredSexual):
 
     def set_msm(self, upper_age=None):
         _, m_uids = self._get_uids(upper_age=upper_age)
-        self.participant[m_uids] = self.pars.msm_shares.rvs(m_uids)
+        self.participant[m_uids] = self.pars.msm_share.rvs(m_uids)
         return
 
     def match_pairs(self, ppl):
