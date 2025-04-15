@@ -172,7 +172,7 @@ class SyphTest(STITest):
             df = df.pivot(columns='year', values='symp_test_prob')
             dd = df.to_dict(orient='index')
             for group, vals in dd.items():
-                dd[group] = sc.smoothinterp(sim.timevec, list(vals.keys()), list(vals.values()), smoothness=0)
+                dd[group] = sc.smoothinterp(self.t.yearvec, list(vals.keys()), list(vals.values()), smoothness=0)
             return dd
         else: return self.test_prob_data
 
@@ -185,7 +185,7 @@ class SyphTest(STITest):
         elif isinstance(self.test_prob_data, TimeSeries):
             test_prob = self.test_prob_data.interpolate(sim.now)
         elif sc.checktype(self.test_prob_data, 'arraylike'):
-            year_ind = sc.findnearest(self.years, sim.now)
+            year_ind = sc.findnearest(self.years, self.t.now('year'))
             test_prob = self.test_prob_data[year_ind]
         elif isinstance(self.test_prob_data, dict):
             test_prob = pd.Series(index=uids)
@@ -214,7 +214,11 @@ class SyphTest(STITest):
     def step(self, uids=None):
         super().step(uids=uids)
         sim = self.sim
-        if (sim.now >= self.start) & (sim.now < self.stop):
+
+        after_start = (self.t.now('year') >= self.start)
+        before_stop = (self.t.now('year') < self.stop)
+
+        if (after_start & before_stop):
             # Schedule newborn tests if the mother is positive
             if self.newborn_test is not None:
                 new_pos = self.ti_positive == self.ti

@@ -116,8 +116,8 @@ class STITest(ss.Intervention):
 
     def init_pre(self, sim):
         super().init_pre(sim)
-        if self.start is None: self.start = sim.pars.start
-        if self.stop is None: self.stop = sim.pars.stop
+        if self.start is None: self.start = sim.t.yearvec[0]
+        if self.stop is None: self.stop = sim.t.yearvec[-1]
         return
 
     def init_results(self):
@@ -135,7 +135,7 @@ class STITest(ss.Intervention):
             test_prob = self.test_prob_data
 
         elif sc.checktype(self.test_prob_data, 'arraylike'):
-            year_ind = sc.findnearest(self.years, sim.now)
+            year_ind = sc.findnearest(self.years, self.t.now('year'))
             test_prob = self.test_prob_data[year_ind]
         else:
             errormsg = 'Format of test_prob_data must be float or array.'
@@ -171,7 +171,9 @@ class STITest(ss.Intervention):
         self.last_outcomes = outcomes
 
         # Apply if within the start years
-        if (sim.now >= self.start) & (sim.now < self.stop):
+        after_start = (self.t.now('year') >= self.start)
+        before_stop = (self.t.now('year') < self.stop)
+        if (after_start & before_stop):
 
             if uids is None:
                 uids = self.get_testers(sim)
@@ -643,7 +645,7 @@ class ProductMix(ss.Product):
 
     def init_pre(self, sim):
         super().init_pre(sim)
-        self.product_mix = self.f_out(sim.timevec)
+        self.product_mix = self.f_out(self.t.yearvec)
 
     def administer(self, sim, uids):
         """

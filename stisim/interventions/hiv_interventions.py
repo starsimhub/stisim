@@ -74,7 +74,7 @@ class ART(ss.Intervention):
                 raise ValueError(errormsg)
             colname = data.columns[0]
             self.coverage_format = colname
-            self.coverage = sc.smoothinterp(self.timevec, data.index.values, data[colname].values)
+            self.coverage = sc.smoothinterp(self.t.yearvec, data.index.values, data[colname].values)
         self.initialized = True
         return
 
@@ -87,7 +87,7 @@ class ART(ss.Intervention):
         inf_uids = hiv.infected.uids
 
         # Figure out how many people should be treated
-        if sim.now < self.pars.future_coverage['year']:
+        if self.t.now('year') < self.pars.future_coverage['year']:
             if self.coverage is None:
                 n_to_treat = 0
             else:
@@ -217,7 +217,7 @@ class VMMC(ss.Intervention):
                 raise ValueError(errormsg)
             colname = data.columns[0]
             self.coverage_format = colname
-            self.coverage = sc.smoothinterp(self.timevec, data.index.values, data[colname].values)
+            self.coverage = sc.smoothinterp(self.t.yearvec, data.index.values, data[colname].values)
 
         return
 
@@ -234,7 +234,7 @@ class VMMC(ss.Intervention):
         m_uids = sim.people.male.uids
 
         # Figure out how many people should be circumcised
-        if sim.now < self.pars.future_coverage['year']:
+        if self.t.now('year') < self.pars.future_coverage['year']:
             if self.coverage is None:
                 n_to_circ = 0
             else:
@@ -284,7 +284,7 @@ class Prep(ss.Intervention):
 
     def step(self):
         sim = self.sim
-        self.coverage = np.interp(self.timevec, self.pars.years, self.pars.coverage)
+        self.coverage = np.interp(self.t.yearvec, self.pars.years, self.pars.coverage)
         if self.coverage[self.ti] > 0:
             self.pars.coverage_dist.set(p=self.coverage[self.ti])
             el_fsw = self.sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected & ~self.on_prep
