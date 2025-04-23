@@ -185,8 +185,10 @@ class SyphTest(STITest):
         elif isinstance(self.test_prob_data, TimeSeries):
             test_prob = self.test_prob_data.interpolate(sim.now)
         elif sc.checktype(self.test_prob_data, 'arraylike'):
-            year_ind = sc.findnearest(self.years, self.t.now('year'))
-            test_prob = self.test_prob_data[year_ind]
+            # year_ind = sc.findnearest(self.years, self.t.now('year'))
+            # self.test_prob_data[year_ind]
+            all_vals = sc.smoothinterp(self.t.yearvec, self.years, self.test_prob_data, smoothness=0)
+            test_prob = all_vals[self.ti]
         elif isinstance(self.test_prob_data, dict):
             test_prob = pd.Series(index=uids)
             n_risk_groups = sim.networks.structuredsexual.pars.n_risk_groups
@@ -206,7 +208,7 @@ class SyphTest(STITest):
         # Scale and validate
         test_prob = test_prob * self.pars.rel_test
         if self.pars.dt_scale:
-            test_prob = test_prob * self.t.dt
+            test_prob = test_prob * self.t.dt_year
         test_prob = np.clip(test_prob, a_min=0, a_max=1)
 
         return test_prob

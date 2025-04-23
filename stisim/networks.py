@@ -223,7 +223,7 @@ class StructuredSexual(ss.SexualNetwork):
     def _get_uids(self, upper_age=None, by_sex=True):
         people = self.sim.people
         if upper_age is None: upper_age = 1000
-        within_age = people.age < upper_age
+        within_age = people.age <= upper_age
         if by_sex:
             f_uids = (within_age & people.female).uids
             m_uids = (within_age & people.male).uids
@@ -515,7 +515,7 @@ class StructuredSexual(ss.SexualNetwork):
 
     def step(self):
         self.end_pairs()
-        self.set_network_states(upper_age=self.t.dt)
+        self.set_network_states(upper_age=self.t.dt_year)
         self.add_pairs()
         self.set_condom_use()
 
