@@ -83,7 +83,7 @@ class Syphilis(BaseSTI):
 
         self.define_pars(
             # Adult syphilis natural history, all specified in years
-            dur_primary=ss.uniform(low=ss.dur(3, 'week'), high=ss.dur(10, 'week')),  # https://pubmed.ncbi.nlm.nih.gov/9101629/
+            dur_primary=ss.normal(ss.dur(6, 'week'), ss.dur(1, 'week')),  # https://pubmed.ncbi.nlm.nih.gov/9101629/
             dur_secondary=ss.lognorm_ex(ss.dur(3.6, 'month'), ss.dur(1.5, 'month')),  # https://pubmed.ncbi.nlm.nih.gov/9101629/
             dur_early=ss.uniform(ss.dur(12, 'month'), ss.dur(14, 'month')),  # Assumption
             p_reactivate=ss.bernoulli(p=0.35),  # Probability of reactivating from latent to secondary
@@ -94,10 +94,6 @@ class Syphilis(BaseSTI):
             time_to_death=ss.lognorm_ex(ss.years(5), ss.years(5)),  # Time to death
 
             # Transmission by stage
-            beta=1.0,  # Placeholder
-            beta_m2f=None,
-            rel_beta_f2m=0.5,
-            beta_m2c=None,
             eff_condom=0.0,
             rel_trans_primary=1,
             rel_trans_secondary=1,
@@ -341,7 +337,6 @@ class Syphilis(BaseSTI):
         # Congenital syphilis transmission outcomes
         congenital = (self.ti_congenital <= ti).uids
         self.congenital[congenital] = True
-        self.susceptible[congenital] = False
 
         # Set rel_trans
         self.rel_trans[self.primary] = self.pars.rel_trans_primary
@@ -389,9 +384,7 @@ class Syphilis(BaseSTI):
         self.results['new_nnds'][ti]       = np.count_nonzero(self.ti_nnd == ti)
         self.results['new_stillborns'][ti] = np.count_nonzero(self.ti_stillborn == ti)
         self.results['new_congenital'][ti] = np.count_nonzero(self.ti_congenital == ti)
-        self.results['new_congenital_deaths'][ti] = self.results['new_nnds'][ti] #  + self.results['new_stillborns'][ti]
-        # if self.results['new_congenital_deaths'][ti]>0:
-        #     print('hi')
+        self.results['new_congenital_deaths'][ti] = self.results['new_nnds'][ti] + self.results['new_stillborns'][ti]
         self.results['new_deaths'][ti] = np.count_nonzero(self.ti_dead == ti)
 
         # Add FSW and clients to results:
@@ -519,7 +512,6 @@ class Syphilis(BaseSTI):
         """
         ti = self.ti
         self.susceptible[target_uids] = False
-        birth_outcome_keys=['miscarriage', 'nnd', 'stillborn', 'congenital', 'normal'],
         new_outcomes = {k:0 for k in self.pars.birth_outcome_keys}
 
         # Determine outcomes
@@ -535,7 +527,6 @@ class Syphilis(BaseSTI):
                 birth_outcomes = self.pars.birth_outcomes[state]
                 assigned_outcomes = birth_outcomes.rvs(uids)
                 self.cs_outcome[uids] = assigned_outcomes
-                ages = self.sim.people.age
                 timesteps_til_delivery = self.sim.demographics.pregnancy.ti_delivery - self.ti
 
                 # Schedule events

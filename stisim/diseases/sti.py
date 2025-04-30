@@ -32,6 +32,10 @@ class BaseSTI(ss.Infection):
             include_care=True,  # Determines whether testing results are included
             unit='month',
             beta=0,  # Placeholder: no transmission. This will be set in validate_beta
+            beta_m2f=None,
+            rel_beta_f2m=0.5,
+            beta_m2c=None,
+            beta_m2m=None,
             eff_condom=1,
             rel_init_prev=1,
         )
@@ -66,6 +70,9 @@ class BaseSTI(ss.Infection):
             betamap['structuredsexual'][1] = self.pars.beta_m2f * self.pars.rel_beta_f2m
         if self.pars.beta_m2c is not None and betamap and 'maternal' in betamap.keys():
             betamap['maternal'][0] = ss.beta(self.pars.beta_m2c, 'month').init(parent=self.sim.t)
+        if self.pars.beta_m2m is not None and betamap and 'msm' in betamap.keys():
+            betamap['msm'][0] = self.pars.beta_m2m
+            betamap['msm'][1] = self.pars.beta_m2m
         return betamap
 
     def agehist(self, a):

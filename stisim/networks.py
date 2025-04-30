@@ -192,7 +192,8 @@ class StructuredSexual(ss.SexualNetwork):
         if self.condom_data is not None:
             if isinstance(self.condom_data, dict):
                 for rgtuple, valdict in self.condom_data.items():
-                    self.condom_data[rgtuple]['simvals'] = sc.smoothinterp(sim.timevec, valdict['year'], valdict['val'])
+                    yearvec = self.t.yearvec
+                    self.condom_data[rgtuple]['simvals'] = sc.smoothinterp(yearvec, valdict['year'], valdict['val'])
         # self.init_results()
         return
 
@@ -222,7 +223,7 @@ class StructuredSexual(ss.SexualNetwork):
     def _get_uids(self, upper_age=None, by_sex=True):
         people = self.sim.people
         if upper_age is None: upper_age = 1000
-        within_age = people.age < upper_age
+        within_age = people.age <= upper_age
         if by_sex:
             f_uids = (within_age & people.female).uids
             m_uids = (within_age & people.male).uids
@@ -514,7 +515,7 @@ class StructuredSexual(ss.SexualNetwork):
 
     def step(self):
         self.end_pairs()
-        self.set_network_states(upper_age=self.t.dt)
+        self.set_network_states(upper_age=self.t.dt_year)
         self.add_pairs()
         self.set_condom_use()
 
@@ -562,8 +563,23 @@ class FastStructuredSexual(StructuredSexual):
 
 class AgeMatchedMSM(StructuredSexual):
 
-    def __init__(self, **kwargs):
-        super().__init__(name='msm', **kwargs)
+    def __init__(self, pars=None, **kwargs):
+        super().__init__(name='msm')
+        self.define_pars(
+            msm_share=ss.bernoulli(p=0.015),
+        )
+        self.update_pars(pars=pars, **kwargs)
+
+        return
+
+    def set_network_states(self, upper_age=None):
+        self.set_msm(upper_age=upper_age)
+        return
+
+    def set_msm(self, upper_age=None):
+        _, m_uids = self._get_uids(upper_age=upper_age)
+        self.participant[m_uids] = self.pars.msm_share.rvs(m_uids)
+        return
 
     def match_pairs(self, ppl):
         """ Match males by age using sorting """
@@ -601,7 +617,7 @@ class AgeApproxMSM(StructuredSexual):
         super().__init__(name='msm', **kwargs)
 
     def match_pairs(self, ppl):
-        """ Match"""
+        """ Match pairs using age preferences """
 
         # Find people eligible for a relationship
         active = self.over_debut()

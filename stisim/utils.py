@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import starsim as ss
 
-__all__ = ['TimeSeries', 'make_init_prev_fn', "finalize_results", "shrink_calib"]
+__all__ = ['TimeSeries', 'make_init_prev_fn']
 
 
 class TimeSeries:
@@ -417,55 +417,4 @@ def make_init_prev_fn(module, sim, uids, data=None, active=False):
 
     return init_prev
 
-
-def finalize_results(sim, modules_to_drop=None):
-    modules_to_drop = sc.promotetolist(modules_to_drop)
-    modules_to_drop += ['yearvec']
-
-    # Drop modules
-    for res in modules_to_drop:
-        if res in sim.results: del sim.results[res]
-
-    # Make new results
-    newres = ss.Results(module=None)
-    newres.yearvec = np.arange(sim.pars.start, sim.pars.stop)  # np.unique(sim.yearvec.astype(int))[:-1]
-
-    periods = int(1/sim.pars.dt)
-    for rname, res in sim.results.items():
-        if isinstance(res, ss.Results):
-            newres[rname] = ss.Results(module=res)
-            for mrname, modres in res.items():
-                if mrname.startswith('new_'):
-                    newres[rname][mrname] = np.sum(modres[:-1].reshape(-1, periods), axis=1)
-                elif 'prev' in mrname or 'inci' in mrname or 'rel_' in mrname or mrname.startswith('n_'):
-                    newres[rname][mrname] = np.mean(modres[:-1].reshape(-1, periods), axis=1)
-        else:
-            if rname.startswith('new_'):
-                newres[rname] = np.sum(res[:-1].reshape(-1, periods), axis=1)
-            elif 'prev' in rname or 'inci' in rname or 'rel_' in rname or rname.startswith('n_'):
-                newres[rname] = np.mean(res[:-1].reshape(-1, periods), axis=1)
-
-    def flatten_results(d, prefix=''):
-        flat = {}
-        for key, val in d.items():
-            if isinstance(val, dict):
-                flat.update(flatten_results(val, prefix=prefix+key+'.'))
-            else:
-                flat[prefix+key] = val
-        return flat
-
-    resdict = flatten_results(newres)
-    df = sc.dataframe.from_dict(resdict).set_index('yearvec')
-
-    return df
-
-
-def shrink_calib(calib, n_results=100):
-    cal = sc.objdict()
-    plot_indices = calib.df.iloc[0:n_results, 0].values
-    cal.sim_results = [calib.sim_results[i] for i in plot_indices]
-    cal.analyzer_results = [calib.analyzer_results[i] for i in plot_indices]
-    cal.target_data = calib.target_data
-    cal.df = calib.df.iloc[0:n_results, ]
-    return cal
 

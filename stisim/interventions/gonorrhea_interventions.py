@@ -63,12 +63,7 @@ class GonorrheaTreatment(STITreatment):
 
     def update_results(self):
         super().update_results()
-        ti = self.sim.ti
-        treat_uids = (self.ti_treated == ti).uids
-        # Add mean rel_treat among those newly treated
-        if len(treat_uids):
-            self.sim.diseases.ng.results['rel_treat'][ti] = np.mean(self.rel_treat[treat_uids])
-
+        self.sim.diseases.ng.results['rel_treat'][self.ti] = np.mean(self.rel_treat)
         return
 
 
