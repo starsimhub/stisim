@@ -7,7 +7,7 @@ What's new
 All notable changes to the codebase are documented in this file.
 
 
-Version 1.0.3 (2025-04-15)
+Version 1.0.3 (2025-04-30)
 --------------------------
 - Bugfixes for congenital syphilis
 - *GitHub info*: PR `https://github.com/starsimhub/stisim/pull/85`_
