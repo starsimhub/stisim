@@ -36,14 +36,6 @@ class SyphTx(STITreatment):
         self.update_pars(pars, **kwargs)
         return
 
-    def init_results(self):
-        super().init_results()
-        results = [
-            ss.Result('new_treated_unnecessary_pregnant', dtype=int, label="Overtreatment pregnant"),
-        ]
-        self.define_results(*results)
-        return
-
     def change_states(self, disease, treat_succ):
         """ Change the states of people who are treated """
         self.sim.diseases[disease].primary[treat_succ] = False
