@@ -41,7 +41,7 @@ class SyphTx(STITreatment):
         results = [
             ss.Result('new_treated_unnecessary_pregnant', dtype=int, label="Overtreatment pregnant"),
         ]
-        self.define_results(results)
+        self.define_results(*results)
         return
 
     def change_states(self, disease, treat_succ):
