@@ -36,6 +36,14 @@ class SyphTx(STITreatment):
         self.update_pars(pars, **kwargs)
         return
 
+    def init_results(self):
+        super().init_results()
+        results += [
+            ss.Result('new_treated_unnecessary_pregnant', dtype=int, label="Overtreatment pregnant"),
+        ]
+        self.define_results(results)
+        return
+
     def change_states(self, disease, treat_succ):
         """ Change the states of people who are treated """
         self.sim.diseases[disease].primary[treat_succ] = False
@@ -107,6 +115,9 @@ class SyphTx(STITreatment):
         treat_uids = super().step()
         # Treat unborn babies of successfully treated mothers
         treat_pregnant_uids = sim.people.pregnancy.pregnant.uids & self.outcomes['successful']
+        overtreat_pregnant_uids = sim.people.pregnancy.pregnant.uids & self.outcomes['unnecessary']
+        # Store results - Unnecessary
+        sim.diseases.syphilis.results['new_treated_unnecessary_pregnant'][self.ti] += len(overtreat_pregnant_uids)
         if len(treat_pregnant_uids):
             self.treat_fetus(sim, mother_uids=treat_pregnant_uids)
         return treat_uids
