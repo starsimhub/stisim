@@ -38,7 +38,7 @@ class SyphTx(STITreatment):
 
     def init_results(self):
         super().init_results()
-        results += [
+        results = [
             ss.Result('new_treated_unnecessary_pregnant', dtype=int, label="Overtreatment pregnant"),
         ]
         self.define_results(results)
