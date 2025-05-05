@@ -360,6 +360,7 @@ class SEIS(BaseSTI):
         past_care_seekers = uids[(self.ti_seeks_care[uids] < self.ti).nonzero()[-1]]
         self.ti_seeks_care[past_care_seekers] = np.nan
         self.ti_clearance[uids] = self.ti
+        self.dur_inf[uids] = self.ti - self.ti_infected[uids]
 
     def step_state(self):
         """ Updates for this timestep """
@@ -527,7 +528,7 @@ class SEIS(BaseSTI):
         self.ti_pid[uids] = np.nan
         # self.ti_seeks_care[uids] = np.nan
         self.ti_clearance[uids] = np.nan
-        self.dur_inf[uids] = np.nan
+        # self.dur_inf[uids] = np.nan
         return
 
     def set_prognoses(self, uids, source_uids=None):
