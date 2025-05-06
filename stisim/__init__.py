@@ -1,6 +1,5 @@
 from .version import __version__, __versiondate__, __license__
 
-from .calibration   import *
 from .connectors    import *
 from .diseases      import *
 from .demographics  import *
