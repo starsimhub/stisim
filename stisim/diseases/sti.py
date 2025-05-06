@@ -549,10 +549,10 @@ class SEIS(BaseSTI):
         self.set_pid_care_seeking(p, pid)
         self.set_duration(p, symp, asymp, pid)
 
-        # Determine overall duration of infection
-        self.dur_inf[uids] = self.ti_clearance[uids] - self.ti_infected[uids]
+        # Determine overall duration of infection, but don't set until clearance
+        dur_inf = self.ti_clearance[uids] - self.ti_infected[uids]
 
-        if (self.dur_inf[uids] < 0).any():
+        if (dur_inf < 0).any():
             errormsg = 'Invalid durations of infection'
             raise ValueError(errormsg)
 
