@@ -42,9 +42,11 @@ class BaseSTI(ss.Infection):
         self.update_pars(pars, **kwargs)
 
         self.define_states(
+            ss.FloatArr('ti_transmitted_sex'),
+            ss.FloatArr('ti_transmitted_mtc'),
             ss.FloatArr('ti_transmitted'),
             ss.FloatArr('new_transmissions'),
-            ss.FloatArr('cum_transmissions'),
+            ss.FloatArr('new_transmissions_sex'),
         )
 
         # Set initial prevalence
@@ -174,23 +176,27 @@ class BaseSTI(ss.Infection):
 
         return new_cases, sources, networks
 
-    def set_prognoses(self, uids, source_uids=None):
-        """
-        Set initial prognoses for adults newly infected
-        """
-        super().set_prognoses(uids, source_uids)
-        ti = self.ti
-        self.new_transmissions[:] = 0  # Reset this every timestep
+    def set_outcomes(self, uids, sources=None):
+        super().set_outcomes(uids, sources=sources)
+        self.new_transmissions[:] = 0  # Total
+        self.new_transmissions_sex[:] = 0  # Sexual transmissions only
 
-        # If someone has been infected by >1 person, remove duplicates
-        uidx = np.unique(uids, return_index=True)[1]
-        uids = ss.uids([uids[index] for index in sorted(uidx)])
-        if source_uids is not None:
-            source_uids = ss.uids([source_uids[index] for index in sorted(uidx)])
-            unique_sources, counts = np.unique(source_uids, return_counts=True)
-            self.ti_transmitted[unique_sources] = ti
+        if sources is not None:
+            # Separate sexual and congenital transmission
+            congenital = self.sim.people.age[uids] <= 0
+            sex_transmission = sources[~congenital]
+            mtc_transmission = sources[congenital]
+
+            # Get the unique sources and counts
+            # Only needed for sexual transmission, not MTC.
+            unique_sources, counts = np.unique(sources, return_counts=True)
+            self.ti_transmitted[unique_sources] = self.ti
+            unique_sources_sex, counts_sex = np.unique(sex_transmission, return_counts=True)
+            self.ti_transmitted_sex[sex_transmission] = self.ti
+            self.ti_transmitted_mtc[mtc_transmission] = self.ti
             self.new_transmissions[unique_sources] = counts
-            self.cum_transmissions[unique_sources] += counts
+            self.new_transmissions_sex[unique_sources_sex] = counts_sex
+
         return
 
     def update_results(self):
