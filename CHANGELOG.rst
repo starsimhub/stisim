@@ -7,10 +7,16 @@ What's new
 All notable changes to the codebase are documented in this file.
 
 
+Version 1.0.5 (2025-05-08)
+--------------------------
+- Adds results for syphilis transmission by disease stage
+- *GitHub info*: PR `https://github.com/starsimhub/stisim/pull/112`_
+
+
 Version 1.0.4 (2025-05-07)
 --------------------------
 - Adds results for overtreatment amoung pregnant women
-- *GitHub info*: PR `https://github.com/starsimhub/stisim/pull/11`_
+- *GitHub info*: PR `https://github.com/starsimhub/stisim/pull/111`_
 
 
 Version 1.0.3 (2025-04-30)
