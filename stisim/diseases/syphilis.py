@@ -247,6 +247,7 @@ class Syphilis(BaseSTI):
             ss.Result('new_fetus_treated_success', dtype=int, label="Fetal treatment success"),
             ss.Result('new_fetus_treated_unnecessary', dtype=int, label="Fetal overtreatment"),
             ss.Result('new_fetus_treated_failure', dtype=int, label="Fetal treatment failure"),
+            ss.Result('new_treated_unnecessary_pregnant', dtype=int, label="Overtreatment pregnant"),
         ]
 
         # Most results are stored by age and sex

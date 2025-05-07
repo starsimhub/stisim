@@ -360,6 +360,7 @@ class SEIS(BaseSTI):
         past_care_seekers = uids[(self.ti_seeks_care[uids] < self.ti).nonzero()[-1]]
         self.ti_seeks_care[past_care_seekers] = np.nan
         self.ti_clearance[uids] = self.ti
+        self.dur_inf[uids] = self.ti - self.ti_infected[uids]
 
     def step_state(self):
         """ Updates for this timestep """
@@ -527,7 +528,7 @@ class SEIS(BaseSTI):
         self.ti_pid[uids] = np.nan
         # self.ti_seeks_care[uids] = np.nan
         self.ti_clearance[uids] = np.nan
-        self.dur_inf[uids] = np.nan
+        # self.dur_inf[uids] = np.nan
         return
 
     def set_prognoses(self, uids, source_uids=None):
@@ -536,6 +537,7 @@ class SEIS(BaseSTI):
         """
         super().set_prognoses(uids, source_uids)
         self.wipe_dates(uids)
+        self.dur_inf[uids] = np.nan  # Overwrite. Not done in wipe_dates because that's also called during treatment
 
         ppl = self.sim.people
         p = self.pars
@@ -548,10 +550,10 @@ class SEIS(BaseSTI):
         self.set_pid_care_seeking(p, pid)
         self.set_duration(p, symp, asymp, pid)
 
-        # Determine overall duration of infection
-        self.dur_inf[uids] = self.ti_clearance[uids] - self.ti_infected[uids]
+        # Determine overall duration of infection, but don't set until clearance
+        dur_inf = self.ti_clearance[uids] - self.ti_infected[uids]
 
-        if (self.dur_inf[uids] < 0).any():
+        if (dur_inf < 0).any():
             errormsg = 'Invalid durations of infection'
             raise ValueError(errormsg)
 

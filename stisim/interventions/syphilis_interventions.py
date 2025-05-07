@@ -107,6 +107,9 @@ class SyphTx(STITreatment):
         treat_uids = super().step()
         # Treat unborn babies of successfully treated mothers
         treat_pregnant_uids = sim.people.pregnancy.pregnant.uids & self.outcomes['successful']
+        overtreat_pregnant_uids = sim.people.pregnancy.pregnant.uids & self.outcomes['unnecessary']
+        # Store results - Unnecessary
+        sim.diseases.syphilis.results['new_treated_unnecessary_pregnant'][self.ti] += len(overtreat_pregnant_uids)
         if len(treat_pregnant_uids):
             self.treat_fetus(sim, mother_uids=treat_pregnant_uids)
         return treat_uids
