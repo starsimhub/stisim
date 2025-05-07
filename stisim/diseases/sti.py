@@ -537,6 +537,7 @@ class SEIS(BaseSTI):
         """
         super().set_prognoses(uids, source_uids)
         self.wipe_dates(uids)
+        self.dur_inf[uids] = np.nan  # Overwrite. Not done in wipe_dates because that's also called during treatment
 
         ppl = self.sim.people
         p = self.pars
