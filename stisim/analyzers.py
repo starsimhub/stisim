@@ -108,22 +108,24 @@ class sw_stats(result_grouper):
             for d in self.diseases:
                 dis = sim.diseases[d]
                 nw = sim.networks.structuredsexual
-                fsw = nw.fsw
-                client = nw.client
-                non_fsw = sim.people.female & ~nw.fsw
-                non_client = sim.people.male & ~nw.client
-                newly_infected = dis.ti_exposed == ti
+                adult = sim.people.age > 0
+                fsw = nw.fsw & adult
+                client = nw.client & adult
+                non_fsw = sim.people.female & ~nw.fsw & adult
+                non_client = sim.people.male & ~nw.client & adult
+                newly_infected = (dis.ti_exposed == ti) & adult
+                new_trans = dis.ti_transmitted_sex == ti
                 total_acq = len(newly_infected.uids)
 
-                newly_transmitting_fsw = (dis.ti_transmitted == ti) & fsw
-                newly_transmitting_clients = (dis.ti_transmitted == ti) & client
-                newly_transmitting_non_fsw = (dis.ti_transmitted == ti) & non_fsw
-                newly_transmitting_non_client = (dis.ti_transmitted == ti) & non_client
+                newly_transmitting_fsw = (dis.ti_transmitted_sex == ti) & fsw
+                newly_transmitting_clients = (dis.ti_transmitted_sex == ti) & client
+                newly_transmitting_non_fsw = (dis.ti_transmitted_sex == ti) & non_fsw
+                newly_transmitting_non_client = (dis.ti_transmitted_sex == ti) & non_client
 
-                new_transmissions_fsw = dis.new_transmissions[newly_transmitting_fsw]
-                new_transmissions_client = dis.new_transmissions[newly_transmitting_clients]
-                new_transmissions_non_fsw = dis.new_transmissions[newly_transmitting_non_fsw]
-                new_transmissions_non_client = dis.new_transmissions[newly_transmitting_non_client]
+                new_transmissions_fsw = dis.new_transmissions_sex[newly_transmitting_fsw]
+                new_transmissions_client = dis.new_transmissions_sex[newly_transmitting_clients]
+                new_transmissions_non_fsw = dis.new_transmissions_sex[newly_transmitting_non_fsw]
+                new_transmissions_non_client = dis.new_transmissions_sex[newly_transmitting_non_client]
 
                 self.results['share_new_infections_fsw_'+d][ti] = self.cond_prob(fsw, newly_infected)
                 self.results['share_new_infections_client_'+d][ti] = self.cond_prob(client, newly_infected)
