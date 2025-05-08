@@ -286,7 +286,7 @@ class SimpleBV(ss.Disease):
 
 class BV(BaseSTI):
 
-    def __init__(self, pars=None, name="cst", **kwargs):
+    def __init__(self, pars=None, name="bv", **kwargs):
         super().__init__(name=name)
 
         self.define_pars(
@@ -388,7 +388,6 @@ class BV(BaseSTI):
             ss.Result("cst4_prevalence", scale=False, label="CST 4 Prevalence"),
             ss.Result("symp_prevalence", scale=False, label="Symptomatic prevalence"),
             ss.Result("male_bv_prevalence", scale=False, label="Male BV prevalence"),
-            ss.Result("incidence", scale=False, label="Incidence"),
             ss.Result(
                 "new_female_infections", dtype=int, label="New female infections"
             ),
@@ -460,6 +459,13 @@ class BV(BaseSTI):
         self.stable_cst[f_uids] = cst
         self.set_prognoses(f_uids[cst == 4], 4)
         return
+
+    def _get_uids(self, upper_age=None):
+        """ Get uids of females younger than upper_age """
+        people = self.sim.people
+        if upper_age is None: upper_age = 1000
+        within_age = people.age < upper_age
+        return (within_age & people.female).uids
 
     def set_hygiene_states(self, upper_age=None):
         """Set vaginal hygiene states"""

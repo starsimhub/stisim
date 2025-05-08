@@ -90,11 +90,11 @@ class treat_BV(ss.Intervention):
     def init_post(self):
         super().init_post()
         sim = self.sim
-        self.orig_CST[:] = sim.diseases.cst.stable_cst
+        self.orig_CST[:] = sim.diseases.bv.stable_cst
 
     def check_eligibility(self):
         if self.eligibility is None:
-            return (self.sim.diseases.cst.ti_symptomatic == self.ti).uids
+            return (self.sim.diseases.bv.ti_symptomatic == self.ti).uids
         else:
             return self.eligibility(self.sim)
 
@@ -108,8 +108,8 @@ class treat_BV(ss.Intervention):
             uids, fill_value=self.pars.baseline_dur_stable_cst_change, dtype=float
         )
         # Adjust duration based on agent-specific characteristics
-        douching = self.sim.diseases.cst.douching[uids]
-        poor_hygiene = self.sim.diseases.cst.poor_menstrual_hygiene[uids]
+        douching = self.sim.diseases.bv.douching[uids]
+        poor_hygiene = self.sim.diseases.bv.poor_menstrual_hygiene[uids]
         dur_stable_cst_change[
             douching
         ] *= self.pars.rr_douching  # halves the duration of stable CST change
@@ -121,16 +121,16 @@ class treat_BV(ss.Intervention):
         return dur_stable_cst_change
 
     def step(self):
-        cst = self.sim.diseases.cst
+        bv = self.sim.diseases.bv
         if self.pars.stop_year >= self.ti >= self.pars.start_year:
             # Identify eligible agents for treatment
             eligible_inds = self.check_eligibility()
             seeks_care = self.pars.p_seek_care.filter(eligible_inds)
             if len(seeks_care):
                 self.ti_treated[seeks_care] = self.ti
-                cst.ti_treated[seeks_care] = self.ti
+                bv.ti_treated[seeks_care] = self.ti
                 self.on_tx[seeks_care] = True
-                cst.on_tx[seeks_care] = True
+                bv.on_tx[seeks_care] = True
                 self.results["new_doses"][self.ti] += (
                     len(seeks_care) * self.pars.tx_doses
                 )
@@ -140,13 +140,13 @@ class treat_BV(ss.Intervention):
         done_treated = (self.on_tx & (self.ti_treated <= self.ti)).uids
         if len(done_treated):
             self.on_tx[done_treated] = False
-            cst.on_tx[done_treated] = False
+            bv.on_tx[done_treated] = False
             self.ti_treated[done_treated] = np.nan
 
             # Process each CST state
             for stable_cst_val, stable_cst_attr in zip(
                 ["stable_cst1", "stable_cst3", "stable_cst4"],
-                [cst.stable_cst1, cst.stable_cst3, cst.stable_cst4],
+                [bv.stable_cst1, bv.stable_cst3, bv.stable_cst4],
             ):
                 treated_cst = done_treated.intersect(stable_cst_attr)
                 if len(treated_cst):
@@ -157,16 +157,16 @@ class treat_BV(ss.Intervention):
                     if len(tx_effective):
                         # Transition CST states
                         if stable_cst_val == "stable_cst1":
-                            cst.cst[tx_effective] = 1
+                            bv.cst[tx_effective] = 1
                         else:
-                            cst.cst[tx_effective] = 3
+                            bv.cst[tx_effective] = 3
                             if self.pars.durable_cst1_change:
-                                cst.cst[tx_effective] = 1
+                                bv.cst[tx_effective] = 1
                                 if len(tx_effective):
-                                    self.orig_CST[tx_effective] = cst.stable_cst[
+                                    self.orig_CST[tx_effective] = bv.stable_cst[
                                         tx_effective
                                     ]
-                                    cst.stable_cst[tx_effective] = 1
+                                    bv.stable_cst[tx_effective] = 1
                                     dur_stable_cst_change = (
                                         self.tx_cst1_change_duration(tx_effective)
                                     )
@@ -176,9 +176,9 @@ class treat_BV(ss.Intervention):
                                     self.post_tx_effect[tx_effective] = True
 
                         # Update symptomatic and clearance times
-                        cst.symptomatic[tx_effective] = False
+                        bv.symptomatic[tx_effective] = False
                         self.ti_clearance[tx_effective] = np.nan
-                        cst.ti_clearance[tx_effective] = np.nan
+                        bv.ti_clearance[tx_effective] = np.nan
 
                         # Update pregnancy module
                         if "pregnancy" in self.sim.demographics:
@@ -198,41 +198,8 @@ class treat_BV(ss.Intervention):
                 self.post_tx_effect & (self.ti_return_stable_cst <= self.ti)
             ).uids
             if len(treatment_waned):
-                cst.stable_cst[treatment_waned] = self.orig_CST[treatment_waned]
+                bv.stable_cst[treatment_waned] = self.orig_CST[treatment_waned]
                 self.post_tx_effect[treatment_waned] = False
         return
 
-
-class Change_CST(ss.Intervention):
-    """
-    Change the CST of an agent at a given timestep
-    """
-
-    def __init__(self, *args, start_day=None, dur=None, prob=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.start_day = start_day
-        self.dur = dur
-        self.prob = prob
-        self.ti_product = ss.FloatArr("ti_product")
-        self.orig_CST = ss.FloatArr("orig_CST")
-        self.ti_return = ss.FloatArr("ti_return")
-
-        return
-
-    def init_post(self):
-        sim = self.sim
-        self.orig_CST = sc.dcp(sim.diseases.vmb.stable_CST.values)
-        return
-
-    def step(self):
-        sim = self.sim
-        if self.ti == self.start_day:
-            uids = sim.people.uid
-            self.ti_product[uids] = sim.ti
-            sim.diseases.vmb.stable_CST[uids] = 1
-            self.ti_return[uids] = np.round(self.ti + self.dur)
-
-        if self.ti > self.start_day:
-            waned_uids = self.ti_return == self.ti
-            sim.diseases.vmb.stable_CST[waned_uids] = self.orig_CST[waned_uids]
 
