@@ -6,17 +6,10 @@ Used for chlamydia, gonorrhea, and trich
 import numpy as np
 import starsim as ss
 import sciris as sc
-from stisim.utils import make_init_prev_fn
+import stisim.utils as ut
 ss_int_ = ss.dtypes.int
 
 __all__ = ['BaseSTI', 'SEIS']
-
-
-# Define some helper functions
-def count(arr): return np.count_nonzero(arr)
-def div(a, b): return sc.safedivide(a, b)
-def countdiv(a, b): return sc.safedivide(count(a), count(b))
-def cond_prob(a, b): return sc.safedivide(count(a & b), count(b))
 
 
 # Main class
@@ -63,7 +56,7 @@ class BaseSTI(ss.Infection):
 
     @staticmethod
     def make_init_prev_fn(module, sim, uids):
-        return make_init_prev_fn(module, sim, uids, active=True)
+        return ut.make_init_prev_fn(module, sim, uids, active=True)
 
     def validate_beta(self, run_checks=False):
         betamap = super().validate_beta(run_checks=run_checks)
@@ -216,17 +209,17 @@ class BaseSTI(ss.Infection):
             n_inf = self.infected & ppl[pattr]
 
             # Store main results
-            self.results[f'prevalence{skk}'][ti] = cond_prob(self.infected, adults & ppl[pattr])
-            self.results[f'new_infections{skk}'][ti] = count(new_inf)
-            self.results[f'n_infected{skk}'][ti] = count(n_inf)
-            self.results[f'incidence{skk}'][ti] = countdiv(new_inf, n_sus)
+            self.results[f'prevalence{skk}'][ti] = ut.cond_prob(self.infected, adults & ppl[pattr])
+            self.results[f'new_infections{skk}'][ti] = ut.count(new_inf)
+            self.results[f'n_infected{skk}'][ti] = ut.count(n_inf)
+            self.results[f'incidence{skk}'][ti] = ut.countdiv(new_inf, n_sus)
 
             # Compute age results
             age_results = dict(
                 new_infections  = self.agehist(new_inf),
                 n_infected      = self.agehist(n_inf),
-                incidence       = div(self.agehist(new_inf), self.agehist(n_sus)),
-                prevalence      = div(self.agehist(n_inf), self.agehist(ppl[pattr])),
+                incidence       = ut.div(self.agehist(new_inf), self.agehist(n_sus)),
+                prevalence      = ut.div(self.agehist(n_inf), self.agehist(ppl[pattr])),
             )
 
             # Store age results
@@ -412,7 +405,7 @@ class SEIS(BaseSTI):
         if self.pars.include_care:
             for sk, sl in self.sex_keys.items():
                 skk = '' if sk == '' else f'_{sk}'
-                self.results['new_care_seekers'+skk][ti] = count((self.ti_seeks_care == ti) & self.sim.people[sl])
+                self.results['new_care_seekers'+skk][ti] = ut.count((self.ti_seeks_care == ti) & self.sim.people[sl])
 
         return
 
@@ -432,14 +425,14 @@ class SEIS(BaseSTI):
             n_sym = self.symptomatic & ppl[pattr]
 
             # Store main results
-            self.results[f'symp_prevalence{skk}'][ti] = count(self.symptomatic & adults & ppl[pattr]) / count(adults & ppl[pattr])
-            self.results[f'new_symptomatic{skk}'][ti] = count(new_sym)
-            self.results[f'n_symptomatic{skk}'][ti] = count(n_sym)
+            self.results[f'symp_prevalence{skk}'][ti] = ut.count(self.symptomatic & adults & ppl[pattr]) / ut.count(adults & ppl[pattr])
+            self.results[f'new_symptomatic{skk}'][ti] = ut.count(new_sym)
+            self.results[f'n_symptomatic{skk}'][ti] = ut.count(n_sym)
 
             # Compute age results
             age_results = dict(
-                new_symptomatic = self.agehist(new_sym),
-                symp_prevalence = div(self.agehist(n_sym), self.agehist(ppl[pattr]))
+                new_symptomatic=self.agehist(new_sym),
+                symp_prevalence=ut.div(self.agehist(n_sym), self.agehist(ppl[pattr]))
             )
 
             # Store age results

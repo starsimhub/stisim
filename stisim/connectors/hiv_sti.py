@@ -129,7 +129,7 @@ class hiv_ct(ss.Connector):
         return
 
 
-class hiv_bv(ss.Connector):
+class hiv_simplebv(ss.Connector):
 
     def __init__(self, hiv_module, bv_module, pars=None, **kwargs):
         super().__init__()
@@ -151,3 +151,10 @@ class hiv_bv(ss.Connector):
         self.hiv.rel_sus[bv] *= self.pars.rel_sus_hiv_bv
         return
 
+
+class hiv_bv(hiv_simplebv):
+    def step(self):
+        cst4 = self.bv.cst4.uids
+        self.hiv.rel_sus[cst4] *= self.pars.rr_sus
+        self.hiv.rel_trans[cst4] *= self.pars.rr_trans
+        return
