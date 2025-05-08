@@ -10,6 +10,7 @@ therefore be higher when the connector is included.
 import sciris as sc
 import starsim as ss
 import stisim as sti
+import hiv as hivsim
 import pylab as pl
 import numpy as np
 
@@ -20,7 +21,7 @@ np.seterr(all='raise')
 def test_hiv_syph():
 
     # Make diseases
-    hiv = sti.HIV(init_prev=0.1, beta={'structuredsexual': [0.01, 0.01]})
+    hiv = hivsim.HIV(init_prev=0.1, beta={'structuredsexual': [0.01, 0.01]})
     syphilis = sti.SyphilisPlaceholder(prevalence=0.9)
 
     pars = dict(

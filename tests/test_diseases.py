@@ -6,6 +6,7 @@ Test epi dynamics
 import sciris as sc
 import starsim as ss
 import stisim as sti
+import hiv as hivsim
 import pandas as pd
 
 n_agents = 2000
@@ -86,8 +87,8 @@ def test_hiv_epi():
             simpardict_lo = {par: lo, 'beta': {'structuredsexual': [0.3, 0.15]}}
             simpardict_hi = {par: hi, 'beta': {'structuredsexual': [0.3, 0.15]}}
 
-        pars0['diseases'] = sti.HIV(**simpardict_lo)
-        pars1['diseases'] = sti.HIV(**simpardict_hi)
+        pars0['diseases'] = hivsim.HIV(**simpardict_lo)
+        pars1['diseases'] = hivsim.HIV(**simpardict_hi)
 
         # Run the simulations and pull out the results
         s0 = ss.Sim(pars0, label=f'{par} {par_val[0]}')
