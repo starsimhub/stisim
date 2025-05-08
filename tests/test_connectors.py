@@ -13,6 +13,7 @@ import stisim as sti
 import pylab as pl
 import numpy as np
 
+from stisim import coinfection_stats
 
 np.seterr(all='raise')
 
@@ -22,6 +23,7 @@ def test_hiv_syph():
     # Make diseases
     hiv = sti.HIV(init_prev=0.1, beta={'structuredsexual': [0.01, 0.01]})
     syphilis = sti.SyphilisPlaceholder(prevalence=0.9)
+    coinfection_analyzer = coinfection_stats(disease1=syphilis, disease2='hiv', disease1_infected_state_name='active')
 
     pars = dict(
         start=2000,
@@ -29,6 +31,7 @@ def test_hiv_syph():
         dt=1/12,
         verbose=1/12,
         n_agents=1000,
+        analyzers=[coinfection_analyzer],
         networks=sti.FastStructuredSexual(),
         diseases=[hiv, syphilis]
     )
