@@ -18,7 +18,7 @@ class treat_BV(ss.Intervention):
     """
 
     def __init__(self, *args, pars=None, eligibility=None, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(*args)
 
         self.define_pars(
             unit="month",
