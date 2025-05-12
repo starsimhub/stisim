@@ -33,12 +33,13 @@ class coinfection_stats(result_grouper):
         disease2 (str | ss.Disease): name of the second disease
         disease1_infected_state_name (str): name of the infected state for disease1 (default: 'infected')
         disease2_infected_state_name (str): name of the infected state for disease2 (default: 'infected')
+        age_limits (list): list of two integers that define the age limits for the denominator.
         denom (function): function that returns a boolean array of the denominator, usually the relevant population.
             default: lambda self: (self.sim.people.age >= 15) & (self.sim.people.age < 50)
-        *args, **kwargs : optional
+        *args, **kwargs : optional, passed to ss.Analyzer constructor
     """
     def __init__(self, disease1, disease2, disease1_infected_state_name='infected', disease2_infected_state_name='infected',
-                 denom=lambda self: (self.sim.people.age >= 15) & (self.sim.people.age < 50), *args, **kwargs):
+                 age_limits=None, denom=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = 'coinfection_stats'
         if disease1 is None or disease2 is None:
@@ -55,14 +56,11 @@ class coinfection_stats(result_grouper):
 
         self.disease1_infected_state_name = disease1_infected_state_name
         self.disease2_infected_state_name = disease2_infected_state_name
-
-        self.denom = denom
-
-
-    def init_post(self):
+        self.age_limits = age_limits or [15, 50]
+        default_denom = lambda self: (self.sim.people.age >= self.age_limits[0]) & (self.sim.people.age < self.age_limits[0])
+        self.denom = denom or default_denom
 
         return
-
 
     def init_results(self):
         results = [
@@ -72,8 +70,6 @@ class coinfection_stats(result_grouper):
             ss.Result(f'{self.disease1}_prev_has_{self.disease2}_f', dtype=float, scale=False),
             ss.Result(f'{self.disease1}_prev_no_{self.disease2}_m', dtype=float, scale=False),
             ss.Result(f'{self.disease1}_prev_has_{self.disease2}_m', dtype=float, scale=False),
-            ss.Result(f'{self.disease1}_inf_fsw', dtype=float, scale=True),
-            ss.Result(f'{self.disease1}_inci_fsw', dtype=float, scale=False),
         ]
         self.define_results(*results)
         return
@@ -92,13 +88,13 @@ class coinfection_stats(result_grouper):
         has_disease2 = getattr(disease2obj, self.disease2_infected_state_name) # Adults with HIV
         has_disease1 = getattr(disease1obj, self.disease1_infected_state_name)  # Adults with syphilis
 
-        has_disease1_f = denom & has_disease1 & ppl.female  # Women with syphilis
-        has_disease2_m = denom & has_disease1 & ppl.male  # Men with syphilis
-        has_disease2_f = denom & has_disease2 & ppl.female  # Women with HIV
-        has_disease2_m = denom & has_disease2 & ppl.male  # Men with HIV
-        no_disease2    = denom & ~has_disease2  # Adults without HIV
-        no_disease2_f  = no_disease2 & ppl.female  # Women without HIV
-        no_disease2_m  = no_disease2 & ppl.male  # Men without HIV
+        has_disease1_f = denom & has_disease1 & ppl.female  # Women with dis1
+        has_disease2_m = denom & has_disease1 & ppl.male  # Men with dis1
+        has_disease2_f = denom & has_disease2 & ppl.female  # Women with dis2
+        has_disease2_m = denom & has_disease2 & ppl.male  # Men with dis2
+        no_disease2    = denom & ~has_disease2  # Adults without dis2
+        no_disease2_f  = no_disease2 & ppl.female  # Women without dis2
+        no_disease2_m  = no_disease2 & ppl.male  # Men without dis2
 
         self.results[f'{disease1name}_prev_no_{disease2name}'][ti] = self.cond_prob(has_disease1, no_disease2)
         self.results[f'{disease1name}_prev_has_{disease2name}'][ti] = self.cond_prob(has_disease1, has_disease2)
