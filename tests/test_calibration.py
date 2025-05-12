@@ -25,7 +25,7 @@ def make_sim():
     connector = sti.hiv_syph(hiv, syph, rel_sus_hiv_syph=2, rel_trans_hiv_syph=2)
     pregnancy = ss.Pregnancy(fertility_rate=20)
     death = ss.Deaths(death_rate=10)
-    sexual = sti.StructuredSexual(prop_f1=0.2)
+    sexual = sti.StructuredSexual(prop_f2=0.2)
     maternal = ss.MaternalNet()
 
     sim = ss.Sim(
@@ -33,12 +33,14 @@ def make_sim():
         n_agents=n_agents,
         total_pop=9980999,
         start=1990,
-        dur=40,
+        dur=33,
         diseases=[syph, hiv],
         networks=[sexual, maternal],
         connectors=connector,
         demographics=[pregnancy, death],
     )
+
+    sim.init()
 
     return sim
 
@@ -52,21 +54,19 @@ def build_sim(sim, calib_pars):
     # Apply the calibration parameters
     for k, pars in calib_pars.items():  # Loop over the calibration parameters
         if k == 'rand_seed':
-            sim.pars.rand_seed = v
+            sim.pars.rand_seed = pars
             continue
 
         v = pars['value']
         if 'hiv_' in k:  # HIV parameters
-            k = k.replace('hiv_', '')  # Strip off indentifying part of parameter name
+            k = k.replace('hiv_', '')  # Strip off identifying part of parameter name
             hiv.pars[k] = v
         elif 'syph_' in k:  # Syphilis parameters
             k = k.replace('syph_', '')  # As above
             syph.pars[k] = v
         elif 'nw_' in k:  # Network parameters
             k = k.replace('nw_', '')  # As above
-            if 'conc' in k:
-                nw.pars[k].set(v)
-            elif 'pair_form' in k:
+            if 'pair_form' in k:
                 nw.pars[k].set(v)
             else:
                 nw.pars[k] = v
@@ -86,20 +86,27 @@ def run_calib(calib_pars=None):
     # Make the calibration
     calib = sti.Calibration(
         sim=sim,
-        data=data,
         calib_pars=calib_pars,
-        build_fn = build_sim,
-        total_trials = 2,
-        n_workers = 1,
-        die = True,
+        build_fn=build_sim,
+        total_trials=2,
+        n_workers=1,
+        die=True,
         reseed=False,
-        debug = debug,
+        debug=debug,
+        data=data,
+        save_results=True,
     )
 
     # Perform the calibration
     sc.printcyan('\nPeforming calibration...')
     calib.calibrate()
-    return sim, calib
+    calib.check_fit()
+    calib.plot_optuna('plot_param_importances')
+
+    sc.printcyan('\nShrinking calibration...')
+    cal = calib.shrink()
+
+    return sim, calib, cal
 
 
 #%% Run as a script
@@ -119,7 +126,7 @@ if __name__ == '__main__':
         nw_p_pair_form = dict(low=0.4, high=0.9, guess=0.5),
     )
 
-    sim, calib = run_calib(calib_pars=calib_pars)
+    sim, calib, cal = run_calib(calib_pars=calib_pars)
 
     sc.toc(T)
     print('Done.')

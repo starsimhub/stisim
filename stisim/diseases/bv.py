@@ -1,15 +1,20 @@
 """
-BV module
+BV modules
+Includes:
+    - a simple BV model for generating background prevalence of vaginal discharge
+    - a detailed model of the vaginal microbiome including community state types (CSTs)
 """
 
 import numpy as np
 import starsim as ss
 import sciris as sc
+from stisim.diseases.sti import BaseSTI
+import stisim.utils as ut
 
-__all__ = ['BV']
+__all__ = ['SimpleBV', 'BV']
 
 
-class BV(ss.Disease):
+class SimpleBV(ss.Disease):
 
     def __init__(self, pars=None, name='bv', **kwargs):
         super().__init__(name=name)
@@ -169,11 +174,11 @@ class BV(ss.Disease):
         self.symptomatic[uids] = False
         self.asymptomatic[uids] = False
         self.susceptible[uids] = True
-        self.ti_clearance[uids] = self.sim.ti
+        self.ti_clearance[uids] = self.ti
 
     def step_state(self):
         """ Updates for this timestep """
-        ti = self.sim.ti
+        ti = self.ti
 
         # Reset susceptibility and infectiousness
         self.rel_sus[:] = 1
@@ -271,15 +276,449 @@ class BV(ss.Disease):
         super().update_results()
         ti = self.ti
         women = (self.sim.people.age >= 15) & self.sim.people.female
+        self.results['prevalence'][ti] = ut.cond_prob(self.infected, women)
+        self.results['symp_prevalence'][ti] = ut.cond_prob(self.symptomatic, women)
+        self.results['new_infections'][ti] = ut.count(self.ti_infected == ti)
+        self.results['new_symptomatic'][ti] = ut.count(self.ti_symptomatic == ti)
 
-        def cond_prob(num, denom):
-            n_num = np.count_nonzero(num & denom)
-            n_denom = np.count_nonzero(denom)
-            return sc.safedivide(n_num, n_denom)
+        return
 
-        self.results['prevalence'][ti] = cond_prob(self.infected, women)
-        self.results['symp_prevalence'][ti] = cond_prob(self.symptomatic, women)
-        self.results['new_infections'][ti] = np.count_nonzero(self.ti_infected == ti)
-        self.results['new_symptomatic'][ti] = np.count_nonzero(self.ti_symptomatic == ti)
 
+class BV(BaseSTI):
+
+    def __init__(self, pars=None, name="bv", **kwargs):
+        super().__init__(name=name)
+
+        self.define_pars(
+            # Transmission
+            sexual_transmission=False,  # Flag for model to know if we are doing sexual transmission of BV microbes
+            beta=0,  # Placeholder, replaced by network-specific betas, by default no transmission
+            beta_m2f=None,
+            rel_beta_f2m=None,  # Assume this is going to be higher than beta_m2f
+            beta_m2c=None,
+            eff_condom=0.45,  # Condom effectiveness in reducing BV risk https://journals.lww.com/epidem/Fulltext/2007/11000/Condom_Use_and_its_Association_With_Bacterial.9.aspx
+            unit="month",
+            p_symp=sc.objdict(  # Probability of symptomatic BV for women given stable CST state
+                stable_cst1=ss.bernoulli(p=0.8),
+                stable_cst3=ss.bernoulli(p=0.7),
+                stable_cst4=ss.bernoulli(p=0.1),
+            ),
+            init_prev=ss.bernoulli(
+                p=0.23
+            ),  # Initial prevalence of BV (https://www.who.int/news-room/fact-sheets/detail/bacterial-vaginosis)
+            stable_cst_distribution=ss.choice(
+                [1, 3, 4], p=[0.10, 0.30, 0.60]
+            ),  # Distribution of stable CST states https://microbiomejournal.biomedcentral.com/articles/10.1186/s40168-021-01096-9
+            dur2clear=sc.objdict(  # Time until transitioning back to stable CST state
+                cst3=ss.uniform(ss.dur(1, "week"), ss.dur(18, "week")),  #
+                cst4=ss.uniform(
+                    ss.dur(5, "week"), ss.dur(50, "week")
+                ),  # Natural clearance https://www.sciencedirect.com/science/article/abs/pii/S0002937803010421?via%3Dihub
+                male=ss.uniform(ss.dur(1, "week"), ss.dur(18, "week")),
+            ),
+            spontaneous_clearance=sc.objdict(  # Where to transition to after spontaneous clearance
+                stable_cst1=1,  # https://pmc.ncbi.nlm.nih.gov/articles/PMC9387550/
+                stable_cst3=3,  # https://pmc.ncbi.nlm.nih.gov/articles/PMC9387550/
+                stable_cst4=3,  # https://pmc.ncbi.nlm.nih.gov/articles/PMC9387550/
+            ),
+            dur_presymp=ss.uniform(ss.dur(1, "week"), ss.dur(2, "week")),
+            p_spontaneous=ss.bernoulli(
+                p=0.1
+            ),  # Placeholder for probability of spontaneous transition to worse CST state (overwritten)
+            rr_stable_cst1=0.1,  # Relative risk of CST transition for those in stable CST 1
+            rr_stable_cst3=1,  # Relative risk of CST transition for those in stable CST 3 (reference)
+            rr_stable_cst4=2,  # Relative risk of CST transition for those in stable CST 4
+            p_cst_change=sc.objdict(
+                cst1=0.1,  # Probability of transition from CST 1 to CST 3
+                cst3=0.05,  # Probability of transition from CST 3 to CST 4
+            ),
+            p_douching=ss.bernoulli(
+                p=0.64
+            ),  # Share of population douching Nigeria (https://www.sciencedirect.com/science/article/abs/pii/S1083318820302400) Ghana (https://pmc.ncbi.nlm.nih.gov/articles/PMC6368746/)
+            # adjust OR for age (OR, 0.2; 95% CI = 0.063-0.603)
+            p_poor_menstrual_hygiene=ss.bernoulli(
+                p=0.55
+            ),  # Share of population with poor menstrual hygiene https://pmc.ncbi.nlm.nih.gov/articles/PMC9817285/
+            # adjust for ubanicity (OR, 0.33 CI = 0.25, 0.43) and SES (OR 0.46, CI = (0.30, 0.70))
+            n_partners=ss.poisson(lam=0.05),  # Number of current partners
+            count_partners=False,  # Count current partners from sexual network to determine concurrency
+            rr_douching=1.21,  # Relative risk of BV for those douching CI = 1.08, 1.38 https://pmc.ncbi.nlm.nih.gov/articles/PMC2574994/
+            rr_poor_menstrual_hygiene=4.1,  # Relative risk of BV for those with poor menstrual hygiene - pulled from best GOF Kenya Calibration
+            rr_concurrency=1.28,  # Relative risk of BV for those with multiple concurrent partners - https://pmc.ncbi.nlm.nih.gov/articles/PMC5429208/.
+            p_circumcised=ss.bernoulli(0.4),  # Proportion of men who are circumcised
+            rr_uncircumcised=4.0,  # Relative risk of BV for insertive sex with uncircumcised penis - pulled from best GOF Kenya Calibration
+            or_ptb={  # Having BV leads to 2-4x higher risk of PTB https://www.frontiersin.org/journals/public-health/articles/10.3389/fpubh.2020.567885/full
+                1: 3,  # First trimester study on CST IV and sPTB: https://pmc.ncbi.nlm.nih.gov/articles/PMC8117784/
+                2: 2,
+                3: 1,
+            },
+        )
+        self.update_pars(pars, **kwargs)
+
+        self.define_states(
+            ss.State("asymptomatic", default=False, label="Asymptomatic"),
+            ss.State("symptomatic", default=False, label="Symptomatic"),
+            ss.FloatArr("ti_cst_change", label="Time of CST change"),
+            ss.FloatArr("ti_symptomatic", label="Time of clearance"),
+            ss.FloatArr("ti_clearance", label="Time of clearance"),
+            ss.FloatArr("ti_treated", label="Time of treatment"),
+            ss.BoolArr("douching", label="Douching"),
+            ss.BoolArr("concurrency", default=False, label="Concurrent sexual partners"),
+            ss.BoolArr("poor_menstrual_hygiene", label="Poor menstrual hygiene"),
+            ss.BoolArr("condom_use", label="Consistent Condom use"),
+            ss.BoolArr("circumcised", label="Circumcised"),
+            ss.FloatArr("cst", default=np.nan, label="Current CST"),
+            ss.FloatArr("stable_cst", default=np.nan, label="Stable CST"),
+            ss.BoolArr("on_tx", default=False, label="On treatment"),
+        )
+        return
+
+    def init_results(self):
+        """Initialize results"""
+        super().init_results()
+        results = [
+            ss.Result("cst1_prevalence", scale=False, label="CST 1 Prevalence"),
+            ss.Result("cst3_prevalence", scale=False, label="CST 3 Prevalence"),
+            ss.Result("cst4_prevalence", scale=False, label="CST 4 Prevalence"),
+            ss.Result("symp_prevalence", scale=False, label="Symptomatic prevalence"),
+            ss.Result(
+                "new_sexually_acquired_infections",
+                dtype=int,
+                label="New sexually acquired infections",
+            ),
+            ss.Result("new_symptomatic", dtype=int, label="New symptomatic"),
+            ss.Result("new_MTZ_doses", dtype=int, label="New MTZ doses administered"),
+        ]
+        self.define_results(*results)
+        return
+
+    def _get_fuids(self, upper_age=None):
+        """Get uids of females younger than upper_age"""
+        people = self.sim.people
+        if upper_age is None:
+            upper_age = 1000
+        within_age = people.age < upper_age
+        return (within_age & people.female).uids
+
+    def _get_muids(self, upper_age=None):
+        """Get uids of males younger than upper_age"""
+        people = self.sim.people
+        if upper_age is None:
+            upper_age = 1000
+        within_age = people.age < upper_age
+        return (within_age & people.male).uids
+
+    def bv_sus(self):
+        return self.sim.people.female & (self.sim.people.age > 15) & ~self.cst4
+
+    @property
+    def cst1(self):
+        return self.sim.people.female & (self.sim.people.age > 15) & (self.cst == 1)
+
+    @property
+    def cst3(self):
+        return self.sim.people.female & (self.sim.people.age > 15) & (self.cst == 3)
+
+    @property
+    def cst4(self):
+        return self.sim.people.female & (self.sim.people.age > 15) & (self.cst == 4)
+
+    @property
+    def stable_cst1(self):
+        return (
+            self.sim.people.female & (self.sim.people.age > 15) & (self.stable_cst == 1)
+        )
+
+    @property
+    def stable_cst3(self):
+        return (
+            self.sim.people.female & (self.sim.people.age > 15) & (self.stable_cst == 3)
+        )
+
+    @property
+    def stable_cst4(self):
+        return (
+            self.sim.people.female & (self.sim.people.age > 15) & (self.stable_cst == 4)
+        )
+
+    def set_cst(self, upper_age=None):
+        f_uids = self._get_fuids(upper_age=upper_age)
+        cst = self.pars.stable_cst_distribution.rvs(f_uids)
+        self.cst[f_uids] = cst
+        self.stable_cst[f_uids] = cst
+        self.set_prognoses(f_uids[cst == 4], 4)
+        return
+
+    def _get_uids(self, upper_age=None):
+        """ Get uids of females younger than upper_age """
+        people = self.sim.people
+        if upper_age is None: upper_age = 1000
+        within_age = people.age < upper_age
+        return (within_age & people.female).uids
+
+    def set_hygiene_states(self, upper_age=None):
+        """Set vaginal hygiene states"""
+        f_uids = self._get_fuids(upper_age=upper_age)
+        self.douching[f_uids] = self.pars.p_douching.rvs(f_uids)
+        self.poor_menstrual_hygiene[f_uids] = self.pars.p_poor_menstrual_hygiene.rvs(
+            f_uids
+        )
+        self.concurrency[f_uids] = (self.pars.n_partners.rvs(f_uids) + 1) > 1
+        return
+
+    def set_circumcision(self, upper_age=None):
+        """Set circumcision status"""
+        m_uids = self._get_muids(upper_age=upper_age)
+        self.circumcised[m_uids] = self.pars.p_circumcised.rvs(m_uids)
+        return
+
+    def compute_circumcision_impact(self, spontaneous=True):
+        """
+        Compute the relative impact of circumcision on susceptibility for women.
+        This is used for spontaneous occurence only. If sexual transmission in model,
+        then we adjust man's susceptibility.
+        """
+        if spontaneous:
+            if not self.pars.sexual_transmission:
+                cst3_uids = self.cst3.uids
+                for _, net in self.sim.networks.items():
+                    if isinstance(net, ss.SexualNetwork):  # Skip networks that are not sexual
+
+                        # Find partners of uncircumcised men
+                        uncirc = (~self.circumcised).uids
+                        f_partners = ss.uids(net.find_contacts(uncirc))
+
+                        # Find women who are CST3 and have an uncircumcised partner
+                        cst3_uncirc = f_partners & cst3_uids
+                        self.rel_sus[cst3_uncirc] *= self.pars.rr_uncircumcised
+
+                        if 'condom' in net.edges:
+                            print('WARNING: condom adjustment not implemented without sexual transmission.')
+
+        else:  # Adjust susceptibility to BV microbes for men who are uncircumcised
+            m_uids = self._get_muids()
+            uncircumcised_uids = m_uids[~self.circumcised[m_uids]]
+            self.rel_sus[uncircumcised_uids] *= self.pars.rr_uncircumcised
+        return
+
+    def set_rel_sus(self, spontaneous=True):
+        # douching impacts BV risk via spontaneous AND sexual transmission
+        self.rel_sus[self.douching.uids] *= self.pars.rr_douching
+
+        # Update circumcision based on whether sexual transmission is occurring
+        self.compute_circumcision_impact(spontaneous=spontaneous)
+
+        # update for spontaneous transitions
+        if spontaneous:
+
+            self.rel_sus[
+                self.poor_menstrual_hygiene.uids
+            ] *= self.pars.rr_poor_menstrual_hygiene
+            if self.pars.sexual_transmission is False:
+                if self.pars.count_partners:
+                    # Use sexual network to determine concurrency
+                    f_uids = self._get_fuids()
+                    for net in self.sim.networks:
+                        if isinstance(net, ss.SexualNetwork):
+                            self.concurrency[f_uids] = net.partners[f_uids] > 1
+                self.rel_sus[self.concurrency.uids] *= self.pars.rr_concurrency
+            self.rel_sus[self.stable_cst1.uids] *= self.pars.rr_stable_cst1
+            self.rel_sus[self.stable_cst4.uids] *= self.pars.rr_stable_cst4
+
+        return
+
+    def init_post(self):
+        """Initialize with sim properties"""
+        for state in self.states:
+            if not state.initialized:
+                state.init_vals()
+        self.initialized = True
+
+        # Set cst, hygiene states and circumcision
+        self.set_cst()
+        self.set_hygiene_states()
+        self.set_circumcision()
+        return
+
+    def spontaneous(self, uids, cst="cst1"):
+        """
+        Determine the probability of transitioning to worse CST states
+        for agents in CST 1, we determine probability of transitioning to CST 3 (assuming no transition directly to CST 4)
+        for agents in CST 3, we determine probability of transitioning to CST 4
+        agents in CST 4 have no further transitions
+
+        """
+        p_cst_change = np.full_like(uids, fill_value=0, dtype=float)
+        p_cst_change = self.pars.p_cst_change[cst] * self.rel_sus[uids]
+        return p_cst_change
+
+    def change_cst(self):
+        # Transition CST states
+        for cst, new_cst in zip(["cst1", "cst3"], [3, 4]):
+            cst_uids = getattr(self, cst).uids
+            p_cst = self.spontaneous(cst_uids, cst)
+            self.pars.p_spontaneous.set(p_cst)
+            cst_cases = self.pars.p_spontaneous.filter(cst_uids)
+            self.set_prognoses(cst_cases, new_cst)
+        return
+
+    def step(self):
+        self.set_cst(upper_age=self.t.dt)
+        self.set_hygiene_states(upper_age=self.t.dt)
+        self.set_circumcision(upper_age=self.t.dt)
+        self.set_rel_sus(spontaneous=True)
+
+        # First, spontaneous transitions
+        self.change_cst()
+
+        if self.pars.sexual_transmission:
+            # Now do transmission-based infection
+            # Reset susceptibility
+            self.rel_sus[:] = 1
+            # Update susceptibility for sexual transmission (circumcision, douching)
+            self.set_rel_sus(spontaneous=False)
+            new_cases = self.sexual_transmission()
+            # pull out male uids
+            m_uids = new_cases & self.sim.people.male
+            self.set_male_prognoses(m_uids)
+            f_uids = new_cases & self.sim.people.female
+            self.set_prognoses(f_uids, new_cst=4)
+            self.results.new_sexually_acquired_infections[self.ti] += len(f_uids)
+
+    def sexual_transmission(self):
+        """Determine who gets infected on this timestep via transmission on the network"""
+        new_cases, _, _ = super().infect()
+        return new_cases
+
+    def clear_infection(self, uids):
+        """Clear infection"""
+        # First we need to determine where they are going, which depends upon stable CST state
+        stable_cst1 = uids.intersect(self.stable_cst1)
+        stable_cst3 = uids.intersect(self.stable_cst3)
+        stable_cst4 = uids.intersect(self.stable_cst4)
+        self.cst[stable_cst1] = self.pars.spontaneous_clearance.stable_cst1
+        self.cst[stable_cst3] = self.pars.spontaneous_clearance.stable_cst3
+        self.cst[stable_cst4] = self.pars.spontaneous_clearance.stable_cst4
+        self.infected[uids] = False
+        self.susceptible[uids] = True
+        self.ti_clearance[uids] = self.ti
+        self.symptomatic[uids] = False
+        self.asymptomatic[uids] = False
+
+    def step_state(self):
+        """Updates for this timestep"""
+        ti = self.ti
+
+        # Reset susceptibility and infectiousness
+        self.rel_sus[:] = 1
+        self.rel_trans[:] = 1
+
+        # Presymptomatic -> symptomatic
+        new_symptomatic = (self.asymptomatic & (self.ti_symptomatic <= ti)).uids
+        if len(new_symptomatic):
+            self.asymptomatic[new_symptomatic] = False
+            self.symptomatic[new_symptomatic] = True
+            self.ti_symptomatic[new_symptomatic] = ti
+
+        # Return to stable CST states
+        new_cleared = (self.ti_clearance <= ti).uids
+        self.clear_infection(new_cleared)
+
+        return
+
+    def wipe_dates(self, uids):
+        """Clear all previous dates"""
+        self.ti_cst_change[uids] = np.nan
+        self.ti_clearance[uids] = np.nan
+        self.ti_symptomatic[uids] = np.nan
+        return
+
+    def set_symptoms(self, uids):
+        p = self.pars
+        self.asymptomatic[uids] = True
+        stable_cst1 = uids.intersect(self.stable_cst1)
+        stable_cst3 = uids.intersect(self.stable_cst3)
+        stable_cst4 = uids.intersect(self.stable_cst4)
+        for cst_uids, cst in zip(
+            [stable_cst1, stable_cst3, stable_cst4],
+            ["stable_cst1", "stable_cst3", "stable_cst4"],
+        ):
+            if len(cst_uids):
+                symp, asymp = p.p_symp[cst].split(cst_uids)
+                dur_presymp = self.pars.dur_presymp.rvs(symp)
+                self.ti_symptomatic[symp] = self.ti_cst_change[symp] + dur_presymp
+                dur = self.pars.dur2clear["cst4"].rvs(symp)
+                self.ti_clearance[symp] = dur + dur_presymp + self.ti_cst_change[symp]
+                dur = self.pars.dur2clear["cst4"].rvs(asymp)
+                self.ti_clearance[asymp] = dur + self.ti_cst_change[asymp]
+                # self.results.new_symptomatic[self.ti] += len(symp)
+
+        return
+
+    def set_duration(self, uids, cst=3):
+        dur = self.pars.dur2clear[f"cst{cst}"].rvs(uids)
+        self.ti_clearance[uids] = dur + self.ti_cst_change[uids]
+        return
+
+    def update_pregnancy(self, uids, cleared=False):
+        pregnancy = self.sim.demographics.pregnancy
+        if cleared:  # Update PTB risk for those who have cleared infection
+            pregnancy.rel_sus_ptb[uids] = 1
+            pregnant = uids.intersect(pregnancy.pregnant.uids)
+            pregnancy.set_prognoses(pregnant, bv_update=True)
+
+        else:  # Update PTB risk for those who are newly infected
+            bv_pregnant = uids.intersect(pregnancy.pregnant.uids)
+            bv_not_pregnant = np.setdiff1d(uids, bv_pregnant)
+            pregnancy.rel_sus_ptb[bv_not_pregnant] = self.pars.or_ptb[1]
+            # calculate trimester of pregnancy
+            if len(bv_pregnant):
+                trimester = pregnancy.trimester[bv_pregnant]
+                trimester_or_ptb = [self.pars.or_ptb[i] for i in trimester]
+                pregnancy.rel_sus_ptb[bv_pregnant] = trimester_or_ptb
+                pregnancy.set_prognoses(bv_pregnant, bv_update=True)
+
+    def set_male_prognoses(self, uids):
+        """
+        Set initial prognoses for newly infected males
+        """
+        self.ti_infected[uids] = self.ti
+        self.infected[uids] = True
+        self.susceptible[uids] = False
+        self.ti_clearance[uids] = self.ti + self.pars.dur2clear["male"].rvs(uids)
+        return
+
+    def set_prognoses(self, uids, new_cst=3):
+        """
+        Set initial prognoses for newly infected females
+        """
+        # Check that all the UIDS are female
+        if ut.count(uids & self.sim.people.male) > 0:
+            errormsg = 'set_prognoses should only be used for female agents'
+            raise ValueError(errormsg)
+
+        self.wipe_dates(uids)  # Clear prior dates
+        self.cst[uids] = new_cst
+        self.ti_cst_change[uids] = self.ti
+        if new_cst == 4:
+            self.ti_infected[uids] = self.ti
+            self.infected[uids] = True
+            self.susceptible[uids] = False
+            self.set_symptoms(uids)  # Set symptoms and duration
+            if "pregnancy" in self.sim.demographics:
+                self.update_pregnancy(uids)
+        else:
+            self.set_duration(uids, new_cst)  # Set duration of CST transition
+
+        return
+
+    def update_results(self):
+        super().update_results()
+        ti = self.ti
+        women = (self.sim.people.age >= 15) & self.sim.people.female
+        men = (self.sim.people.age >= 15) & self.sim.people.male
+        self.results["cst1_prevalence"][ti] = ut.cond_prob(self.cst1, women)
+        self.results["cst3_prevalence"][ti] = ut.cond_prob(self.cst3, women)
+        self.results["cst4_prevalence"][ti] = ut.cond_prob(self.cst4, women)
+        self.results["symp_prevalence"][ti] = ut.cond_prob(self.symptomatic, women)
         return

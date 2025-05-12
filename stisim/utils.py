@@ -8,6 +8,15 @@ import starsim as ss
 __all__ = ['TimeSeries', 'make_init_prev_fn']
 
 
+
+# Define some helper functions
+def count(arr): return np.count_nonzero(arr)
+def div(a, b): return sc.safedivide(a, b)
+def countdiv(a, b): return sc.safedivide(count(a), count(b))
+def cond_prob(a, b): return sc.safedivide(count(a & b), count(b))
+
+
+
 class TimeSeries:
     """
     Class to store time-series data
