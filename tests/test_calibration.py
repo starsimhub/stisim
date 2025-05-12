@@ -84,7 +84,6 @@ def run_calib(calib_pars=None):
     sim = make_sim()
     data = pd.read_csv('test_data/zimbabwe_calib.csv')
 
-
     def eval(sim, expected):
         # sim_result_years = [int(t) for t in sim.results.hiv.timevec]
         expected_dates = [datetime.datetime(year=t, month = 1, day=1) for t in expected['time']]
@@ -119,7 +118,8 @@ def run_calib(calib_pars=None):
     sc.printcyan('\nPeforming calibration...')
     calib.calibrate()
     calib.check_fit()
-    calib.plot_optuna()
+    calib.plot_optuna('plot_param_importances')
+    pl.show()
     return sim, calib
 
 
