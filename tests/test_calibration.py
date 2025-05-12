@@ -119,7 +119,34 @@ def run_calib(calib_pars=None):
     calib.calibrate()
     calib.check_fit()
     calib.plot_optuna('plot_param_importances')
-    pl.show()
+    return sim, calib
+
+
+def run_calib_new(calib_pars=None):
+    # Make the sim and data
+    sim = make_sim()
+    data = pd.read_csv('test_data/zimbabwe_calib.csv')
+
+    # Make the calibration
+    calib = sti.Calibration(
+        sim=sim,
+        calib_pars=calib_pars,
+        build_fn = build_sim,
+        total_trials = 2,
+        n_workers = 1,
+        die =True,
+        reseed=False,
+        debug=debug,
+        data=data,
+        save_results=True,
+    )
+
+    # Perform the calibration
+    sc.printcyan('\nPeforming calibration...')
+    calib.calibrate()
+    calib.check_fit()
+    calib.plot_optuna('plot_param_importances')
+
     return sim, calib
 
 
@@ -140,7 +167,7 @@ if __name__ == '__main__':
         nw_p_pair_form = dict(low=0.4, high=0.9, guess=0.5),
     )
 
-    sim, calib = run_calib(calib_pars=calib_pars)
+    sim, calib = run_calib_new(calib_pars=calib_pars)
 
     sc.toc(T)
     print('Done.')
