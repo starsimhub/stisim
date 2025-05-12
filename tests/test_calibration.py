@@ -7,8 +7,6 @@ import starsim as ss
 import sciris as sc
 import stisim as sti
 import pandas as pd
-import numpy as np
-import datetime
 
 do_plot = 1
 do_save = 0
@@ -84,43 +82,30 @@ def run_calib(calib_pars=None):
     sim = make_sim()
     data = pd.read_csv('test_data/zimbabwe_calib.csv')
 
-
-    def eval(sim, expected):
-        # sim_result_years = [int(t) for t in sim.results.hiv.timevec]
-        expected_dates = [datetime.datetime(year=t, month = 1, day=1) for t in expected['time']]
-        if not isinstance(sim, ss.MultiSim):
-            sim = ss.MultiSim(sims=[sim])
-        ret = 0
-        for s in sim.sims:
-            inds = np.searchsorted(s.results.hiv.timevec, expected_dates, side='left')
-            sim_hiv_prev = s.results.hiv.prevalence
-            ret += np.sum([(sim_hiv_prev[inds] - expected['hiv_prevalence'])**2])
-        return ret
-
-
-    datadict = {}
-    datadict['expected'] = data
-
     # Make the calibration
-    calib = ss.Calibration(
+    calib = sti.Calibration(
         sim=sim,
         calib_pars=calib_pars,
-        build_fn = build_sim,
-        total_trials = 2,
-        n_workers = 1,
-        die = True,
+        build_fn=build_sim,
+        total_trials=2,
+        n_workers=1,
+        die=True,
         reseed=False,
-        debug = debug,
-        eval_fn = eval,
-        eval_kw = datadict,
+        debug=debug,
+        data=data,
+        save_results=True,
     )
 
     # Perform the calibration
     sc.printcyan('\nPeforming calibration...')
     calib.calibrate()
     calib.check_fit()
-    calib.plot_optuna()
-    return sim, calib
+    calib.plot_optuna('plot_param_importances')
+
+    sc.printcyan('\nShrinking calibration...')
+    cal = calib.shrink()
+
+    return sim, calib, cal
 
 
 #%% Run as a script
@@ -140,7 +125,7 @@ if __name__ == '__main__':
         nw_p_pair_form = dict(low=0.4, high=0.9, guess=0.5),
     )
 
-    sim, calib = run_calib(calib_pars=calib_pars)
+    sim, calib, cal = run_calib(calib_pars=calib_pars)
 
     sc.toc(T)
     print('Done.')
