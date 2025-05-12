@@ -356,20 +356,14 @@ class BV(BaseSTI):
         self.update_pars(pars, **kwargs)
 
         self.define_states(
-            ss.State("infected", default=False, label="infected"),
             ss.State("asymptomatic", default=False, label="Asymptomatic"),
             ss.State("symptomatic", default=False, label="Symptomatic"),
-            ss.State("susceptible", default=True, label="Susceptible"),
-            ss.FloatArr("rel_sus", default=1.0, label="Relative susceptibility"),
-            ss.FloatArr("rel_trans", default=1.0, label="Relative transmissibility"),
             ss.FloatArr("ti_cst_change", label="Time of CST change"),
             ss.FloatArr("ti_symptomatic", label="Time of clearance"),
             ss.FloatArr("ti_clearance", label="Time of clearance"),
             ss.FloatArr("ti_treated", label="Time of treatment"),
             ss.BoolArr("douching", label="Douching"),
-            ss.BoolArr(
-                "concurrency", default=False, label="Concurrent sexual partners"
-            ),
+            ss.BoolArr("concurrency", default=False, label="Concurrent sexual partners"),
             ss.BoolArr("poor_menstrual_hygiene", label="Poor menstrual hygiene"),
             ss.BoolArr("condom_use", label="Consistent Condom use"),
             ss.BoolArr("circumcised", label="Circumcised"),
@@ -387,11 +381,6 @@ class BV(BaseSTI):
             ss.Result("cst3_prevalence", scale=False, label="CST 3 Prevalence"),
             ss.Result("cst4_prevalence", scale=False, label="CST 4 Prevalence"),
             ss.Result("symp_prevalence", scale=False, label="Symptomatic prevalence"),
-            ss.Result("male_bv_prevalence", scale=False, label="Male BV prevalence"),
-            ss.Result(
-                "new_female_infections", dtype=int, label="New female infections"
-            ),
-            ss.Result("new_male_infections", dtype=int, label="New male infections"),
             ss.Result(
                 "new_sexually_acquired_infections",
                 dtype=int,
@@ -489,44 +478,23 @@ class BV(BaseSTI):
         This is used for spontaneous occurence only. If sexual transmission in model,
         then we adjust man's susceptibility.
         """
-        if (
-            spontaneous
-        ):  # Adjust risk of BV for women with uncircumcised partners (if sexual transmission is not occurring)
-            if self.pars.sexual_transmission is False:
-                f_uids = self.cst3.uids
+        if spontaneous:
+            if not self.pars.sexual_transmission:
+                cst3_uids = self.cst3.uids
                 for _, net in self.sim.networks.items():
-                    if isinstance(
-                        net, ss.SexualNetwork
-                    ):  # Skip networks that are not sexual
-                        p1 = net.edges.p1
-                        p2 = net.edges.p2
-                        for ind in f_uids:
-                            p1_partners = p2[net.edges.p1 == ind]
-                            p2_partners = p1[net.edges.p2 == ind]
-                            p1_condom = net.edges.condoms[net.edges.p1 == ind]
-                            p2_condom = net.edges.condoms[net.edges.p2 == ind]
-                            p_condoms = np.concatenate((p1_condom, p2_condom))
-                            partners = ss.uids(
-                                set(np.concatenate((p1_partners, p2_partners)))
-                            )
-                            uncircumcised_uids = partners[~self.circumcised[partners]]
-                            n_uncircumcised = np.count_nonzero(
-                                ~self.circumcised[partners]
-                            )
-                            for partner, uncircumcised in enumerate(
-                                ~self.circumcised[partners]
-                            ):
-                                if uncircumcised:
-                                    self.rel_sus[ind] *= self.pars.rr_uncircumcised * (
-                                        1 - self.pars.eff_condom
-                                    ) ** (p_condoms[partner])
-                            # self.rel_sus[ind] *= (
-                            #     self.pars.rr_uncircumcised**n_uncircumcised
-                            #     if n_uncircumcised > 0
-                            #     else 1
-                            # )
-                            # rr_condom =
-                            # self.rel_sus[ind] *= (1 - self.pars.eff_condom) *
+                    if isinstance(net, ss.SexualNetwork):  # Skip networks that are not sexual
+
+                        # Find partners of uncircumcised men
+                        uncirc = (~self.circumcised).uids
+                        f_partners = ss.uids(net.find_contacts(uncirc))
+
+                        # Find women who are CST3 and have an uncircumcised partner
+                        cst3_uncirc = f_partners & cst3_uids
+                        self.rel_sus[cst3_uncirc] *= self.pars.rr_uncircumcised
+
+                        if 'condom' in net.edges:
+                            print('WARNING: condom adjustment not implemented without sexual transmission.')
+
         else:  # Adjust susceptibility to BV microbes for men who are uncircumcised
             m_uids = self._get_muids()
             uncircumcised_uids = m_uids[~self.circumcised[m_uids]]
@@ -580,7 +548,6 @@ class BV(BaseSTI):
         agents in CST 4 have no further transitions
 
         """
-
         p_cst_change = np.full_like(uids, fill_value=0, dtype=float)
         p_cst_change = self.pars.p_cst_change[cst] * self.rel_sus[uids]
         return p_cst_change
@@ -612,9 +579,9 @@ class BV(BaseSTI):
             self.set_rel_sus(spontaneous=False)
             new_cases = self.sexual_transmission()
             # pull out male uids
-            m_uids = new_cases.intersect(self.sim.people.male.uids)
-            self.set_prognoses(m_uids, new_cst=4, male=True)
-            f_uids = new_cases.intersect(self.sim.people.female.uids)
+            m_uids = new_cases & self.sim.people.male
+            self.set_male_prognoses(m_uids)
+            f_uids = new_cases & self.sim.people.female
             self.set_prognoses(f_uids, new_cst=4)
             self.results.new_sexually_acquired_infections[self.ti] += len(f_uids)
 
@@ -668,7 +635,6 @@ class BV(BaseSTI):
 
     def set_symptoms(self, uids):
         p = self.pars
-        self.results.new_female_infections[self.ti] += len(uids)
         self.asymptomatic[uids] = True
         stable_cst1 = uids.intersect(self.stable_cst1)
         stable_cst3 = uids.intersect(self.stable_cst3)
@@ -685,7 +651,7 @@ class BV(BaseSTI):
                 self.ti_clearance[symp] = dur + dur_presymp + self.ti_cst_change[symp]
                 dur = self.pars.dur2clear["cst4"].rvs(asymp)
                 self.ti_clearance[asymp] = dur + self.ti_cst_change[asymp]
-                self.results.new_symptomatic[self.ti] += len(symp)
+                # self.results.new_symptomatic[self.ti] += len(symp)
 
         return
 
@@ -712,28 +678,37 @@ class BV(BaseSTI):
                 pregnancy.rel_sus_ptb[bv_pregnant] = trimester_or_ptb
                 pregnancy.set_prognoses(bv_pregnant, bv_update=True)
 
-    def set_prognoses(self, uids, new_cst=3, male=False):
+    def set_male_prognoses(self, uids):
         """
-        Set initial prognoses for adults newly infected
+        Set initial prognoses for newly infected males
         """
-        if male:
+        self.ti_infected[uids] = self.ti
+        self.infected[uids] = True
+        self.susceptible[uids] = False
+        self.ti_clearance[uids] = self.ti + self.pars.dur2clear["male"].rvs(uids)
+        return
+
+    def set_prognoses(self, uids, new_cst=3):
+        """
+        Set initial prognoses for newly infected females
+        """
+        # Check that all the UIDS are female
+        if ut.count(uids & self.sim.people.male) > 0:
+            errormsg = 'set_prognoses should only be used for female agents'
+            raise ValueError(errormsg)
+
+        self.wipe_dates(uids)  # Clear prior dates
+        self.cst[uids] = new_cst
+        self.ti_cst_change[uids] = self.ti
+        if new_cst == 4:
+            self.ti_infected[uids] = self.ti
             self.infected[uids] = True
             self.susceptible[uids] = False
-            self.ti_clearance[uids] = self.ti + self.pars.dur2clear["male"].rvs(uids)
-            self.results.new_male_infections[self.ti] += len(uids)
+            self.set_symptoms(uids)  # Set symptoms and duration
+            if "pregnancy" in self.sim.demographics:
+                self.update_pregnancy(uids)
         else:
-            self.wipe_dates(uids)  # Clear prior dates
-            self.cst[uids] = new_cst
-            self.ti_cst_change[uids] = self.ti
-            if new_cst == 4:
-                self.infected[uids] = True
-                self.susceptible[uids] = False
-                self.set_symptoms(uids)  # Set symptoms and duration
-                if "pregnancy" in self.sim.demographics:
-                    self.update_pregnancy(uids)
-
-            else:
-                self.set_duration(uids, new_cst)  # Set duration of CST transition
+            self.set_duration(uids, new_cst)  # Set duration of CST transition
 
         return
 
@@ -746,6 +721,4 @@ class BV(BaseSTI):
         self.results["cst3_prevalence"][ti] = ut.cond_prob(self.cst3, women)
         self.results["cst4_prevalence"][ti] = ut.cond_prob(self.cst4, women)
         self.results["symp_prevalence"][ti] = ut.cond_prob(self.symptomatic, women)
-        self.results["male_bv_prevalence"][ti] = ut.cond_prob(self.infected, men)
-
         return
