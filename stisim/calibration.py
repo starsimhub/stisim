@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import sciris as sc
 import starsim as ss
+import os
 
 
 __all__ = ['Calibration', 'compute_gof']
@@ -118,10 +119,13 @@ def make_df(sim, sim_result_list=None):
     return df_res
 
 
-def eval_fn(df_res, data=None, sim_result_list=None, weights=None):
+def eval_fn(sim, data=None, sim_result_list=None, weights=None):
     """
     Custom evaluation function for STIsim
     """
+    df_res = make_df(sim, sim_result_list=sim_result_list)
+    sim.df_res = df_res
+
     # Compute fit
     fit = 0
     for skey in sim_result_list:
@@ -153,6 +157,7 @@ class Calibration(ss.Calibration):
         # Custom STIsim calibration elements
         # Load data -- this is expecting a dataframe with a column for 'time' and other columns for to sim results
         self.sim_result_list = []
+        self.sim_results = []
         self.weights = weights
         self.save_results = save_results
         self.results_to_save = None
@@ -197,12 +202,61 @@ class Calibration(ss.Calibration):
 
         sim = self.run_sim(pars)
 
-        # Compute dataframe of model results and overall fit
-        df_res = make_df(sim, sim_result_list=self.results_to_save)
-        fit = self.eval_fn(df_res, **self.eval_kw)
+        # Compute fit
+        fit = self.eval_fn(sim, **self.eval_kw)
 
         if self.save_results:
             filename = self.tmp_filename % trial.number
-            sc.save(filename, df_res)
+            sc.save(filename, sim.df_res)
 
         return fit
+
+    def parse_study(self, study):
+        """Parse the study into a data frame -- called automatically """
+        super().parse_study(study)
+        self.load_results(study)
+        return
+
+    def load_results(self, study):
+        """
+        Load the results from the tmp files
+        """
+        if self.save_results:
+            print('Loading saved results...')
+            for trial in study.trials:
+                n = trial.number
+                try:
+                    filename = self.tmp_filename % trial.number
+                    results = sc.load(filename)
+                    self.sim_results.append(results)
+                    try:
+                        os.remove(filename)
+                        if self.verbose: print(f'    Removed temporary file {filename}')
+                    except Exception as E:
+                        errormsg = f'Could not remove {filename}: {str(E)}'
+                        if self.verbose: print(errormsg)
+                    if self.verbose: print(f'  Loaded trial {n}')
+                except Exception as E:
+                    errormsg = f'Warning, could not load trial {n}: {str(E)}'
+                    if self.verbose: print(errormsg)
+        return
+
+    def shrink(self, n_results=100, make_df=True):
+        """ Shrink the results to only the best fit """
+        cal = sc.objdict()
+        n_results = min(n_results, len(self.df))
+        cal.sim_results = [self.sim_results[i] for i in range(n_results)]
+
+        # Make a dataframe with the best sim and extra results
+        if make_df:
+            dfs = sc.autolist()
+            for i in range(n_results):
+                md = cal.sim_results[i]
+                df = pd.DataFrame(md)
+                df['res_no'] = i
+                dfs += df
+            cal.resdf = pd.concat(dfs)
+
+        cal.data = self.data
+        cal.df = self.df.iloc[0:n_results, ]
+        return cal
