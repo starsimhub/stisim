@@ -12,7 +12,6 @@ Version 1.1.0 (2025-05-13)
 - Improvements to the Calibration class: this class now inherits directly from the Starsim calibration class, so users will have access to easier parameter constraints, plotting, flexible fit functions, etc
 - Generalization of the coinfection class to handle any two diseases
 - Addition of a more detailed BV model
-- Reorganization of the folder structure to give HIV its own folder
 - *GitHub info*: PR `https://github.com/starsimhub/stisim/pull/119`_
 
 
