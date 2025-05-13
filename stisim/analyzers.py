@@ -23,24 +23,53 @@ class result_grouper(ss.Analyzer):
         return out
 
 
-# TODO: generalize this for any 2 diseases
 class coinfection_stats(result_grouper):
-    def __init__(self, diseases=None, *args, **kwargs):
+    """
+    Generates stats for the coinfection of two diseases.
+    This is useful for looking at the coinfection of HIV and syphilis, for example.
+
+    Args:
+        disease1 (str | ss.Disease): name of the first disease
+        disease2 (str | ss.Disease): name of the second disease
+        disease1_infected_state_name (str): name of the infected state for disease1 (default: 'infected')
+        disease2_infected_state_name (str): name of the infected state for disease2 (default: 'infected')
+        age_limits (list): list of two integers that define the age limits for the denominator.
+        denom (function): function that returns a boolean array of the denominator, usually the relevant population.
+            default: lambda self: (self.sim.people.age >= 15) & (self.sim.people.age < 50)
+        *args, **kwargs : optional, passed to ss.Analyzer constructor
+    """
+    def __init__(self, disease1, disease2, disease1_infected_state_name='infected', disease2_infected_state_name='infected',
+                 age_limits=None, denom=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = 'coinfection_stats'
-        self.diseases = diseases
+        if disease1 is None or disease2 is None:
+            raise ValueError('Coinfection stats requires exactly 2 diseases')
+
+        self.disease1 = disease1
+        self.disease2 = disease2
+
+        # if the diseases are objects, get their names and store them instead of the objects
+        if isinstance(self.disease1, ss.Disease):
+            self.disease1 = self.disease1.name
+        if isinstance(self.disease2, ss.Disease):
+            self.disease2 = self.disease2.name
+
+        self.disease1_infected_state_name = disease1_infected_state_name
+        self.disease2_infected_state_name = disease2_infected_state_name
+        self.age_limits = age_limits or [15, 50]
+        default_denom = lambda self: (self.sim.people.age >= self.age_limits[0]) & (self.sim.people.age < self.age_limits[0])
+        self.denom = denom or default_denom
+
         return
 
     def init_results(self):
         results = [
-            ss.Result('syph_prev_no_hiv', dtype=float, scale=False),
-            ss.Result('syph_prev_has_hiv', dtype=float, scale=False),
-            ss.Result('syph_prev_no_hiv_f', dtype=float, scale=False),
-            ss.Result('syph_prev_has_hiv_f', dtype=float, scale=False),
-            ss.Result('syph_prev_no_hiv_m', dtype=float, scale=False),
-            ss.Result('syph_prev_has_hiv_m', dtype=float, scale=False),
-            ss.Result('syph_inf_fsw', dtype=float, scale=True),
-            ss.Result('syph_inci_fsw', dtype=float, scale=False),
+            ss.Result(f'{self.disease1}_prev_no_{self.disease2}', dtype=float, scale=False),
+            ss.Result(f'{self.disease1}_prev_has_{self.disease2}', dtype=float, scale=False),
+            ss.Result(f'{self.disease1}_prev_no_{self.disease2}_f', dtype=float, scale=False),
+            ss.Result(f'{self.disease1}_prev_has_{self.disease2}_f', dtype=float, scale=False),
+            ss.Result(f'{self.disease1}_prev_no_{self.disease2}_m', dtype=float, scale=False),
+            ss.Result(f'{self.disease1}_prev_has_{self.disease2}_m', dtype=float, scale=False),
         ]
         self.define_results(*results)
         return
@@ -48,28 +77,31 @@ class coinfection_stats(result_grouper):
     def step(self):
         sim = self.sim
         ti = self.ti
-        hiv = sim.diseases.hiv
-        syph = sim.diseases.syphilis
+        disease1name = self.disease1
+        disease2name = self.disease2
+        disease1obj = getattr(self.sim.diseases, self.disease1)
+        disease2obj = getattr(self.sim.diseases, self.disease2)
+
         ppl = sim.people
 
-        denom = (ppl.age >= 15) & (ppl.age < 50)  # Adults
-        has_hiv = denom & hiv.infected  # Adults with HIV
-        has_syph = denom & syph.infected  # Adults with syphilis
+        denom = self.denom(self)
+        has_disease2 = getattr(disease2obj, self.disease2_infected_state_name) # Adults with HIV
+        has_disease1 = getattr(disease1obj, self.disease1_infected_state_name)  # Adults with syphilis
 
-        has_syph_f = has_syph & ppl.female  # Women with syphilis
-        has_syph_m = has_syph & ppl.male  # Men with syphilis
-        has_hiv_f = has_hiv & ppl.female  # Women with HIV
-        has_hiv_m = has_hiv & ppl.male  # Men with HIV
-        no_hiv = denom & hiv.susceptible  # Adults without HIV
-        no_hiv_f = no_hiv & ppl.female  # Women without HIV
-        no_hiv_m = no_hiv & ppl.male  # Men without HIV
+        has_disease1_f = denom & has_disease1 & ppl.female  # Women with dis1
+        has_disease2_m = denom & has_disease1 & ppl.male  # Men with dis1
+        has_disease2_f = denom & has_disease2 & ppl.female  # Women with dis2
+        has_disease2_m = denom & has_disease2 & ppl.male  # Men with dis2
+        no_disease2    = denom & ~has_disease2  # Adults without dis2
+        no_disease2_f  = no_disease2 & ppl.female  # Women without dis2
+        no_disease2_m  = no_disease2 & ppl.male  # Men without dis2
 
-        self.results['syph_prev_no_hiv'][ti] = self.cond_prob(has_syph, no_hiv)
-        self.results['syph_prev_has_hiv'][ti] = self.cond_prob(has_syph, has_hiv)
-        self.results['syph_prev_no_hiv_f'][ti] = self.cond_prob(has_syph_f, no_hiv_f)
-        self.results['syph_prev_has_hiv_f'][ti] = self.cond_prob(has_syph_f, has_hiv_f)
-        self.results['syph_prev_no_hiv_m'][ti] = self.cond_prob(has_syph_m, no_hiv_m)
-        self.results['syph_prev_has_hiv_m'][ti] = self.cond_prob(has_syph_m, has_hiv_m)
+        self.results[f'{disease1name}_prev_no_{disease2name}'][ti] = self.cond_prob(has_disease1, no_disease2)
+        self.results[f'{disease1name}_prev_has_{disease2name}'][ti] = self.cond_prob(has_disease1, has_disease2)
+        self.results[f'{disease1name}_prev_no_{disease2name}_f'][ti] = self.cond_prob(has_disease1_f, no_disease2_f)
+        self.results[f'{disease1name}_prev_has_{disease2name}_f'][ti] = self.cond_prob(has_disease1_f, has_disease2_f)
+        self.results[f'{disease1name}_prev_no_{disease2name}_m'][ti] = self.cond_prob(has_disease2_m, no_disease2_m)
+        self.results[f'{disease1name}_prev_has_{disease2name}_m'][ti] = self.cond_prob(has_disease2_m, has_disease2_m)
 
         return
 
