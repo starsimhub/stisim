@@ -10,7 +10,7 @@ therefore be higher when the connector is included.
 import sciris as sc
 import starsim as ss
 import stisim as sti
-import hiv as hivsim
+import hivsim as hiv
 import pylab as pl
 import numpy as np
 
@@ -21,7 +21,7 @@ np.seterr(all='raise')
 def test_hiv_syph():
 
     # Make diseases
-    hiv = hivsim.HIV(init_prev=0.1, beta={'structuredsexual': [0.01, 0.01]})
+    hiv = hiv.HIV(init_prev=0.1, beta={'structuredsexual': [0.01, 0.01]})
     syphilis = sti.SyphilisPlaceholder(prevalence=0.9)
 
     pars = dict(
@@ -40,7 +40,7 @@ def test_hiv_syph():
     s1 = ss.Sim(pars).run()
     r1 = s1.results.hiv.cum_infections[-1]
 
-    assert r0 <= r1, f'The hiv-syph connector should increase HIV infections, but {r1}<{r0}'
+    assert r0 <= r1, f'The hivsim-syph connector should increase HIV infections, but {r1}<{r0}'
     print(f'✓ ({r0} <= {r1})')
 
     return s0, s1

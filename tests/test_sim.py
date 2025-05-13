@@ -6,7 +6,7 @@ Simple sim tests
 import sciris as sc
 import starsim as ss
 import stisim as sti
-import hiv as hivsim
+import hivsim as hiv
 import pandas as pd
 import numpy as np
 import pylab as pl
@@ -15,7 +15,7 @@ import pylab as pl
 def test_hiv_sim(n_agents=500):
     sc.heading('Test simplest possible HIV sim ')
 
-    hiv = hivsim.HIV(
+    hiv = hiv.HIV(
         beta={'structuredsexual': [0.05, 0.25], 'maternal': [0.05, 0.]},
         init_prev=0.05,
     )
@@ -23,9 +23,9 @@ def test_hiv_sim(n_agents=500):
     death = ss.Deaths(death_rate=10)
     sexual = sti.FastStructuredSexual()
     maternal = ss.MaternalNet()
-    testing = hivsim.HIVTest(test_prob_data=0.2, start=2000)
-    art = hivsim.ART(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_art': np.linspace(0, 0.9, 21)}))
-    vmmc = hivsim.VMMC(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_vmmc': np.linspace(0.025, 0.125, 21)}))
+    testing = hiv.HIVTest(test_prob_data=0.2, start=2000)
+    art = hiv.ART(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_art': np.linspace(0, 0.9, 21)}))
+    vmmc = hiv.VMMC(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_vmmc': np.linspace(0.025, 0.125, 21)}))
     sim = ss.Sim(
         dt=1/12,
         start=1990,
@@ -42,7 +42,7 @@ def test_hiv_sim(n_agents=500):
 
 
 def test_msm_hiv(n_agents=500):
-    hiv = hivsim.HIV(beta={'msm': [0.1, 0.1]}, init_prev=0.05)
+    hiv = hiv.HIV(beta={'msm': [0.1, 0.1]}, init_prev=0.05)
     pregnancy = ss.Pregnancy(fertility_rate=10)
     death = ss.Deaths(death_rate=10)
     msm = sti.AgeMatchedMSM()
@@ -89,7 +89,7 @@ def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
     con = []
 
     if include_hiv:
-        hiv = hivsim.HIV(
+        hiv = hiv.HIV(
             beta_m2f=0.5,
             beta_m2c=0.1,
             init_prev=0.1,
@@ -101,9 +101,9 @@ def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
         death = ss.Deaths(death_rate=10)
         dem += [pregnancy, death]
 
-        testing = hivsim.HIVTest(test_prob_data=0.2, start=2000)
-        art = hivsim.ART(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_art': np.linspace(0, 0.9, 21)}))
-        vmmc = hivsim.VMMC(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_vmmc': np.linspace(0.025, 0.125, 21)}))
+        testing = hiv.HIVTest(test_prob_data=0.2, start=2000)
+        art = hiv.ART(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_art': np.linspace(0, 0.9, 21)}))
+        vmmc = hiv.VMMC(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_vmmc': np.linspace(0.025, 0.125, 21)}))
         intvs += [testing, art, vmmc]
         dis += [hiv]
         con += [sti.hiv_bv(hiv_module=hiv, bv_module=bv)]

@@ -1,7 +1,6 @@
 import starsim as ss
 import stisim as sti
-import hiv as hivsim
-import pandas as pd
+import hivsim as hiv
 from collections import defaultdict
 import numpy as np
 import matplotlib.pyplot as plt
@@ -169,7 +168,7 @@ def test_hiv():
     pars['start'] = 2020
     pars['stop'] = 2040
     pars['dt'] = 1 / 12
-    hiv = hivsim.HIV(init_prev=0, p_hiv_death=0, include_aids_deaths=False, beta={'structuredsexual': [0, 0], 'maternal': [0, 0]})
+    hiv = hiv.HIV(init_prev=0, p_hiv_death=0, include_aids_deaths=False, beta={'structuredsexual': [0, 0], 'maternal': [0, 0]})
     pars['diseases'] = [hiv]
     pars['networks'] = [sti.StructuredSexual(), ss.MaternalNet()]
     pars['demographics'] = [ss.Pregnancy(fertility_rate=0), ss.Deaths(death_rate=0)]
@@ -200,7 +199,7 @@ def test_hiv_syph():
     pars['start'] = 2020
     pars['stop'] = 2040
     pars['dt'] = 1 / 12
-    hiv = hivsim.HIV(init_prev=0, p_hiv_death=0, include_aids_deaths=False, beta={'structuredsexual': [0, 0], 'maternal': [0, 0]})
+    hiv = hiv.HIV(init_prev=0, p_hiv_death=0, include_aids_deaths=False, beta={'structuredsexual': [0, 0], 'maternal': [0, 0]})
     syphilis = sti.SyphilisPlaceholder(prevalence=None)
 
     pars['diseases'] = [hiv, syphilis]

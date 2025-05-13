@@ -6,7 +6,7 @@ Test calibration
 import starsim as ss
 import sciris as sc
 import stisim as sti
-import hiv as hivsim
+import hivsim as hiv
 import pandas as pd
 
 do_plot = 1
@@ -21,7 +21,7 @@ do_save = True
 def make_sim():
 
     syph = sti.Syphilis(beta_m2f=0.06, init_prev=0.05)
-    hiv = hivsim.HIV(beta_m2f=0.05, beta_m2c=0.025, init_prev=0.15)
+    hiv = hiv.HIV(beta_m2f=0.05, beta_m2c=0.025, init_prev=0.15)
     connector = sti.hiv_syph(hiv, syph, rel_sus_hiv_syph=2, rel_trans_hiv_syph=2)
     pregnancy = ss.Pregnancy(fertility_rate=20)
     death = ss.Deaths(death_rate=10)

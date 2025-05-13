@@ -7,10 +7,7 @@ import starsim as ss
 import numpy as np
 import sciris as sc
 from stisim.interventions.base_interventions import STITest
-
-
-# %% Helper functions
-def count(arr): return np.count_nonzero(arr)
+import stisim.utils as ut
 
 
 # %% HIV classes
@@ -257,7 +254,7 @@ class VMMC(ss.Intervention):
             self.ti_circumcised[new_circs] = self.ti
 
         self.results['new_circumcisions'][self.ti] = n_to_circ
-        self.results['n_circumcised'][self.ti] = count(self.circumcised)
+        self.results['n_circumcised'][self.ti] = ut.count(self.circumcised)
 
         # Reduce rel_sus
         sim.diseases.hiv.rel_sus[self.circumcised] *= 1-self.pars.eff_circ
