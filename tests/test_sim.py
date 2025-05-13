@@ -6,7 +6,7 @@ Simple sim tests
 import sciris as sc
 import starsim as ss
 import stisim as sti
-import hivsim as hiv
+import hivsim as hs
 import pandas as pd
 import numpy as np
 import pylab as pl
@@ -15,7 +15,7 @@ import pylab as pl
 def test_hiv_sim(n_agents=500):
     sc.heading('Test simplest possible HIV sim ')
 
-    hiv = hiv.HIV(
+    hiv = hs.HIV(
         beta={'structuredsexual': [0.05, 0.25], 'maternal': [0.05, 0.]},
         init_prev=0.05,
     )
