@@ -42,7 +42,7 @@ def test_hiv_sim(n_agents=500):
 
 
 def test_msm_hiv(n_agents=500):
-    hiv = hiv.HIV(beta={'msm': [0.1, 0.1]}, init_prev=0.05)
+    hiv = hs.HIV(beta={'msm': [0.1, 0.1]}, init_prev=0.05)
     pregnancy = ss.Pregnancy(fertility_rate=10)
     death = ss.Deaths(death_rate=10)
     msm = sti.AgeMatchedMSM()
@@ -101,9 +101,9 @@ def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
         death = ss.Deaths(death_rate=10)
         dem += [pregnancy, death]
 
-        testing = hiv.HIVTest(test_prob_data=0.2, start=2000)
-        art = hiv.ART(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_art': np.linspace(0, 0.9, 21)}))
-        vmmc = hiv.VMMC(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_vmmc': np.linspace(0.025, 0.125, 21)}))
+        testing = hs.HIVTest(test_prob_data=0.2, start=2000)
+        art = hs.ART(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_art': np.linspace(0, 0.9, 21)}))
+        vmmc = hs.VMMC(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_vmmc': np.linspace(0.025, 0.125, 21)}))
         intvs += [testing, art, vmmc]
         dis += [hiv]
         con += [sti.hiv_bv(hiv_module=hiv, bv_module=bv)]
