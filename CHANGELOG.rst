@@ -7,6 +7,12 @@ What's new
 All notable changes to the codebase are documented in this file.
 
 
+Version 1.2.0 (2025-05-23)
+--------------------------
+- TBC
+- *GitHub info*: PR `https://github.com/starsimhub/stisim/pull/XX`_
+
+
 Version 1.1.0 (2025-05-13)
 --------------------------
 - Improvements to the Calibration class: this class now inherits directly from the Starsim calibration class, so users will have access to easier parameter constraints, plotting, flexible fit functions, etc
