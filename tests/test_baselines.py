@@ -8,12 +8,9 @@ import sciris as sc
 import stisim as sti
 import starsim as ss
 
-do_plot = 1
 do_save = 1
 baseline_filename  = sc.thisdir(__file__, 'baseline.json')
 benchmark_filename = sc.thisdir(__file__, 'benchmark.json')
-# parameters_filename = sc.thisdir(sti.__file__, 'regression', f'pars_v{hpv.__version__}.json')
-# hpv.options.set(interactive=False) # Assume not running interactively
 
 
 def make_sim(**kwargs):
@@ -61,14 +58,10 @@ def save_baseline():
 
     print('Updating baseline values...')
 
-    # Export default parameters
-    # s1 = make_sim()
-    # s1.export_pars(filename=parameters_filename) # If not different from previous version, can safely delete
-
     # Export results
-    s2 = make_sim()
-    s2.run()
-    s2.to_json(filename=baseline_filename)
+    s = make_sim()
+    s.run()
+    s.to_json(filename=baseline_filename)
 
     print('Done.')
 
@@ -96,7 +89,7 @@ def test_benchmark(do_save=do_save, repeats=1, verbose=True):
     ''' Compare benchmark performance '''
 
     if verbose: print('Running benchmark...')
-    # previous = sc.loadjson(benchmark_filename)
+    previous = sc.loadjson(benchmark_filename)
 
     t_inits = []
     t_runs  = []
@@ -189,12 +182,10 @@ def test_benchmark(do_save=do_save, repeats=1, verbose=True):
 
 if __name__ == '__main__':
 
-    # Start timing and optionally enable interactive plotting
-    # hpv.options.set(interactive=do_plot)
     T = sc.tic()
 
     json = test_benchmark(do_save=do_save, repeats=5, verbose=False) # Run this first so benchmarking is available even if results are different
-    new  = save_baseline()
+    new  = test_baseline()
     make_sim()
 
     print('\n'*2)
