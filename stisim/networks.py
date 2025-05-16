@@ -154,6 +154,9 @@ class StructuredSexual(ss.SexualNetwork):
             ss.FloatArr('partners', default=0),  # Actual number of concurrent partners
             ss.FloatArr('partners_12', default=0),  # Number of partners over the past 12m
             ss.FloatArr('lifetime_partners', default=0),  # Lifetime total number of partners
+            ss.FloatArr('casual_partners', default=0),
+            ss.FloatArr('stable_partners', default=0),
+            ss.FloatArr('onetime_partners', default=0),
             ss.FloatArr('sw_intensity'),  # Intensity of sex work
         )
 
@@ -386,6 +389,22 @@ class StructuredSexual(ss.SexualNetwork):
             errormsg = 'Unequal lengths in edge list'
             raise ValueError(errormsg)
 
+        # Add stable and casual partner counts, not including SW partners
+        onetime = dur < 1
+        onetime_p1, onetime_counts_p1 = np.unique(p1[onetime], return_counts=True)
+        onetime_p2, onetime_counts_p2 = np.unique(p2[onetime], return_counts=True)
+
+
+        stable_p1, stable_counts_p1 = np.unique(p1[stable & ~onetime], return_counts=True)
+        stable_p2, stable_counts_p2 = np.unique(p2[stable & ~onetime], return_counts=True)
+        self.stable_partners[stable_p1] += stable_counts_p1
+        self.stable_partners[stable_p2] += stable_counts_p2
+
+        casual_p1, casual_counts_p1 = np.unique(p1[casual & ~onetime], return_counts=True)
+        casual_p2, casual_counts_p2 = np.unique(p2[casual & ~onetime], return_counts=True)
+        self.casual_partners[casual_p1] += casual_counts_p1
+        self.casual_partners[casual_p2] += casual_counts_p2
+
         # Add partner counts, not including SW partners
         unique_p1, counts_p1 = np.unique(p1_gp, return_counts=True)
         unique_p2, counts_p2 = np.unique(p2_gp, return_counts=True)
@@ -468,6 +487,14 @@ class StructuredSexual(ss.SexualNetwork):
         inactive_gp = ~active & (~self.edges.sw)
         self.partners[ss.uids(self.edges.p1[inactive_gp])] -= 1
         self.partners[ss.uids(self.edges.p2[inactive_gp])] -= 1
+
+        # decrement the stable, casual, and onetime partner counts too
+        self.onetime_partners[ss.uids(self.edges.p1[inactive_gp])] -= 1
+        self.onetime_partners[ss.uids(self.edges.p2[inactive_gp])] -= 1
+        self.casual_partners[ss.uids(self.edges.p1[inactive_gp])] -= 1
+        self.casual_partners[ss.uids(self.edges.p2[inactive_gp])] -= 1
+        self.stable_partners[ss.uids(self.edges.p1[inactive_gp])] -= 1
+        self.stable_partners[ss.uids(self.edges.p2[inactive_gp])] -= 1
 
         # For all contacts that are due to expire, remove them from the contacts list
         if len(active) > 0:
