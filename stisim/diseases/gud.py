@@ -5,7 +5,7 @@ Placeholder modules for non-specific STIs, including:
 """
 
 import starsim as ss
-import stisim as sti
+from stisim.diseases.sti import SEIS
 
 __all__ = ['Placeholder', 'GUDPlaceholder', 'VDPlaceholder', 'GUD']
 
@@ -83,7 +83,7 @@ class GUDPlaceholder(Placeholder):
         return
 
 
-class GUD(ss.Infection):
+class GUD(SEIS):
 
     def __init__(self, pars=None, init_prev_data=None, **kwargs):
         super().__init__()

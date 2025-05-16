@@ -155,6 +155,6 @@ class hiv_simplebv(ss.Connector):
 class hiv_bv(hiv_simplebv):
     def step(self):
         cst4 = self.bv.cst4.uids
-        self.hiv.rel_sus[cst4] *= self.pars.rr_sus
-        self.hiv.rel_trans[cst4] *= self.pars.rr_trans
+        self.hiv.rel_sus[cst4] *= self.pars.rel_sus_hiv_bv
+        self.hiv.rel_trans[cst4] *= self.pars.rel_trans_hiv_bv
         return
