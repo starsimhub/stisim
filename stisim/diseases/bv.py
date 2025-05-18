@@ -68,6 +68,7 @@ class SimpleBV(ss.Disease):
             ss.FloatArr('n_partners_12m', 0, label='Number of partners in the past 12 months'),
             ss.BoolArr('poor_menstrual_hygiene', label='Poor menstrual hygiene'),
         )
+        self.sex_keys = {'': 'alive', 'f': 'female', 'm': 'male'}
 
         return
 
