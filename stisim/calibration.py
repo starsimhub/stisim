@@ -242,43 +242,6 @@ class Calibration(ss.Calibration):
                     if self.verbose: print(errormsg)
         return
 
-    def calibrate(self, calib_pars=None, prior_study=None, **kwargs):
-        """
-        Perform calibration.
-        """
-        if prior_study is None:
-            # Load and validate calibration parameters
-            if calib_pars is not None:
-                self.calib_pars = calib_pars
-            self.run_args.update(kwargs) # Update optuna settings
-
-        # Run the optimization
-        t0 = sc.tic()
-        if prior_study is None:
-            self.study = self.make_study()
-        else:
-            self.study = prior_study
-
-        # Run
-        self.run_workers()
-
-        # Finish
-        study = op.load_study(storage=self.run_args.storage, study_name=self.run_args.study_name, sampler=self.run_args.sampler)
-        self.best_pars = sc.objdict(study.best_params)
-        self.elapsed = sc.toc(t0, output=True)
-
-        # Parse the study into a data frame, self.df while also storing the best parameters
-        self.parse_study(study)
-
-        if self.verbose: print('Best pars:', self.best_pars)
-
-        # Tidy up
-        self.calibrated = True
-        if not self.run_args.keep_db:
-            self.remove_db()
-
-        return self
-
     def shrink(self, n_results=100, make_df=True):
         """ Shrink the results to only the best fit """
         cal = sc.objdict()
