@@ -409,28 +409,6 @@ class StructuredSexual(ss.SexualNetwork):
             getattr(self, f'{key}_partners')[p1_edges] += p1_counts
             getattr(self, f'{key}_partners')[p2_edges] += p2_counts
 
-        #
-        #
-        # onetime = dur < 1 & ~sw
-        # onetime_p1, onetime_counts_p1 = np.unique(p1[onetime], return_counts=True)
-        # onetime_p2, onetime_counts_p2 = np.unique(p2[onetime], return_counts=True)
-        # self.onetime_partners[onetime_p1] += onetime_counts_p1
-        # self.onetime_partners[onetime_p2] += onetime_counts_p2
-        #
-        #
-        # # stable_p1, stable_counts_p1 = np.unique(p1[stable & ~onetime], return_counts=True)
-        # # stable_p2, stable_counts_p2 = np.unique(p2[stable & ~onetime], return_counts=True)
-        #
-        # stable_p1, stable_counts_p1 = np.unique(p1[edge_types==self.edge_types['stable']], return_counts=True)
-        # stable_p2, stable_counts_p2 = np.unique(p2[edge_types==self.edge_types['stable']], return_counts=True)
-        #
-        # self.stable_partners[stable_p1] += stable_counts_p1
-        # self.stable_partners[stable_p2] += stable_counts_p2
-        #
-        # casual_p1, casual_counts_p1 = np.unique(p1[casual & ~onetime], return_counts=True)
-        # casual_p2, casual_counts_p2 = np.unique(p2[casual & ~onetime], return_counts=True)
-        # self.casual_partners[casual_p1] += casual_counts_p1
-        # self.casual_partners[casual_p2] += casual_counts_p2
 
         # Add partner counts, not including SW partners
         unique_p1, counts_p1 = np.unique(p1_gp, return_counts=True)
@@ -529,21 +507,6 @@ class StructuredSexual(ss.SexualNetwork):
         self.casual_partners[p2_edges][casuals] -= 1
         self.stable_partners[p1_edges][stables] -= 1
         self.stable_partners[p2_edges][stables] -= 1
-
-        # casual_partners = self.casual_partners[self.casual_partners > 0]
-        # stable_partners = self.stable_partners[self.stable_partners > 0]
-        # p1_onetime = np.intersect1d(p1_edges, onetime_partners)
-        # p2_onetime = np.intersect1d(p2_edges, onetime_partners)
-
-
-
-        # decrement the stable, casual, and onetime partner counts too
-        # self.onetime_partners[ss.uids(self.edges.p1[inactive_gp])] -= 1
-        # self.onetime_partners[ss.uids(self.edges.p2[inactive_gp])] -= 1
-        # self.casual_partners[ss.uids(self.edges.p1[inactive_gp])] -= 1
-        # self.casual_partners[ss.uids(self.edges.p2[inactive_gp])] -= 1
-        # self.stable_partners[ss.uids(self.edges.p1[inactive_gp])] -= 1
-        # self.stable_partners[ss.uids(self.edges.p2[inactive_gp])] -= 1
 
         # For all contacts that are due to expire, remove them from the contacts list
         if len(active) > 0:
