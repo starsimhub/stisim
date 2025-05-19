@@ -497,16 +497,20 @@ class StructuredSexual(ss.SexualNetwork):
         onetimes = edge_types == self.edge_types['onetime']
         casuals  = edge_types == self.edge_types['casual']
         stables  = edge_types == self.edge_types['stable']
+        sw = edge_types == self.edge_types['sw']
 
         self.partners[p1_edges] -= 1
         self.partners[p2_edges] -= 1
 
-        self.onetime_partners[p1_edges][onetimes] -= 1
-        self.onetime_partners[p2_edges][onetimes] -= 1
-        self.casual_partners[p1_edges][casuals] -= 1
-        self.casual_partners[p2_edges][casuals] -= 1
-        self.stable_partners[p1_edges][stables] -= 1
-        self.stable_partners[p2_edges][stables] -= 1
+        self.onetime_partners[p1_edges[onetimes]] -= 1
+        self.onetime_partners[p2_edges[onetimes]] -= 1
+        self.casual_partners[p1_edges[casuals]] -= 1
+        self.casual_partners[p2_edges[casuals]] -= 1
+        self.stable_partners[p1_edges[stables]] -= 1
+        self.stable_partners[p2_edges[stables]] -= 1
+        self.sw_partners[p1_edges[sw]] -= 1
+        self.sw_partners[p2_edges[sw]] -= 1
+
 
         # For all contacts that are due to expire, remove them from the contacts list
         if len(active) > 0:
