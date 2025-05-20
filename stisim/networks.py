@@ -161,6 +161,10 @@ class StructuredSexual(ss.SexualNetwork):
             ss.FloatArr('stable_partners', default=0),
             ss.FloatArr('onetime_partners', default=0),
             ss.FloatArr('sw_partners', default=0),
+            ss.FloatArr('lifetime_casual_partners', default=0),
+            ss.FloatArr('lifetime_stable_partners', default=0),
+            ss.FloatArr('lifetime_onetime_partners', default=0),
+            ss.FloatArr('lifetime_sw_partners', default=0),
             ss.FloatArr('sw_intensity'),  # Intensity of sex work
         )
 
@@ -406,8 +410,12 @@ class StructuredSexual(ss.SexualNetwork):
             p1_edges, p1_counts = np.unique(p1[edge_types==edge_type], return_counts=True)
             p2_edges, p2_counts = np.unique(p2[edge_types==edge_type], return_counts=True)
 
+            # update partner counts
             getattr(self, f'{key}_partners')[p1_edges] += p1_counts
             getattr(self, f'{key}_partners')[p2_edges] += p2_counts
+            getattr(self, f'lifetime_{key}_partners')[p1_edges] += p1_counts
+            getattr(self, f'lifetime_{key}_partners')[p2_edges] += p2_counts
+
 
 
         # Add partner counts, not including SW partners
