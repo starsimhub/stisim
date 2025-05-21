@@ -20,7 +20,7 @@ def test_hiv_sim(n_agents=500):
     )
     pregnancy = ss.Pregnancy(fertility_rate=10)
     death = ss.Deaths(death_rate=10)
-    sexual = sti.FastStructuredSexual()
+    sexual = sti.StructuredSexual()
     maternal = ss.MaternalNet()
     testing = sti.HIVTest(test_prob_data=0.2, start=2000)
     art = sti.ART(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_art': np.linspace(0, 0.9, 21)}))
@@ -94,7 +94,7 @@ def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
             init_prev=0.1,
         )
 
-        nets += [sti.FastStructuredSexual(store_register=True), ss.MaternalNet()]
+        nets += [sti.StructuredSexual(store_register=True), ss.MaternalNet()]
 
         pregnancy = ss.Pregnancy(fertility_rate=10)
         death = ss.Deaths(death_rate=10)
@@ -131,7 +131,7 @@ def test_stis(which='discharging', n_agents=5e3, start=2010, stop=2020):
 
     pregnancy = ss.Pregnancy(fertility_rate=10)
     death = ss.Deaths(death_rate=10)
-    sexual = sti.FastStructuredSexual()
+    sexual = sti.StructuredSexual()
 
     sim = ss.Sim(
         dt=1/12,

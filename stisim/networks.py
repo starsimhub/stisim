@@ -22,7 +22,7 @@ import scipy.spatial as spsp
 ss_float_ = ss.dtypes.float
 
 # Specify all externally visible functions this file defines; see also more definitions below
-__all__ = ['StructuredSexual', 'FastStructuredSexual', 'AgeMatchedMSM', 'AgeApproxMSM']
+__all__ = ['StructuredSexual', 'AgeMatchedMSM', 'AgeApproxMSM']
 
 
 class NoPartnersFound(Exception):
@@ -308,7 +308,7 @@ class StructuredSexual(ss.SexualNetwork):
 
     def match_pairs(self, ppl):
         """
-        Match pairs by age
+        Match pairs by age, using sorting rather than the linear sum assignment
         """
 
         # Find people eligible for a relationship
@@ -327,10 +327,13 @@ class StructuredSexual(ss.SexualNetwork):
         age_gaps = self.pars.age_diffs.rvs(f_looking)   # Sample the age differences
         desired_ages = ppl.age[f_looking] + age_gaps    # Desired ages of the male partners
         m_ages = ppl.age[m_eligible]            # Ages of eligible males
-        dist_mat = spsp.distance_matrix(m_ages[:, np.newaxis], desired_ages[:, np.newaxis])
-        ind_m, ind_f = spo.linear_sum_assignment(dist_mat)
+        ind_m = np.argsort(m_ages)  # Use sort instead of linear_sum_agreement
+        ind_f = np.argsort(desired_ages)
         p1 = m_eligible.uids[ind_m]
         p2 = f_looking[ind_f]
+        maxlen = min(len(p1), len(p2))
+        p1 = p1[:maxlen]
+        p2 = p2[:maxlen]
 
         return p1, p2
 
@@ -573,43 +576,6 @@ class StructuredSexual(ss.SexualNetwork):
         self.count_partners()
 
         return
-
-
-class FastStructuredSexual(StructuredSexual):
-
-    def __init__(self, **kwargs):
-        super().__init__(name='structuredsexual', **kwargs)
-
-    def match_pairs(self, ppl):
-        """
-        Match pairs by age, using sorting rather than the linear sum assignment
-        """
-
-        # Find people eligible for a relationship
-        active = self.over_debut()
-        underpartnered = self.partners < self.concurrency
-        f_eligible = active & ppl.female & underpartnered
-        m_eligible = active & ppl.male & underpartnered
-        f_looking = self.pars.p_pair_form.filter(f_eligible.uids)  # ss.uids of women looking for partners
-
-        if len(f_looking) == 0 or m_eligible.count() == 0:
-            raise NoPartnersFound()
-
-        # Get mean age differences and desired ages
-        loc, scale = self.get_age_risk_pars(f_looking, self.pars.age_diff_pars)
-        self.pars.age_diffs.set(loc=loc, scale=scale)
-        age_gaps = self.pars.age_diffs.rvs(f_looking)   # Sample the age differences
-        desired_ages = ppl.age[f_looking] + age_gaps    # Desired ages of the male partners
-        m_ages = ppl.age[m_eligible]            # Ages of eligible males
-        ind_m = np.argsort(m_ages)  # Use sort instead of linear_sum_agreement
-        ind_f = np.argsort(desired_ages)
-        p1 = m_eligible.uids[ind_m]
-        p2 = f_looking[ind_f]
-        maxlen = min(len(p1), len(p2))
-        p1 = p1[:maxlen]
-        p2 = p2[:maxlen]
-
-        return p1, p2
 
 
 class AgeMatchedMSM(StructuredSexual):
