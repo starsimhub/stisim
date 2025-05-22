@@ -102,9 +102,9 @@ def compute_gof(actual, predicted, normalize=True, use_frac=False, use_squared=F
         return gofs
 
 
-def make_df(sim, sim_result_list=None):
+def make_df(sim, df_res_list=None):
     dfs = sc.autolist()
-    for sres in sim_result_list:
+    for sres in df_res_list:
         if sres in sim.results.keys() and isinstance(sim.results[sres], ss.Result):
             dfs += sim.results[sres].to_df(resample='year', use_years=True, col_names=sres)
         else:
@@ -119,11 +119,11 @@ def make_df(sim, sim_result_list=None):
     return df_res
 
 
-def eval_fn(sim, data=None, sim_result_list=None, weights=None):
+def eval_fn(sim, data=None, sim_result_list=None, weights=None, df_res_list=None):
     """
     Custom evaluation function for STIsim
     """
-    df_res = make_df(sim, sim_result_list=sim_result_list)
+    df_res = make_df(sim, df_res_list=df_res_list)
     sim.df_res = df_res
 
     # Compute fit
@@ -168,7 +168,7 @@ class Calibration(ss.Calibration):
             self.sim_result_list = self.data.cols
 
             if save_results:
-                self.results_to_save = self.sim_result_list + sc.tolist(extra_results)
+                self.results_to_save = list(set(self.sim_result_list + sc.tolist(extra_results)))
 
             # If neither components nor eval_fn have been supplied but we have a dataframe,
             # then we construct a custom eval function
@@ -181,8 +181,8 @@ class Calibration(ss.Calibration):
         """
         Make custom eval function from dataframe
         """
-
-        self.eval_kw = dict(data=self.data, sim_result_list=self.sim_result_list, weights=self.weights)
+        result_list = self.sim_result_list if not self.save_results else self.results_to_save
+        self.eval_kw = dict(data=self.data, sim_result_list=self.sim_result_list, weights=self.weights, df_res_list=result_list)
         self.eval_fn = eval_fn
         return
 
@@ -215,6 +215,7 @@ class Calibration(ss.Calibration):
         """Parse the study into a data frame -- called automatically """
         super().parse_study(study)
         self.load_results(study)
+        self.sim_results = [self.sim_results[i] for i in self.df.index]
         return
 
     def load_results(self, study):
