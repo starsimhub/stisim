@@ -11,7 +11,7 @@ import pandas as pd
 import stisim as sti
 import pylab as pl
 
-__all__ = ["result_grouper", "coinfection_stats", "sw_stats", "RelationshipDurations"]
+__all__ = ["result_grouper", "coinfection_stats", "sw_stats", "RelationshipDurations", "NetworkDegree"]
 
 
 class result_grouper(ss.Analyzer):
@@ -186,7 +186,6 @@ class RelationshipDurations(ss.Analyzer):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.name = 'RelationshipDurations'
         return
 
     def init_results(self):
@@ -266,3 +265,98 @@ class RelationshipDurations(ss.Analyzer):
         return female_durations, male_durations
 
 
+class NetworkDegree(ss.Analyzer):
+    def __init__(self, year=None, bins=None, relationship_types=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.year = year
+
+        if bins is None:
+            bins = np.concatenate([np.arange(21),[100]])
+        self.bins = bins
+
+        if relationship_types is None:
+            relationship_types = ['stable', 'casual'] # Other options are 'partners' (stable+casual), 'onetime', 'sw'
+
+        self.relationship_types = []
+        if 'partners' in relationship_types:
+            relationship_types.remove('partners')
+            self.relationship_types.append('lifetime_partners')
+        [self.relationship_types.append(f'lifetime_{relationship_type}_partners') for relationship_type in relationship_types]
+
+        for relationship_type in self.relationship_types:
+            setattr(self, f'{relationship_type}_f', [])
+            setattr(self, f'{relationship_type}_m', [])
+
+        return
+
+    def init_results(self):
+        """
+        Add results for `n_rships`, separated for males and females
+        Optionally disaggregate for risk level / age?
+        """
+        super().init_results()
+        for relationship_type in self.relationship_types:
+            self.results += [
+                ss.Result(f'{relationship_type}_f', dtype=int, scale=False, shape=len(self.bins)),
+                ss.Result(f'{relationship_type}_m', dtype=int, scale=False, shape=len(self.bins)),
+            ]
+        return
+
+
+    def step(self):
+        """
+        record lifetime_partners for the user-specified year
+        """
+        if self.sim.t.yearvec[self.ti] == self.year:
+            for relationship_type in self.relationship_types:
+                # Get the number of partners, disaggregated by sex. We can't use a Result object for this because we
+                # don't know how many agents there will be at any given time step. We can use Results for the binned
+                # counts.
+
+                female_partners = getattr(self.sim.networks.structuredsexual, relationship_type)[self.sim.people.female]
+                male_partners = getattr(self.sim.networks.structuredsexual, relationship_type)[self.sim.people.male]
+
+                getattr(self, f'{relationship_type}_f').extend(female_partners)
+                getattr(self, f'{relationship_type}_m').extend(male_partners)
+
+                # bin the data by number of partners
+                female_counts, female_bins = np.histogram(female_partners, bins=self.bins)
+                male_counts, male_bins = np.histogram(male_partners, bins=self.bins)
+
+                for i, female_count, male_count in zip(range(len(self.bins)), female_counts, male_counts):
+                    self.results[f'{relationship_type}_f'][i] = female_count
+                    self.results[f'{relationship_type}_m'][i] = male_count
+        return
+
+    def plot(self):
+        """
+        Plot histograms and stats by sex and relationship type
+        """
+
+        for relationship_type in self.relationship_types:
+            fig, axes = pl.subplots(1, 2, figsize=(9, 5), layout="tight")
+            axes = axes.flatten()
+            for ai, sex in enumerate(['f', 'm']):
+                counts = self.results[f'{relationship_type}_{sex}'].values
+                bins=self.bins
+
+                total = sum(counts)
+                counts = counts / total
+                counts[-2] = counts[-2:].sum()
+                counts = counts[:-1]
+
+                axes[ai].bar(bins[:-1], counts)
+                axes[ai].set_xlabel(f'Number of {relationship_type}')
+                axes[ai].set_title(f'Distribution of partners, {sex}')
+                axes[ai].set_ylim([0, 1])
+
+                sex_counts = np.array(getattr(self, f'{relationship_type}_{sex}'))
+                stats = f"Mean: {np.mean(sex_counts):.1f}\n"
+                stats += f"Median: {np.median(sex_counts):.1f}\n"
+                stats += f"Std: {np.std(sex_counts):.1f}\n"
+                stats += f"%>20: {np.count_nonzero(sex_counts >= 20) / total * 100:.2f}\n"
+                axes[ai].text(15, 0.5, stats)
+
+            pl.show()
+
+        return
