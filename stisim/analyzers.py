@@ -11,7 +11,7 @@ import pandas as pd
 import stisim as sti
 import pylab as pl
 
-__all__ = ["result_grouper", "coinfection_stats", "sw_stats"]
+__all__ = ["result_grouper", "coinfection_stats", "sw_stats", "RelationshipDurations"]
 
 
 class result_grouper(ss.Analyzer):
@@ -179,5 +179,90 @@ class sw_stats(result_grouper):
 
         return
 
+
+class RelationshipDurations(ss.Analyzer):
+    """
+    Analyzes the durations of relationships in a structuredsexual network.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.name = 'RelationshipDurations'
+        return
+
+    def init_results(self):
+        self.define_results(
+            ss.Result('mean_duration', dtype=float, scale=False),
+            ss.Result('median_duration', dtype=float, scale=False),
+        )
+        return
+
+    def step(self):
+        pass
+
+    def update_results(self):
+        sim = self.sim
+        ti = self.ti
+        nw = sim.networks.structuredsexual
+        rel_durations = self.get_relationship_durations()
+        self.results['mean_duration'][ti] = np.mean(rel_durations)
+        self.results['median_duration'][ti] = np.median(rel_durations)
+        return
+
+    def plot(self):
+        sim = self.sim
+        ti = self.ti
+        female_relationship_durs, male_relationship_durs = self.get_relationship_durations()
+        all_durations = female_relationship_durs + male_relationship_durs
+        pl.figure(1)
+        pl.hist(all_durations, bins=(max(all_durations) - min(all_durations)))
+        pl.xlabel('Relationship Duration')
+        pl.ylabel('Frequency')
+        pl.title('Distribution of Relationship Durations')
+
+        pl.figure(2)
+        pl.hist(female_relationship_durs, bins=(max(all_durations) - min(all_durations)))
+        pl.xlabel('Female Relationship Duration')
+        pl.ylabel('Frequency')
+        pl.title('Distribution of Female Relationship Durations')
+
+        pl.figure(3)
+        pl.hist(male_relationship_durs, bins=(max(all_durations) - min(all_durations)))
+        pl.xlabel('Male Relationship Duration')
+        pl.ylabel('Frequency')
+        pl.title('Distribution of Male Relationship Durations')
+        pl.show()
+
+
+    def get_relationship_durations(self, include_current=True):
+        """
+        Returns the durations of all relationships, separated by sex.
+
+        If include_current is False, return the duration of only relationships that have ended
+
+        returns:
+            female_durations: list of durations of relationships
+            male_durations: list of durations of relationships
+        """
+
+        # Get the current duration of all relationships
+        male_durations = []
+        female_durations = []
+        for pair, relationships in self.sim.networks.structuredsexual.relationship_durs.items():
+            durs = [relationship['dur'] for relationship in relationships]
+
+            if include_current and durs[-1] is None:
+                durs[-1] = self.ti - relationships[-1]['start']
+            else:
+                # if we are only concerned with relationships that have concluded, remove the last entry when it is None
+                durs = durs[:-1]
+
+            # assign the durations to male and female lists
+            for uid in pair:
+                if self.sim.people.female[uid]:
+                    female_durations.extend(durs)
+                else:
+                    male_durations.extend(durs)
+
+        return female_durations, male_durations
 
 
