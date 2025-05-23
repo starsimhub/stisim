@@ -1,0 +1,14 @@
+{
+  "time": {
+    "initialize": 0.301,
+    "run": 3.232
+  },
+  "parameters": {
+    "n_agents": 10000,
+    "n_years": 10,
+    "n_diseases": 7,
+    "n_interventions": 2,
+    "n_analyzers": 0
+  },
+  "cpu_performance": 0.3725686016301464
+}
