@@ -7,6 +7,11 @@ What's new
 All notable changes to the codebase are documented in this file.
 
 
+Version 1.2 (2025-05-30)
+--------------------------
+- TBC
+
+
 Version 1.1.1 (2025-05-23)
 --------------------------
 - Bugfixes to calibration class and BV connector
