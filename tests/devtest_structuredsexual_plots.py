@@ -158,7 +158,7 @@ if __name__ == '__main__':
     if 'count_partners' in torun:
         # ckw = sc.mergedicts(kw, n_agents=100)
         countpart = count_partners()
-        nw = sti.FastStructuredSexual()
+        nw = sti.StructuredSexual()
         sim = ss.Sim(networks=nw, analyzers=countpart, copy_inputs=False, **kw)
         sim.run()
         # countpart.plot_stats()

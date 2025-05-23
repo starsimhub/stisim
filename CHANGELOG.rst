@@ -7,6 +7,13 @@ What's new
 All notable changes to the codebase are documented in this file.
 
 
+Version 1.1.1 (2025-05-23)
+--------------------------
+- Bugfixes to calibration class and BV connector
+- Replaces the `match_pairs` method of the `StructuredSexual` network with the faster option that was previously in the `FastStructuredSexual` network (now removed).
+- *GitHub info*: PR `https://github.com/starsimhub/stisim/pull/124`_
+
+
 Version 1.1.0 (2025-05-13)
 --------------------------
 - Improvements to the Calibration class: this class now inherits directly from the Starsim calibration class, so users will have access to easier parameter constraints, plotting, flexible fit functions, etc

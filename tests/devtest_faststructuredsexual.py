@@ -16,7 +16,6 @@ kw = dict(n_agents=20e3)
 
 s0 = ss.Sim(diseases='sis', networks='random', **kw)
 s1 = ss.Sim(diseases='sis', networks=sti.StructuredSexual(), **kw)
-s2 = ss.Sim(diseases='sis', networks=sti.FastStructuredSexual(), **kw)
 
 with sc.timer('random'):
     s0.run()
@@ -24,9 +23,5 @@ with sc.timer('random'):
 with sc.timer('StructuredSexual'):
     s1.run()
     
-with sc.timer('FastStructuredSexual'):
-    s2.run()
-    
-    
-for sim in [s0, s1, s2]:
+for sim in [s0, s1]:
     sim.plot()

@@ -32,7 +32,7 @@ def test_hiv_syph():
         verbose=1/12,
         n_agents=1000,
         analyzers=[coinfection_analyzer],
-        networks=sti.FastStructuredSexual(),
+        networks=sti.StructuredSexual(),
         diseases=[hiv, syphilis]
     )
     s0 = ss.Sim(pars).run()
