@@ -302,6 +302,14 @@ class NetworkDegree(ss.Analyzer):
             ]
         return
 
+    def init_pre(self, sim, **kwargs):
+        """
+        Initialize the analyzer
+        """
+        super().init_pre(sim, **kwargs)
+        self.year = sim.t.yearvec[-1]
+        return
+
 
     def step(self):
         """
