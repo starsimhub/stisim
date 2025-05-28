@@ -57,11 +57,53 @@ def test_pair_formation():
     return
 
 
+def test_relationship_duration():
+    """
+    Test the relationship duration in the structured sexual network.
+    """
 
+    stable_dur_pars = dict(
+        teens=[
+            # (mu,stdev) for levels 0, 1, 2
+            [ss.dur(100, 'year'), ss.dur(1, 'year')],
+            [ss.dur(50, 'year'), ss.dur(2, 'year')],
+            [ss.dur(1e-4, 'month'), ss.dur(1e-4, 'month')]
+        ],
+        young=[
+            [ss.dur(100, 'year'), ss.dur(1, 'year')],
+            [ss.dur(50, 'year'), ss.dur(3, 'year')],
+            [ss.dur(1e-4, 'month'), ss.dur(1e-4, 'month')]
+        ],
+        adult=[
+            [ss.dur(100, 'year'), ss.dur(1, 'year')],
+            [ss.dur(50, 'year'), ss.dur(3, 'year')],
+            [ss.dur(1e-4, 'month'), ss.dur(1e-4, 'month')]
+        ],
+    )
+
+    # Create a structured sexual network with default parameters
+    network = sti.StructuredSexual()
+    long_network = sti.StructuredSexual(pars={'stable_dur_pars': stable_dur_pars})
+    analyzer = sti.RelationshipDurations()
+
+
+    s1 = ss.Sim(networks=[network], analyzers=[analyzer])
+    s2 = ss.Sim(networks=[long_network], analyzers=[analyzer])
+
+    # Run the simulation
+    ss.parallel(s1, s2)
+
+    # Check the mean relationship duration
+    mean_duration = s1.results.relationshipdurations.mean_duration[-1]
+    mean_duration_long = s2.results.relationshipdurations.mean_duration[-1]
+
+    assert mean_duration_long > mean_duration, f"Mean relationship duration should be longer if dur_pars are higher (sim1: {mean_duration} vs sim2: {mean_duration_long})"
+    print(f"Increasing relationship duration parameters results in longer mean relationship duration: {mean_duration_long} vs {mean_duration}")
 
 
 
 
 if __name__ == '__main__':
-    test_network_degrees()
-    test_pair_formation()
+    # test_network_degrees()
+    # test_pair_formation()
+    test_relationship_duration()
