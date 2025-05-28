@@ -15,8 +15,12 @@ def test_network_degrees():
     s1 = ss.Sim(networks=[network], analyzers=[analyzer])
     s2 = ss.Sim(networks=[high_concurrency], analyzers=[analyzer])
 
-    ss.parallel(s1, s2)
+    # ss.parallel(s1, s2)
+    s1.init()
+    s2.init()
 
+    s1.run()
+    s2.run()
     # Mean number of partners should increase in high concurrency case
     s1_mean_partners = np.mean(s1.analyzers.networkdegree.lifetime_partners_f + s1.analyzers.networkdegree.lifetime_partners_m)
     s2_mean_partners = np.mean(s2.analyzers.networkdegree.lifetime_partners_f + s2.analyzers.networkdegree.lifetime_partners_m)
@@ -31,7 +35,7 @@ def test_pair_formation():
     """
 
     s1 = ss.Sim(networks=[sti.StructuredSexual()], analyzers=[sti.NetworkDegree(relationship_types=['partners', 'stable', 'casual'])])
-    s2 = ss.Sim(networks=[sti.StructuredSexual(p_matched_stable=[0.99, 0.9, 0.9], p_mismatched_casual=[0.6, 0.6, 0.6])],
+    s2 = ss.Sim(networks=[sti.StructuredSexual(p_matched_stable=[0.99, 0.9, 0.9])],
                 analyzers=[sti.NetworkDegree(relationship_types=['partners', 'stable', 'casual'])])
 
     ss.parallel(s1, s2)
@@ -42,11 +46,11 @@ def test_pair_formation():
     assert s2_mean_partners < s1_mean_partners, f"Mean partners in high probability scenario ({s2.results.network_degree.mean_partners}) should be less than in default ({s1.results.network_degree.mean_partners})"
     print (f"Mean partners in high probability scenario ({s2_mean_partners}) is less than in default ({s1_mean_partners})")
 
-    # stable partners should be lower in the second case
+    # higher probability of stable relationships means there should be more stable relationships
     s1_mean_stable_partners = np.mean(s1.analyzers.networkdegree.lifetime_stable_partners_f + s1.analyzers.networkdegree.lifetime_stable_partners_m)
     s2_mean_stable_partners = np.mean(s2.analyzers.networkdegree.lifetime_stable_partners_f + s2.analyzers.networkdegree.lifetime_stable_partners_m)
-    assert s2_mean_stable_partners < s1_mean_stable_partners, f"Mean stable partners in high probability scenario ({s2_mean_stable_partners}) should be less than in default ({s1_mean_stable_partners})"
-    print (f"Mean stable partners in high probability scenario ({s2_mean_stable_partners}) is less than in default ({s1_mean_stable_partners})")
+    assert s2_mean_stable_partners > s1_mean_stable_partners, f"Mean stable partners in high probability stable scenario ({s2_mean_stable_partners}) should be greater than in default ({s1_mean_stable_partners})"
+    print (f"Mean stable partners in high probability scenario ({s2_mean_stable_partners}) is higher than in default ({s1_mean_stable_partners})")
 
     # casual partners should be lower in the second case
     s1_mean_casual_partners = np.mean(s1.analyzers.networkdegree.lifetime_casual_partners_f + s1.analyzers.networkdegree.lifetime_casual_partners_m)
@@ -104,6 +108,6 @@ def test_relationship_duration():
 
 
 if __name__ == '__main__':
-    # test_network_degrees()
-    # test_pair_formation()
+    test_network_degrees()
+    test_pair_formation()
     test_relationship_duration()
