@@ -181,3 +181,57 @@ class sw_stats(result_grouper):
 
 
 
+class DebutAge(ss.Analyzer):
+    """
+    Analyzes the age at which people debut in a simulation.
+    This is useful for understanding the age distribution of sexual debut in a population.
+
+    Args:
+        *args, **kwargs : optional, passed to ss.Analyzer constructor
+    """
+    def __init__(self, bins=None, cohort_starts=None, **kwargs):
+        super().__init__(**kwargs)
+        self.bins = bins or np.arange(12, 31, 1)
+        self.binspan = self.bins[-1] - self.bins[0]
+        return
+
+    def init_pre(self, sim):
+        super().init()
+        if self.cohort_starts is None:
+            first_cohort = sim['start'] # + sim['burnin'] - 5
+            last_cohort = sim['end'] - self.binspan
+            self.cohort_starts = sc.inclusiverange(first_cohort, last_cohort)
+            self.cohort_ends = self.cohort_starts + self.binspan
+            self.n_cohorts = len(self.cohort_starts)
+            self.cohort_years = np.array([sc.inclusiverange(i, i + self.binspan) for i in self.cohort_starts])
+
+        self.prop_active_f = np.zeros((self.n_cohorts, self.binspan + 1))
+        self.prop_active_m = np.zeros((self.n_cohorts, self.binspan + 1))
+
+    def init_results(self):
+        self.define_results(ss.Result('debut_age', dtype=float, scale=False))
+        return
+
+    def step(self):
+        sim = self.sim
+
+        if sim.yearvec[sim.ti] in self.cohort_years:
+            cohort_inds, bin_inds = sc.findinds(self.cohort_years, sim.yearvec[sim.t])
+            for ci, cohort_ind in enumerate(cohort_inds):
+                bin_ind = bin_inds[ci]
+                bin = self.bins[bin_ind]
+
+                conditions_f = sim.people.is_female * sim.people.alive * (sim.people.age >= (bin - 1)) * (
+                            sim.people.age < bin) # * sim.people.level0
+                denom_inds_f = sim.people.uid(conditions_f)
+                num_conditions_f = conditions_f * (sim.networks.structuredsexual.active(sim.people))
+                num_inds_f = sim.people.uid(num_conditions_f)
+                self.prop_active_f[cohort_ind, bin_ind] = len(num_inds_f) / len(denom_inds_f)
+
+                conditions_m = ~sim.people.is_female * sim.people.alive * (sim.people.age >= (bin - 1)) * (
+                            sim.people.age < bin)
+                denom_inds_m = sim.people.uid(conditions_m)
+                num_conditions_m = conditions_m * (sim.networks.structuredsexual.active(sim.people))
+                num_inds_m = sim.people.uid(num_conditions_m)
+                self.prop_active_m[ci, bin_ind] = len(num_inds_m) / len(denom_inds_m)
+        return
