@@ -397,11 +397,11 @@ class StructuredSexual(ss.SexualNetwork):
         edge_types[any_match & (dur < 1)] = self.edge_types['onetime']
 
         relationships = (edge_types == self.edge_types['stable']) | (edge_types == self.edge_types['casual'])
-        for (a,b) in zip(p1[relationships], p2[relationships]):
+        for (a, b, reldur) in zip(p1[relationships], p2[relationships], dur[relationships]):
             pair = (min(a,b), max(a,b))
             if not pair in self.relationship_durs:
                 self.relationship_durs[pair] = []
-            self.relationship_durs[pair].append({'start': self.ti, 'dur': None})
+            self.relationship_durs[pair].append({'start': self.ti, 'dur': reldur}) # set dur to intended duration. When the relationship actually ends, this will be updated
 
 
         self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, sw=sw, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types)

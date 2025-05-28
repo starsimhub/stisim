@@ -232,7 +232,7 @@ class RelationshipDurations(ss.Analyzer):
         pl.show()
 
 
-    def get_relationship_durations(self, include_current=True):
+    def get_relationship_durations(self):
         """
         Returns the durations of all relationships, separated by sex.
 
@@ -248,12 +248,6 @@ class RelationshipDurations(ss.Analyzer):
         female_durations = []
         for pair, relationships in self.sim.networks.structuredsexual.relationship_durs.items():
             durs = [relationship['dur'] for relationship in relationships]
-
-            if include_current and durs[-1] is None:
-                durs[-1] = self.ti - relationships[-1]['start']
-            else:
-                # if we are only concerned with relationships that have concluded, remove the last entry when it is None
-                durs = durs[:-1]
 
             # assign the durations to male and female lists
             for uid in pair:
