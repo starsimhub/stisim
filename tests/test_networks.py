@@ -1,6 +1,7 @@
 import stisim as sti
 import starsim as ss
 import numpy as np
+import sciris as sc
 
 def test_network_degrees():
     """
@@ -17,9 +18,9 @@ def test_network_degrees():
 
     # ss.parallel(s1, s2)
     s1.init()
-    s2.init()
+    # s2.init()
 
-    s1.run()
+    sc.profile(s1.run, [s1.networks.structuredsexual.add_pairs_nonsw, s1.networks.structuredsexual.add_pairs_sw])
     s2.run()
     # Mean number of partners should increase in high concurrency case
     s1_mean_partners = np.mean(s1.analyzers.networkdegree.lifetime_partners_f + s1.analyzers.networkdegree.lifetime_partners_m)
@@ -109,5 +110,5 @@ def test_relationship_duration():
 
 if __name__ == '__main__':
     test_network_degrees()
-    test_pair_formation()
-    test_relationship_duration()
+    # test_pair_formation()
+    # test_relationship_duration()
