@@ -377,10 +377,8 @@ class StructuredSexual(ss.SexualNetwork):
         except NoPartnersFound:
             return
 
-
         matched_risk = (self.risk_group[p1] == self.risk_group[p2])
         mismatched_risk = (self.risk_group[p1] != self.risk_group[p2])
-
 
         # Set the probability of forming a partnership
         p_match = np.full(len(p1), fill_value=np.nan, dtype=ss_float_)
@@ -389,15 +387,12 @@ class StructuredSexual(ss.SexualNetwork):
             p_match[mismatched_risk & (self.risk_group[p2] == rg)] = self.pars.p_mismatched_casual[rg]
         self.pars.match_dist.set(p=p_match)
         matches = self.pars.match_dist.rvs(p2)
+
         stable = matches & matched_risk
-
         casual = matches & mismatched_risk
-
         any_match = stable | casual
 
-        match_count = sum(any_match)
-        p1 = p1[any_match]
-        p2 = p2[any_match]
+        match_count = len(p1)
 
         beta = np.ones(match_count, dtype=ss_float_)
         condoms = np.zeros(match_count, dtype=ss_float_)
@@ -406,13 +401,13 @@ class StructuredSexual(ss.SexualNetwork):
         age_p1 = ppl.age[p1]
         age_p2 = ppl.age[p2]
         edge_types = np.full(match_count, dtype=ss_float_, fill_value=np.nan)
-        edge_types[stable[any_match]] = self.edge_types['stable']
-        edge_types[casual[any_match]] = self.edge_types['casual']
+        edge_types[stable] = self.edge_types['stable']
+        edge_types[casual] = self.edge_types['casual']
 
         # Set duration
         dur_mean = np.full(match_count, fill_value=np.nan, dtype=ss_float_)
         dur_std = np.full(match_count, fill_value=np.nan, dtype=ss_float_)
-        for which, bools in {'stable': stable[any_match], 'casual': casual[any_match]}.items():
+        for which, bools in {'stable': stable, 'casual': casual}.items():
             if bools.any():
                 uids = p2[bools]
                 mean, std = self.get_age_risk_pars(uids, self.pars[f'{which}_dur_pars'])
@@ -421,10 +416,10 @@ class StructuredSexual(ss.SexualNetwork):
         self.pars.dur_dist.set(mean=dur_mean, std=dur_std)
         dur[:] = self.pars.dur_dist.rvs(p2)
 
-        edge_types[(dur < 1)] = self.edge_types['onetime']
+        edge_types[(dur <= 1)] = self.edge_types['onetime']
 
         # relationships = (edge_types != self.edge_types['stable']) | (edge_types == self.edge_types['casual'])
-        relationships = (dur >= 1)
+        relationships = (dur > 1)
         for (a, b, reldur) in zip(p1[relationships], p2[relationships], dur[relationships]):
             pair = (min(a,b), max(a,b))
             if not pair in self.relationship_durs:
@@ -441,21 +436,18 @@ class StructuredSexual(ss.SexualNetwork):
             errormsg = 'Unequal lengths in edge list'
             raise ValueError(errormsg)
 
-        # Add stable and casual partner counts, not including SW partners
-
+        # only one edge per uid per timestep, so we can drop the unique/count checks
         for key, edge_type in self.edge_types.items():
-            p1_edges, p1_counts = np.unique(p1[edge_types==edge_type], return_counts=True)
-            p2_edges, p2_counts = np.unique(p2[edge_types==edge_type], return_counts=True)
 
             # update partner counts
-            self.partners[p1_edges] += p1_counts
-            self.partners[p2_edges] += p2_counts
-            self.lifetime_partners[p1_edges] += p1_counts
-            self.lifetime_partners[p2_edges] += p2_counts
-            getattr(self, f'{key}_partners')[p1_edges] += p1_counts
-            getattr(self, f'{key}_partners')[p2_edges] += p2_counts
-            getattr(self, f'lifetime_{key}_partners')[p1_edges] += p1_counts
-            getattr(self, f'lifetime_{key}_partners')[p2_edges] += p2_counts
+            self.partners[p1] += 1
+            self.partners[p2] += 1
+            self.lifetime_partners[p1] += 1
+            self.lifetime_partners[p2] += 1
+            getattr(self, f'{key}_partners')[p1] += 1
+            getattr(self, f'{key}_partners')[p2] += 1
+            getattr(self, f'lifetime_{key}_partners')[p1] += 1
+            getattr(self, f'lifetime_{key}_partners')[p2] += 1
 
         return
 
