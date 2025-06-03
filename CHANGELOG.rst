@@ -7,6 +7,12 @@ What's new
 All notable changes to the codebase are documented in this file.
 
 
+Version 1.1.2 (2025-06-03)
+--------------------------
+- Bugfix to calibration class for multisims
+- *GitHub info*: PR `138 <https://github.com/starsimhub/stisim/pull/138>`_
+
+
 Version 1.1.1 (2025-05-23)
 --------------------------
 - Bugfixes to calibration class and BV connector
@@ -19,7 +25,7 @@ Version 1.1.0 (2025-05-13)
 - Improvements to the Calibration class: this class now inherits directly from the Starsim calibration class, so users will have access to easier parameter constraints, plotting, flexible fit functions, etc
 - Generalization of the coinfection class to handle any two diseases
 - Addition of a more detailed BV model
-- *GitHub info*: PR `https://github.com/starsimhub/stisim/pull/119`_
+- *GitHub info*: PR `119 <https://github.com/starsimhub/stisim/pull/119>`_
 
 
 Version 1.0.5 (2025-05-08)
