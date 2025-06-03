@@ -440,14 +440,14 @@ class StructuredSexual(ss.SexualNetwork):
         for key, edge_type in self.edge_types.items():
 
             # update partner counts
-            self.partners[p1] += 1
-            self.partners[p2] += 1
-            self.lifetime_partners[p1] += 1
-            self.lifetime_partners[p2] += 1
-            getattr(self, f'{key}_partners')[p1] += 1
-            getattr(self, f'{key}_partners')[p2] += 1
-            getattr(self, f'lifetime_{key}_partners')[p1] += 1
-            getattr(self, f'lifetime_{key}_partners')[p2] += 1
+            self.partners[p1[edge_types==edge_type]] += 1
+            self.partners[p2[edge_types==edge_type]] += 1
+            self.lifetime_partners[p1[edge_types==edge_type]] += 1
+            self.lifetime_partners[p2[edge_types==edge_type]] += 1
+            getattr(self, f'{key}_partners')[p1[edge_types==edge_type]] += 1
+            getattr(self, f'{key}_partners')[p2[edge_types==edge_type]] += 1
+            getattr(self, f'lifetime_{key}_partners')[p1[edge_types==edge_type]] += 1
+            getattr(self, f'lifetime_{key}_partners')[p2[edge_types==edge_type]] += 1
 
         return
 
