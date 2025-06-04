@@ -473,6 +473,9 @@ class StructuredSexual(ss.SexualNetwork):
         self.pars.sw_seeking_dist.pars.p = np.clip(self.pars.sw_seeking_rate, 0, 1)
         m_looking = self.pars.sw_seeking_dist.filter(active_clients.uids)
 
+        if len(m_looking) == 0 or len(active_fsw.uids) == 0:
+            raise NoPartnersFound()
+
         # Attempt to assign a sex worker to every client by repeat sampling the sex workers.
         # FSW with higher work intensity will be sampled more frequently
         if len(m_looking) > len(active_fsw.uids):

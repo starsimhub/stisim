@@ -110,5 +110,5 @@ def test_relationship_duration():
 
 if __name__ == '__main__':
     test_network_degrees()
-    # test_pair_formation()
-    # test_relationship_duration()
+    test_pair_formation()
+    test_relationship_duration()
