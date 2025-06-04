@@ -104,15 +104,23 @@ def compute_gof(actual, predicted, normalize=True, use_frac=False, use_squared=F
 
 def make_df(sim, df_res_list=None):
     dfs = sc.autolist()
-    for sres in df_res_list:
-        if sres in sim.results.keys() and isinstance(sim.results[sres], ss.Result):
-            dfs += sim.results[sres].to_df(resample='year', use_years=True, col_names=sres)
-        else:
-            rescomps = sres.split('_')
-            modname = rescomps[0]
-            if isinstance(sim.results[modname], ss.Results):
-                resname = '_'.join(rescomps[1:])
-                dfs += sim.results[modname][resname].to_df(resample='year', use_years=True, col_names=sres)
+
+    # sometimes sim is a MultiSim, so we need to handle that
+    if isinstance(sim, ss.MultiSim):
+        df_sims = sim.sims
+    else:
+        df_sims = [sim]
+
+    for df_sim in df_sims:
+        for sres in df_res_list:
+            if sres in df_sim.results.keys() and isinstance(df_sim.results[sres], ss.Result):
+                dfs += df_sim.results[sres].to_df(resample='year', use_years=True, col_names=sres)
+            else:
+                rescomps = sres.split('_')
+                modname = rescomps[0]
+                if isinstance(df_sim.results[modname], ss.Results):
+                    resname = '_'.join(rescomps[1:])
+                    dfs += df_sim.results[modname][resname].to_df(resample='year', use_years=True, col_names=sres)
 
     df_res = pd.concat(dfs, axis=1)
     df_res['time'] = df_res.index

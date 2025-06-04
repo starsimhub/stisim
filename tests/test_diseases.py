@@ -8,6 +8,9 @@ import starsim as ss
 import stisim as sti
 import pandas as pd
 
+def ret(*values):
+    return values if __name__ == 'main' else None
+
 n_agents = 2000
 
 def test_syph_epi():
@@ -55,7 +58,7 @@ def test_syph_epi():
         assert v0 <= v1, f'Expected infections to be lower with {par}={lo} than with {par}={hi}, but {v0} > {v1})'
         print(f'✓ ({v0} <= {v1})')
 
-    return s0, s1
+    return ret(s0, s1)
 
 
 def test_hiv_epi():
@@ -103,7 +106,7 @@ def test_hiv_epi():
         assert v0 <= v1, f'Expected infections to be lower with {par}={lo} than with {par}={hi}, but {v0} > {v1})'
         print(f'✓ ({v0} <= {v1})')
 
-    return s0, s1
+    return ret(s0, s1)
 
 
 if __name__ == '__main__':
