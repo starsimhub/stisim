@@ -16,8 +16,7 @@ import starsim as ss
 import sciris as sc
 import numpy as np
 import pandas as pd
-import scipy.optimize as spo
-import scipy.spatial as spsp
+from collections import defaultdict
 
 ss_float_ = ss.dtypes.float
 
@@ -168,7 +167,7 @@ class StructuredSexual(ss.SexualNetwork):
             ss.FloatArr('sw_intensity'),  # Intensity of sex work
         )
 
-        self.relationship_durs = dict()
+        self.relationship_durs = defaultdict(list)
 
         return
 
@@ -413,17 +412,16 @@ class StructuredSexual(ss.SexualNetwork):
                 mean, std = self.get_age_risk_pars(uids, self.pars[f'{which}_dur_pars'])
                 dur_mean[bools] = mean
                 dur_std[bools] = std
-        self.pars.dur_dist.set(mean=dur_mean, std=dur_std)
-        dur[:] = self.pars.dur_dist.rvs(p2)
+        self.pars.dur_dist.set(mean=dur_mean[any_match], std=dur_std[any_match])
+        dur[any_match] = self.pars.dur_dist.rvs(p2[any_match])
 
         edge_types[(dur <= 1)] = self.edge_types['onetime']
 
-        # relationships = (edge_types != self.edge_types['stable']) | (edge_types == self.edge_types['casual'])
+        # track the duration of all new relationships
         relationships = (dur > 1)
+
         for (a, b, reldur) in zip(p1[relationships], p2[relationships], dur[relationships]):
             pair = (min(a,b), max(a,b))
-            if not pair in self.relationship_durs:
-                self.relationship_durs[pair] = []
             self.relationship_durs[pair].append({'start': self.ti, 'dur': reldur}) # set dur to intended duration. When the relationship actually ends, this will be updated
 
         self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, sw=[False]*match_count, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types)
@@ -436,18 +434,20 @@ class StructuredSexual(ss.SexualNetwork):
             errormsg = 'Unequal lengths in edge list'
             raise ValueError(errormsg)
 
-        # only one edge per uid per timestep, so we can drop the unique/count checks
+        # update partner counts
         for key, edge_type in self.edge_types.items():
+            p1_edges = p1[edge_types==edge_type]
+            p2_edges = p2[edge_types==edge_type]
 
-            # update partner counts
-            self.partners[p1[edge_types==edge_type]] += 1
-            self.partners[p2[edge_types==edge_type]] += 1
-            self.lifetime_partners[p1[edge_types==edge_type]] += 1
-            self.lifetime_partners[p2[edge_types==edge_type]] += 1
-            getattr(self, f'{key}_partners')[p1[edge_types==edge_type]] += 1
-            getattr(self, f'{key}_partners')[p2[edge_types==edge_type]] += 1
-            getattr(self, f'lifetime_{key}_partners')[p1[edge_types==edge_type]] += 1
-            getattr(self, f'lifetime_{key}_partners')[p2[edge_types==edge_type]] += 1
+
+            self.partners[p1_edges] += 1
+            self.partners[p2_edges] += 1
+            self.lifetime_partners[p1_edges] += 1
+            self.lifetime_partners[p2_edges] += 1
+            getattr(self, f'{key}_partners')[p1_edges] += 1
+            getattr(self, f'{key}_partners')[p2_edges] += 1
+            getattr(self, f'lifetime_{key}_partners')[p1_edges] += 1
+            getattr(self, f'lifetime_{key}_partners')[p2_edges] += 1
 
         return
 
