@@ -612,10 +612,9 @@ class PartnerNotification(ss.Intervention):
         return self.test.schedule(uids, self.ti+1)
 
     def step(self):
-        sim = self.sim
-        uids = self.eligible(sim)
-        uids = self.identify_contacts(sim, uids)
-        return self.notify(sim, uids)
+        uids = self.eligibility(self.sim)
+        uids = self.identify_contacts(uids)
+        return self.notify(uids)
 
 
 class ProductMix(ss.Product):
