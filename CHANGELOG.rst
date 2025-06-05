@@ -7,9 +7,15 @@ What's new
 All notable changes to the codebase are documented in this file.
 
 
-Version 1.2 (2025-05-30)
+Version 1.2 (2025-06-06)
 --------------------------
 - TBC
+
+
+Version 1.1.2 (2025-06-03)
+--------------------------
+- Bugfix to calibration class for multisims
+- *GitHub info*: PR `138 <https://github.com/starsimhub/stisim/pull/138>`_
 
 
 Version 1.1.1 (2025-05-23)
@@ -24,38 +30,33 @@ Version 1.1.0 (2025-05-13)
 - Improvements to the Calibration class: this class now inherits directly from the Starsim calibration class, so users will have access to easier parameter constraints, plotting, flexible fit functions, etc
 - Generalization of the coinfection class to handle any two diseases
 - Addition of a more detailed BV model
-- *GitHub info*: PR `https://github.com/starsimhub/stisim/pull/119`_
+- *GitHub info*: PR `119 <https://github.com/starsimhub/stisim/pull/119>`_
 
 
 Version 1.0.5 (2025-05-08)
 --------------------------
 - Adds results for syphilis transmission by disease stage
-- *GitHub info*: PR `https://github.com/starsimhub/stisim/pull/112`_
-
+- *GitHub info*: PR `112 <https://github.com/starsimhub/stisim/pull/112>`_
 
 Version 1.0.4 (2025-05-07)
 --------------------------
-- Adds results for overtreatment amoung pregnant women
-- *GitHub info*: PR `https://github.com/starsimhub/stisim/pull/111`_
-
+- Adds results for overtreatment among pregnant women
+- *GitHub info*: PR `111 <https://github.com/starsimhub/stisim/pull/111>`_
 
 Version 1.0.3 (2025-04-30)
 --------------------------
 - Bugfixes for congenital syphilis
-- *GitHub info*: PR `https://github.com/starsimhub/stisim/pull/85`_
-
+- *GitHub info*: PR `85 <https://github.com/starsimhub/stisim/pull/85>`_
 
 Version 1.0.2 (2025-04-14)
 --------------------------
 - Bugfixes for syphilis and GUD
-- *GitHub info*: PR `https://github.com/starsimhub/stisim/pull/83`_
-
+- *GitHub info*: PR `83 <https://github.com/starsimhub/stisim/pull/83>`_
 
 Version 1.0.1 (2025-03-31)
 --------------------------
 - Track HIV prevalence for 15-49 year olds
-- *GitHub info*: PR `https://github.com/starsimhub/stisim/pull/79`_
-
+- *GitHub info*: PR `79 <https://github.com/starsimhub/stisim/pull/79>`_
 
 Version 1.0.0 (2024-12-11)
 --------------------------

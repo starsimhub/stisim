@@ -572,7 +572,6 @@ class PartnerNotification(ss.Intervention):
 
     def __init__(self, disease, eligible, test, test_prob=0.5, **kwargs):
         """
-
         :param disease: The disease module from which to draw the transmission tree used to find contacts
         :param eligible: A function `f(sim)` that returns the UIDs/BoolArr of people to trace (typically people who just tested positive)
         :param test: The testing intervention to use when testing identified contacts
@@ -580,25 +579,26 @@ class PartnerNotification(ss.Intervention):
         :param kwargs: Other arguments passed to ``ss.Intervention``
         """
         super().__init__(**kwargs)
-        self.disease = disease
+        # self.disease = disease
         self.eligible = eligible
         self.test = test
         self.test_prob = ss.bernoulli(test_prob)
 
-    def identify_contacts(self, sim, uids):
+    def identify_contacts(self, uids):
         # Return UIDs of people that have been identified as contacts and should be notified
 
         if len(uids) == 0:
             return ss.uids()
 
         # Find current contacts
-        contacts = sim.networks['structuredsexual'].find_contacts(uids, as_array=False) # Current contacts
+        nw = self.sim.networks.structuredsexual
+        contacts = nw.find_contacts(uids, as_array=False)  # Current contacts
 
         # Find historical contacts
-        log = sim.diseases[self.disease].log
+        log = self.sim.diseases[self.disease].log
         for source, _, network in log.in_edges(uids, data="network"):
             if network == 'structuredsexual':
-                contacts.add(source) # Add the infecting agents
+                contacts.add(source)  # Add the infecting agents
 
         for _, target, network in log.out_edges(uids, data="network"):
             if network == 'structuredsexual':
@@ -607,7 +607,7 @@ class PartnerNotification(ss.Intervention):
         # Filter by test_prob and return UIDs
         return self.test_prob.filter(ss.uids(contacts))
 
-    def notify(self, sim, uids):
+    def notify(self, uids):
         # Schedule a test for identified contacts at the next timestep (this also ensures that contacts tracing will take place for partners that test positive)
         # Could include a parameter here for acceptance of testing (if separating out probabilities of notification and testing)
         return self.test.schedule(uids, self.ti+1)
