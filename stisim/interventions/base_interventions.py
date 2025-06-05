@@ -570,7 +570,7 @@ class STITreatment(ss.Intervention):
 
 class PartnerNotification(ss.Intervention):
 
-    def __init__(self, disease, eligible, test, test_prob=0.5, **kwargs):
+    def __init__(self, eligibility, test, test_prob=0.5, **kwargs):
         """
         :param disease: The disease module from which to draw the transmission tree used to find contacts
         :param eligible: A function `f(sim)` that returns the UIDs/BoolArr of people to trace (typically people who just tested positive)
@@ -579,8 +579,7 @@ class PartnerNotification(ss.Intervention):
         :param kwargs: Other arguments passed to ``ss.Intervention``
         """
         super().__init__(**kwargs)
-        # self.disease = disease
-        self.eligible = eligible
+        self.eligibility = eligibility
         self.test = test
         self.test_prob = ss.bernoulli(test_prob)
 
