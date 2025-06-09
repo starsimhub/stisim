@@ -17,6 +17,7 @@ import sciris as sc
 import numpy as np
 import pandas as pd
 from collections import defaultdict
+from bisect import bisect_left
 
 ss_float_ = ss.dtypes.float
 
@@ -328,15 +329,61 @@ class StructuredSexual(ss.SexualNetwork):
         age_gaps = self.pars.age_diffs.rvs(f_looking)   # Sample the age differences
         desired_ages = ppl.age[f_looking] + age_gaps    # Desired ages of the male partners
         m_ages = ppl.age[m_eligible]            # Ages of eligible males
-        ind_m = np.argsort(m_ages)  # Use sort instead of linear_sum_agreement
-        ind_f = np.argsort(desired_ages)
+        ind_m = np.argsort(m_ages, stable=True)
+        ind_f = np.argsort(desired_ages, stable=True)
+
+        # drop all males that are younger than one standard deviation below the lowest desired age.
+        youngest_preferred_male_age = desired_ages[ind_f[0]]
+        youngest_male_age = m_ages[ind_m[0]]
+
+        if youngest_male_age < youngest_preferred_male_age:
+            # remove the youngest males until the youngest is at least as old as the youngest preferred
+            cutoff_index = bisect_left(m_ages[ind_m], youngest_preferred_male_age)
+            ind_m = ind_m[cutoff_index:]
+
+        elif youngest_preferred_male_age < youngest_male_age:
+            # remove the youngest females until the youngest preferred is at least as old as the youngest male
+            cutoff_index = bisect_left(desired_ages[ind_f], youngest_male_age)
+            ind_f = ind_f[cutoff_index:]
+
+        # likewise, do the same at the other end of the age spectrum
+        oldest_preferred_male_age = desired_ages[ind_f[-1]]
+        oldest_male_age = m_ages[ind_m[-1]]
+
+        if oldest_male_age > oldest_preferred_male_age:
+            cutoff_index = bisect_left(m_ages[ind_m], oldest_preferred_male_age)
+            ind_m = ind_m[:cutoff_index]
+
+        elif oldest_preferred_male_age > oldest_male_age:
+            cutoff_index = bisect_left(desired_ages[ind_f], oldest_male_age)
+            ind_f = ind_f[:cutoff_index]
+
+        # draw n samples from the larger of the two groups, where n is the number of samples in the smaller group
+        if len(ind_m) < len(ind_f):
+            ind_f_subset = np.random.choice(len(ind_f), size=len(ind_m), replace=False)
+            ind_f_subset.sort()
+            # ind_f = np.argsort(desired_ages[ind_f[ind_f_subset]], stable=True)  #
+            ind_f = ind_f[ind_f_subset]
+        elif len(ind_f) < len(ind_m):
+            ind_m_subset = np.random.choice(len(ind_m), size=len(ind_f), replace=False)
+            # ind_m = np.argsort(m_ages[ind_m[ind_m_subset]], stable=True)
+            ind_m_subset.sort()
+            ind_m = ind_m[ind_m_subset]
+
         p1 = m_eligible.uids[ind_m]
         p2 = f_looking[ind_f]
-        maxlen = min(len(p1), len(p2))
-        p1 = p1[:maxlen]
-        p2 = p2[:maxlen]
+
+        # Now match males and females working out from the closest index
+        # maxlen = min(len(ind_m), len(ind_f))
+        # if len(ind_f) == maxlen:
+        #     p2 = f_looking[ind_f]
+        #     p1 = m_eligible.uids[ind_m[closest_index-int(maxlen/2): closest_index+ceil(maxlen/2)]]
+        # else:
+        #     p1 = m_eligible.uids[ind_m]
+        #     p2 = f_looking[ind_f[closest_index-(maxlen/2): closest_index+(maxlen/2)]]
 
         return p1, p2
+
 
     def add_pairs_sw(self):
         ppl = self.sim.people
