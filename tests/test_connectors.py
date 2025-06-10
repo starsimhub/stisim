@@ -18,7 +18,7 @@ from stisim import coinfection_stats
 np.seterr(all='raise')
 
 def ret(*values):
-    return values if __name__ == 'main' else None
+    return values if __name__ == '__main__' else None
 
 def test_hiv_syph():
 
