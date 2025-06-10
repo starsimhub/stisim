@@ -168,6 +168,8 @@ class StructuredSexual(ss.SexualNetwork):
             ss.FloatArr('sw_intensity'),  # Intensity of sex work
         )
 
+        self.relationship_durs = dict()
+
         return
 
     @staticmethod
@@ -397,6 +399,14 @@ class StructuredSexual(ss.SexualNetwork):
 
         edge_types[any_match & (dur < 1)] = self.edge_types['onetime']
 
+        relationships = (edge_types == self.edge_types['stable']) | (edge_types == self.edge_types['casual'])
+        for (a, b, reldur) in zip(p1[relationships], p2[relationships], dur[relationships]):
+            pair = (min(a,b), max(a,b))
+            if not pair in self.relationship_durs:
+                self.relationship_durs[pair] = []
+            self.relationship_durs[pair].append({'start': self.ti, 'dur': reldur}) # set dur to intended duration. When the relationship actually ends, this will be updated
+
+
         self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, sw=sw, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types)
 
         # Checks
@@ -521,7 +531,9 @@ class StructuredSexual(ss.SexualNetwork):
         self.stable_partners[p2_edges[stables]] -= 1
         self.sw_partners[p1_edges[sw]] -= 1
         self.sw_partners[p2_edges[sw]] -= 1
-
+        for a, b in zip(p1_edges[(casuals + stables)], p2_edges[(casuals + stables)]):
+            pair = (min(a,b), max(a,b))
+            self.relationship_durs[pair][-1]['dur'] = self.ti - self.relationship_durs[pair][-1]['start']
 
         # For all contacts that are due to expire, remove them from the contacts list
         if len(active) > 0:
