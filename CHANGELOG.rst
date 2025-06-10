@@ -7,7 +7,7 @@ What's new
 All notable changes to the codebase are documented in this file.
 
 
-Version 1.2 (2025-06-06)
+Version 1.2 (2025-06-10)
 --------------------------
 - TBC
 
