@@ -647,8 +647,9 @@ class AgeMatchedMSM(StructuredSexual):
         self.participant[m_uids] = self.pars.msm_share.rvs(m_uids)
         return
 
-    def match_pairs(self, ppl):
+    def match_pairs(self):
         """ Match males by age using sorting """
+        ppl = self.sim.people
 
         # Find people eligible for a relationship
         active = self.over_debut
