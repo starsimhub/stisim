@@ -332,6 +332,10 @@ class StructuredSexual(ss.SexualNetwork):
         ind_m = np.argsort(m_ages, stable=True)
         ind_f = np.argsort(desired_ages, stable=True)
 
+        # If there are no agents in either group, return empty arrays
+        if len(ind_m) == 0 or len(ind_f) == 0:
+            raise NoPartnersFound()
+
         # drop all males that are younger than one standard deviation below the lowest desired age.
         youngest_preferred_male_age = desired_ages[ind_f[0]]
         youngest_male_age = m_ages[ind_m[0]]
@@ -346,7 +350,11 @@ class StructuredSexual(ss.SexualNetwork):
             cutoff_index = bisect_left(desired_ages[ind_f], youngest_male_age)
             ind_f = ind_f[cutoff_index:]
 
-        # likewise, do the same at the other end of the age spectrum
+        # Check again for empty arrays after filtering
+        if len(ind_m) == 0 or len(ind_f) == 0:
+            raise NoPartnersFound()
+
+        # Check the upper limit of the age spectrum
         oldest_preferred_male_age = desired_ages[ind_f[-1]]
         oldest_male_age = m_ages[ind_m[-1]]
 
@@ -362,25 +370,14 @@ class StructuredSexual(ss.SexualNetwork):
         if len(ind_m) < len(ind_f):
             ind_f_subset = np.random.choice(len(ind_f), size=len(ind_m), replace=False)
             ind_f_subset.sort()
-            # ind_f = np.argsort(desired_ages[ind_f[ind_f_subset]], stable=True)  #
             ind_f = ind_f[ind_f_subset]
         elif len(ind_f) < len(ind_m):
             ind_m_subset = np.random.choice(len(ind_m), size=len(ind_f), replace=False)
-            # ind_m = np.argsort(m_ages[ind_m[ind_m_subset]], stable=True)
             ind_m_subset.sort()
             ind_m = ind_m[ind_m_subset]
 
         p1 = m_eligible.uids[ind_m]
         p2 = f_looking[ind_f]
-
-        # Now match males and females working out from the closest index
-        # maxlen = min(len(ind_m), len(ind_f))
-        # if len(ind_f) == maxlen:
-        #     p2 = f_looking[ind_f]
-        #     p1 = m_eligible.uids[ind_m[closest_index-int(maxlen/2): closest_index+ceil(maxlen/2)]]
-        # else:
-        #     p1 = m_eligible.uids[ind_m]
-        #     p2 = f_looking[ind_f[closest_index-(maxlen/2): closest_index+(maxlen/2)]]
 
         return p1, p2
 
@@ -460,7 +457,8 @@ class StructuredSexual(ss.SexualNetwork):
                 dur_mean[bools] = mean
                 dur_std[bools] = std
         self.pars.dur_dist.set(mean=dur_mean[any_match], std=dur_std[any_match])
-        dur[any_match] = self.pars.dur_dist.rvs(p2[any_match])
+        # dur[any_match] = self.pars.dur_dist.rvs(p2[any_match])
+        dur[any_match] = self.pars.dur_dist.rvs(sum(any_match))
 
         edge_types[(dur <= 1)] = self.edge_types['onetime']
 
