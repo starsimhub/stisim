@@ -19,9 +19,10 @@ import pandas as pd
 from collections import defaultdict
 
 ss_float_ = ss.dtypes.float
+ss_int_ = ss.dtypes.int
 
 # Specify all externally visible functions this file defines; see also more definitions below
-__all__ = ['StructuredSexual', 'AgeMatchedMSM', 'AgeApproxMSM']
+__all__ = ['StructuredSexual', 'PriorPartners', 'AgeMatchedMSM', 'AgeApproxMSM']
 
 
 class NoPartnersFound(Exception):
@@ -49,7 +50,7 @@ class StructuredSexual(ss.SexualNetwork):
         self.define_pars(
             # Settings - generally shouldn't be adjusted
             unit='month',
-            store_register=False,
+            recall_prior=False,  # Whether to remember prior relationships. If True, need to add a PriorPartners network
             n_risk_groups=3,
             f_age_group_bins=dict(  # For separating women into age groups: teens, young women, adult women
                 teens=(0, 20),
@@ -142,10 +143,6 @@ class StructuredSexual(ss.SexualNetwork):
 
         self.edge_types = {'stable': 0, 'casual': 1, 'onetime': 2, 'sw': 3}
 
-        # Store register
-        if self.pars.store_register:
-            self.breakup_register = [[]]*12
-
         # Add states
         self.define_states(
             ss.BoolArr('participant', default=True),
@@ -201,20 +198,20 @@ class StructuredSexual(ss.SexualNetwork):
 
     def init_pre(self, sim):
         super().init_pre(sim)
+
+        # Checks
+        if self.pars.recall_prior:
+            isprior = [isinstance(nw, PriorPartners) for nw in self.sim.networks.values()]
+            if not any(isprior):
+                errormsg = 'PriorPartners network is required if recall_prior is True.'
+                raise ValueError(errormsg)
+
+        # Process condom data
         if self.condom_data is not None:
             if isinstance(self.condom_data, dict):
                 for rgtuple, valdict in self.condom_data.items():
                     yearvec = self.t.yearvec
                     self.condom_data[rgtuple]['simvals'] = sc.smoothinterp(yearvec, valdict['year'], valdict['val'])
-        # self.init_results()
-        return
-
-    def init_results(self):
-        self.define_results(
-            ss.Result('share_active', dtype=float, scale=False),
-            ss.Result('partners_f_mean', dtype=float, scale=False),
-            ss.Result('partners_m_mean', dtype=float, scale=False),
-        )
         return
 
     def init_post(self):
@@ -229,6 +226,7 @@ class StructuredSexual(ss.SexualNetwork):
         self.set_debut(upper_age=upper_age)
         return
 
+    @property
     def over_debut(self):
         return self.sim.people.age > self.debut
 
@@ -307,13 +305,14 @@ class StructuredSexual(ss.SexualNetwork):
         self.debut[uids] = self.pars.debut.rvs(uids)
         return
 
-    def match_pairs(self, ppl):
+    def match_pairs(self):
         """
         Match pairs by age, using sorting rather than the linear sum assignment
         """
+        ppl = self.sim.people
 
         # Find people eligible for a relationship
-        active = self.over_debut()
+        active = self.over_debut
         underpartnered = self.partners < self.concurrency
         f_eligible = active & ppl.female & underpartnered
         m_eligible = active & ppl.male & underpartnered
@@ -367,12 +366,12 @@ class StructuredSexual(ss.SexualNetwork):
 
         return
 
-    def add_pairs_nonsw(self, ti=None):
+    def add_pairs_nonsw(self):
         ppl = self.sim.people
         dt = self.t.dt
 
         try:
-            p1, p2 = self.match_pairs(ppl)
+            p1, p2 = self.match_pairs()
         except NoPartnersFound:
             return
 
@@ -438,8 +437,6 @@ class StructuredSexual(ss.SexualNetwork):
         for key, edge_type in self.edge_types.items():
             p1_edges = p1[edge_types==edge_type]
             p2_edges = p2[edge_types==edge_type]
-
-
             self.partners[p1_edges] += 1
             self.partners[p2_edges] += 1
             self.lifetime_partners[p1_edges] += 1
@@ -451,10 +448,9 @@ class StructuredSexual(ss.SexualNetwork):
 
         return
 
+    def add_pairs(self):
 
-    def add_pairs(self, ti=None):
-
-        self.add_pairs_nonsw(ti)
+        self.add_pairs_nonsw()
         self.add_pairs_sw()
 
         return
@@ -464,7 +460,7 @@ class StructuredSexual(ss.SexualNetwork):
         """ Match sex workers to clients """
 
         # Find people eligible for a relationship
-        active = self.over_debut()
+        active = self.over_debut
         active_fsw = active & self.fsw
         active_clients = active & self.client
         self.sw_intensity[active_fsw.uids] = self.pars.sw_intensity.rvs(active_fsw.uids)
@@ -515,21 +511,18 @@ class StructuredSexual(ss.SexualNetwork):
         alive_bools = people.alive[ss.uids(self.edges.p1)] & people.alive[ss.uids(self.edges.p2)]
         active = (self.edges.dur > 0) & alive_bools
 
-        # Update the breakup register
-        if self.pars.store_register:
-            over_12m = self.breakup_register[11]
-            if len(over_12m):
-                u, c = np.unique(over_12m, return_counts=True)
-                self.partners_12[u] -= c
-            self.breakup_register = self.breakup_register[:11]  # Forget partners from >12m ago
-            just_ended = (self.edges.dur == 0) & alive_bools
-            je1 = ss.uids(self.edges.p1[just_ended])
-            je2 = ss.uids(self.edges.p2[just_ended])
-            je_uids = je1.concat(je2)
-            self.breakup_register.insert(0, je1.concat(je2))
-            if len(je_uids):
-                u, c = np.unique(je_uids, return_counts=True)
-                self.partners_12[u] += c
+        # If there's a prior partner network, add the newly dissolved partnerships to the prior partners
+        if self.pars.recall_prior:
+            prior_network = self.sim.networks.get('priorpartners')
+            if prior_network is not None:
+                # Get the uids of the partners that just ended
+                ended_p1 = self.edges.p1[~active]
+                ended_p2 = self.edges.p2[~active]
+                durs = np.zeros_like(ended_p1, dtype=ss_float_)
+                betas = np.zeros_like(ended_p1, dtype=ss_float_)
+
+                # Add these to the prior partners network
+                prior_network.append(p1=ended_p1, p2=ended_p2, dur=durs, beta=betas)
 
         # For gen pop contacts that are due to expire, decrement the partner count
         inactive_gp = ~active & (~self.edges.sw)
@@ -563,10 +556,6 @@ class StructuredSexual(ss.SexualNetwork):
                 self.edges[k] = (self.edges[k][active])
 
         return
-
-    def update_results(self):
-        ti = self.ti
-        self.results.share_active[ti] = len(self.active(self.sim.people).uids)/len(self.sim.people)
 
     def net_beta(self, disease_beta=None, uids=None, disease=None):
         if uids is None: uids = Ellipsis
@@ -606,10 +595,36 @@ class StructuredSexual(ss.SexualNetwork):
         self.set_network_states(upper_age=self.t.dt_year)
         self.add_pairs()
         self.set_condom_use()
-
         self.count_partners()
 
         return
+
+
+class PriorPartners(ss.DynamicNetwork):
+    """
+    Lightweight network for storing prior partners, for use in partner notification
+    In this network, 'dur' refers to the duration of time since the relationship ended
+    """
+    def __init__(self, pars=None, key_dict=None, name='priorpartners', **kwargs):
+        super().__init__(key_dict=key_dict, name=name)
+        self.define_pars(
+            dur_recall=ss.dur(1, 'year'),  # How long to remember prior relationships
+        )
+        self.update_pars(pars=pars, **kwargs)
+        return
+
+    def step(self):
+        self.end_pairs()
+        self.edges.dur += 1  # Increment the duration since relationship ended
+        return
+
+    def end_pairs(self):
+        people = self.sim.people
+        max_dur = int(self.pars.dur_recall.values)
+        active = (self.edges.dur < max_dur) & people.alive[self.edges.p1] & people.alive[self.edges.p2]
+        for k in self.meta_keys():
+            self.edges[k] = self.edges[k][active]
+        return len(active)
 
 
 class AgeMatchedMSM(StructuredSexual):
@@ -632,11 +647,12 @@ class AgeMatchedMSM(StructuredSexual):
         self.participant[m_uids] = self.pars.msm_share.rvs(m_uids)
         return
 
-    def match_pairs(self, ppl):
+    def match_pairs(self):
         """ Match males by age using sorting """
+        ppl = self.sim.people
 
         # Find people eligible for a relationship
-        active = self.over_debut()
+        active = self.over_debut
         underpartnered = self.partners < self.concurrency
         m_eligible = active & ppl.male & underpartnered
         m_looking = self.pars.p_pair_form.filter(m_eligible.uids)
