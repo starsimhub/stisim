@@ -366,12 +366,12 @@ class StructuredSexual(ss.SexualNetwork):
 
         return
 
-    def add_pairs_nonsw(self, ti=None):
+    def add_pairs_nonsw(self):
         ppl = self.sim.people
         dt = self.t.dt
 
         try:
-            p1, p2 = self.match_pairs(ppl)
+            p1, p2 = self.match_pairs()
         except NoPartnersFound:
             return
 
@@ -448,10 +448,9 @@ class StructuredSexual(ss.SexualNetwork):
 
         return
 
+    def add_pairs(self):
 
-    def add_pairs(self, ti=None):
-
-        self.add_pairs_nonsw(ti)
+        self.add_pairs_nonsw()
         self.add_pairs_sw()
 
         return
@@ -652,7 +651,7 @@ class AgeMatchedMSM(StructuredSexual):
         """ Match males by age using sorting """
 
         # Find people eligible for a relationship
-        active = self.over_debut()
+        active = self.over_debut
         underpartnered = self.partners < self.concurrency
         m_eligible = active & ppl.male & underpartnered
         m_looking = self.pars.p_pair_form.filter(m_eligible.uids)
