@@ -16,8 +16,7 @@ import starsim as ss
 import sciris as sc
 import numpy as np
 import pandas as pd
-import scipy.optimize as spo
-import scipy.spatial as spsp
+from collections import defaultdict
 
 ss_float_ = ss.dtypes.float
 
@@ -168,7 +167,7 @@ class StructuredSexual(ss.SexualNetwork):
             ss.FloatArr('sw_intensity'),  # Intensity of sex work
         )
 
-        self.relationship_durs = dict()
+        self.relationship_durs = defaultdict(list)
 
         return
 
@@ -339,37 +338,46 @@ class StructuredSexual(ss.SexualNetwork):
 
         return p1, p2
 
-    def add_pairs(self, ti=None):
-        """ Add pairs """
+    def add_pairs_sw(self):
         ppl = self.sim.people
         dt = self.t.dt
 
-        # Obtain new pairs
         try:
-            p1_gp, p2_gp = self.match_pairs(ppl)
-            p1_sw, p2_sw = self.match_sex_workers(ppl)
+            p1, p2 = self.match_sex_workers(ppl)
         except NoPartnersFound:
             return
 
-        p1 = p1_gp.concat(p1_sw)
-        p2 = p2_gp.concat(p2_sw)
-        sw = np.array([False]*len(p1_gp) + [True]*len(p1_sw))
-
-        # Initialize beta, acts, duration
-        beta = np.ones(len(p2), dtype=ss_float_)
-        condoms = np.zeros(len(p2), dtype=ss_float_)  # FILLED IN LATER
-        acts = (self.pars.acts.rvs(p2)).astype(int)  # Number of acts per timestep - does not depend on commitment/risk group
-        dur = np.full(len(p2), dtype=ss_float_, fill_value=dt)  # Default duration is dt, replaced for stable matches
+        match_count = len(p1)
+        beta = np.ones(match_count, dtype=ss_float_)
+        condoms = np.zeros(match_count, dtype=ss_float_)
+        acts = (self.pars.acts.rvs(p2)).astype(int)
+        dur = np.full(match_count, fill_value=dt)
         age_p1 = ppl.age[p1]
         age_p2 = ppl.age[p2]
-        edge_types = np.full(len(p2), dtype=ss_float_, fill_value=np.nan)  # Edge types: stable, casual, onetime, sw
+        edge_types = np.full(match_count, dtype=ss_float_, fill_value=self.edge_types['sw'])
 
-        edge_types[sw] = self.edge_types['sw']  # Set edge
+        self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, sw=[True]*match_count, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types)
 
-        # Determine whether the pair have matched risk profiles
-        # Partners with mismatched risk profiles may still form a casual partnership
-        matched_risk = (self.risk_group[p1] == self.risk_group[p2]) & ~sw
-        mismatched_risk = (self.risk_group[p1] != self.risk_group[p2]) & ~sw
+        p1_edges, p1_counts = np.unique(p1, return_counts=True)
+        p2_edges, p2_counts = np.unique(p2, return_counts=True)
+
+        # update partner counts
+        self.lifetime_sw_partners[p1_edges] += p1_counts
+        self.lifetime_sw_partners[p2_edges] += p2_counts
+
+        return
+
+    def add_pairs_nonsw(self, ti=None):
+        ppl = self.sim.people
+        dt = self.t.dt
+
+        try:
+            p1, p2 = self.match_pairs(ppl)
+        except NoPartnersFound:
+            return
+
+        matched_risk = (self.risk_group[p1] == self.risk_group[p2])
+        mismatched_risk = (self.risk_group[p1] != self.risk_group[p2])
 
         # Set the probability of forming a partnership
         p_match = np.full(len(p1), fill_value=np.nan, dtype=ss_float_)
@@ -378,36 +386,45 @@ class StructuredSexual(ss.SexualNetwork):
             p_match[mismatched_risk & (self.risk_group[p2] == rg)] = self.pars.p_mismatched_casual[rg]
         self.pars.match_dist.set(p=p_match)
         matches = self.pars.match_dist.rvs(p2)
+
         stable = matches & matched_risk
-        edge_types[stable] = self.edge_types['stable']
         casual = matches & mismatched_risk
-        edge_types[casual] = self.edge_types['casual']
         any_match = stable | casual
 
+        match_count = len(p1)
+
+        beta = np.ones(match_count, dtype=ss_float_)
+        condoms = np.zeros(match_count, dtype=ss_float_)
+        acts = (self.pars.acts.rvs(p2)).astype(int)
+        dur = np.full(match_count, fill_value=dt)
+        age_p1 = ppl.age[p1]
+        age_p2 = ppl.age[p2]
+        edge_types = np.full(match_count, dtype=ss_float_, fill_value=np.nan)
+        edge_types[stable] = self.edge_types['stable']
+        edge_types[casual] = self.edge_types['casual']
+
         # Set duration
-        dur_mean = np.full(sum(any_match), fill_value=np.nan, dtype=ss_float_)
-        dur_std = np.full(sum(any_match), fill_value=np.nan, dtype=ss_float_)
+        dur_mean = np.full(match_count, fill_value=np.nan, dtype=ss_float_)
+        dur_std = np.full(match_count, fill_value=np.nan, dtype=ss_float_)
         for which, bools in {'stable': stable, 'casual': casual}.items():
             if bools.any():
                 uids = p2[bools]
                 mean, std = self.get_age_risk_pars(uids, self.pars[f'{which}_dur_pars'])
-                inds = bools[any_match].nonzero()[-1]
-                dur_mean[inds] = mean
-                dur_std[inds] = std
-        self.pars.dur_dist.set(mean=dur_mean, std=dur_std)
+                dur_mean[bools] = mean
+                dur_std[bools] = std
+        self.pars.dur_dist.set(mean=dur_mean[any_match], std=dur_std[any_match])
         dur[any_match] = self.pars.dur_dist.rvs(p2[any_match])
 
-        edge_types[any_match & (dur < 1)] = self.edge_types['onetime']
+        edge_types[(dur <= 1)] = self.edge_types['onetime']
 
-        relationships = (edge_types == self.edge_types['stable']) | (edge_types == self.edge_types['casual'])
+        # track the duration of all new relationships
+        relationships = (dur > 1)
+
         for (a, b, reldur) in zip(p1[relationships], p2[relationships], dur[relationships]):
             pair = (min(a,b), max(a,b))
-            if not pair in self.relationship_durs:
-                self.relationship_durs[pair] = []
             self.relationship_durs[pair].append({'start': self.ti, 'dur': reldur}) # set dur to intended duration. When the relationship actually ends, this will be updated
 
-
-        self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, sw=sw, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types)
+        self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, sw=[False]*match_count, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types)
 
         # Checks
         if (self.sim.people.female[p1].any() or self.sim.people.male[p2].any()) and (self.name == 'structuredsexual'):
@@ -417,29 +434,31 @@ class StructuredSexual(ss.SexualNetwork):
             errormsg = 'Unequal lengths in edge list'
             raise ValueError(errormsg)
 
-        # Add stable and casual partner counts, not including SW partners
-
+        # update partner counts
         for key, edge_type in self.edge_types.items():
-            p1_edges, p1_counts = np.unique(p1[edge_types==edge_type], return_counts=True)
-            p2_edges, p2_counts = np.unique(p2[edge_types==edge_type], return_counts=True)
-
-            # update partner counts
-            getattr(self, f'{key}_partners')[p1_edges] += p1_counts
-            getattr(self, f'{key}_partners')[p2_edges] += p2_counts
-            getattr(self, f'lifetime_{key}_partners')[p1_edges] += p1_counts
-            getattr(self, f'lifetime_{key}_partners')[p2_edges] += p2_counts
+            p1_edges = p1[edge_types==edge_type]
+            p2_edges = p2[edge_types==edge_type]
 
 
-
-        # Add partner counts, not including SW partners
-        unique_p1, counts_p1 = np.unique(p1_gp, return_counts=True)
-        unique_p2, counts_p2 = np.unique(p2_gp, return_counts=True)
-        self.partners[unique_p1] += counts_p1
-        self.partners[unique_p2] += counts_p2
-        self.lifetime_partners[unique_p1] += counts_p1
-        self.lifetime_partners[unique_p2] += counts_p2
+            self.partners[p1_edges] += 1
+            self.partners[p2_edges] += 1
+            self.lifetime_partners[p1_edges] += 1
+            self.lifetime_partners[p2_edges] += 1
+            getattr(self, f'{key}_partners')[p1_edges] += 1
+            getattr(self, f'{key}_partners')[p2_edges] += 1
+            getattr(self, f'lifetime_{key}_partners')[p1_edges] += 1
+            getattr(self, f'lifetime_{key}_partners')[p2_edges] += 1
 
         return
+
+
+    def add_pairs(self, ti=None):
+
+        self.add_pairs_nonsw(ti)
+        self.add_pairs_sw()
+
+        return
+
 
     def match_sex_workers(self, ppl):
         """ Match sex workers to clients """
@@ -453,6 +472,9 @@ class StructuredSexual(ss.SexualNetwork):
         # Find clients who will seek FSW
         self.pars.sw_seeking_dist.pars.p = np.clip(self.pars.sw_seeking_rate, 0, 1)
         m_looking = self.pars.sw_seeking_dist.filter(active_clients.uids)
+
+        if len(m_looking) == 0 or len(active_fsw.uids) == 0:
+            raise NoPartnersFound()
 
         # Attempt to assign a sex worker to every client by repeat sampling the sex workers.
         # FSW with higher work intensity will be sampled more frequently
