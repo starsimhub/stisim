@@ -376,6 +376,9 @@ class StructuredSexual(ss.SexualNetwork):
             ind_m_subset.sort()
             ind_m = ind_m[ind_m_subset]
 
+        if len(ind_m) == 0 or len(ind_f) == 0:
+            raise NoPartnersFound()
+
         p1 = m_eligible.uids[ind_m]
         p2 = f_looking[ind_f]
 
