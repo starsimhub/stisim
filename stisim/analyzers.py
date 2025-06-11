@@ -375,7 +375,7 @@ class TimeBetweenRelationships(ss.Analyzer):
     def __init__(self, relationship_type='stable', *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.relationship_type = relationship_type
-        self.times_between_relationships = defaultdict(self.zero_list)
+        self.results['times_between_relationships'] = defaultdict(self.zero_list)
         return
 
     @staticmethod
@@ -403,11 +403,11 @@ class TimeBetweenRelationships(ss.Analyzer):
         not_stable_relationship_uids = set(debuted) - stable_relationship_uids  # Get uids not in stable relationships
 
         for uid in not_stable_relationship_uids:
-            self.times_between_relationships[uid][-1] += 1  # Increment time since last relationship for those not in stable relationships
+            self.results['times_between_relationships'][uid][-1] += 1  # Increment time since last relationship for those not in stable relationships
 
         for uid in stable_relationship_uids:
-            if self.times_between_relationships[uid][-1] > 0:
+            if self.results['times_between_relationships'][uid][-1] > 0:
                 # If the agent is in a stable relationship, reset the time since last relationship and append to the list
-                self.times_between_relationships[uid].append(0)
+                self.results['times_between_relationships'][uid].append(0)
 
         return
