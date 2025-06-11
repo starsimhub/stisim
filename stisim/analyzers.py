@@ -10,8 +10,9 @@ import pandas as pd
 
 import stisim as sti
 import pylab as pl
+from collections import defaultdict
 
-__all__ = ["result_grouper", "coinfection_stats", "sw_stats", "RelationshipDurations", "NetworkDegree"]
+__all__ = ["result_grouper", "coinfection_stats", "sw_stats", "RelationshipDurations", "NetworkDegree", "TimeBetweenRelationships"]
 
 
 class result_grouper(ss.Analyzer):
@@ -360,5 +361,53 @@ class NetworkDegree(ss.Analyzer):
                 axes[ai].text(15, 0.5, stats)
 
             pl.show()
+
+        return
+
+
+class TimeBetweenRelationships(ss.Analyzer):
+    """
+    Analyzes the time between relationships in a structuredsexual network.
+    Each timestep, for each debuted agent, check if they are in a relationship of the provided type.
+    If not, increment the counter
+    Otherwise, reset the counter to 0 and append the counter to the list of times between relationships for that agent.
+    """
+    def __init__(self, relationship_type='stable', *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.relationship_type = relationship_type
+        self.times_between_relationships = defaultdict(self.zero_list)
+        return
+
+    @staticmethod
+    def zero_list():
+        return [0]  # Initialize the list with a single zero
+
+
+    def step(self):
+        """
+        For each debuted agent, check if they are in a relationship.
+        If they are not, increment the time since last relationship by 1.
+        If they are and time since last relationship is greater than 0, append the time to the list of times between relationships.
+        """
+
+        sim = self.sim
+        ti = self.ti
+        nw = sim.networks.structuredsexual
+
+        debuted = (nw.debut <= sim.people.age).uids
+        stable_relationships = nw.edges.edge_type == nw.edge_types[self.relationship_type]  # Get stable relationships
+        p1_stable = nw.edges.p1[stable_relationships]  # Get p1s in stable relationships
+        p2_stable = nw.edges.p2[stable_relationships]  # Get p2s in stable relationships
+
+        stable_relationship_uids = set(np.concatenate([p1_stable, p2_stable]))  # Combine p1 and p2 uids in stable relationships
+        not_stable_relationship_uids = set(debuted) - stable_relationship_uids  # Get uids not in stable relationships
+
+        for uid in not_stable_relationship_uids:
+            self.times_between_relationships[uid][-1] += 1  # Increment time since last relationship for those not in stable relationships
+
+        for uid in stable_relationship_uids:
+            if self.times_between_relationships[uid][-1] > 0:
+                # If the agent is in a stable relationship, reset the time since last relationship and append to the list
+                self.times_between_relationships[uid].append(0)
 
         return
