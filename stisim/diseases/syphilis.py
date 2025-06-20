@@ -85,7 +85,7 @@ class Syphilis(BaseSTI):
             # Adult syphilis natural history, all specified in years
             dur_primary=ss.normal(ss.dur(6, 'week'), ss.dur(1, 'week')),  # https://pubmed.ncbi.nlm.nih.gov/9101629/
             dur_secondary=ss.lognorm_ex(ss.dur(3.6, 'month'), ss.dur(1.5, 'month')),  # https://pubmed.ncbi.nlm.nih.gov/9101629/
-            dur_early=ss.uniform(ss.dur(12, 'month'), ss.dur(14, 'month')),  # Assumption
+            dur_early=ss.uniform(ss.dur(12, 'month'), ss.dur(124, 'month')),  # Assumption
             p_reactivate=ss.bernoulli(p=0.35),  # Probability of reactivating from latent to secondary
             time_to_reactivate=ss.lognorm_ex(ss.years(1), ss.years(1)),  # Time to reactivation
             p_tertiary=ss.bernoulli(p=0.35),  # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4917057/
