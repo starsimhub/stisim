@@ -7,6 +7,18 @@ What's new
 All notable changes to the codebase are documented in this file.
 
 
+Version 1.3 (2025-06-20)
+--------------------------
+- TBC
+
+
+Version 1.2 (2025-06-10)
+--------------------------
+- Improvements to networks, including analyzers for relationship duration and network degree
+- Adds a `PriorPartners` network for recalling past relationships - for use in partner notification
+- *GitHub info*: PR `135 <https://github.com/starsimhub/stisim/pull/135>`_
+
+
 Version 1.1.2 (2025-06-03)
 --------------------------
 - Bugfix to calibration class for multisims

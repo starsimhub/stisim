@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import starsim as ss
 
-__all__ = ['TimeSeries', 'make_init_prev_fn']
+__all__ = ['count', 'div', 'countdiv', 'cond_prob', 'TimeSeries', 'make_init_prev_fn']
 
 
 
