@@ -11,7 +11,7 @@ import pandas as pd
 import stisim as sti
 import pylab as pl
 
-__all__ = ["result_grouper", "coinfection_stats", "sw_stats", "RelationshipDurations", "NetworkDegree"]
+__all__ = ["result_grouper", "coinfection_stats", "sw_stats", "RelationshipDurations", "NetworkDegree", "DebutAge"]
 
 
 class result_grouper(ss.Analyzer):
@@ -362,3 +362,94 @@ class NetworkDegree(ss.Analyzer):
             pl.show()
 
         return
+
+class DebutAge(ss.Analyzer):
+    """
+    Analyzes the debut age of relationships in a structuredsexual network.
+    """
+    def __init__(self, bins=None, cohort_starts=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.bins = bins or np.arange(12, 31, 1)
+        self.binspan = self.bins[-1] - self.bins[0]
+        self.cohort_starts = cohort_starts
+
+        return
+
+
+    def init_pre(self, sim, force=False):
+
+
+        # sim = self.sim
+
+        if self.cohort_starts is None:
+            first_cohort = sim.pars['start']
+            last_cohort = sim.pars['stop'] - self.binspan
+            self.cohort_starts = sc.inclusiverange(first_cohort, last_cohort)
+            self.cohort_ends = self.cohort_starts + self.binspan
+            self.n_cohorts = len(self.cohort_starts)
+            self.cohort_years = np.array([sc.inclusiverange(i, i + self.binspan) for i in self.cohort_starts])
+
+        self.prop_active_f = np.zeros((self.n_cohorts, self.binspan + 1))
+        self.prop_active_m = np.zeros((self.n_cohorts, self.binspan + 1))
+
+        super().init_pre(sim, force=force)
+
+
+    def init_results(self):
+        super().init_results()
+        self.define_results(
+            ss.Result('prop_active_f', dtype=float, scale=False, shape=len(self.cohort_starts)),
+            ss.Result('prop_active_m', dtype=float, scale=False, shape=len(self.cohort_starts)),
+        )
+        return
+
+    def step(self):
+
+        sim = self.sim
+        ppl = sim.people
+        if sim.t.yearvec[sim.ti] in self.cohort_years:
+            cohort_inds, bin_inds = sc.findinds(self.cohort_years, sim.t.yearvec[sim.ti])
+            for ci, cohort_ind in enumerate(cohort_inds):
+                bin_ind = bin_inds[ci]
+                bin = self.bins[bin_ind]
+
+                # all females cohort:
+                conditions_f = ppl.female * ppl.alive * (ppl.age >= (bin - 1)) * (
+                        ppl.age < bin)
+                cohort_f_count = sum(conditions_f)
+                # all active females in cohort:
+                num_conditions_f = conditions_f * sim.networks.structuredsexual.over_debut
+                debut_f_count = sum(num_conditions_f)
+
+                self.prop_active_f[cohort_ind, bin_ind] = (debut_f_count) / (cohort_f_count) if cohort_f_count > 0 else 0
+
+                # all males cohort:
+                conditions_m = ~sim.people.female * sim.people.alive * (sim.people.age >= (bin - 1)) * (
+                        sim.people.age < bin)
+                cohort_m_count = sum(conditions_m)
+                # all active males in cohort:
+                num_conditions_m = conditions_m * sim.networks.structuredsexual.over_debut
+                debut_m_count = sum(num_conditions_m)
+                self.prop_active_m[cohort_ind, bin_ind] = (debut_m_count) / (cohort_m_count) if cohort_m_count > 0 else 0
+        return
+
+    def plot(self):
+        """
+        Plot the proportion of active agents by cohort and debut age
+        """
+        pl.figure(1)
+        for row in self.prop_active_f:
+            pl.plot(self.bins, row)
+        pl.xlabel('Age')
+        pl.ylabel('Share')
+        pl.title('Proportion of females who are sexually active')
+        pl.show()
+
+        pl.figure(2)
+        for row in self.prop_active_m:
+            pl.plot(self.bins, row)
+        pl.xlabel('Age')
+        pl.ylabel('Share')
+        pl.title('Proportion of males who are sexually active')
+        pl.show()
