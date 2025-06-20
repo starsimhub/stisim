@@ -11,7 +11,7 @@ import pandas as pd
 import stisim as sti
 import pylab as pl
 
-__all__ = ["result_grouper", "coinfection_stats", "sw_stats", "RelationshipDurations", "NetworkDegree", "DebutAge"]
+__all__ = ["result_grouper", "coinfection_stats", "sw_stats", "RelationshipDurations", "NetworkDegree", "DebutAge", "partner_age_diff"]
 
 
 class result_grouper(ss.Analyzer):
@@ -363,6 +363,73 @@ class NetworkDegree(ss.Analyzer):
 
         return
 
+
+class partner_age_diff(ss.Analyzer):
+    def __init__(self, year=2000, age_bins=['teens', 'young', 'adult'], network='structuredsexual', *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.year = year
+        self.network = network
+        self.age_diffs = {}
+        self.age_bins = age_bins
+        return
+
+    def init_results(self):
+        """
+        Initialize the results for the age differences.
+        """
+        self.define_results(
+            ss.Result('age_diff_mean', dtype=float, scale=False),
+            ss.Result('age_diff_median', dtype=float, scale=False),
+            ss.Result('age_diff_std', dtype=float, scale=False),
+        )
+        return
+
+    def step(self):
+        """
+        Record the age differences between partners in the specified year.
+        """
+
+        net = self.sim.networks[self.network]
+        relationships = net.edges.dur > 1
+        p1 = net.p1[relationships]
+        p2 = net.p2[relationships]
+
+        age_diffs = (self.sim.people.age[p1] - self.sim.people.age[p2])
+
+        f_ages = self.sim.people.age[p2]
+
+        # bin the female ages by the bins used in the structured sexual network
+        # age_bins = sorted([bin[0] for bin in self.sim.networks.structuredsexual.pars.f_age_group_bins.values()])
+        age_bin_limits = [net.pars.f_age_group_bins[bin][0] for bin in self.age_bins]
+        age_bin_indices = np.digitize(f_ages, age_bin_limits) - 1
+
+        self.results['age_diff_mean'][self.ti] = np.mean(age_diffs)
+        self.results['age_diff_median'][self.ti] = np.median(age_diffs)
+        self.results['age_diff_std'][self.ti] = np.std(age_diffs)
+
+        if self.sim.t.yearvec[self.ti] == self.year:
+            for bin in self.age_bins:
+                self.age_diffs[bin] = age_diffs[age_bin_indices == self.age_bins.index(bin)]
+
+    def plot(self):
+        """
+        Plot histograms of the age differences between partners.
+        """
+        if len(self.age_diffs) > 0:
+            pl.figure(figsize=(8, 5))
+            pl.hist(list(self.age_diffs.values()), label=list(self.age_diffs.keys()), bins=30, edgecolor='black', alpha=0.7)
+            pl.legend()
+            pl.xlabel('Age Difference (years)')
+            pl.ylabel('Frequency')
+            pl.title(f'Age Differences Between Partners in {self.year} (Male Age - Female Age)')
+            pl.grid(True)
+            pl.show()
+        else:
+            print("No age differences recorded for the specified year.")
+
+        return
+
+          
 class DebutAge(ss.Analyzer):
     """
     Analyzes the debut age of relationships in a structuredsexual network.
@@ -376,12 +443,7 @@ class DebutAge(ss.Analyzer):
 
         return
 
-
     def init_pre(self, sim, force=False):
-
-
-        # sim = self.sim
-
         if self.cohort_starts is None:
             first_cohort = sim.pars['start']
             last_cohort = sim.pars['stop'] - self.binspan
@@ -392,9 +454,8 @@ class DebutAge(ss.Analyzer):
 
         self.prop_active_f = np.zeros((self.n_cohorts, self.binspan + 1))
         self.prop_active_m = np.zeros((self.n_cohorts, self.binspan + 1))
-
         super().init_pre(sim, force=force)
-
+        return
 
     def init_results(self):
         super().init_results()
@@ -453,3 +514,4 @@ class DebutAge(ss.Analyzer):
         pl.ylabel('Share')
         pl.title('Proportion of males who are sexually active')
         pl.show()
+
