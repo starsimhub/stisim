@@ -7,9 +7,11 @@ What's new
 All notable changes to the codebase are documented in this file.
 
 
-Version 1.3 (2025-06-20)
+Version 1.3 (2025-06-27)
 --------------------------
-- TBC
+- Fixes to the pair-matching algorithm within the sexual network to better align partner ages 
+- Improvements to networks, including analyzers for debut age and partner age differences
+- *GitHub info*: PR `143 <https://github.com/starsimhub/stisim/pull/143>`_
 
 
 Version 1.2 (2025-06-10)
