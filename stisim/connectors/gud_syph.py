@@ -4,7 +4,8 @@ import stisim as sti
 class gud_syph(ss.Connector):
 
     def __init__(self, pars=None, **kwargs):
-        super().__init__(label='GUD-Syphilis', requires=[sti.GUD, sti.Syphilis])
+        super().__init__(label='GUD-Syphilis')
+
         self.define_pars(
             rel_sus_syph_gud=2,     # People with GUD are 2x more likely to acquire syphilis
             rel_trans_syph_gud=2,   # People with GUD are 2x more likely to transmit syphilis
@@ -15,10 +16,17 @@ class gud_syph(ss.Connector):
 
         return
 
-    def update(self, sim):
+    def init_pre(self, sim, force=False):
+        super().init_pre(sim)
+        ss.check_requires(sim, requires=[sti.GUD, sti.Syphilis])
+
+        return
+
+    def step(self):
         """
         GUD-syphilis interactions
         """
+        sim = self.sim
         # People with GUD are more likely to acquire syphilis
         sim.diseases.syphilis.rel_sus[sim.people.gud.infected] = self.pars.rel_sus_syph_gud
 
