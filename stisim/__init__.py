@@ -8,6 +8,7 @@ from .interventions import *
 from .networks      import *
 from .utils         import *
 from .analyzers     import *
+from .sim           import *
 
 # Assign the root folder
 import sciris as sc
