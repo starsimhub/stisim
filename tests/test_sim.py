@@ -170,6 +170,7 @@ def test_sim_creation():
     disease_pars = dict(ng=dict(eff_condom=0.6))
     demographic_pars = dict(zimbabwe=dict(data='./test_data/'))
 
+    # Test 1: default networks with custom pars, demographics from location string, and diseases from disease names with custom pars
     sim1 = sti.Sim(
         pars=pars,
         network_pars=network_pars,
@@ -182,9 +183,14 @@ def test_sim_creation():
 
     sim1.init()
 
+    assert sim1.diseases.ng.pars.eff_condom == 0.6, "Disease parameter not set correctly"
+    assert len(sim1.diseases) == 5, "Incorrect number of diseases initialized"
+    assert len(sim1.connectors) > 0, "No connectors initialized"
+
+    # Test 2: mix of strings and modules
     demographics = [sti.Pregnancy(), 'deaths']  # Replace the default ss.Pregnancy module with the sti one
     networks = sti.StructuredSexual()
-    diseases = [sti.Syphilis(), 'hiv']
+    diseases = [sti.Gonorrhea(), 'hiv']
 
     sim2 = sti.Sim(
         pars=pars,
@@ -195,6 +201,12 @@ def test_sim_creation():
     )
 
     sim2.init()
+
+    assert isinstance(sim2.networks.structuredsexual, sti.StructuredSexual), "Network not initialized correctly"
+    assert len(sim2.diseases) == 2, "Incorrect number of diseases initialized"
+    assert len(sim2.connectors) > 0, "No connectors initialized"
+    assert len(sim2.demographics) == 2, "Incorrect number of demographics initialized"
+
 
 
 if __name__ == '__main__':
