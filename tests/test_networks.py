@@ -122,23 +122,19 @@ def test_partner_seeking_rates():
     s2 = ss.Sim(networks=[high_p_pair_form], analyzers=[analyzer], demographics=[death, pregnancy], unit='month', stop=2040)
 
     # Run the simulation
-    ss.parallel(s1, s2)
+    ss.parallel(s1, s2, debug=True)
 
-    # compute the mean time between relationships for both sims
+    # compute the mean time between relationships for both sims, excluding the time until first relationship because some agents
+    # take a long time to get their initial pairing, and some never do. This effect is magnified in higher probability
+    # scenarios so the time between relationships gets skewed in the wrong direction.
     s1_consolidated = [item for sublist in s1.results.timebetweenrelationships.times_between_relationships.values() for
-                    item in sublist if item > 0]
+                    index, item in enumerate(sublist) if index > 0 and item > 0]
     s2_consolidated = [item for sublist in s2.results.timebetweenrelationships.times_between_relationships.values() for
-                    item in sublist if item > 0]
-
+                    index, item in enumerate(sublist) if index > 0 and item > 0]
     s1_mean = np.mean(s1_consolidated)
     s2_mean = np.mean(s2_consolidated)
 
     assert s2_mean < s1_mean, f"Mean time between relationships should be lower in high p_pair_form scenario ({s2_mean}) than in default ({s1_mean})"
-
-
-    # s1_mean = np.mean(s1.results.timebetweenrelationships.times_between_relationships)
-    # s2_mean = np.mean(s2.analyzers.timebetweenrelationships.time_between_relationships)
-
 
 
 
