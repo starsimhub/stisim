@@ -110,7 +110,9 @@ def test_partner_seeking_rates():
     """
     Test the partner seeking rates in the structured sexual network.
     """
-    
+
+    # Create a structured sexual network with default parameters
+    network = sti.StructuredSexual()
     high_p_pair_form = sti.StructuredSexual(pars={'p_pair_form': ss.bernoulli(p=0.9)})
     analyzer = sti.TimeBetweenRelationships()
     pregnancy = ss.Pregnancy(fertility_rate=10)
@@ -163,6 +165,5 @@ if __name__ == '__main__':
     test_network_degrees()
     test_pair_formation()
     test_relationship_duration()
-    time_between_relationships
     test_partner_seeking_rates()
     test_debut_age()
