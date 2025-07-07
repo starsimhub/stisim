@@ -154,7 +154,10 @@ class STITest(ss.Intervention):
         """
         # Select UIDs for testing based on eligibility and test_prob
         accept_uids = ss.uids()
-        eligible_uids = self.check_eligibility()  # Apply eligiblity
+        if callable(self.eligibility):
+            eligible_uids = self.check_eligibility()  # Apply eligiblity - uses base class from ss.Intervention
+        else:
+            eligible_uids = self.eligibility
         if len(eligible_uids):
             accept_uids = self.test_prob.filter(eligible_uids)
         scheduled_uids = (self.ti_scheduled == self.ti).uids  # Add on scheduled tests

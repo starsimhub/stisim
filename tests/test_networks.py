@@ -110,9 +110,7 @@ def test_partner_seeking_rates():
     """
     Test the partner seeking rates in the structured sexual network.
     """
-
-    # Create a structured sexual network with default parameters
-    network = sti.StructuredSexual()
+    
     high_p_pair_form = sti.StructuredSexual(pars={'p_pair_form': ss.bernoulli(p=0.9)})
     analyzer = sti.TimeBetweenRelationships()
     pregnancy = ss.Pregnancy(fertility_rate=10)
@@ -136,10 +134,35 @@ def test_partner_seeking_rates():
 
     assert s2_mean < s1_mean, f"Mean time between relationships should be lower in high p_pair_form scenario ({s2_mean}) than in default ({s1_mean})"
 
+    
+def test_debut_age():
+    """
+    Test the debut age in the structured sexual network.
+    """
+
+    # Create a structured sexual network with default parameters
+    network = sti.StructuredSexual()
+
+    late_debut_network = sti.StructuredSexual(pars={'debut_pars_f': [25, 3], 'debut_pars_m': [26, 3]})
+    analyzer = sti.DebutAge()
+
+    s1 = ss.Sim(networks=[network], analyzers=[analyzer])
+    s2 = ss.Sim(networks=[late_debut_network], analyzers=[analyzer])
+
+    # Run the simulation
+    # s1.init()
+    s1.run()
+    s2.run()
+
+    # all values in the debut age analyzer prop_active_f and prop_active_m should be greater in s1 than in s2
+    assert np.all(s1.analyzers.debutage.prop_active_f[0] >= s2.analyzers.debutage.prop_active_f[0]), "Proportion of females active should be higher in default network than in late debut network at any given age"
+    assert np.all(s1.analyzers.debutage.prop_active_m[0] >= s2.analyzers.debutage.prop_active_m[0]), "Proportion of males active should be higher in default network than in late debut network at any given age"
 
 
 if __name__ == '__main__':
     test_network_degrees()
     test_pair_formation()
     test_relationship_duration()
+    time_between_relationships
     test_partner_seeking_rates()
+    test_debut_age()

@@ -12,8 +12,7 @@ import stisim as sti
 import pylab as pl
 from collections import defaultdict
 
-__all__ = ["result_grouper", "coinfection_stats", "sw_stats", "RelationshipDurations", "NetworkDegree", "TimeBetweenRelationships"]
-
+__all__ = ["result_grouper", "coinfection_stats", "sw_stats", "RelationshipDurations", "NetworkDegree", "DebutAge", "partner_age_diff", "TimeBetweenRelationships"]
 
 class result_grouper(ss.Analyzer):
     @staticmethod
@@ -364,7 +363,6 @@ class NetworkDegree(ss.Analyzer):
 
         return
 
-
 class TimeBetweenRelationships(ss.Analyzer):
     """
     Analyzes the time between relationships in a structuredsexual network.
@@ -411,3 +409,156 @@ class TimeBetweenRelationships(ss.Analyzer):
                 self.results['times_between_relationships'][uid].append(0)
 
         return
+
+      
+class partner_age_diff(ss.Analyzer):
+    def __init__(self, year=2000, age_bins=['teens', 'young', 'adult'], network='structuredsexual', *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.year = year
+        self.network = network
+        self.age_diffs = {}
+        self.age_bins = age_bins
+        return
+
+    def init_results(self):
+        """
+        Initialize the results for the age differences.
+        """
+        self.define_results(
+            ss.Result('age_diff_mean', dtype=float, scale=False),
+            ss.Result('age_diff_median', dtype=float, scale=False),
+            ss.Result('age_diff_std', dtype=float, scale=False),
+        )
+        return
+
+    def step(self):
+        """
+        Record the age differences between partners in the specified year.
+        """
+
+        net = self.sim.networks[self.network]
+        relationships = net.edges.dur > 1
+        p1 = net.p1[relationships]
+        p2 = net.p2[relationships]
+
+        age_diffs = (self.sim.people.age[p1] - self.sim.people.age[p2])
+
+        f_ages = self.sim.people.age[p2]
+
+        # bin the female ages by the bins used in the structured sexual network
+        # age_bins = sorted([bin[0] for bin in self.sim.networks.structuredsexual.pars.f_age_group_bins.values()])
+        age_bin_limits = [net.pars.f_age_group_bins[bin][0] for bin in self.age_bins]
+        age_bin_indices = np.digitize(f_ages, age_bin_limits) - 1
+
+        self.results['age_diff_mean'][self.ti] = np.mean(age_diffs)
+        self.results['age_diff_median'][self.ti] = np.median(age_diffs)
+        self.results['age_diff_std'][self.ti] = np.std(age_diffs)
+
+        if self.sim.t.yearvec[self.ti] == self.year:
+            for bin in self.age_bins:
+                self.age_diffs[bin] = age_diffs[age_bin_indices == self.age_bins.index(bin)]
+
+    def plot(self):
+        """
+        Plot histograms of the age differences between partners.
+        """
+        if len(self.age_diffs) > 0:
+            pl.figure(figsize=(8, 5))
+            pl.hist(list(self.age_diffs.values()), label=list(self.age_diffs.keys()), bins=30, edgecolor='black', alpha=0.7)
+            pl.legend()
+            pl.xlabel('Age Difference (years)')
+            pl.ylabel('Frequency')
+            pl.title(f'Age Differences Between Partners in {self.year} (Male Age - Female Age)')
+            pl.grid(True)
+            pl.show()
+        else:
+            print("No age differences recorded for the specified year.")
+
+        return
+
+          
+class DebutAge(ss.Analyzer):
+    """
+    Analyzes the debut age of relationships in a structuredsexual network.
+    """
+    def __init__(self, bins=None, cohort_starts=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.bins = bins or np.arange(12, 31, 1)
+        self.binspan = self.bins[-1] - self.bins[0]
+        self.cohort_starts = cohort_starts
+
+        return
+
+    def init_pre(self, sim, force=False):
+        if self.cohort_starts is None:
+            first_cohort = sim.pars['start']
+            last_cohort = sim.pars['stop'] - self.binspan
+            self.cohort_starts = sc.inclusiverange(first_cohort, last_cohort)
+            self.cohort_ends = self.cohort_starts + self.binspan
+            self.n_cohorts = len(self.cohort_starts)
+            self.cohort_years = np.array([sc.inclusiverange(i, i + self.binspan) for i in self.cohort_starts])
+
+        self.prop_active_f = np.zeros((self.n_cohorts, self.binspan + 1))
+        self.prop_active_m = np.zeros((self.n_cohorts, self.binspan + 1))
+        super().init_pre(sim, force=force)
+        return
+
+    def init_results(self):
+        super().init_results()
+        self.define_results(
+            ss.Result('prop_active_f', dtype=float, scale=False, shape=len(self.cohort_starts)),
+            ss.Result('prop_active_m', dtype=float, scale=False, shape=len(self.cohort_starts)),
+        )
+        return
+
+    def step(self):
+
+        sim = self.sim
+        ppl = sim.people
+        if sim.t.yearvec[sim.ti] in self.cohort_years:
+            cohort_inds, bin_inds = sc.findinds(self.cohort_years, sim.t.yearvec[sim.ti])
+            for ci, cohort_ind in enumerate(cohort_inds):
+                bin_ind = bin_inds[ci]
+                bin = self.bins[bin_ind]
+
+                # all females cohort:
+                conditions_f = ppl.female * ppl.alive * (ppl.age >= (bin - 1)) * (
+                        ppl.age < bin)
+                cohort_f_count = sum(conditions_f)
+                # all active females in cohort:
+                num_conditions_f = conditions_f * sim.networks.structuredsexual.over_debut
+                debut_f_count = sum(num_conditions_f)
+
+                self.prop_active_f[cohort_ind, bin_ind] = (debut_f_count) / (cohort_f_count) if cohort_f_count > 0 else 0
+
+                # all males cohort:
+                conditions_m = ~sim.people.female * sim.people.alive * (sim.people.age >= (bin - 1)) * (
+                        sim.people.age < bin)
+                cohort_m_count = sum(conditions_m)
+                # all active males in cohort:
+                num_conditions_m = conditions_m * sim.networks.structuredsexual.over_debut
+                debut_m_count = sum(num_conditions_m)
+                self.prop_active_m[cohort_ind, bin_ind] = (debut_m_count) / (cohort_m_count) if cohort_m_count > 0 else 0
+        return
+
+    def plot(self):
+        """
+        Plot the proportion of active agents by cohort and debut age
+        """
+        pl.figure(1)
+        for row in self.prop_active_f:
+            pl.plot(self.bins, row)
+        pl.xlabel('Age')
+        pl.ylabel('Share')
+        pl.title('Proportion of females who are sexually active')
+        pl.show()
+
+        pl.figure(2)
+        for row in self.prop_active_m:
+            pl.plot(self.bins, row)
+        pl.xlabel('Age')
+        pl.ylabel('Share')
+        pl.title('Proportion of males who are sexually active')
+        pl.show()
+
