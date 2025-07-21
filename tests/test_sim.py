@@ -138,7 +138,7 @@ def test_stis(which='discharging', n_agents=5e3, start=2010, stop=2020):
     death = ss.Deaths(death_rate=10)
     sexual = sti.StructuredSexual()
 
-    sim = ss.Sim(
+    sim = ss.Sim( 
         dt=1/12,
         n_agents=n_agents,
         start=start,

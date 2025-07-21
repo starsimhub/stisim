@@ -7,6 +7,12 @@ What's new
 All notable changes to the codebase are documented in this file.
 
 
+Version 1.4 (2025-07-22)
+--------------------------
+- Add location arg and Sim class
+- *GitHub info*: PR TBC
+
+
 Version 1.3 (2025-06-27)
 --------------------------
 - Fixes to the pair-matching algorithm within the sexual network to better align partner ages 
