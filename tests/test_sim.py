@@ -128,13 +128,13 @@ def test_stis(which='discharging', n_agents=5e3, start=2010, stop=2020):
         # ng = sti.Gonorrhea(beta_m2f=0.06, init_prev=0.02)
         # ct = sti.Chlamydia(beta_m2f=0.06, init_prev=0.05)
         # tv = sti.Trichomoniasis(beta_m2f=0.1, init_prev=0.1)
-        stis = dict(
+        sti_pars = dict(
             ng=dict(beta_m2f=0.06, init_prev=0.02),
             ct=dict(beta_m2f=0.06, init_prev=0.05),
             tv=dict(beta_m2f=0.1, init_prev=0.1),
         )
     elif which == 'ulcerative':
-        stis = dict(
+        sti_pars = dict(
             sy=dict(beta_m2f=0.1, init_prev=0.01),
             gud=dict(prevalence=0.05),  # Placeholder for GUD
         )
@@ -149,7 +149,8 @@ def test_stis(which='discharging', n_agents=5e3, start=2010, stop=2020):
         n_agents=n_agents,
         start=start,
         stop=stop,
-        stis=stis,
+        stis=list(sti_pars.keys()),
+        sti_pars=sti_pars,
         demographics=[pregnancy, death],
     )
 
