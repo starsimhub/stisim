@@ -9,7 +9,84 @@ import sciris as sc
 import stisim.utils as ut
 ss_int_ = ss.dtypes.int
 
-__all__ = ['BaseSTI', 'SEIS']
+__all__ = ['BaseSTI', 'SEIS', 'BaseSTIPars', 'STIPars']
+
+
+class BaseSTIPars(ss.Pars):
+    def __init__(self, **kwargs):
+        super().__init__()
+
+        # Settings
+        self.include_care = True  # Determines whether testing results are included
+
+        # Time
+        self.unit = 'year'
+        self.dt = 1/12
+
+        # Transmission
+        self.beta = 0  # Placeholder: no transmission. This will be set in validate_beta
+        self.beta_m2f = None
+        self.rel_beta_f2m = 0.5
+        self.beta_m2c = None
+        self.beta_m2m = None
+        self.eff_condom = 1
+        self.rel_init_prev = 1
+        self.update(kwargs)
+        return
+
+
+class STIPars(BaseSTIPars):
+    def __init__(self, **kwargs):
+        super().__init__()
+
+        # Natural history
+        self.dur_exp=ss.constant(ss.dur(1, 'week'))  # How long after exposure before you can infect others
+
+        # Symptoms and symptomatic testing
+        self.p_symp_dist = ss.bernoulli(p=0.5)  # Distribution of symptomatic vs asymptomatic
+        self.p_symp = [0.375, 0.375]
+        self.dur_presymp_dist = ss.lognorm_ex()
+        self.dur_presymp = [  # For those who develop symptoms, how long before symptoms appear
+            [ss.dur(1, 'week'), ss.dur(12, 'week')],    # Women
+            [ss.dur(0.25, 'week'), ss.dur(3, 'week')],  # Men
+        ]
+        self.p_symp_clear_dist = ss.bernoulli(p=0)
+        self.p_symp_clear = [0.0, 0.0]
+        self.dur_symp = [
+            ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(26, 'week')),  # Duration of symptoms
+            ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(26, 'week')),  # Duration of symptoms
+        ]
+        self.p_symp_care_dist=ss.bernoulli(p=0)
+        self.p_symp_care=[0.3, 0.2]
+        self.dur_symp2care_dist=ss.lognorm_ex()
+        self.dur_symp2care = [  # For those who test, how long before they seek care - reset for each individual STI
+            [ss.dur(4, 'week'), ss.dur(4, 'week')],  # Women
+            [ss.dur(6, 'week'), ss.dur(4, 'week')],  # Men
+        ]
+
+        # PID and PID care-seeking
+        self.p_pid = ss.bernoulli(p=0.2)
+        self.dur_prepid = ss.lognorm_ex(ss.dur(6, 'week'), ss.dur(4, 'week'))
+        self.p_pid_care = ss.bernoulli(p=0.1)  # Women
+        self.dur_pid2care = ss.lognorm_ex(ss.dur(2, 'week'), ss.dur(4, 'week'))  # Women
+
+        # Clearance
+        self.dur_asymp2clear_dist = ss.lognorm_ex()
+        self.dur_asymp2clear = [  # Duration of untreated asymptomatic infection (excl initial latent)
+            [ss.dur(52, 'week'), ss.dur(5, 'week')],  # Women
+            [ss.dur(52, 'week'), ss.dur(5, 'week')],  # Men
+        ]
+        self.dur_symp2clear_dist = ss.lognorm_ex()
+        self.dur_symp2clear = [  # Duration of untreated symptomatic infection (excl initial latent)
+            [ss.dur(52, 'week'), ss.dur(5, 'week')],  # Women
+            [ss.dur(52, 'week'), ss.dur(5, 'week')],  # Men
+        ]
+        self.dur_pid2clear=ss.lognorm_ex(ss.dur(52, 'week'), ss.dur(5, 'week'))
+
+        # Initial conditions
+        self.init_prev=ss.bernoulli(p=0.01)
+        self.update(kwargs)
+        return
 
 
 # Main class
@@ -20,18 +97,10 @@ class BaseSTI(ss.Infection):
     """
     def __init__(self, name=None, pars=None, init_prev_data=None, **kwargs):
         super().__init__(name=name)
-        self.requires = 'structuredsexual'
-        self.define_pars(
-            include_care=True,  # Determines whether testing results are included
-            unit='month',
-            beta=0,  # Placeholder: no transmission. This will be set in validate_beta
-            beta_m2f=None,
-            rel_beta_f2m=0.5,
-            beta_m2c=None,
-            beta_m2m=None,
-            eff_condom=1,
-            rel_init_prev=1,
-        )
+
+        # Handle parameters
+        default_pars = BaseSTIPars()
+        self.define_pars(**default_pars)
         self.update_pars(pars, **kwargs)
 
         self.define_states(
@@ -236,59 +305,10 @@ class SEIS(BaseSTI):
 
     def __init__(self, pars=None, name=None, init_prev_data=None, **kwargs):
         super().__init__(name=name, init_prev_data=init_prev_data)
-        self.define_pars(
-            # Natural history
-            dur_exp=ss.constant(ss.dur(1, 'week')),  # Initial latent period: how long after exposure before you can infect others
 
-            # Symptoms and symptomatic testing
-            p_symp_dist=ss.bernoulli(p=0.5),  # Distribution of symptomatic vs asymptomatic
-            p_symp=[0.375, 0.375],
-            dur_presymp_dist=ss.lognorm_ex(),
-            dur_presymp=[  # For those who develop symptoms, how long before symptoms appear
-                [ss.dur(1, 'week'), ss.dur(12, 'week')],    # Women
-                [ss.dur(0.25, 'week'), ss.dur(3, 'week')],  # Men
-            ],
-            p_symp_clear_dist=ss.bernoulli(p=0),
-            p_symp_clear=[0.0, 0.0],
-            dur_symp=[
-                ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(26, 'week')),  # Duration of symptoms
-                ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(26, 'week')),  # Duration of symptoms
-            ],
-            p_symp_care_dist=ss.bernoulli(p=0),
-            p_symp_care=[0.3, 0.2],
-            dur_symp2care_dist=ss.lognorm_ex(),
-            dur_symp2care = [  # For those who test, how long before they seek care - reset for each individual STI
-                [ss.dur(4, 'week'), ss.dur(4, 'week')],  # Women
-                [ss.dur(6, 'week'), ss.dur(4, 'week')],  # Men
-            ],
-
-            # PID and PID care-seeking
-            p_pid=ss.bernoulli(p=0.2),
-            dur_prepid=ss.lognorm_ex(ss.dur(6, 'week'), ss.dur(4, 'week')),
-            p_pid_care=ss.bernoulli(p=0.1),  # Women
-            dur_pid2care=ss.lognorm_ex(ss.dur(2, 'week'), ss.dur(4, 'week')),  # Women
-
-            # Clearance
-            dur_asymp2clear_dist=ss.lognorm_ex(),
-            dur_asymp2clear=[  # Duration of untreated asymptomatic infection (excl initial latent)
-                [ss.dur(52, 'week'), ss.dur(5, 'week')],  # Women
-                [ss.dur(52, 'week'), ss.dur(5, 'week')],  # Men
-            ],
-            dur_symp2clear_dist=ss.lognorm_ex(),
-            dur_symp2clear=[  # Duration of untreated symptomatic infection (excl initial latent)
-                [ss.dur(52, 'week'), ss.dur(5, 'week')],  # Women
-                [ss.dur(52, 'week'), ss.dur(5, 'week')],  # Men
-            ],
-            dur_pid2clear=ss.lognorm_ex(ss.dur(52, 'week'), ss.dur(5, 'week')),
-
-            # Transmission. In the parent class, beta is set to 1. Here, we set beta_m2f and beta_m2c
-            beta_m2f=None,
-            rel_beta_f2m=0.5,
-            beta_m2c=None,
-
-            # Initial conditions
-            init_prev=ss.bernoulli(p=0.01)
-        )
+        # Handle parameters
+        default_pars = STIPars()
+        self.define_pars(**default_pars)
         self.update_pars(pars, **kwargs)
 
         self.define_states(

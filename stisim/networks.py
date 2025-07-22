@@ -22,7 +22,7 @@ ss_float_ = ss.dtypes.float
 ss_int_ = ss.dtypes.int
 
 # Specify all externally visible functions this file defines; see also more definitions below
-__all__ = ['StructuredSexual', 'PriorPartners', 'AgeMatchedMSM', 'AgeApproxMSM']
+__all__ = ['NetworkPars', 'StructuredSexual', 'PriorPartners', 'AgeMatchedMSM', 'AgeApproxMSM']
 
 
 class NoPartnersFound(Exception):

@@ -6,6 +6,44 @@ import sciris as sc
 from itertools import combinations
 
 
+class SimPars(ss.SimPars):
+    """
+    Subclass of Starsim's SimPars with defaults for STI simulations. Refer to
+    Starsim's SimPars for more information on the parameters.
+    """
+    def __init__(self, **kwargs):
+
+        # Initialize the parent class
+        super().__init__()
+
+        # General parameters
+        self.label   = ''  # The label of the simulation
+        self.verbose = ss.options.verbose  # Whether or not to display information during the run -- options are 0 (silent), 0.1 (some; default), 1 (default), 2 (everything)
+
+        # Population parameters
+        self.n_agents  = 1e3   # Number of agents
+        self.total_pop = None  # If defined, used for calculating the scale factor
+        self.pop_scale = None  # How much to scale the population
+
+        # Simulation parameters
+        self.unit      = 'year' # The time unit to use; options are 'year' (default), 'day', 'week', 'month', or 'none'
+        self.start     = 2000   # Start of the simulation
+        self.stop      = 2030   # End of the simulation
+        self.dur       = None   # Duration of time to run, if stop isn't specified
+        self.dt        = 1/12   # Timestep (in units of self.unit)
+        self.rand_seed = 1      # Random seed; if None, don't reset
+        self.verbose = 1/12
+
+        # Demographic parameters
+        self.birth_rate = None
+        self.death_rate = None
+        self.use_aging  = True
+
+        # Update with any supplied parameter values and generate things that need to be generated
+        self.update(kwargs)
+        return
+
+
 class Sim(ss.Sim):
     """
     A subclass of starsim.Sim that is specifically designed for STI simulations.
@@ -85,7 +123,7 @@ class Sim(ss.Sim):
         self.pars = None        # Parameters for the simulation - processed later
         # Call the constructor of the parent class WITHOUT pars or module args
         super().__init__(pars=None, label=label)
-        self.pars = sti.make_sim_pars()  # Make default parameters using values from parameters.py
+        self.pars = SimPars()  # Make default parameters
 
         # Separate the parameters, storing sim pars now and saving module pars to process in init
         sim_kwargs = dict(label=label, people=people, demographics=demographics, diseases=diseases, networks=networks,
@@ -115,7 +153,7 @@ class Sim(ss.Sim):
         # TODO
 
         # Deal with network pars
-        default_nw_pars = sti.make_network_pars()
+        default_nw_pars = sti.NetworkPars()
         user_nw_pars = {k: v for k, v in all_pars.items() if k in default_nw_pars.keys()}
         for k in user_nw_pars: all_pars.pop(k)
         nw_pars = sc.mergedicts(default_nw_pars, user_nw_pars, nw_pars, _copy=True)
@@ -164,7 +202,7 @@ class Sim(ss.Sim):
             # If no networks are provided, create them based on the network parameters
             networks = ss.ndict(
                 sti.StructuredSexual(pars=self.nw_pars),
-                ss.Maternal(pars=self.nw_pars),
+                ss.Maternal(),
             )
         return networks
 
