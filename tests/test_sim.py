@@ -238,7 +238,7 @@ if __name__ == '__main__':
 
     s0 = test_hiv_sim()
     s1 = test_msm_hiv()
-    s2 = test_stis(which='discharging')
+    s2 = test_stis(which='ulcerative')
     test_sim_creation()
 
     # if do_plot:
