@@ -207,7 +207,15 @@ def test_sim_creation():
     assert len(sim2.connectors) > 0, "No connectors initialized"
     assert len(sim2.demographics) == 2, "Incorrect number of demographics initialized"
 
-
+    # Test 3: flat pars dict
+    sim3 = sti.Sim(
+        pars=pars,
+        networks='default',
+        demographics='zimbabwe',
+        diseases='ng',
+        disease_pars=disease_pars,
+        demographic_pars=demographic_pars,
+    )
 
 if __name__ == '__main__':
 
