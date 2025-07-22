@@ -40,7 +40,7 @@ class STIPars(BaseSTIPars):
         super().__init__()
 
         # Natural history
-        self.dur_exp=ss.constant(ss.dur(1, 'week'))  # How long after exposure before you can infect others
+        self.dur_exp = ss.constant(ss.dur(1, 'week'))  # How long after exposure before you can infect others
 
         # Symptoms and symptomatic testing
         self.p_symp_dist = ss.bernoulli(p=0.5)  # Distribution of symptomatic vs asymptomatic

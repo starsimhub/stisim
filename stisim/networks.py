@@ -33,6 +33,11 @@ class NoPartnersFound(Exception):
 class NetworkPars(ss.Pars):
     def __init__(self, **kwargs):
         super().__init__()
+
+        # Settings
+        self.recall_prior = False  # Whether to recall prior partners
+        self.n_risk_groups = 3  # Number of risk groups
+
         self.f_age_group_bins = dict(  # For separating women into age groups: teens, young women, adult women
             teens=(0, 20),
             young=(20, 25),

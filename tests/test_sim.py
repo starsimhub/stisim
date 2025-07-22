@@ -159,53 +159,55 @@ def test_sim_creation():
     start = 2010
     stop = 2020
 
-    # pars = dict(
-    #     dt=dt,
-    #     unit=unit,
-    #     start=start,
-    #     stop=stop,
-    # )
-    #
-    # network_pars = dict(structuredsexual=dict(debut=ss.lognorm_ex(20, 5)))
-    # disease_pars = dict(ng=dict(eff_condom=0.6))
+    pars = dict(
+        dt=dt,
+        unit=unit,
+        start=start,
+        stop=stop,
+    )
+
+    nw_pars = dict(debut=ss.lognorm_ex(20, 5))
+    sti_pars = dict(ng=dict(eff_condom=0.6))
     # demographic_pars = dict(zimbabwe=dict(data='./test_data/'))
-    #
-    # # Test 1: default networks with custom pars, demographics from location string, and diseases from disease names with custom pars
-    # sim1 = sti.Sim(
-    #     pars=pars,
-    #     network_pars=network_pars,
-    #     demographics='zimbabwe',
-    #     demographic_pars=demographic_pars,
-    #     diseases=['ng', 'ct', 'tv', 'bv', 'hiv'],
-    #     disease_pars=disease_pars,
-    #     connectors=True
-    # )
-    #
-    # sim1.init()
-    #
-    # assert sim1.diseases.ng.pars.eff_condom == 0.6, "Disease parameter not set correctly"
-    # assert len(sim1.diseases) == 5, "Incorrect number of diseases initialized"
-    # assert len(sim1.connectors) > 0, "No connectors initialized"
-    #
+
+    # Test 1: default networks with custom pars, demographics from location string, and diseases from disease names with custom pars
+    sim1 = sti.Sim(
+        pars=pars,
+        nw_pars=nw_pars,
+        # demographics='zimbabwe',
+        # demographic_pars=demographic_pars,
+        stis=['ng', 'ct', 'tv', 'bv', 'hiv'],
+        sti_pars=sti_pars,
+        connectors=True
+    )
     # # Test 2: mix of strings and modules
-    # demographics = [sti.Pregnancy(), 'deaths']  # Replace the default ss.Pregnancy module with the sti one
-    # networks = sti.StructuredSexual()
-    # diseases = [sti.Gonorrhea(), 'hiv']
-    #
-    # sim2 = sti.Sim(
-    #     pars=pars,
-    #     networks=networks,
-    #     demographics=demographics,
-    #     diseases=diseases,
-    #     connectors=True,
-    # )
-    #
-    # sim2.init()
-    #
-    # assert isinstance(sim2.networks.structuredsexual, sti.StructuredSexual), "Network not initialized correctly"
-    # assert len(sim2.diseases) == 2, "Incorrect number of diseases initialized"
-    # assert len(sim2.connectors) > 0, "No connectors initialized"
-    # assert len(sim2.demographics) == 2, "Incorrect number of demographics initialized"
+
+    sim1.init()
+
+    assert sim1.diseases.ng.pars.eff_condom == 0.6, "Disease parameter not set correctly"
+    assert len(sim1.diseases) == 5, "Incorrect number of diseases initialized"
+    assert len(sim1.connectors) > 0, "No connectors initialized"
+
+    demographics = [sti.Pregnancy(), ss.Deaths()]  # Replace the default ss.Pregnancy module with the sti one
+    networks = sti.StructuredSexual()
+    diseases = [sti.Gonorrhea()]
+    stis = ['hiv']
+
+    sim2 = sti.Sim(
+        pars=pars,
+        networks=networks,
+        demographics=demographics,
+        diseases=diseases,
+        stis=stis,
+        connectors=True,
+    )
+
+    sim2.init()
+
+    assert isinstance(sim2.networks.structuredsexual, sti.StructuredSexual), "Network not initialized correctly"
+    assert len(sim2.diseases) == 2, "Incorrect number of diseases initialized"
+    assert len(sim2.connectors) > 0, "No connectors initialized"
+    assert len(sim2.demographics) == 2, "Incorrect number of demographics initialized"
 
     # Test 3: flat pars dict
     pars = dict(
@@ -218,7 +220,17 @@ def test_sim_creation():
     )
 
     sim3 = sti.Sim(**pars)
-    return sim3
+    sim3.init()
+
+    assert sim3.diseases.ng.pars.beta_m2f == pars['beta_m2f'], "Disease parameter not set correctly"
+    assert sim3.diseases.ct.pars.beta_m2f == pars['beta_m2f'], "Disease parameter not set correctly"
+    assert sim3.diseases.ng.pars.eff_condom == pars['ng']['eff_condom'], "Disease parameter not set correctly"
+    assert sim3.networks.structuredsexual.pars.prop_f0 == pars['prop_f0'], "Network parameter not set correctly"
+    assert len(sim3.networks) == 2, "Default networks not added"
+    assert len(sim3.diseases) == 3, "Incorrect number of diseases initialized"
+
+    return
+
 
 if __name__ == '__main__':
 

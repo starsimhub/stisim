@@ -6,44 +6,6 @@ import sciris as sc
 from itertools import combinations
 
 
-class SimPars(ss.SimPars):
-    """
-    Subclass of Starsim's SimPars with defaults for STI simulations. Refer to
-    Starsim's SimPars for more information on the parameters.
-    """
-    def __init__(self, **kwargs):
-
-        # Initialize the parent class
-        super().__init__()
-
-        # General parameters
-        self.label   = ''  # The label of the simulation
-        self.verbose = ss.options.verbose  # Whether or not to display information during the run -- options are 0 (silent), 0.1 (some; default), 1 (default), 2 (everything)
-
-        # Population parameters
-        self.n_agents  = 1e3   # Number of agents
-        self.total_pop = None  # If defined, used for calculating the scale factor
-        self.pop_scale = None  # How much to scale the population
-
-        # Simulation parameters
-        self.unit      = 'year' # The time unit to use; options are 'year' (default), 'day', 'week', 'month', or 'none'
-        self.start     = 2000   # Start of the simulation
-        self.stop      = 2030   # End of the simulation
-        self.dur       = None   # Duration of time to run, if stop isn't specified
-        self.dt        = 1/12   # Timestep (in units of self.unit)
-        self.rand_seed = 1      # Random seed; if None, don't reset
-        self.verbose = 1/12
-
-        # Demographic parameters
-        self.birth_rate = None
-        self.death_rate = None
-        self.use_aging  = True
-
-        # Update with any supplied parameter values and generate things that need to be generated
-        self.update(kwargs)
-        return
-
-
 class Sim(ss.Sim):
     """
     A subclass of starsim.Sim that is specifically designed for STI simulations.
@@ -114,16 +76,19 @@ class Sim(ss.Sim):
         5. Default parameters defined in each module's own class.
     """
 
-    def __init__(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None, label=None, people=None, demographics=None, diseases=None, networks=None,
-                 interventions=None, analyzers=None, connectors=None, copy_inputs=True, data=None, **kwargs):
+    def __init__(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None,
+                 label=None, people=None, demographics=None, diseases=None, networks=None,
+                 interventions=None, analyzers=None, connectors=None, **kwargs):
 
         # Inputs and defaults
         self.nw_pars = None     # Parameters for the networks - processed later
         self.sti_pars = None    # Parameters for the STIs - processed later
         self.pars = None        # Parameters for the simulation - processed later
+        self.stis = ss.ndict()   # Set during init, after processing the STIs
+
         # Call the constructor of the parent class WITHOUT pars or module args
         super().__init__(pars=None, label=label)
-        self.pars = SimPars()  # Make default parameters
+        self.pars = sti.SimPars()  # Make default parameters
 
         # Separate the parameters, storing sim pars now and saving module pars to process in init
         sim_kwargs = dict(label=label, people=people, demographics=demographics, diseases=diseases, networks=networks,
@@ -131,7 +96,6 @@ class Sim(ss.Sim):
         sim_kwargs = {key: val for key, val in sim_kwargs.items() if val is not None}
         updated_pars = self.separate_pars(pars, sim_pars, sti_pars, nw_pars, sim_kwargs, **kwargs)
         self.pars.update(updated_pars)
-
         return
 
     def separate_pars(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None, sim_kwargs=None, **kwargs):
@@ -150,7 +114,14 @@ class Sim(ss.Sim):
         sim_pars = sc.mergedicts(user_sim_pars, sim_pars, _copy=True)  # Don't merge with defaults, those are set above
 
         # Deal with STI pars
-        # TODO
+        all_sti_pars = sti.merged_sti_pars()  # All STI parameters, ignoring duplicates
+        user_sti_pars = {}
+        for k, v in all_pars.items():
+            if k in all_sti_pars.keys(): user_sti_pars[k] = v  # Just set
+            if sc.checktype(v, dict):  # See whether it contains STI pars
+                user_sti_pars[k] = {gk: gv for gk, gv in v.items() if gk in all_sti_pars}
+        for k in user_sti_pars: all_pars.pop(k)
+        sti_pars = sc.mergedicts(user_sti_pars, sti_pars, _copy=True)
 
         # Deal with network pars
         default_nw_pars = sti.NetworkPars()
@@ -175,13 +146,15 @@ class Sim(ss.Sim):
         # Process the STIs
         stis = self.process_stis()
         self.pars['diseases'] += stis
+        connectors = self.process_connectors()
+        self.pars['connectors'] += connectors
 
         # Process the network
         self.pars['networks'] = self.process_networks()
 
         # Process the demographics
         demographics, people, total_pop = self.process_demographics()
-        self.pars['demographics'] += demographics
+        self.pars['demographics'] = demographics
         self.pars['people'] = people
         self.pars['total_pop'] = total_pop
 
@@ -202,7 +175,7 @@ class Sim(ss.Sim):
             # If no networks are provided, create them based on the network parameters
             networks = ss.ndict(
                 sti.StructuredSexual(pars=self.nw_pars),
-                ss.Maternal(),
+                ss.MaternalNet(),
             )
         return networks
 
@@ -213,23 +186,31 @@ class Sim(ss.Sim):
         if sc.checktype(self.pars['demographics'], str):
             location = self.pars.pop('demographics')
             self.pars['demographics'] = ss.ndict()
-            birth_rates, death_rates = self.get_births_deaths(location)
+            demographics = sc.autolist()
 
-            # Create modules for births and deaths
-            births = ss.Births(birth_rate=birth_rates, metadata=dict(data_cols=dict(year='year', value='cbr')))
+            # Handle deaths
+            death_rates = self.get_deaths(location)
             deaths = ss.Deaths(death_rate=death_rates)
+            demographics += deaths
+
+            # Handle births or pregnancy
+            if self.pars['use_pregnancy']:
+                birth_rates = self.get_births(location)
+                births = ss.Births(birth_rate=birth_rates, metadata=dict(data_cols=dict(year='year', value='cbr')))
+                demographics += births
+            else:
+                fertility_rates = self.get_asfr(location)
+                pregnancy = sti.Pregnancy(fertility_rates=fertility_rates)
+                demographics += pregnancy
 
             try:
                 age_data = hpdata.get_age_distribution(location, year=self.pars.start)
-                pop_trend = hpdata.get_total_pop(location)
-                pop_age_trend = hpdata.get_age_distribution_over_time(location)
                 total_pop = int(age_data.value.sum())*1e3
             except ValueError as E:
                 warnmsg = f'Could not load age data for requested location "{location}" ({str(E)}); using default'
                 raise ValueError(warnmsg) from E
 
             people = ss.People(self.pars.n_agents, age_data=age_data)
-            demographics = [births, deaths]
 
         else:
             demographics = self.pars['demographics']
@@ -239,116 +220,94 @@ class Sim(ss.Sim):
         return demographics, people, total_pop
 
     @staticmethod
-    def get_births_deaths(location, verbose=1, by_sex=True, overall=False):
-        '''
-        Get mortality and fertility data by location if provided
+    def get_deaths(location, by_sex=True, overall=False):
+        """
+        Get mortality data by location if provided
 
         Args:
             location (str):  location
             verbose (bool):  whether to print progress
             by_sex   (bool): whether to get sex-specific death rates (default true)
             overall  (bool): whether to get overall values ie not disaggregated by sex (default false)
-
-        Returns:
-            lx (dict): dictionary keyed by sex, storing arrays of lx - the number of people who survive to age x
-            birth_rates (arr): array of crude birth rates by year
-        '''
-
-        if verbose:
-            print(f'Loading location-specific demographic data for "{location}"')
+        """
         try:
             death_rates = hpdata.get_death_rates(location=location, by_sex=by_sex, overall=overall)
-            birth_rates = hpdata.get_birth_rates(location=location)
-            return birth_rates, death_rates
+            return death_rates
         except ValueError as E:
-            warnmsg = f'Could not load demographic data for requested location "{location}" ({str(E)})'
+            warnmsg = f'Could not load death data for requested location "{location}" ({str(E)})'
             print(warnmsg)
 
     @staticmethod
-    def init_modules(mod_type):
-        # init diseases
-        initialized_modules = []
-        mod_type_notplural = mod_type[:-1]  # Remove the 's' at the end of the type
-        pars_name = f'{mod_type_notplural}_pars'  # e.g. 'disease_pars' or 'network_pars'
+    def get_births(location):
+        """
+        Get birth data by location
+        """
+        try:
+            birth_rates = hpdata.get_birth_rates(location=location)
+            return birth_rates
+        except ValueError as E:
+            warnmsg = f'Could not load birth data for requested location "{location}" ({str(E)})'
+            print(warnmsg)
 
-        if mod_type in all_input_args:
-            # if the inputs are not a list, e.g. a single disease or network, convert to a list
-            if not isinstance(all_input_args[mod_type], list):
-                all_input_args[mod_type] = [all_input_args[mod_type]]
-
-            for mod in all_input_args[mod_type]:
-                mod_getter = getattr(self, f'get_{mod_type_notplural}')
-                mod_name = mod.name if isinstance(mod, ss.Module) else mod.lower()  # Get the name of the module
-
-                pars = None
-                if pars_name in all_input_args:
-                    # If there are parameters for the disease or network, pop them
-                    pars = all_input_args[pars_name].pop(mod_name, None)
-
-                initialized_mod = mod_getter(mod, pars)  # Look up the disease module
-                if isinstance(initialized_mod, list):
-                    initialized_modules.extend(initialized_mod)
-                else:
-                    initialized_modules.append(initialized_mod)
-
-        elif mod_type in self.pars:
-            # If diseases are defined in the pars, use those (but only if they are not already in the input args!)
-            initialized_modules = self.pars.pop(mod_type)
-
-        all_input_args[mod_type] = initialized_modules
-
-        if pars_name in all_input_args:
-            for mod in all_input_args[mod_type]: #and initialized_mod.name in all_input_args[pars_name]:
-                if mod.name in all_input_args[mod_type]:
-                    # if the disease or network is already initialized, update its parameters
-                    mod.update_pars(all_input_args[pars_name][mod.name])  # Update disease parameters if provided
-            all_input_args.pop(pars_name)
-
-        init_modules('diseases')
-        init_modules('networks')
-        init_modules('demographics')
-        init_modules('interventions')
-        init_modules('analyzers')
-
-        # init connectors
-        if all_input_args['connectors'] is not None and all_input_args['connectors'] == True:
-            all_input_args['connectors'] = self.get_connectors(all_input_args['diseases'])
-
-        input_pars = sc.mergedicts(pars, all_input_args, _copy=copy_inputs)
-
-        super().__init__(pars=input_pars, data=data)
-        return
+    @staticmethod
+    def get_asfr(location):
+        """
+        Get age-specific fertility data by location
+        """
+        try:
+            fertility_rates = hpdata.get_asfr(location=location)
+            return fertility_rates
+        except ValueError as E:
+            warnmsg = f'Could not load fertility data for requested location "{location}" ({str(E)})'
+            print(warnmsg)
 
     def process_stis(self):
         """
         Look up a disease by its name and return the corresponding module.
         """
 
-        self.pars['genotypes'] = sc.tolist(self.pars['genotypes'])  # Ensure it's a list
-        genotypes = sc.autolist()
+        self.pars['stis'] = sc.tolist(self.pars['stis'])  # Ensure it's a list
+        stis = sc.autolist()
 
-        dis_dict = {
-            'bv': sti.BV,
-            'ct': sti.Chlamydia,
-            'ctbl': sti.ChlamydiaBL,
-            'ng': sti.Gonorrhea,
-            'hiv': sti.HIV,
-            'syphilis': sti.Syphilis,
-            'tv': sti.Trichomoniasis,
-        }
+        all_sti_pars = sti.merged_sti_pars()  # All STI parameters, ignoring duplicates
+        sti_main_pars = {k: v for k, v in self.sti_pars.items() if k in all_sti_pars}
+        remaining_pars = {k: v for k, v in self.sti_pars.items() if k not in all_sti_pars}
 
-        if isinstance(disease, str):
-            disease = disease.lower()
-            if disease in dis_dict:
-                return dis_dict[disease](pars=disease_pars)
+        # Check that the remaining parameters are keyed by STI, remapping them if needed
+        sti_options, sti_mapping = sti.sti_aliases()  # Get the options and mapping
+        sti_pars = {}
+        for sparname, spardict in remaining_pars.items():
+            if sparname not in sti_mapping.keys():
+                raise ValueError(f'Parameters for STI {sparname} were provided, but this is not an inbuilt STI')
             else:
-                raise ValueError(f"Disease '{disease}' not found in STIsim diseases.")
-        elif isinstance(disease, ss.Module):
-            disease.update_pars(pars=disease_pars)
-            return disease
+                sti_pars[sti_mapping[sparname]] = spardict
 
-        else:
-            raise TypeError("Disease name must be a string or a starsim Module instance.")
+        # Construct or interpret the STIs from the pars
+        for stipar in self.pars['stis']:
+
+            # If it's a string, convert to a module
+            if sc.checktype(stipar, str):
+                if stipar not in sti_options.keys():
+                    errormsg = f'STI {stipar} is not one of the inbuilt options.'
+                    raise ValueError(errormsg)
+
+                # See if any parameters have been provided for this STI
+                this_stitype_pars = {}
+                if stipar in sti_pars.keys():
+                    this_stitype_pars = sti_pars[stipar]
+                sti_pars = sc.mergedicts(sti_main_pars, this_stitype_pars)
+                stis += sti.make_sti(stipar, pars=sti_pars)
+
+            elif isinstance(stipar, sti.BaseSTI):
+                stis += stipar
+            else:
+                raise ValueError(f"Invalid STI type: {type(stipar)}. Must be str or sti.BaseSTI.")
+
+        # Store STIs
+        self.stis = ss.ndict(stis)
+
+        return stis
+
 
     def get_demographic(self, demog, demog_pars=None):
         """
@@ -385,53 +344,38 @@ class Sim(ss.Sim):
             demog.update_pars(demog_pars)  # Update demographic parameters if provided
             return demog
 
-
-    def get_network(self, network, network_pars=None):
-        """
-        Look up a network by its name and return the corresponding module.
-        """
-        if isinstance(network, str):
-            network = self.case_insensitive_getattr([sti, ss], network)
-            if network is None:
-                raise ValueError(f"Network '{network}' not found in STIsim networks.")
-            return network(network_pars)  # Initialize the network class
-
-        elif isinstance(network, ss.Network):
-            network.update_pars(network_pars)
-            return network
-        else:
-            raise TypeError("Network must be a string or a starsim Network instance.")
-
-
-
-    def get_connectors(self, diseases):
+    def process_connectors(self):
         """
         Get the default connectors for the diseases in the simulation.
         Connectors are loaded based on the disease names or modules provided in the format <d1>_<d2>.
-
-        Args:
-            diseases (list): A list of disease names or disease modules to connect.
         """
         connectors = []
         parsed_diseases = []
-        for disease in diseases:
-            if isinstance(disease, str):
-                parsed_diseases.append(disease.lower())
-            if isinstance(disease, ss.Module):
-                parsed_diseases.append(disease.name.lower())
+        add_connectors = False
 
-        # sort the diseases and then get all combinations of their pairs
-        disease_pairs = combinations(parsed_diseases, 2)
+        if isinstance(self.pars.connectors, bool) and self.pars.connectors:
+            self.pars['connectors'] = ss.ndict()  # Reset
+            add_connectors = True
 
-        for (d1, d2) in disease_pairs:
-            try:
-                connector = getattr(sti, f'{d1}_{d2}')
-            except:
+        if add_connectors:
+            for disease in self.pars['diseases']:
+                if isinstance(disease, str):
+                    parsed_diseases.append(disease.lower())
+                if isinstance(disease, ss.Module):
+                    parsed_diseases.append(disease.name.lower())
+
+            # sort the diseases and then get all combinations of their pairs
+            disease_pairs = combinations(parsed_diseases, 2)
+
+            for (d1, d2) in disease_pairs:
                 try:
-                    connector = getattr(sti, f'{d2}_{d1}')
+                    connector = getattr(sti, f'{d1}_{d2}')
                 except:
-                    continue
-            connectors.append(connector(d1, d2))
+                    try:
+                        connector = getattr(sti, f'{d2}_{d1}')
+                    except:
+                        continue
+                connectors.append(connector(d1, d2))
         return connectors
 
     def case_insensitive_getattr(self, searchspace, attrname):
