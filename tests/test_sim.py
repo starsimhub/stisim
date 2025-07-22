@@ -125,26 +125,31 @@ def test_stis(which='discharging', n_agents=5e3, start=2010, stop=2020):
     sc.heading('Test STI sim')
 
     if which == 'discharging':
-        ng = sti.Gonorrhea(beta_m2f=0.06, init_prev=0.02)
-        ct = sti.Chlamydia(beta_m2f=0.06, init_prev=0.05)
-        tv = sti.Trichomoniasis(beta_m2f=0.1, init_prev=0.1)
-        stis = [ng, ct, tv]
+        # ng = sti.Gonorrhea(beta_m2f=0.06, init_prev=0.02)
+        # ct = sti.Chlamydia(beta_m2f=0.06, init_prev=0.05)
+        # tv = sti.Trichomoniasis(beta_m2f=0.1, init_prev=0.1)
+        stis = dict(
+            ng=dict(beta_m2f=0.06, init_prev=0.02),
+            ct=dict(beta_m2f=0.06, init_prev=0.05),
+            tv=dict(beta_m2f=0.1, init_prev=0.1),
+        )
     elif which == 'ulcerative':
-        sy = sti.Syphilis(beta_m2f=0.1, init_prev=0.01)
-        gud = sti.GUDPlaceholder(prevalence=0.05)
-        stis = [sy, gud]
+        stis = dict(
+            sy=dict(beta_m2f=0.1, init_prev=0.01),
+            gud=dict(prevalence=0.05),  # Placeholder for GUD
+        )
+        # sy = sti.Syphilis(beta_m2f=0.1, init_prev=0.01)
+        # gud = sti.GUDPlaceholder(prevalence=0.05)
+        # stis = [sy, gud]
 
     pregnancy = ss.Pregnancy(fertility_rate=10)
     death = ss.Deaths(death_rate=10)
-    sexual = sti.StructuredSexual()
 
-    sim = ss.Sim(
-        dt=1/12,
+    sim = sti.Sim(
         n_agents=n_agents,
         start=start,
         stop=stop,
-        diseases=stis,
-        networks=sexual,
+        stis=stis,
         demographics=[pregnancy, death],
     )
 
@@ -238,8 +243,8 @@ if __name__ == '__main__':
 
     # s0 = test_hiv_sim()
     # s1 = test_msm_hiv()
-    # s2 = test_stis(which='discharging')
-    sim = test_sim_creation()
+    s2 = test_stis(which='discharging')
+    # sim = test_sim_creation()
 
     # if do_plot:
     #     s1.plot("ng")
