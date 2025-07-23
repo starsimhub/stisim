@@ -79,6 +79,7 @@ def sti_register(key=None):
         bv=sti.BV,
         ct=sti.Chlamydia,
         ctbl=sti.ChlamydiaBL,
+        gud=sti.GUDPlaceholder,  # Placeholder for GUD
         ng=sti.Gonorrhea,
         hiv=sti.HIV,
         syph=sti.Syphilis,
