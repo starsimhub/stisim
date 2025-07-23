@@ -64,6 +64,7 @@ def sti_aliases():
         'tv':    ['trichomoniasis', 'trichomonas', 'trich', 'tv'],
         'bv':    ['bacterial vaginosis', 'bv'],
         'syph':  ['syphilis', 'syph'],
+        'gud':   ['genital ulcerative disease', 'gud'],
         'hiv':   ['hiv', 'human immunodeficiency virus']
     }
     mapping = {name: key for key,synonyms in choices.items() for name in synonyms} # Flip from key:value to value:key

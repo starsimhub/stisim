@@ -129,10 +129,11 @@ def test_stis(which='discharging', n_agents=5e3, start=2010, stop=2020):
             ng=dict(beta_m2f=0.06, init_prev=0.02),
             ct=dict(beta_m2f=0.06, init_prev=0.05),
             tv=dict(beta_m2f=0.1, init_prev=0.1),
+            bv=dict(),  # Bacterial vaginosis does not have a beta_m2f parameter
         )
     elif which == 'ulcerative':
         sti_pars = dict(
-            sy=dict(beta_m2f=0.1, init_prev=0.01),
+            syph=dict(beta_m2f=0.1, init_prev=0.01),
             gud=dict(prevalence=0.05),  # Placeholder for GUD
         )
 
