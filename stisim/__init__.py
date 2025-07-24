@@ -22,3 +22,4 @@ print(__license__)
 # Double-check key requirements -- should match setup.py
 sc.require(['starsim>=2.2.0', 'sciris>=3.1.6', 'pandas>=2.0.0', 'scipy', 'numba', 'networkx'], message=f'The following dependencies for STIsim {__version__} were not met: <MISSING>.')
 del sc # Don't keep this in the module
+

@@ -4,6 +4,8 @@ import starsim as ss
 import stisim as sti
 import sciris as sc
 from itertools import combinations
+from .data import loaders as stidata
+from .data import downloaders as stidl
 
 
 class Sim(ss.Sim):
@@ -107,6 +109,7 @@ class Sim(ss.Sim):
         """
         # Marge in pars and kwargs
         all_pars = sc.mergedicts(pars, sim_pars, sti_pars, nw_pars, sim_kwargs, kwargs)
+        all_pars = self.remap_pars(all_pars)  # Remap any parameter names
 
         # Deal with sim pars
         user_sim_pars = {k: v for k, v in all_pars.items() if k in self.pars.keys()}
@@ -138,6 +141,18 @@ class Sim(ss.Sim):
         self.nw_pars = nw_pars      # Parameters for the networks
 
         return sim_pars
+
+    @staticmethod
+    def remap_pars(pars):
+        """
+        Remap any parameter names to match the expected format for STIs and networks.
+        This is useful for ensuring that parameters are correctly interpreted by the modules.
+        """
+        if 'beta' in pars and sc.isnumber(pars['beta']):
+            pars['beta_m2f'] = pars.pop('beta')
+        if 'location' in pars:
+            pars['demographics'] = pars.pop('location')
+        return pars
 
     def init(self, force=False, **kwargs):
         """
@@ -187,6 +202,22 @@ class Sim(ss.Sim):
             location = self.pars.pop('demographics')
             self.pars['demographics'] = ss.ndict()
             demographics = sc.autolist()
+
+            # Check that the necessary data files are available
+            indicators = ['deaths']
+            if self.pars['use_pregnancy']: indicators.append('asfr')
+            else: indicators.append('births')
+
+            ok, missing = stidl.check_downloaded(location, indicators)
+            printmsg = (f'Could not find demographic data files for "{location}", attempting to download. '
+                        f'Note that this requires an internet connection.')
+            print(printmsg, end='')
+
+            if not ok:
+                try:
+                    stidl.download_data(location=location, indicators=missing)
+                except:
+                    raise ValueError('Cannot download data')
 
             # Handle deaths
             death_rates = self.get_deaths(location)
