@@ -235,12 +235,12 @@ def test_sim_creation():
 
 def test_location():
     sc.heading('Test location-based sim creation')
-
-    # Test with a location string
     sim1 = sti.Sim(location='india', start=2010, stop=2020)
     sim1.init()
+    assert len(sim1.demographics) == 2, "Demographics not initialized"
 
     return
+
 
 if __name__ == '__main__':
 

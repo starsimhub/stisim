@@ -173,6 +173,9 @@ class Sim(ss.Sim):
         self.pars['people'] = people
         self.pars['total_pop'] = total_pop
 
+        # Reset n_agents
+        self.pars['n_agents'] = len(self.pars['people'])
+
         super().init(force=force, **kwargs)  # Call the parent init method
 
         return self
@@ -204,43 +207,40 @@ class Sim(ss.Sim):
             demographics = sc.autolist()
 
             # Check that the necessary data files are available
-            indicators = ['deaths']
+            indicators = ['age', 'deaths']
             if self.pars['use_pregnancy']: indicators.append('asfr')
             else: indicators.append('births')
+            start_year = ss.date(self.pars['start']).year
+            ok, missing = stidl.check_downloaded(location, indicators, year=start_year)
 
-            ok, missing = stidl.check_downloaded(location, indicators)
-            printmsg = (f'Could not find demographic data files for "{location}", attempting to download. '
-                        f'Note that this requires an internet connection.')
-            print(printmsg, end='')
-
+            # If they aren't available, try to download them
             if not ok:
+                printmsg = (f'Could not find demographic data files for "{location}", attempting to download. '
+                            f'Note that this requires an internet connection.')
+                print(printmsg, end='')
                 try:
-                    stidl.download_data(location=location, indicators=missing)
+                    stidl.download_data(location=location, indicators=missing, start=start_year)
                 except:
-                    raise ValueError('Cannot download data')
+                    raise ValueError('Cannot download data. It might be a non-standard location, or an internet issue.')
 
-            # Handle deaths
-            death_rates = self.get_deaths(location)
-            deaths = ss.Deaths(death_rate=death_rates)
+            # Load death rates and turn into a module
+            death_rates = stidata.get_rates(location, 'death')
+            deaths = ss.Deaths(death_rate=death_rates, metadata=dict(data_cols=dict(year='Time', sex='Sex', age='AgeStart', value='Value')))
             demographics += deaths
 
-            # Handle births or pregnancy
+            # Load birth or fertility rates and turn into module
             if self.pars['use_pregnancy']:
-                birth_rates = self.get_births(location)
+                fertility_rates = stidata.get_rates(location, 'asfr')
+                pregnancy = sti.Pregnancy(fertility_rate=fertility_rates, metadata=dict(data_cols=dict(year='Time', age='AgeStart', value='Value')),)
+                demographics += pregnancy
+            else:
+                birth_rates = stidata.get_rates(location, 'births')
                 births = ss.Births(birth_rate=birth_rates, metadata=dict(data_cols=dict(year='year', value='cbr')))
                 demographics += births
-            else:
-                fertility_rates = self.get_asfr(location)
-                pregnancy = sti.Pregnancy(fertility_rates=fertility_rates)
-                demographics += pregnancy
 
-            try:
-                age_data = hpdata.get_age_distribution(location, year=self.pars.start)
-                total_pop = int(age_data.value.sum())*1e3
-            except ValueError as E:
-                warnmsg = f'Could not load age data for requested location "{location}" ({str(E)}); using default'
-                raise ValueError(warnmsg) from E
-
+            # Load age data and create people
+            age_data = stidata.get_age_distribution(location, year=self.pars.start)
+            total_pop = int(age_data.value.sum())
             people = ss.People(self.pars.n_agents, age_data=age_data)
 
         else:
@@ -249,48 +249,6 @@ class Sim(ss.Sim):
             total_pop = self.pars['total_pop']
 
         return demographics, people, total_pop
-
-    @staticmethod
-    def get_deaths(location, by_sex=True, overall=False):
-        """
-        Get mortality data by location if provided
-
-        Args:
-            location (str):  location
-            verbose (bool):  whether to print progress
-            by_sex   (bool): whether to get sex-specific death rates (default true)
-            overall  (bool): whether to get overall values ie not disaggregated by sex (default false)
-        """
-        try:
-            death_rates = hpdata.get_death_rates(location=location, by_sex=by_sex, overall=overall)
-            return death_rates
-        except ValueError as E:
-            warnmsg = f'Could not load death data for requested location "{location}" ({str(E)})'
-            print(warnmsg)
-
-    @staticmethod
-    def get_births(location):
-        """
-        Get birth data by location
-        """
-        try:
-            birth_rates = hpdata.get_birth_rates(location=location)
-            return birth_rates
-        except ValueError as E:
-            warnmsg = f'Could not load birth data for requested location "{location}" ({str(E)})'
-            print(warnmsg)
-
-    @staticmethod
-    def get_asfr(location):
-        """
-        Get age-specific fertility data by location
-        """
-        try:
-            fertility_rates = hpdata.get_asfr(location=location)
-            return fertility_rates
-        except ValueError as E:
-            warnmsg = f'Could not load fertility data for requested location "{location}" ({str(E)})'
-            print(warnmsg)
 
     def process_stis(self):
         """
