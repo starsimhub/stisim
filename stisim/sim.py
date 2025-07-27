@@ -218,10 +218,10 @@ class Sim(ss.Sim):
                 printmsg = (f'Could not find demographic data files for "{location}", attempting to download. '
                             f'Note that this requires an internet connection.')
                 print(printmsg, end='')
-                try:
-                    stidl.download_data(location=location, indicators=missing, start=start_year)
-                except:
-                    raise ValueError('Cannot download data. It might be a non-standard location, or an internet issue.')
+                # try:
+                stidl.download_data(location=location, indicators=missing, start=start_year)
+                # except:
+                #     raise ValueError('Cannot download data. It might be a non-standard location, or an internet issue.')
 
             # Load death rates and turn into a module
             death_rates = stidata.get_rates(location, 'death')

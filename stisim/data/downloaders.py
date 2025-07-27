@@ -21,11 +21,32 @@ files.country_codes = 'locations.csv'
 auth_key_file = thisdir / 'auth_key.txt'
 
 
-def get_auth_key():
+def _authkeyerror(location):
+    """ Base error message when no authorization key is present """
+    return f'''
+To make demographics for {location}, there are two options.
+
+1. STIsim can pull demographic data from UN WPP if you register for an authorization
+    token with them. You can do this by sending an email to population@un.org with the
+    Subject 'Data Portal Token Request (https://population.un.org/dataportalapi/index.html).
+    Once you receive the authorization token, you need to save it in a file named 
+    "auth_key.txt", which you will need to save in the folder "stisim/data/files". 
+    
+2. You can manually download datafiles and save them in the folder "stisim/data/files".
+    These should be named as "{location}_deaths.csv" for background death rates, 
+    "{location}_asfr.csv" for age-specific fertility, and "{location}_births.csv"
+    if you want to use births instead of fertility. Refer to the files within the 
+    folder "tests/test_data/", including "zimbabwe_asfr.csv, "zimbabwe_births.csv", 
+    and "zimbabwe_deaths.csv" to see how these files should be formatted. You can 
+    obtain global data from "https://population.un.org/dataportal/home".
+'''
+
+
+def get_auth_key(location):
     # Read in auth_key
     have_auth_key = os.path.exists(auth_key_file)
     if not have_auth_key:
-        errormsg = 'You need to have an authorization key to use automatic data downloading'
+        errormsg = _authkeyerror(location)
         raise ValueError(errormsg)
     with open(auth_key_file, 'r') as f:
         for line in f:
@@ -171,7 +192,7 @@ def download_data(location, indicators=None, start=1950, stop=2100, step=10):
     """ Download data """
 
     # Get auth_key
-    auth_key = get_auth_key()
+    auth_key = get_auth_key(location)
 
     # Process indicators
     if indicators is None:

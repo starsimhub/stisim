@@ -235,7 +235,7 @@ def test_sim_creation():
 
 def test_location():
     sc.heading('Test location-based sim creation')
-    sim1 = sti.Sim(location='india', start=2010, stop=2020)
+    sim1 = sti.Sim(location='zambia', start=2010, stop=2020)
     sim1.init()
     assert len(sim1.demographics) == 2, "Demographics not initialized"
 
@@ -246,10 +246,10 @@ if __name__ == '__main__':
 
     do_plot = False
 
-    s0 = test_hiv_sim()
-    s1 = test_msm_hiv()
-    s2 = test_stis(which='ulcerative')
-    test_sim_creation()
+    # s0 = test_hiv_sim()
+    # s1 = test_msm_hiv()
+    # s2 = test_stis(which='ulcerative')
+    # test_sim_creation()
     test_location()
 
     # if do_plot:
