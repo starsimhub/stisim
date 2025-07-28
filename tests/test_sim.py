@@ -137,7 +137,7 @@ def test_stis(which='discharging', n_agents=5e3, start=2010, stop=2020):
             gud=dict(prevalence=0.05),  # Placeholder for GUD
         )
 
-    pregnancy = ss.Pregnancy(fertility_rate=10)
+    pregnancy = sti.Pregnancy(fertility_rate=10)
     death = ss.Deaths(death_rate=10)
 
     sim = sti.Sim(
