@@ -162,7 +162,6 @@ class Sim(ss.Sim):
         Perform all initializations for the sim
         """
         # Process the STIs
-        # stis = self.process_stis()
         self.pars['diseases'] = self.process_stis()
         connectors = self.process_connectors()
         self.pars['connectors'] += connectors
@@ -256,7 +255,7 @@ class Sim(ss.Sim):
         Look up a disease by its name and return the corresponding module.
         """
 
-        if not sc.isiterable(self.pars['diseases']):
+        if isinstance(self.pars['diseases'], str) or not sc.isiterable(self.pars['diseases']):
             self.pars['diseases'] = sc.tolist(self.pars['diseases'])  # Ensure it's a list
         stis = sc.autolist()
         if len(self.pars['diseases']) == 0:
