@@ -287,8 +287,8 @@ class Sim(ss.Sim):
                 this_stitype_pars = {}
                 if stidis in sti_pars.keys():
                     this_stitype_pars = sti_pars[stidis]
-                sti_pars = sc.mergedicts(sti_main_pars, this_stitype_pars)
-                stis += sti.make_sti(stidis, pars=sti_pars)
+                final_pars = sc.mergedicts(sti_main_pars, this_stitype_pars)
+                stis += sti.make_sti(stidis, pars=final_pars)
 
             elif isinstance(stidis, ss.Disease):
                 stis += stidis
