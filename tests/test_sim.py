@@ -246,10 +246,10 @@ if __name__ == '__main__':
 
     do_plot = False
 
-    # s0 = test_hiv_sim()
-    # s1 = test_msm_hiv()
-    # s2 = test_stis(which='ulcerative')
-    # test_sim_creation()
+    s0 = test_hiv_sim()
+    s1 = test_msm_hiv()
+    s2 = test_stis(which='ulcerative')
+    test_sim_creation()
     test_location()
 
     # if do_plot:

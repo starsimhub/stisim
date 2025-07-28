@@ -174,7 +174,7 @@ class Sim(ss.Sim):
         self.pars['total_pop'] = total_pop
 
         # Reset n_agents
-        self.pars['n_agents'] = len(self.pars['people'])
+        if self.pars['people'] is not None: self.pars['n_agents'] = len(self.pars['people'])
 
         super().init(force=force, **kwargs)  # Call the parent init method
 
