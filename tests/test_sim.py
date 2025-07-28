@@ -191,15 +191,13 @@ def test_sim_creation():
 
     demographics = [sti.Pregnancy(), ss.Deaths()]  # Replace the default ss.Pregnancy module with the sti one
     networks = sti.StructuredSexual()
-    diseases = [sti.Gonorrhea()]
-    stis = ['hiv']
+    diseases = [sti.Gonorrhea(), 'hiv']
 
     sim2 = sti.Sim(
         pars=pars,
         networks=networks,
         demographics=demographics,
         diseases=diseases,
-        stis=stis,
         connectors=True,
     )
 
@@ -212,11 +210,12 @@ def test_sim_creation():
 
     # Test 3: flat pars dict
     pars = dict(
-        start=2020,  # Sim par
+        start=2010,  # Sim par
         beta_m2f=0.05,  # STI parameter applied to all STIs
         prop_f0=0.45,
-        # location='india',
-        stis=['ng', 'ct', 'tv'],  #
+        location='zimbabwe',
+        datafolder='./test_data/',
+        diseases=['ng', 'ct', 'tv'],
         ng=dict(eff_condom=0.6),  # Gonorrhea-specific parameter
     )
 
@@ -246,11 +245,11 @@ if __name__ == '__main__':
 
     do_plot = False
 
-    # s0 = test_hiv_sim()
-    # s1 = test_msm_hiv()
-    # s2 = test_stis(which='ulcerative')
+    s0 = test_hiv_sim()
+    s1 = test_msm_hiv()
+    s2 = test_stis(which='ulcerative')
     test_sim_creation()
-    # test_location()
+    test_location()
 
     # if do_plot:
     #     s1.plot("ng")
