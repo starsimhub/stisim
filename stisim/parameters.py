@@ -44,9 +44,6 @@ class SimPars(ss.SimPars):
         self.use_aging  = False
         self.use_pregnancy = True
 
-        # Disease parameters
-        self.stis = ['ng', 'ct', 'tv']
-
         # Update with any supplied parameter values and generate things that need to be generated
         self.update(kwargs)
         return

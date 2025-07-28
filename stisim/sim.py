@@ -80,13 +80,14 @@ class Sim(ss.Sim):
 
     def __init__(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None,
                  label=None, people=None, demographics=None, diseases=None, networks=None,
-                 interventions=None, analyzers=None, connectors=None, **kwargs):
+                 interventions=None, analyzers=None, connectors=None, datafolder=None, **kwargs):
 
         # Inputs and defaults
         self.nw_pars = None     # Parameters for the networks - processed later
         self.sti_pars = None    # Parameters for the STIs - processed later
         self.pars = None        # Parameters for the simulation - processed later
-        self.stis = ss.ndict()   # Set during init, after processing the STIs
+        self.datafolder = datafolder
+        # self.stis = ss.ndict()   # Set during init, after processing the STIs
 
         # Call the constructor of the parent class WITHOUT pars or module args
         super().__init__(pars=None, label=label)
@@ -112,6 +113,8 @@ class Sim(ss.Sim):
         all_pars = self.remap_pars(all_pars)  # Remap any parameter names
 
         # Deal with sim pars
+        if 'dur' in all_pars.keys():
+            self.pars['stop'] = None
         user_sim_pars = {k: v for k, v in all_pars.items() if k in self.pars.keys()}
         for k in user_sim_pars: all_pars.pop(k)
         sim_pars = sc.mergedicts(user_sim_pars, sim_pars, _copy=True)  # Don't merge with defaults, those are set above
@@ -159,8 +162,8 @@ class Sim(ss.Sim):
         Perform all initializations for the sim
         """
         # Process the STIs
-        stis = self.process_stis()
-        self.pars['diseases'] += stis
+        # stis = self.process_stis()
+        self.pars['diseases'] = self.process_stis()
         connectors = self.process_connectors()
         self.pars['connectors'] += connectors
 
@@ -206,40 +209,38 @@ class Sim(ss.Sim):
             self.pars['demographics'] = ss.ndict()
             demographics = sc.autolist()
 
-            # Check that the necessary data files are available
-            indicators = ['age', 'deaths']
-            if self.pars['use_pregnancy']: indicators.append('asfr')
-            else: indicators.append('births')
-            start_year = ss.date(self.pars['start']).year
-            ok, missing = stidl.check_downloaded(location, indicators, year=start_year)
+            if self.datafolder is None:
+                # Check that the necessary data files are available
+                indicators = ['age', 'deaths']
+                if self.pars['use_pregnancy']: indicators.append('asfr')
+                else: indicators.append('births')
+                start_year = ss.date(self.pars['start']).year
+                ok, missing = stidl.check_downloaded(location, indicators, year=start_year)
 
-            # If they aren't available, try to download them
-            if not ok:
-                printmsg = (f'Could not find demographic data files for "{location}", attempting to download. '
-                            f'Note that this requires an internet connection.')
-                print(printmsg, end='')
-                # try:
-                stidl.download_data(location=location, indicators=missing, start=start_year)
-                # except:
-                #     raise ValueError('Cannot download data. It might be a non-standard location, or an internet issue.')
+                # If they aren't available, try to download them
+                if not ok:
+                    printmsg = (f'Could not find demographic data files for "{location}", attempting to download. '
+                                f'Note that this requires an internet connection.')
+                    print(printmsg, end='')
+                    stidl.download_data(location=location, indicators=missing, start=start_year)
 
             # Load death rates and turn into a module
-            death_rates = stidata.get_rates(location, 'death')
+            death_rates = stidata.get_rates(location, 'death', self.datafolder)
             deaths = ss.Deaths(death_rate=death_rates, metadata=dict(data_cols=dict(year='Time', sex='Sex', age='AgeStart', value='Value')))
             demographics += deaths
 
             # Load birth or fertility rates and turn into module
             if self.pars['use_pregnancy']:
-                fertility_rates = stidata.get_rates(location, 'asfr')
+                fertility_rates = stidata.get_rates(location, 'asfr', self.datafolder)
                 pregnancy = sti.Pregnancy(fertility_rate=fertility_rates, metadata=dict(data_cols=dict(year='Time', age='AgeStart', value='Value')),)
                 demographics += pregnancy
             else:
-                birth_rates = stidata.get_rates(location, 'births')
+                birth_rates = stidata.get_rates(location, 'births', self.datafolder)
                 births = ss.Births(birth_rate=birth_rates, metadata=dict(data_cols=dict(year='year', value='cbr')))
                 demographics += births
 
             # Load age data and create people
-            age_data = stidata.get_age_distribution(location, year=self.pars.start)
+            age_data = stidata.get_age_distribution(location, year=self.pars.start, datafolder=self.datafolder)
             total_pop = int(age_data.value.sum())
             people = ss.People(self.pars.n_agents, age_data=age_data)
 
@@ -255,7 +256,7 @@ class Sim(ss.Sim):
         Look up a disease by its name and return the corresponding module.
         """
 
-        self.pars['stis'] = sc.tolist(self.pars['stis'])  # Ensure it's a list
+        self.pars['diseases'] = sc.tolist(self.pars['diseases'])  # Ensure it's a list
         stis = sc.autolist()
 
         all_sti_pars = sti.merged_sti_pars()  # All STI parameters, ignoring duplicates
@@ -272,28 +273,28 @@ class Sim(ss.Sim):
                 sti_pars[sti_mapping[sparname]] = spardict
 
         # Construct or interpret the STIs from the pars
-        for stipar in self.pars['stis']:
+        for stidis in self.pars['diseases']:
 
             # If it's a string, convert to a module
-            if sc.checktype(stipar, str):
-                if stipar not in sti_options.keys():
-                    errormsg = f'STI {stipar} is not one of the inbuilt options.'
+            if sc.checktype(stidis, str):
+                if stidis not in sti_options.keys():
+                    errormsg = f'STI {stidis} is not one of the inbuilt options.'
                     raise ValueError(errormsg)
 
                 # See if any parameters have been provided for this STI
                 this_stitype_pars = {}
-                if stipar in sti_pars.keys():
-                    this_stitype_pars = sti_pars[stipar]
+                if stidis in sti_pars.keys():
+                    this_stitype_pars = sti_pars[stidis]
                 sti_pars = sc.mergedicts(sti_main_pars, this_stitype_pars)
-                stis += sti.make_sti(stipar, pars=sti_pars)
+                stis += sti.make_sti(stidis, pars=sti_pars)
 
-            elif isinstance(stipar, sti.BaseSTI):
-                stis += stipar
+            elif isinstance(stidis, ss.Disease):
+                stis += stidis
             else:
-                raise ValueError(f"Invalid STI type: {type(stipar)}. Must be str or sti.BaseSTI.")
+                raise ValueError(f"Invalid STI type: {type(stidis)}. Must be str or sti.BaseSTI.")
 
-        # Store STIs
-        self.stis = ss.ndict(stis)
+        # # Store STIs
+        # self.stis = ss.ndict(stis)
 
         return stis
 

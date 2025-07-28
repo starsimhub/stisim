@@ -31,7 +31,7 @@ def test_hiv_sim(n_agents=500):
     testing = sti.HIVTest(test_prob_data=0.2, start=2000)
     art = sti.ART(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_art': np.linspace(0, 0.9, 21)}))
     vmmc = sti.VMMC(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_vmmc': np.linspace(0.025, 0.125, 21)}))
-    sim = ss.Sim(
+    sim = sti.Sim(
         dt=1/12,
         start=1990,
         dur=40,
@@ -47,11 +47,11 @@ def test_hiv_sim(n_agents=500):
 
 
 def test_msm_hiv(n_agents=500):
-    hiv = sti.HIV(beta={'msm': [0.1, 0.1]}, init_prev=0.05)
+    hiv = sti.HIV(beta_m2m=0.1, init_prev=0.05)
     pregnancy = ss.Pregnancy(fertility_rate=10)
     death = ss.Deaths(death_rate=10)
     msm = sti.AgeMatchedMSM()
-    sim = ss.Sim(
+    sim = sti.Sim(
         dt=1/12,
         start=1990,
         dur=10,
@@ -144,7 +144,7 @@ def test_stis(which='discharging', n_agents=5e3, start=2010, stop=2020):
         n_agents=n_agents,
         start=start,
         stop=stop,
-        stis=list(sti_pars.keys()),
+        diseases=list(sti_pars.keys()),
         sti_pars=sti_pars,
         demographics=[pregnancy, death],
     )
@@ -169,15 +169,15 @@ def test_sim_creation():
 
     nw_pars = dict(debut=ss.lognorm_ex(20, 5))
     sti_pars = dict(ng=dict(eff_condom=0.6))
-    # demographic_pars = dict(zimbabwe=dict(data='./test_data/'))
+    datafolder = './test_data/'
 
     # Test 1: default networks with custom pars, demographics from location string, and diseases from disease names with custom pars
     sim1 = sti.Sim(
         pars=pars,
         nw_pars=nw_pars,
-        # demographics='zimbabwe',
-        # demographic_pars=demographic_pars,
-        stis=['ng', 'ct', 'tv', 'bv', 'hiv'],
+        demographics='zimbabwe',
+        datafolder=datafolder,
+        diseases=['ng', 'ct', 'tv', 'bv', 'hiv'],
         sti_pars=sti_pars,
         connectors=True
     )
@@ -246,11 +246,11 @@ if __name__ == '__main__':
 
     do_plot = False
 
-    s0 = test_hiv_sim()
-    s1 = test_msm_hiv()
-    s2 = test_stis(which='ulcerative')
+    # s0 = test_hiv_sim()
+    # s1 = test_msm_hiv()
+    # s2 = test_stis(which='ulcerative')
     test_sim_creation()
-    test_location()
+    # test_location()
 
     # if do_plot:
     #     s1.plot("ng")

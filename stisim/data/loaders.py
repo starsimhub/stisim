@@ -3,11 +3,11 @@ Load data
 '''
 
 #%% Housekeeping
-import numpy as np
 import pandas as pd
 import sciris as sc
 import unicodedata
 import re
+import os
 
 
 __all__ = ['get_age_distribution', 'get_rates']
@@ -40,10 +40,12 @@ def sanitizestr(string=None, alphanumeric=True, nospaces=True, asciify=True, low
     return string
 
 
-def get_age_distribution(location=None, year=None):
+def get_age_distribution(location=None, year=None, datafolder=None):
     """ Load age distribution for a given location & year"""
+    if datafolder is None: datafolder = filesdir
+    filepath = sc.makefilepath(filename= f'{location}_age_{year}.csv', folder=datafolder)
     try:
-        raw_df = pd.read_csv(filesdir / f'{location}_age_{year}.csv')
+        raw_df = pd.read_csv(filepath)
     except Exception as E:
         errormsg = f'Could not locate datafile for age distribution.'
         raise ValueError(errormsg) from E
@@ -55,10 +57,12 @@ def get_age_distribution(location=None, year=None):
     return raw_df
 
 
-def get_rates(location, which):
+def get_rates(location, which, datafolder=None):
     """ Load birth/death/fertility rates for a given location """
+    if datafolder is None: datafolder = filesdir
+    filepath = sc.makefilepath(filename=f'{location}_{files[which]}', folder=datafolder)
     try:
-        df = pd.read_csv(filesdir / f'{location}_{files[which]}')
+        df = pd.read_csv(filepath)
     except Exception as E:
         errormsg = f'Could not locate datafile for {which}.'
         raise ValueError(errormsg) from E
