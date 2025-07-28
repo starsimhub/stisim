@@ -256,8 +256,11 @@ class Sim(ss.Sim):
         Look up a disease by its name and return the corresponding module.
         """
 
-        self.pars['diseases'] = sc.tolist(self.pars['diseases'])  # Ensure it's a list
+        if not sc.isiterable(self.pars['diseases']):
+            self.pars['diseases'] = sc.tolist(self.pars['diseases'])  # Ensure it's a list
         stis = sc.autolist()
+        if len(self.pars['diseases']) == 0:
+            return stis
 
         all_sti_pars = sti.merged_sti_pars()  # All STI parameters, ignoring duplicates
         sti_main_pars = {k: v for k, v in self.sti_pars.items() if k in all_sti_pars}
@@ -293,46 +296,7 @@ class Sim(ss.Sim):
             else:
                 raise ValueError(f"Invalid STI type: {type(stidis)}. Must be str or sti.BaseSTI.")
 
-        # # Store STIs
-        # self.stis = ss.ndict(stis)
-
         return stis
-
-
-    def get_demographic(self, demog, demog_pars=None):
-        """
-        Get the demographics modules for the simulation.
-        """
-        initialized_demographics = []
-
-        # if the input is a string, assume it is a location name and load the corresponding demographics
-        if isinstance(demog, str):
-            # try to load the files
-            try:
-                location = demog
-                path = ''
-                if demog_pars is not None and 'data' in demog_pars:
-                    path = demog_pars['data']
-                fertility_rates = pd.read_csv(f'{path}{location}_asfr.csv')
-                death_rates = pd.read_csv(f'{path}{location}_deaths.csv')
-
-                initialized_demographics.append(sti.Pregnancy(pars={'fertility_rate': fertility_rates}, ))
-                initialized_demographics.append(ss.Deaths(pars={'death_rate': death_rates, 'rate_units': 1}))
-            except:
-                print("Warning: Location demographic data files not found. Assuming demographic module name instead.")
-
-                # if the files are not found, try to load the demographic from the stisim or starsim modules
-                match = self.case_insensitive_getattr([sti, ss], demog)
-                if match is not None:
-                    demog = match(pars=demog_pars)
-                    initialized_demographics.append(demog)
-                else:
-                    raise ValueError(f"Demographic module '{demog}' not found in STIsim demographics or data files.")
-
-            return initialized_demographics
-        else:
-            demog.update_pars(demog_pars)  # Update demographic parameters if provided
-            return demog
 
     def process_connectors(self):
         """
