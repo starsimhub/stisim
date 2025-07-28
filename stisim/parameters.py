@@ -5,7 +5,6 @@ import numpy as np
 import sciris as sc
 import starsim as ss
 import stisim as sti
-import hpvsim as hpv
 
 
 __all__ = ['SimPars', 'sti_aliases', 'sti_register', 'merged_sti_pars', 'make_sti']
