@@ -108,7 +108,7 @@ class Sim(ss.Sim):
             - If any key appears in both pars and *_pars, the value from *_pars will be used.
             - If any key appears in both pars and kwargs, the value from kwargs will be used.
         """
-        # Marge in pars and kwargs
+        # Merge in pars and kwargs
         all_pars = sc.mergedicts(pars, sim_pars, sti_pars, nw_pars, sim_kwargs, kwargs)
         all_pars = self.remap_pars(all_pars)  # Remap any parameter names
 
