@@ -111,7 +111,7 @@ class NetworkPars(ss.Pars):
         # Sex work parameters
         self.fsw_shares = ss.bernoulli(p=0.05)
         self.client_shares = ss.bernoulli(p=0.12)
-        self.sw_seeking_rate = ss.rate(1, 'month')  # Monthly rate at which clients seek FSWs (1 new SW partner / month)
+        self.sw_seeking_rate = ss.permonth(1)  # Monthly rate at which clients seek FSWs (1 new SW partner / month)
         self.sw_seeking_dist=ss.bernoulli(p=0.5)  # Placeholder value replaced by dt-adjusted sw_seeking_rate
         self.sw_beta = 1
         self.sw_intensity = ss.random()  # At each time step, FSW may work with varying intensity
