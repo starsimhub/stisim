@@ -15,7 +15,7 @@ class Trichomoniasis(SEIS):
         self.requires = 'structuredsexual'
 
         self.define_pars(
-            unit='month',
+            dt='month',
             dur_exp=ss.constant(0),
 
             # Symptoms

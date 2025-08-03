@@ -109,7 +109,7 @@ def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
         con += [sti.hiv_bv(hiv_module=hiv, bv_module=bv)]
 
     # Make sim
-    sim_args = dict(unit='year', dt=1/12, start=start, dur=n_years, n_agents=n_agents, diseases=dis, networks=nets, demographics=dem, connectors=con)
+    sim_args = dict(dt='month', start=start, dur=n_years, n_agents=n_agents, diseases=dis, networks=nets, demographics=dem, connectors=con)
 
     s0 = ss.Sim(**sim_args, interventions=intvs)
     s1 = ss.Sim(**sim_args, interventions=intvs + [menstrual_hygiene(start=2020, new_val=0.1)])
@@ -158,7 +158,6 @@ def test_sim_creation():
 
     pars = dict(
         dt=dt,
-        unit=unit,
         start=start,
         stop=stop,
     )

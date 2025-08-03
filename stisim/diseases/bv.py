@@ -21,7 +21,7 @@ class SimpleBV(ss.Disease):
         super().__init__(name=name)
 
         self.define_pars(
-            unit='month',
+            dt='month',
             include_care=True,
             p_symp=ss.bernoulli(p=0.5),
                     dur_presymp=ss.uniform(ss.weeks(1), ss.weeks(8)),  # Duration of presymptomatic period

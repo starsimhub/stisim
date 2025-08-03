@@ -13,7 +13,7 @@ class TrackValues(ss.Analyzer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.define_pars(
-            unit='month',
+            dt='month',
         )
 
     def init_pre(self, sim):
@@ -98,7 +98,7 @@ class PerformTest(ss.Intervention):
         """
         super().__init__()
         self.define_pars(
-            unit='month',
+            dt='month',
         )
         self.hiv_infections = defaultdict(list)
         self.syphilis_infections = defaultdict(list)

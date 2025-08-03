@@ -21,7 +21,7 @@ class treat_BV(ss.Intervention):
         super().__init__(*args)
 
         self.define_pars(
-            unit="month",
+            dt='month',
             # Treatment effects
             start_year=0,  # Day to start treatment
             stop_year=None,  # Day to stop treatment
