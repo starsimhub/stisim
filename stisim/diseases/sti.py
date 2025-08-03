@@ -313,7 +313,7 @@ class SEIS(BaseSTI):
         self.define_states(
             # Natural history
             ss.BoolState('exposed'),
-            ss.BoolState('infected'), # Redefined from ss.Infection
+            # ss.BoolState('infected'), # Inherited from ss.Infection
             ss.BoolState('asymptomatic'),
             ss.BoolState('symptomatic'),
             ss.BoolState('pid'),
@@ -325,7 +325,6 @@ class SEIS(BaseSTI):
             ss.FloatArr('ti_seeks_care'),
             ss.FloatArr('ti_pid'),
             ss.FloatArr('ti_clearance'),
-            check = False,
         )
 
         self.age_range = [15, 65]  # Age range for main results e.g. prevalence
