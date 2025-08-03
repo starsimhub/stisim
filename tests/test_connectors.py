@@ -11,7 +11,6 @@ import sciris as sc
 import starsim as ss
 import stisim as sti
 import pylab as pl
-import numpy as np
 
 from stisim import coinfection_stats
 
