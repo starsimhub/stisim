@@ -7,7 +7,7 @@ import sciris as sc
 from sciris import randround as rr # Since used frequently
 import starsim as ss
 import stisim as sti
-from stisim.diseases.sti import BaseSTI
+from stisim.diseases.sti import BaseSTI, BaseSTIPars
 
 __all__ = ['Syphilis', 'SyphilisPlaceholder']
 
@@ -75,57 +75,64 @@ class SyphilisPlaceholder(ss.Disease):
             self.active[self._prev_dist.filter(uids)] = False
 
 
+class SyphPars(BaseSTIPars):
+    def __init__(self, **kwargs):
+        # Adult syphilis natural history
+        self.dur_primary = ss.normal(ss.dur(6, 'week'), ss.dur(1, 'week'))  # https://pubmed.ncbi.nlm.nih.gov/9101629/
+        self.dur_secondary = ss.lognorm_ex(ss.dur(3.6, 'month'), ss.dur(1.5, 'month'))  # https://pubmed.ncbi.nlm.nih.gov/9101629/
+        self.dur_early = ss.uniform(ss.dur(12, 'month'), ss.dur(14, 'month'))  # Assumption
+        self.p_reactivate = ss.bernoulli(p=0.35)  # Probability of reactivating from latent to secondary
+        self.time_to_reactivate = ss.lognorm_ex(ss.years(1), ss.years(1))  # Time to reactivation
+        self.p_tertiary = ss.bernoulli(p=0.35)  # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4917057/
+        self.time_to_tertiary = ss.normal(ss.years(20), ss.years(2))  # Time to tertiary
+        self.p_death = ss.bernoulli(p=0.05)  # probability of dying of tertiary syphilis
+        self.time_to_death = ss.lognorm_ex(ss.years(5), ss.years(5))  # Time to death
+
+        # Transmission by stage
+        self.eff_condom = 0.0
+        self.rel_trans_primary = 1
+        self.rel_trans_secondary = 1
+        self.rel_trans_latent = 1  # Baseline level; this decays exponentially with duration of latent infection
+        self.rel_trans_tertiary = 0.0
+        self.rel_trans_latent_half_life = ss.years(1)
+
+        # Congenital syphilis outcomes
+        # Birth outcomes coded as:
+        #   0: Miscarriage
+        #   1: Neonatal death
+        #   2: Stillborn
+        #   3: Congenital syphilis
+        #   4: Live birth without syphilis-related complications - may be preterm or low birth weight
+        # Sources:
+        #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5973824/)
+        #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2819963/
+        self.birth_outcomes = sc.objdict(
+            active=ss.choice(a=5, p=np.array([0.00, 0.10, 0.20, 0.45, 0.25])),  # Outcomes for babies born to mothers with primary or secondary infection
+            early=ss.choice(a=5, p=np.array([0.00, 0.05, 0.10, 0.40, 0.45])),  # Outcomes for babies born to mothers with early latent infection
+            late=ss.choice(a=5, p=np.array([0.00, 0.00, 0.10, 0.10, 0.80])),  # Outcomes for babies born to mothers with late latent infection
+        )
+        self.birth_outcome_keys = ['miscarriage', 'nnd', 'stillborn', 'congenital', 'normal']
+        self.anc_detection = 0.8
+
+        # Initial conditions
+        self.init_prev = ss.bernoulli(p=0)
+        self.init_latent_prev = ss.bernoulli(p=0)
+        self.dist_ti_init_infected = ss.constant(0)  # Experimented with negative values, but safer to use 0
+        self.rel_init_prev = 1
+
+        # Update
+        self.update(kwargs)
+
+
+
 class Syphilis(BaseSTI):
 
     def __init__(self, pars=None, name='syphilis', init_prev_data=None, init_prev_latent_data=None, **kwargs):
         super().__init__(name=name)
-        self.requires = 'structuredsexual'
 
-        self.define_pars(
-            # Adult syphilis natural history, all specified in years
-            dur_primary=ss.normal(ss.dur(6, 'week'), ss.dur(1, 'week')),  # https://pubmed.ncbi.nlm.nih.gov/9101629/
-            dur_secondary=ss.lognorm_ex(ss.dur(3.6, 'month'), ss.dur(1.5, 'month')),  # https://pubmed.ncbi.nlm.nih.gov/9101629/
-            dur_early=ss.uniform(ss.dur(12, 'month'), ss.dur(124, 'month')),  # Assumption
-            p_reactivate=ss.bernoulli(p=0.35),  # Probability of reactivating from latent to secondary
-            time_to_reactivate=ss.lognorm_ex(ss.years(1), ss.years(1)),  # Time to reactivation
-            p_tertiary=ss.bernoulli(p=0.35),  # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4917057/
-            time_to_tertiary=ss.normal(ss.years(20), ss.years(2)),  # Time to tertiary
-            p_death=ss.bernoulli(p=0.05),  # probability of dying of tertiary syphilis
-            time_to_death=ss.lognorm_ex(ss.years(5), ss.years(5)),  # Time to death
-
-            # Transmission by stage
-            eff_condom=0.0,
-            rel_trans_primary=1,
-            rel_trans_secondary=1,
-            rel_trans_latent=1,  # Baseline level; this decays exponentially with duration of latent infection
-            rel_trans_tertiary=0.0,
-            rel_trans_latent_half_life=ss.years(1),
-
-            # Congenital syphilis outcomes
-            # Birth outcomes coded as:
-            #   0: Miscarriage
-            #   1: Neonatal death
-            #   2: Stillborn
-            #   3: Congenital syphilis
-            #   4: Live birth without syphilis-related complications - may be preterm or low birth weight
-            # Sources:
-            #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5973824/)
-            #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2819963/
-            birth_outcomes=sc.objdict(
-                active=ss.choice(a=5, p=np.array([0.00, 0.10, 0.20, 0.45, 0.25])),  # Outcomes for babies born to mothers with primary or secondary infection
-                early=ss.choice(a=5, p=np.array([0.00, 0.05, 0.10, 0.40, 0.45])),  # Outcomes for babies born to mothers with early latent infection
-                late=ss.choice(a=5, p=np.array([0.00, 0.00, 0.10, 0.10, 0.80])),  # Outcomes for babies born to mothers with late latent infection
-            ),
-            birth_outcome_keys=['miscarriage', 'nnd', 'stillborn', 'congenital', 'normal'],
-            anc_detection=0.8,
-
-            # Initial conditions
-            init_prev=ss.bernoulli(p=0),
-            init_latent_prev=ss.bernoulli(p=0),
-            dist_ti_init_infected=ss.constant(0),  # Experimented with negative values, but safer to use 0
-            rel_init_prev=1,
-        )
-
+        # Define default parameters
+        default_pars = SyphPars()
+        self.define_pars(**default_pars)
         self.update_pars(pars, **kwargs)
 
         # Set initial prevalence

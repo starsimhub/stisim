@@ -4,52 +4,57 @@ Chlamydia trachomatis disease module
 
 import numpy as np
 import starsim as ss
-from stisim.diseases.sti import SEIS
+from stisim.diseases.sti import SEIS, STIPars
 
-__all__ = ['Chlamydia', 'ChlamydiaBL']
+__all__ = ['CTPars', 'Chlamydia', 'ChlamydiaBL']
+
+
+class CTPars(STIPars):
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.dur_exp = ss.constant(ss.dur(1, 'week'))
+
+        # Symptoms
+        self.p_symp = [0.20, 0.54]  # https://doi.org/10.1016/j.epidem.2010.04.002
+        self.dur_presymp = [  # For those who develop symptoms, how long before symptoms appear
+            [ss.dur(1, 'week'), ss.dur(10, 'week')],  # Women
+            [ss.dur(0.25, 'week'), ss.dur(1, 'week')],  # Men: symptoms should appear within days
+        ]
+
+        # Care seeking
+        self.p_symp_care = [0.42, 0.83]  # See Table 2 in https://docs.google.com/document/d/16t46nTL2qMHmA0C1gSPz8OhI6ccy6vVv3OCfkmYFUtw/edit?tab=t.0
+        self.dur_symp2care = [  # For those who test, how long before they seek care
+            [ss.dur(2, 'month'), ss.dur(1, 'month')],  # Women
+            [ss.dur(1, 'week'), ss.dur(2, 'week')],  # Men
+        ]
+
+        # Clearance
+        self.dur_asymp2clear = [
+            [ss.dur(18, 'month'), ss.dur(1, 'month')],  # Women: 433 days (https://doi.org/10.1016/j.epidem.2010.04.002)
+            [ss.dur(12, 'month'), ss.dur(1, 'month')],  # Men: as above
+        ]
+        self.dur_symp2clear = [
+            [ss.dur(18, 'month'), ss.dur(1, 'month')],  # Assumption
+            [ss.dur(12, 'month'), ss.dur(1, 'month')],  # Assumption
+        ]
+
+        # PID
+        self.p_pid = ss.bernoulli(p=0.0)  # Assumption used in https://doi.org/10.1086/598983, based on https://doi.org/10.1016/s0029-7844(02)02118-x
+        self.dur_prepid = ss.lognorm_ex(ss.dur(1.5, 'month'), ss.dur(3, 'month'))
+
+        self.init_prev = ss.bernoulli(p=0.01)
+        self.eff_condom = 0.0  # doi:10.1001/archpedi.159.6.536
+
+        self.update(kwargs)
+        return
 
 
 class Chlamydia(SEIS):
-
     def __init__(self, pars=None, name='ct', init_prev_data=None, **kwargs):
         super().__init__(name=name, init_prev_data=init_prev_data)
-
-        self.define_pars(
-            dur_exp=ss.constant(ss.dur(1, 'week')),
-
-            # Symptoms
-            p_symp=[0.20, 0.54], # https://doi.org/10.1016/j.epidem.2010.04.002
-            dur_presymp=[  # For those who develop symptoms, how long before symptoms appear
-                [ss.dur(1, 'week'), ss.dur(10, 'week')],  # Women
-                [ss.dur(0.25, 'week'), ss.dur(1, 'week')],  # Men: symptoms should appear within days
-            ],
-
-            # Care seeking
-            p_symp_care=[0.42, 0.83],  # See Table 2 in https://docs.google.com/document/d/16t46nTL2qMHmA0C1gSPz8OhI6ccy6vVv3OCfkmYFUtw/edit?tab=t.0
-            dur_symp2care=[  # For those who test, how long before they seek care
-                [ss.dur(2, 'month'), ss.dur(1, 'month')],  # Women
-                [ss.dur(1, 'week'), ss.dur(2, 'week')],  # Men
-            ],
-
-            # Clearance
-            dur_asymp2clear=[
-                [ss.dur(18, 'month'), ss.dur(1, 'month')],  # Women: 433 days (https://doi.org/10.1016/j.epidem.2010.04.002)
-                [ss.dur(12, 'month'), ss.dur(1, 'month')],  # Men: as above
-            ],
-            dur_symp2clear=[
-                [ss.dur(18, 'month'), ss.dur(1, 'month')],  # Assumption
-                [ss.dur(12, 'month'), ss.dur(1, 'month')],  # Assumption
-            ],
-
-            # PID
-            p_pid=ss.bernoulli(p=0.0),  # Assumption used in https://doi.org/10.1086/598983, based on https://doi.org/10.1016/s0029-7844(02)02118-x
-            dur_prepid=ss.lognorm_ex(ss.dur(1.5, 'month'), ss.dur(3, 'month')),
-
-            init_prev=ss.bernoulli(p=0.01),
-            eff_condom=0.0,  # doi:10.1001/archpedi.159.6.536
-        )
+        default_pars = CTPars()
+        self.define_pars(**default_pars)
         self.update_pars(pars, **kwargs)
-
         return
 
 

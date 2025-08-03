@@ -41,5 +41,6 @@ setup(
     install_requires=[
         'starsim>=2.2.0',
         'optuna',
+        'requests',
     ],
 )
