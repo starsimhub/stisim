@@ -126,8 +126,8 @@ class BaseSTI(ss.Infection):
     def make_init_prev_fn(module, sim, uids):
         return ut.make_init_prev_fn(module, sim, uids, active=True)
 
-    def validate_beta(self, run_checks=False):
-        betamap = super().validate_beta(run_checks=run_checks)
+    def validate_beta(self):
+        betamap = super().validate_beta()
         if self.pars.beta_m2f is not None and betamap and 'structuredsexual' in betamap.keys():
             betamap['structuredsexual'][0] = self.pars.beta_m2f
             betamap['structuredsexual'][1] = self.pars.beta_m2f * self.pars.rel_beta_f2m

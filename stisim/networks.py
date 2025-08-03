@@ -8,7 +8,7 @@ Overview:
     - 0 = marry and remain married to a single partner throughout their lifetime
     - 1 = marry and then divorce or who have concurrent partner(s) during their marriage
     - 2 = never marry
-    
+
 - In addition, a proportion of each of the groups above engages in sex work.
 """
 
@@ -111,8 +111,8 @@ class NetworkPars(ss.Pars):
         # Sex work parameters
         self.fsw_shares = ss.bernoulli(p=0.05)
         self.client_shares = ss.bernoulli(p=0.12)
-        self.sw_seeking_rate = ss.permonth(1)  # Monthly rate at which clients seek FSWs (1 new SW partner / month)
-        self.sw_seeking_dist=ss.bernoulli(p=0.5)  # Placeholder value replaced by dt-adjusted sw_seeking_rate
+        self.sw_seeking_rate = ss.probpermonth(1.0)  # Monthly rate at which clients seek FSWs (1 new SW partner / month)
+        self.sw_seeking_dist = ss.bernoulli(p=0.5)  # Placeholder value replaced by dt-adjusted sw_seeking_rate
         self.sw_beta = 1
         self.sw_intensity = ss.random()  # At each time step, FSW may work with varying intensity
 
@@ -131,7 +131,7 @@ class StructuredSexual(ss.SexualNetwork):
     def __init__(self, pars=None, condom_data=None, name=None, **kwargs):
 
         super().__init__(name=name)
-        
+
         # Set edge attributes
         self.meta.sw = bool
         self.meta.condoms = ss_float_
@@ -523,7 +523,7 @@ class StructuredSexual(ss.SexualNetwork):
         self.sw_intensity[active_fsw.uids] = self.pars.sw_intensity.rvs(active_fsw.uids)
 
         # Find clients who will seek FSW
-        self.pars.sw_seeking_dist.pars.p = np.clip(self.pars.sw_seeking_rate, 0, 1)
+        self.pars.sw_seeking_dist.pars.p = self.pars.sw_seeking_rate.to_prob()
         m_looking = self.pars.sw_seeking_dist.filter(active_clients.uids)
 
         if len(m_looking) == 0 or len(active_fsw.uids) == 0:

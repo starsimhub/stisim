@@ -1,6 +1,4 @@
-import pandas as pd
 import starsim as ss
-
 import stisim as sti
 import sciris as sc
 from itertools import combinations
@@ -254,9 +252,7 @@ class Sim(ss.Sim):
         """
         Look up a disease by its name and return the corresponding module.
         """
-
-        if isinstance(self.pars['diseases'], str) or not sc.isiterable(self.pars['diseases']):
-            self.pars['diseases'] = sc.tolist(self.pars['diseases'])  # Ensure it's a list
+        self.pars['diseases'] = sc.tolist(self.pars['diseases'])  # Ensure it's a list
         stis = sc.autolist()
         if len(self.pars['diseases']) == 0:
             return stis
