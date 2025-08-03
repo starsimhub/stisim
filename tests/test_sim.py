@@ -8,7 +8,6 @@ import starsim as ss
 import stisim as sti
 import pandas as pd
 import numpy as np
-import pylab as pl
 
 
 def test_hiv_sim(n_agents=500):

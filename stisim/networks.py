@@ -677,7 +677,7 @@ class PriorPartners(ss.DynamicNetwork):
 
     def end_pairs(self):
         people = self.sim.people
-        max_dur = int(self.pars.dur_recall.values)
+        max_dur = int(self.pars.dur_recall.value)
         active = (self.edges.dur < max_dur) & people.alive[self.edges.p1] & people.alive[self.edges.p2]
         for k in self.meta_keys():
             self.edges[k] = self.edges[k][active]
