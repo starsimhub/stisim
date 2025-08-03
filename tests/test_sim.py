@@ -151,8 +151,8 @@ def test_stis(which='discharging', n_agents=5e3, start=2010, stop=2020):
 
 
 def test_sim_creation():
-    dt = 1
-    unit = 'year'
+    dt = 'year'
+
     start = 2010
     stop = 2020
 

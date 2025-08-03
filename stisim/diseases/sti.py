@@ -20,8 +20,7 @@ class BaseSTIPars(ss.Pars):
         self.include_care = True  # Determines whether testing results are included
 
         # Time
-        self.unit = 'year'
-        self.dt = 1/12
+        self.dt = 'month'
 
         # Transmission
         self.beta = 0  # Placeholder: no transmission. This will be set in validate_beta
