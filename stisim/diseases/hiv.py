@@ -164,6 +164,7 @@ class HIV(BaseSTI):
 
     def init_post(self):
         """ Set states """
+        ss.Module.init_post(self) # Skip the disease init_post() since we create infections in a different way
         # Set initial CD4
         self.init_cd4()
         self.init_care_seeking()
@@ -175,7 +176,6 @@ class HIV(BaseSTI):
         initial_cases_diagnosed = self.pars.init_diagnosed.filter(initial_cases)
         self.diagnosed[initial_cases_diagnosed] = True
         self.ti_diagnosed[initial_cases_diagnosed] = 0
-
         return
 
     # CD4 functions
@@ -478,7 +478,7 @@ class HIV(BaseSTI):
 
         return
 
-    def set_prognoses(self, uids, source_uids=None, ti=None):
+    def set_prognoses(self, uids, sources=None, ti=None):
         """
         Set prognoses upon infection
         """
@@ -511,10 +511,10 @@ class HIV(BaseSTI):
 
         return
 
-    def set_congenital(self, target_uids, source_uids):
-        self.cd4_start[target_uids] = sc.dcp(self.cd4_start[source_uids])
-        self.cd4_nadir[target_uids] = sc.dcp(self.cd4_start[target_uids])
-        self.set_prognoses(target_uids, source_uids)
+    def set_congenital(self, uids, sources):
+        self.cd4_start[uids] = sc.dcp(self.cd4_start[sources])
+        self.cd4_nadir[uids] = sc.dcp(self.cd4_start[uids])
+        self.set_prognoses(uids, sources)
         return
 
     # Treatment-related changes
