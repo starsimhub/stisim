@@ -431,7 +431,7 @@ class HIV(BaseSTI):
             time_to_full_eff = self.pars.time_to_art_efficacy
             art_uids = self.on_art.uids
             timesteps_on_art = ti - self.ti_art[art_uids]
-            new_on_art = timesteps_on_art < time_to_full_eff.v
+            new_on_art = timesteps_on_art < time_to_full_eff/self.dt
             efficacy_to_date = np.full_like(art_uids, fill_value=full_eff, dtype=float)
             efficacy_to_date[new_on_art] = timesteps_on_art[new_on_art]*full_eff/time_to_full_eff
             self.rel_trans[art_uids] *= 1 - efficacy_to_date
@@ -446,7 +446,7 @@ class HIV(BaseSTI):
         ti = self.ti
 
         # Recalculate prevalence so it's for the whole population - the STI module calculates it for adults
-        self.results[f'prevalence'][ti] = sum(self.infected) / len(self.infected)
+        self.results['prevalence'][ti] = sum(self.infected) / len(self.infected)
 
         self.results['new_deaths'][ti] = np.count_nonzero(self.ti_dead == ti)
         self.results['cum_deaths'][ti] = np.sum(self.results['new_deaths'][:ti + 1])
@@ -567,8 +567,8 @@ class HIV(BaseSTI):
         hiv = sim.diseases.hiv
         dur_mean = np.log(hiv.cd4_preart[uids])*hiv.cd4[uids]/hiv.cd4_potential[uids]
         dur_scale = dur_mean * module.pars.dur_post_art_scale_factor
-        dur_mean = ss.years(dur_mean).init(parent=sim.t)
-        dur_scale = np.maximum(ss.years(dur_scale).init(parent=sim.t), 1e-3)  # Ensure it's not zero
+        dur_mean = ss.years(dur_mean)
+        dur_scale = ss.years(np.maximum(dur_scale, 1e-3))  # Ensure it's not zero
         return dur_mean, dur_scale
 
     @staticmethod

@@ -1,10 +1,8 @@
+import numpy as np
+import sciris as sc
+import matplotlib.pyplot as plt
 import starsim as ss
 import stisim as sti
-import pandas as pd
-from collections import defaultdict
-import numpy as np
-import matplotlib.pyplot as plt
-import sciris as sc
 
 
 class TrackValues(ss.Analyzer):
@@ -40,16 +38,20 @@ class TrackValues(ss.Analyzer):
 
     def step(self):
         ti = self.ti
+
         if self.has_hiv:
-            self.hiv_rel_sus[ti, :self.n] = self.sim.diseases.hiv.rel_sus.values[:self.n]
-            self.hiv_rel_trans[ti, :self.n] = self.sim.diseases.hiv.rel_trans.values[:self.n]
+            hiv = self.sim.diseases.hiv
+            self.hiv_rel_sus[ti, :self.n] = hiv.rel_sus
+            self.hiv_rel_trans[ti, :self.n] = hiv.rel_trans
+            self.cd4[ti, :self.n] = hiv.cd4
+            self.care_seeking[ti, :self.n] = hiv.care_seeking
 
         if self.has_syph:
-            self.syph_rel_sus[ti, :self.n] = self.sim.diseases.syphilis.rel_sus.values[:self.n]
-            self.syph_rel_trans[ti, :self.n] = self.sim.diseases.syphilis.rel_trans.values[:self.n]
+            syph = self.sim.diseases.syphilis
+            self.syph_rel_sus[ti, :self.n] = syph.rel_sus
+            self.syph_rel_trans[ti, :self.n] = syph.rel_trans
 
-        self.cd4[ti, :self.n] = self.sim.diseases.hiv.cd4.values[:self.n]
-        self.care_seeking[ti, :self.n] = self.sim.diseases.hiv.care_seeking[:self.n]
+        return
 
     def plot(self, agents: dict):
         """
@@ -100,11 +102,11 @@ class PerformTest(ss.Intervention):
         self.define_pars(
             dt='month',
         )
-        self.hiv_infections = defaultdict(list)
-        self.syphilis_infections = defaultdict(list)
-        self.art_start = defaultdict(list)
-        self.art_stop = defaultdict(list)
-        self.pregnant = defaultdict(list)
+        self.hiv_infections = sc.ddict(list)
+        self.syphilis_infections = sc.ddict(list)
+        self.art_start = sc.ddict(list)
+        self.art_stop = sc.ddict(list)
+        self.pregnant = sc.ddict(list)
 
         if events:
             for uid, event, ti in events:
