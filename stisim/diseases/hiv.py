@@ -18,7 +18,7 @@ class HIVPars(BaseSTIPars):
         # Natural history without treatment
         self.cd4_start = ss.normal(loc=800, scale=50)
         self.cd4_latent = ss.normal(loc=500, scale=50)
-        self.dur_acute = ss.lognorm_ex(ss.dur(3, 'month'), ss.dur(1, 'month'))  # Duration of acute HIV infection
+        self.dur_acute = ss.lognorm_ex(ss.months(3), ss.months(1))  # Duration of acute HIV infection
         self.dur_latent = ss.lognorm_ex(ss.years(10), ss.years(3))  # Duration of latent, untreated HIV infection
         self.dur_falling = ss.lognorm_ex(ss.years(3), ss.years(1))  # Duration of late-stage HIV when CD4 counts fall
         self.p_hiv_death = None  # Probability of death from HIV-related complications - default is to use HIV.death_prob(), otherwise can pass in a Dist or anything supported by ss.bernoulli)
@@ -47,7 +47,7 @@ class HIVPars(BaseSTIPars):
         # Treatment effects
         self.art_cd4_growth = 0.1  # Unitless parameter defining how CD4 reconstitutes after starting ART - used in a logistic growth function
         self.art_efficacy = 0.96  # Efficacy of ART
-        self.time_to_art_efficacy = ss.dur(6, 'months')  # Time to reach full ART efficacy (in months) - linear increase in efficacy
+        self.time_to_art_efficacy = ss.months(6)  # Time to reach full ART efficacy (in months) - linear increase in efficacy
         self.art_cd4_pars = dict(cd4_max=1000, cd4_healthy=500)
         self.dur_on_art = ss.lognorm_ex(ss.years(18), ss.years(5))
         self.dur_post_art = None
@@ -567,8 +567,8 @@ class HIV(BaseSTI):
         hiv = sim.diseases.hiv
         dur_mean = np.log(hiv.cd4_preart[uids])*hiv.cd4[uids]/hiv.cd4_potential[uids]
         dur_scale = dur_mean * module.pars.dur_post_art_scale_factor
-        dur_mean = ss.dur(dur_mean, 'year').init(parent=sim.t)
-        dur_scale = np.maximum(ss.dur(dur_scale, 'year').init(parent=sim.t), 1e-3)  # Ensure it's not zero
+        dur_mean = ss.years(dur_mean).init(parent=sim.t)
+        dur_scale = np.maximum(ss.years(dur_scale).init(parent=sim.t), 1e-3)  # Ensure it's not zero
         return dur_mean, dur_scale
 
     @staticmethod

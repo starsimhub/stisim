@@ -88,7 +88,7 @@ class GUD(ss.Infection):
     def __init__(self, pars=None, init_prev_data=None, **kwargs):
         super().__init__()
         self.define_pars(
-            dur_inf = ss.lognorm_ex(ss.dur(3, 'month'), ss.dur(1, 'month')),
+            dur_inf = ss.lognorm_ex(ss.months(3), ss.months(1)),
             beta=1.0,  # Placeholder
             init_prev=0,  # See make_init_prev_fn
             rel_init_prev=1,

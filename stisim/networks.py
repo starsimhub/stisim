@@ -84,25 +84,25 @@ class NetworkPars(ss.Pars):
         self.stable_dur_pars = dict(
             teens=[
                 # (mu,stdev) for levels 0, 1, 2
-                [ss.dur(100, 'year'),  ss.dur(1, 'year')],
-                [ss.dur(8, 'year'),  ss.dur(2, 'year')],
-                [ss.dur(1e-4, 'month'), ss.dur(1e-4, 'month')]
+                [ss.years(100),  ss.years(1)],
+                [ss.years(8),  ss.years(2)],
+                [ss.months(1e-4), ss.months(1e-4)]
             ],
             young=[
-                [ss.dur(100, 'year'),  ss.dur(1, 'year')],
-                [ss.dur(10, 'year'),  ss.dur(3, 'year')],
-                [ss.dur(1e-4, 'month'), ss.dur(1e-4, 'month')]
+                [ss.years(100),  ss.years(1)],
+                [ss.years(10),  ss.years(3)],
+                [ss.months(1e-4), ss.months(1e-4)]
             ],
             adult=[
-                [ss.dur(100, 'year'),  ss.dur(1, 'year')],
-                [ss.dur(12, 'year'),  ss.dur(3, 'year')],
-                [ss.dur(1e-4, 'month'), ss.dur(1e-4, 'month')]
+                [ss.years(100),  ss.years(1)],
+                [ss.years(12),  ss.years(3)],
+                [ss.months(1e-4), ss.months(1e-4)]
             ],
         )
         self.casual_dur_pars = dict(
-            teens=[[ss.dur(1, 'year'), ss.dur(3, 'year')]]*3,
-            young=[[ss.dur(1, 'year'), ss.dur(3, 'year')]]*3,
-            adult=[[ss.dur(1, 'year'), ss.dur(3, 'year')]]*3,
+            teens=[[ss.years(1), ss.years(3)]]*3,
+            young=[[ss.years(1), ss.years(3)]]*3,
+            adult=[[ss.years(1), ss.years(3)]]*3,
         )
 
         # Acts
@@ -664,7 +664,7 @@ class PriorPartners(ss.DynamicNetwork):
     def __init__(self, pars=None, key_dict=None, name='priorpartners', **kwargs):
         super().__init__(key_dict=key_dict, name=name)
         self.define_pars(
-            dur_recall=ss.dur(1, 'year'),  # How long to remember prior relationships
+            dur_recall=ss.years(1),  # How long to remember prior relationships
         )
         self.update_pars(pars=pars, **kwargs)
         return

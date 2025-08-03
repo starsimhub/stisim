@@ -40,48 +40,48 @@ class STIPars(BaseSTIPars):
         super().__init__()
 
         # Natural history
-        self.dur_exp = ss.constant(ss.dur(1, 'week'))  # How long after exposure before you can infect others
+        self.dur_exp = ss.constant(ss.weeks(1))  # How long after exposure before you can infect others
 
         # Symptoms and symptomatic testing
         self.p_symp_dist = ss.bernoulli(p=0.5)  # Distribution of symptomatic vs asymptomatic
         self.p_symp = [0.375, 0.375]
         self.dur_presymp_dist = ss.lognorm_ex()
         self.dur_presymp = [  # For those who develop symptoms, how long before symptoms appear
-            [ss.dur(1, 'week'), ss.dur(12, 'week')],    # Women
-            [ss.dur(0.25, 'week'), ss.dur(3, 'week')],  # Men
+            [ss.weeks(1), ss.weeks(12)],    # Women
+            [ss.weeks(0.25), ss.weeks(3)],  # Men
         ]
         self.p_symp_clear_dist = ss.bernoulli(p=0)
         self.p_symp_clear = [0.0, 0.0]
         self.dur_symp = [
-            ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(26, 'week')),  # Duration of symptoms
-            ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(26, 'week')),  # Duration of symptoms
+            ss.lognorm_ex(ss.weeks(1), ss.weeks(26)),  # Duration of symptoms
+            ss.lognorm_ex(ss.weeks(1), ss.weeks(26)),  # Duration of symptoms
         ]
         self.p_symp_care_dist=ss.bernoulli(p=0)
         self.p_symp_care=[0.3, 0.2]
         self.dur_symp2care_dist=ss.lognorm_ex()
         self.dur_symp2care = [  # For those who test, how long before they seek care - reset for each individual STI
-            [ss.dur(4, 'week'), ss.dur(4, 'week')],  # Women
-            [ss.dur(6, 'week'), ss.dur(4, 'week')],  # Men
+            [ss.weeks(4), ss.weeks(4)],  # Women
+            [ss.weeks(6), ss.weeks(4)],  # Men
         ]
 
         # PID and PID care-seeking
         self.p_pid = ss.bernoulli(p=0.2)
-        self.dur_prepid = ss.lognorm_ex(ss.dur(6, 'week'), ss.dur(4, 'week'))
+        self.dur_prepid = ss.lognorm_ex(ss.weeks(6), ss.weeks(4))
         self.p_pid_care = ss.bernoulli(p=0.1)  # Women
-        self.dur_pid2care = ss.lognorm_ex(ss.dur(2, 'week'), ss.dur(4, 'week'))  # Women
+        self.dur_pid2care = ss.lognorm_ex(ss.weeks(2), ss.weeks(4))  # Women
 
         # Clearance
         self.dur_asymp2clear_dist = ss.lognorm_ex()
         self.dur_asymp2clear = [  # Duration of untreated asymptomatic infection (excl initial latent)
-            [ss.dur(52, 'week'), ss.dur(5, 'week')],  # Women
-            [ss.dur(52, 'week'), ss.dur(5, 'week')],  # Men
+            [ss.weeks(52), ss.weeks(5)],  # Women
+            [ss.weeks(52), ss.weeks(5)],  # Men
         ]
         self.dur_symp2clear_dist = ss.lognorm_ex()
         self.dur_symp2clear = [  # Duration of untreated symptomatic infection (excl initial latent)
-            [ss.dur(52, 'week'), ss.dur(5, 'week')],  # Women
-            [ss.dur(52, 'week'), ss.dur(5, 'week')],  # Men
+            [ss.weeks(52), ss.weeks(5)],  # Women
+            [ss.weeks(52), ss.weeks(5)],  # Men
         ]
-        self.dur_pid2clear=ss.lognorm_ex(ss.dur(52, 'week'), ss.dur(5, 'week'))
+        self.dur_pid2clear=ss.lognorm_ex(ss.weeks(52), ss.weeks(5))
 
         # Initial conditions
         self.init_prev=ss.bernoulli(p=0.01)

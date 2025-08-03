@@ -78,9 +78,9 @@ class SyphilisPlaceholder(ss.Disease):
 class SyphPars(BaseSTIPars):
     def __init__(self, **kwargs):
         # Adult syphilis natural history
-        self.dur_primary = ss.normal(ss.dur(6, 'week'), ss.dur(1, 'week'))  # https://pubmed.ncbi.nlm.nih.gov/9101629/
-        self.dur_secondary = ss.lognorm_ex(ss.dur(3.6, 'month'), ss.dur(1.5, 'month'))  # https://pubmed.ncbi.nlm.nih.gov/9101629/
-        self.dur_early = ss.uniform(ss.dur(12, 'month'), ss.dur(14, 'month'))  # Assumption
+        self.dur_primary = ss.normal(ss.weeks(6), ss.weeks(1))  # https://pubmed.ncbi.nlm.nih.gov/9101629/
+        self.dur_secondary = ss.lognorm_ex(ss.months(3.6), ss.months(1.5))  # https://pubmed.ncbi.nlm.nih.gov/9101629/
+        self.dur_early = ss.uniform(ss.months(12), ss.months(14))  # Assumption
         self.p_reactivate = ss.bernoulli(p=0.35)  # Probability of reactivating from latent to secondary
         self.time_to_reactivate = ss.lognorm_ex(ss.years(1), ss.years(1))  # Time to reactivation
         self.p_tertiary = ss.bernoulli(p=0.35)  # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4917057/

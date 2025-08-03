@@ -26,8 +26,8 @@ class treat_BV(ss.Intervention):
             start_year=0,  # Day to start treatment
             stop_year=None,  # Day to stop treatment
             p_seek_care=ss.bernoulli(p=0.9),  # Distribution of care-seeking behavior
-            tx_delay=ss.dur(1, "week"),  # Delay between symptoms and treatment
-            tx_effect_delay=ss.dur(1, "week"),  # Delay between treatment and effect
+            tx_delay=ss.weeks(1),  # Delay between symptoms and treatment
+            tx_effect_delay=ss.weeks(1),  # Delay between treatment and effect
             tx_doses=14,  # Number of doses of treatment administered (2x/day for 7 days)
             tx_effectiveness=sc.objdict(
                 stable_cst1=ss.bernoulli(
@@ -43,8 +43,8 @@ class treat_BV(ss.Intervention):
             durable_cst1_change=False,
             rr_douching=0.5,  # Relative risk of stably transitioning to CST 1 due to douching
             rr_poor_menstrual_hygiene=0.5,  # Relative risk of stably transitioning to CST 1 due to poor menstrual hygiene
-            baseline_dur_stable_cst_change=ss.dur(
-                6, "month"
+            baseline_dur_stable_cst_change=ss.months(
+                6
             ),  # Duration of stable CST change - based on preliminary LACTIN V results
         ),
         self.update_pars(pars, **kwargs)

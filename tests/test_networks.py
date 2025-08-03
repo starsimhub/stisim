@@ -70,19 +70,19 @@ def test_relationship_duration():
     stable_dur_pars = dict(
         teens=[
             # (mu,stdev) for levels 0, 1, 2
-            [ss.dur(100, 'year'), ss.dur(1, 'year')],
-            [ss.dur(50, 'year'), ss.dur(2, 'year')],
-            [ss.dur(1e-4, 'month'), ss.dur(1e-4, 'month')]
+            [ss.years(100), ss.years(1)],
+            [ss.years(50), ss.years(2)],
+            [ss.months(1e-4), ss.months(1e-4)]
         ],
         young=[
-            [ss.dur(100, 'year'), ss.dur(1, 'year')],
-            [ss.dur(50, 'year'), ss.dur(3, 'year')],
-            [ss.dur(1e-4, 'month'), ss.dur(1e-4, 'month')]
+            [ss.years(100), ss.years(1)],
+            [ss.years(50), ss.years(3)],
+            [ss.months(1e-4), ss.months(1e-4)]
         ],
         adult=[
-            [ss.dur(100, 'year'), ss.dur(1, 'year')],
-            [ss.dur(50, 'year'), ss.dur(3, 'year')],
-            [ss.dur(1e-4, 'month'), ss.dur(1e-4, 'month')]
+            [ss.years(100), ss.years(1)],
+            [ss.years(50), ss.years(3)],
+            [ss.months(1e-4), ss.months(1e-4)]
         ],
     )
 
