@@ -265,7 +265,7 @@ class HIV(BaseSTI):
     @staticmethod
     def death_prob(module, sim, uids=None):
         cd4_bins = np.array([1000, 500, 350, 200, 50, 0])
-        death_prob = module.t.dt*np.array([0.003, 0.003, 0.005, 0.01, 0.05, 0.300])  # Values smaller than the first bin edge get assigned to the last bin.
+        death_prob = ss.permonth(np.array([0.003, 0.003, 0.005, 0.01, 0.05, 0.300]))*module.dt  # Values smaller than the first bin edge get assigned to the last bin.
         return death_prob[np.digitize(module.cd4[uids], cd4_bins)]
 
     @staticmethod
@@ -408,7 +408,7 @@ class HIV(BaseSTI):
         """
         Update rel_trans and rel_sus for all agents. These are reset on each timestep then adjusted depending on states.
         Adjustments are made throughout different modules:
-        
+
            - rel_trans for acute and late-stage untreated infection are adjusted below
            - rel_trans for all people on treatment (including pregnant women) below
            - rel_sus for unborn babies of pregnant WLHIV receiving treatment is adjusted in the ART intervention
