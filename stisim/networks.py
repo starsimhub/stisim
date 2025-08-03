@@ -128,17 +128,16 @@ class StructuredSexual(ss.SexualNetwork):
     Structured sexual network
     """
 
-    def __init__(self, pars=None, key_dict=None, condom_data=None, name=None, **kwargs):
+    def __init__(self, pars=None, condom_data=None, name=None, **kwargs):
 
-        key_dict = sc.mergedicts({
-            'sw': bool,
-            'condoms': ss_float_,
-            'age_p1': ss_float_,
-            'age_p2': ss_float_,
-            'edge_type': ss_float_, # edge type tracks stable/casual/onetime
-        }, key_dict)
-
-        super().__init__(key_dict=key_dict, name=name)
+        super().__init__(name=name)
+        
+        # Set edge attributes
+        self.meta.sw = bool
+        self.meta.condoms = ss_float_
+        self.meta.age_p1 = ss_float_
+        self.meta.age_p2 = ss_float_
+        self.meta.edge_type = ss_float_  # edge type tracks stable/casual/onetime
 
         # Set parameters
         default_pars = NetworkPars()
@@ -661,8 +660,8 @@ class PriorPartners(ss.DynamicNetwork):
     Lightweight network for storing prior partners, for use in partner notification
     In this network, 'dur' refers to the duration of time since the relationship ended
     """
-    def __init__(self, pars=None, key_dict=None, name='priorpartners', **kwargs):
-        super().__init__(key_dict=key_dict, name=name)
+    def __init__(self, pars=None, name='priorpartners', **kwargs):
+        super().__init__(name=name)
         self.define_pars(
             dur_recall=ss.years(1),  # How long to remember prior relationships
         )
