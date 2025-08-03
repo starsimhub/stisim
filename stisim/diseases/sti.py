@@ -550,11 +550,11 @@ class SEIS(BaseSTI):
         # self.dur_inf[uids] = np.nan
         return
 
-    def set_prognoses(self, uids, source_uids=None):
+    def set_prognoses(self, uids, sources=None):
         """
         Set initial prognoses for adults newly infected
         """
-        super().set_prognoses(uids, source_uids)
+        super().set_prognoses(uids, sources)
         self.wipe_dates(uids)
         self.dur_inf[uids] = np.nan  # Overwrite. Not done in wipe_dates because that's also called during treatment
 

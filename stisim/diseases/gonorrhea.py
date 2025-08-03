@@ -2,9 +2,7 @@
 Gonorrhea disease module
 """
 
-import numpy as np
 import starsim as ss
-import sciris as sc
 from stisim.diseases.sti import SEIS, STIPars
 
 __all__ = ['Gonorrhea', 'NGPars']
@@ -65,10 +63,9 @@ class Gonorrhea(SEIS):
         )
         return
 
-    def set_prognoses(self, uids, source_uids=None):
-        super().set_prognoses(uids, source_uids)
+    def set_prognoses(self, uids, sources=None):
+        super().set_prognoses(uids, sources)
         # Also pass on the relative treatability
-        if 'ng_tx' in self.sim.interventions and source_uids is not None:
-            self.sim.people.ng_tx.rel_treat[uids] = self.sim.people.ng_tx.rel_treat[source_uids]
-
-
+        if 'ng_tx' in self.sim.interventions and sources is not None:
+            self.sim.people.ng_tx.rel_treat[uids] = self.sim.people.ng_tx.rel_treat[sources]
+        return

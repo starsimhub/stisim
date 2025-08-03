@@ -252,9 +252,13 @@ class Sim(ss.Sim):
         """
         Look up a disease by its name and return the corresponding module.
         """
-        self.pars['diseases'] = sc.tolist(self.pars['diseases'])  # Ensure it's a list
+        disease_pars = self.pars['diseases']
+        if not disease_pars: # Handles e.g. ss.ndict()
+            disease_pars = []
+        else:
+            disease_pars = sc.tolist(disease_pars)  # Ensure it's a list
         stis = sc.autolist()
-        if len(self.pars['diseases']) == 0:
+        if len(disease_pars) == 0:
             return stis
 
         all_sti_pars = sti.merged_sti_pars()  # All STI parameters, ignoring duplicates
@@ -271,7 +275,7 @@ class Sim(ss.Sim):
                 sti_pars[sti_mapping[sparname]] = spardict
 
         # Construct or interpret the STIs from the pars
-        for stidis in self.pars['diseases']:
+        for stidis in disease_pars:
 
             # If it's a string, convert to a module
             if sc.checktype(stidis, str):

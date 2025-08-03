@@ -219,6 +219,7 @@ class Syphilis(BaseSTI):
 
     def init_post(self):
         """ Make initial cases """
+        ss.Module.init_post(self) # Avoid super().init_post() since we create infections here
         initial_active_cases = self.pars.init_prev.filter()
         self.set_prognoses(initial_active_cases)
         still_sus = self.susceptible.uids
