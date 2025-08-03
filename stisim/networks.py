@@ -154,6 +154,7 @@ class StructuredSexual(ss.SexualNetwork):
         # Add states
         self.define_states(
             ss.BoolArr('participant', default=True),
+            ss.FloatArr('debut', default=0),
             ss.FloatArr('risk_group'),  # Which risk group an agent belongs to
             ss.BoolArr('fsw'),  # Whether an agent is a female sex worker
             ss.BoolArr('client'),  # Whether an agent is a client of sex workers
@@ -170,6 +171,7 @@ class StructuredSexual(ss.SexualNetwork):
             ss.FloatArr('lifetime_onetime_partners', default=0),
             ss.FloatArr('lifetime_sw_partners', default=0),
             ss.FloatArr('sw_intensity'),  # Intensity of sex work
+            reset = True, # To allow redefining participant
         )
 
         self.relationship_durs = defaultdict(list)
