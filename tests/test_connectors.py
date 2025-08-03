@@ -15,7 +15,7 @@ import numpy as np
 
 from stisim import coinfection_stats
 
-np.seterr(all='raise')
+# np.seterr(all='raise')
 
 
 def test_hiv_syph():

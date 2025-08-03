@@ -1,12 +1,9 @@
 """
 Test epi dynamics
 """
-
-# Imports
 import sciris as sc
 import starsim as ss
 import stisim as sti
-import pandas as pd
 
 n_agents = 2000
 
@@ -44,7 +41,7 @@ def test_syph_epi():
         # Run the simulations and pull out the results
         s0 = ss.Sim(pars0, label=f'{par} {par_val[0]}')
         s1 = ss.Sim(pars1, label=f'{par} {par_val[1]}')
-        ss.parallel(s0, s1)
+        ss.parallel(s0, s1, debug=True)
 
         # Check results
         ind = 1 if par == 'init_prev' else -1
