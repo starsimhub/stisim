@@ -541,7 +541,7 @@ class BV(BaseSTI):
 
     def init_post(self):
         """Initialize with sim properties"""
-        for state in self.states:
+        for state in self.state_list:
             if not state.initialized:
                 state.init_vals()
         self.initialized = True
@@ -575,9 +575,10 @@ class BV(BaseSTI):
         return
 
     def step(self):
-        self.set_cst(upper_age=self.t.dt)
-        self.set_hygiene_states(upper_age=self.t.dt)
-        self.set_circumcision(upper_age=self.t.dt)
+        upper_age = self.t.dt.years # TODO this looks wrong!
+        self.set_cst(upper_age=upper_age)
+        self.set_hygiene_states(upper_age=upper_age)
+        self.set_circumcision(upper_age=upper_age)
         self.set_rel_sus(spontaneous=True)
 
         # First, spontaneous transitions

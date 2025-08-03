@@ -105,14 +105,16 @@ class STITest(ss.Intervention):
         self.product = product
         self.outcomes = {}
         if self.product is not None:
-            self.outcomes = {outcome: ss.FloatArr(f'ti_{outcome}') for outcome in self.product.result_list}
+            self.outcomes = {outcome: ss.FloatArr(f'prod_ti_{outcome}') for outcome in self.product.result_list}
             self.last_outcomes = {outcome: ss.uids() for outcome in self.product.result_list}
 
         return
 
     @property
-    def states(self):
-        return super().states + list(self.outcomes.values())
+    def state_list(self):
+        """ Include products in the state list """
+        out = super().state_list + list(self.outcomes.values())
+        return out
 
     def init_pre(self, sim):
         super().init_pre(sim)
@@ -121,6 +123,7 @@ class STITest(ss.Intervention):
         return
 
     def init_results(self):
+        super().init_results()
         self.define_results(
             ss.Result('new_diagnoses', dtype=int, label="New diagnoses"),
             ss.Result('new_tests', dtype=int, label="New tests"),
@@ -379,7 +382,7 @@ class STITreatment(ss.Intervention):
     """
     Base class for treatment of STI infection.
     The majority of STI treatments will clear infection.
-    
+
     Args:
         pars:
         disease (str): should match the name of one of the diseases in the simulation
