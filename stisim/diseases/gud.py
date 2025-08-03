@@ -22,9 +22,9 @@ class Placeholder(ss.Disease):
         )
         self.update_pars(pars, **kwargs)
         self.define_states(
-            ss.State('symptomatic'),  # Symptomatic
+            ss.BoolState('symptomatic'),  # Symptomatic
             ss.FloatArr('ti_symptomatic'),  # Time of active symptoms
-            ss.State('seeking_care'),  # Care seeking
+            ss.BoolState('seeking_care'),  # Care seeking
             ss.FloatArr('ti_seeks_care'),  # Time of active symptoms
         )
         self._prev_dist = ss.bernoulli(p=0)

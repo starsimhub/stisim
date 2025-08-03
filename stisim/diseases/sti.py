@@ -312,12 +312,12 @@ class SEIS(BaseSTI):
 
         self.define_states(
             # Natural history
-            ss.State('exposed'),
-            ss.State('infected'),
-            ss.State('asymptomatic'),
-            ss.State('symptomatic'),
-            ss.State('pid'),
-            ss.State('seeking_care'),
+            ss.BoolState('exposed'),
+            ss.BoolState('infected'),
+            ss.BoolState('asymptomatic'),
+            ss.BoolState('symptomatic'),
+            ss.BoolState('pid'),
+            ss.BoolState('seeking_care'),
             ss.FloatArr('dur_inf'),
             ss.FloatArr('ti_exposed'),
             ss.FloatArr('ti_symptomatic'),

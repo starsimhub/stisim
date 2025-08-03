@@ -52,11 +52,11 @@ class SimpleBV(ss.Disease):
 
         # States that elevate risk of BV
         self.define_states(
-            ss.State('susceptible', default=True, label='Susceptible'),
-            ss.State('bv_prone', label='Prone to BV', default=ss.bernoulli(p=0.5)),  # Percentage of women "prone" to BV
-            ss.State('infected', label='Infected'),
-            ss.State('asymptomatic', label='Asymptomatic'),
-            ss.State('symptomatic', label='Symptomatic'),
+            ss.BoolState('susceptible', default=True, label='Susceptible'),
+            ss.BoolState('bv_prone', label='Prone to BV', default=ss.bernoulli(p=0.5)),  # Percentage of women "prone" to BV
+            ss.BoolState('infected', label='Infected'),
+            ss.BoolState('asymptomatic', label='Asymptomatic'),
+            ss.BoolState('symptomatic', label='Symptomatic'),
             ss.FloatArr('rel_sus', default=1.0, label='Relative susceptibility'),
             ss.FloatArr('rel_trans', default=1.0, label='Relative transmissibility'),  # NOT USED
             ss.FloatArr('ti_seeks_care', label='Time of care seeking'),
@@ -368,8 +368,8 @@ class BV(BaseSTI):
 
         # Define states
         self.define_states(
-            ss.State("asymptomatic", default=False, label="Asymptomatic"),
-            ss.State("symptomatic", default=False, label="Symptomatic"),
+            ss.BoolState("asymptomatic", default=False, label="Asymptomatic"),
+            ss.BoolState("symptomatic", default=False, label="Symptomatic"),
             ss.FloatArr("ti_cst_change", label="Time of CST change"),
             ss.FloatArr("ti_symptomatic", label="Time of clearance"),
             ss.FloatArr("ti_clearance", label="Time of clearance"),
