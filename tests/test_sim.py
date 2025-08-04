@@ -1,14 +1,13 @@
 """
 Simple sim tests
 """
-
-# Imports
 import sciris as sc
 import starsim as ss
 import stisim as sti
 import pandas as pd
 import numpy as np
 
+debug = False # Run in serial
 
 def test_hiv_sim(n_agents=500):
     sc.heading('Test simplest possible HIV sim ')
@@ -112,7 +111,7 @@ def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
 
     s0 = ss.Sim(**sim_args, interventions=intvs)
     s1 = ss.Sim(**sim_args, interventions=intvs + [menstrual_hygiene(start=ss.date(2020), new_val=0.1)])
-    ss.parallel(s0, s1, debug=False)
+    ss.parallel(s0, s1, debug=debug)
     return s0, s1
 
 
