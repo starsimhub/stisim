@@ -11,10 +11,6 @@ import numpy as np
 import pylab as pl
 
 
-def ret(*values):
-    return values if __name__ == 'main' else None
-
-
 def test_hiv_sim(n_agents=500):
     sc.heading('Test simplest possible HIV sim ')
 
@@ -43,7 +39,7 @@ def test_hiv_sim(n_agents=500):
     )
     sim.run(verbose=1/12)
 
-    return ret(sim)
+    return sim
 
 
 def test_msm_hiv(n_agents=500):
@@ -62,7 +58,7 @@ def test_msm_hiv(n_agents=500):
     )
     sim.run(verbose=1/12)
 
-    return ret(sim)
+    return sim
 
 
 def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
@@ -118,7 +114,7 @@ def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
     s0 = ss.Sim(**sim_args, interventions=intvs)
     s1 = ss.Sim(**sim_args, interventions=intvs + [menstrual_hygiene(start=2020, new_val=0.1)])
     ss.parallel(s0, s1)
-    return ret([s0, s1])
+    return s0, s1
 
 
 def test_stis(which='discharging', n_agents=5e3, start=2010, stop=2020):
@@ -151,7 +147,7 @@ def test_stis(which='discharging', n_agents=5e3, start=2010, stop=2020):
 
     sim.run(verbose=1/12)
 
-    return ret(sim)
+    return sim
 
 
 def test_sim_creation():

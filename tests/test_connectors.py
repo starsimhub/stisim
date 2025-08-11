@@ -17,8 +17,6 @@ from stisim import coinfection_stats
 
 np.seterr(all='raise')
 
-def ret(*values):
-    return values if __name__ == '__main__' else None
 
 def test_hiv_syph():
 
@@ -47,7 +45,7 @@ def test_hiv_syph():
     assert r0 <= r1, f'The hiv-syph connector should increase HIV infections, but {r1}<{r0}'
     print(f'✓ ({r0} <= {r1})')
 
-    return ret(s0, s1)
+    return s0, s1
 
 
 # %% Run as a script

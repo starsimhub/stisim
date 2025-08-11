@@ -6,8 +6,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sciris as sc
 
-def ret(*values):
-    return values if __name__ == 'main' else None
 
 class TrackValues(ss.Analyzer):
     # Track outputs for viral load and CD4 counts
@@ -180,7 +178,7 @@ def test_hiv():
 
     sim = ss.Sim(pars, copy_inputs=False).run()
     fig = output.plot(agents)
-    return ret(sim)
+    return sim
 
 
 def test_hiv_syph():
@@ -216,7 +214,7 @@ def test_hiv_syph():
 
     fig = output.plot(agents)
 
-    return ret(sim)
+    return sim
 
 
 if __name__ == '__main__':

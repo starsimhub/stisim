@@ -16,8 +16,6 @@ n_agents = 2e3
 debug = True  # If True, this will do smaller runs that can be run locally for debugging
 do_save = True
 
-def ret(*values):
-    return values if __name__ == 'main' else None
 
 def make_sim():
 
@@ -107,7 +105,7 @@ def run_calib(calib_pars=None):
     sc.printcyan('\nShrinking calibration...')
     cal = calib.shrink()
 
-    return ret(sim, calib, cal)
+    return sim, calib, cal
 
 
 #%% Run as a script
