@@ -8,7 +8,8 @@ Includes:
 import numpy as np
 import starsim as ss
 import sciris as sc
-from stisim.diseases.sti import BaseSTI
+import stisim
+from stisim.diseases.sti import BaseSTI, BaseSTIPars
 import stisim.utils as ut
 
 __all__ = ['SimpleBV', 'BV']
@@ -285,77 +286,87 @@ class SimpleBV(ss.Disease):
         return
 
 
+class BVPars(BaseSTIPars):
+    """  Parameters for the BV model """
+    def __init__(self, **kwargs):
+        super().__init__()
+
+        # Transmission
+        self.sexual_transmission = False  # Flag for model to know if we are doing sexual transmission of BV microbes
+        self.eff_condom = 0.45  # Condom effectiveness in reducing BV risk https://journals.lww.com/epidem/Fulltext/2007/11000/Condom_Use_and_its_Association_With_Bacterial.9.aspx
+        self.p_symp = sc.objdict(  # Probability of symptomatic BV for women given stable CST state
+            stable_cst1=ss.bernoulli(p=0.8),
+            stable_cst3=ss.bernoulli(p=0.7),
+            stable_cst4=ss.bernoulli(p=0.1),
+        )
+        self.init_prev = ss.bernoulli(
+            p=0.23
+        )  # Initial prevalence of BV (https://www.who.int/news-room/fact-sheets/detail/bacterial-vaginosis)
+        self.stable_cst_distribution = ss.choice(
+            [1, 3, 4], p=[0.10, 0.30, 0.60]
+        )  # Distribution of stable CST states https://microbiomejournal.biomedcentral.com/articles/10.1186/s40168-021-01096-9
+        self.dur2clear = sc.objdict(  # Time until transitioning back to stable CST state
+            cst3=ss.uniform(ss.dur(1, "week"), ss.dur(18, "week")),  #
+            cst4=ss.uniform(
+                ss.dur(5, "week"), ss.dur(50, "week")
+            ),  # Natural clearance https://www.sciencedirect.com/science/article/abs/pii/S0002937803010421?via%3Dihub
+            male=ss.uniform(ss.dur(1, "week"), ss.dur(18, "week")),
+        )
+        self.spontaneous_clearance = sc.objdict(  # Where to transition to after spontaneous clearance
+            stable_cst1=1,  # https://pmc.ncbi.nlm.nih.gov/articles/PMC9387550/
+            stable_cst3=3,  # https://pmc.ncbi.nlm.nih.gov/articles/PMC9387550/
+            stable_cst4=3,  # https://pmc.ncbi.nlm.nih.gov/articles/PMC9387550/
+        )
+        self.dur_presymp = ss.uniform(ss.dur(1, "week"), ss.dur(2, "week"))
+        self.p_spontaneous = ss.bernoulli(
+            p=0.1
+        )  # Placeholder for probability of spontaneous transition to worse CST state (overwritten)
+        self.rr_stable_cst1=0.1  # Relative risk of CST transition for those in stable CST 1
+        self.rr_stable_cst3 = 1  # Relative risk of CST transition for those in stable CST 3 (reference)
+        self.rr_stable_cst4 = 2  # Relative risk of CST transition for those in stable CST 4
+        self.p_cst_change = sc.objdict(
+            cst1=0.1,  # Probability of transition from CST 1 to CST 3
+            cst3=0.05,  # Probability of transition from CST 3 to CST 4
+        )
+        # Share of population douching
+        #   - Nigeria (https://www.sciencedirect.com/science/article/abs/pii/S1083318820302400)
+        #   - Ghana (https://pmc.ncbi.nlm.nih.gov/articles/PMC6368746/)
+        # adjust OR for age (OR, 0.2; 95% CI = 0.063-0.603)
+        self.p_douching=ss.bernoulli(p=0.64)
+
+        # Share of population with poor menstrual hygiene https://pmc.ncbi.nlm.nih.gov/articles/PMC9817285/
+        # adjust for ubanicity (OR, 0.33 CI = 0.25, 0.43) and SES (OR 0.46, CI = (0.30, 0.70))
+        self.p_poor_menstrual_hygiene = ss.bernoulli(p=0.55)
+
+        self.n_partners = ss.poisson(lam=0.05)  # Number of current partners
+        self.count_partners = False  # Count current partners from sexual network to determine concurrency
+
+        # Relative risks
+        self.rr_douching = 1.21  # Douching CI = 1.08, 1.38 https://pmc.ncbi.nlm.nih.gov/articles/PMC2574994/
+        self.rr_poor_menstrual_hygiene = 4.1  # Poor menstrual hygiene - pulled from best GOF Kenya Calibration
+        self.rr_concurrency = 1.28  # Concurrent partners - https://pmc.ncbi.nlm.nih.gov/articles/PMC5429208/
+        self.p_circumcised = ss.bernoulli(0.4)  # Proportion of men who are circumcised
+        self.rr_uncircumcised = 4.0  # RR insertive sex with uncircumcised penis, from best GOF Kenya Calibration
+        self.or_ptb = {  # PTB https://www.frontiersin.org/journals/public-health/articles/10.3389/fpubh.2020.567885/full
+            1: 3,  # First trimester study on CST IV and sPTB: https://pmc.ncbi.nlm.nih.gov/articles/PMC8117784/
+            2: 2,
+            3: 1,
+        }
+        self.update(kwargs)
+        return
+
+
 class BV(BaseSTI):
 
     def __init__(self, pars=None, name="bv", **kwargs):
         super().__init__(name=name)
 
-        self.define_pars(
-            # Transmission
-            sexual_transmission=False,  # Flag for model to know if we are doing sexual transmission of BV microbes
-            beta=0,  # Placeholder, replaced by network-specific betas, by default no transmission
-            beta_m2f=None,
-            rel_beta_f2m=None,  # Assume this is going to be higher than beta_m2f
-            beta_m2c=None,
-            eff_condom=0.45,  # Condom effectiveness in reducing BV risk https://journals.lww.com/epidem/Fulltext/2007/11000/Condom_Use_and_its_Association_With_Bacterial.9.aspx
-            unit="month",
-            p_symp=sc.objdict(  # Probability of symptomatic BV for women given stable CST state
-                stable_cst1=ss.bernoulli(p=0.8),
-                stable_cst3=ss.bernoulli(p=0.7),
-                stable_cst4=ss.bernoulli(p=0.1),
-            ),
-            init_prev=ss.bernoulli(
-                p=0.23
-            ),  # Initial prevalence of BV (https://www.who.int/news-room/fact-sheets/detail/bacterial-vaginosis)
-            stable_cst_distribution=ss.choice(
-                [1, 3, 4], p=[0.10, 0.30, 0.60]
-            ),  # Distribution of stable CST states https://microbiomejournal.biomedcentral.com/articles/10.1186/s40168-021-01096-9
-            dur2clear=sc.objdict(  # Time until transitioning back to stable CST state
-                cst3=ss.uniform(ss.dur(1, "week"), ss.dur(18, "week")),  #
-                cst4=ss.uniform(
-                    ss.dur(5, "week"), ss.dur(50, "week")
-                ),  # Natural clearance https://www.sciencedirect.com/science/article/abs/pii/S0002937803010421?via%3Dihub
-                male=ss.uniform(ss.dur(1, "week"), ss.dur(18, "week")),
-            ),
-            spontaneous_clearance=sc.objdict(  # Where to transition to after spontaneous clearance
-                stable_cst1=1,  # https://pmc.ncbi.nlm.nih.gov/articles/PMC9387550/
-                stable_cst3=3,  # https://pmc.ncbi.nlm.nih.gov/articles/PMC9387550/
-                stable_cst4=3,  # https://pmc.ncbi.nlm.nih.gov/articles/PMC9387550/
-            ),
-            dur_presymp=ss.uniform(ss.dur(1, "week"), ss.dur(2, "week")),
-            p_spontaneous=ss.bernoulli(
-                p=0.1
-            ),  # Placeholder for probability of spontaneous transition to worse CST state (overwritten)
-            rr_stable_cst1=0.1,  # Relative risk of CST transition for those in stable CST 1
-            rr_stable_cst3=1,  # Relative risk of CST transition for those in stable CST 3 (reference)
-            rr_stable_cst4=2,  # Relative risk of CST transition for those in stable CST 4
-            p_cst_change=sc.objdict(
-                cst1=0.1,  # Probability of transition from CST 1 to CST 3
-                cst3=0.05,  # Probability of transition from CST 3 to CST 4
-            ),
-            p_douching=ss.bernoulli(
-                p=0.64
-            ),  # Share of population douching Nigeria (https://www.sciencedirect.com/science/article/abs/pii/S1083318820302400) Ghana (https://pmc.ncbi.nlm.nih.gov/articles/PMC6368746/)
-            # adjust OR for age (OR, 0.2; 95% CI = 0.063-0.603)
-            p_poor_menstrual_hygiene=ss.bernoulli(
-                p=0.55
-            ),  # Share of population with poor menstrual hygiene https://pmc.ncbi.nlm.nih.gov/articles/PMC9817285/
-            # adjust for ubanicity (OR, 0.33 CI = 0.25, 0.43) and SES (OR 0.46, CI = (0.30, 0.70))
-            n_partners=ss.poisson(lam=0.05),  # Number of current partners
-            count_partners=False,  # Count current partners from sexual network to determine concurrency
-            rr_douching=1.21,  # Relative risk of BV for those douching CI = 1.08, 1.38 https://pmc.ncbi.nlm.nih.gov/articles/PMC2574994/
-            rr_poor_menstrual_hygiene=4.1,  # Relative risk of BV for those with poor menstrual hygiene - pulled from best GOF Kenya Calibration
-            rr_concurrency=1.28,  # Relative risk of BV for those with multiple concurrent partners - https://pmc.ncbi.nlm.nih.gov/articles/PMC5429208/.
-            p_circumcised=ss.bernoulli(0.4),  # Proportion of men who are circumcised
-            rr_uncircumcised=4.0,  # Relative risk of BV for insertive sex with uncircumcised penis - pulled from best GOF Kenya Calibration
-            or_ptb={  # Having BV leads to 2-4x higher risk of PTB https://www.frontiersin.org/journals/public-health/articles/10.3389/fpubh.2020.567885/full
-                1: 3,  # First trimester study on CST IV and sPTB: https://pmc.ncbi.nlm.nih.gov/articles/PMC8117784/
-                2: 2,
-                3: 1,
-            },
-        )
+        # Handle parameters
+        default_pars = BVPars()
+        self.define_pars(**default_pars)
         self.update_pars(pars, **kwargs)
 
+        # Define states
         self.define_states(
             ss.State("asymptomatic", default=False, label="Asymptomatic"),
             ss.State("symptomatic", default=False, label="Symptomatic"),

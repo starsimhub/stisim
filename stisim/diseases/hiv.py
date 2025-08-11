@@ -6,59 +6,67 @@ import numpy as np
 import sciris as sc
 import starsim as ss
 import stisim as sti
-from stisim.diseases.sti import BaseSTI
+from stisim.diseases.sti import BaseSTI, BaseSTIPars
 
-__all__ = ['HIV']
+__all__ = ['HIV', 'HIVPars']
+
+
+class HIVPars(BaseSTIPars):
+    def __init__(self, **kwargs):
+        super().__init__()
+
+        # Natural history without treatment
+        self.cd4_start = ss.normal(loc=800, scale=50)
+        self.cd4_latent = ss.normal(loc=500, scale=50)
+        self.dur_acute = ss.lognorm_ex(ss.dur(3, 'month'), ss.dur(1, 'month'))  # Duration of acute HIV infection
+        self.dur_latent = ss.lognorm_ex(ss.years(10), ss.years(3))  # Duration of latent, untreated HIV infection
+        self.dur_falling = ss.lognorm_ex(ss.years(3), ss.years(1))  # Duration of late-stage HIV when CD4 counts fall
+        self.p_hiv_death = None  # Probability of death from HIV-related complications - default is to use HIV.death_prob(), otherwise can pass in a Dist or anything supported by ss.bernoulli)
+        self.include_aids_deaths = True
+
+        # Transmission
+        self.beta = 0  # Placeholder, replaced by network-specific betas
+        self.beta_m2f = None
+        self.rel_beta_f2m = 0.5
+        self.beta_m2c = ss.beta(0.025, 'month')  # Approx 0.2 over the course of the pregnany
+        self.rel_trans_acute = ss.normal(loc=6, scale=0.5)  # Increase transmissibility during acute HIV infection
+        self.rel_trans_falling = ss.normal(loc=8, scale=0.5)  # Increase transmissibility during late HIV infection
+        self.eff_condom = 0.9
+
+        # Initialization
+        self.init_prev = ss.bernoulli(p=0.05)
+        self.rel_init_prev = 1
+        self.init_diagnosed = ss.bernoulli(p=0)
+        self.dist_ti_init_infected = ss.uniform(low=-10 * 12, high=-5)
+        # dist_ti_init_infected=ss.constant(0),  # Experimented with negative values, but safer to use 0
+
+        # Care seeking
+        self.care_seeking = ss.normal(loc=1, scale=0.1)  # Distribution of relative care-seeking behavior
+        self.maternal_care_scale = 2  # Factor for scaling up care-seeking behavior during pregnancy
+
+        # Treatment effects
+        self.art_cd4_growth = 0.1  # Unitless parameter defining how CD4 reconstitutes after starting ART - used in a logistic growth function
+        self.art_efficacy = 0.96  # Efficacy of ART
+        self.time_to_art_efficacy = ss.dur(6, 'months')  # Time to reach full ART efficacy (in months) - linear increase in efficacy
+        self.art_cd4_pars = dict(cd4_max=1000, cd4_healthy=500)
+        self.dur_on_art = ss.lognorm_ex(ss.years(18), ss.years(5))
+        self.dur_post_art = None
+        self.dur_post_art_scale_factor = 0.1
+
+        self.update(kwargs)
+        return
 
 
 class HIV(BaseSTI):
 
     def __init__(self, pars=None, init_prev_data=None, **kwargs):
         super().__init__()
-        # self.requires = 'structuredsexual'
 
         # Parameters
-        self.define_pars(
-            # Natural history without treatment
-            cd4_start=ss.normal(loc=800, scale=50),
-            cd4_latent=ss.normal(loc=500, scale=50),
-            dur_acute=ss.lognorm_ex(ss.dur(3, 'month'), ss.dur(1, 'month')),  # Duration of acute HIV infection (months)
-            dur_latent=ss.lognorm_ex(ss.years(10), ss.years(3)),  # Duration of latent, untreated HIV infection
-            dur_falling=ss.lognorm_ex(ss.years(3), ss.years(1)),    # Duration of late-stage HIV when CD4 counts fall
-            p_hiv_death=None,  # Probability of death from HIV-related complications - default is to use HIV.death_prob(), otherwise can pass in a Dist or anything supported by ss.bernoulli)
-            include_aids_deaths=True,
-
-            # Transmission
-            beta=0,  # Placeholder, replaced by network-specific betas
-            beta_m2f=None,
-            rel_beta_f2m=0.5,
-            beta_m2c=ss.beta(0.025, 'month'),  # Approx 0.2 over the course of the pregnany
-            rel_trans_acute=ss.normal(loc=6, scale=0.5),  # Increase transmissibility during acute HIV infection
-            rel_trans_falling=ss.normal(loc=8, scale=0.5),  # Increase transmissibility during late HIV infection
-            eff_condom=0.9,
-
-            # Initialization
-            init_prev=ss.bernoulli(p=0.05),
-            rel_init_prev=1,
-            init_diagnosed=ss.bernoulli(p=0),
-            dist_ti_init_infected=ss.uniform(low=-10 * 12, high=-5),
-            # dist_ti_init_infected=ss.constant(0),  # Experimented with negative values, but safer to use 0
-
-            # Care seeking
-            care_seeking=ss.normal(loc=1, scale=0.1),  # Distribution of relative care-seeking behavior
-            maternal_care_scale=2,  # Factor for scaling up care-seeking behavior during pregnancy
-
-            # Treatment effects
-            art_cd4_growth=0.1,  # Unitless parameter defining how CD4 reconstitutes after starting ART - used in a logistic growth function
-            art_efficacy=0.96,  # Efficacy of ART
-            time_to_art_efficacy=ss.dur(6, 'months'),  # Time to reach full ART efficacy (in months) - linear increase in efficacy
-            art_cd4_pars=dict(cd4_max=1000, cd4_healthy=500),
-            dur_on_art=ss.lognorm_ex(ss.years(18), ss.years(5)),
-            dur_post_art=ss.normal(loc=self.dur_post_art_mean, scale=self.dur_post_art_scale),  # Note defined in years!
-            dur_post_art_scale_factor=0.1,
-        )
-
+        default_pars = HIVPars()
+        self.define_pars(**default_pars)
         self.update_pars(pars, **kwargs)
+        self.pars.dur_post_art = ss.normal(loc=self.dur_post_art_mean, scale=self.dur_post_art_scale)  # Note defined in years!
 
         # Set death probabilities from HIV-related illness. Note that AIDS deaths are captured separately
         if self.pars.p_hiv_death is None:
