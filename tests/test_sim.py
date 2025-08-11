@@ -11,10 +11,6 @@ import numpy as np
 import pylab as pl
 
 
-def ret(*values):
-    return values if __name__ == 'main' else None
-
-
 def test_hiv_sim(n_agents=500):
     sc.heading('Test simplest possible HIV sim ')
 
@@ -31,7 +27,7 @@ def test_hiv_sim(n_agents=500):
     testing = sti.HIVTest(test_prob_data=0.2, start=2000)
     art = sti.ART(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_art': np.linspace(0, 0.9, 21)}))
     vmmc = sti.VMMC(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_vmmc': np.linspace(0.025, 0.125, 21)}))
-    sim = ss.Sim(
+    sim = sti.Sim(
         dt=1/12,
         start=1990,
         dur=40,
@@ -43,15 +39,15 @@ def test_hiv_sim(n_agents=500):
     )
     sim.run(verbose=1/12)
 
-    return ret(sim)
+    return sim
 
 
 def test_msm_hiv(n_agents=500):
-    hiv = sti.HIV(beta={'msm': [0.1, 0.1]}, init_prev=0.05)
+    hiv = sti.HIV(beta_m2m=0.1, init_prev=0.05)
     pregnancy = ss.Pregnancy(fertility_rate=10)
     death = ss.Deaths(death_rate=10)
     msm = sti.AgeMatchedMSM()
-    sim = ss.Sim(
+    sim = sti.Sim(
         dt=1/12,
         start=1990,
         dur=10,
@@ -62,7 +58,7 @@ def test_msm_hiv(n_agents=500):
     )
     sim.run(verbose=1/12)
 
-    return ret(sim)
+    return sim
 
 
 def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
@@ -118,63 +114,153 @@ def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
     s0 = ss.Sim(**sim_args, interventions=intvs)
     s1 = ss.Sim(**sim_args, interventions=intvs + [menstrual_hygiene(start=2020, new_val=0.1)])
     ss.parallel(s0, s1)
-    return ret([s0, s1])
+    return s0, s1
 
 
 def test_stis(which='discharging', n_agents=5e3, start=2010, stop=2020):
     sc.heading('Test STI sim')
 
     if which == 'discharging':
-        ng = sti.Gonorrhea(beta_m2f=0.06, init_prev=0.02)
-        ct = sti.Chlamydia(beta_m2f=0.06, init_prev=0.05)
-        tv = sti.Trichomoniasis(beta_m2f=0.1, init_prev=0.1)
-        stis = [ng, ct, tv]
+        sti_pars = dict(
+            ng=dict(beta_m2f=0.06, init_prev=0.02),
+            ct=dict(beta_m2f=0.06, init_prev=0.05),
+            tv=dict(beta_m2f=0.1, init_prev=0.1),
+            bv=dict(),  # Bacterial vaginosis does not have a beta_m2f parameter
+        )
     elif which == 'ulcerative':
-        sy = sti.Syphilis(beta_m2f=0.1, init_prev=0.01)
-        gud = sti.GUDPlaceholder(prevalence=0.05)
-        stis = [sy, gud]
+        sti_pars = dict(
+            syph=dict(beta_m2f=0.1, init_prev=0.01),
+            gud=dict(prevalence=0.05),  # Placeholder for GUD
+        )
 
-    pregnancy = ss.Pregnancy(fertility_rate=10)
+    pregnancy = sti.Pregnancy(fertility_rate=10)
     death = ss.Deaths(death_rate=10)
-    sexual = sti.StructuredSexual()
 
-    sim = ss.Sim( 
-        dt=1/12,
+    sim = sti.Sim(
         n_agents=n_agents,
         start=start,
         stop=stop,
-        diseases=stis,
-        networks=sexual,
+        diseases=list(sti_pars.keys()),
+        sti_pars=sti_pars,
         demographics=[pregnancy, death],
     )
 
     sim.run(verbose=1/12)
 
-    return ret(sim)
+    return sim
+
+
+def test_sim_creation():
+    dt = 1
+    unit = 'year'
+    start = 2010
+    stop = 2020
+
+    pars = dict(
+        dt=dt,
+        unit=unit,
+        start=start,
+        stop=stop,
+    )
+
+    nw_pars = dict(debut=ss.lognorm_ex(20, 5))
+    sti_pars = dict(ng=dict(eff_condom=0.6))
+    datafolder = './test_data/'
+
+    # Test 1: default networks with custom pars, demographics from location string, and diseases from disease names with custom pars
+    sim1 = sti.Sim(
+        pars=pars,
+        nw_pars=nw_pars,
+        demographics='zimbabwe',
+        datafolder=datafolder,
+        diseases=['ng', 'ct', 'tv', 'bv', 'hiv'],
+        sti_pars=sti_pars,
+        connectors=True
+    )
+    # # Test 2: mix of strings and modules
+
+    sim1.init()
+
+    assert sim1.diseases.ng.pars.eff_condom == 0.6, "Disease parameter not set correctly"
+    assert len(sim1.diseases) == 5, "Incorrect number of diseases initialized"
+    assert len(sim1.connectors) > 0, "No connectors initialized"
+
+    demographics = [sti.Pregnancy(), ss.Deaths()]  # Replace the default ss.Pregnancy module with the sti one
+    networks = sti.StructuredSexual()
+    diseases = [sti.Gonorrhea(), 'hiv']
+
+    sim2 = sti.Sim(
+        pars=pars,
+        networks=networks,
+        demographics=demographics,
+        diseases=diseases,
+        connectors=True,
+    )
+
+    sim2.init()
+
+    assert isinstance(sim2.networks.structuredsexual, sti.StructuredSexual), "Network not initialized correctly"
+    assert len(sim2.diseases) == 2, "Incorrect number of diseases initialized"
+    assert len(sim2.connectors) > 0, "No connectors initialized"
+    assert len(sim2.demographics) == 2, "Incorrect number of demographics initialized"
+
+    # Test 3: flat pars dict
+    pars = dict(
+        start=2010,  # Sim par
+        beta_m2f=0.05,  # STI parameter applied to all STIs
+        prop_f0=0.45,
+        location='zimbabwe',
+        datafolder='./test_data/',
+        diseases=['ng', 'ct', 'tv'],
+        ng=dict(eff_condom=0.6),  # Gonorrhea-specific parameter
+    )
+
+    sim3 = sti.Sim(**pars)
+    sim3.init()
+
+    assert sim3.diseases.ng.pars.beta_m2f == pars['beta_m2f'], "Disease parameter not set correctly"
+    assert sim3.diseases.ct.pars.beta_m2f == pars['beta_m2f'], "Disease parameter not set correctly"
+    assert sim3.diseases.ng.pars.eff_condom == pars['ng']['eff_condom'], "Disease parameter not set correctly"
+    assert sim3.networks.structuredsexual.pars.prop_f0 == pars['prop_f0'], "Network parameter not set correctly"
+    assert len(sim3.networks) == 2, "Default networks not added"
+    assert len(sim3.diseases) == 3, "Incorrect number of diseases initialized"
+
+    return
+
+
+def test_location():
+    sc.heading('Test location-based sim creation')
+    sim1 = sti.Sim(location='zambia', start=2010, stop=2020)
+    sim1.init()
+    assert len(sim1.demographics) == 2, "Demographics not initialized"
+
+    return
 
 
 if __name__ == '__main__':
 
-    do_plot = True
+    do_plot = False
 
     s0 = test_hiv_sim()
     s1 = test_msm_hiv()
-    s2 = test_stis(which='discharging')
+    s2 = test_stis(which='ulcerative')
+    test_sim_creation()
+    test_location()
 
-    if do_plot:
-        s1.plot("ng")
-        pl.show()
-
-    sims = test_bv(include_hiv=True)
-    if do_plot:
-        import pylab as pl
-        r0 = sims[0].results.bv.prevalence
-        r1 = sims[1].results.bv.prevalence
-        t = sims[0].results.bv.timevec
-        pl.figure()
-        pl.plot(t, r0, label='Baseline')
-        pl.plot(t, r1, label='Improved menstrual hygiene')
-        # pl.axvline(x=2020, color='k', ls='--')
-        pl.title('BV prevalence')
-        pl.legend()
-        pl.show()
+    # if do_plot:
+    #     s1.plot("ng")
+    #     pl.show()
+    #
+    # sims = test_bv(include_hiv=True)
+    # if do_plot:
+    #     import pylab as pl
+    #     r0 = sims[0].results.bv.prevalence
+    #     r1 = sims[1].results.bv.prevalence
+    #     t = sims[0].results.bv.timevec
+    #     pl.figure()
+    #     pl.plot(t, r0, label='Baseline')
+    #     pl.plot(t, r1, label='Improved menstrual hygiene')
+    #     # pl.axvline(x=2020, color='k', ls='--')
+    #     pl.title('BV prevalence')
+    #     pl.legend()
+    #     pl.show()

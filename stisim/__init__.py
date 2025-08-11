@@ -8,6 +8,8 @@ from .interventions import *
 from .networks      import *
 from .utils         import *
 from .analyzers     import *
+from .parameters    import *
+from .sim           import *
 
 # Assign the root folder
 import sciris as sc
@@ -20,3 +22,4 @@ print(__license__)
 # Double-check key requirements -- should match setup.py
 sc.require(['starsim>=2.2.0', 'sciris>=3.1.6', 'pandas>=2.0.0', 'scipy', 'numba', 'networkx'], message=f'The following dependencies for STIsim {__version__} were not met: <MISSING>.')
 del sc # Don't keep this in the module
+

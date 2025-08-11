@@ -23,12 +23,104 @@ ss_float_ = ss.dtypes.float
 ss_int_ = ss.dtypes.int
 
 # Specify all externally visible functions this file defines; see also more definitions below
-__all__ = ['StructuredSexual', 'PriorPartners', 'AgeMatchedMSM', 'AgeApproxMSM']
+__all__ = ['NetworkPars', 'StructuredSexual', 'PriorPartners', 'AgeMatchedMSM', 'AgeApproxMSM']
 
 
 class NoPartnersFound(Exception):
     # Raise this exception if the matching algorithm wasn't able to match any partners
     pass
+
+
+class NetworkPars(ss.Pars):
+    def __init__(self, **kwargs):
+        super().__init__()
+
+        # Settings
+        self.recall_prior = False  # Whether to recall prior partners
+        self.n_risk_groups = 3  # Number of risk groups
+
+        self.f_age_group_bins = dict(  # For separating women into age groups: teens, young women, adult women
+            teens=(0, 20),
+            young=(20, 25),
+            adult=(25, np.inf),
+        )
+
+        # Age of sexual debut
+        self.debut = ss.lognorm_ex(20, 3)
+        self.debut_pars_f = [20, 3]
+        self.debut_pars_m = [21, 3]
+
+        # Risk groups
+        self.p_lo_risk = ss.bernoulli(p=0)
+        self.p_hi_risk = ss.bernoulli(p=0)
+        self.prop_f0 = 0.85
+        self.prop_m0 = 0.8
+        self.prop_f2 = 0.01
+        self.prop_m2 = 0.02
+
+        # Age difference preferences
+        self.age_diff_pars = dict(
+            teens=[(7, 3), (6, 3), (5, 1)],  # (mu,stdev) for levels 0, 1, 2
+            young=[(8, 3), (7, 3), (5, 2)],
+            adult=[(8, 3), (7, 3), (5, 2)],
+        )
+
+        # Concurrency preferences
+        self.concurrency_dist = ss.poisson(lam=1)
+        self.f0_conc = 0.0001
+        self.f1_conc = 0.01
+        self.f2_conc = 0.1
+        self.m0_conc = 0.0001
+        self.m1_conc = 0.2
+        self.m2_conc = 0.5
+
+        # Relationship initiation, stability, and duration
+        self.p_pair_form = ss.bernoulli(p=0.5)  # Probability of a (stable) pair forming between two matched people
+        self.match_dist = ss.bernoulli(p=0)  # Placeholder value replaced by risk-group stratified values below
+        self.p_matched_stable = [0.9, 0.5, 0]  # Probability of a stable pair forming between matched people (otherwise casual)
+        self.p_mismatched_casual = [0.5, 0.5, 0.5]  # Probability of a casual pair forming between mismatched people (otherwise instantanous)
+
+        # Durations of stable and casual relationships
+        self.stable_dur_pars = dict(
+            teens=[
+                # (mu,stdev) for levels 0, 1, 2
+                [ss.dur(100, 'year'),  ss.dur(1, 'year')],
+                [ss.dur(8, 'year'),  ss.dur(2, 'year')],
+                [ss.dur(1e-4, 'month'), ss.dur(1e-4, 'month')]
+            ],
+            young=[
+                [ss.dur(100, 'year'),  ss.dur(1, 'year')],
+                [ss.dur(10, 'year'),  ss.dur(3, 'year')],
+                [ss.dur(1e-4, 'month'), ss.dur(1e-4, 'month')]
+            ],
+            adult=[
+                [ss.dur(100, 'year'),  ss.dur(1, 'year')],
+                [ss.dur(12, 'year'),  ss.dur(3, 'year')],
+                [ss.dur(1e-4, 'month'), ss.dur(1e-4, 'month')]
+            ],
+        )
+        self.casual_dur_pars = dict(
+            teens=[[ss.dur(1, 'year'), ss.dur(3, 'year')]]*3,
+            young=[[ss.dur(1, 'year'), ss.dur(3, 'year')]]*3,
+            adult=[[ss.dur(1, 'year'), ss.dur(3, 'year')]]*3,
+        )
+
+        # Acts
+        self.acts = ss.lognorm_ex(ss.peryear(80), ss.peryear(30))  # Coital acts/year
+
+        # Sex work parameters
+        self.fsw_shares = ss.bernoulli(p=0.05)
+        self.client_shares = ss.bernoulli(p=0.12)
+        self.sw_seeking_rate = ss.rate(1, 'month')  # Monthly rate at which clients seek FSWs (1 new SW partner / month)
+        self.sw_seeking_dist=ss.bernoulli(p=0.5)  # Placeholder value replaced by dt-adjusted sw_seeking_rate
+        self.sw_beta = 1
+        self.sw_intensity = ss.random()  # At each time step, FSW may work with varying intensity
+
+        # Distributions derived from parameters above - don't adjust
+        self.age_diffs = ss.normal()
+        self.dur_dist = ss.lognorm_ex()
+        self.update(kwargs)
+        return
 
 
 class StructuredSexual(ss.SexualNetwork):
@@ -48,94 +140,10 @@ class StructuredSexual(ss.SexualNetwork):
 
         super().__init__(key_dict=key_dict, name=name)
 
-        self.define_pars(
-            # Settings - generally shouldn't be adjusted
-            unit='month',
-            recall_prior=False,  # Whether to remember prior relationships. If True, need to add a PriorPartners network
-            n_risk_groups=3,
-            f_age_group_bins=dict(  # For separating women into age groups: teens, young women, adult women
-                teens=(0, 20),
-                young=(20, 25),
-                adult=(25, np.inf),
-            ),
-
-            # Age of sexual debut
-            debut=ss.lognorm_ex(20, 3),
-            debut_pars_f=[20, 3],
-            debut_pars_m=[21, 3],
-
-            # Risk groups
-            p_lo_risk=ss.bernoulli(p=0),
-            p_hi_risk=ss.bernoulli(p=0),
-            prop_f0=0.85,
-            prop_m0=0.8,
-            prop_f2=0.01,
-            prop_m2=0.02,
-
-            # Age difference preferences
-            age_diff_pars=dict(
-                teens=[(7, 3), (6, 3), (5, 1)],  # (mu,stdev) for levels 0, 1, 2
-                young=[(8, 3), (7, 3), (5, 2)],
-                adult=[(8, 3), (7, 3), (5, 2)],
-            ),
-
-            # Concurrency preferences
-            concurrency_dist=ss.poisson(lam=1),
-            f0_conc=0.0001,
-            f1_conc=0.01,
-            f2_conc=0.1,
-            m0_conc=0.0001,
-            m1_conc=0.2,
-            m2_conc=0.5,
-
-            # Relationship initiation, stability, and duration
-            p_pair_form=ss.bernoulli(p=0.5),  # Probability of a (stable) pair forming between two matched people
-            match_dist=ss.bernoulli(p=0),  # Placeholder value replaced by risk-group stratified values below
-            p_matched_stable=[0.9, 0.5, 0],  # Probability of a stable pair forming between matched people (otherwise casual)
-            p_mismatched_casual=[0.5, 0.5, 0.5],  # Probability of a casual pair forming between mismatched people (otherwise instantanous)
-
-            # Durations of stable and casual relationships
-            stable_dur_pars=dict(
-                teens=[
-                    # (mu,stdev) for levels 0, 1, 2
-                    [ss.dur(100, 'year'),  ss.dur(1, 'year')],
-                    [ss.dur(8, 'year'),  ss.dur(2, 'year')],
-                    [ss.dur(1e-4, 'month'), ss.dur(1e-4, 'month')]
-                ],
-                young=[
-                    [ss.dur(100, 'year'),  ss.dur(1, 'year')],
-                    [ss.dur(10, 'year'),  ss.dur(3, 'year')],
-                    [ss.dur(1e-4, 'month'), ss.dur(1e-4, 'month')]
-                ],
-                adult=[
-                    [ss.dur(100, 'year'),  ss.dur(1, 'year')],
-                    [ss.dur(12, 'year'),  ss.dur(3, 'year')],
-                    [ss.dur(1e-4, 'month'), ss.dur(1e-4, 'month')]
-                ],
-            ),
-            casual_dur_pars=dict(
-                teens=[[ss.dur(1, 'year'), ss.dur(3, 'year')]]*3,
-                young=[[ss.dur(1, 'year'), ss.dur(3, 'year')]]*3,
-                adult=[[ss.dur(1, 'year'), ss.dur(3, 'year')]]*3,
-            ),
-
-            # Acts
-            acts=ss.lognorm_ex(ss.peryear(80), ss.peryear(30)),  # Coital acts/year
-
-            # Sex work parameters
-            fsw_shares=ss.bernoulli(p=0.05),
-            client_shares=ss.bernoulli(p=0.12),
-            sw_seeking_rate=ss.rate(1, 'month'),  # Monthly rate at which clients seek FSWs (1 new SW partner / month)
-            sw_seeking_dist=ss.bernoulli(p=0.5),  # Placeholder value replaced by dt-adjusted sw_seeking_rate
-            sw_beta=1,  
-            sw_intensity=ss.random(),  # At each time step, FSW may work with varying intensity
-
-            # Distributions derived from parameters above - don't adjust
-            age_diffs=ss.normal(),
-            dur_dist=ss.lognorm_ex(),
-        )
-
-        self.update_pars(pars=pars, **kwargs)
+        # Set parameters
+        default_pars = NetworkPars()
+        self.define_pars(**default_pars)
+        self.update_pars(pars, **kwargs)
 
         # Set condom use
         self.condom_data = None
