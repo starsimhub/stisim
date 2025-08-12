@@ -26,7 +26,6 @@ def test_hiv_sim(n_agents=500):
     art = sti.ART(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_art': np.linspace(0, 0.9, 21)}))
     vmmc = sti.VMMC(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_vmmc': np.linspace(0.025, 0.125, 21)}))
     sim = sti.Sim(
-        dt='month',
         start=1990,
         dur=40,
         n_agents=n_agents,
@@ -46,7 +45,6 @@ def test_msm_hiv(n_agents=500):
     death = ss.Deaths(death_rate=10)
     msm = sti.AgeMatchedMSM()
     sim = sti.Sim(
-        dt=1/12,  # TODO: figure out what to set this as to have a monthly step
         start=1990,
         dur=10,
         n_agents=n_agents,
@@ -235,7 +233,7 @@ def test_location():
 
 
 def test_time():
-    sim = sti.Sim(dt='month', diseases='hiv')
+    sim = sti.Sim(start=2010, diseases='hiv')
     sim.run()
     assert sim.pars.start == sim.t.yearvec[0], "Timevec seems incorrect"
     return sim
@@ -245,11 +243,11 @@ if __name__ == '__main__':
 
     do_plot = False
 
-    # s0 = test_hiv_sim()  # TODO: works but is dt correct?
-    # s1 = test_msm_hiv()  # TODO: works but is dt correct?
+    # s0 = test_hiv_sim()
+    s1 = test_msm_hiv()  # TODO: works but is dt correct?
     # s2 = test_bv()  # TODO: prints a warning, is this ok? What needs to be added?
     # s3 = test_stis(which='ulcerative')
     # test_sim_creation()  # FAILS
-    # test_location()  # FAILS 
-    s4 = test_time()
+    # test_location()  # FAILS
+    # s4 = test_time()
 
