@@ -241,11 +241,11 @@ if __name__ == '__main__':
 
     do_plot = False
 
-    # s0 = test_hiv_sim()
-    # s1 = test_msm_hiv()
-    # s2 = test_bv()
-    # s3 = test_stis(which='discharging')
-    test_sim_creation()  # FAILS
-    # test_location()  # FAILS
-    # s4 = test_time()
+    s0 = test_hiv_sim()
+    s1 = test_msm_hiv()
+    s2 = test_bv()
+    s3 = test_stis(which='discharging')
+    test_sim_creation()
+    test_location()
+    s4 = test_time()
 
