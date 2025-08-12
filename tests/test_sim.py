@@ -249,7 +249,7 @@ if __name__ == '__main__':
     # s1 = test_msm_hiv()  # TODO: works but is dt correct?
     # s2 = test_bv()  # TODO: prints a warning, is this ok? What needs to be added?
     # s3 = test_stis(which='ulcerative')
-    # test_sim_creation()
-    # test_location()
+    # test_sim_creation()  # FAILS
+    # test_location()  # FAILS 
     s4 = test_time()
 
