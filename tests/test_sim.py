@@ -57,7 +57,7 @@ def test_msm_hiv(n_agents=500):
     return sim
 
 
-def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
+def test_bv(include_hiv=False, n_agents=500):
 
     class menstrual_hygiene(ss.Intervention):
         def __init__(self, pars=None, **kwargs):
@@ -105,7 +105,7 @@ def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
         con += [sti.hiv_bv(hiv_module=hiv, bv_module=bv)]
 
     # Make sim
-    sim_args = dict(dt='month', start=ss.date(start), dur=ss.years(n_years), n_agents=n_agents, diseases=dis, networks=nets, demographics=dem, connectors=con)
+    sim_args = dict(start=2015, stop=2030, n_agents=n_agents, diseases=dis, networks=nets, demographics=dem, connectors=con)
 
     s0 = ss.Sim(**sim_args, interventions=intvs)
     s1 = ss.Sim(**sim_args, interventions=intvs + [menstrual_hygiene(start=ss.date(2020), new_val=0.1)])
@@ -147,13 +147,11 @@ def test_stis(which='discharging', n_agents=5e3, start=2010, stop=2020):
 
 
 def test_sim_creation():
-    dt = 'month'
 
     start = 2010
     stop = 2020
 
     pars = dict(
-        dt=dt,
         start=start,
         stop=stop,
     )
@@ -170,7 +168,7 @@ def test_sim_creation():
         datafolder=datafolder,
         diseases=['ng', 'ct', 'tv', 'bv', 'hiv'],
         sti_pars=sti_pars,
-        connectors=True
+        # connectors=True
     )
     # # Test 2: mix of strings and modules
 
@@ -189,7 +187,7 @@ def test_sim_creation():
         networks=networks,
         demographics=demographics,
         diseases=diseases,
-        connectors=True,
+        # connectors=True,
     )
 
     sim2.run()    # FAILS
@@ -244,10 +242,10 @@ if __name__ == '__main__':
     do_plot = False
 
     # s0 = test_hiv_sim()
-    s1 = test_msm_hiv()  # TODO: works but is dt correct?
-    # s2 = test_bv()  # TODO: prints a warning, is this ok? What needs to be added?
-    # s3 = test_stis(which='ulcerative')
-    # test_sim_creation()  # FAILS
+    # s1 = test_msm_hiv()
+    # s2 = test_bv()
+    # s3 = test_stis(which='discharging')
+    test_sim_creation()  # FAILS
     # test_location()  # FAILS
     # s4 = test_time()
 
