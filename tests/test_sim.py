@@ -26,7 +26,7 @@ def test_hiv_sim(n_agents=500):
     art = sti.ART(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_art': np.linspace(0, 0.9, 21)}))
     vmmc = sti.VMMC(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_vmmc': np.linspace(0.025, 0.125, 21)}))
     sim = sti.Sim(
-        dt=1/12,
+        dt='month',
         start=1990,
         dur=40,
         n_agents=n_agents,
@@ -149,7 +149,7 @@ def test_stis(which='discharging', n_agents=5e3, start=2010, stop=2020):
 
 
 def test_sim_creation():
-    dt = 'year'
+    dt = 'month'
 
     start = 2010
     stop = 2020
@@ -176,7 +176,7 @@ def test_sim_creation():
     )
     # # Test 2: mix of strings and modules
 
-    sim1.init()
+    sim1.run()  # FAILS
 
     assert sim1.diseases.ng.pars.eff_condom == 0.6, "Disease parameter not set correctly"
     assert len(sim1.diseases) == 5, "Incorrect number of diseases initialized"
@@ -194,7 +194,7 @@ def test_sim_creation():
         connectors=True,
     )
 
-    sim2.init()
+    sim2.run()    # FAILS
 
     assert isinstance(sim2.networks.structuredsexual, sti.StructuredSexual), "Network not initialized correctly"
     assert len(sim2.diseases) == 2, "Incorrect number of diseases initialized"
@@ -213,7 +213,7 @@ def test_sim_creation():
     )
 
     sim3 = sti.Sim(**pars)
-    sim3.init()
+    sim3.run()
 
     assert sim3.diseases.ng.pars.beta_m2f == pars['beta_m2f'], "Disease parameter not set correctly"
     assert sim3.diseases.ct.pars.beta_m2f == pars['beta_m2f'], "Disease parameter not set correctly"
@@ -228,7 +228,7 @@ def test_sim_creation():
 def test_location():
     sc.heading('Test location-based sim creation')
     sim1 = sti.Sim(location='zambia', start=2010, stop=2020)
-    sim1.init()
+    sim1.run()
     assert len(sim1.demographics) == 2, "Demographics not initialized"
 
     return
@@ -262,3 +262,4 @@ if __name__ == '__main__':
     #     pl.title('BV prevalence')
     #     pl.legend()
     #     pl.show()
+

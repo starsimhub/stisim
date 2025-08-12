@@ -124,7 +124,6 @@ class SyphPars(BaseSTIPars):
         self.update(kwargs)
 
 
-
 class Syphilis(BaseSTI):
 
     def __init__(self, pars=None, name='syphilis', init_prev_data=None, init_prev_latent_data=None, **kwargs):
