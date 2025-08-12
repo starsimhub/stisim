@@ -46,7 +46,7 @@ def test_msm_hiv(n_agents=500):
     death = ss.Deaths(death_rate=10)
     msm = sti.AgeMatchedMSM()
     sim = sti.Sim(
-        dt=1/12,
+        dt=1/12,  # TODO: figure out what to set this as to have a monthly step
         start=1990,
         dur=10,
         n_agents=n_agents,
@@ -234,32 +234,22 @@ def test_location():
     return
 
 
+def test_time():
+    sim = sti.Sim(dt='month', diseases='hiv')
+    sim.run()
+    assert sim.pars.start == sim.t.yearvec[0], "Timevec seems incorrect"
+    return sim
+
+
 if __name__ == '__main__':
 
     do_plot = False
 
-    s0 = test_hiv_sim()
-    s1 = test_msm_hiv()
-    s2 = test_bv()
-    s3 = test_stis(which='ulcerative')
-    test_sim_creation()
-    test_location()
-
-    # if do_plot:
-    #     s1.plot("ng")
-    #     pl.show()
-    #
-    # sims = test_bv(include_hiv=True)
-    # if do_plot:
-    #     import pylab as pl
-    #     r0 = sims[0].results.bv.prevalence
-    #     r1 = sims[1].results.bv.prevalence
-    #     t = sims[0].results.bv.timevec
-    #     pl.figure()
-    #     pl.plot(t, r0, label='Baseline')
-    #     pl.plot(t, r1, label='Improved menstrual hygiene')
-    #     # pl.axvline(x=2020, color='k', ls='--')
-    #     pl.title('BV prevalence')
-    #     pl.legend()
-    #     pl.show()
+    # s0 = test_hiv_sim()  # TODO: works but is dt correct?
+    # s1 = test_msm_hiv()  # TODO: works but is dt correct?
+    # s2 = test_bv()  # TODO: prints a warning, is this ok? What needs to be added?
+    # s3 = test_stis(which='ulcerative')
+    # test_sim_creation()
+    # test_location()
+    s4 = test_time()
 
