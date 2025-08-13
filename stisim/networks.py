@@ -108,6 +108,9 @@ class NetworkPars(ss.Pars):
         # Acts
         self.acts = ss.lognorm_ex(ss.peryear(80), ss.peryear(30))  # Coital acts/year
 
+        # Condoms
+        self.condom_data = None
+
         # Sex work parameters
         self.fsw_shares = ss.bernoulli(p=0.05)
         self.client_shares = ss.bernoulli(p=0.12)
@@ -145,9 +148,8 @@ class StructuredSexual(ss.SexualNetwork):
         self.update_pars(pars, **kwargs)
 
         # Set condom use
-        self.condom_data = None
-        if condom_data is not None:
-            self.condom_data = self.process_condom_data(condom_data)
+        if self.pars.condom_data is not None:
+            self.pars.condom_data = self.process_condom_data(self.pars.condom_data)
 
         self.edge_types = {'stable': 0, 'casual': 1, 'onetime': 2, 'sw': 3}
 
@@ -217,11 +219,11 @@ class StructuredSexual(ss.SexualNetwork):
                 raise ValueError(errormsg)
 
         # Process condom data
-        if self.condom_data is not None:
-            if isinstance(self.condom_data, dict):
+        if self.pars.condom_data is not None:
+            if isinstance(self.pars.condom_data, dict):
                 for rgtuple, valdict in self.condom_data.items():
                     yearvec = self.t.yearvec
-                    self.condom_data[rgtuple]['simvals'] = sc.smoothinterp(yearvec, valdict['year'], valdict['val'])
+                    self.pars.condom_data[rgtuple]['simvals'] = sc.smoothinterp(yearvec, valdict['year'], valdict['val'])
         return
 
     def init_post(self):
@@ -626,8 +628,8 @@ class StructuredSexual(ss.SexualNetwork):
 
     def set_condom_use(self):
         """ Set condom use """
-        if self.condom_data is not None:
-            if isinstance(self.condom_data, dict):
+        if self.pars.condom_data is not None:
+            if isinstance(self.pars.condom_data, dict):
                 for rgm in range(self.pars.n_risk_groups):
                     for rgf in range(self.pars.n_risk_groups):
                         risk_pairing = (self.risk_group[self.p1] == rgm) & (self.risk_group[self.p2] == rgf)
