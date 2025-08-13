@@ -10,9 +10,9 @@ class TrackValues(ss.Analyzer):
     # Assumes no births; for diagnostic/debugging purposes only
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.define_pars(
-            dt='month',
-        )
+        # self.define_pars(
+        #     dt='month',
+        # )
 
     def init_pre(self, sim):
         super().init_pre(sim)
@@ -169,16 +169,14 @@ def test_hiv():
     pars['n_agents'] = len(agents)
     pars['start'] = 2020
     pars['stop'] = 2040
-    pars['dt'] = 1 / 12
-    hiv = sti.HIV(init_prev=0, p_hiv_death=0, include_aids_deaths=False, beta={'structuredsexual': [0, 0], 'maternal': [0, 0]})
+    hiv = sti.HIV(init_prev=0, p_hiv_death=0, include_aids_deaths=False)
     pars['diseases'] = [hiv]
-    pars['networks'] = [sti.StructuredSexual(), ss.MaternalNet()]
     pars['demographics'] = [ss.Pregnancy(fertility_rate=0), ss.Deaths(death_rate=0)]
     pars['interventions'] = PerformTest(events)
     output = TrackValues()
     pars['analyzers'] = output
 
-    sim = ss.Sim(pars, copy_inputs=False).run()
+    sim = sti.Sim(pars).run()
     fig = output.plot(agents)
     return sim
 

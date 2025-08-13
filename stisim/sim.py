@@ -254,7 +254,7 @@ class Sim(ss.Sim):
         Look up a disease by its name and return the corresponding module.
         """
         disease_pars = self.pars['diseases']
-        if not disease_pars: # Handles e.g. ss.ndict()
+        if not disease_pars:  # Handles e.g. ss.ndict()
             disease_pars = []
         else:
             disease_pars = sc.tolist(disease_pars)  # Ensure it's a list

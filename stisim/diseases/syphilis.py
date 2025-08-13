@@ -126,7 +126,7 @@ class SyphPars(BaseSTIPars):
 
 class Syphilis(BaseSTI):
 
-    def __init__(self, pars=None, name='syphilis', init_prev_data=None, init_prev_latent_data=None, **kwargs):
+    def __init__(self, pars=None, name='syph', init_prev_data=None, init_prev_latent_data=None, **kwargs):
         super().__init__(name=name)
 
         # Define default parameters
