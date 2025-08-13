@@ -15,7 +15,7 @@ import pylab as pl
 from stisim import coinfection_stats
 
 # np.seterr(all='raise')
-debug = True
+debug = False
 
 
 def test_hiv_syph():
