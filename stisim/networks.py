@@ -636,8 +636,8 @@ class StructuredSexual(ss.SexualNetwork):
                         self.edges.condoms[risk_pairing] = self.pars.condom_data[(rgm, rgf)]['simvals'][self.ti]
                 self.edges.condoms[self.edges.sw] = self.pars.condom_data[('fsw','client')]['simvals'][self.ti]
 
-            elif sc.isnumber(self.condom_data):
-                self.edges.condoms[:] = self.condom_data
+            elif sc.isnumber(self.pars.condom_data):
+                self.edges.condoms[:] = self.pars.condom_data
 
             else:
                 raise Exception("Unknown condom data input type")

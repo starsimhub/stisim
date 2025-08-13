@@ -103,7 +103,13 @@ class ART(ss.Intervention):
         if hiv.on_art.any():
             stopping = hiv.on_art & (hiv.ti_stop_art <= self.ti)
             if stopping.any():
-                hiv.stop_art(stopping.uids)
+                try:
+                    hiv.stop_art(stopping.uids)
+                except:
+                    errormsg = f'Error stopping ART for {stopping.uids}'
+                    uids = stopping.uids
+                    hiv.stop_art(uids)
+                    raise ValueError(errormsg)
 
         # Next, see how many people we need to treat vs how many are already being treated
         on_art = hiv.on_art

@@ -50,7 +50,7 @@ class HIVPars(BaseSTIPars):
         self.time_to_art_efficacy = ss.months(6)  # Time to reach full ART efficacy (in months) - linear increase in efficacy
         self.art_cd4_pars = dict(cd4_max=1000, cd4_healthy=500)
         self.dur_on_art = ss.lognorm_ex(ss.years(18), ss.years(5))
-        self.dur_post_art = None
+        self.dur_post_art = ss.normal()  # Note defined in years!
         self.dur_post_art_scale_factor = 0.1
 
         self.update(kwargs)
@@ -66,7 +66,6 @@ class HIV(BaseSTI):
         default_pars = HIVPars()
         self.define_pars(**default_pars)
         self.update_pars(pars, **kwargs)
-        self.pars.dur_post_art = ss.normal(loc=self.dur_post_art_mean, scale=self.dur_post_art_scale)  # Note defined in years!
 
         # Set death probabilities from HIV-related illness. Note that AIDS deaths are captured separately
         if self.pars.p_hiv_death is None:
@@ -562,24 +561,24 @@ class HIV(BaseSTI):
 
         return
 
-    @staticmethod
-    def dur_post_art_fn(module, sim, uids):
-        hiv = sim.diseases.hiv
-        dur_mean = np.log(hiv.cd4_preart[uids])*hiv.cd4[uids]/hiv.cd4_potential[uids]
-        dur_scale = dur_mean * module.pars.dur_post_art_scale_factor
-        dur_mean = ss.years(dur_mean)
-        dur_scale = ss.years(np.maximum(dur_scale, 1e-3))  # Ensure it's not zero
-        return dur_mean, dur_scale
-
-    @staticmethod
-    def dur_post_art_mean(module, sim, uids):
-        mean, _ = module.dur_post_art_fn(module, sim, uids)
-        return mean
-
-    @staticmethod
-    def dur_post_art_scale(module, sim, uids):
-        _, scale = module.dur_post_art_fn(module, sim, uids)
-        return scale
+    # @staticmethod
+    # def dur_post_art_fn(module, sim, uids):
+    #     hiv = sim.diseases.hiv
+    #     dur_mean = np.log(hiv.cd4_preart[uids])*hiv.cd4[uids]/hiv.cd4_potential[uids]
+    #     dur_scale = dur_mean * module.pars.dur_post_art_scale_factor
+    #     dur_mean = ss.years(dur_mean)
+    #     dur_scale = ss.years(np.maximum(dur_scale, 1e-3))  # Ensure it's not zero
+    #     return dur_mean, dur_scale
+    #
+    # @staticmethod
+    # def dur_post_art_mean(module, sim, uids):
+    #     mean, _ = module.dur_post_art_fn(module, sim, uids)
+    #     return mean
+    #
+    # @staticmethod
+    # def dur_post_art_scale(module, sim, uids):
+    #     _, scale = module.dur_post_art_fn(module, sim, uids)
+    #     return scale
 
     def stop_art(self, uids=None):
         """
@@ -594,6 +593,11 @@ class HIV(BaseSTI):
         self.cd4_postart[uids] = sc.dcp(self.cd4[uids])
 
         # Set decline
+        dur_mean = np.log(self.cd4_preart[uids])*self.cd4[uids]/self.cd4_potential[uids]
+        dur_scale = dur_mean * self.pars.dur_post_art_scale_factor
+        dur_mean = ss.years(dur_mean)
+        dur_scale = ss.years(np.maximum(dur_scale, 1e-3))  # Ensure it's not zero
+        self.pars.dur_post_art.set(loc=dur_mean, scale=dur_scale)
         dur_post_art = self.pars.dur_post_art.rvs(uids)
         if np.isnan(dur_post_art).any():
             errormsg = 'Invalid entry for post-ART duration'
