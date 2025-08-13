@@ -633,8 +633,8 @@ class StructuredSexual(ss.SexualNetwork):
                 for rgm in range(self.pars.n_risk_groups):
                     for rgf in range(self.pars.n_risk_groups):
                         risk_pairing = (self.risk_group[self.p1] == rgm) & (self.risk_group[self.p2] == rgf)
-                        self.edges.condoms[risk_pairing] = self.condom_data[(rgm, rgf)]['simvals'][self.ti]
-                self.edges.condoms[self.edges.sw] = self.condom_data[('fsw','client')]['simvals'][self.ti]
+                        self.edges.condoms[risk_pairing] = self.pars.condom_data[(rgm, rgf)]['simvals'][self.ti]
+                self.edges.condoms[self.edges.sw] = self.pars.condom_data[('fsw','client')]['simvals'][self.ti]
 
             elif sc.isnumber(self.condom_data):
                 self.edges.condoms[:] = self.condom_data
