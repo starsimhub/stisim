@@ -13,15 +13,11 @@ def test_network_degrees():
     high_concurrency = sti.StructuredSexual(pars={'f0_conc': 0.001, 'f1_conc': 0.1, 'f2_conc': 0.2, 'm0_conc': 0.001, 'm1_conc': 0.4, 'm2_conc': 0.9})
     analyzer = sti.NetworkDegree(relationship_types=['partners', 'stable', 'casual'])
 
-    s1 = ss.Sim(networks=[network], analyzers=[analyzer])
-    s2 = ss.Sim(networks=[high_concurrency], analyzers=[analyzer])
+    s1 = sti.Sim(networks=[network], analyzers=[analyzer])
+    s2 = sti.Sim(networks=[high_concurrency], analyzers=[analyzer])
 
-    # ss.parallel(s1, s2)
-    s1.init()
-    # s2.init()
+    ss.parallel(s1, s2)
 
-    sc.profile(s1.run, [s1.networks.structuredsexual.add_pairs_nonsw, s1.networks.structuredsexual.add_pairs_sw])
-    s2.run()
     # Mean number of partners should increase in high concurrency case
     s1_mean_partners = np.mean(s1.analyzers.networkdegree.lifetime_partners_f + s1.analyzers.networkdegree.lifetime_partners_m)
     s2_mean_partners = np.mean(s2.analyzers.networkdegree.lifetime_partners_f + s2.analyzers.networkdegree.lifetime_partners_m)
@@ -29,14 +25,15 @@ def test_network_degrees():
     assert s2_mean_partners > s1_mean_partners, f"Mean partners in high concurrency ({s2.results.network_degree.mean_partners}) should be greater than in normal ({s1.results.network_degree.mean_partners})"
     print (f"Mean partners in high concurrency ({s2_mean_partners}) is greater than in normal ({s1_mean_partners})")
 
+
 def test_pair_formation():
     """
     The parameters p_matched_stable and p_matched_casual determine the probability of forming a stable and casual relationship.
     Check that higher values mean fewer lifetime partners, fewer stable partners, and fewer casual partners.
     """
 
-    s1 = ss.Sim(networks=[sti.StructuredSexual()], analyzers=[sti.NetworkDegree(relationship_types=['partners', 'stable', 'casual'])])
-    s2 = ss.Sim(networks=[sti.StructuredSexual(p_matched_stable=[0.99, 0.9, 0.9])],
+    s1 = sti.Sim(networks=[sti.StructuredSexual()], analyzers=[sti.NetworkDegree(relationship_types=['partners', 'stable', 'casual'])])
+    s2 = sti.Sim(networks=[sti.StructuredSexual(p_matched_stable=[0.99, 0.9, 0.9])],
                 analyzers=[sti.NetworkDegree(relationship_types=['partners', 'stable', 'casual'])])
 
     ss.parallel(s1, s2)
@@ -91,9 +88,8 @@ def test_relationship_duration():
     long_network = sti.StructuredSexual(pars={'stable_dur_pars': stable_dur_pars})
     analyzer = sti.RelationshipDurations()
 
-
-    s1 = ss.Sim(networks=[network], analyzers=[analyzer])
-    s2 = ss.Sim(networks=[long_network], analyzers=[analyzer])
+    s1 = sti.Sim(networks=[network], analyzers=[analyzer])
+    s2 = sti.Sim(networks=[long_network], analyzers=[analyzer])
 
     # Run the simulation
     ss.parallel(s1, s2)
@@ -116,13 +112,11 @@ def test_debut_age():
     late_debut_network = sti.StructuredSexual(pars={'debut_pars_f': [25, 3], 'debut_pars_m': [26, 3]})
     analyzer = sti.DebutAge()
 
-    s1 = ss.Sim(networks=[network], analyzers=[analyzer])
-    s2 = ss.Sim(networks=[late_debut_network], analyzers=[analyzer])
+    s1 = sti.Sim(networks=[network], analyzers=[analyzer])
+    s2 = sti.Sim(networks=[late_debut_network], analyzers=[analyzer])
 
     # Run the simulation
-    # s1.init()
-    s1.run()
-    s2.run()
+    ss.parallel(s1, s2)
 
     # all values in the debut age analyzer prop_active_f and prop_active_m should be greater in s1 than in s2
     assert np.all(s1.analyzers.debutage.prop_active_f[0] >= s2.analyzers.debutage.prop_active_f[0]), "Proportion of females active should be higher in default network than in late debut network at any given age"
