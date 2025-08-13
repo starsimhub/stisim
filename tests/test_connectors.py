@@ -31,7 +31,7 @@ def test_hiv_syph():
     pars = dict(analyzers=coinfection_analyzer, diseases=[hiv, syphilis])
     s0 = sti.Sim(pars)
 
-    pars['connectors'] = sti.hiv_syph(hiv, syphilis, rel_sus_hiv_syph=2, rel_trans_hiv_syph=2)
+    pars['connectors'] = sti.hiv_syph(hiv, syphilis, rel_sus_hiv_syph=20, rel_trans_hiv_syph=20)
     hiv, syphilis, coinfection_analyzer = make_args()
     pars = dict(analyzers=coinfection_analyzer, diseases=[hiv, syphilis])
     s1 = sti.Sim(pars)

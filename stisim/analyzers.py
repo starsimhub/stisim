@@ -63,6 +63,7 @@ class coinfection_stats(result_grouper):
         return
 
     def init_results(self):
+        super().init_results()
         results = [
             ss.Result(f'{self.disease1}_prev_no_{self.disease2}', dtype=float, scale=False),
             ss.Result(f'{self.disease1}_prev_has_{self.disease2}', dtype=float, scale=False),
