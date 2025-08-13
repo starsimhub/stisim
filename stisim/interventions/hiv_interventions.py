@@ -107,8 +107,6 @@ class ART(ss.Intervention):
                     hiv.stop_art(stopping.uids)
                 except:
                     errormsg = f'Error stopping ART for {stopping.uids}'
-                    uids = stopping.uids
-                    hiv.stop_art(uids)
                     raise ValueError(errormsg)
 
         # Next, see how many people we need to treat vs how many are already being treated
