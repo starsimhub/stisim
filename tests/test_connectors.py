@@ -15,34 +15,34 @@ import pylab as pl
 from stisim import coinfection_stats
 
 # np.seterr(all='raise')
+debug = True
 
 
 def test_hiv_syph():
 
     # Make diseases
-    hiv = sti.HIV(init_prev=0.1, beta={'structuredsexual': [0.01, 0.01]})
-    syphilis = sti.SyphilisPlaceholder(prevalence=0.9)
-    coinfection_analyzer = coinfection_stats(disease1=syphilis, disease2='hiv', disease1_infected_state_name='active')
+    def make_args():
+        hiv = sti.HIV(init_prev=0.1, beta_m2f=0.05)
+        syphilis = sti.SyphilisPlaceholder(prevalence=0.9)
+        coinfection_analyzer = coinfection_stats(disease1=syphilis, disease2='hiv', disease1_infected_state_name='active')
+        return hiv, syphilis, coinfection_analyzer
 
-    pars = dict(
-        start=2000,
-        stop=2020,
-        dt=1/12,
-        verbose=1/12,
-        n_agents=1000,
-        analyzers=[coinfection_analyzer],
-        networks=sti.StructuredSexual(),
-        diseases=[hiv, syphilis]
-    )
-    s0 = ss.Sim(pars).run()
-    r0 = s0.results.hiv.cum_infections[-1]
+    hiv, syphilis, coinfection_analyzer = make_args()
+    pars = dict(analyzers=coinfection_analyzer, diseases=[hiv, syphilis])
+    s0 = sti.Sim(pars)
 
     pars['connectors'] = sti.hiv_syph(hiv, syphilis, rel_sus_hiv_syph=2, rel_trans_hiv_syph=2)
-    s1 = ss.Sim(pars).run()
+    hiv, syphilis, coinfection_analyzer = make_args()
+    pars = dict(analyzers=coinfection_analyzer, diseases=[hiv, syphilis])
+    s1 = sti.Sim(pars)
+
+    ss.parallel(s0, s1, debug=debug)
+
+    r0 = s0.results.hiv.cum_infections[-1]
     r1 = s1.results.hiv.cum_infections[-1]
 
     assert r0 <= r1, f'The hiv-syph connector should increase HIV infections, but {r1}<{r0}'
-    print(f'✓ ({r0} <= {r1})')
+    print(f'✓ hiv-syph connector increased HIV infections ({r0} <= {r1})')
 
     return s0, s1
 
