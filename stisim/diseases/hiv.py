@@ -163,7 +163,7 @@ class HIV(BaseSTI):
 
     def init_post(self):
         """ Set states """
-        ss.Module.init_post(self) # Skip the disease init_post() since we create infections in a different way
+        ss.Module.init_post(self)  # Skip the disease init_post() since we create infections in a different way
         # Set initial CD4
         self.init_cd4()
         self.init_care_seeking()
@@ -432,7 +432,7 @@ class HIV(BaseSTI):
             timesteps_on_art = ti - self.ti_art[art_uids]
             new_on_art = timesteps_on_art < time_to_full_eff/self.dt
             efficacy_to_date = np.full_like(art_uids, fill_value=full_eff, dtype=float)
-            efficacy_to_date[new_on_art] = timesteps_on_art[new_on_art]*full_eff/time_to_full_eff
+            efficacy_to_date[new_on_art] = timesteps_on_art[new_on_art]*full_eff/time_to_full_eff.value
             self.rel_trans[art_uids] *= 1 - efficacy_to_date
 
         return
