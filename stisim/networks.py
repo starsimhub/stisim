@@ -221,7 +221,7 @@ class StructuredSexual(ss.SexualNetwork):
         # Process condom data
         if self.pars.condom_data is not None:
             if isinstance(self.pars.condom_data, dict):
-                for rgtuple, valdict in self.condom_data.items():
+                for rgtuple, valdict in self.pars.condom_data.items():
                     yearvec = self.t.yearvec
                     self.pars.condom_data[rgtuple]['simvals'] = sc.smoothinterp(yearvec, valdict['year'], valdict['val'])
         return
