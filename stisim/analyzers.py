@@ -145,7 +145,7 @@ class sw_stats(result_grouper):
                 client = nw.client & adult
                 non_fsw = sim.people.female & ~nw.fsw & adult
                 non_client = sim.people.male & ~nw.client & adult
-                newly_infected = (dis.ti_exposed == ti) & adult
+                newly_infected = (dis.ti_infected == ti) & adult
                 new_trans = dis.ti_transmitted_sex == ti
                 total_acq = len(newly_infected.uids)
 
