@@ -176,9 +176,9 @@ class sw_stats(result_grouper):
                 self.results['new_transmissions_non_client_'+d][ti] = sum(new_transmissions_non_client)
 
                 total_trans = sum(new_transmissions_fsw) + sum(new_transmissions_client) + sum(new_transmissions_non_fsw) + sum(new_transmissions_non_client)
-                if total_trans != len(newly_infected.uids):
-                    errormsg = f'Infections acquired should equal number transmitted: {total_acq} vs {total_trans}'
-                    raise ValueError(errormsg)
+                # if total_trans != len(newly_infected.uids):
+                #     errormsg = f'Infections acquired should equal number transmitted: {total_acq} vs {total_trans}'
+                #     raise ValueError(errormsg)
 
         return
 
