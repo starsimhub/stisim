@@ -145,7 +145,7 @@ class sw_stats(result_grouper):
                 client = nw.client & adult
                 non_fsw = sim.people.female & ~nw.fsw & adult
                 non_client = sim.people.male & ~nw.client & adult
-                if dis == 'hiv':
+                if d == 'hiv':
                     newly_infected = (dis.ti_infected == ti) & adult
                 else:
                     newly_infected = (dis.ti_exposed == ti) & adult
