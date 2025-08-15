@@ -10,9 +10,7 @@ class TrackValues(ss.Analyzer):
     # Assumes no births; for diagnostic/debugging purposes only
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # self.define_pars(
-        #     dt='month',
-        # )
+        return
 
     def init_pre(self, sim):
         super().init_pre(sim)
@@ -34,7 +32,7 @@ class TrackValues(ss.Analyzer):
 
     @property
     def has_syph(self):
-        return isinstance(self.sim.diseases.get('syphilis'), sti.Syphilis)
+        return isinstance(self.sim.diseases.get('syph'), sti.Syphilis)
 
     def step(self):
         ti = self.ti
@@ -177,7 +175,7 @@ def test_hiv():
     pars['analyzers'] = output
 
     sim = sti.Sim(pars).run()
-    fig = output.plot(agents)
+    sim.analyzers.trackvalues.plot(agents)
     return sim
 
 
@@ -212,7 +210,7 @@ def test_hiv_syph():
 
     sim = ss.Sim(pars, copy_inputs=False).run()
 
-    fig = output.plot(agents)
+    sim.analyzers.trackvalues.plot(agents)
 
     return sim
 
