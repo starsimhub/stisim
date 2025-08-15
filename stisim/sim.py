@@ -327,7 +327,7 @@ class Sim(ss.Sim):
         #     # sort the diseases and then get all combinations of their pairs
         #     disease_pairs = combinations(parsed_diseases, 2)
         #
-        #     # TODO: this does not quite work as intended because the ordering matters... 
+        #     # TODO: this does not quite work as intended because the ordering matters...
         #     for (d1, d2) in disease_pairs:
         #         try:
         #             connector = getattr(sti, f'{d1}_{d2}')
