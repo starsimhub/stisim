@@ -190,7 +190,7 @@ def test_sim_creation():
         # connectors=True,
     )
 
-    sim2.init()    # FAILS
+    sim2.init()
 
     assert isinstance(sim2.networks.structuredsexual, sti.StructuredSexual), "Network not initialized correctly"
     assert len(sim2.diseases) == 2, "Incorrect number of diseases initialized"

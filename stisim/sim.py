@@ -161,8 +161,8 @@ class Sim(ss.Sim):
         """
         # Process the STIs
         self.pars['diseases'] = self.process_stis()
-        # connectors = self.process_connectors()
-        # self.pars['connectors'] += connectors
+        connectors = self.process_connectors()
+        self.pars['connectors'] += connectors
 
         # Process the network
         self.pars['networks'] = self.process_networks()
@@ -308,28 +308,35 @@ class Sim(ss.Sim):
         add_connectors = False
 
         if isinstance(self.pars.connectors, bool) and self.pars.connectors:
-            self.pars['connectors'] = ss.ndict()  # Reset
-            add_connectors = True
+            errormsg = ('STIsim does not currently support automatically adding connectors. This feature'
+                        ' will be added in a future release. For the time being, please add connectors '
+                        'manually, e.g. by passing sti.hiv_syph(hiv, syphilis) to the sim.')
+            raise NotImplementedError(errormsg)
 
-        if add_connectors:
-            for disease in self.pars['diseases']:
-                if isinstance(disease, str):
-                    parsed_diseases.append(disease.lower())
-                if isinstance(disease, ss.Module):
-                    parsed_diseases.append(disease.name.lower())
-
-            # sort the diseases and then get all combinations of their pairs
-            disease_pairs = combinations(parsed_diseases, 2)
-
-            for (d1, d2) in disease_pairs:
-                try:
-                    connector = getattr(sti, f'{d1}_{d2}')
-                except:
-                    try:
-                        connector = getattr(sti, f'{d2}_{d1}')
-                    except:
-                        continue
-                connectors.append(connector(d1, d2))
+            # TODO: The remaining code will be re-enabled once debugged
+        #     self.pars['connectors'] = ss.ndict()  # Reset
+        #     add_connectors = True
+        #
+        # if add_connectors:
+        #     for disease in self.pars['diseases']:
+        #         if isinstance(disease, str):
+        #             parsed_diseases.append(disease.lower())
+        #         if isinstance(disease, ss.Module):
+        #             parsed_diseases.append(disease.name.lower())
+        #
+        #     # sort the diseases and then get all combinations of their pairs
+        #     disease_pairs = combinations(parsed_diseases, 2)
+        #
+        #     # TODO: this does not quite work as intended because the ordering matters... 
+        #     for (d1, d2) in disease_pairs:
+        #         try:
+        #             connector = getattr(sti, f'{d1}_{d2}')
+        #         except:
+        #             try:
+        #                 connector = getattr(sti, f'{d2}_{d1}')
+        #             except:
+        #                 continue
+        #         connectors.append(connector(d1, d2))
         return connectors
 
     def case_insensitive_getattr(self, searchspace, attrname):
