@@ -161,8 +161,8 @@ class Sim(ss.Sim):
         """
         # Process the STIs
         self.pars['diseases'] = self.process_stis()
-        connectors = self.process_connectors()
-        self.pars['connectors'] += connectors
+        # connectors = self.process_connectors()
+        # self.pars['connectors'] += connectors
 
         # Process the network
         self.pars['networks'] = self.process_networks()
@@ -239,6 +239,7 @@ class Sim(ss.Sim):
             # Load age data and create people
             age_data = stidata.get_age_distribution(location, year=self.pars.start, datafolder=self.datafolder)
             total_pop = int(age_data.value.sum())
+            age_data['value'] /= sum(age_data['value'])  # Normalize the age distribution
             people = ss.People(self.pars.n_agents, age_data=age_data)
 
         else:
@@ -253,7 +254,7 @@ class Sim(ss.Sim):
         Look up a disease by its name and return the corresponding module.
         """
         disease_pars = self.pars['diseases']
-        if not disease_pars: # Handles e.g. ss.ndict()
+        if not disease_pars:  # Handles e.g. ss.ndict()
             disease_pars = []
         else:
             disease_pars = sc.tolist(disease_pars)  # Ensure it's a list
