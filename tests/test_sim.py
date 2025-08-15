@@ -7,7 +7,8 @@ import stisim as sti
 import pandas as pd
 import numpy as np
 
-debug = False # Run in serial
+debug = False  # Run in serial
+
 
 def test_hiv_sim(n_agents=500):
     sc.heading('Test simplest possible HIV sim ')
@@ -170,14 +171,13 @@ def test_sim_creation():
         sti_pars=sti_pars,
         # connectors=True
     )
-    # # Test 2: mix of strings and modules
-
-    sim1.run()  # FAILS
+    sim1.init()
 
     assert sim1.diseases.ng.pars.eff_condom == 0.6, "Disease parameter not set correctly"
     assert len(sim1.diseases) == 5, "Incorrect number of diseases initialized"
     # assert len(sim1.connectors) > 0, "No connectors initialized"
 
+    # Test 2: mix of strings and modules
     demographics = [sti.Pregnancy(), ss.Deaths()]  # Replace the default ss.Pregnancy module with the sti one
     networks = sti.StructuredSexual()
     diseases = [sti.Gonorrhea(), 'hiv']
@@ -190,7 +190,7 @@ def test_sim_creation():
         # connectors=True,
     )
 
-    sim2.run()    # FAILS
+    sim2.init()    # FAILS
 
     assert isinstance(sim2.networks.structuredsexual, sti.StructuredSexual), "Network not initialized correctly"
     assert len(sim2.diseases) == 2, "Incorrect number of diseases initialized"
@@ -209,7 +209,7 @@ def test_sim_creation():
     )
 
     sim3 = sti.Sim(**pars)
-    sim3.run()
+    sim3.init()
 
     assert sim3.diseases.ng.pars.beta_m2f == pars['beta_m2f'], "Disease parameter not set correctly"
     assert sim3.diseases.ct.pars.beta_m2f == pars['beta_m2f'], "Disease parameter not set correctly"
@@ -221,7 +221,10 @@ def test_sim_creation():
     return
 
 
-def test_location():
+def devtest_location():
+    """
+    Won't currently run on GH actions, but can run locally to check authentication key
+    """
     sc.heading('Test location-based sim creation')
     sim1 = sti.Sim(location='zambia', start=2010, stop=2020)
     sim1.run()
@@ -241,11 +244,11 @@ if __name__ == '__main__':
 
     do_plot = False
 
-    # s0 = test_hiv_sim()
-    # s1 = test_msm_hiv()
+    s0 = test_hiv_sim()
+    s1 = test_msm_hiv()
     s2 = test_bv()
-    # s3 = test_stis(which='discharging')
-    # test_sim_creation()
-    # test_location()
-    # s4 = test_time()
+    s3 = test_stis(which='discharging')
+    test_sim_creation()
+    devtest_location()
+    s4 = test_time()
 
