@@ -561,25 +561,6 @@ class HIV(BaseSTI):
 
         return
 
-    # @staticmethod
-    # def dur_post_art_fn(module, sim, uids):
-    #     hiv = sim.diseases.hiv
-    #     dur_mean = np.log(hiv.cd4_preart[uids])*hiv.cd4[uids]/hiv.cd4_potential[uids]
-    #     dur_scale = dur_mean * module.pars.dur_post_art_scale_factor
-    #     dur_mean = ss.years(dur_mean)
-    #     dur_scale = ss.years(np.maximum(dur_scale, 1e-3))  # Ensure it's not zero
-    #     return dur_mean, dur_scale
-    #
-    # @staticmethod
-    # def dur_post_art_mean(module, sim, uids):
-    #     mean, _ = module.dur_post_art_fn(module, sim, uids)
-    #     return mean
-    #
-    # @staticmethod
-    # def dur_post_art_scale(module, sim, uids):
-    #     _, scale = module.dur_post_art_fn(module, sim, uids)
-    #     return scale
-
     def stop_art(self, uids=None):
         """
         Check who is stopping ART treatment and put them off ART
