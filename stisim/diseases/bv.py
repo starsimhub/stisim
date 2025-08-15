@@ -541,6 +541,7 @@ class BV(BaseSTI):
 
     def init_post(self):
         """Initialize with sim properties"""
+        ss.Module.init_post(self)  # Skip the disease init_post() since we create infections in a different way
         for state in self.state_list:
             if not state.initialized:
                 state.init_vals()
