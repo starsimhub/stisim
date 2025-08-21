@@ -21,7 +21,7 @@ class HIVPars(BaseSTIPars):
         self.dur_acute = ss.lognorm_ex(ss.months(3), ss.months(1))  # Duration of acute HIV infection
         self.dur_latent = ss.lognorm_ex(ss.years(10), ss.years(3))  # Duration of latent, untreated HIV infection
         self.dur_falling = ss.lognorm_ex(ss.years(3), ss.years(1))  # Duration of late-stage HIV when CD4 counts fall
-        self.p_hiv_death = None  # Probability of death from HIV-related complications - default is to use HIV.death_prob(), otherwise can pass in a Dist or anything supported by ss.bernoulli)
+        self.p_hiv_death = ss.bernoulli(p=0)  # Death from HIV-related complications; set by make_p_hiv_death()
         self.include_aids_deaths = True
 
         # Transmission
@@ -66,14 +66,6 @@ class HIV(BaseSTI):
         default_pars = HIVPars()
         self.define_pars(**default_pars)
         self.update_pars(pars, **kwargs)
-
-        # Set death probabilities from HIV-related illness. Note that AIDS deaths are captured separately
-        if self.pars.p_hiv_death is None:
-            self._death_prob = ss.bernoulli(p=self.death_prob)
-        elif isinstance(self.pars.p_hiv_death, ss.bernoulli):
-            self._death_prob = self.pars.p_hiv_death
-        else:
-            self._death_prob = ss.bernoulli(p=self.pars.p_hiv_death)
 
         # Set initial prevalence
         self.init_prev_data = init_prev_data
@@ -257,11 +249,10 @@ class HIV(BaseSTI):
     def symptomatic(self):
         return self.infectious
 
-    @staticmethod
-    def death_prob(module, sim, uids=None):
+    def make_p_hiv_death(self, uids=None):
         cd4_bins = np.array([1000, 500, 350, 200, 50, 0])
-        death_prob = ss.permonth(np.array([0.003, 0.003, 0.005, 0.01, 0.05, 0.300]))*module.dt  # Values smaller than the first bin edge get assigned to the last bin.
-        return death_prob[np.digitize(module.cd4[uids], cd4_bins)]
+        p_hiv_death = ss.peryear(np.array([0.003, 0.003, 0.005, 0.01, 0.05, 0.300])).to_prob(self.dt)
+        return p_hiv_death[np.digitize(self.cd4[uids], cd4_bins)]
 
     @staticmethod
     def _interpolate(vals: list, t):
@@ -347,7 +338,9 @@ class HIV(BaseSTI):
         # Update deaths. We capture deaths from AIDS (i.e., when CD4 count drops to ~0) as well as deaths from
         # serious HIV-related illnesses, which can occur throughout HIV.
         off_art = (self.infected & ~self.on_art).uids
-        hiv_deaths = self._death_prob.filter(off_art)
+        p_death = self.make_p_hiv_death(uids=off_art)
+        self.pars.p_hiv_death.set(p_death)  # Set the death probability function
+        hiv_deaths = self.pars.p_hiv_death.filter(off_art)
         if len(hiv_deaths):
             self.ti_dead[hiv_deaths] = ti
             self.sim.people.request_death(hiv_deaths)
