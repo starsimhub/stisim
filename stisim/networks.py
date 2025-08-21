@@ -394,13 +394,12 @@ class StructuredSexual(ss.SexualNetwork):
 
         return p1, p2
 
-
     def add_pairs_sw(self):
         ppl = self.sim.people
         dt = self.t.dt
 
         try:
-            p1, p2 = self.match_sex_workers(ppl)
+            p1, p2 = self.match_sex_workers()
         except NoPartnersFound:
             return
 
@@ -508,14 +507,11 @@ class StructuredSexual(ss.SexualNetwork):
         return
 
     def add_pairs(self):
-
         self.add_pairs_nonsw()
         self.add_pairs_sw()
-
         return
 
-
-    def match_sex_workers(self, ppl):
+    def match_sex_workers(self):
         """ Match sex workers to clients """
 
         # Find people eligible for a relationship
