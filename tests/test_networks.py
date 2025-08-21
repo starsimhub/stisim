@@ -22,7 +22,7 @@ def test_network_degrees():
     s1_mean_partners = np.mean(s1.analyzers.networkdegree.lifetime_partners_f + s1.analyzers.networkdegree.lifetime_partners_m)
     s2_mean_partners = np.mean(s2.analyzers.networkdegree.lifetime_partners_f + s2.analyzers.networkdegree.lifetime_partners_m)
 
-    assert s2_mean_partners > s1_mean_partners, f"Mean partners in high concurrency ({s2.results.networkdegree.mean_partners}) should be greater than in normal ({s1.results.network_degree.mean_partners})"
+    assert s2_mean_partners > s1_mean_partners, f"Mean partners in high concurrency ({s2_mean_partners}) should be greater than in normal ({s1_mean_partners})"
     print (f"Mean partners in high concurrency ({s2_mean_partners}) is greater than in normal ({s1_mean_partners})")
 
 
