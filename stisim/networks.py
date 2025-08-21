@@ -607,9 +607,9 @@ class StructuredSexual(ss.SexualNetwork):
         self.stable_partners[p2_edges[stables]] -= 1
         self.sw_partners[p1_edges[sw]] -= 1
         self.sw_partners[p2_edges[sw]] -= 1
-        for a, b in zip(p1_edges[(casuals + stables)], p2_edges[(casuals + stables)]):
-            pair = (min(a,b), max(a,b))
-            self.relationship_durs[pair][-1]['dur'] = self.ti - self.relationship_durs[pair][-1]['start']
+        # for a, b in zip(p1_edges[(casuals + stables)], p2_edges[(casuals + stables)]):
+        #     pair = (min(a,b), max(a,b))
+        #     self.relationship_durs[pair][-1]['dur'] = self.ti - self.relationship_durs[pair][-1]['start']
 
         # For all contacts that are due to expire, remove them from the contacts list
         if len(active) > 0:
