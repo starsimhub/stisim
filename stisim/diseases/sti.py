@@ -7,7 +7,10 @@ import numpy as np
 import starsim as ss
 import sciris as sc
 import stisim.utils as ut
+import pandas as pd
+
 ss_int_ = ss.dtypes.int
+ss_float_ = ss.dtypes.float
 
 __all__ = ['BaseSTI', 'SEIS', 'BaseSTIPars', 'STIPars']
 
@@ -112,8 +115,6 @@ class BaseSTI(ss.Infection):
 
         # Set initial prevalence
         self.init_prev_data = init_prev_data
-        if init_prev_data is not None:
-            self.pars.init_prev = ss.bernoulli(self.make_init_prev_fn)
 
         # Results
         self.age_range = [15, 50]  # Age range for main results e.g. prevalence
@@ -122,9 +123,43 @@ class BaseSTI(ss.Infection):
 
         return
 
-    @staticmethod
-    def make_init_prev_fn(module, sim, uids):
-        return ut.make_init_prev_fn(module, sim, uids, active=True)
+    def make_init_prev(self, uids=None, active=True):
+        """ Initialize prevalence by sex and risk group """
+        sim = self.sim
+        data = self.init_prev_data
+        if uids is None: uids = sim.people.auids  # Everyone
+
+        if sc.isnumber(data):
+            init_prev = data
+
+        elif isinstance(data, pd.DataFrame):
+
+            init_prev = np.zeros(len(uids), dtype=ss_float_)
+            df = data
+
+            nw = sim.networks.structuredsexual
+            n_risk_groups = nw.pars.n_risk_groups
+            for rg in range(n_risk_groups):
+                for sex in ['female', 'male']:
+                    for sw in [0, 1]:
+                        thisdf = df.loc[(df.risk_group==rg) & (df.sex==sex) & (df.sw==sw)]
+                        conditions = sim.people[sex] & (nw.risk_group==rg)
+                        if active:
+                            conditions = conditions & nw.active(sim.people)
+                        if sw:
+                            if sex == 'female': conditions = conditions & sim.networks.structuredsexual.fsw
+                            if sex == 'male':   conditions = conditions & sim.networks.structuredsexual.client
+                        init_prev[conditions[uids]] = thisdf.init_prev.values[0]
+
+        else:
+            errormsg = 'Format of init_prev_data must be float or dataframe.'
+            raise ValueError(errormsg)
+
+        # Scale and validate
+        init_prev = init_prev * self.pars.rel_init_prev
+        init_prev = np.clip(init_prev, a_min=0, a_max=1)
+
+        return init_prev
 
     def validate_beta(self):
         betamap = super().validate_beta()
