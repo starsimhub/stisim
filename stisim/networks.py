@@ -106,7 +106,7 @@ class NetworkPars(ss.Pars):
         )
 
         # Acts
-        self.acts = ss.lognorm_ex(ss.peryear(80), ss.peryear(30))  # Coital acts/year
+        self.acts = ss.lognorm_ex(ss.freqperyear(80), ss.freqperyear(30))  # Coital acts/year
 
         # Condoms
         self.condom_data = None
