@@ -63,6 +63,7 @@ class coinfection_stats(result_grouper):
         return
 
     def init_results(self):
+        super().init_results()
         results = [
             ss.Result(f'{self.disease1}_prev_no_{self.disease2}', dtype=float, scale=False),
             ss.Result(f'{self.disease1}_prev_has_{self.disease2}', dtype=float, scale=False),
@@ -429,7 +430,7 @@ class partner_age_diff(ss.Analyzer):
 
         return
 
-          
+
 class DebutAge(ss.Analyzer):
     """
     Analyzes the debut age of relationships in a structuredsexual network.
@@ -445,8 +446,8 @@ class DebutAge(ss.Analyzer):
 
     def init_pre(self, sim, force=False):
         if self.cohort_starts is None:
-            first_cohort = sim.pars['start']
-            last_cohort = sim.pars['stop'] - self.binspan
+            first_cohort = sim.t.start.years
+            last_cohort = sim.t.stop.years - self.binspan
             self.cohort_starts = sc.inclusiverange(first_cohort, last_cohort)
             self.cohort_ends = self.cohort_starts + self.binspan
             self.n_cohorts = len(self.cohort_starts)

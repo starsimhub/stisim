@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import starsim as ss
 
-__all__ = ['count', 'div', 'countdiv', 'cond_prob', 'TimeSeries', 'make_init_prev_fn']
+__all__ = ['count', 'div', 'countdiv', 'cond_prob', 'TimeSeries']
 
 
 
@@ -388,42 +388,5 @@ class TimeSeries:
 
         return new
 
-
-def make_init_prev_fn(module, sim, uids, data=None, active=False):
-    """ Initialize prevalence by sex and risk group """
-
-    if data is None: data = module.init_prev_data
-
-    if sc.isnumber(data):
-        init_prev = data
-
-    elif isinstance(data, pd.DataFrame):
-
-        init_prev = pd.Series(index=uids)
-        df = data
-
-        nw = sim.networks.structuredsexual
-        n_risk_groups = nw.pars.n_risk_groups
-        for rg in range(n_risk_groups):
-            for sex in ['female', 'male']:
-                for sw in [0, 1]:
-                    thisdf = df.loc[(df.risk_group==rg) & (df.sex==sex) & (df.sw==sw)]
-                    conditions = sim.people[sex] & (nw.risk_group==rg)
-                    if active:
-                        conditions = conditions & nw.active(sim.people)
-                    if sw:
-                        if sex == 'female': conditions = conditions & sim.networks.structuredsexual.fsw
-                        if sex == 'male':   conditions = conditions & sim.networks.structuredsexual.client
-                    init_prev[conditions[uids]] = thisdf.init_prev.values[0]
-
-    else:
-        errormsg = 'Format of init_prev_data must be float or dataframe.'
-        raise ValueError(errormsg)
-
-    # Scale and validate
-    init_prev = init_prev * module.pars.rel_init_prev
-    init_prev = np.clip(init_prev, a_min=0, a_max=1)
-
-    return init_prev
 
 

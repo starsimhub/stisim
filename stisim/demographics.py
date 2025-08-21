@@ -24,7 +24,7 @@ class Pregnancy(ss.Pregnancy):
         super().__init__(pars=pars, metadata=metadata, **kwargs)
         self.define_states(
             ss.FloatArr("rel_sus_ptb", default=1),
-            ss.State("ptb", default=False, label="Preterm birth"),
+            ss.BoolState("ptb", default=False, label="Preterm birth"),
             ss.FloatArr("trimester", default=0),
         )
 
@@ -98,7 +98,7 @@ class Migration(ss.Demographics):
         )
         self.update_pars(pars, **kwargs)
         self.define_states(
-            ss.State('immigrant', label='Immigrant'),
+            ss.BoolState('immigrant', label='Immigrant'),
             ss.FloatArr('migration_propensity', label='Propensity to migrate'),
             ss.FloatArr('ti_emigrate', label='Time of emigration'),
         )

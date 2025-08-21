@@ -78,9 +78,9 @@ class SyphilisPlaceholder(ss.Disease):
 class SyphPars(BaseSTIPars):
     def __init__(self, **kwargs):
         # Adult syphilis natural history
-        self.dur_primary = ss.normal(ss.dur(6, 'week'), ss.dur(1, 'week'))  # https://pubmed.ncbi.nlm.nih.gov/9101629/
-        self.dur_secondary = ss.lognorm_ex(ss.dur(3.6, 'month'), ss.dur(1.5, 'month'))  # https://pubmed.ncbi.nlm.nih.gov/9101629/
-        self.dur_early = ss.uniform(ss.dur(12, 'month'), ss.dur(14, 'month'))  # Assumption
+        self.dur_primary = ss.normal(ss.weeks(6), ss.weeks(1))  # https://pubmed.ncbi.nlm.nih.gov/9101629/
+        self.dur_secondary = ss.lognorm_ex(ss.months(3.6), ss.months(1.5))  # https://pubmed.ncbi.nlm.nih.gov/9101629/
+        self.dur_early = ss.uniform(ss.months(12), ss.months(14))  # Assumption
         self.p_reactivate = ss.bernoulli(p=0.35)  # Probability of reactivating from latent to secondary
         self.time_to_reactivate = ss.lognorm_ex(ss.years(1), ss.years(1))  # Time to reactivation
         self.p_tertiary = ss.bernoulli(p=0.35)  # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4917057/
@@ -124,10 +124,9 @@ class SyphPars(BaseSTIPars):
         self.update(kwargs)
 
 
-
 class Syphilis(BaseSTI):
 
-    def __init__(self, pars=None, name='syphilis', init_prev_data=None, init_prev_latent_data=None, **kwargs):
+    def __init__(self, pars=None, name='syph', init_prev_data=None, init_prev_latent_data=None, **kwargs):
         super().__init__(name=name)
 
         # Define default parameters
@@ -149,17 +148,17 @@ class Syphilis(BaseSTI):
 
         self.define_states(
             # Adult syphilis states
-            ss.State('primary'),      # Primary chancres
-            ss.State('secondary'),    # Inclusive of those who may still have primary chancres
-            ss.State('early'),        # Early latent
-            ss.State('late'),         # Late latent
-            ss.State('latent'),       # Can relapse to secondary, remain in latent, or progress to tertiary,
-            ss.State('tertiary'),     # Includes complications (cardio/neuro/disfigurement)
-            ss.State('immune'),       # After effective treatment people may acquire temp immunity
-            ss.State('ever_exposed'), # Anyone ever exposed - stays true after treatment
+            ss.BoolState('primary'),      # Primary chancres
+            ss.BoolState('secondary'),    # Inclusive of those who may still have primary chancres
+            ss.BoolState('early'),        # Early latent
+            ss.BoolState('late'),         # Late latent
+            ss.BoolState('latent'),       # Can relapse to secondary, remain in latent, or progress to tertiary,
+            ss.BoolState('tertiary'),     # Includes complications (cardio/neuro/disfigurement)
+            ss.BoolState('immune'),       # After effective treatment people may acquire temp immunity
+            ss.BoolState('ever_exposed'), # Anyone ever exposed - stays true after treatment
 
             # Congenital syphilis states
-            ss.State('congenital'),
+            ss.BoolState('congenital'),
             ss.FloatArr('cs_outcome'),
 
             # Timestep of state changes
@@ -219,6 +218,7 @@ class Syphilis(BaseSTI):
 
     def init_post(self):
         """ Make initial cases """
+        ss.Module.init_post(self) # Avoid super().init_post() since we create infections here
         initial_active_cases = self.pars.init_prev.filter()
         self.set_prognoses(initial_active_cases)
         still_sus = self.susceptible.uids
