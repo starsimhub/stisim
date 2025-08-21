@@ -338,6 +338,7 @@ class HIV(BaseSTI):
         # serious HIV-related illnesses, which can occur throughout HIV.
         off_art = (self.infected & ~self.on_art).uids
         p_death = self.make_p_hiv_death(uids=off_art)
+        self.pars.p_hiv_death.set(0)
         self.pars.p_hiv_death.set(p_death)  # Set the death probability function
         hiv_deaths = self.pars.p_hiv_death.filter(off_art)
         if len(hiv_deaths):
