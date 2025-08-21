@@ -10,7 +10,7 @@ def test_network_degrees():
 
     # Create a structured sexual network
     network = sti.StructuredSexual()
-    high_concurrency = sti.StructuredSexual(pars={'f0_conc': 0.001, 'f1_conc': 0.1, 'f2_conc': 0.2, 'm0_conc': 0.001, 'm1_conc': 0.4, 'm2_conc': 0.9})
+    high_concurrency = sti.StructuredSexual(pars={'f0_conc': 0.001, 'f1_conc': 0.2, 'f2_conc': 0.4, 'm0_conc': 0.001, 'm1_conc': 0.4, 'm2_conc': 0.9})
     analyzer = sti.NetworkDegree(relationship_types=['partners', 'stable', 'casual'])
 
     s1 = sti.Sim(networks=[network], analyzers=[analyzer])
