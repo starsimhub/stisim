@@ -196,13 +196,20 @@ class StructuredSexual(ss.SexualNetwork):
         return dd
 
     def get_age_risk_pars(self, uids, par):
-        loc = np.full(uids.shape, fill_value=np.nan, dtype=ss_float_)
-        scale = np.full(uids.shape, fill_value=np.nan, dtype=ss_float_)
+        loc = np.full(uids.shape, fill_value=np.nan)
+        scale = np.full(uids.shape, fill_value=np.nan)
         for a_label, (age_lower, age_upper) in self.pars.f_age_group_bins.items():
             for rg in range(self.pars.n_risk_groups):
                 in_risk_group = (self.sim.people.age[uids] >= age_lower) & (self.sim.people.age[uids] < age_upper) & (self.risk_group[uids] == rg)
-                loc[in_risk_group] = par[a_label][rg][0]
-                scale[in_risk_group] = par[a_label][rg][1]
+                p0 = par[a_label][rg][0]
+                p1 = par[a_label][rg][1]
+                # Scale the parameters by the time step if specified
+                # TODO: fix this
+                if isinstance(p0, ss.dur):
+                    p0 = p0.months
+                    p1 = p1.months
+                loc[in_risk_group] = p0
+                scale[in_risk_group] = p1
         if np.isnan(scale).any() or np.isnan(loc).any():
             errormsg = 'Invalid entries for age difference preferences.'
             raise ValueError(errormsg)
@@ -396,7 +403,6 @@ class StructuredSexual(ss.SexualNetwork):
 
     def add_pairs_sw(self):
         ppl = self.sim.people
-        dt = self.t.dt
 
         try:
             p1, p2 = self.match_sex_workers()
@@ -407,7 +413,7 @@ class StructuredSexual(ss.SexualNetwork):
         beta = np.ones(match_count, dtype=ss_float_)
         condoms = np.zeros(match_count, dtype=ss_float_)
         acts = (self.pars.acts.rvs(p2)).astype(int)
-        dur = np.full(match_count, fill_value=dt)
+        dur = np.full(match_count, fill_value=1)  # Measured in timesteps
         age_p1 = ppl.age[p1]
         age_p2 = ppl.age[p2]
         edge_types = np.full(match_count, dtype=ss_float_, fill_value=self.edge_types['sw'])
@@ -425,7 +431,6 @@ class StructuredSexual(ss.SexualNetwork):
 
     def add_pairs_nonsw(self):
         ppl = self.sim.people
-        dt = self.t.dt
 
         try:
             p1, p2 = self.match_pairs()
@@ -452,7 +457,7 @@ class StructuredSexual(ss.SexualNetwork):
         beta = np.ones(match_count, dtype=ss_float_)
         condoms = np.zeros(match_count, dtype=ss_float_)
         acts = (self.pars.acts.rvs(p2)).astype(int)
-        dur = np.full(match_count, fill_value=dt)
+        dur = np.full(match_count, fill_value=1)  # Measured in timesteps
         age_p1 = ppl.age[p1]
         age_p2 = ppl.age[p2]
         edge_types = np.full(match_count, dtype=ss_float_, fill_value=np.nan)
@@ -465,14 +470,15 @@ class StructuredSexual(ss.SexualNetwork):
         for which, bools in {'stable': stable, 'casual': casual}.items():
             if bools.any():
                 uids = p2[bools]
-                mean, std = self.get_age_risk_pars(uids, self.pars[f'{which}_dur_pars'])
+                thesepars = self.pars[f'{which}_dur_pars']
+                mean, std = self.get_age_risk_pars(uids, thesepars)
                 dur_mean[bools] = mean
                 dur_std[bools] = std
         self.pars.dur_dist.set(mean=dur_mean[any_match], std=dur_std[any_match])
-        # dur[any_match] = self.pars.dur_dist.rvs(p2[any_match])
-        dur[any_match] = self.pars.dur_dist.rvs(sum(any_match))
+        dur[any_match] = self.pars.dur_dist.rvs(p2[any_match])
+        # dur[any_match] = self.pars.dur_dist.rvs(sum(any_match))
 
-        edge_types[(dur <= 1)] = self.edge_types['onetime']
+        edge_types[(dur == 1)] = self.edge_types['onetime']
 
         # track the duration of all new relationships
         relationships = (dur > 1)
