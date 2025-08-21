@@ -39,15 +39,15 @@ class TrackValues(ss.Analyzer):
 
         if self.has_hiv:
             hiv = self.sim.diseases.hiv
-            self.hiv_rel_sus[ti, :self.n] = hiv.rel_sus
-            self.hiv_rel_trans[ti, :self.n] = hiv.rel_trans
-            self.cd4[ti, :self.n] = hiv.cd4
-            self.care_seeking[ti, :self.n] = hiv.care_seeking
+            self.hiv_rel_sus[ti, :self.n] = hiv.rel_sus.raw
+            self.hiv_rel_trans[ti, :self.n] = hiv.rel_trans.raw
+            self.cd4[ti, :self.n] = hiv.cd4.raw
+            self.care_seeking[ti, :self.n] = hiv.care_seeking.raw
 
         if self.has_syph:
             syph = self.sim.diseases.syphilis
-            self.syph_rel_sus[ti, :self.n] = syph.rel_sus
-            self.syph_rel_trans[ti, :self.n] = syph.rel_trans
+            self.syph_rel_sus[ti, :self.n] = syph.rel_sus.raw
+            self.syph_rel_trans[ti, :self.n] = syph.rel_trans.raw
 
         return
 
