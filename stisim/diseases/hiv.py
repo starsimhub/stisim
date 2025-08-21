@@ -155,8 +155,9 @@ class HIV(BaseSTI):
         self.init_care_seeking()
 
         # Make initial cases, some of which may have occured prior to the sim start
-        p_init_infection = self.make_init_prev()
-        self.pars.init_prev.set(p_init_infection)  # Set the initial prevalence function
+        if self.init_prev_data is not None:
+            p_init_infection = self.make_init_prev()
+            self.pars.init_prev.set(p_init_infection)  # Set the initial prevalence function
         initial_cases = self.pars.init_prev.filter()
         ti_init_cases = self.pars.dist_ti_init_infected.rvs(initial_cases).astype(int)
         self.set_prognoses(initial_cases, ti=ti_init_cases)
