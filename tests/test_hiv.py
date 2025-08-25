@@ -129,10 +129,6 @@ class PerformTest(ss.Intervention):
         if len(uids):
             self.sim.diseases.hiv.stop_art(ss.uids(uids))
 
-    def set_pregnancy(self, uids):
-        self.sim.demographics.pregnancy.pregnant[ss.uids(uids)] = True
-        self.sim.demographics.pregnancy.ti_pregnant[ss.uids(uids)] = self.sim.ti
-
     def step(self):
         sim = self.sim
         ti = self.ti
@@ -142,9 +138,6 @@ class PerformTest(ss.Intervention):
             self.sim.diseases.hiv.set_prognoses(ss.uids(self.hiv_infections[ti]))
         if 'syphilis' in sim.diseases:
             self.sim.diseases.syphilis.set_prognoses(ss.uids(self.syphilis_infections[ti]))
-
-        # Set pregnancies:
-        self.set_pregnancy(self.pregnant[ti])
 
 
 def test_hiv():
