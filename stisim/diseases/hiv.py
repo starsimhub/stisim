@@ -6,91 +6,88 @@ import numpy as np
 import sciris as sc
 import starsim as ss
 import stisim as sti
-from stisim.diseases.sti import BaseSTI
+from stisim.diseases.sti import BaseSTI, BaseSTIPars
 
-__all__ = ['HIV']
+__all__ = ['HIV', 'HIVPars']
+
+
+class HIVPars(BaseSTIPars):
+    def __init__(self, **kwargs):
+        super().__init__()
+
+        # Natural history without treatment
+        self.cd4_start = ss.normal(loc=800, scale=50)
+        self.cd4_latent = ss.normal(loc=500, scale=50)
+        self.dur_acute = ss.lognorm_ex(ss.months(3), ss.months(1))  # Duration of acute HIV infection
+        self.dur_latent = ss.lognorm_ex(ss.years(10), ss.years(3))  # Duration of latent, untreated HIV infection
+        self.dur_falling = ss.lognorm_ex(ss.years(3), ss.years(1))  # Duration of late-stage HIV when CD4 counts fall
+        self.p_hiv_death = ss.bernoulli(p=0)  # Death from HIV-related complications; set by make_p_hiv_death()
+        self.include_aids_deaths = True
+
+        # Transmission
+        self.beta = 0  # Placeholder, replaced by network-specific betas
+        self.beta_m2f = None
+        self.rel_beta_f2m = 0.5
+        self.beta_m2c = ss.permonth(0.025)  # Approx 0.2 over the course of the pregnany
+        self.rel_trans_acute = ss.normal(loc=6, scale=0.5)  # Increase transmissibility during acute HIV infection
+        self.rel_trans_falling = ss.normal(loc=8, scale=0.5)  # Increase transmissibility during late HIV infection
+        self.eff_condom = 0.9
+
+        # Initialization
+        self.init_prev = ss.bernoulli(p=0.05)
+        self.rel_init_prev = 1
+        self.init_diagnosed = ss.bernoulli(p=0)
+        self.dist_ti_init_infected = ss.uniform(low=-10 * 12, high=-5)
+        # dist_ti_init_infected=ss.constant(0),  # Experimented with negative values, but safer to use 0
+
+        # Care seeking
+        self.care_seeking = ss.normal(loc=1, scale=0.1)  # Distribution of relative care-seeking behavior
+        self.maternal_care_scale = 2  # Factor for scaling up care-seeking behavior during pregnancy
+
+        # Treatment effects
+        self.art_cd4_growth = 0.1  # Unitless parameter defining how CD4 reconstitutes after starting ART - used in a logistic growth function
+        self.art_efficacy = 0.96  # Efficacy of ART
+        self.time_to_art_efficacy = ss.months(6)  # Time to reach full ART efficacy (in months) - linear increase in efficacy
+        self.art_cd4_pars = dict(cd4_max=1000, cd4_healthy=500)
+        self.dur_on_art = ss.lognorm_ex(ss.years(18), ss.years(5))
+        self.dur_post_art = ss.normal()  # Note defined in years!
+        self.dur_post_art_scale_factor = 0.1
+
+        self.update(kwargs)
+        return
 
 
 class HIV(BaseSTI):
 
     def __init__(self, pars=None, init_prev_data=None, **kwargs):
         super().__init__()
-        # self.requires = 'structuredsexual'
 
         # Parameters
-        self.define_pars(
-            # Natural history without treatment
-            cd4_start=ss.normal(loc=800, scale=50),
-            cd4_latent=ss.normal(loc=500, scale=50),
-            dur_acute=ss.lognorm_ex(ss.dur(3, 'month'), ss.dur(1, 'month')),  # Duration of acute HIV infection (months)
-            dur_latent=ss.lognorm_ex(ss.years(10), ss.years(3)),  # Duration of latent, untreated HIV infection
-            dur_falling=ss.lognorm_ex(ss.years(3), ss.years(1)),    # Duration of late-stage HIV when CD4 counts fall
-            p_hiv_death=None,  # Probability of death from HIV-related complications - default is to use HIV.death_prob(), otherwise can pass in a Dist or anything supported by ss.bernoulli)
-            include_aids_deaths=True,
-
-            # Transmission
-            beta=0,  # Placeholder, replaced by network-specific betas
-            beta_m2f=None,
-            rel_beta_f2m=0.5,
-            beta_m2c=ss.beta(0.025, 'month'),  # Approx 0.2 over the course of the pregnany
-            rel_trans_acute=ss.normal(loc=6, scale=0.5),  # Increase transmissibility during acute HIV infection
-            rel_trans_falling=ss.normal(loc=8, scale=0.5),  # Increase transmissibility during late HIV infection
-            eff_condom=0.9,
-
-            # Initialization
-            init_prev=ss.bernoulli(p=0.05),
-            rel_init_prev=1,
-            init_diagnosed=ss.bernoulli(p=0),
-            dist_ti_init_infected=ss.uniform(low=-10 * 12, high=-5),
-            # dist_ti_init_infected=ss.constant(0),  # Experimented with negative values, but safer to use 0
-
-            # Care seeking
-            care_seeking=ss.normal(loc=1, scale=0.1),  # Distribution of relative care-seeking behavior
-            maternal_care_scale=2,  # Factor for scaling up care-seeking behavior during pregnancy
-
-            # Treatment effects
-            art_cd4_growth=0.1,  # Unitless parameter defining how CD4 reconstitutes after starting ART - used in a logistic growth function
-            art_efficacy=0.96,  # Efficacy of ART
-            time_to_art_efficacy=ss.dur(6, 'months'),  # Time to reach full ART efficacy (in months) - linear increase in efficacy
-            art_cd4_pars=dict(cd4_max=1000, cd4_healthy=500),
-            dur_on_art=ss.lognorm_ex(ss.years(18), ss.years(5)),
-            dur_post_art=ss.normal(loc=self.dur_post_art_mean, scale=self.dur_post_art_scale),  # Note defined in years!
-            dur_post_art_scale_factor=0.1,
-        )
-
+        default_pars = HIVPars()
+        self.define_pars(**default_pars)
         self.update_pars(pars, **kwargs)
-
-        # Set death probabilities from HIV-related illness. Note that AIDS deaths are captured separately
-        if self.pars.p_hiv_death is None:
-            self._death_prob = ss.bernoulli(p=self.death_prob)
-        elif isinstance(self.pars.p_hiv_death, ss.bernoulli):
-            self._death_prob = self.pars.p_hiv_death
-        else:
-            self._death_prob = ss.bernoulli(p=self.pars.p_hiv_death)
 
         # Set initial prevalence
         self.init_prev_data = init_prev_data
-        if init_prev_data is not None:
-            self.pars.init_prev = ss.bernoulli(self.make_init_prev_fn)
 
         # States
         self.define_states(
             # Natural history
             ss.FloatArr('ti_acute'),
-            ss.State('acute'),
+            ss.BoolState('acute'),
             ss.FloatArr('ti_latent'),
-            ss.State('latent'),
+            ss.BoolState('latent'),
             ss.FloatArr('ti_falling'),
-            ss.State('falling'),
-            ss.State('post_art'),  # After stopping ART, CD4 falls linearly until death
+            ss.BoolState('falling'),
+            ss.BoolState('post_art'),  # After stopping ART, CD4 falls linearly until death
             ss.FloatArr('ti_zero'),  # Time of zero CD4 count - generally corresponds to AIDS death
             ss.FloatArr('ti_dead'),  # Time of HIV/AIDS death
 
             # Care and treatment states
             ss.FloatArr('baseline_care_seeking'),
             ss.FloatArr('care_seeking'),
-            ss.State('never_art', default=True),
-            ss.State('on_art'),
+            ss.BoolState('never_art', default=True),
+            ss.BoolState('on_art'),
             ss.FloatArr('ti_art'),
             ss.FloatArr('ti_stop_art'),
 
@@ -104,15 +101,11 @@ class HIV(BaseSTI):
             ss.FloatArr('cd4_postart'),     # CD4 after stopping ART
 
             # Knowledge of HIV status
-            ss.State('diagnosed'),
+            ss.BoolState('diagnosed'),
             ss.FloatArr('ti_diagnosed'),
         )
 
         return
-
-    @staticmethod
-    def make_init_prev_fn(module, sim, uids):
-        return sti.make_init_prev_fn(module, sim, uids, active=True)
 
     @property
     def include_mtct(self): return 'pregnancy' in self.sim.demographics
@@ -156,18 +149,21 @@ class HIV(BaseSTI):
 
     def init_post(self):
         """ Set states """
+        ss.Module.init_post(self)  # Skip the disease init_post() since we create infections in a different way
         # Set initial CD4
         self.init_cd4()
         self.init_care_seeking()
 
         # Make initial cases, some of which may have occured prior to the sim start
+        if self.init_prev_data is not None:
+            p_init_infection = self.make_init_prev()
+            self.pars.init_prev.set(p_init_infection)  # Set the initial prevalence function
         initial_cases = self.pars.init_prev.filter()
         ti_init_cases = self.pars.dist_ti_init_infected.rvs(initial_cases).astype(int)
         self.set_prognoses(initial_cases, ti=ti_init_cases)
         initial_cases_diagnosed = self.pars.init_diagnosed.filter(initial_cases)
         self.diagnosed[initial_cases_diagnosed] = True
         self.ti_diagnosed[initial_cases_diagnosed] = 0
-
         return
 
     # CD4 functions
@@ -220,10 +216,9 @@ class HIV(BaseSTI):
         if post_art_dur.any() <= 0:
             post_art_dur[post_art_dur <= 0] = 1
             error_msg = 'Post-ART duration is negative'
-            # raise ValueError(error_msg)
+            raise ValueError(error_msg)
         per_timestep_decline = (cd4_start-cd4_end)/post_art_dur
         cd4[zero_later_inds] = np.maximum(cd4_end, cd4_start - per_timestep_decline*time_post_art)
-
         return cd4
 
     def cd4_increase(self, uids):
@@ -254,11 +249,10 @@ class HIV(BaseSTI):
     def symptomatic(self):
         return self.infectious
 
-    @staticmethod
-    def death_prob(module, sim, uids=None):
+    def make_p_hiv_death(self, uids=None):
         cd4_bins = np.array([1000, 500, 350, 200, 50, 0])
-        death_prob = module.t.dt*np.array([0.003, 0.003, 0.005, 0.01, 0.05, 0.300])  # Values smaller than the first bin edge get assigned to the last bin.
-        return death_prob[np.digitize(module.cd4[uids], cd4_bins)]
+        p_hiv_death = ss.peryear(np.array([0.003, 0.003, 0.005, 0.01, 0.05, 0.300])).to_prob(self.dt)
+        return p_hiv_death[np.digitize(self.cd4[uids], cd4_bins)]
 
     @staticmethod
     def _interpolate(vals: list, t):
@@ -344,7 +338,10 @@ class HIV(BaseSTI):
         # Update deaths. We capture deaths from AIDS (i.e., when CD4 count drops to ~0) as well as deaths from
         # serious HIV-related illnesses, which can occur throughout HIV.
         off_art = (self.infected & ~self.on_art).uids
-        hiv_deaths = self._death_prob.filter(off_art)
+        p_death = self.make_p_hiv_death(uids=off_art)
+        self.pars.p_hiv_death.set(0)
+        self.pars.p_hiv_death.set(p_death)  # Set the death probability function
+        hiv_deaths = self.pars.p_hiv_death.filter(off_art)
         if len(hiv_deaths):
             self.ti_dead[hiv_deaths] = ti
             self.sim.people.request_death(hiv_deaths)
@@ -400,7 +397,7 @@ class HIV(BaseSTI):
         """
         Update rel_trans and rel_sus for all agents. These are reset on each timestep then adjusted depending on states.
         Adjustments are made throughout different modules:
-        
+
            - rel_trans for acute and late-stage untreated infection are adjusted below
            - rel_trans for all people on treatment (including pregnant women) below
            - rel_sus for unborn babies of pregnant WLHIV receiving treatment is adjusted in the ART intervention
@@ -423,9 +420,9 @@ class HIV(BaseSTI):
             time_to_full_eff = self.pars.time_to_art_efficacy
             art_uids = self.on_art.uids
             timesteps_on_art = ti - self.ti_art[art_uids]
-            new_on_art = timesteps_on_art < time_to_full_eff.v
+            new_on_art = timesteps_on_art < time_to_full_eff/self.dt
             efficacy_to_date = np.full_like(art_uids, fill_value=full_eff, dtype=float)
-            efficacy_to_date[new_on_art] = timesteps_on_art[new_on_art]*full_eff/time_to_full_eff
+            efficacy_to_date[new_on_art] = timesteps_on_art[new_on_art]*full_eff/time_to_full_eff.value
             self.rel_trans[art_uids] *= 1 - efficacy_to_date
 
         return
@@ -438,7 +435,7 @@ class HIV(BaseSTI):
         ti = self.ti
 
         # Recalculate prevalence so it's for the whole population - the STI module calculates it for adults
-        self.results[f'prevalence'][ti] = sum(self.infected) / len(self.infected)
+        self.results['prevalence'][ti] = sum(self.infected) / len(self.infected)
 
         self.results['new_deaths'][ti] = np.count_nonzero(self.ti_dead == ti)
         self.results['cum_deaths'][ti] = np.sum(self.results['new_deaths'][:ti + 1])
@@ -470,7 +467,7 @@ class HIV(BaseSTI):
 
         return
 
-    def set_prognoses(self, uids, source_uids=None, ti=None):
+    def set_prognoses(self, uids, sources=None, ti=None):
         """
         Set prognoses upon infection
         """
@@ -503,10 +500,10 @@ class HIV(BaseSTI):
 
         return
 
-    def set_congenital(self, target_uids, source_uids):
-        self.cd4_start[target_uids] = sc.dcp(self.cd4_start[source_uids])
-        self.cd4_nadir[target_uids] = sc.dcp(self.cd4_start[target_uids])
-        self.set_prognoses(target_uids, source_uids)
+    def set_congenital(self, uids, sources):
+        self.cd4_start[uids] = sc.dcp(self.cd4_start[sources])
+        self.cd4_nadir[uids] = sc.dcp(self.cd4_start[uids])
+        self.set_prognoses(uids, sources)
         return
 
     # Treatment-related changes
@@ -554,25 +551,6 @@ class HIV(BaseSTI):
 
         return
 
-    @staticmethod
-    def dur_post_art_fn(module, sim, uids):
-        hiv = sim.diseases.hiv
-        dur_mean = np.log(hiv.cd4_preart[uids])*hiv.cd4[uids]/hiv.cd4_potential[uids]
-        dur_scale = dur_mean * module.pars.dur_post_art_scale_factor
-        dur_mean = ss.dur(dur_mean, 'year').init(parent=sim.t)
-        dur_scale = np.maximum(ss.dur(dur_scale, 'year').init(parent=sim.t), 1e-3)  # Ensure it's not zero
-        return dur_mean, dur_scale
-
-    @staticmethod
-    def dur_post_art_mean(module, sim, uids):
-        mean, _ = module.dur_post_art_fn(module, sim, uids)
-        return mean
-
-    @staticmethod
-    def dur_post_art_scale(module, sim, uids):
-        _, scale = module.dur_post_art_fn(module, sim, uids)
-        return scale
-
     def stop_art(self, uids=None):
         """
         Check who is stopping ART treatment and put them off ART
@@ -586,6 +564,11 @@ class HIV(BaseSTI):
         self.cd4_postart[uids] = sc.dcp(self.cd4[uids])
 
         # Set decline
+        dur_mean = np.log(self.cd4_preart[uids])*self.cd4[uids]/self.cd4_potential[uids]
+        dur_scale = dur_mean * self.pars.dur_post_art_scale_factor
+        dur_mean = ss.years(dur_mean)
+        dur_scale = ss.years(np.maximum(dur_scale, 1e-3))  # Ensure it's not zero
+        self.pars.dur_post_art.set(loc=dur_mean, scale=dur_scale)
         dur_post_art = self.pars.dur_post_art.rvs(uids)
         if np.isnan(dur_post_art).any():
             errormsg = 'Invalid entry for post-ART duration'

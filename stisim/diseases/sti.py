@@ -7,9 +7,88 @@ import numpy as np
 import starsim as ss
 import sciris as sc
 import stisim.utils as ut
-ss_int_ = ss.dtypes.int
+import pandas as pd
 
-__all__ = ['BaseSTI', 'SEIS']
+ss_int_ = ss.dtypes.int
+ss_float_ = ss.dtypes.float
+
+__all__ = ['BaseSTI', 'SEIS', 'BaseSTIPars', 'STIPars']
+
+
+class BaseSTIPars(ss.Pars):
+    def __init__(self, **kwargs):
+        super().__init__()
+
+        # Settings
+        self.include_care = True  # Determines whether testing results are included
+
+        # Time
+        self.dt = 'month'
+
+        # Transmission
+        self.beta = 0  # Placeholder: no transmission. This will be set in validate_beta
+        self.beta_m2f = None
+        self.rel_beta_f2m = 0.5
+        self.beta_m2c = None
+        self.beta_m2m = None
+        self.eff_condom = 1
+        self.rel_init_prev = 1
+        self.update(kwargs)
+        return
+
+
+class STIPars(BaseSTIPars):
+    def __init__(self, **kwargs):
+        super().__init__()
+
+        # Natural history
+        self.dur_exp = ss.constant(ss.weeks(1))  # How long after exposure before you can infect others
+
+        # Symptoms and symptomatic testing
+        self.p_symp_dist = ss.bernoulli(p=0.5)  # Distribution of symptomatic vs asymptomatic
+        self.p_symp = [0.375, 0.375]
+        self.dur_presymp_dist = ss.lognorm_ex()
+        self.dur_presymp = [  # For those who develop symptoms, how long before symptoms appear
+            [ss.weeks(1), ss.weeks(12)],    # Women
+            [ss.weeks(0.25), ss.weeks(3)],  # Men
+        ]
+        self.p_symp_clear_dist = ss.bernoulli(p=0)
+        self.p_symp_clear = [0.0, 0.0]
+        self.dur_symp = [
+            ss.lognorm_ex(ss.weeks(1), ss.weeks(26)),  # Duration of symptoms
+            ss.lognorm_ex(ss.weeks(1), ss.weeks(26)),  # Duration of symptoms
+        ]
+        self.p_symp_care_dist=ss.bernoulli(p=0)
+        self.p_symp_care=[0.3, 0.2]
+        self.dur_symp2care_dist=ss.lognorm_ex()
+        self.dur_symp2care = [  # For those who test, how long before they seek care - reset for each individual STI
+            [ss.weeks(4), ss.weeks(4)],  # Women
+            [ss.weeks(6), ss.weeks(4)],  # Men
+        ]
+
+        # PID and PID care-seeking
+        self.p_pid = ss.bernoulli(p=0.2)
+        self.dur_prepid = ss.lognorm_ex(ss.weeks(6), ss.weeks(4))
+        self.p_pid_care = ss.bernoulli(p=0.1)  # Women
+        self.dur_pid2care = ss.lognorm_ex(ss.weeks(2), ss.weeks(4))  # Women
+
+        # Clearance
+        self.dur_asymp2clear_dist = ss.lognorm_ex()
+        self.dur_asymp2clear = [  # Duration of untreated asymptomatic infection (excl initial latent)
+            [ss.weeks(52), ss.weeks(5)],  # Women
+            [ss.weeks(52), ss.weeks(5)],  # Men
+        ]
+        self.dur_symp2clear_dist = ss.lognorm_ex()
+        self.dur_symp2clear = [  # Duration of untreated symptomatic infection (excl initial latent)
+            [ss.weeks(52), ss.weeks(5)],  # Women
+            [ss.weeks(52), ss.weeks(5)],  # Men
+        ]
+        self.dur_pid2clear=ss.lognorm_ex(ss.weeks(52), ss.weeks(5))
+
+        # Initial conditions
+        self.init_prev=ss.bernoulli(p=0.01)
+        self.update(kwargs)
+        return
 
 
 # Main class
@@ -20,18 +99,10 @@ class BaseSTI(ss.Infection):
     """
     def __init__(self, name=None, pars=None, init_prev_data=None, **kwargs):
         super().__init__(name=name)
-        self.requires = 'structuredsexual'
-        self.define_pars(
-            include_care=True,  # Determines whether testing results are included
-            unit='month',
-            beta=0,  # Placeholder: no transmission. This will be set in validate_beta
-            beta_m2f=None,
-            rel_beta_f2m=0.5,
-            beta_m2c=None,
-            beta_m2m=None,
-            eff_condom=1,
-            rel_init_prev=1,
-        )
+
+        # Handle parameters
+        default_pars = BaseSTIPars()
+        self.define_pars(**default_pars)
         self.update_pars(pars, **kwargs)
 
         self.define_states(
@@ -44,27 +115,59 @@ class BaseSTI(ss.Infection):
 
         # Set initial prevalence
         self.init_prev_data = init_prev_data
-        if init_prev_data is not None:
-            self.pars.init_prev = ss.bernoulli(self.make_init_prev_fn)
 
         # Results
         self.age_range = [15, 50]  # Age range for main results e.g. prevalence
-        self.age_bins = np.array([0, 15, 25, 35, 50, 100])  # Age bins for results
+        self.age_bins = np.array([0, 15, 20, 25, 30, 35, 50, 65, 100])  # Age bins for results
         self.sex_keys = {'': 'alive', 'f': 'female', 'm': 'male'}
 
         return
 
-    @staticmethod
-    def make_init_prev_fn(module, sim, uids):
-        return ut.make_init_prev_fn(module, sim, uids, active=True)
+    def make_init_prev(self, uids=None, active=True):
+        """ Initialize prevalence by sex and risk group """
+        sim = self.sim
+        data = self.init_prev_data
+        if uids is None: uids = sim.people.auids  # Everyone
 
-    def validate_beta(self, run_checks=False):
-        betamap = super().validate_beta(run_checks=run_checks)
+        if sc.isnumber(data):
+            init_prev = data
+
+        elif isinstance(data, pd.DataFrame):
+
+            init_prev = np.zeros(len(uids), dtype=ss_float_)
+            df = data
+
+            nw = sim.networks.structuredsexual
+            n_risk_groups = nw.pars.n_risk_groups
+            for rg in range(n_risk_groups):
+                for sex in ['female', 'male']:
+                    for sw in [0, 1]:
+                        thisdf = df.loc[(df.risk_group==rg) & (df.sex==sex) & (df.sw==sw)]
+                        conditions = sim.people[sex] & (nw.risk_group==rg)
+                        if active:
+                            conditions = conditions & nw.active(sim.people)
+                        if sw:
+                            if sex == 'female': conditions = conditions & sim.networks.structuredsexual.fsw
+                            if sex == 'male':   conditions = conditions & sim.networks.structuredsexual.client
+                        init_prev[conditions[uids]] = thisdf.init_prev.values[0]
+
+        else:
+            errormsg = 'Format of init_prev_data must be float or dataframe.'
+            raise ValueError(errormsg)
+
+        # Scale and validate
+        init_prev = init_prev * self.pars.rel_init_prev
+        init_prev = np.clip(init_prev, a_min=0, a_max=1)
+
+        return init_prev
+
+    def validate_beta(self):
+        betamap = super().validate_beta()
         if self.pars.beta_m2f is not None and betamap and 'structuredsexual' in betamap.keys():
             betamap['structuredsexual'][0] = self.pars.beta_m2f
             betamap['structuredsexual'][1] = self.pars.beta_m2f * self.pars.rel_beta_f2m
         if self.pars.beta_m2c is not None and betamap and 'maternal' in betamap.keys():
-            betamap['maternal'][0] = ss.beta(self.pars.beta_m2c, 'month').init(parent=self.sim.t)
+            betamap['maternal'][0] = ss.permonth(self.pars.beta_m2c)
         if self.pars.beta_m2m is not None and betamap and 'msm' in betamap.keys():
             betamap['msm'][0] = self.pars.beta_m2m
             betamap['msm'][1] = self.pars.beta_m2m
@@ -148,7 +251,8 @@ class BaseSTI(ss.Infection):
                 p2p1b1 = [edges.p2, edges.p1, betamap[nk][1]] # Person 2, person 1, beta 1
                 for src, trg, beta in [p1p2b0, p2p1b1]:
                     if beta: # Skip networks with no transmission
-                        beta_per_dt = net.net_beta(disease_beta=beta, disease=self) # Compute beta for this network and timestep
+                        disease_beta = beta.to_prob(self.t.dt) if isinstance(beta, ss.Rate) else beta
+                        beta_per_dt = net.net_beta(disease_beta=disease_beta, disease=self) # Compute beta for this network and timestep
                         randvals = self.trans_rng.rvs(src, trg) # Generate a new random number based on the two other random numbers
                         args = (src, trg, rel_trans, rel_sus, beta_per_dt, randvals) # Set up the arguments to calculate transmission
                         target_uids, source_uids = self.compute_transmission(*args) # Actually calculate it
@@ -236,69 +340,20 @@ class SEIS(BaseSTI):
 
     def __init__(self, pars=None, name=None, init_prev_data=None, **kwargs):
         super().__init__(name=name, init_prev_data=init_prev_data)
-        self.define_pars(
-            # Natural history
-            dur_exp=ss.constant(ss.dur(1, 'week')),  # Initial latent period: how long after exposure before you can infect others
 
-            # Symptoms and symptomatic testing
-            p_symp_dist=ss.bernoulli(p=0.5),  # Distribution of symptomatic vs asymptomatic
-            p_symp=[0.375, 0.375],
-            dur_presymp_dist=ss.lognorm_ex(),
-            dur_presymp=[  # For those who develop symptoms, how long before symptoms appear
-                [ss.dur(1, 'week'), ss.dur(12, 'week')],    # Women
-                [ss.dur(0.25, 'week'), ss.dur(3, 'week')],  # Men
-            ],
-            p_symp_clear_dist=ss.bernoulli(p=0),
-            p_symp_clear=[0.0, 0.0],
-            dur_symp=[
-                ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(26, 'week')),  # Duration of symptoms
-                ss.lognorm_ex(ss.dur(1, 'week'), ss.dur(26, 'week')),  # Duration of symptoms
-            ],
-            p_symp_care_dist=ss.bernoulli(p=0),
-            p_symp_care=[0.3, 0.2],
-            dur_symp2care_dist=ss.lognorm_ex(),
-            dur_symp2care = [  # For those who test, how long before they seek care - reset for each individual STI
-                [ss.dur(4, 'week'), ss.dur(4, 'week')],  # Women
-                [ss.dur(6, 'week'), ss.dur(4, 'week')],  # Men
-            ],
-
-            # PID and PID care-seeking
-            p_pid=ss.bernoulli(p=0.2),
-            dur_prepid=ss.lognorm_ex(ss.dur(6, 'week'), ss.dur(4, 'week')),
-            p_pid_care=ss.bernoulli(p=0.1),  # Women
-            dur_pid2care=ss.lognorm_ex(ss.dur(2, 'week'), ss.dur(4, 'week')),  # Women
-
-            # Clearance
-            dur_asymp2clear_dist=ss.lognorm_ex(),
-            dur_asymp2clear=[  # Duration of untreated asymptomatic infection (excl initial latent)
-                [ss.dur(52, 'week'), ss.dur(5, 'week')],  # Women
-                [ss.dur(52, 'week'), ss.dur(5, 'week')],  # Men
-            ],
-            dur_symp2clear_dist=ss.lognorm_ex(),
-            dur_symp2clear=[  # Duration of untreated symptomatic infection (excl initial latent)
-                [ss.dur(52, 'week'), ss.dur(5, 'week')],  # Women
-                [ss.dur(52, 'week'), ss.dur(5, 'week')],  # Men
-            ],
-            dur_pid2clear=ss.lognorm_ex(ss.dur(52, 'week'), ss.dur(5, 'week')),
-
-            # Transmission. In the parent class, beta is set to 1. Here, we set beta_m2f and beta_m2c
-            beta_m2f=None,
-            rel_beta_f2m=0.5,
-            beta_m2c=None,
-
-            # Initial conditions
-            init_prev=ss.bernoulli(p=0.01)
-        )
+        # Handle parameters
+        default_pars = STIPars()
+        self.define_pars(**default_pars)
         self.update_pars(pars, **kwargs)
 
         self.define_states(
             # Natural history
-            ss.State('exposed'),
-            ss.State('infected'),
-            ss.State('asymptomatic'),
-            ss.State('symptomatic'),
-            ss.State('pid'),
-            ss.State('seeking_care'),
+            ss.BoolState('exposed'),
+            # ss.BoolState('infected'), # Inherited from ss.Infection
+            ss.BoolState('asymptomatic'),
+            ss.BoolState('symptomatic'),
+            ss.BoolState('pid'),
+            ss.BoolState('seeking_care'),
             ss.FloatArr('dur_inf'),
             ss.FloatArr('ti_exposed'),
             ss.FloatArr('ti_symptomatic'),
@@ -530,11 +585,11 @@ class SEIS(BaseSTI):
         # self.dur_inf[uids] = np.nan
         return
 
-    def set_prognoses(self, uids, source_uids=None):
+    def set_prognoses(self, uids, sources=None):
         """
         Set initial prognoses for adults newly infected
         """
-        super().set_prognoses(uids, source_uids)
+        super().set_prognoses(uids, sources)
         self.wipe_dates(uids)
         self.dur_inf[uids] = np.nan  # Overwrite. Not done in wipe_dates because that's also called during treatment
 

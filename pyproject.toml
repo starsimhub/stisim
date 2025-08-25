@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stisim"
+dynamic = ["version"]
+description = "STI modelling toolbox built on the Starsim platform"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {file = "LICENSE"}
+keywords = ["agent-based model", "simulation", "disease", "epidemiology", "sexually transmitted infections", "STIs", "STDs"]
+
+authors = [
+  { name = "Robyn Stuart", email = "info@starsim.org" },
+  { name = "Alina Muellenmeister" },
+  { name = "Romesh Abeysuriya" },
+  { name = "Ryan Hull" },
+  { name = "Cliff Kerr" },
+  { name = "Jamie Cohen" },
+]
+
+classifiers = [
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Development Status :: 5 - Production/Stable",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13"
+]
+
+dependencies = [
+    "starsim>=3.0.1",
+    "optuna",
+    "requests",
+]
+
+[project.urls]
+"Website" = "https://stisim.org"
+"Source" = "https://github.com/starsimhub/stisim/"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["stisim*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "stisim.version.__version__"}

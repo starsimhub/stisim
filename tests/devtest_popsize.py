@@ -49,4 +49,50 @@ def test_n_agents():
 
 
 if __name__ == '__main__':
-    sims = test_n_agents()
+    # sims = test_n_agents()
+
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    # Define time in months
+    months = np.arange(0, 37, 1)
+
+    # Define the cumulative percentage for each scenario
+    cumulative_percent1 = np.piecewise(months,
+                                       [months <= 2, (months > 2) & (months <= 8), months > 8],
+                                       [lambda months: 25*months,
+                                        lambda months: 50 + (25/6)*(months-2),
+                                        lambda months: 75 + (25/27)*(months-8)])
+
+    cumulative_percent2 = np.piecewise(months,
+                                       [months <= 2, (months > 2) & (months <= 8), months > 8],
+                                       [lambda months: 10*months,
+                                        lambda months: 20 + (60/6)*(months-2),
+                                        lambda months: 80 + (20/27)*(months-8)])
+
+    cumulative_percent3 = np.piecewise(months,
+                                       [months <= 2, (months > 2) & (months <= 8), months > 8],
+                                       [lambda months: 5*months,
+                                        lambda months: 10 + (80/6)*(months-2),
+                                        lambda months: 90 + (10/27)*(months-8)])
+
+    # Plot the cumulative percentages
+    plt.figure(figsize=(10, 6))
+    plt.plot(months, cumulative_percent1, label="Scenario 1")
+    plt.plot(months, cumulative_percent2, label="Scenario 2")
+    plt.plot(months, cumulative_percent3, label="Scenario 3")
+
+    # Shade areas for different periods
+    plt.axvspan(0, 2, color='gray', alpha=0.3, label="Primary (0-2 months)")
+    plt.axvspan(2, 6, color='blue', alpha=0.1, label="Secondary (2-6 months)")
+    plt.axvspan(6, 18, color='green', alpha=0.1, label="Early Latent (6-18 months)")
+    plt.axvspan(18, 36, color='red', alpha=0.1, label="Late Latent (18-36 months)")
+
+    # Add labels and title
+    plt.xlabel("Time (months)")
+    plt.ylabel("Cumulative Percentage of Transmissions")
+    plt.title("Cumulative Percentage of Transmissions Over Time")
+    plt.legend()
+    plt.grid(True)
+    plt.show()

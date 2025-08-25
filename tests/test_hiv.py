@@ -1,22 +1,16 @@
+import numpy as np
+import sciris as sc
+import matplotlib.pyplot as plt
 import starsim as ss
 import stisim as sti
-import pandas as pd
-from collections import defaultdict
-import numpy as np
-import matplotlib.pyplot as plt
-import sciris as sc
 
-def ret(*values):
-    return values if __name__ == 'main' else None
 
 class TrackValues(ss.Analyzer):
     # Track outputs for viral load and CD4 counts
     # Assumes no births; for diagnostic/debugging purposes only
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.define_pars(
-            unit='month',
-        )
+        return
 
     def init_pre(self, sim):
         super().init_pre(sim)
@@ -38,20 +32,24 @@ class TrackValues(ss.Analyzer):
 
     @property
     def has_syph(self):
-        return isinstance(self.sim.diseases.get('syphilis'), sti.Syphilis)
+        return isinstance(self.sim.diseases.get('syph'), sti.Syphilis)
 
     def step(self):
         ti = self.ti
+
         if self.has_hiv:
-            self.hiv_rel_sus[ti, :self.n] = self.sim.diseases.hiv.rel_sus.values[:self.n]
-            self.hiv_rel_trans[ti, :self.n] = self.sim.diseases.hiv.rel_trans.values[:self.n]
+            hiv = self.sim.diseases.hiv
+            self.hiv_rel_sus[ti, :self.n] = hiv.rel_sus.raw
+            self.hiv_rel_trans[ti, :self.n] = hiv.rel_trans.raw
+            self.cd4[ti, :self.n] = hiv.cd4.raw
+            self.care_seeking[ti, :self.n] = hiv.care_seeking.raw
 
         if self.has_syph:
-            self.syph_rel_sus[ti, :self.n] = self.sim.diseases.syphilis.rel_sus.values[:self.n]
-            self.syph_rel_trans[ti, :self.n] = self.sim.diseases.syphilis.rel_trans.values[:self.n]
+            syph = self.sim.diseases.syphilis
+            self.syph_rel_sus[ti, :self.n] = syph.rel_sus.raw
+            self.syph_rel_trans[ti, :self.n] = syph.rel_trans.raw
 
-        self.cd4[ti, :self.n] = self.sim.diseases.hiv.cd4.values[:self.n]
-        self.care_seeking[ti, :self.n] = self.sim.diseases.hiv.care_seeking[:self.n]
+        return
 
     def plot(self, agents: dict):
         """
@@ -100,13 +98,13 @@ class PerformTest(ss.Intervention):
         """
         super().__init__()
         self.define_pars(
-            unit='month',
+            dt='month',
         )
-        self.hiv_infections = defaultdict(list)
-        self.syphilis_infections = defaultdict(list)
-        self.art_start = defaultdict(list)
-        self.art_stop = defaultdict(list)
-        self.pregnant = defaultdict(list)
+        self.hiv_infections = sc.ddict(list)
+        self.syphilis_infections = sc.ddict(list)
+        self.art_start = sc.ddict(list)
+        self.art_stop = sc.ddict(list)
+        self.pregnant = sc.ddict(list)
 
         if events:
             for uid, event, ti in events:
@@ -131,10 +129,6 @@ class PerformTest(ss.Intervention):
         if len(uids):
             self.sim.diseases.hiv.stop_art(ss.uids(uids))
 
-    def set_pregnancy(self, uids):
-        self.sim.demographics.pregnancy.pregnant[ss.uids(uids)] = True
-        self.sim.demographics.pregnancy.ti_pregnant[ss.uids(uids)] = self.sim.ti
-
     def step(self):
         sim = self.sim
         ti = self.ti
@@ -144,9 +138,6 @@ class PerformTest(ss.Intervention):
             self.sim.diseases.hiv.set_prognoses(ss.uids(self.hiv_infections[ti]))
         if 'syphilis' in sim.diseases:
             self.sim.diseases.syphilis.set_prognoses(ss.uids(self.syphilis_infections[ti]))
-
-        # Set pregnancies:
-        self.set_pregnancy(self.pregnant[ti])
 
 
 def test_hiv():
@@ -169,18 +160,16 @@ def test_hiv():
     pars['n_agents'] = len(agents)
     pars['start'] = 2020
     pars['stop'] = 2040
-    pars['dt'] = 1 / 12
-    hiv = sti.HIV(init_prev=0, p_hiv_death=0, include_aids_deaths=False, beta={'structuredsexual': [0, 0], 'maternal': [0, 0]})
+    hiv = sti.HIV(init_prev=0, p_hiv_death=0, include_aids_deaths=False)
     pars['diseases'] = [hiv]
-    pars['networks'] = [sti.StructuredSexual(), ss.MaternalNet()]
     pars['demographics'] = [ss.Pregnancy(fertility_rate=0), ss.Deaths(death_rate=0)]
     pars['interventions'] = PerformTest(events)
     output = TrackValues()
     pars['analyzers'] = output
 
-    sim = ss.Sim(pars, copy_inputs=False).run()
-    fig = output.plot(agents)
-    return ret(sim)
+    sim = sti.Sim(pars).run()
+    sim.analyzers.trackvalues.plot(agents)
+    return sim
 
 
 def test_hiv_syph():
@@ -214,9 +203,9 @@ def test_hiv_syph():
 
     sim = ss.Sim(pars, copy_inputs=False).run()
 
-    fig = output.plot(agents)
+    sim.analyzers.trackvalues.plot(agents)
 
-    return ret(sim)
+    return sim
 
 
 if __name__ == '__main__':
