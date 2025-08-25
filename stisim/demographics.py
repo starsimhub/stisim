@@ -92,6 +92,8 @@ class Migration(ss.Demographics):
     def __init__(self, pars=None, migration_data=None, **kwargs):
         super().__init__()
         self.define_pars(
+            # Migration parameters
+            dt = ss.years(1),  # Unit of time for migration data
             migration_propensity = ss.normal(loc=1, scale=0.1),  # Propensity to emigrate
             slot_scale = 5, # Random slots will be assigned to newborn agents between min=n_agents and max=slot_scale*n_agents
             min_slots  = 100, # Minimum number of slots, useful if the population size is very small
@@ -130,8 +132,9 @@ class Migration(ss.Demographics):
             errormsg = 'Migration data not provided. Please provide dataframe with "year" as the index'
             raise ValueError(errormsg)
         else:
-            if (len(data.columns) > 2) or (set(data.columns) != {'migration', 'year'}):
-                errormsg = 'Expecting a dataframe with a columns labeled year and migration.'
+            # Check that the columns contain 'Time' and 'Value'
+            if 'Time' not in data.columns or 'Value' not in data.columns:
+                errormsg = 'Migration data must contain columns labeled "Time" and "Value"'
                 raise ValueError(errormsg)
         return
 
@@ -146,9 +149,9 @@ class Migration(ss.Demographics):
         """ Get the number of migrants for this timestep """
         mrd = self.migration_data
         if isinstance(mrd, (pd.Series, pd.DataFrame)):
-            year_ind = sc.findnearest(mrd.year, self.t.now('year'))
+            year_ind = sc.findnearest(mrd.Time, self.t.now('year'))
             nearest_year = mrd.index[year_ind]
-            n_migrants = mrd.loc[nearest_year].values[-1]
+            n_migrants = mrd.loc[nearest_year].Value
         elif sc.isnumber(mrd):
             n_migrants = mrd
         scaled_migrants = int(n_migrants*self.t.dt_year/self.sim.pars.pop_scale)
@@ -204,7 +207,7 @@ class Migration(ss.Demographics):
         return new_migrants
 
     def remove_emigrants(self):
-        """ Remove people whove decided to emigrate this timestep """
+        """ Remove people who've decided to emigrate this timestep """
         ti = self.ti
         emigrants = (self.ti_emigrate == ti).uids
         self.sim.people.request_removal(emigrants)
