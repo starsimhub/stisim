@@ -224,7 +224,7 @@ class Sim(ss.Sim):
 
             # Load death rates and turn into a module
             death_rates = stidata.get_rates(location, 'death', self.datafolder)
-            deaths = ss.Deaths(death_rate=death_rates, metadata=dict(data_cols=dict(year='Time', sex='Sex', age='AgeStart', value='Value')))
+            deaths = ss.Deaths(death_rate=death_rates, rate_units=1, metadata=dict(data_cols=dict(year='Time', sex='Sex', age='AgeStart', value='Value')))
             demographics += deaths
 
             # Load birth or fertility rates and turn into module
