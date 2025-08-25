@@ -21,12 +21,12 @@ class SimpleBV(ss.Disease):
         super().__init__(name=name)
 
         self.define_pars(
-            unit='month',
+            dt='month',
             include_care=True,
             p_symp=ss.bernoulli(p=0.5),
-            dur_presymp=ss.uniform(ss.dur(1, 'week'), ss.dur(8, 'week')),  # Duration of presymptomatic period
-            dur_asymp2clear=ss.uniform(ss.dur(1, 'week'), ss.dur(18, 'week')),  # Duration of asymptomatic infection
-            dur_symp2clear=ss.uniform(ss.dur(1, 'week'), ss.dur(18, 'week')),  # Duration of symptoms
+                    dur_presymp=ss.uniform(ss.weeks(1), ss.weeks(8)),  # Duration of presymptomatic period
+        dur_asymp2clear=ss.uniform(ss.weeks(1), ss.weeks(18)),  # Duration of asymptomatic infection
+        dur_symp2clear=ss.uniform(ss.weeks(1), ss.weeks(18)),  # Duration of symptoms
             init_prev=ss.bernoulli(p=0.025),
 
             # Spontaneous occurrence parameters. These will be used within a logistic regression
@@ -43,20 +43,20 @@ class SimpleBV(ss.Disease):
             ),
 
             # Care-seeking and clearance
-            dur_symp2care=ss.lognorm_ex(ss.dur(4, 'week'), ss.dur(4, 'week')),
+            dur_symp2care=ss.lognorm_ex(ss.weeks(4), ss.weeks(4)),
             p_symp_care=ss.bernoulli(p=0.3),
             p_clear=ss.bernoulli(p=0.5),
-            dur_persist=ss.constant(ss.dur(100, 'year')),
+            dur_persist=ss.constant(ss.years(100)),
         )
         self.update_pars(pars, **kwargs)
 
         # States that elevate risk of BV
         self.define_states(
-            ss.State('susceptible', default=True, label='Susceptible'),
-            ss.State('bv_prone', label='Prone to BV', default=ss.bernoulli(p=0.5)),  # Percentage of women "prone" to BV
-            ss.State('infected', label='Infected'),
-            ss.State('asymptomatic', label='Asymptomatic'),
-            ss.State('symptomatic', label='Symptomatic'),
+            ss.BoolState('susceptible', default=True, label='Susceptible'),
+            ss.BoolState('bv_prone', label='Prone to BV', default=ss.bernoulli(p=0.5)),  # Percentage of women "prone" to BV
+            ss.BoolState('infected', label='Infected'),
+            ss.BoolState('asymptomatic', label='Asymptomatic'),
+            ss.BoolState('symptomatic', label='Symptomatic'),
             ss.FloatArr('rel_sus', default=1.0, label='Relative susceptibility'),
             ss.FloatArr('rel_trans', default=1.0, label='Relative transmissibility'),  # NOT USED
             ss.FloatArr('ti_seeks_care', label='Time of care seeking'),
@@ -306,18 +306,18 @@ class BVPars(BaseSTIPars):
             [1, 3, 4], p=[0.10, 0.30, 0.60]
         )  # Distribution of stable CST states https://microbiomejournal.biomedcentral.com/articles/10.1186/s40168-021-01096-9
         self.dur2clear = sc.objdict(  # Time until transitioning back to stable CST state
-            cst3=ss.uniform(ss.dur(1, "week"), ss.dur(18, "week")),  #
+            cst3=ss.uniform(ss.weeks(1), ss.weeks(18)),  #
             cst4=ss.uniform(
-                ss.dur(5, "week"), ss.dur(50, "week")
+                ss.weeks(5), ss.weeks(50)
             ),  # Natural clearance https://www.sciencedirect.com/science/article/abs/pii/S0002937803010421?via%3Dihub
-            male=ss.uniform(ss.dur(1, "week"), ss.dur(18, "week")),
+            male=ss.uniform(ss.weeks(1), ss.weeks(18)),
         )
         self.spontaneous_clearance = sc.objdict(  # Where to transition to after spontaneous clearance
             stable_cst1=1,  # https://pmc.ncbi.nlm.nih.gov/articles/PMC9387550/
             stable_cst3=3,  # https://pmc.ncbi.nlm.nih.gov/articles/PMC9387550/
             stable_cst4=3,  # https://pmc.ncbi.nlm.nih.gov/articles/PMC9387550/
         )
-        self.dur_presymp = ss.uniform(ss.dur(1, "week"), ss.dur(2, "week"))
+        self.dur_presymp = ss.uniform(ss.weeks(1), ss.weeks(2))
         self.p_spontaneous = ss.bernoulli(
             p=0.1
         )  # Placeholder for probability of spontaneous transition to worse CST state (overwritten)
@@ -368,8 +368,8 @@ class BV(BaseSTI):
 
         # Define states
         self.define_states(
-            ss.State("asymptomatic", default=False, label="Asymptomatic"),
-            ss.State("symptomatic", default=False, label="Symptomatic"),
+            ss.BoolState("asymptomatic", default=False, label="Asymptomatic"),
+            ss.BoolState("symptomatic", default=False, label="Symptomatic"),
             ss.FloatArr("ti_cst_change", label="Time of CST change"),
             ss.FloatArr("ti_symptomatic", label="Time of clearance"),
             ss.FloatArr("ti_clearance", label="Time of clearance"),
@@ -541,7 +541,8 @@ class BV(BaseSTI):
 
     def init_post(self):
         """Initialize with sim properties"""
-        for state in self.states:
+        ss.Module.init_post(self)  # Skip the disease init_post() since we create infections in a different way
+        for state in self.state_list:
             if not state.initialized:
                 state.init_vals()
         self.initialized = True
@@ -575,9 +576,10 @@ class BV(BaseSTI):
         return
 
     def step(self):
-        self.set_cst(upper_age=self.t.dt)
-        self.set_hygiene_states(upper_age=self.t.dt)
-        self.set_circumcision(upper_age=self.t.dt)
+        upper_age = self.t.dt.years # TODO this looks wrong!
+        self.set_cst(upper_age=upper_age)
+        self.set_hygiene_states(upper_age=upper_age)
+        self.set_circumcision(upper_age=upper_age)
         self.set_rel_sus(spontaneous=True)
 
         # First, spontaneous transitions

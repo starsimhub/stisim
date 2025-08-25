@@ -7,10 +7,11 @@ What's new
 All notable changes to the codebase are documented in this file.
 
 
-Version 1.4 (2025-07-22)
+Version 1.4 (2025-08-12)
 --------------------------
 - Add location arg and Sim class
-- *GitHub info*: PR TBC
+- Update to work with Starsim v3.
+- *GitHub info*: PR `148 <https://github.com/starsimhub/stisim/pull/148>`_
 
 
 Version 1.3 (2025-06-27)

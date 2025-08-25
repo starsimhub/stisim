@@ -1,14 +1,13 @@
 """
 Simple sim tests
 """
-
-# Imports
 import sciris as sc
 import starsim as ss
 import stisim as sti
 import pandas as pd
 import numpy as np
-import pylab as pl
+
+debug = False  # Run in serial
 
 
 def test_hiv_sim(n_agents=500):
@@ -28,7 +27,6 @@ def test_hiv_sim(n_agents=500):
     art = sti.ART(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_art': np.linspace(0, 0.9, 21)}))
     vmmc = sti.VMMC(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_vmmc': np.linspace(0.025, 0.125, 21)}))
     sim = sti.Sim(
-        dt=1/12,
         start=1990,
         dur=40,
         n_agents=n_agents,
@@ -48,7 +46,6 @@ def test_msm_hiv(n_agents=500):
     death = ss.Deaths(death_rate=10)
     msm = sti.AgeMatchedMSM()
     sim = sti.Sim(
-        dt=1/12,
         start=1990,
         dur=10,
         n_agents=n_agents,
@@ -61,7 +58,7 @@ def test_msm_hiv(n_agents=500):
     return sim
 
 
-def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
+def test_bv(include_hiv=False, n_agents=500):
 
     class menstrual_hygiene(ss.Intervention):
         def __init__(self, pars=None, **kwargs):
@@ -109,11 +106,11 @@ def test_bv(include_hiv=False, n_agents=500, start=2015, n_years=10):
         con += [sti.hiv_bv(hiv_module=hiv, bv_module=bv)]
 
     # Make sim
-    sim_args = dict(unit='year', dt=1/12, start=start, dur=n_years, n_agents=n_agents, diseases=dis, networks=nets, demographics=dem, connectors=con)
+    sim_args = dict(start=2015, stop=2030, n_agents=n_agents, diseases=dis, networks=nets, demographics=dem, connectors=con)
 
     s0 = ss.Sim(**sim_args, interventions=intvs)
-    s1 = ss.Sim(**sim_args, interventions=intvs + [menstrual_hygiene(start=2020, new_val=0.1)])
-    ss.parallel(s0, s1)
+    s1 = ss.Sim(**sim_args, interventions=intvs + [menstrual_hygiene(start=ss.date(2020), new_val=0.1)])
+    ss.parallel(s0, s1, debug=debug)
     return s0, s1
 
 
@@ -151,14 +148,11 @@ def test_stis(which='discharging', n_agents=5e3, start=2010, stop=2020):
 
 
 def test_sim_creation():
-    dt = 1
-    unit = 'year'
+
     start = 2010
     stop = 2020
 
     pars = dict(
-        dt=dt,
-        unit=unit,
         start=start,
         stop=stop,
     )
@@ -175,16 +169,15 @@ def test_sim_creation():
         datafolder=datafolder,
         diseases=['ng', 'ct', 'tv', 'bv', 'hiv'],
         sti_pars=sti_pars,
-        connectors=True
+        # connectors=True
     )
-    # # Test 2: mix of strings and modules
-
     sim1.init()
 
     assert sim1.diseases.ng.pars.eff_condom == 0.6, "Disease parameter not set correctly"
     assert len(sim1.diseases) == 5, "Incorrect number of diseases initialized"
-    assert len(sim1.connectors) > 0, "No connectors initialized"
+    # assert len(sim1.connectors) > 0, "No connectors initialized"
 
+    # Test 2: mix of strings and modules
     demographics = [sti.Pregnancy(), ss.Deaths()]  # Replace the default ss.Pregnancy module with the sti one
     networks = sti.StructuredSexual()
     diseases = [sti.Gonorrhea(), 'hiv']
@@ -194,14 +187,14 @@ def test_sim_creation():
         networks=networks,
         demographics=demographics,
         diseases=diseases,
-        connectors=True,
+        # connectors=True,
     )
 
     sim2.init()
 
     assert isinstance(sim2.networks.structuredsexual, sti.StructuredSexual), "Network not initialized correctly"
     assert len(sim2.diseases) == 2, "Incorrect number of diseases initialized"
-    assert len(sim2.connectors) > 0, "No connectors initialized"
+    # assert len(sim2.connectors) > 0, "No connectors initialized"
     assert len(sim2.demographics) == 2, "Incorrect number of demographics initialized"
 
     # Test 3: flat pars dict
@@ -228,39 +221,34 @@ def test_sim_creation():
     return
 
 
-def test_location():
+def devtest_location():
+    """
+    Won't currently run on GH actions, but can run locally to check authentication key
+    """
     sc.heading('Test location-based sim creation')
     sim1 = sti.Sim(location='zambia', start=2010, stop=2020)
-    sim1.init()
+    sim1.run()
     assert len(sim1.demographics) == 2, "Demographics not initialized"
 
     return
+
+
+def test_time():
+    sim = sti.Sim(start=2010, diseases='hiv')
+    sim.run()
+    assert sim.pars.start == sim.t.yearvec[0], "Timevec seems incorrect"
+    return sim
 
 
 if __name__ == '__main__':
 
     do_plot = False
 
-    s0 = test_hiv_sim()
-    s1 = test_msm_hiv()
-    s2 = test_stis(which='ulcerative')
+    # s0 = test_hiv_sim()
+    # s1 = test_msm_hiv()
+    # s2 = test_bv()
+    # s3 = test_stis(which='discharging')
     test_sim_creation()
-    test_location()
+    # devtest_location()
+    # s4 = test_time()
 
-    # if do_plot:
-    #     s1.plot("ng")
-    #     pl.show()
-    #
-    # sims = test_bv(include_hiv=True)
-    # if do_plot:
-    #     import pylab as pl
-    #     r0 = sims[0].results.bv.prevalence
-    #     r1 = sims[1].results.bv.prevalence
-    #     t = sims[0].results.bv.timevec
-    #     pl.figure()
-    #     pl.plot(t, r0, label='Baseline')
-    #     pl.plot(t, r1, label='Improved menstrual hygiene')
-    #     # pl.axvline(x=2020, color='k', ls='--')
-    #     pl.title('BV prevalence')
-    #     pl.legend()
-    #     pl.show()

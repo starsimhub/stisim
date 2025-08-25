@@ -1,6 +1,4 @@
-import pandas as pd
 import starsim as ss
-
 import stisim as sti
 import sciris as sc
 from itertools import combinations
@@ -241,6 +239,7 @@ class Sim(ss.Sim):
             # Load age data and create people
             age_data = stidata.get_age_distribution(location, year=self.pars.start, datafolder=self.datafolder)
             total_pop = int(age_data.value.sum())
+            age_data['value'] /= sum(age_data['value'])  # Normalize the age distribution
             people = ss.People(self.pars.n_agents, age_data=age_data)
 
         else:
@@ -254,11 +253,13 @@ class Sim(ss.Sim):
         """
         Look up a disease by its name and return the corresponding module.
         """
-
-        if isinstance(self.pars['diseases'], str) or not sc.isiterable(self.pars['diseases']):
-            self.pars['diseases'] = sc.tolist(self.pars['diseases'])  # Ensure it's a list
+        disease_pars = self.pars['diseases']
+        if not disease_pars:  # Handles e.g. ss.ndict()
+            disease_pars = []
+        else:
+            disease_pars = sc.tolist(disease_pars)  # Ensure it's a list
         stis = sc.autolist()
-        if len(self.pars['diseases']) == 0:
+        if len(disease_pars) == 0:
             return stis
 
         all_sti_pars = sti.merged_sti_pars()  # All STI parameters, ignoring duplicates
@@ -275,7 +276,7 @@ class Sim(ss.Sim):
                 sti_pars[sti_mapping[sparname]] = spardict
 
         # Construct or interpret the STIs from the pars
-        for stidis in self.pars['diseases']:
+        for stidis in disease_pars:
 
             # If it's a string, convert to a module
             if sc.checktype(stidis, str):
@@ -307,28 +308,35 @@ class Sim(ss.Sim):
         add_connectors = False
 
         if isinstance(self.pars.connectors, bool) and self.pars.connectors:
-            self.pars['connectors'] = ss.ndict()  # Reset
-            add_connectors = True
+            errormsg = ('STIsim does not currently support automatically adding connectors. This feature'
+                        ' will be added in a future release. For the time being, please add connectors '
+                        'manually, e.g. by passing sti.hiv_syph(hiv, syphilis) to the sim.')
+            raise NotImplementedError(errormsg)
 
-        if add_connectors:
-            for disease in self.pars['diseases']:
-                if isinstance(disease, str):
-                    parsed_diseases.append(disease.lower())
-                if isinstance(disease, ss.Module):
-                    parsed_diseases.append(disease.name.lower())
-
-            # sort the diseases and then get all combinations of their pairs
-            disease_pairs = combinations(parsed_diseases, 2)
-
-            for (d1, d2) in disease_pairs:
-                try:
-                    connector = getattr(sti, f'{d1}_{d2}')
-                except:
-                    try:
-                        connector = getattr(sti, f'{d2}_{d1}')
-                    except:
-                        continue
-                connectors.append(connector(d1, d2))
+            # TODO: The remaining code will be re-enabled once debugged
+        #     self.pars['connectors'] = ss.ndict()  # Reset
+        #     add_connectors = True
+        #
+        # if add_connectors:
+        #     for disease in self.pars['diseases']:
+        #         if isinstance(disease, str):
+        #             parsed_diseases.append(disease.lower())
+        #         if isinstance(disease, ss.Module):
+        #             parsed_diseases.append(disease.name.lower())
+        #
+        #     # sort the diseases and then get all combinations of their pairs
+        #     disease_pairs = combinations(parsed_diseases, 2)
+        #
+        #     # TODO: this does not quite work as intended because the ordering matters...
+        #     for (d1, d2) in disease_pairs:
+        #         try:
+        #             connector = getattr(sti, f'{d1}_{d2}')
+        #         except:
+        #             try:
+        #                 connector = getattr(sti, f'{d2}_{d1}')
+        #             except:
+        #                 continue
+        #         connectors.append(connector(d1, d2))
         return connectors
 
     def case_insensitive_getattr(self, searchspace, attrname):

@@ -30,11 +30,10 @@ class SimPars(ss.SimPars):
         self.pop_scale = None  # How much to scale the population
 
         # Simulation parameters
-        self.unit      = 'year' # The time unit to use; options are 'year' (default), 'day', 'week', 'month', or 'none'
-        self.start     = 2000   # Start of the simulation
-        self.stop      = 2030   # End of the simulation
+        self.start     = ss.years(2000)   # Start of the simulation
+        self.stop      = ss.years(2030)   # End of the simulation
         self.dur       = None   # Duration of time to run, if stop isn't specified
-        self.dt        = 1/12   # Timestep (in units of self.unit)
+        self.dt        = ss.years(1/12)   # Timestep
         self.rand_seed = 1      # Random seed; if None, don't reset
         self.verbose = 1/12
 
