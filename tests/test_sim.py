@@ -226,9 +226,9 @@ def devtest_location():
     Won't currently run on GH actions, but can run locally to check authentication key
     """
     sc.heading('Test location-based sim creation')
-    sim1 = sti.Sim(location='zambia', start=2010, stop=2020)
+    sim1 = sti.Sim(location='zambia', start=1990, stop=2040)
     sim1.run()
-    assert len(sim1.demographics) == 2, "Demographics not initialized"
+    assert len(sim1.demographics) == 3, "Demographics not initialized"
 
     return
 
@@ -244,11 +244,11 @@ if __name__ == '__main__':
 
     do_plot = False
 
-    # s0 = test_hiv_sim()
-    # s1 = test_msm_hiv()
-    # s2 = test_bv()
-    # s3 = test_stis(which='discharging')
+    s0 = test_hiv_sim()
+    s1 = test_msm_hiv()
+    s2 = test_bv()
+    s3 = test_stis(which='discharging')
     test_sim_creation()
-    # devtest_location()
-    # s4 = test_time()
+    devtest_location()
+    s4 = test_time()
 
