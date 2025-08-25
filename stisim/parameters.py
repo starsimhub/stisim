@@ -42,7 +42,7 @@ class SimPars(ss.SimPars):
         self.death_rate = None
         self.use_aging  = False
         self.use_pregnancy = True
-        self.use_migration = True
+        self.use_migration = False
 
         # Update with any supplied parameter values and generate things that need to be generated
         self.update(kwargs)
