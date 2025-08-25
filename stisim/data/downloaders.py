@@ -188,7 +188,7 @@ def get_country_code(df, location):
     return country_code
 
 
-def download_data(location, indicators=None, start=1950, stop=2100, step=10):
+def download_data(location, indicators=None, start=1950, stop=2100, step=1):
     """ Download data """
 
     # Get auth_key

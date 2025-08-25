@@ -20,6 +20,7 @@ files.age_dist_sex = 'populations_by_sex.obj'
 files.birth = 'births.csv'
 files.asfr = 'asfr.csv'
 files.death = 'deaths.csv'
+files.migration = 'migration.csv'
 
 
 # Cache data as a dict
@@ -58,7 +59,7 @@ def get_age_distribution(location=None, year=None, datafolder=None):
 
 
 def get_rates(location, which, datafolder=None):
-    """ Load birth/death/fertility rates for a given location """
+    """ Load birth/death/fertility/migration rates for a given location """
     if datafolder is None: datafolder = filesdir
     filepath = sc.makefilepath(filename=f'{location}_{files[which]}', folder=datafolder)
     try:
