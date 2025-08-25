@@ -172,6 +172,8 @@ class Sim(ss.Sim):
         self.pars['demographics'] = demographics
         self.pars['people'] = people
         self.pars['total_pop'] = total_pop
+        if self.pars['demographics'] is not None:
+            self.pars.use_aging = True
 
         # Reset n_agents
         if self.pars['people'] is not None: self.pars['n_agents'] = len(self.pars['people'])
@@ -222,11 +224,6 @@ class Sim(ss.Sim):
                     print(printmsg, end='')
                     stidl.download_data(location=location, indicators=missing, start=start_year)
 
-            # Load death rates and turn into a module
-            death_rates = stidata.get_rates(location, 'death', self.datafolder)
-            deaths = ss.Deaths(death_rate=death_rates, rate_units=1, metadata=dict(data_cols=dict(year='Time', sex='Sex', age='AgeStart', value='Value')))
-            demographics += deaths
-
             # Load birth or fertility rates and turn into module
             if self.pars['use_pregnancy']:
                 fertility_rates = stidata.get_rates(location, 'asfr', self.datafolder)
@@ -236,6 +233,11 @@ class Sim(ss.Sim):
                 birth_rates = stidata.get_rates(location, 'births', self.datafolder)
                 births = ss.Births(birth_rate=birth_rates, metadata=dict(data_cols=dict(year='year', value='cbr')))
                 demographics += births
+
+            # Load death rates and turn into a module
+            death_rates = stidata.get_rates(location, 'death', self.datafolder)
+            deaths = ss.Deaths(death_rate=death_rates, rate_units=1, metadata=dict(data_cols=dict(year='Time', sex='Sex', age='AgeStart', value='Value')))
+            demographics += deaths
 
             # Optionally add migration
             if self.pars['use_migration']:
