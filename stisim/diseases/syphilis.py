@@ -137,10 +137,10 @@ class Syphilis(BaseSTI):
         # Set initial prevalence
         self.init_prev_data = init_prev_data
         self.init_prev_latent_data = init_prev_latent_data
-        if init_prev_data is not None:
-            self.pars.init_prev = ss.bernoulli(self.make_init_prev_fn)
-        if init_prev_latent_data is not None:
-            self.pars.init_latent_prev = ss.bernoulli(self.make_init_prev_latent_fn)
+        # if init_prev_data is not None:
+        #     self.pars.init_prev = ss.bernoulli(self.make_init_prev_fn)
+        # if init_prev_latent_data is not None:
+        #     self.pars.init_latent_prev = ss.bernoulli(self.make_init_prev_latent_fn)
 
         # Whether to store detailed results
         self.store_sw = False
@@ -178,13 +178,13 @@ class Syphilis(BaseSTI):
 
         return
 
-    @staticmethod
-    def make_init_prev_fn(module, sim, uids):
-        return sti.make_init_prev_fn(module, sim, uids, active=True)
-
-    @staticmethod
-    def make_init_prev_latent_fn(module, sim, uids):
-        return sti.make_init_prev_fn(module, sim, uids, active=True, data=module.init_prev_latent_data)
+    # @staticmethod
+    # def make_init_prev_fn(module, sim, uids):
+    #     return sti.make_init_prev_fn(module, sim, uids, active=True)
+    #
+    # @staticmethod
+    # def make_init_prev_latent_fn(module, sim, uids):
+    #     return sti.make_init_prev_fn(module, sim, uids, active=True, data=module.init_prev_latent_data)
 
     @property
     def exposed(self):
@@ -218,12 +218,20 @@ class Syphilis(BaseSTI):
 
     def init_post(self):
         """ Make initial cases """
-        ss.Module.init_post(self) # Avoid super().init_post() since we create infections here
+        ss.Module.init_post(self)  # Avoid super().init_post() since we create infections here
+
+        # Initial active cases
+        if self.init_prev_data is not None:
+            p_init_infection = self.make_init_prev()
+            self.pars.init_prev.set(p_init_infection)  # Set the initial prevalence function
         initial_active_cases = self.pars.init_prev.filter()
         self.set_prognoses(initial_active_cases)
         still_sus = self.susceptible.uids
 
         # Natural history for initial latent cases
+        if self.init_prev_latent_data is not None:
+            p_init_latent = self.make_init_prev(data=self.init_prev_latent_data)
+            self.pars.init_prev_latent.set(p_init_latent)  # Set the initial prevalence function
         initial_latent_cases = self.pars.init_latent_prev.filter(still_sus)
         ti_init_cases = self.pars.dist_ti_init_infected.rvs(initial_latent_cases).astype(int)
         self.set_prognoses(initial_latent_cases, ti=ti_init_cases)
