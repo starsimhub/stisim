@@ -64,7 +64,6 @@ class STITest(ss.Intervention):
     def __init__(self, pars=None, test_prob_data=None, years=None, start=None, stop=None, eligibility=None, product=None, name=None, label=None, **kwargs):
         super().__init__(name=name, label=label)
         self.define_pars(
-            dt='month',
             rel_test=1,
             dt_scale=True,
         )
@@ -391,7 +390,6 @@ class STITreatment(ss.Intervention):
         super().__init__(*args, name=name)
         self.requires = diseases
         self.define_pars(
-            dt='month',
             treat_prob=ss.bernoulli(p=1.),
             treat_eff=ss.bernoulli(p=0.9),
             by_sex=True,  # Whether or not to store outcomes by sex

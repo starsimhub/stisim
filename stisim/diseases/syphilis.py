@@ -554,7 +554,7 @@ class Syphilis(BaseSTI):
                         vals = getattr(self, ti_outcome)
                         vals[o_uids] = ti + timesteps_til_delivery[m_uids]
 
-                        setattr(self, ti_outcome, vals)
+                        self.setattribute(ti_outcome, vals)
                         new_outcomes[outcome] += len(o_uids)
 
         # Check that the birth outcomes are mutually exclusive

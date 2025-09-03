@@ -14,7 +14,7 @@ __all__ = ["SyphDx", "SyphTx", "NewbornTreatment", "SyphTest", "ANCSyphTest", "N
 
 class SyphDx(STIDx):
     def __init__(self, df, *args, **kwargs):
-        super().__init__(df, 'syphilis', *args, **kwargs)
+        super().__init__(df, 'syph', *args, **kwargs)
         return
 
 
