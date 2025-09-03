@@ -231,7 +231,7 @@ class Syphilis(BaseSTI):
         # Natural history for initial latent cases
         if self.init_prev_latent_data is not None:
             p_init_latent = self.make_init_prev(data=self.init_prev_latent_data)
-            self.pars.init_prev_latent.set(p_init_latent)  # Set the initial prevalence function
+            self.pars.init_latent_prev.set(p_init_latent[still_sus])  # Set the initial prevalence function
         initial_latent_cases = self.pars.init_latent_prev.filter(still_sus)
         ti_init_cases = self.pars.dist_ti_init_infected.rvs(initial_latent_cases).astype(int)
         self.set_prognoses(initial_latent_cases, ti=ti_init_cases)

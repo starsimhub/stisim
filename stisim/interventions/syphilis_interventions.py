@@ -24,7 +24,7 @@ class SyphTx(STITreatment):
     """
 
     def __init__(self, pars=None, max_capacity=None, years=None, eligibility=None, name=None, **kwargs):
-        super().__init__(diseases='syphilis', name=name, eligibility=eligibility, years=years, max_capacity=max_capacity)
+        super().__init__(diseases='syph', name=name, eligibility=eligibility, years=years, max_capacity=max_capacity)
         self.define_pars(
             rel_treat_prob=1,
             treat_prob=ss.bernoulli(p=1),
@@ -73,29 +73,29 @@ class SyphTx(STITreatment):
         treat_uids = treat_gt_cutoff.concat(treat_st_cutoff)
 
         # Store results - Failure
-        sim.diseases.syphilis.results['new_fetus_treated_failure'][self.ti] = len(fetus_gt_cutoff) + len(fetus_st_cutoff) - len(treat_uids)
+        sim.diseases.syph.results['new_fetus_treated_failure'][self.ti] = len(fetus_gt_cutoff) + len(fetus_st_cutoff) - len(treat_uids)
         # Store results - Unnecessary. Subtract successful uids below
-        sim.diseases.syphilis.results['new_fetus_treated_unnecessary'][self.ti] += len(treat_uids)
+        sim.diseases.syph.results['new_fetus_treated_unnecessary'][self.ti] += len(treat_uids)
 
         # Change birth outcomes for successfully treated unborn babies
         # If fetus is not yet infected, this will do nothing
         if len(treat_uids):
             # Birth outcomes must be modified to add probability of susceptible birth
-            birth_outcomes = sim.diseases.syphilis.pars.birth_outcome_keys
+            birth_outcomes = sim.diseases.syph.pars.birth_outcome_keys
 
             # Change states
             for oi, outcome in enumerate(birth_outcomes):
                 if outcome != 'normal':
                     ti_outcome = f'ti_{outcome}'
-                    vals = getattr(sim.diseases.syphilis, ti_outcome)
+                    vals = getattr(sim.diseases.syph, ti_outcome)
                     successful_uids = treat_uids & vals.notnan.uids
                     vals[successful_uids] = np.nan
-                    setattr(sim.diseases.syphilis, ti_outcome, vals)
+                    setattr(sim.diseases.syph, ti_outcome, vals)
 
                 # Store results - Success
-                sim.diseases.syphilis.results['new_fetus_treated_success'][self.ti] += len(successful_uids)
+                sim.diseases.syph.results['new_fetus_treated_success'][self.ti] += len(successful_uids)
                 # Store results - Unnecessary. Subtract the uids that were successful
-                sim.diseases.syphilis.results['new_fetus_treated_unnecessary'][self.ti] -= len(successful_uids)
+                sim.diseases.syph.results['new_fetus_treated_unnecessary'][self.ti] -= len(successful_uids)
 
         return
 
@@ -109,7 +109,7 @@ class SyphTx(STITreatment):
         treat_pregnant_uids = sim.people.pregnancy.pregnant.uids & self.outcomes['successful']
         overtreat_pregnant_uids = sim.people.pregnancy.pregnant.uids & self.outcomes['unnecessary']
         # Store results - Unnecessary
-        sim.diseases.syphilis.results['new_treated_unnecessary_pregnant'][self.ti] += len(overtreat_pregnant_uids)
+        sim.diseases.syph.results['new_treated_unnecessary_pregnant'][self.ti] += len(overtreat_pregnant_uids)
         if len(treat_pregnant_uids):
             self.treat_fetus(sim, mother_uids=treat_pregnant_uids)
         return treat_uids
@@ -249,20 +249,20 @@ class SyphTest(STITest):
         ti = self.ti
         new_pos = self.ti_positive == ti
         # Count true/false positives
-        false_pos = np.count_nonzero(self.sim.diseases.syphilis.susceptible[new_pos])
-        true_pos = np.count_nonzero(self.sim.diseases.syphilis.infected[new_pos])
-        self.sim.diseases.syphilis.results['new_false_pos'][ti] += false_pos
-        self.sim.diseases.syphilis.results['new_true_pos'][ti] += true_pos
+        false_pos = np.count_nonzero(self.sim.diseases.syph.susceptible[new_pos])
+        true_pos = np.count_nonzero(self.sim.diseases.syph.infected[new_pos])
+        self.sim.diseases.syph.results['new_false_pos'][ti] += false_pos
+        self.sim.diseases.syph.results['new_true_pos'][ti] += true_pos
         return
 
     def update_negatives(self):
         ti = self.ti
         new_neg = self.ti_negative == ti
         # Count true/false negatives
-        false_neg = np.count_nonzero(self.sim.diseases.syphilis.infected[new_neg])
-        true_neg = np.count_nonzero(self.sim.diseases.syphilis.susceptible[new_neg])
-        self.sim.diseases.syphilis.results['new_false_neg'][ti] += false_neg
-        self.sim.diseases.syphilis.results['new_true_neg'][ti] += true_neg
+        false_neg = np.count_nonzero(self.sim.diseases.syph.infected[new_neg])
+        true_neg = np.count_nonzero(self.sim.diseases.syph.susceptible[new_neg])
+        self.sim.diseases.syph.results['new_false_neg'][ti] += false_neg
+        self.sim.diseases.syph.results['new_true_neg'][ti] += true_neg
         return
 
 
