@@ -90,7 +90,7 @@ class SyphTx(STITreatment):
                     vals = getattr(sim.diseases.syph, ti_outcome)
                     successful_uids = treat_uids & vals.notnan.uids
                     vals[successful_uids] = np.nan
-                    setattr(sim.diseases.syph, ti_outcome, vals)
+                    sim.diseases.syph.setattribute(ti_outcome, vals)
 
                 # Store results - Success
                 sim.diseases.syph.results['new_fetus_treated_success'][self.ti] += len(successful_uids)
