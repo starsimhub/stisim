@@ -178,14 +178,6 @@ class Syphilis(BaseSTI):
 
         return
 
-    # @staticmethod
-    # def make_init_prev_fn(module, sim, uids):
-    #     return sti.make_init_prev_fn(module, sim, uids, active=True)
-    #
-    # @staticmethod
-    # def make_init_prev_latent_fn(module, sim, uids):
-    #     return sti.make_init_prev_fn(module, sim, uids, active=True, data=module.init_prev_latent_data)
-
     @property
     def exposed(self):
         """ Default is that exposure equals infection """

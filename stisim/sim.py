@@ -83,6 +83,7 @@ class Sim(ss.Sim):
         # Inputs and defaults
         self.nw_pars = None     # Parameters for the networks - processed later
         self.sti_pars = None    # Parameters for the STIs - processed later
+        self.dem_pars = None    # Demographic pars
         self.pars = None        # Parameters for the simulation - processed later
         self.datafolder = datafolder
         # self.stis = ss.ndict()   # Set during init, after processing the STIs
@@ -95,11 +96,11 @@ class Sim(ss.Sim):
         sim_kwargs = dict(label=label, people=people, demographics=demographics, diseases=diseases, networks=networks,
                     interventions=interventions, analyzers=analyzers, connectors=connectors)
         sim_kwargs = {key: val for key, val in sim_kwargs.items() if val is not None}
-        updated_pars = self.separate_pars(pars, sim_pars, sti_pars, nw_pars, sim_kwargs, **kwargs)
+        updated_pars = self.separate_pars(pars, sim_pars, sti_pars, nw_pars, dem_pars, sim_kwargs, **kwargs)
         self.pars.update(updated_pars)
         return
 
-    def separate_pars(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None, sim_kwargs=None, **kwargs):
+    def separate_pars(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None, dem_pars=None, sim_kwargs=None, **kwargs):
         """
         Create a nested dict of parameters that get passed to Sim constructor and the component modules
         Prioritization:
@@ -107,7 +108,7 @@ class Sim(ss.Sim):
             - If any key appears in both pars and kwargs, the value from kwargs will be used.
         """
         # Merge in pars and kwargs
-        all_pars = sc.mergedicts(pars, sim_pars, sti_pars, nw_pars, sim_kwargs, kwargs)
+        all_pars = sc.mergedicts(pars, sim_pars, sti_pars, nw_pars, dem_pars, sim_kwargs, kwargs)
         all_pars = self.remap_pars(all_pars)  # Remap any parameter names
 
         # Deal with sim pars
@@ -133,6 +134,11 @@ class Sim(ss.Sim):
         for k in user_nw_pars: all_pars.pop(k)
         nw_pars = sc.mergedicts(default_nw_pars, user_nw_pars, nw_pars, _copy=True)
 
+        default_dem_pars = sti.dem_pars()
+        user_dem_pars = {k: v for k, v in all_pars.items() if k in default_dem_pars.keys()}
+        for k in user_dem_pars: all_pars.pop(k)
+        dem_pars = sc.mergedicts(default_dem_pars, user_dem_pars, dem_pars, _copy=True)
+
         # Raise an exception if there are any leftover pars
         if all_pars:
             raise ValueError(f'Unrecognized parameters: {all_pars.keys()}. Refer to parameters.py for parameters.')
@@ -140,6 +146,7 @@ class Sim(ss.Sim):
         # Store the parameters for the modules - thse will be fed into the modules during init
         self.sti_pars = sti_pars    # Parameters for the STI modules
         self.nw_pars = nw_pars      # Parameters for the networks
+        self.dem_pars = dem_pars
 
         return sim_pars
 
@@ -227,22 +234,29 @@ class Sim(ss.Sim):
             # Load birth or fertility rates and turn into module
             if self.pars['use_pregnancy']:
                 fertility_rates = stidata.get_rates(location, 'asfr', self.datafolder)
-                pregnancy = sti.Pregnancy(fertility_rate=fertility_rates, metadata=dict(data_cols=dict(year='Time', age='AgeStart', value='Value')),)
+                preg_pars = {k: v for k, v in self.dem_pars.items() if k in sti.Pregnancy().pars.keys()}
+                metadata = dict(data_cols=dict(year='Time', age='AgeStart', value='Value'))
+                pregnancy = sti.Pregnancy(fertility_rate=fertility_rates, pars=preg_pars, metadata=metadata)
                 demographics += pregnancy
             else:
                 birth_rates = stidata.get_rates(location, 'births', self.datafolder)
-                births = ss.Births(birth_rate=birth_rates, metadata=dict(data_cols=dict(year='year', value='cbr')))
+                birth_pars = {k: v for k, v in self.dem_pars.items() if k in ss.Births().pars.keys()}
+                metadata = dict(data_cols=dict(year='year', value='cbr'))
+                births = ss.Births(birth_rate=birth_rates, pars=birth_pars, metadata=metadata)
                 demographics += births
 
             # Load death rates and turn into a module
             death_rates = stidata.get_rates(location, 'death', self.datafolder)
-            deaths = ss.Deaths(death_rate=death_rates, rate_units=1, metadata=dict(data_cols=dict(year='Time', sex='Sex', age='AgeStart', value='Value')))
+            death_pars = {k: v for k, v in self.dem_pars.items() if k in ss.Deaths().pars.keys()}
+            metadata = dict(data_cols=dict(year='Time', sex='Sex', age='AgeStart', value='Value'))
+            deaths = ss.Deaths(death_rate=death_rates, rate_units=1, pars=death_pars, metadata=metadata)
             demographics += deaths
 
             # Optionally add migration
             if self.pars['use_migration']:
                 migration_data = stidata.get_rates(location, 'migration', self.datafolder)
-                migration = sti.Migration(migration_data=migration_data)
+                migration_pars = {k: v for k, v in self.dem_pars.items() if k in sti.Migration().pars.keys()}
+                migration = sti.Migration(migration_data=migration_data, pars=migration_pars)
                 demographics += migration
 
             # Load age data and create people
