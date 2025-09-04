@@ -76,7 +76,7 @@ class Sim(ss.Sim):
         5. Default parameters defined in each module's own class.
     """
 
-    def __init__(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None,
+    def __init__(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None, dem_pars=None,
                  label=None, people=None, demographics=None, diseases=None, networks=None,
                  interventions=None, analyzers=None, connectors=None, datafolder=None, **kwargs):
 
