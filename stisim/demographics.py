@@ -21,18 +21,21 @@ class Pregnancy(ss.Pregnancy):
         return ptb_probs
 
     def __init__(self, pars=None, metadata=None, **kwargs):
-        super().__init__(pars=pars, metadata=metadata, **kwargs)
+        super().__init__(metadata=metadata)
+
+        # Parameters
+        self.define_pars(
+            p_ptb=ss.bernoulli(p=0.057),  # Probability of preterm birth
+        )
+        self.update_pars(pars, **kwargs)
+
+        # States
         self.define_states(
             ss.FloatArr("rel_sus_ptb", default=1),
             ss.BoolState("ptb", default=False, label="Preterm birth"),
             ss.FloatArr("trimester", default=0),
         )
 
-        self.define_pars(
-            p_ptb=0.057,  # Probability of preterm birth
-        )
-
-        self.p_ptb = ss.bernoulli(p=self.p_ptb)
         return
 
     @property
@@ -59,7 +62,7 @@ class Pregnancy(ss.Pregnancy):
             self.trimester[uids] = 1
 
         # Determine pre-term birth
-        ptb, no_ptb = self.p_ptb.split(uids)
+        ptb, no_ptb = self.pars.p_ptb.split(uids)
         self.ptb[ptb] = True
         self.ptb[no_ptb] = False
         return
