@@ -6,12 +6,6 @@ ui <- dashboardPage(
   
   dashboardSidebar(
     width = 350,
-    sidebarMenu(
-      menuItem("Simulation", tabName = "simulation", icon = icon("play")),
-      menuItem("Results", tabName = "results", icon = icon("chart-line")),
-      menuItem("Parameters", tabName = "parameters", icon = icon("cog")),
-      menuItem("About", tabName = "about", icon = icon("info"))
-    ),
     
     # Parameter controls
     div(id = "parameter_controls",
@@ -118,108 +112,134 @@ ui <- dashboardPage(
         .slider-container .irs {
           margin-top: 10px;
         }
+        .nav-tabs {
+          border-bottom: 2px solid #dee2e6;
+        }
+        .nav-tabs .nav-link {
+          border: 1px solid transparent;
+          border-top-left-radius: 0.25rem;
+          border-top-right-radius: 0.25rem;
+          margin-bottom: -1px;
+        }
+        .nav-tabs .nav-link.active {
+          color: #495057;
+          background-color: #fff;
+          border-color: #dee2e6 #dee2e6 #fff;
+        }
+        .nav-tabs .nav-link:hover {
+          border-color: #e9ecef #e9ecef #dee2e6;
+        }
       "))
     ),
-    tabItems(
-      # Simulation tab
-      tabItem(tabName = "simulation",
-        fluidRow(
-          box(title = "Simulation Status", status = "info", solidHeader = TRUE, width = 12,
-              textOutput("simulation_status"),
-              textOutput("progress_text")
-          )
-        ),
-        
-        fluidRow(
-          box(title = "Quick Results", status = "success", solidHeader = TRUE, width = 6,
-              plotlyOutput("quick_plot", height = "400px")
-          ),
-          box(title = "Population Summary", status = "info", solidHeader = TRUE, width = 6,
-              tableOutput("population_summary")
-          )
-        )
-      ),
-      
-      # Results tab
-      tabItem(tabName = "results",
-        fluidRow(
-          box(title = "HIV Prevalence Over Time", status = "primary", solidHeader = TRUE, width = 12,
-              plotlyOutput("prevalence_plot", height = "500px")
-          )
-        ),
-        
-        fluidRow(
-          box(title = "HIV Incidence", status = "warning", solidHeader = TRUE, width = 6,
-              plotlyOutput("incidence_plot", height = "400px")
-          ),
-          box(title = "CD4 Count Distribution", status = "info", solidHeader = TRUE, width = 6,
-              plotlyOutput("cd4_plot", height = "400px")
-          )
-        ),
-        
-        fluidRow(
-          box(title = "Treatment Coverage", status = "success", solidHeader = TRUE, width = 6,
-              plotlyOutput("treatment_plot", height = "400px")
-          ),
-          box(title = "Age-specific Prevalence", status = "danger", solidHeader = TRUE, width = 6,
-              plotlyOutput("age_prev_plot", height = "400px")
-          )
-        ),
-        
-        fluidRow(
-          box(title = "Network Analysis", status = "info", solidHeader = TRUE, width = 12,
-              plotlyOutput("network_plot", height = "400px")
-          )
-        )
-      ),
-      
-      # Parameters tab
-      tabItem(tabName = "parameters",
-        fluidRow(
-          box(title = "Current Parameters", status = "info", solidHeader = TRUE, width = 12,
-              DTOutput("parameters_table")
-          )
-        ),
-        
-        fluidRow(
-          box(title = "Parameter Sensitivity", status = "warning", solidHeader = TRUE, width = 12,
-              plotlyOutput("sensitivity_plot", height = "500px")
-          )
-        )
-      ),
-      
-      # About tab
-      tabItem(tabName = "about",
-        fluidRow(
-          box(title = "About STIsim HIV Model", status = "info", solidHeader = TRUE, width = 12,
-              h4("STIsim HIV Web Application"),
-              p("This web application provides an interactive interface for the STIsim HIV modeling framework."),
-              p("STIsim is an agent-based modeling framework for simulating sexually transmitted diseases, built on the Starsim architecture."),
-              
-              h5("Features:"),
-              tags$ul(
-                tags$li("Agent-based HIV simulation"),
-                tags$li("Configurable disease parameters"),
-                tags$li("Sexual network modeling"),
-                tags$li("Intervention modeling (testing, treatment, prevention)"),
-                tags$li("Interactive visualizations"),
-                tags$li("Parameter sensitivity analysis")
+    
+    # Main content area with tab panels
+    fluidRow(
+      column(width = 12,
+        tabsetPanel(
+          id = "main_tabs",
+          type = "tabs",
+          
+          # Simulation Tab
+          tabPanel("Simulation", icon = icon("play"),
+            fluidRow(
+              box(title = "Simulation Status", status = "info", solidHeader = TRUE, width = 12,
+                  textOutput("simulation_status"),
+                  textOutput("progress_text")
+              )
+            ),
+            
+            fluidRow(
+              box(title = "Quick Results", status = "success", solidHeader = TRUE, width = 6,
+                  plotlyOutput("quick_plot", height = "400px")
               ),
-              
-              h5("Model Components:"),
-              tags$ul(
-                tags$li("HIV natural history (acute, latent, late-stage)"),
-                tags$li("Sexual transmission networks"),
-                tags$li("Demographic processes"),
-                tags$li("HIV testing and treatment"),
-                tags$li("Prevention interventions")
+              box(title = "Population Summary", status = "info", solidHeader = TRUE, width = 6,
+                  tableOutput("population_summary")
+              )
+            )
+          ),
+          
+          # Results Tab
+          tabPanel("Results", icon = icon("chart-line"),
+            fluidRow(
+              box(title = "HIV Prevalence Over Time", status = "primary", solidHeader = TRUE, width = 12,
+                  plotlyOutput("prevalence_plot", height = "500px")
+              )
+            ),
+            
+            fluidRow(
+              box(title = "HIV Incidence", status = "warning", solidHeader = TRUE, width = 6,
+                  plotlyOutput("incidence_plot", height = "400px")
               ),
-              
-              h5("Contact:"),
-              p("For questions or support, please visit the STIsim GitHub repository or contact info@starsim.org"),
-              
-              h5("Version:"),
-              p("STIsim v1.4 - Shiny Web Interface v1.0")
+              box(title = "CD4 Count Distribution", status = "info", solidHeader = TRUE, width = 6,
+                  plotlyOutput("cd4_plot", height = "400px")
+              )
+            ),
+            
+            fluidRow(
+              box(title = "Treatment Coverage", status = "success", solidHeader = TRUE, width = 6,
+                  plotlyOutput("treatment_plot", height = "400px")
+              ),
+              box(title = "Age-specific Prevalence", status = "danger", solidHeader = TRUE, width = 6,
+                  plotlyOutput("age_prev_plot", height = "400px")
+              )
+            ),
+            
+            fluidRow(
+              box(title = "Network Analysis", status = "info", solidHeader = TRUE, width = 12,
+                  plotlyOutput("network_plot", height = "400px")
+              )
+            )
+          ),
+          
+          # Parameters Tab
+          tabPanel("Parameters", icon = icon("cog"),
+            fluidRow(
+              box(title = "Current Parameters", status = "info", solidHeader = TRUE, width = 12,
+                  DTOutput("parameters_table")
+              )
+            ),
+            
+            fluidRow(
+              box(title = "Parameter Sensitivity", status = "warning", solidHeader = TRUE, width = 12,
+                  plotlyOutput("sensitivity_plot", height = "500px")
+              )
+            )
+          ),
+          
+          # About Tab
+          tabPanel("About", icon = icon("info"),
+            fluidRow(
+              box(title = "About STIsim HIV Model", status = "info", solidHeader = TRUE, width = 12,
+                  h4("STIsim HIV Web Application"),
+                  p("This web application provides an interactive interface for the STIsim HIV modeling framework."),
+                  p("STIsim is an agent-based modeling framework for simulating sexually transmitted diseases, built on the Starsim architecture."),
+                  
+                  h5("Features:"),
+                  tags$ul(
+                    tags$li("Agent-based HIV simulation"),
+                    tags$li("Configurable disease parameters"),
+                    tags$li("Sexual network modeling"),
+                    tags$li("Intervention modeling (testing, treatment, prevention)"),
+                    tags$li("Interactive visualizations"),
+                    tags$li("Parameter sensitivity analysis")
+                  ),
+                  
+                  h5("Model Components:"),
+                  tags$ul(
+                    tags$li("HIV natural history (acute, latent, late-stage)"),
+                    tags$li("Sexual transmission networks"),
+                    tags$li("Demographic processes"),
+                    tags$li("HIV testing and treatment"),
+                    tags$li("Prevention interventions")
+                  ),
+                  
+                  h5("Contact:"),
+                  p("For questions or support, please visit the STIsim GitHub repository or contact info@starsim.org"),
+                  
+                  h5("Version:"),
+                  p("STIsim v1.4 - Shiny Web Interface v1.0")
+              )
+            )
           )
         )
       )
