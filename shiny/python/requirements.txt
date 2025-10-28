@@ -1,0 +1,32 @@
+# STIsim HIV Shiny Web App - Python Dependencies
+# Core STIsim dependencies
+starsim>=3.0.1
+sciris>=3.1.6
+pandas>=2.0.0
+scipy
+numba
+networkx
+
+# STIsim specific dependencies
+optuna
+requests
+
+# Additional dependencies for web app
+plotly>=5.0.0
+numpy>=1.20.0
+matplotlib>=3.5.0
+
+# Additional scientific computing dependencies
+seaborn
+openpyxl
+xlsxwriter
+psutil
+dill
+zstandard
+multiprocess
+jsonpickle
+setuptools
+gitpython
+jellyfish
+memory_profiler
+line_profiler
