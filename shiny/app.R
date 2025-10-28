@@ -27,5 +27,5 @@ tryCatch({
 source("ui.R")
 source("server.R")
 
-# Run the application on port 3030
-shinyApp(ui = ui, server = server, options = list(port = 3030, host = "0.0.0.0"))
+# Run the application on port 3838
+shinyApp(ui = ui, server = server, options = list(port = 3838, host = "0.0.0.0"))
