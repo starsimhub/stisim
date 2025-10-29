@@ -483,6 +483,7 @@ class HIV(BaseSTI):
         self.infected[uids] = True
         self.acute[uids] = True
 
+        self.ti_exposed[uids] = ti
         self.ti_infected[uids] = ti
         self.ti_acute[uids] = ti
         self.cd4[uids] = self.cd4_start[uids]
