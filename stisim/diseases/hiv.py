@@ -73,6 +73,7 @@ class HIV(BaseSTI):
         # States
         self.define_states(
             # Natural history
+            ss.FloatArr('ti_exposed'),
             ss.FloatArr('ti_acute'),
             ss.BoolState('acute'),
             ss.FloatArr('ti_latent'),

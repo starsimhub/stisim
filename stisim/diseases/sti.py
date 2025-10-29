@@ -106,7 +106,6 @@ class BaseSTI(ss.Infection):
         self.update_pars(pars, **kwargs)
 
         self.define_states(
-            ss.FloatArr('ti_exposed'),
             ss.FloatArr('ti_transmitted_sex'),
             ss.FloatArr('ti_transmitted_mtc'),
             ss.FloatArr('ti_transmitted'),
