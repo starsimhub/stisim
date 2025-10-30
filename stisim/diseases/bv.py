@@ -66,7 +66,7 @@ class SimpleBV(ss.Disease):
             ss.FloatArr('ti_symptomatic', label='Time of symptoms'),
             ss.FloatArr('dur_inf', label='Duration of infection'),
             ss.BoolArr('douching', label='Douching'),
-            ss.FloatArr('n_partners_12m', 0, label='Number of partners in the past 12 months'),
+            ss.FloatArr('n_partners_12m', default=0, label='Number of partners in the past 12 months'),
             ss.BoolArr('poor_menstrual_hygiene', label='Poor menstrual hygiene'),
         )
         self.sex_keys = {'': 'alive', 'f': 'female', 'm': 'male'}
