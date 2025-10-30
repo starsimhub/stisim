@@ -128,15 +128,9 @@ class SimpleBV(ss.Disease):
 
     def init_post(self):
         """ Initialize with sim properties """
-        for state in self.states:
-            if not state.initialized:
-                state.init_vals()
-        self.initialized = True
-
-        # Set hygiene states and initial infections
+        ss.Module.init_post(self)  # Skip the disease init_post() since we create infections in a different way
         self.set_hygiene_states()
         self.infect()
-
         return
 
     def spontaneous(self, uids):
