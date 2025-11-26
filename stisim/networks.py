@@ -188,7 +188,7 @@ class StructuredSexual(ss.SexualNetwork):
             df = condom_data.melt(id_vars=['partnership'])
             dd = dict()
             for pcombo in df.partnership.unique():
-                key = tuple(map(int, pcombo[1:-1].split(','))) if pcombo != '(fsw,client)' else ('fsw','client')
+                key = tuple(map(int, pcombo[1:-1].split(','))) if pcombo != '(fsw,client)' else ('fsw', 'client')
                 thisdf = df.loc[df.partnership == pcombo]
                 dd[key] = dict()
                 dd[key]['year'] = thisdf.variable.values.astype(int)
