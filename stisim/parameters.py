@@ -7,7 +7,7 @@ import starsim as ss
 import stisim as sti
 
 
-__all__ = ['SimPars', 'sti_aliases', 'sti_register', 'merged_sti_pars', 'make_sti']
+__all__ = ['SimPars', 'sti_aliases', 'sti_register', 'merged_sti_pars', 'make_sti', 'mergepars', 'dem_pars']
 
 
 class SimPars(ss.SimPars):
@@ -114,3 +114,27 @@ def make_sti(name, pars=None):
     # Create an instance of the disease class
     disease_class = sti_dict[name]
     return disease_class(pars=pars)
+
+
+def mergepars(*args):
+    """
+    Merge all parameter dictionaries into a single dictionary.
+    This is used to initialize the SimPars class with all relevant parameters.
+    It wraps the sc.mergedicts function to ensure all inputs are dicts
+    """
+    # Convert any Pars objects to plain dicts and merge
+    dicts = [dict(sc.dcp(arg)) for arg in args if arg is not None]
+    merged_pars = sc.mergedicts(*dicts)
+    return merged_pars
+
+
+# Demographic pars
+def dem_pars():
+    """
+    Return a dictionary with all parameters used within demographic modules
+    """
+    death_pars = ss.Deaths().pars
+    birth_pars = ss.Births().pars
+    preg_pars = sti.Pregnancy().pars
+    migration_pars = sti.Migration().pars
+    return mergepars(death_pars, birth_pars, preg_pars, migration_pars)

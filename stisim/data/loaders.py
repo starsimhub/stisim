@@ -5,9 +5,6 @@ Load data
 #%% Housekeeping
 import pandas as pd
 import sciris as sc
-import unicodedata
-import re
-import os
 
 
 __all__ = ['get_age_distribution', 'get_rates']
@@ -21,24 +18,6 @@ files.birth = 'births.csv'
 files.asfr = 'asfr.csv'
 files.death = 'deaths.csv'
 files.migration = 'migration.csv'
-
-
-# Cache data as a dict
-cache = dict()
-
-
-def sanitizestr(string=None, alphanumeric=True, nospaces=True, asciify=True, lower=True, spacechar='_', symchar='_'):
-    ''' Remove all non-printable characters from a string -- to be moved to Sciris eventually '''
-    string = str(string)
-    if asciify:
-        string = unicodedata.normalize('NFKD', string).encode('ascii', 'ignore').decode()
-    if nospaces:
-        string = string.replace(' ', spacechar)
-    if lower:
-        string = string.lower()
-    if alphanumeric:
-        string = re.sub('[^0-9a-zA-Z ]', symchar, string)
-    return string
 
 
 def get_age_distribution(location=None, year=None, datafolder=None):

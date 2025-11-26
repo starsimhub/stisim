@@ -73,6 +73,7 @@ class HIV(BaseSTI):
         # States
         self.define_states(
             # Natural history
+            ss.FloatArr('ti_exposed'),
             ss.FloatArr('ti_acute'),
             ss.BoolState('acute'),
             ss.FloatArr('ti_latent'),
@@ -215,8 +216,8 @@ class HIV(BaseSTI):
         cd4_start = self.cd4_postart[zero_later_uids]
         if post_art_dur.any() <= 0:
             post_art_dur[post_art_dur <= 0] = 1
-            error_msg = 'Post-ART duration is negative'
-            raise ValueError(error_msg)
+            # error_msg = 'Post-ART duration is negative'
+            # raise ValueError(error_msg)
         per_timestep_decline = (cd4_start-cd4_end)/post_art_dur
         cd4[zero_later_inds] = np.maximum(cd4_end, cd4_start - per_timestep_decline*time_post_art)
         return cd4
@@ -483,6 +484,7 @@ class HIV(BaseSTI):
         self.infected[uids] = True
         self.acute[uids] = True
 
+        self.ti_exposed[uids] = ti
         self.ti_infected[uids] = ti
         self.ti_acute[uids] = ti
         self.cd4[uids] = self.cd4_start[uids]

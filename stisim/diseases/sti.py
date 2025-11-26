@@ -86,7 +86,7 @@ class STIPars(BaseSTIPars):
         self.dur_pid2clear=ss.lognorm_ex(ss.weeks(52), ss.weeks(5))
 
         # Initial conditions
-        self.init_prev=ss.bernoulli(p=0.01)
+        self.init_prev = ss.bernoulli(p=0.01)
         self.update(kwargs)
         return
 
@@ -123,10 +123,10 @@ class BaseSTI(ss.Infection):
 
         return
 
-    def make_init_prev(self, uids=None, active=True):
+    def make_init_prev(self, uids=None, data=None, active=True):
         """ Initialize prevalence by sex and risk group """
         sim = self.sim
-        data = self.init_prev_data
+        if data is None: data = self.init_prev_data
         if uids is None: uids = sim.people.auids  # Everyone
 
         if sc.isnumber(data):

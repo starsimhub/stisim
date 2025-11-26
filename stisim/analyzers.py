@@ -115,6 +115,7 @@ class sw_stats(result_grouper):
         return
 
     def init_results(self):
+        super().init_results()
         results = sc.autolist()
         for d in self.diseases:
             results += [
