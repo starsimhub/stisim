@@ -23,7 +23,8 @@ def test_hiv_sim(n_agents=500):
     sexual = sti.StructuredSexual(recall_prior=True)
     prior = sti.PriorPartners()
     maternal = ss.MaternalNet()
-    testing = sti.HIVTest(test_prob_data=0.2, start=2000)
+    testing1 = sti.HIVTest(name='gp', test_prob_data=0.2, start=2000)
+    testing2 = sti.HIVTest(name='fsw', test_prob_data=0.2, start=2000, eligibility=lambda sim: sim.networks.structuredsexual.fsw)
     art = sti.ART(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_art': np.linspace(0, 0.9, 21)}))
     vmmc = sti.VMMC(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_vmmc': np.linspace(0.025, 0.125, 21)}))
     sim = sti.Sim(
@@ -33,7 +34,7 @@ def test_hiv_sim(n_agents=500):
         diseases=hiv,
         networks=[sexual, prior, maternal],
         demographics=[pregnancy, death],
-        interventions=[testing, art, vmmc]
+        interventions=[testing1, testing2, art, vmmc]
     )
     sim.run(verbose=1/12)
 

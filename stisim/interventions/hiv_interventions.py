@@ -34,7 +34,7 @@ class HIVTest(STITest):
     Base class for HIV testing
     """
     def __init__(self, product=None, pars=None, test_prob_data=None, years=None, start=None, eligibility=None, name=None, label=None, **kwargs):
-        if product is None: product = HIVDx()
+        if product is None: product = HIVDx(name=f'HIVDx_{name}')
         super().__init__(product=product, pars=pars, test_prob_data=test_prob_data, years=years, start=start, eligibility=eligibility, name=name, label=label, **kwargs)
         if self.eligibility is None:
             self.eligibility = lambda sim: ~sim.diseases.hiv.diagnosed
