@@ -7,6 +7,12 @@ What's new
 All notable changes to the codebase are documented in this file.
 
 
+Version 1.4.2 (2025-11-28)
+--------------------------
+- Patch to ensure that products have different names
+- Add `ti_exposed` attribute to HIV module
+- *GitHub info*: PR `150 <https://github.com/starsimhub/stisim/pull/150>`_
+
 Version 1.4 (2025-08-12)
 --------------------------
 - Add location arg and Sim class
