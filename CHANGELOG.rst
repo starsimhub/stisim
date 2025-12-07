@@ -7,6 +7,11 @@ What's new
 All notable changes to the codebase are documented in this file.
 
 
+Version 1.4.3 (2025-12-08)
+--------------------------
+- Patch to add super calls to init_results for analyzers
+- *GitHub info*: PR `151 <https://github.com/starsimhub/stisim/pull/151>`_
+
 Version 1.4.2 (2025-11-28)
 --------------------------
 - Patch to ensure that products have different names
