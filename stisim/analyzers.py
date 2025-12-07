@@ -191,6 +191,7 @@ class RelationshipDurations(ss.Analyzer):
         return
 
     def init_results(self):
+        super().init_results()
         self.define_results(
             ss.Result('mean_duration', dtype=float, scale=False),
             ss.Result('median_duration', dtype=float, scale=False),
@@ -379,6 +380,7 @@ class partner_age_diff(ss.Analyzer):
         """
         Initialize the results for the age differences.
         """
+        super().init_results()
         self.define_results(
             ss.Result('age_diff_mean', dtype=float, scale=False),
             ss.Result('age_diff_median', dtype=float, scale=False),
