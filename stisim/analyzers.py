@@ -86,11 +86,11 @@ class coinfection_stats(result_grouper):
         ppl = sim.people
 
         denom = self.denom(self)
-        has_disease2 = getattr(disease2obj, self.disease2_infected_state_name) # Adults with HIV
+        has_disease2 = getattr(disease2obj, self.disease2_infected_state_name)  # Adults with HIV
         has_disease1 = getattr(disease1obj, self.disease1_infected_state_name)  # Adults with syphilis
 
         has_disease1_f = denom & has_disease1 & ppl.female  # Women with dis1
-        has_disease2_m = denom & has_disease1 & ppl.male  # Men with dis1
+        has_disease1_m = denom & has_disease1 & ppl.male  # Men with dis1
         has_disease2_f = denom & has_disease2 & ppl.female  # Women with dis2
         has_disease2_m = denom & has_disease2 & ppl.male  # Men with dis2
         no_disease2    = denom & ~has_disease2  # Adults without dis2
@@ -101,8 +101,8 @@ class coinfection_stats(result_grouper):
         self.results[f'{disease1name}_prev_has_{disease2name}'][ti] = self.cond_prob(has_disease1, has_disease2)
         self.results[f'{disease1name}_prev_no_{disease2name}_f'][ti] = self.cond_prob(has_disease1_f, no_disease2_f)
         self.results[f'{disease1name}_prev_has_{disease2name}_f'][ti] = self.cond_prob(has_disease1_f, has_disease2_f)
-        self.results[f'{disease1name}_prev_no_{disease2name}_m'][ti] = self.cond_prob(has_disease2_m, no_disease2_m)
-        self.results[f'{disease1name}_prev_has_{disease2name}_m'][ti] = self.cond_prob(has_disease2_m, has_disease2_m)
+        self.results[f'{disease1name}_prev_no_{disease2name}_m'][ti] = self.cond_prob(has_disease1_m, no_disease2_m)
+        self.results[f'{disease1name}_prev_has_{disease2name}_m'][ti] = self.cond_prob(has_disease1_m, has_disease2_m)
 
         return
 

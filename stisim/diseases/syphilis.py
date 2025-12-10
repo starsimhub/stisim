@@ -108,7 +108,7 @@ class SyphPars(BaseSTIPars):
         #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5973824/)
         #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2819963/
         self.birth_outcomes = sc.objdict(
-            active=ss.choice(a=5, p=np.array([0.00, 0.10, 0.20, 0.45, 0.25])),  # Outcomes for babies born to mothers with primary or secondary infection
+            mat_active=ss.choice(a=5, p=np.array([0.00, 0.10, 0.20, 0.45, 0.25])),  # Outcomes for babies born to mothers with primary or secondary infection
             early=ss.choice(a=5, p=np.array([0.00, 0.05, 0.10, 0.40, 0.45])),  # Outcomes for babies born to mothers with early latent infection
             late=ss.choice(a=5, p=np.array([0.00, 0.00, 0.10, 0.10, 0.80])),  # Outcomes for babies born to mothers with late latent infection
         )
@@ -186,6 +186,11 @@ class Syphilis(BaseSTI):
     def sus_not_naive(self):
         """ Susceptible but with syphilis antibodies, which persist after treatment """
         return self.susceptible & self.ever_exposed
+
+    @property
+    def mat_active(self):
+        """ Definition of infection used for maternal transmission, includes exposed + primary + secondary stages """
+        return self.exposed | self.primary | self.secondary
 
     @property
     def active(self):
@@ -334,12 +339,15 @@ class Syphilis(BaseSTI):
         # Congenital syphilis deaths
         nnd = (self.ti_nnd <= ti).uids
         stillborn = (self.ti_stillborn <= ti).uids
+        self.ti_nnd[nnd] = ti
+        self.ti_stillborn[stillborn] = ti
         self.sim.people.request_death(nnd)
         self.sim.people.request_death(stillborn)
 
         # Congenital syphilis transmission outcomes
         congenital = (self.ti_congenital <= ti).uids
         self.congenital[congenital] = True
+        self.ti_congenital[congenital] = ti
 
         # Set rel_trans
         self.rel_trans[self.primary] = self.pars.rel_trans_primary
@@ -522,7 +530,7 @@ class Syphilis(BaseSTI):
         new_outcomes = {k:0 for k in self.pars.birth_outcome_keys}
 
         # Determine outcomes
-        for state in ['active', 'early', 'late']:
+        for state in ['mat_active', 'early', 'late']:
 
             source_state_inds = getattr(self, state)[source_uids].nonzero()[-1]
             uids = target_uids[source_state_inds]
