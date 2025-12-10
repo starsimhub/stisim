@@ -57,7 +57,7 @@ class coinfection_stats(result_grouper):
         self.disease1_infected_state_name = disease1_infected_state_name
         self.disease2_infected_state_name = disease2_infected_state_name
         self.age_limits = age_limits or [15, 50]
-        default_denom = lambda self: (self.sim.people.age >= self.age_limits[0]) & (self.sim.people.age < self.age_limits[0])
+        default_denom = lambda self: (self.sim.people.age >= self.age_limits[0]) & (self.sim.people.age < self.age_limits[1])
         self.denom = denom or default_denom
 
         return
@@ -93,7 +93,7 @@ class coinfection_stats(result_grouper):
         has_disease1_m = denom & has_disease1 & ppl.male  # Men with dis1
         has_disease2_f = denom & has_disease2 & ppl.female  # Women with dis2
         has_disease2_m = denom & has_disease2 & ppl.male  # Men with dis2
-        no_disease2    = denom & ~has_disease2  # Adults without dis2
+        no_disease2    = denom & (~has_disease2)  # Adults without dis2
         no_disease2_f  = no_disease2 & ppl.female  # Women without dis2
         no_disease2_m  = no_disease2 & ppl.male  # Men without dis2
 
