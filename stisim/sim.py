@@ -236,7 +236,7 @@ class Sim(ss.Sim):
                 fertility_rates = stidata.get_rates(location, 'asfr', self.datafolder)
                 preg_pars = {k: v for k, v in self.dem_pars.items() if k in sti.Pregnancy().pars.keys()}
                 metadata = dict(data_cols=dict(year='Time', age='AgeStart', value='Value'))
-                pregnancy = sti.Pregnancy(fertility_rate=fertility_rates, pars=preg_pars, metadata=metadata)
+                pregnancy = ss.Pregnancy(fertility_rate=fertility_rates, pars=preg_pars, metadata=metadata)
                 demographics += pregnancy
             else:
                 birth_rates = stidata.get_rates(location, 'births', self.datafolder)
