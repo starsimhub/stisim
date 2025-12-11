@@ -41,7 +41,7 @@ class coinfection_stats(result_grouper):
     def __init__(self, disease1, disease2, disease1_infected_state_name='infected', disease2_infected_state_name='infected',
                  age_limits=None, denom=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.name = 'coinfection_stats'
+        # self.name = name or 'coinfection_stats'
         if disease1 is None or disease2 is None:
             raise ValueError('Coinfection stats requires exactly 2 diseases')
 
