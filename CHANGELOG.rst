@@ -7,6 +7,13 @@ What's new
 All notable changes to the codebase are documented in this file.
 
 
+Version 1.4.4 (2025-12-15)
+--------------------------
+- Fix bug with coinfection analyzer
+- Remove Pregnancy module, which has been superseded by the Starsim Pregnancy module
+- Include exposed / incubating period for syphilis, and allow maternal transmission during this period
+- *GitHub info*: PR `161 <https://github.com/starsimhub/stisim/pull/161>`_
+
 Version 1.4.3 (2025-12-08)
 --------------------------
 - Patch to add super calls to init_results for analyzers
