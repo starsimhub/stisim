@@ -516,8 +516,8 @@ class SEIS(BaseSTI):
         elif len(par[0]) > 1:
             arr = np.full((len(uids), 2), np.nan)
             for idx in range(2):
-                arr[self.sim.people.female[uids], idx] = par[0][idx]
-                arr[self.sim.people.male[uids], idx] = par[1][idx]
+                arr[self.sim.people.female[uids], idx] = par[0][idx].to(self.dt) if isinstance(par[0][idx], ss.TimePar) else par[0][idx]
+                arr[self.sim.people.male[uids], idx] = par[1][idx].to(self.dt) if isinstance(par[1][idx], ss.TimePar) else par[1][idx]
         return arr
 
     def set_symptoms(self, p, uids):
