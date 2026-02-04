@@ -14,9 +14,9 @@ copyright: "1999 &ndash; 2025 Gates Foundation. All rights reserved."
 theme:
   name: material
   font:
-    text: Roboto
+    text: Raleway
     code: Roboto Mono
-  logo: images/idm-logo-transparent.png
+  logo: assets/starsim-logo.png
   favicon: images/favicon.ico
   features:
     - navigation.footer # include a footer with links to privacy, terms, etc.
@@ -29,20 +29,22 @@ theme:
         icon: material/weather-night
         name: Light mode
       primary: white
-      accent: light blue
+      accent: cyan
     # Dark Mode
     - scheme: slate
       toggle:
         icon: material/weather-sunny
         name: Dark mode
       primary: black
-      accent: light blue
+      accent: cyan
 
 nav:
   - Home: index.md
   - Overview: overview.md
   - Tutorials: tutorials.md
   - What's new: whatsnew.md
+  - Code of conduct: code_of_conduct.md
+  - Contributing: contributing.md
   - API reference: api.md
 
 # icons, semantic markup, emojis
@@ -94,15 +96,13 @@ extra:
       href: "https://www.gatesfoundation.org/Terms-of-Use"
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/InstituteforDiseaseModeling/laser-generic # update to your repo
+      link: https://github.com/starsimhub/stisim
     - icon: fontawesome/regular/envelope
-      link: mailto:idm@gatesfoundation.org
+      link: mailto:info@starsim.org
+    - icon: fontawesome/brands/slack
+      link: https://starsim-idm.slack.com
     - icon: octicons/globe-24
-      link: https://idmod.org
-    - icon: simple/youtube
-      link: http://www.youtube.com/@institutefordiseasemodelin1987
-    - icon: fontawesome/brands/linkedin
-      link: https://linkedin.com/company/institute-disease-modeling
+      link: https://starsim.org
 
   analytics:
     property: GTM-NK4K647
