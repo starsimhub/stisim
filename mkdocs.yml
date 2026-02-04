@@ -1,0 +1,79 @@
+# MkDocs configuration for STIsim
+# https://www.mkdocs.org/user-guide/configuration/
+
+site_name: STIsim
+site_description: Agent-based modeling framework for sexually-transmitted infections
+site_url: https://docs.idmod.org/projects/stisim
+
+repo_name: starsimhub/stisim
+repo_url: https://github.com/starsimhub/stisim
+edit_uri: edit/main/docs/
+
+copyright: "1999 &ndash; 2025 Gates Foundation. All rights reserved."
+
+theme:
+  name: material
+  language: en
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+  icon:
+    repo: fontawesome/brands/github
+  favicon: images/favicon.ico
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [.]
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            heading_level: 2
+            members_order: source
+
+markdown_extensions:
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+
+extra_css:
+  - _static/theme_overrides.css
+
+extra:
+  social:
+    - icon: material/home
+      link: https://docs.idmod.org
+      name: IDM docs
+
+nav:
+  - Home: index.md
+  - Overview: overview.md
+  - Tutorials: tutorials.md
+  - "What's new": whatsnew.md
+  - API reference: api.md
