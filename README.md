@@ -9,19 +9,17 @@ STIsim is an agent-based modeling framework in which users can design and config
 
 ## Requirements
 
-Python 3.9-3.13.
-
-We recommend, but do not require, installing STIsim in a virtual environment, such as [Anaconda](https://www.anaconda.com/products).
+Python 3.9-3.14.
 
 ## Installation
 
-STIsim is most easily installed via PyPI: `pip install stisim`.
+STIsim is most easily installed via PyPI: `pip install stisim`. This will also install HIVsim.
 
 STIsim can also be installed locally. To do this, clone first this repository, then run `pip install -e .` (don't forget the dot at the end!).
 
 ## Usage and documentation
 
-Documentation is available at https://docs.idmod.org/projects/stisim.
+Documentation is available at https://docs.stisim.org.
 
 ## Contributing
 

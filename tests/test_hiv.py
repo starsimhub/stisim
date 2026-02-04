@@ -1,8 +1,9 @@
 import numpy as np
 import sciris as sc
-import matplotlib.pyplot as plt
 import starsim as ss
 import stisim as sti
+import hivsim
+import matplotlib.pyplot as plt
 
 
 class TrackValues(ss.Analyzer):
@@ -160,14 +161,15 @@ def test_hiv():
     pars['n_agents'] = len(agents)
     pars['start'] = 2020
     pars['stop'] = 2040
-    hiv = sti.HIV(init_prev=0, p_hiv_death=0, include_aids_deaths=False)
-    pars['diseases'] = [hiv]
+    pars['init_prev'] = 0
+    pars['p_hiv_death'] = 0
+    pars['include_aids_deaths'] = False
     pars['demographics'] = [ss.Pregnancy(fertility_rate=0), ss.Deaths(death_rate=0)]
     pars['interventions'] = PerformTest(events)
     output = TrackValues()
     pars['analyzers'] = output
 
-    sim = sti.Sim(pars).run()
+    sim = hivsim.Sim(pars).run()
     sim.analyzers.trackvalues.plot(agents)
     return sim
 
