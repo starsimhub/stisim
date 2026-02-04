@@ -1,0 +1,138 @@
+project:
+  type: website
+  output-dir: _site
+  title: "STIsim"
+  execute-dir: file
+
+website:
+  title: "STIsim"
+  image: /assets/starsim-logo.png
+  favicon: /assets/favicon.ico
+  google-analytics: "G-SVDSQH04EM"
+
+  repo-url: https://github.com/starsimhub/stisim
+  repo-actions: [issue]
+  page-navigation: true
+  search:
+    type: overlay
+
+  page-footer:
+    center: "The docs were built for STIsim v{{< var version >}} ({{< var versiondate >}}).<br>© 2023–2025, Gates Foundation. All rights reserved. [Privacy and Cookies Notice](https://www.gatesfoundation.org/Privacy-and-Cookies-Notice) | [Terms of Use](https://www.gatesfoundation.org/Terms-of-Use)"
+    right:
+      - icon: github
+        href: https://github.com/starsimhub/starsim
+        aria-label: GitHub
+      - icon: envelope-at-fill
+        href: mailto:info@starsim.org
+      - icon: globe
+        href: https://starsim.org/
+
+  navbar:
+    logo: /assets/starsim-logo.png
+    title: false
+    collapse-below: lg
+
+    tools:
+      - icon: github
+        href: https://github.com/starsimhub/starsim
+      - icon: envelope-at-fill
+        href: mailto:info@starsim.org
+      - icon: slack
+        href: https://starsim-idm.slack.com
+      - icon: globe
+        href: https://starsim.org
+
+    left:
+      - href: index.md
+        text: Home
+      - href: whatsnew.md
+        text: What's new
+      - href: tutorials.md
+        text: Tutorials
+      - href: code_of_conduct.md
+        text: Code of conduct
+      - href: contributing.md
+        text: Contributing
+      - href: api/index.md
+        text: API reference
+
+  sidebar:
+    - id: main
+      collapse-level: 3
+      contents:
+        - href: index.md
+          text: "**Home**"
+        - href: whatsnew.md
+          text: "**What's new**"
+        - href: api/index.md
+          text: "**API reference**"
+        - href: code_of_conduct.md
+          text: "**Code of conduct**"
+        - href: contributing.md
+          text: "**Contributing**"
+    - id: api
+      collapse-level: 2
+      contents:
+        - href: index.qmd
+          text: "**Home**"
+        - href: api/index.qmd
+          text: "**API reference**"
+
+format:
+  html:
+    theme: 
+      light: [cosmo, ./assets/styles-light.scss]
+      dark: [cosmo, ./assets/styles-dark.scss]
+    css: ./assets/styles.css
+    toc: true
+    toc-depth: 3
+    highlight-style: github
+
+filters:
+  - interlinks
+
+interlinks:
+  fast: false
+  sources:
+    python:
+      url: https://docs.python.org/3/
+    numpy:
+      url: https://numpy.org/doc/stable/
+    pandas:
+      url: https://pandas.pydata.org/pandas-docs/stable/
+    scipy:
+      url: https://docs.scipy.org/doc/scipy/
+    matplotlib:
+      url: https://matplotlib.org/stable/
+    # sciris: # TODO: need to build this first
+    #   url: https://docs.sciris.org/
+  autolink: true
+  aliases:
+    numpy: [np]
+    pandas: [pd]
+    matplotlib: [plt]
+    sciris: [sc]
+    starsim: [ss]
+    stisim: [null, sti]
+
+quartodoc:
+  package: stisim
+  title: API reference
+  style: pkgdown
+  dir: api
+  parser: google
+  render_interlinks: true
+  sections:
+    - title: API reference
+      desc: Full details on all STIsim classes and functions.
+
+jupyter: python3
+execute:
+  enabled: false # NB, this is controlled via build_docs
+  daemon: true  # Use Jupyter daemon mode
+  cache: true   # Cache execution results
+  freeze: false # Use caching rather than freezing to store results
+  error: false
+  echo: true
+  warning: true
+  kernel: python3
