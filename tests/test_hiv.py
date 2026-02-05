@@ -141,6 +141,12 @@ class PerformTest(ss.Intervention):
             self.sim.diseases.syphilis.set_prognoses(ss.uids(self.syphilis_infections[ti]))
 
 
+def test_hivsim():
+    """ Basic HIVsim test """
+    sim = hivsim.Sim()
+    sim.run()
+    return sim
+
 def test_hiv():
     # AGENTS
     agents = sc.odict()
@@ -169,7 +175,8 @@ def test_hiv():
     output = TrackValues()
     pars['analyzers'] = output
 
-    sim = hivsim.Sim(pars).run()
+    sim = hivsim.Sim(pars)
+    sim.run()
     sim.analyzers.trackvalues.plot(agents)
     return sim
 
@@ -211,6 +218,6 @@ def test_hiv_syph():
 
 
 if __name__ == '__main__':
-    s0 = test_hiv()
-    s1 = test_hiv_syph()
-    plt.show()
+    s1 = test_hivsim()
+    s2 = test_hiv()
+    s3 = test_hiv_syph()
