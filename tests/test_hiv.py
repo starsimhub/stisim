@@ -147,8 +147,11 @@ def test_hivsim():
     sim.run()
     return sim
 
+
 def test_hiv():
-    # AGENTS
+    """
+    Legacy HIV test -- should deprecate
+    """
     agents = sc.odict()
     agents['No infection'] = []
     agents['Infection without ART'] = [('hiv_infection', 5)]
@@ -182,6 +185,9 @@ def test_hiv():
 
 
 def test_hiv_syph():
+    """
+    Legacy HIV-syphilis integration test
+    """
     # AGENTS
     agents = sc.odict()
     agents['No infection'] = []
