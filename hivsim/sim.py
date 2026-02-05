@@ -5,11 +5,17 @@ import stisim as sti
 from stisim.diseases.hiv import HIV, HIVPars
 from stisim.interventions.hiv_interventions import HIVTest, ART, VMMC, Prep
 
-__all__ = ['Sim', 'HIV', 'HIVPars', 'HIVTest', 'ART', 'VMMC', 'Prep']
+__all__ = ['Sim', 'HIV', 'HIVPars', 'HIVTest', 'ART', 'VMMC', 'Prep', 'ss', 'sti']
 
 class Sim(sti.Sim):
     """
     A subclass of stisim.Sim that is specifically designed for HIV simulations.
+
+    Currently, this simply parses input parameters among the sim and the HIV module,
+    and adds default demographics (pregnancy and deaths), networks (sexual and maternal),
+    and interventions (testing, ART, VMMC, and PrEP).
+
+    In future this will support location data and other features.
     """
     def __init__(self, pars=None, sim_pars=None, hiv_pars=None, location=None, **kwargs):
 
