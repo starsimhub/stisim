@@ -20,13 +20,12 @@ class Sim(sti.Sim):
         sim_pars = sc.mergedicts(sim_pars)
         hiv_pars = sc.mergedicts(hiv_pars)
         default_sim_keys = ss.SimPars().keys()
-        default_hiv_keys = sti.diseases.hiv().pars.keys()
+        default_hiv_keys = HIVPars().keys()
 
-        # Pull things out for special processing
-        diseases = sc.mergelists(kwargs.pop('diseases'))
-        networks = sc.mergelists(kwargs.pop('networks'))
-        demographics = sc.mergelists(kwargs.pop('demographics'))
-        interventions = sc.mergelists(kwargs.pop('interventions'))
+        # Pull modules out for special processing
+        modules = sc.objdict()
+        for mod_type in ['diseases', 'networks', 'demographics', 'interventions']:
+            modules[mod_type] = sc.mergelists(kwargs.pop(mod_type, None)) # Remove from kwargs and turn into a list
 
         # Handle diseases -- first, figure out what parameters belong in HIV
         for key in kwargs.keys():
@@ -38,27 +37,27 @@ class Sim(sti.Sim):
                 hiv_pars[key] = val
         
         hiv = sti.HIV(pars=hiv_pars)
-        diseases.insert(0, hiv)
+        modules.diseases.insert(0, hiv)
 
         # Handle demographics
-        if not demographics:
-            demographics = [sti.Pregnancy(), ss.Deaths()]
+        if not modules.demographics:
+            modules.demographics = [sti.Pregnancy(), ss.Deaths()]
 
         # Handle networks
-        if not networks:
-            networks = [sti.StructuredSexual(), ss.MaternalNet()]
+        if not modules.networks:
+            modules.networks = [sti.StructuredSexual(), ss.MaternalNet()]
 
         # Handle interventions 
-        if not interventions:
-            interventions = [HIVTest(), ART(), VMMC(), Prep()]
+        if not modules.interventions:
+            modules.interventions = [HIVTest(), ART(), VMMC(), Prep()]
 
         # Handle interventions
         super().__init__(
-            pars=sim_pars, 
-            demographics=demographics, 
-            networks=networks, 
-            diseases=diseases, 
-            interventions=interventions,
+            pars          = sim_pars, 
+            demographics  = modules.demographics, 
+            networks      = modules.networks, 
+            diseases      = modules.diseases, 
+            interventions = modules.interventions,
             **kwargs
         )
         return
