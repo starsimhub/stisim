@@ -1,8 +1,5 @@
-sphinxext.remoteliteralinclude
-sphinx
-pydata-sphinx-theme
-plantweb
-sphinxcontrib-programoutput
-nbsphinx
-jupyterlab
-pygithub
+# MkDocs and extensions
+mkdocs>=1.5.0
+mkdocs-material>=9.0.0
+mkdocstrings[python]>=0.24.0
+pymdown-extensions>=10.0

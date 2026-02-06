@@ -449,7 +449,8 @@ class HIV(BaseSTI):
 
         # Subset by age group:
         infected_15_19 = self.infected[(self.sim.people.age >= 15) & (self.sim.people.age < 50)]
-        self.results['prevalence_15_49'][ti] = sum(infected_15_19) / len(infected_15_19)
+        if len(infected_15_19): # Avoid divide-by-zero error
+            self.results['prevalence_15_49'][ti] = sum(infected_15_19) / len(infected_15_19)
 
         # Subset by FSW and client:
         if 'structuredsexual' in self.sim.networks.keys():

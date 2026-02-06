@@ -29,28 +29,6 @@ h4 {
     margin-bottom: 0.5em;
 }
 
-.section li p.first {
-    margin-top: 8px;
-    margin-bottom: 3px;
-}
-
 img.math {
     width: auto;
-}
-
-/* Layout changes */
-.bd-main .bd-content .bd-article-container {
-  max-width: 100em;  /* default is 60em */
-}
-
-.bd-page-width {
-  max-width: 100rem;  /* default is 88rem */
-}
-
-.bd-sidebar-primary {
-  width: 20em;
-}
-
-.bd-sidebar-secondary {
-  width: 15em !important;
 }
