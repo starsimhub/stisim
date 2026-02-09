@@ -2,6 +2,11 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.5.0 (2025-02-XX)
+
+- Syphilis edits
+- *GitHub info*: TBC
+
 ## Version 1.4.3 (2025-12-08)
 
 - Patch to add super calls to init_results for analyzers
