@@ -3,7 +3,6 @@
 [![tests](https://github.com/starsimhub/stisim/actions/workflows/tests.yaml/badge.svg)](https://github.com/starsimhub/stisim/actions/workflows/tests.yaml)
 [![PyPI](https://img.shields.io/pypi/v/stisim?label=PyPI)](https://pypi.org/project/stisim/)
 
-**Warning! STIsim is still in the early stages of development. It is being shared solely for transparency and to facilitate collaborative development. It is not ready to be used for real research or policy questions.**
 
 STIsim is an agent-based modeling framework in which users can design and configure simulations of co-circulating sexually-transmitted diseases. STIsim uses the [Starsim](https://starsim.org) architecture, and belongs to the Starsim model suite which also includes [Covasim](https://covasim.org), [HPVsim](https://hpvsim.org), and [FPsim](https://fpsim.org).
 
