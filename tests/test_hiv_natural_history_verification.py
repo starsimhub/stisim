@@ -47,8 +47,16 @@ class TestHIVNaturalHistoryVerification(unittest.TestCase):
         # Verify that CD4 counts cannot increase (stable and/or decrease) at all steps for all HIV+ individuals who
         # are not on treatment. No one is on treatment in this test.
         checks_performed = 0
+        found_decrease = False
         for id, cd4_counts in cd4.items():
             for index in range(len(cd4_counts)-1):
                 self.assertTrue(cd4_counts[index] >= cd4_counts[index+1])
             checks_performed += len(cd4_counts)-1
+
+            # Ensure that at least ONE agent had a decreasing cd4 count (not just stable)
+            if not found_decrease:
+                if cd4_counts[0] > cd4_counts[-1]:
+                    found_decrease = True
+
         self.assertGreater(checks_performed, 0)  # just in case, make sure we actually compared some CD4 counts
+        self.assertTrue(found_decrease)
