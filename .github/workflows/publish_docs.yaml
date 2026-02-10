@@ -1,4 +1,4 @@
-name: publish_docs
+name: Publish STIsim docs
 
 on:
   workflow_dispatch:
