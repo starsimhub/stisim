@@ -9,7 +9,7 @@ repo_name: starsimhub/stisim
 repo_url: https://github.com/starsimhub/stisim
 edit_uri: edit/main/docs/
 
-copyright: "1999 &ndash; 2025 Gates Foundation. All rights reserved."
+copyright: Copyright &copy; 2024-2026 Gates Foundation. All rights reserved.
 
 theme:
   name: material
@@ -17,7 +17,7 @@ theme:
     text: Raleway
     code: Roboto Mono
   logo: assets/starsim-logo.png
-  favicon: images/favicon.ico
+  favicon: assets/favicon.ico
   features:
     - navigation.footer # include a footer with links to privacy, terms, etc.
     - content.code.copy # enable copy buttons for code blocks
@@ -74,7 +74,7 @@ plugins:
   - mkdocstrings: # process docstrings to generate API reference
       handlers:
         python:
-          paths: [src] # path to source code
+          paths: [.] # path to source code
           options:
             docstring_style: google
             show_source: false
@@ -84,8 +84,6 @@ plugins:
             show_symbol_type_toc: true
             show_root_toc_entry: true
             show_object_full_path: true
-
-copyright: Copyright &copy; 2025 Gates Foundation. All rights reserved.
 
 extra:
   generator: false
