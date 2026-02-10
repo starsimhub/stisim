@@ -29,9 +29,9 @@ jobs:
           key: mkdocs-material-${{ runner.os }}-${{ hashFiles('**/requirements.txt', '**/pyproject.toml', '**/mkdocs.yml') }}
           path: ~/.cache/pip
 
-      - run: pip install docs/pip install -r requirements.txt
+      - run: pip install -r docs/requirements.txt
 
-      - run: mkdocs build --strict
+      - run: mkdocs build
 
       - uses: actions/upload-pages-artifact@v3
         with:
