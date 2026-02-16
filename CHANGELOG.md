@@ -7,6 +7,16 @@ All notable changes to the codebase are documented in this file.
 - Fix bug with coinfection analyzer
 - Remove Pregnancy module, which has been superseded by the Starsim Pregnancy module
 - Include exposed / incubating period for syphilis, and allow maternal transmission during this period
+- Add `stisim_examples` and `hivsim_examples` packages for pre-configured location-specific simulations
+- Add data integration: location-specific disease parameters, condom use, ART/VMMC coverage, and HIV testing interventions are now loaded from CSV data and fully wired into simulations
+- Add Zimbabwe location with UNAIDS comparison data, calibrated network parameters, and demographic data (1990-2025)
+- Add `plot_hiv()` and `plot_hiv_msim()` plotting functions with curated 2x3 HIV panel and data overlay
+- Add `Sim.plot()` override that auto-dispatches to the HIV panel for HIV simulations
+- Add `MultiSim` class for running replicate simulations with different random seeds, with median/IQR plotting
+- Fix `process_demographics()` to respect user-provided `total_pop` and correct age data unit scaling
+- Fix `get_age_distribution()` to handle CSV files without a year column
+- Move devtests to `tests/devtests/` folder
+- Add `stisim_examples` and `hivsim_examples` to package discovery in `pyproject.toml`
 - *GitHub info*: TBC
 
 ## Version 1.4.3 (2025-12-08)
