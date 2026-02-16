@@ -3,9 +3,8 @@
 [![tests](https://github.com/starsimhub/stisim/actions/workflows/tests.yaml/badge.svg)](https://github.com/starsimhub/stisim/actions/workflows/tests.yaml)
 [![PyPI](https://img.shields.io/pypi/v/stisim?label=PyPI)](https://pypi.org/project/stisim/)
 
-**Warning! STIsim is still in the early stages of development. It is being shared solely for transparency and to facilitate collaborative development. It is not ready to be used for real research or policy questions.**
 
-STIsim is an agent-based modeling framework in which users can design and configure simulations of sexually-transmitted diseases. STIsim uses the [Starsim](https://starsim.org) architecture, and belongs to the Starsim model suite which also includes [Covasim](https://covasim.org), [HPVsim](https://hpvsim.org), and [FPsim](https://fpsim.org).
+STIsim is an agent-based modeling framework in which users can design and configure simulations of co-circulating sexually-transmitted diseases. STIsim uses the [Starsim](https://starsim.org) architecture, and belongs to the Starsim model suite which also includes [Covasim](https://covasim.org), [HPVsim](https://hpvsim.org), and [FPsim](https://fpsim.org).
 
 ## Requirements
 
@@ -19,7 +18,20 @@ STIsim can also be installed locally. To do this, clone first this repository, t
 
 ## Usage and documentation
 
-Documentation is available at https://docs.stisim.org.
+STIsim is still in the early stages of its development as a standalone software package, and therefore is still lacking complete documentation. We are working on a user guide and tutorials, but in the meantime, the best ways to learn about the model are:
+1. Read the articles that have been published about analyses using STIsim (see references below)
+2. Email us: [info@starsim.org](mailto:info@starsim.org)
+3. Check on the documentation currently available at https://docs.stisim.org.
+
+
+## References
+
+Publications using STIsim include:
+
+1. **Reduction in overtreatment of gonorrhoea and chlamydia through point-of-care testing cmpared with syndromic management for vaginal discharge: a modelling study for Zimbabwe** (2026). Stuart RM, Newman LM, Manguro G, Dziva Chikwari C, Marks M, Peters RPH, Klein D, Snyder L, Kerr C, Rao DW. *Sex Transm Infect* https://doi.org/10.1136/sextrans-2025-056646. Preprint: https://doi.org/10.21203/rs.3.rs-8843262/v1 
+
+2. **Point-of-care testing to strengthen sexually transmitted infection case management in resource-constrained settings** (2026). Peters RPH, Manguro G, Ong'wen PA, Mdingi MM, Applegate TL, Stuart R, Harding-Esch EM, Manabe YC, Ndowa F, Van Der Pol B. *Sex Transm Infect*, https://doi.org/10.1136/sextrans-2025-056833. 
+
 
 ## Contributing
 
