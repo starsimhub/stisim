@@ -1,3 +1,6 @@
+# MkDocs
+_site/
+
 supervisord.log
 
 # Byte-compiled / optimized / DLL files
