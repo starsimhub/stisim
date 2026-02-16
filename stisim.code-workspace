@@ -1,0 +1,26 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../hiv_kenya"
+		},
+		{
+			"path": "../hiv_zambia"
+		},
+		{
+			"path": "../hiv_zim"
+		},
+		{
+			"path": "../stisim_vddx_zim"
+		},
+		{
+			"path": "../stisim_demo_zambia"
+		},
+		{
+			"path": "../syph_dx_zim"
+		}
+	],
+	"settings": {}
+}
