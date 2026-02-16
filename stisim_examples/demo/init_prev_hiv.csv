@@ -1,0 +1,13 @@
+risk_group,sex,sw,init_prev
+0,female,0,0.01
+1,female,0,0.05
+2,female,0,0.10
+0,female,1,0.20
+1,female,1,0.30
+2,female,1,0.40
+0,male,0,0.01
+1,male,0,0.05
+2,male,0,0.10
+0,male,1,0.05
+1,male,1,0.10
+2,male,1,0.15
