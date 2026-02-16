@@ -4,7 +4,9 @@ All notable changes to the codebase are documented in this file.
 
 ## Version 1.5.0 (2025-02-XX)
 
-- Syphilis edits
+- Fix bug with coinfection analyzer
+- Remove Pregnancy module, which has been superseded by the Starsim Pregnancy module
+- Include exposed / incubating period for syphilis, and allow maternal transmission during this period
 - *GitHub info*: TBC
 
 ## Version 1.4.3 (2025-12-08)

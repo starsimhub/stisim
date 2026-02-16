@@ -41,7 +41,6 @@ class coinfection_stats(result_grouper):
     def __init__(self, disease1, disease2, disease1_infected_state_name='infected', disease2_infected_state_name='infected',
                  age_limits=None, denom=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.name = 'coinfection_stats'
         if disease1 is None or disease2 is None:
             raise ValueError('Coinfection stats requires exactly 2 diseases')
 
@@ -57,7 +56,7 @@ class coinfection_stats(result_grouper):
         self.disease1_infected_state_name = disease1_infected_state_name
         self.disease2_infected_state_name = disease2_infected_state_name
         self.age_limits = age_limits or [15, 50]
-        default_denom = lambda self: (self.sim.people.age >= self.age_limits[0]) & (self.sim.people.age < self.age_limits[0])
+        default_denom = lambda self: (self.sim.people.age >= self.age_limits[0]) & (self.sim.people.age < self.age_limits[1])
         self.denom = denom or default_denom
 
         return
@@ -86,14 +85,14 @@ class coinfection_stats(result_grouper):
         ppl = sim.people
 
         denom = self.denom(self)
-        has_disease2 = getattr(disease2obj, self.disease2_infected_state_name) # Adults with HIV
+        has_disease2 = getattr(disease2obj, self.disease2_infected_state_name)  # Adults with HIV
         has_disease1 = getattr(disease1obj, self.disease1_infected_state_name)  # Adults with syphilis
 
         has_disease1_f = denom & has_disease1 & ppl.female  # Women with dis1
-        has_disease2_m = denom & has_disease1 & ppl.male  # Men with dis1
+        has_disease1_m = denom & has_disease1 & ppl.male  # Men with dis1
         has_disease2_f = denom & has_disease2 & ppl.female  # Women with dis2
         has_disease2_m = denom & has_disease2 & ppl.male  # Men with dis2
-        no_disease2    = denom & ~has_disease2  # Adults without dis2
+        no_disease2    = denom & (~has_disease2)  # Adults without dis2
         no_disease2_f  = no_disease2 & ppl.female  # Women without dis2
         no_disease2_m  = no_disease2 & ppl.male  # Men without dis2
 
@@ -101,8 +100,8 @@ class coinfection_stats(result_grouper):
         self.results[f'{disease1name}_prev_has_{disease2name}'][ti] = self.cond_prob(has_disease1, has_disease2)
         self.results[f'{disease1name}_prev_no_{disease2name}_f'][ti] = self.cond_prob(has_disease1_f, no_disease2_f)
         self.results[f'{disease1name}_prev_has_{disease2name}_f'][ti] = self.cond_prob(has_disease1_f, has_disease2_f)
-        self.results[f'{disease1name}_prev_no_{disease2name}_m'][ti] = self.cond_prob(has_disease2_m, no_disease2_m)
-        self.results[f'{disease1name}_prev_has_{disease2name}_m'][ti] = self.cond_prob(has_disease2_m, has_disease2_m)
+        self.results[f'{disease1name}_prev_no_{disease2name}_m'][ti] = self.cond_prob(has_disease1_m, no_disease2_m)
+        self.results[f'{disease1name}_prev_has_{disease2name}_m'][ti] = self.cond_prob(has_disease1_m, has_disease2_m)
 
         return
 

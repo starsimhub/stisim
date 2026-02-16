@@ -126,5 +126,7 @@ flake8_junit.xml
 .ipython
 .matplotlib
 .idea
+.vscode/
+*.code-workspace
 *.png
 *.obj

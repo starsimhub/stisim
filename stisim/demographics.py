@@ -8,83 +8,8 @@ import pandas as pd
 import stisim as sti
 
 
-__all__ = ['Pregnancy', 'Migration']
+__all__ = ['Migration']
 
-
-class Pregnancy(ss.Pregnancy):
-    """
-    Pregnancy module for STIsim - includes preterm birth and gestational age
-    """
-    @staticmethod
-    def p_ptb(self, sim, uids):
-        ptb_probs = self.rel_sus_ptb[uids] * self.pars["p_ptb"]
-        return ptb_probs
-
-    def __init__(self, pars=None, metadata=None, **kwargs):
-        super().__init__(metadata=metadata)
-
-        # Parameters
-        self.define_pars(
-            p_ptb=ss.bernoulli(p=0.057),  # Probability of preterm birth
-        )
-        self.update_pars(pars, **kwargs)
-
-        # States
-        self.define_states(
-            ss.FloatArr("rel_sus_ptb", default=1),
-            ss.BoolState("ptb", default=False, label="Preterm birth"),
-            ss.FloatArr("trimester", default=0),
-        )
-
-        return
-
-    @property
-    def gestational_age(self):
-        return self.ti - self.ti_pregnant
-
-    def init_results(self):
-        """
-        Results could include a range of birth outcomes e.g. LGA, stillbirths, etc.
-        Still unclear whether this logic should live in the pregnancy module, the
-        individual disease modules, the connectors, or the sim.
-        """
-        super().init_results()
-        self.define_results(
-            ss.Result("ptbs", dtype=int, scale=True, label="New preterm births"),
-        )
-        return
-
-    def set_prognoses(self, uids, bv_update=False):
-        if bv_update is False:
-            super().set_prognoses(uids)
-
-            # Set trimester of pregnancy
-            self.trimester[uids] = 1
-
-        # Determine pre-term birth
-        ptb, no_ptb = self.pars.p_ptb.split(uids)
-        self.ptb[ptb] = True
-        self.ptb[no_ptb] = False
-        return
-
-    def update_states(self):
-        ptb_deliveries = self.pregnant & self.ptb & (self.ti_delivery <= self.ti)
-        self.results["ptbs"][self.ti] = np.count_nonzero(ptb_deliveries)
-        super().update_states()
-        self.ptb[ptb_deliveries] = False
-
-        # Find pregnant women and update trimester
-        pregnant_uids = self.pregnant.uids
-        time_pregnant = self.ti - self.ti_pregnant[pregnant_uids]
-        trimester = np.select(
-            [time_pregnant <= 3, time_pregnant <= 6], [1, 2], default=3
-        )
-        self.trimester[pregnant_uids] = trimester
-
-        postpartum_uids = self.postpartum.uids
-        self.trimester[postpartum_uids] = 0
-
-        return
 
 
 class Migration(ss.Demographics):
