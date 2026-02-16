@@ -46,7 +46,7 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["stisim*", "hivsim*"]
+include = ["stisim*", "hivsim*", "stisim_examples*", "hivsim_examples*"]
 
 [tool.setuptools.dynamic]
 version = {attr = "stisim.version.__version__"}

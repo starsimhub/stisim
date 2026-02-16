@@ -9,6 +9,7 @@ from .networks      import *
 from .utils         import *
 from .analyzers     import *
 from .parameters    import *
+from .plotting      import *
 from .sim           import *
 
 # Assign the root folder

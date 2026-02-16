@@ -4,6 +4,7 @@ import sciris as sc
 from itertools import combinations
 from .data import loaders as stidata
 from .data import downloaders as stidl
+from .plotting import plot_hiv, plot_hiv_msim
 
 
 class Sim(ss.Sim):
@@ -189,6 +190,24 @@ class Sim(ss.Sim):
 
         return self
 
+    def plot(self, key=None, **kwargs):
+        """
+        Plot sim results. If HIV is present and no key is specified, shows a
+        curated 2x3 HIV panel (new infections, deaths, PLHIV, prevalence,
+        ART, population). Otherwise falls back to the standard starsim plot.
+
+        Args:
+            key (str/list): Result key(s) to plot; if None, auto-selects based on diseases
+            **kwargs: Passed to plot_hiv() or ss.Sim.plot()
+
+        Returns:
+            matplotlib.figure.Figure
+        """
+        if key is None and 'hiv' in self.diseases:
+            return plot_hiv(self, **kwargs)
+        else:
+            return super().plot(key=key, **kwargs)
+
     def process_networks(self):
         """
         Process the network parameters to create network module.
@@ -261,7 +280,10 @@ class Sim(ss.Sim):
 
             # Load age data and create people
             age_data = stidata.get_age_distribution(location, year=self.pars.start, datafolder=self.datafolder)
-            total_pop = int(age_data.value.sum())
+            if self.pars['total_pop'] is not None:
+                total_pop = int(self.pars['total_pop'])
+            else:
+                total_pop = int(age_data.value.sum() * 1000)  # Age data values are in thousands
             age_data['value'] /= sum(age_data['value'])  # Normalize the age distribution
             people = ss.People(self.pars.n_agents, age_data=age_data)
 
@@ -378,3 +400,55 @@ class Sim(ss.Sim):
                 if attr.lower() == attrname.lower():
                     return getattr(classname, attr)
         return None
+
+
+class MultiSim(ss.MultiSim):
+    """
+    Run multiple copies of an STIsim simulation with different random seeds.
+
+    This is a thin wrapper around ss.MultiSim that provides sensible defaults
+    (n_runs=10, automatic reseeding) and a curated HIV plotting method.
+
+    Args:
+        sim (Sim): A single sim to replicate with different seeds
+        sims (list): Or, a list of pre-built sims to run
+        n_runs (int): Number of replicates (default 10; ignored if sims provided)
+        **kwargs: Passed to ss.MultiSim
+
+    Examples:
+        >>> sim = sti.Sim(diseases='hiv', n_agents=1000, dur=20)
+        >>> msim = sti.MultiSim(sim)
+        >>> msim.run()
+        >>> msim.plot()
+    """
+
+    def __init__(self, sim=None, sims=None, n_runs=10, **kwargs):
+        if sims is not None:
+            super().__init__(sims=sims, **kwargs)
+        elif sim is not None:
+            sims = []
+            for i in range(n_runs):
+                s = sc.dcp(sim)
+                s.pars.rand_seed = i
+                sims.append(s)
+            super().__init__(sims=sims, **kwargs)
+        else:
+            raise ValueError('Must provide either sim or sims')
+
+    def plot(self, key=None, **kwargs):
+        """
+        Plot MultiSim results. If HIV is present and no key is specified,
+        shows the curated 2x3 HIV panel with median and IQR shading.
+        Otherwise falls back to the standard ss.MultiSim.plot().
+
+        Args:
+            key (str/list): Result key(s) to plot; if None, auto-selects for HIV
+            **kwargs: Passed to plot_hiv_msim() or ss.MultiSim.plot()
+
+        Returns:
+            matplotlib.figure.Figure
+        """
+        if key is None and 'hiv' in self.base_sim.pars.get('diseases', []):
+            return plot_hiv_msim(self, **kwargs)
+        else:
+            return super().plot(key=key, **kwargs)
