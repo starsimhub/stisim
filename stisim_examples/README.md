@@ -2,71 +2,73 @@
 
 Pre-configured location-specific simulations for STIsim.
 
-This package provides factory functions to create STIsim simulations with location-specific data (demographics, disease parameters, behavioral data), making it easy to get started with realistic models.
+This package provides `make_sim()` factory functions to create STIsim simulations with location-specific data (demographics, disease parameters, behavioral data), making it easy to get started with realistic models.
 
 ## Quick Start
 
 ```python
-import stisim_examples as stx
-
-# Zimbabwe HIV model
-sim = stx.Sim(demographics='zimbabwe', diseases='hiv')
+# Option 1: Use a location's make_sim() directly
+from stisim_examples.zimbabwe.sim import make_sim
+sim = make_sim()
 sim.run()
 sim.plot()
 
-# Or use the HIV-specific convenience function
-sim = stx.HIVSim(location='zimbabwe')
+# Option 2: Use hivsim_examples convenience wrapper
+import hivsim_examples as hx
+sim = hx.Sim(location='zimbabwe')
 sim.run()
+sim.plot()
 ```
 
 ## Available Locations
 
 - **demo** - Generic/minimal location for testing and tutorials
 - **zimbabwe** - Fully parameterized Zimbabwe HIV model
-- **kenya** - Placeholder (data not yet populated)
 
 List available locations programmatically:
 ```python
+import stisim_examples as stx
 print(stx.list_locations())
 ```
 
 ## Usage Patterns
 
-### Pattern 1: Full Pre-configured Examples (Recommended)
+### Pattern 1: Location make_sim() (Recommended)
+
+Each location has a `make_sim()` function that creates a fully configured simulation:
 
 ```python
-import stisim_examples as stx
+from stisim_examples.zimbabwe.sim import make_sim
 
-# Single disease
-sim = stx.Sim(demographics='zimbabwe', diseases='hiv', n_agents=5000, dur=40)
-sim.run()
-
-# Multiple diseases (when data is available)
-sim = stx.Sim(demographics='zimbabwe', diseases=['hiv', 'syphilis'])
+sim = make_sim(n_agents=5000, dur=40)
 sim.run()
 ```
 
-### Pattern 2: HIV-Specific Convenience
-
-```python
-import stisim_examples as stx
-
-# Cleaner syntax for HIV-only modeling
-sim = stx.HIVSim(location='zimbabwe', n_agents=5000, dur=40)
-sim.run()
-```
-
-### Pattern 3: Via hivsim_examples
+### Pattern 2: Via hivsim_examples
 
 ```python
 import hivsim_examples as hx
 
-# Same as stx.HIVSim
 sim = hx.Sim(location='zimbabwe')
 sim.run()
 ```
 
-### Pattern 4: Base stisim with Demographics Only
+### Pattern 3: Base stisim with demographics + data_path
+
+```python
+import stisim as sti
+
+sim = sti.Sim(
+    location='zimbabwe',
+    diseases='hiv',
+    data_path='path/to/stisim_examples/zimbabwe',
+    n_agents=5000,
+    dur=40,
+)
+sim.run()
+```
+
+### Pattern 4: Base stisim with demographics only
 
 ```python
 import stisim as sti
@@ -76,7 +78,7 @@ sim = sti.Sim(demographics='zimbabwe', diseases='hiv', n_agents=5000, dur=40)
 sim.run()
 ```
 
-### Pattern 5: Base hivsim with Demographics Only
+### Pattern 5: Base hivsim with demographics only
 
 ```python
 import hivsim as hs
@@ -86,23 +88,23 @@ sim = hs.Sim(location='zimbabwe', n_agents=5000, dur=40)
 sim.run()
 ```
 
-### Pattern 6: Custom Data Folder
+### Pattern 6: Custom data folder
 
 ```python
 import stisim as sti
 
 # Use data from external repository or custom location
 sim = sti.Sim(
-    demographics='zimbabwe',
-    datafolder='/Users/username/custom/data',
-    diseases='hiv'
+    location='zimbabwe',
+    datafolder='/path/to/custom/data',
+    diseases='hiv',
 )
 sim.run()
 ```
 
 ## What Data is Loaded?
 
-When you use `stx.Sim(demographics='zimbabwe', diseases='hiv')`, the following data is loaded:
+When you use `make_sim()` for a location, the following data is loaded:
 
 **Demographic Data** (from `stisim/data/files/`):
 - Age distributions
@@ -110,7 +112,7 @@ When you use `stx.Sim(demographics='zimbabwe', diseases='hiv')`, the following d
 - Death rates
 - Migration patterns (if available)
 
-**Disease-Specific Data** (from `stisim_examples/zimbabwe/`):
+**Disease-Specific Data** (from `stisim_examples/{location}/`):
 - Initial HIV prevalence by risk group/sex
 - Condom use by partnership type over time
 - ART coverage scale-up
@@ -140,11 +142,9 @@ To add a new location (e.g., "southafrica"):
    - `southafrica_deaths.csv` - Death rates
    - `southafrica_age_YYYY.csv` - Age distribution
 
-4. **Create configuration**: `stisim_examples/southafrica/sim.py`
+4. **Create configuration**: `stisim_examples/southafrica/sim.py` with a `make_sim()` function
 
 5. **Register location**: Add to `LOCATIONS` dict in `stisim_examples/loaders.py`
-
-6. **Document**: Create `stisim_examples/southafrica/README.md`
 
 See `zimbabwe/` for a complete example, and `demo/` for minimal file formats.
 
@@ -178,30 +178,28 @@ year,coverage
 ...
 ```
 
-For demographic file formats, see examples in `stisim/data/files/` or `tests/test_data/`.
+For demographic file formats, see examples in `stisim/data/files/`.
 
 ## API Reference
 
-### `stx.Sim(demographics, diseases, **kwargs)`
+### `make_sim(**kwargs)` (per location)
 
-Factory function to create pre-configured simulations.
+Factory function in each location's `sim.py` that creates a fully configured simulation.
 
 **Parameters:**
-- `demographics` (str): Location name ('demo', 'zimbabwe', 'kenya')
-- `diseases` (str/list): Disease(s) to include ('hiv', ['hiv', 'syphilis'])
-- `**kwargs`: Additional parameters passed to `stisim.Sim`
+- `**kwargs`: Parameters passed to `stisim.Sim` (e.g. `n_agents`, `dur`, `interventions`)
 
 **Returns:** Configured `stisim.Sim` instance
 
-### `stx.HIVSim(location, **kwargs)`
+### `hx.Sim(location, **kwargs)` (hivsim_examples)
 
-Convenience function for HIV-only simulations.
+Convenience wrapper that calls the location's `make_sim()`.
 
 **Parameters:**
-- `location` (str): Location name
-- `**kwargs`: Additional parameters
+- `location` (str): Location name ('demo', 'zimbabwe')
+- `**kwargs`: Additional parameters passed to `make_sim()`
 
-**Returns:** Configured `stisim.Sim` instance with HIV
+**Returns:** Configured `stisim.Sim` instance
 
 ### `stx.list_locations()`
 
@@ -213,22 +211,13 @@ List available locations.
 
 Run tests:
 ```bash
-cd tests
-pytest test_stisim_examples.py -v
+pytest tests/test_examples.py -v
 ```
 
 Test specific location:
 ```bash
-pytest test_stisim_examples.py -k zimbabwe -v
+pytest tests/test_examples.py -k zim -v
 ```
-
-## Contributing
-
-Contributions of new location data are welcome! Please ensure:
-- Data files follow format specifications
-- Configuration helpers are provided in `{location}/sim.py`
-- Comprehensive README documents data sources
-- Tests are added to verify functionality
 
 ## Related Packages
 

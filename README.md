@@ -21,9 +21,10 @@ STIsim can also be installed locally. To do this, clone first this repository, t
 STIsim includes pre-configured example simulations with location-specific data. To run an HIV simulation for Zimbabwe:
 
 ```python
-import stisim_examples as stx
+from stisim_examples.zimbabwe.sim import make_sim
+import stisim as sti
 
-sim = stx.HIVSim(location='zimbabwe')
+sim = make_sim()
 sim.run()
 sim.plot()
 ```
@@ -31,7 +32,7 @@ sim.plot()
 For multiple runs with uncertainty bounds:
 
 ```python
-msim = stx.MultiSim(demographics='zimbabwe', diseases='hiv', n_runs=10)
+msim = sti.MultiSim(sim, n_runs=10)
 msim.run()
 msim.plot()
 ```

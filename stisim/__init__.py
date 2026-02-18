@@ -7,6 +7,7 @@ from .demographics  import *
 from .interventions import *
 from .networks      import *
 from .utils         import *
+from .data.loaders  import DataLoader
 from .analyzers     import *
 from .parameters    import *
 from .plotting      import *

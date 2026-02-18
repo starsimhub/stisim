@@ -266,10 +266,21 @@ def get_available(base_url, auth_key, which, filename=None, do_save=True):
         dfs += df_temp
 
     df = pd.concat(dfs)
-    # if do_save:
-    #     if filename is None: filename = which.strip('/')
-    #     df.to_csv(filename+'.csv')
-    #
     return df
+
+
+def download(location, folder=None):
+    """
+    Download location data from the stisim_data repository.
+
+    Not yet implemented.
+
+    Args:
+        location (str): Location name (e.g. 'kenya')
+        folder (str/Path): Local folder to save data to. If None, uses default cache.
+    """
+    raise NotImplementedError(
+        'Automatic data download is not yet implemented.'
+    )
 
 
