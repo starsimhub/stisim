@@ -45,7 +45,7 @@ def load_location_data(location, diseases=None):
         raise ValueError(f"Location '{location}' not found. Available locations: {available}")
 
     data_path = sc.thispath(__file__) / location
-    loader = sti.DataLoader(location=location, data_path=data_path, diseases=diseases)
+    loader = sti.DataLoader(data_path=data_path, location=location, diseases=diseases)
     loader.load()
     return loader.data
 

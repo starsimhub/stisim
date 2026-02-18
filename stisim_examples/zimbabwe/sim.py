@@ -76,7 +76,7 @@ def make_sim(**kwargs):
     user_intvs = sc.tolist(kwargs.pop('interventions', []))
 
     sim = sti.Sim(
-        demographics='zimbabwe',
+        location='zimbabwe',
         diseases='hiv',
         data_path=sc.thispath(),
         sim_pars=sim_pars,

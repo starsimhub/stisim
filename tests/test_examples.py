@@ -134,8 +134,8 @@ def test_dataloader():
     assert len(modules.interventions) > 0
     assert modules.data is not None
 
-    # Test sti.Sim with data_path directly
-    sim = sti.Sim(demographics='zimbabwe', diseases='hiv', data_path=data_path, **kw)
+    # Test sti.Sim with location + data
+    sim = sti.Sim(location='zimbabwe', diseases='hiv', data_path=data_path, **kw)
     sim.run()
     assert sim.data is not None
     assert len(sim.results.hiv.prevalence) > 0

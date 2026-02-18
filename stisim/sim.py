@@ -24,10 +24,13 @@ class Sim(ss.Sim):
         connectors (bool or list): If True, use default connectors; otherwise, provide a list of connectors.
         copy_inputs (bool): Whether to copy input parameters or not.
         data: Additional data to be used in the simulation.
-        data_path (str/Path): Path to directory containing location-specific
-            CSV data files. When provided, uses DataLoader to load data and
-            create disease, network, and intervention modules from CSVs.
-            User-provided ``sti_pars`` and ``nw_pars`` are applied on top.
+        location (str): Location name (e.g. 'zimbabwe'). When provided without
+            ``data_path``, attempts to auto-download data (NYI). Sets
+            demographics to the location name for demographic data loading.
+        data_path (str/Path): Path to a local folder containing CSV data files.
+            When provided, uses DataLoader to create disease, network, and
+            intervention modules from the CSVs. Also used as the datafolder
+            for demographic data loading.
 
         This class provides flexibility to initialize starsim modules in various ways. Default values are provided,
         so sti.Sim() can be called and generate a reasonable simulation without any inputs. Alternatively, modules can
@@ -84,12 +87,28 @@ class Sim(ss.Sim):
     def __init__(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None, dem_pars=None,
                  label=None, people=None, demographics=None, diseases=None, networks=None,
                  interventions=None, analyzers=None, connectors=None, datafolder=None,
-                 data_path=None, **kwargs):
+                 location=None, data_path=None, **kwargs):
 
-        # If data_path is provided, use DataLoader to create modules from CSV data
+        # Validate data_path
         if data_path is not None:
-            location = demographics if isinstance(demographics, str) else None
-            loader = sti.DataLoader(data_path=data_path, location=location, diseases=diseases)
+            try:
+                data_path = sc.path(data_path)
+            except Exception:
+                raise ValueError(f'data_path must be a valid path, got: {data_path}')
+
+        # TODO: If location provided without data_path, auto-download data (NYI)
+        # if location is not None and data_path is None:
+        #     from .data import load as data_load
+        #     data_path = data_load(location)
+
+        # Set demographics from location if not explicitly provided
+        if location is not None and demographics is None:
+            demographics = location
+
+        # If data_path resolved, use DataLoader to create modules from CSV data
+        if data_path is not None:
+            loc_name = location or (demographics if isinstance(demographics, str) else None)
+            loader = sti.DataLoader(data_path=data_path, location=loc_name, diseases=diseases)
             modules = loader.load().make_modules()
 
             # Use DataLoader's disease instances (sti_pars applied later by process_stis)
@@ -107,6 +126,13 @@ class Sim(ss.Sim):
 
             # Store calibration/comparison data for plotting overlay
             self._location_data = modules.data
+
+            # Use data_path for demographic files too, but only if it contains them
+            if datafolder is None:
+                loc_name_for_check = loc_name or ''
+                dem_file = data_path / f'{loc_name_for_check}_deaths.csv'
+                if dem_file.exists():
+                    datafolder = data_path
         else:
             self._location_data = None
 
