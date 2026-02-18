@@ -1,6 +1,7 @@
 """
 Default plotting functions for STIsim.
 """
+import re
 import numpy as np
 import sciris as sc
 import pylab as pl
@@ -26,25 +27,20 @@ HIV_PLOT_TITLES = [
     'Population size',
 ]
 
-# Mapping from result key (underscore) to data column name.
-# After validate_sim_data, the time column becomes the index,
-# and the data columns may use dot or underscore notation.
-_DATA_COL_MAP = {
-    'hiv_new_infections': ['hiv.new_infections', 'hiv_new_infections'],
-    'hiv_new_deaths':     ['hiv.new_deaths', 'hiv_new_deaths'],
-    'hiv_n_infected':     ['hiv.n_infected', 'hiv_n_infected'],
-    'hiv_prevalence':     ['hiv.prevalence', 'hiv_prevalence'],
-    'hiv_n_on_art':       ['hiv.n_on_art', 'hiv_n_on_art'],
-    'n_alive':            ['n_alive'],
-}
-
-
 def _find_data_col(data, key):
-    """Find a matching column in data for a given result key."""
-    candidates = _DATA_COL_MAP.get(key, [key])
-    for col in candidates:
-        if col in data.columns:
-            return col
+    """
+    Find a matching column in data for a given result key.
+
+    Result keys use underscores (e.g. 'hiv_new_infections') while data columns
+    may use dot notation (e.g. 'hiv.new_infections'). This tries the key as-is,
+    then converts the first underscore to a dot to find a match.
+    """
+    if key in data.columns:
+        return key
+    # Try converting first underscore to dot (e.g. hiv_prevalence -> hiv.prevalence)
+    dot_key = re.sub(r'^([a-z]+)_', r'\1.', key, count=1)
+    if dot_key != key and dot_key in data.columns:
+        return dot_key
     return None
 
 

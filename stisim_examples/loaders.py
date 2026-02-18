@@ -3,7 +3,6 @@ Data loading utilities for location-specific STIsim examples.
 """
 import pandas as pd
 import sciris as sc
-from pathlib import Path
 
 __all__ = ['load_location_data', 'list_locations', 'LOCATIONS']
 
@@ -58,7 +57,7 @@ def load_location_data(location, diseases=None):
         diseases = []
 
     # Get location path
-    loc_path = Path(__file__).parent / location
+    loc_path = sc.thispath(__file__) / location
     if not loc_path.exists():
         raise FileNotFoundError(f"Location directory not found: {loc_path}")
 
@@ -113,7 +112,7 @@ def load_csv_if_exists(filepath, required=False):
     Returns:
         DataFrame or None: Loaded data or None if file doesn't exist
     """
-    filepath = Path(filepath)
+    filepath = sc.path(filepath)
     if filepath.exists():
         return pd.read_csv(filepath)
     elif required:

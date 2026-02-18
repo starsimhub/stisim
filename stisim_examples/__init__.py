@@ -16,9 +16,8 @@ Usage:
 import stisim as sti
 import sciris as sc
 from .loaders import load_location_data, list_locations, LOCATIONS
-from .plotting import plot_hiv
 
-__all__ = ['Sim', 'HIVSim', 'MultiSim', 'list_locations', 'LOCATIONS', 'plot_hiv']
+__all__ = ['Sim', 'HIVSim', 'MultiSim', 'list_locations', 'LOCATIONS']
 
 
 def Sim(demographics=None, diseases=None, **kwargs):
@@ -134,25 +133,3 @@ def HIVSim(location=None, **kwargs):
     return Sim(demographics=location, diseases='hiv', **kwargs)
 
 
-def MultiSim(demographics=None, diseases=None, n_runs=10, **kwargs):
-    """
-    Create and return a pre-configured MultiSim.
-
-    Builds a sim via Sim(), then replicates it with different seeds.
-
-    Args:
-        demographics (str): Location name (zimbabwe, kenya, demo)
-        diseases (str/list): Disease(s) to include
-        n_runs (int): Number of replicates (default 10)
-        **kwargs: Additional parameters passed to Sim()
-
-    Returns:
-        sti.MultiSim: Ready to run
-
-    Examples:
-        >>> msim = stx.MultiSim(demographics='demo', diseases='hiv', n_agents=500)
-        >>> msim.run()
-        >>> msim.plot()
-    """
-    sim = Sim(demographics=demographics, diseases=diseases, **kwargs)
-    return sti.MultiSim(sim=sim, n_runs=n_runs)

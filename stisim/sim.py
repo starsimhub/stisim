@@ -204,8 +204,14 @@ class Sim(ss.Sim):
             matplotlib.figure.Figure
         """
         if key is None and 'hiv' in self.diseases:
-            return plot_hiv(self, **kwargs)
-        else:
+            key = [
+                'hiv_new_infections',
+                'hiv_new_deaths',
+                'hiv_n_infected',
+                'hiv_prevalence',
+                'hiv_n_on_art',
+                'n_alive',
+                ]
             return super().plot(key=key, **kwargs)
 
     def process_networks(self):

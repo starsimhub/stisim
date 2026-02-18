@@ -62,7 +62,7 @@ def test_hiv_demo():
 
 def test_hiv_zim():
     """Test Zimbabwe HIV sim with full data integration and plotting."""
-    sim = stx.Sim(demographics='zimbabwe', diseases='hiv', **kw)
+    sim = stx.Sim(demographics='zimbabwe', diseases='hiv')
 
     assert any(isinstance(d, sti.HIV) for d in sim.pars.diseases)
     nw = [n for n in sim.pars.networks if hasattr(n, 'pars') and hasattr(n.pars, 'condom_data')]
@@ -81,8 +81,8 @@ def test_hiv_zim():
     # Test plot_hiv
     import matplotlib
     matplotlib.use('Agg')
-    sim.plot(do_save=True, filename='my_plot.png', folder='figures')  
-    return
+    fig = sim.plot(annualize=True)  
+
 
 def test_add_interventions():
     """Test that user-provided interventions are additive to packaged defaults."""
