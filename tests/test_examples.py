@@ -6,6 +6,8 @@ import stisim as sti
 import hivsim as hs
 import stisim_examples as stx
 from stisim_examples.loaders import load_location_data
+from stisim_examples.demo.sim import make_sim as make_demo_sim
+from stisim_examples.zimbabwe.sim import make_sim as make_zim_sim
 
 # Shared defaults for fast tests
 kw = dict(n_agents=100, dur=5)
@@ -16,7 +18,6 @@ def test_data_loading():
     locs = stx.list_locations()
     assert 'demo' in locs
     assert 'zimbabwe' in locs
-    assert 'kenya' in locs
 
     data = load_location_data('demo', diseases='hiv')
     assert data.location == 'demo'
@@ -35,8 +36,8 @@ def test_data_loading():
 
 
 def test_hiv_demo():
-    """Test demo HIV sim with full data integration and convenience wrappers."""
-    sim = stx.Sim(demographics='demo', diseases='hiv', **kw)
+    """Test demo HIV sim via make_sim."""
+    sim = make_demo_sim(**kw)
 
     # Check disease, network, and intervention instances were created
     assert any(isinstance(d, sti.HIV) for d in sim.pars.diseases)
@@ -49,20 +50,16 @@ def test_hiv_demo():
     sim.run()
     assert len(sim.results.hiv.prevalence) > 0
 
-    # Test convenience wrappers produce equivalent results
+    # Test hivsim_examples convenience wrapper
     import hivsim_examples as hx
-    sim2 = stx.HIVSim(location='demo', **kw)
+    sim2 = hx.Sim(location='demo', **kw)
     sim2.run()
     assert 'hiv' in sim2.diseases
 
-    sim3 = hx.Sim(location='demo', **kw)
-    sim3.run()
-    assert 'hiv' in sim3.diseases
-
 
 def test_hiv_zim():
-    """Test Zimbabwe HIV sim with full data integration and plotting."""
-    sim = stx.Sim(demographics='zimbabwe', diseases='hiv')
+    """Test Zimbabwe HIV sim via make_sim with full data integration."""
+    sim = make_zim_sim()
 
     assert any(isinstance(d, sti.HIV) for d in sim.pars.diseases)
     nw = [n for n in sim.pars.networks if hasattr(n, 'pars') and hasattr(n.pars, 'condom_data')]
@@ -81,16 +78,18 @@ def test_hiv_zim():
     # Test plot_hiv
     import matplotlib
     matplotlib.use('Agg')
-    fig = sim.plot(annualize=True)  
+    fig = sim.plot(annualize=True)
+    import sciris
+    sciris.savefig(filename='my_plot.png')
 
 
 def test_add_interventions():
-    """Test that user-provided interventions are additive to packaged defaults."""
+    """Test that user-provided interventions are additive to data-driven defaults."""
     custom_prep = sti.Prep()
-    sim = stx.Sim(demographics='demo', diseases='hiv', interventions=[custom_prep], **kw)
+    sim = make_demo_sim(interventions=[custom_prep], **kw)
 
     intv_names = [intv.name for intv in sim.pars.interventions]
-    # Should have both the packaged interventions AND the user's
+    # Should have both the data-driven interventions AND the user's
     assert 'art' in intv_names
     assert 'vmmc' in intv_names
     assert 'prep' in intv_names
@@ -112,36 +111,52 @@ def test_demographics():
     except (FileNotFoundError, ValueError) as e:
         pytest.skip(f"Demographic data files not available: {e}")
 
-    # Invalid location
-    with pytest.raises(ValueError, match="not found"):
-        stx.Sim(demographics='invalid_location', diseases='hiv')
+
+def test_dataloader():
+    """Test DataLoader class: loading data and making modules."""
+    import sciris as sc
+
+    data_path = sc.thispath(stx.__file__) / 'zimbabwe'
+    dl = sti.DataLoader(data_path=data_path, location='zimbabwe', diseases='hiv')
+    dl.load()
+
+    # Check data was loaded
+    assert 'hiv' in dl.data.diseases
+    assert 'condom_use' in dl.data
+    assert 'art_coverage' in dl.data
+    assert 'vmmc_coverage' in dl.data
+    assert 'hiv_data' in dl.data
+
+    # Check module creation
+    modules = dl.make_modules()
+    assert any(isinstance(d, sti.HIV) for d in modules.diseases)
+    assert len(modules.networks) > 0
+    assert len(modules.interventions) > 0
+    assert modules.data is not None
+
+    # Test sti.Sim with data_path directly
+    sim = sti.Sim(demographics='zimbabwe', diseases='hiv', data_path=data_path, **kw)
+    sim.run()
+    assert sim.data is not None
+    assert len(sim.results.hiv.prevalence) > 0
 
 
-def test_errors():
-    """Test error handling for missing required parameters."""
-    with pytest.raises(ValueError, match="demographics parameter is required"):
-        stx.Sim(diseases='hiv')
-    with pytest.raises(ValueError, match="diseases parameter is required"):
-        stx.Sim(demographics='demo')
+def test_sim_equivalence():
+    """Test that make_sim and sti.Sim(data_path=...) give equivalent results."""
+    import sciris as sc
 
+    seed = 42
+    sim1 = make_zim_sim(rand_seed=seed, **kw)
+    sim1.run()
 
-def test_sim_creation():
-    """Test equivalent ways of constructing the same sim via stisim_examples."""
+    # Same thing via hivsim_examples
     import hivsim_examples as hx
-    seed = 0
-
-    # These three all go through the stisim_examples factory
-    sim1 = stx.Sim(demographics='zimbabwe', diseases='hiv', rand_seed=seed, **kw)
-    sim2 = stx.HIVSim(location='zimbabwe', rand_seed=seed, **kw)
-    sim3 = hx.Sim(location='zimbabwe', rand_seed=seed, **kw)
-    for sim in [sim1, sim2, sim3]:
-        sim.run()
+    sim2 = hx.Sim(location='zimbabwe', rand_seed=seed, **kw)
+    sim2.run()
 
     prev1 = sim1.results.hiv.prevalence[:]
     prev2 = sim2.results.hiv.prevalence[:]
-    prev3 = sim3.results.hiv.prevalence[:]
-    assert all(prev1 == prev2), 'stx.Sim and stx.HIVSim differ'
-    assert all(prev1 == prev3), 'stx.Sim and hx.Sim differ'
+    assert all(prev1 == prev2), 'make_zim_sim and hx.Sim differ'
 
 
 if __name__ == '__main__':
@@ -150,8 +165,6 @@ if __name__ == '__main__':
     test_hiv_zim()
     test_add_interventions()
     test_demographics()
-    test_errors()
-    test_sim_creation()
+    test_dataloader()
+    test_sim_equivalence()
     print('All tests passed!')
-
-

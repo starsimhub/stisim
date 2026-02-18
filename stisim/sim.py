@@ -24,6 +24,10 @@ class Sim(ss.Sim):
         connectors (bool or list): If True, use default connectors; otherwise, provide a list of connectors.
         copy_inputs (bool): Whether to copy input parameters or not.
         data: Additional data to be used in the simulation.
+        data_path (str/Path): Path to directory containing location-specific
+            CSV data files. When provided, uses DataLoader to load data and
+            create disease, network, and intervention modules from CSVs.
+            User-provided ``sti_pars`` and ``nw_pars`` are applied on top.
 
         This class provides flexibility to initialize starsim modules in various ways. Default values are provided,
         so sti.Sim() can be called and generate a reasonable simulation without any inputs. Alternatively, modules can
@@ -79,7 +83,32 @@ class Sim(ss.Sim):
 
     def __init__(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None, dem_pars=None,
                  label=None, people=None, demographics=None, diseases=None, networks=None,
-                 interventions=None, analyzers=None, connectors=None, datafolder=None, **kwargs):
+                 interventions=None, analyzers=None, connectors=None, datafolder=None,
+                 data_path=None, **kwargs):
+
+        # If data_path is provided, use DataLoader to create modules from CSV data
+        if data_path is not None:
+            location = demographics if isinstance(demographics, str) else None
+            loader = sti.DataLoader(data_path=data_path, location=location, diseases=diseases)
+            modules = loader.load().make_modules()
+
+            # Use DataLoader's disease instances (sti_pars applied later by process_stis)
+            if modules.diseases:
+                diseases = modules.diseases
+
+            # Use DataLoader's networks if user didn't provide their own (nw_pars applied later by process_networks)
+            if networks is None and modules.networks:
+                networks = modules.networks
+
+            # User interventions are additive to DataLoader's data-driven interventions
+            if modules.interventions:
+                user_intvs = sc.tolist(interventions) if interventions is not None else []
+                interventions = modules.interventions + user_intvs
+
+            # Store calibration/comparison data for plotting overlay
+            self._location_data = modules.data
+        else:
+            self._location_data = None
 
         # Inputs and defaults
         self.nw_pars = None     # Parameters for the networks - processed later
@@ -99,6 +128,11 @@ class Sim(ss.Sim):
         sim_kwargs = {key: val for key, val in sim_kwargs.items() if val is not None}
         updated_pars = self.separate_pars(pars, sim_pars, sti_pars, nw_pars, dem_pars, sim_kwargs, **kwargs)
         self.pars.update(updated_pars)
+
+        # Attach location data for plotting overlay
+        if self._location_data is not None:
+            self.data = self._location_data
+
         return
 
     def separate_pars(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None, dem_pars=None, sim_kwargs=None, **kwargs):
@@ -217,12 +251,18 @@ class Sim(ss.Sim):
     def process_networks(self):
         """
         Process the network parameters to create network module.
-        If networks are provided, they will be used; otherwise, use default networks (usual case)
+        If networks are provided, they will be used; otherwise, use default networks (usual case).
+        If nw_pars are provided and networks are instances, apply the pars to StructuredSexual instances.
         """
         if len(self.pars['networks']):
-            # If networks are provided, use them directly
             networks = self.pars['networks']
-
+            # Apply nw_pars to any StructuredSexual instances
+            default_nw_pars = sti.NetworkPars()
+            user_nw_pars = {k: v for k, v in self.nw_pars.items() if self.nw_pars[k] != default_nw_pars.get(k)}
+            if user_nw_pars:
+                for nw in networks:
+                    if isinstance(nw, sti.StructuredSexual):
+                        nw.update_pars(**user_nw_pars)
         else:
             # If no networks are provided, create them based on the network parameters
             networks = ss.ndict(
@@ -343,6 +383,12 @@ class Sim(ss.Sim):
                 stis += sti.make_sti(stidis, pars=final_pars)
 
             elif isinstance(stidis, ss.Disease):
+                # Apply any matching sti_pars to the instance
+                disease_name = stidis.name
+                this_stitype_pars = sti_pars.get(disease_name, {})
+                final_pars = sc.mergedicts(sti_main_pars, this_stitype_pars)
+                if final_pars:
+                    stidis.update_pars(**final_pars)
                 stis += stidis
             else:
                 raise ValueError(f"Invalid STI type: {type(stidis)}. Must be str or sti.BaseSTI.")

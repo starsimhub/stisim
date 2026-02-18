@@ -1,22 +1,47 @@
 """
-Zimbabwe-specific simulation configuration helpers.
+Make a Zimbabwe sim for testing and demonstration
 """
 import numpy as np
 import starsim as ss
 import stisim as sti
+import sciris as sc
 
-__all__ = ['configure_sim_pars']
+
+# Zimbabwe-specific parameters
+sim_pars = dict(
+    start=1990,
+    stop=2025,
+    total_pop=9_980_999,
+)
+
+sti_pars = dict(
+    hiv=dict(
+        beta_m2f=0.035,
+        eff_condom=0.95,
+        rel_init_prev=1.0,
+    )
+)
+
+nw_pars = dict(
+    prop_f0=0.79,
+    prop_m0=0.83,
+    f1_conc=0.16,
+    m1_conc=0.11,
+    p_pair_form=0.58,
+)
 
 
-def make_hiv_testing(test_years=None):
+def make_custom_interventions(test_years=None):
     """
-    Create HIV testing interventions for Zimbabwe.
+    Create any custom interventions for Zimbabwe. This example has testing interventions,
+    other interventions can be added here. Note that the sim automatically adds
+    ART and VMMC using the available data in the folder.
 
     Args:
         test_years (array): Years for testing coverage. Default: 1990-2040.
 
     Returns:
-        list: List of HIVTest intervention instances
+        list: List of intervention instances
     """
     if test_years is None:
         test_years = np.arange(1990, 2041)
@@ -46,83 +71,18 @@ def make_hiv_testing(test_years=None):
     ]
 
 
-def configure_sim_pars(loc_data, diseases, base_pars):
-    """
-    Configure simulation parameters from Zimbabwe location data.
+def make_sim(**kwargs):
+    intvs = make_custom_interventions()
+    user_intvs = sc.tolist(kwargs.pop('interventions', []))
 
-    Creates fully configured disease, network, and intervention instances
-    from the loaded location data. Uses Zimbabwe-specific network parameters
-    and disease parameters from the hiv_zim country repo.
-
-    Args:
-        loc_data (sc.objdict): Data loaded from load_location_data()
-        diseases (list): List of disease names
-        base_pars (dict): Base parameters from user
-
-    Returns:
-        dict: Configured parameters including disease instances, networks,
-              and interventions to merge with base_pars
-    """
-    configured = {}
-
-    # Convert diseases to list if needed
-    if isinstance(diseases, str):
-        diseases = [diseases]
-
-    if 'hiv' in diseases:
-        # 1. Create HIV disease with init_prev data and Zimbabwe-specific parameters
-        hiv_kwargs = dict(
-            beta_m2f=0.035,
-            eff_condom=0.95,
-            rel_init_prev=1.0,
-        )
-        if 'hiv' in loc_data.diseases and 'init_prev' in loc_data.diseases.hiv:
-            hiv_kwargs['init_prev_data'] = loc_data.diseases.hiv.init_prev
-        configured['diseases'] = [sti.HIV(**hiv_kwargs)]
-
-        # 2. Create network with condom data and Zimbabwe-specific parameters
-        nw_kwargs = dict(
-            prop_f0=0.79,
-            prop_m0=0.83,
-            f1_conc=0.16,
-            m1_conc=0.11,
-            p_pair_form=0.58,
-        )
-        if 'condom_use' in loc_data:
-            nw_kwargs['condom_data'] = loc_data.condom_use
-        configured['networks'] = [sti.StructuredSexual(**nw_kwargs), ss.MaternalNet()]
-
-        # 3. Create interventions from data
-        interventions = []
-
-        # ART from coverage data (Zimbabwe uses absolute counts: n_art)
-        if 'art_coverage' in loc_data:
-            art_df = loc_data.art_coverage.set_index('year')
-            interventions.append(sti.ART(coverage_data=art_df))
-
-        # VMMC from coverage data (Zimbabwe uses absolute counts: n_vmmc)
-        if 'vmmc_coverage' in loc_data:
-            vmmc_df = loc_data.vmmc_coverage.set_index('year')
-            interventions.append(sti.VMMC(coverage_data=vmmc_df))
-
-        # PrEP
-        interventions.append(sti.Prep())
-
-        # HIV testing interventions
-        interventions.extend(make_hiv_testing())
-
-        configured['interventions'] = interventions
-
-    # Default sim parameters for Zimbabwe
-    if 'start' not in base_pars:
-        configured['start'] = 1990
-    if 'stop' not in base_pars and 'dur' not in base_pars:
-        configured['stop'] = 2025
-    if 'total_pop' not in base_pars:
-        configured['total_pop'] = 9_980_999
-
-    # Pass through calibration/comparison data for plotting overlay
-    if 'hiv_data' in loc_data:
-        configured['data'] = loc_data.hiv_data
-
-    return configured
+    sim = sti.Sim(
+        demographics='zimbabwe',
+        diseases='hiv',
+        data_path=sc.thispath(),
+        sim_pars=sim_pars,
+        nw_pars=nw_pars,
+        sti_pars=sti_pars,
+        interventions=intvs + user_intvs,
+        **kwargs,
+    )
+    return sim

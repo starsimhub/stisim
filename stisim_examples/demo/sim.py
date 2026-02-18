@@ -1,19 +1,25 @@
 """
-Demo location-specific simulation configuration helpers.
+Make a demo sim for testing and demonstration
 """
 import numpy as np
 import starsim as ss
 import stisim as sti
+import sciris as sc
 
-__all__ = ['configure_sim_pars']
+
+# Demo location parameters (minimal defaults)
+sim_pars = dict()
+
+sti_pars = dict(
+    hiv=dict()
+)
+
+nw_pars = dict()
 
 
-def make_hiv_testing(test_years=None):
+def make_custom_interventions(test_years=None):
     """
     Create default HIV testing interventions.
-
-    Returns FSW testing, general population testing, and low-CD4 testing
-    following the pattern from the country repos.
 
     Args:
         test_years (array): Years for testing coverage. Default: 1990-2040.
@@ -49,61 +55,18 @@ def make_hiv_testing(test_years=None):
     ]
 
 
-def configure_sim_pars(loc_data, diseases, base_pars):
-    """
-    Configure simulation parameters from demo location data.
+def make_sim(**kwargs):
+    intvs = make_custom_interventions()
+    user_intvs = sc.tolist(kwargs.pop('interventions', []))
 
-    Creates fully configured disease, network, and intervention instances
-    from the loaded location data, following the country repo patterns.
-
-    Args:
-        loc_data (sc.objdict): Data loaded from load_location_data()
-        diseases (list): List of disease names
-        base_pars (dict): Base parameters from user
-
-    Returns:
-        dict: Configured parameters including disease instances, networks,
-              and interventions to merge with base_pars
-    """
-    configured = {}
-
-    # Convert diseases to list if needed
-    if isinstance(diseases, str):
-        diseases = [diseases]
-
-    if 'hiv' in diseases:
-        # 1. Create HIV disease with init_prev data
-        hiv_kwargs = {}
-        if 'hiv' in loc_data.diseases and 'init_prev' in loc_data.diseases.hiv:
-            hiv_kwargs['init_prev_data'] = loc_data.diseases.hiv.init_prev
-        configured['diseases'] = [sti.HIV(**hiv_kwargs)]
-
-        # 2. Create network with condom data
-        nw_kwargs = {}
-        if 'condom_use' in loc_data:
-            nw_kwargs['condom_data'] = loc_data.condom_use
-        configured['networks'] = [sti.StructuredSexual(**nw_kwargs), ss.MaternalNet()]
-
-        # 3. Create interventions from data
-        interventions = []
-
-        # ART from coverage data
-        if 'art_coverage' in loc_data:
-            art_df = loc_data.art_coverage.set_index('year')
-            interventions.append(sti.ART(coverage_data=art_df))
-
-        # VMMC from coverage data
-        if 'vmmc_coverage' in loc_data:
-            vmmc_df = loc_data.vmmc_coverage.set_index('year')
-            interventions.append(sti.VMMC(coverage_data=vmmc_df))
-
-        # Default HIV testing interventions
-        interventions.extend(make_hiv_testing())
-
-        configured['interventions'] = interventions
-
-    # Pass through calibration/comparison data for plotting overlay
-    if 'hiv_data' in loc_data:
-        configured['data'] = loc_data.hiv_data
-
-    return configured
+    sim = sti.Sim(
+        demographics='demo',
+        diseases='hiv',
+        data_path=sc.thispath(),
+        sim_pars=sim_pars,
+        nw_pars=nw_pars,
+        sti_pars=sti_pars,
+        interventions=intvs + user_intvs,
+        **kwargs,
+    )
+    return sim
