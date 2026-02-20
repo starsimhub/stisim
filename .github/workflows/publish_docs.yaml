@@ -30,6 +30,7 @@ jobs:
           path: ~/.cache/pip
 
       - run: pip install -e .[dev]
+      - run: python -c "import stisim"  # Pre-build font cache so it doesn't appear in notebook output
       - run: mkdocs build
 
       - uses: actions/upload-pages-artifact@v3

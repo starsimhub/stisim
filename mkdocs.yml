@@ -46,6 +46,7 @@ nav:
     - Getting started: tutorials/tut_intro.ipynb
     - Co-transmitting STIs: tutorials/tut_cotransmission.ipynb
     - Results and plotting: tutorials/tut_results.ipynb
+    - Interventions: tutorials/tut_interventions.ipynb
   - User guide:
     - user_guide/userguide.md
     - Diseases:
@@ -59,6 +60,8 @@ nav:
       - Genital ulcer disease: user_guide/diseases/gud.md
     - Networks:
       - Structured sexual: user_guide/networks/structured_sexual.md
+    - Interventions:
+      - user_guide/interventions/interventions.md
   - What's new: whatsnew.md
   - Code of conduct: code_of_conduct.md
   - Contributing: contributing.md
