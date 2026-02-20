@@ -1,3 +1,3 @@
 # Tutorials
 
-*Tutorial content can be added here. Consider step-by-step guides for running a first simulation, configuring diseases and networks, and using calibration.*
+- [Getting started](tutorials/tut_intro.ipynb) -- What's in the box: what happens when you create and run a sim
