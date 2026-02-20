@@ -4,9 +4,11 @@ All notable changes to the codebase are documented in this file.
 
 ## Version 1.4.5 (2026-02-20)
 
-- Updating README with roadmap
-- Reorganizing and cleaning up tests
-- *GitHub info*: PR [160](https://github.com/starsimhub/stisim/pull/160)
+- Fix BV trimester KeyError during initialization
+- Add documentation: intro tutorial, disease reference pages, and network guide
+- Configure mkdocs to execute notebooks and add user guide structure
+- Update README with Python/R install instructions and example repos
+- Move devtests to `tests/devtests/` and rename `test_hiv` to `devtest_hiv`
 
 ## Version 1.4.3 (2025-12-08)
 
