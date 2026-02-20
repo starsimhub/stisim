@@ -8,13 +8,48 @@ STIsim is an agent-based modeling framework in which users can design and config
 
 ## Requirements
 
-Python 3.9-3.14.
+Python 3.9-3.14 or R.
+
+We recommend, but do not require, installing STIsim in a virtual environment, such as [Miniconda](https://docs.anaconda.com/miniconda/).
 
 ## Installation
 
-STIsim is most easily installed via PyPI: `pip install stisim`. This will also install HIVsim.
+### Python
 
-STIsim can also be installed locally. To do this, clone first this repository, then run `pip install -e .` (don't forget the dot at the end!).
+STIsim is most easily installed via [PyPI](https://pypi.org/project/stisim/):
+```sh
+pip install stisim
+```
+
+Or with [uv](https://github.com/astral-sh/uv):
+```sh
+uv init example
+cd example
+uv add stisim
+```
+
+STIsim can also be installed locally (including optional dependencies for testing and documentation). To do this, clone first this repository, then run:
+```sh
+pip install -e .[dev]
+```
+
+### R
+
+STIsim can be used from R via [rstarsim](https://github.com/starsimhub/rstarsim), which calls the Python engine through reticulate. The Python packages are required regardless of whether you use the R or Python interface.
+
+Install the R packages:
+```r
+install.packages(c("reticulate", "devtools"))
+devtools::install_github("starsimhub/rstarsim")
+```
+
+On first use, `rstarsim` will set up a conda environment automatically if needed. To use an existing environment instead:
+```r
+library(starsim)
+load_starsim("my_env_name")
+```
+
+See [r.starsim.org](https://r.starsim.org) for more information on using Starsim from R.
 
 ## Usage and documentation
 
