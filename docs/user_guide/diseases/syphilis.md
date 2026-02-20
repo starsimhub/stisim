@@ -65,7 +65,7 @@ Syphilis in STIsim progresses through primary, secondary, latent, and tertiary s
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `beta_m2f` | 0.1 | Male-to-female transmission probability |
+| `beta_m2f` | 0.1 | Per-act male-to-female transmission probability |
 | `eff_condom` | 0.0 | Condom efficacy (syphilis transmits via skin contact) |
 | `rel_trans_primary` | 1 | Relative transmissibility during primary stage |
 | `rel_trans_secondary` | 1 | Relative transmissibility during secondary stage |
