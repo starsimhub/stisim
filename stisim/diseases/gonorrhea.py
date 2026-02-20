@@ -60,7 +60,7 @@ class Gonorrhea(SEIS):
     def init_results(self):
         super().init_results()
         self.define_results(
-            ss.Result('rel_treat', dtype=float, label='Drug resistance')
+            ss.Result('rel_treat', dtype=float, label='Drug resistance', auto_plot=False)
         )
         return
 
