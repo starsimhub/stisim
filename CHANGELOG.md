@@ -2,6 +2,12 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.4.5 (2026-02-20)
+
+- Updating README with roadmap
+- Reorganizing and cleaning up tests
+- *GitHub info*: PR [160](https://github.com/starsimhub/stisim/pull/160)
+
 ## Version 1.4.3 (2025-12-08)
 
 - Patch to add super calls to init_results for analyzers
