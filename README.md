@@ -70,6 +70,14 @@ Publications using STIsim include:
 2. **Point-of-care testing to strengthen sexually transmitted infection case management in resource-constrained settings** (2026). Peters RPH, Manguro G, Ong'wen PA, Mdingi MM, Applegate TL, Stuart R, Harding-Esch EM, Manabe YC, Ndowa F, Van Der Pol B. *Sex Transm Infect*, https://doi.org/10.1136/sextrans-2025-056833. 
 
 
+## Examples
+
+The following repositories contain end-to-end analyses built with STIsim, and are a good starting point for understanding how to set up, calibrate, and run country-level models:
+
+- **[hiv_kenya](https://github.com/starsimhub/hiv_kenya)** -- HIV transmission model for Kenya with structured sexual networks, testing (FSW-targeted and general population), ART, and PrEP. Includes both Python and R interfaces and Optuna-based calibration.
+- **[hiv_zambia](https://github.com/starsimhub/hiv_zambia)** -- HIV transmission model for Zambia. Similar structure to the Kenya model, useful for comparing how the same framework is adapted to a different country context.
+- **[stisim_vddx_zim](https://github.com/starsimhub/stisim_vddx_zim)** -- Multi-STI model (gonorrhea, chlamydia, trichomoniasis, BV) for Zimbabwe evaluating point-of-care diagnostics vs. syndromic management for vaginal discharge. Demonstrates co-circulating STIs, intervention comparison, and scenario analysis.
+
 ## Contributing
 
 We welcome all contributions to STIsim! Please refer to our [code of conduct](https://github.com/starsimhub/stisim/blob/main/code_of_conduct.md) and [contributors's guide](https://github.com/starsimhub/stisim/blob/main/contributing.md). You'll find information there about our style guide, which is essential reading prior to contributing. Questions or comments can be directed to [info@starsim.org](mailto:info@starsim.org), or on this project's [GitHub](https://github.com/starsimhub/stisim) page. 
