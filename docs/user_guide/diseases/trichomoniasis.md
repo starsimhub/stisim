@@ -57,7 +57,7 @@ Trichomoniasis (*Trichomonas vaginalis*) follows the SEIS pattern with a key fea
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `beta_m2f` | None | Male-to-female transmission probability (set by network) |
+| `beta_m2f` | 0.1 | Male-to-female transmission probability |
 | `rel_beta_f2m` | 0.5 | Female-to-male transmission relative to male-to-female |
 | `beta_m2c` | None | Mother-to-child transmission probability |
 | `beta_m2m` | None | Male-to-male transmission probability |

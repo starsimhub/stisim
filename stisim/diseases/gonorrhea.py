@@ -40,7 +40,8 @@ class NGPars(STIPars):
         self.p_pid = ss.bernoulli(p=0.0)  # TODO
         self.dur_prepid = ss.lognorm_ex(ss.months(1.5), ss.months(3))
 
-        # Initial conditions
+        # Transmission and initial conditions
+        self.beta_m2f = 0.06
         self.init_prev = ss.bernoulli(p=0.01)
         self.eff_condom = 0.9
         self.update(kwargs)
