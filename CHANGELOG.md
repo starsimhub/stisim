@@ -2,6 +2,10 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.4.6 (2026-02-20)
+
+- *No changes yet*
+
 ## Version 1.4.5 (2026-02-20)
 
 - Fix BV trimester KeyError during initialization
