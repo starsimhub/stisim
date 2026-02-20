@@ -37,7 +37,7 @@ Publications using STIsim include:
 
 ## Contributing
 
-We welcome all contributions to STIsim! Please refer to our [code of conduct](https://github.com/starsimhub/stisim/blob/main/code_of_conduct.md) and [contributors's guide](https://github.com/starsimhub/stisim/blob/main/contributing.md). It's a short document, but the TLDR is that we encourage you to open an issue in advance of any changes you might want to push, so that we can track what's coming. You'll also find information there about our style guide.  Questions or comments can be directed to [info@starsim.org](mailto:info@starsim.org), or on this project's [GitHub](https://github.com/starsimhub/stisim) page. 
+We welcome all contributions to STIsim! Please refer to our [code of conduct](https://github.com/starsimhub/stisim/blob/main/code_of_conduct.md) and [contributors's guide](https://github.com/starsimhub/stisim/blob/main/contributing.md). You'll find information there about our style guide, which is essential reading prior to contributing. Questions or comments can be directed to [info@starsim.org](mailto:info@starsim.org), or on this project's [GitHub](https://github.com/starsimhub/stisim) page. 
 
 See `.github/workflows/README.md` for details on publishing new releases of STIsim.
 
