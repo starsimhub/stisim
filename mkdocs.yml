@@ -45,6 +45,7 @@ nav:
     - tutorials.md
     - Getting started: tutorials/tut_intro.ipynb
     - Co-transmitting STIs: tutorials/tut_cotransmission.ipynb
+    - Results and plotting: tutorials/tut_results.ipynb
   - User guide:
     - user_guide/userguide.md
     - Diseases:
