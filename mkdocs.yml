@@ -44,17 +44,19 @@ nav:
   - Tutorials:
     - tutorials.md
     - Getting started: tutorials/tut_intro.ipynb
-  - Diseases:
-    - diseases/index.md
-    - HIV: diseases/hiv.md
-    - Syphilis: diseases/syphilis.md
-    - Chlamydia: diseases/chlamydia.md
-    - Gonorrhea: diseases/gonorrhea.md
-    - Trichomoniasis: diseases/trichomoniasis.md
-    - Bacterial vaginosis: diseases/bv.md
-    - Genital ulcer disease: diseases/gud.md
-  - Networks:
-    - Structured sexual: networks/structured_sexual.md
+  - User guide:
+    - user_guide/userguide.md
+    - Diseases:
+      - user_guide/diseases/index.md
+      - HIV: user_guide/diseases/hiv.md
+      - Syphilis: user_guide/diseases/syphilis.md
+      - Chlamydia: user_guide/diseases/chlamydia.md
+      - Gonorrhea: user_guide/diseases/gonorrhea.md
+      - Trichomoniasis: user_guide/diseases/trichomoniasis.md
+      - Bacterial vaginosis: user_guide/diseases/bv.md
+      - Genital ulcer disease: user_guide/diseases/gud.md
+    - Networks:
+      - Structured sexual: user_guide/networks/structured_sexual.md
   - What's new: whatsnew.md
   - Code of conduct: code_of_conduct.md
   - Contributing: contributing.md
