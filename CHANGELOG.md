@@ -2,6 +2,14 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.4.5 (2026-02-20)
+
+- Fix BV trimester KeyError during initialization
+- Add documentation: intro tutorial, disease reference pages, and network guide
+- Configure mkdocs to execute notebooks and add user guide structure
+- Update README with Python/R install instructions and example repos
+- Move devtests to `tests/devtests/` and rename `test_hiv` to `devtest_hiv`
+
 ## Version 1.4.3 (2025-12-08)
 
 - Patch to add super calls to init_results for analyzers

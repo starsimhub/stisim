@@ -8,13 +8,48 @@ STIsim is an agent-based modeling framework in which users can design and config
 
 ## Requirements
 
-Python 3.9-3.14.
+Python 3.9-3.14 or R.
+
+We recommend, but do not require, installing STIsim in a virtual environment, such as [Miniconda](https://docs.anaconda.com/miniconda/).
 
 ## Installation
 
-STIsim is most easily installed via PyPI: `pip install stisim`. This will also install HIVsim.
+### Python
 
-STIsim can also be installed locally. To do this, clone first this repository, then run `pip install -e .` (don't forget the dot at the end!).
+STIsim is most easily installed via [PyPI](https://pypi.org/project/stisim/):
+```sh
+pip install stisim
+```
+
+Or with [uv](https://github.com/astral-sh/uv):
+```sh
+uv init example
+cd example
+uv add stisim
+```
+
+STIsim can also be installed locally (including optional dependencies for testing and documentation). To do this, clone first this repository, then run:
+```sh
+pip install -e .[dev]
+```
+
+### R
+
+STIsim can be used from R via [rstarsim](https://github.com/starsimhub/rstarsim), which calls the Python engine through reticulate. The Python packages are required regardless of whether you use the R or Python interface.
+
+Install the R packages:
+```r
+install.packages(c("reticulate", "devtools"))
+devtools::install_github("starsimhub/rstarsim")
+```
+
+On first use, `rstarsim` will set up a conda environment automatically if needed. To use an existing environment instead:
+```r
+library(starsim)
+load_starsim("my_env_name")
+```
+
+See [r.starsim.org](https://r.starsim.org) for more information on using Starsim from R.
 
 ## Usage and documentation
 
@@ -23,6 +58,8 @@ STIsim is still in the early stages of its development as a standalone software 
 2. Email us: [info@starsim.org](mailto:info@starsim.org)
 3. Check on the documentation currently available at https://docs.stisim.org.
 
+## Development roadmap
+The roadmap for futre model development ca be viewed [here](https://github.com/orgs/starsimhub/projects/26/views/6).
 
 ## References
 
@@ -33,9 +70,17 @@ Publications using STIsim include:
 2. **Point-of-care testing to strengthen sexually transmitted infection case management in resource-constrained settings** (2026). Peters RPH, Manguro G, Ong'wen PA, Mdingi MM, Applegate TL, Stuart R, Harding-Esch EM, Manabe YC, Ndowa F, Van Der Pol B. *Sex Transm Infect*, https://doi.org/10.1136/sextrans-2025-056833. 
 
 
+## Examples
+
+The following repositories contain end-to-end analyses built with STIsim, and are a good starting point for understanding how to set up, calibrate, and run country-level models:
+
+- **[hiv_kenya](https://github.com/starsimhub/hiv_kenya)** -- HIV transmission model for Kenya with structured sexual networks, testing (FSW-targeted and general population), ART, and PrEP. Includes both Python and R interfaces and Optuna-based calibration.
+- **[hiv_zambia](https://github.com/starsimhub/hiv_zambia)** -- HIV transmission model for Zambia. Similar structure to the Kenya model, useful for comparing how the same framework is adapted to a different country context.
+- **[stisim_vddx_zim](https://github.com/starsimhub/stisim_vddx_zim)** -- Multi-STI model (gonorrhea, chlamydia, trichomoniasis, BV) for Zimbabwe evaluating point-of-care diagnostics vs. syndromic management for vaginal discharge. Demonstrates co-circulating STIs, intervention comparison, and scenario analysis.
+
 ## Contributing
 
-Questions or comments can be directed to [info@starsim.org](mailto:info@starsim.org), or on this project's [GitHub](https://github.com/starsimhub/stisim) page.
+We welcome all contributions to STIsim! Please refer to our [code of conduct](https://github.com/starsimhub/stisim/blob/main/code_of_conduct.md) and [contributors's guide](https://github.com/starsimhub/stisim/blob/main/contributing.md). You'll find information there about our style guide, which is essential reading prior to contributing. Questions or comments can be directed to [info@starsim.org](mailto:info@starsim.org), or on this project's [GitHub](https://github.com/starsimhub/stisim) page. 
 
 See `.github/workflows/README.md` for details on publishing new releases of STIsim.
 
