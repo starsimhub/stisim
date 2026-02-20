@@ -81,9 +81,10 @@ plugins:
   - autorefs # automatically create linkable references
   - include-markdown # include other files, such as READMEs
   - mkdocs-jupyter: # enables Jupyter notebooks to be rendered
-      execute: false
+      execute: true
       allow_errors: true
       include_source: true
+      kernel_name: python3
   - mkdocstrings: # process docstrings to generate API reference
       handlers:
         python:

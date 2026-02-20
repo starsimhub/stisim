@@ -62,7 +62,7 @@ HIV in STIsim is modeled with CD4-based disease progression through acute, laten
 |-----------|---------|-------------|
 | `beta_m2f` | None | Male-to-female transmission probability (set by network) |
 | `rel_beta_f2m` | 0.5 | Female-to-male transmission relative to male-to-female |
-| `beta_m2c` | 0.025/mo | Male-to-child (MTCT) transmission probability |
+| `beta_m2c` | 0.025/mo | Mother-to-child transmission probability |
 | `rel_trans_acute` | normal(6, 0.5) | Relative transmissibility during acute phase |
 | `rel_trans_falling` | normal(8, 0.5) | Relative transmissibility during late stage |
 | `eff_condom` | 0.9 | Condom efficacy for reducing transmission |
