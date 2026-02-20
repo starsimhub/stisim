@@ -7,7 +7,7 @@ name = "stisim"
 dynamic = ["version"]
 description = "STI modelling toolbox built on the Starsim platform"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = {file = "LICENSE"}
 keywords = ["agent-based model", "simulation", "disease", "epidemiology", "sexually transmitted infections", "STIs", "STDs"]
 
@@ -24,20 +24,30 @@ classifiers = [
   "Intended Audience :: Science/Research",
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
-  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Development Status :: 5 - Production/Stable",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
-  "Programming Language :: Python :: 3.14"
 ]
 
 dependencies = [
     "starsim>=3.0.1",
     "optuna",
     "requests",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov",
+    "pytest-env", 
+    "pytest-xdist",
+    "quartodoc",
+    "jupyter",
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings[python]",
+    "mkdocs-include-markdown-plugin",
+    "mkdocs-jupyter"
 ]
 
 [project.urls]
