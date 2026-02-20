@@ -89,6 +89,7 @@ class SyphPars(BaseSTIPars):
         self.time_to_death = ss.lognorm_ex(ss.years(5), ss.years(5))  # Time to death
 
         # Transmission by stage
+        self.beta_m2f = 0.1
         self.eff_condom = 0.0
         self.rel_trans_primary = 1
         self.rel_trans_secondary = 1

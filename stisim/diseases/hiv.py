@@ -26,7 +26,7 @@ class HIVPars(BaseSTIPars):
 
         # Transmission
         self.beta = 0  # Placeholder, replaced by network-specific betas
-        self.beta_m2f = None
+        self.beta_m2f = 0.05
         self.rel_beta_f2m = 0.5
         self.beta_m2c = ss.permonth(0.025)  # Approx 0.2 over the course of the pregnany
         self.rel_trans_acute = ss.normal(loc=6, scale=0.5)  # Increase transmissibility during acute HIV infection
