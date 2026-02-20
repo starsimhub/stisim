@@ -2,6 +2,17 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.4.6 (2026-02-20)
+
+- Add sensible `beta_m2f` defaults for all diseases (NG: 0.06, CT: 0.06, TV: 0.1, HIV: 0.05, syphilis: 0.1)
+- Add `rel_trans_hiv_ng` parameter to the HIV-NG connector
+- Fix connector handling in `Sim.init()` when a single connector is passed
+- Set `auto_plot=False` on subpopulation, care-seeking, and detail results so `sim.plot()` shows only high-level results
+- Add tutorials: intro (gonorrhea), co-transmission, results/plotting, and interventions
+- Add user guide pages for interventions (testing, treatment, ART, VMMC, PrEP)
+- Update disease docs with `beta_m2f` defaults and per-act description
+- Pre-build font cache in docs CI workflow
+
 ## Version 1.4.5 (2026-02-20)
 
 - Fix BV trimester KeyError during initialization

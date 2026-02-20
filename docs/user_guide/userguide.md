@@ -6,3 +6,4 @@ This user guide documents what STIsim adds on top of Starsim:
 
 - **[Diseases](diseases/index.md)** -- State diagrams and parameter tables for each STI module (HIV, syphilis, chlamydia, gonorrhea, trichomoniasis, BV, GUD).
 - **[Networks](networks/structured_sexual.md)** -- The structured sexual network: risk groups, partnership types, age mixing, sex work, and condom use.
+- **[Interventions](interventions/interventions.md)** -- Testing, treatment, and HIV-specific interventions (ART, VMMC, PrEP).

@@ -50,7 +50,7 @@ class Pregnancy(ss.Pregnancy):
         """
         super().init_results()
         self.define_results(
-            ss.Result("ptbs", dtype=int, scale=True, label="New preterm births"),
+            ss.Result("ptbs", dtype=int, scale=True, label="New preterm births", auto_plot=False),
         )
         return
 
@@ -144,7 +144,7 @@ class Migration(ss.Demographics):
     def init_results(self):
         super().init_results()
         self.define_results(
-            ss.Result('new_migrants', dtype=int,   scale=True,  label='New migrants'),
+            ss.Result('new_migrants', dtype=int,   scale=True,  label='New migrants', auto_plot=False),
         )
         return
 

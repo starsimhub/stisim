@@ -124,8 +124,8 @@ class STITest(ss.Intervention):
     def init_results(self):
         super().init_results()
         self.define_results(
-            ss.Result('new_diagnoses', dtype=int, label="New diagnoses"),
-            ss.Result('new_tests', dtype=int, label="New tests"),
+            ss.Result('new_diagnoses', dtype=int, label="New diagnoses", auto_plot=False),
+            ss.Result('new_tests', dtype=int, label="New tests", auto_plot=False),
         )
         return
 
@@ -263,11 +263,11 @@ class SymptomaticTesting(STITest):
     def init_results(self):
         super().init_results()
         self.define_results(
-            ss.Result('new_care_seekers', dtype=int, label="Care seekers"),
-            ss.Result('new_tx0', dtype=int, label="No treatment"),
-            ss.Result('new_tx1', dtype=int, label="1 treatment"),
-            ss.Result('new_tx2', dtype=int, label="2 treatment"),
-            ss.Result('new_tx3', dtype=int, label="3 treatments"),
+            ss.Result('new_care_seekers', dtype=int, label="Care seekers", auto_plot=False),
+            ss.Result('new_tx0', dtype=int, label="No treatment", auto_plot=False),
+            ss.Result('new_tx1', dtype=int, label="1 treatment", auto_plot=False),
+            ss.Result('new_tx2', dtype=int, label="2 treatment", auto_plot=False),
+            ss.Result('new_tx3', dtype=int, label="3 treatments", auto_plot=False),
         )
         return
 
@@ -428,10 +428,10 @@ class STITreatment(ss.Intervention):
             skk = '' if sk == '' else f'_{sk}'
             skl = '' if sk == '' else f' - {sk.upper()}'
             results += [
-                ss.Result('new_treated'+skk, dtype=int, label="Number treated"+skl),
-                ss.Result('new_treated_success'+skk, dtype=int, label="Successfully treated"+skl),
-                ss.Result('new_treated_failure'+skk, dtype=int, label="Treatment failure"+skl),
-                ss.Result('new_treated_unnecessary'+skk, dtype=int, label="Overtreatment"+skl),
+                ss.Result('new_treated'+skk, dtype=int, label="Number treated"+skl, auto_plot=False),
+                ss.Result('new_treated_success'+skk, dtype=int, label="Successfully treated"+skl, auto_plot=False),
+                ss.Result('new_treated_failure'+skk, dtype=int, label="Treatment failure"+skl, auto_plot=False),
+                ss.Result('new_treated_unnecessary'+skk, dtype=int, label="Overtreatment"+skl, auto_plot=False),
             ]
         self.define_results(*results)
         return

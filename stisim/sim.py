@@ -169,7 +169,7 @@ class Sim(ss.Sim):
         # Process the STIs
         self.pars['diseases'] = self.process_stis()
         connectors = self.process_connectors()
-        self.pars['connectors'] += connectors
+        self.pars['connectors'] = ss.ndict(sc.tolist(self.pars['connectors']) + sc.tolist(connectors))
 
         # Process the network
         self.pars['networks'] = self.process_networks()

@@ -26,7 +26,7 @@ class HIVPars(BaseSTIPars):
 
         # Transmission
         self.beta = 0  # Placeholder, replaced by network-specific betas
-        self.beta_m2f = None
+        self.beta_m2f = 0.05
         self.rel_beta_f2m = 0.5
         self.beta_m2c = ss.permonth(0.025)  # Approx 0.2 over the course of the pregnany
         self.rel_trans_acute = ss.normal(loc=6, scale=0.5)  # Increase transmissibility during acute HIV infection
@@ -118,30 +118,30 @@ class HIV(BaseSTI):
         super().init_results()
         results = [
             ss.Result('new_deaths', dtype=int, label='Deaths'),
-            ss.Result('cum_deaths', dtype=int, label='Cumulative deaths'),
+            ss.Result('cum_deaths', dtype=int, label='Cumulative deaths', auto_plot=False),
             ss.Result('new_diagnoses', dtype=int, label='Diagnoses'),
-            ss.Result('cum_diagnoses', dtype=int, label='Cumulative diagnoses'),
-            ss.Result('new_agents_on_art', dtype=int, label='New treated'),
+            ss.Result('cum_diagnoses', dtype=int, label='Cumulative diagnoses', auto_plot=False),
+            ss.Result('new_agents_on_art', dtype=int, label='New treated', auto_plot=False),
             ss.Result('prevalence_15_49', dtype=float, label='Prevalence 15-49', scale=False),
-            ss.Result('prevalence_sw', dtype=float, label='FSW prevalence', scale=False),
-            ss.Result('new_infections_sw', dtype=int, label='New infections - FSW'),
-            ss.Result('new_infections_not_sw', dtype=int, label='New infections - Other F'),
-            ss.Result('prevalence_client', dtype=float, label='Client prevalence', scale=False),
-            ss.Result('new_infections_client', dtype=int, label='New infections - Clients'),
-            ss.Result('new_infections_not_client', dtype=int, label='New infections - Other M'),
+            ss.Result('prevalence_sw', dtype=float, label='FSW prevalence', scale=False, auto_plot=False),
+            ss.Result('new_infections_sw', dtype=int, label='New infections - FSW', auto_plot=False),
+            ss.Result('new_infections_not_sw', dtype=int, label='New infections - Other F', auto_plot=False),
+            ss.Result('prevalence_client', dtype=float, label='Client prevalence', scale=False, auto_plot=False),
+            ss.Result('new_infections_client', dtype=int, label='New infections - Clients', auto_plot=False),
+            ss.Result('new_infections_not_client', dtype=int, label='New infections - Other M', auto_plot=False),
             ss.Result('p_on_art', dtype=float, label='Proportion on ART', scale=False),
         ]
 
         if self.include_mtct:
-            results += [ss.Result('n_on_art_pregnant', dtype=int)]
+            results += [ss.Result('n_on_art_pregnant', dtype=int, auto_plot=False)]
 
         # Add FSW and clients to results:
         if 'structuredsexual' in self.sim.networks.keys():
             for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
                 for sex in ['female', 'male']:
                     results += [
-                        ss.Result('prevalence_risk_group_' + str(risk_group) + '_' + sex, scale=False),
-                        ss.Result('new_infections_risk_group_' + str(risk_group) + '_' + sex, dtype=int),
+                        ss.Result('prevalence_risk_group_' + str(risk_group) + '_' + sex, scale=False, auto_plot=False),
+                        ss.Result('new_infections_risk_group_' + str(risk_group) + '_' + sex, dtype=int, auto_plot=False),
                     ]
 
         self.define_results(*results)
