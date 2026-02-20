@@ -682,7 +682,7 @@ class BV(BaseSTI):
             # calculate trimester of pregnancy
             if len(bv_pregnant):
                 trimester = pregnancy.trimester[bv_pregnant]
-                trimester_or_ptb = [self.pars.or_ptb[i] for i in trimester]
+                trimester_or_ptb = [self.pars.or_ptb[max(int(i), 1)] for i in trimester]
                 pregnancy.rel_sus_ptb[bv_pregnant] = trimester_or_ptb
                 pregnancy.set_prognoses(bv_pregnant, bv_update=True)
 
