@@ -64,7 +64,6 @@ class STITest(ss.Intervention):
     def __init__(self, pars=None, test_prob_data=None, years=None, start=None, stop=None, eligibility=None, product=None, name=None, label=None, **kwargs):
         super().__init__(name=name, label=label)
         self.define_pars(
-            unit='month',
             rel_test=1,
             dt_scale=True,
         )
@@ -92,8 +91,8 @@ class STITest(ss.Intervention):
 
         # States
         self.define_states(
-            ss.State('tested'),
-            ss.State('diagnosed'),
+            ss.BoolState('tested'),
+            ss.BoolState('diagnosed'),
             ss.FloatArr('ti_tested'),
             ss.FloatArr('ti_scheduled'),
             ss.FloatArr('ti_positive'),
@@ -105,14 +104,16 @@ class STITest(ss.Intervention):
         self.product = product
         self.outcomes = {}
         if self.product is not None:
-            self.outcomes = {outcome: ss.FloatArr(f'ti_{outcome}') for outcome in self.product.result_list}
+            self.outcomes = {outcome: ss.FloatArr(f'prod_ti_{outcome}') for outcome in self.product.result_list}
             self.last_outcomes = {outcome: ss.uids() for outcome in self.product.result_list}
 
         return
 
     @property
-    def states(self):
-        return super().states + list(self.outcomes.values())
+    def state_list(self):
+        """ Include products in the state list """
+        out = super().state_list + list(self.outcomes.values())
+        return out
 
     def init_pre(self, sim):
         super().init_pre(sim)
@@ -121,9 +122,10 @@ class STITest(ss.Intervention):
         return
 
     def init_results(self):
+        super().init_results()
         self.define_results(
-            ss.Result('new_diagnoses', dtype=int, label="New diagnoses"),
-            ss.Result('new_tests', dtype=int, label="New tests"),
+            ss.Result('new_diagnoses', dtype=int, label="New diagnoses", auto_plot=False),
+            ss.Result('new_tests', dtype=int, label="New tests", auto_plot=False),
         )
         return
 
@@ -261,11 +263,11 @@ class SymptomaticTesting(STITest):
     def init_results(self):
         super().init_results()
         self.define_results(
-            ss.Result('new_care_seekers', dtype=int, label="Care seekers"),
-            ss.Result('new_tx0', dtype=int, label="No treatment"),
-            ss.Result('new_tx1', dtype=int, label="1 treatment"),
-            ss.Result('new_tx2', dtype=int, label="2 treatment"),
-            ss.Result('new_tx3', dtype=int, label="3 treatments"),
+            ss.Result('new_care_seekers', dtype=int, label="Care seekers", auto_plot=False),
+            ss.Result('new_tx0', dtype=int, label="No treatment", auto_plot=False),
+            ss.Result('new_tx1', dtype=int, label="1 treatment", auto_plot=False),
+            ss.Result('new_tx2', dtype=int, label="2 treatment", auto_plot=False),
+            ss.Result('new_tx3', dtype=int, label="3 treatments", auto_plot=False),
         )
         return
 
@@ -379,7 +381,7 @@ class STITreatment(ss.Intervention):
     """
     Base class for treatment of STI infection.
     The majority of STI treatments will clear infection.
-    
+
     Args:
         pars:
         disease (str): should match the name of one of the diseases in the simulation
@@ -388,7 +390,6 @@ class STITreatment(ss.Intervention):
         super().__init__(*args, name=name)
         self.requires = diseases
         self.define_pars(
-            unit='month',
             treat_prob=ss.bernoulli(p=1.),
             treat_eff=ss.bernoulli(p=0.9),
             by_sex=True,  # Whether or not to store outcomes by sex
@@ -408,7 +409,7 @@ class STITreatment(ss.Intervention):
 
         # States
         self.define_states(
-            ss.State('treated'),
+            ss.BoolState('treated'),
             ss.FloatArr('ti_treated'),
         )
 
@@ -427,10 +428,10 @@ class STITreatment(ss.Intervention):
             skk = '' if sk == '' else f'_{sk}'
             skl = '' if sk == '' else f' - {sk.upper()}'
             results += [
-                ss.Result('new_treated'+skk, dtype=int, label="Number treated"+skl),
-                ss.Result('new_treated_success'+skk, dtype=int, label="Successfully treated"+skl),
-                ss.Result('new_treated_failure'+skk, dtype=int, label="Treatment failure"+skl),
-                ss.Result('new_treated_unnecessary'+skk, dtype=int, label="Overtreatment"+skl),
+                ss.Result('new_treated'+skk, dtype=int, label="Number treated"+skl, auto_plot=False),
+                ss.Result('new_treated_success'+skk, dtype=int, label="Successfully treated"+skl, auto_plot=False),
+                ss.Result('new_treated_failure'+skk, dtype=int, label="Treatment failure"+skl, auto_plot=False),
+                ss.Result('new_treated_unnecessary'+skk, dtype=int, label="Overtreatment"+skl, auto_plot=False),
             ]
         self.define_results(*results)
         return

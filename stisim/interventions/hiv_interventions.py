@@ -34,7 +34,7 @@ class HIVTest(STITest):
     Base class for HIV testing
     """
     def __init__(self, product=None, pars=None, test_prob_data=None, years=None, start=None, eligibility=None, name=None, label=None, **kwargs):
-        if product is None: product = HIVDx()
+        if product is None: product = HIVDx(name=f'HIVDx_{name}')
         super().__init__(product=product, pars=pars, test_prob_data=test_prob_data, years=years, start=start, eligibility=eligibility, name=name, label=label, **kwargs)
         if self.eligibility is None:
             self.eligibility = lambda sim: ~sim.diseases.hiv.diagnosed
@@ -103,7 +103,11 @@ class ART(ss.Intervention):
         if hiv.on_art.any():
             stopping = hiv.on_art & (hiv.ti_stop_art <= self.ti)
             if stopping.any():
-                hiv.stop_art(stopping.uids)
+                try:
+                    hiv.stop_art(stopping.uids)
+                except:
+                    errormsg = f'Error stopping ART for {stopping.uids}'
+                    raise ValueError(errormsg)
 
         # Next, see how many people we need to treat vs how many are already being treated
         on_art = hiv.on_art
@@ -224,8 +228,8 @@ class VMMC(ss.Intervention):
     def init_results(self):
         super().init_results()
         self.define_results(
-            ss.Result('new_circumcisions', dtype=int, label="New circumcisions"),
-            ss.Result('n_circumcised', dtype=int, label="Number circumcised")
+            ss.Result('new_circumcisions', dtype=int, label="New circumcisions", auto_plot=False),
+            ss.Result('n_circumcised', dtype=int, label="Number circumcised", auto_plot=False)
         )
         return
 

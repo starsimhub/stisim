@@ -7,7 +7,7 @@ import sciris as sc
 from sciris import randround as rr # Since used frequently
 import starsim as ss
 import stisim as sti
-from stisim.diseases.sti import BaseSTI
+from stisim.diseases.sti import BaseSTI, BaseSTIPars
 
 __all__ = ['Syphilis', 'SyphilisPlaceholder']
 
@@ -75,66 +75,73 @@ class SyphilisPlaceholder(ss.Disease):
             self.active[self._prev_dist.filter(uids)] = False
 
 
+class SyphPars(BaseSTIPars):
+    def __init__(self, **kwargs):
+        # Adult syphilis natural history
+        self.dur_primary = ss.normal(ss.weeks(6), ss.weeks(1))  # https://pubmed.ncbi.nlm.nih.gov/9101629/
+        self.dur_secondary = ss.lognorm_ex(ss.months(3.6), ss.months(1.5))  # https://pubmed.ncbi.nlm.nih.gov/9101629/
+        self.dur_early = ss.uniform(ss.months(12), ss.months(14))  # Assumption
+        self.p_reactivate = ss.bernoulli(p=0.35)  # Probability of reactivating from latent to secondary
+        self.time_to_reactivate = ss.lognorm_ex(ss.years(1), ss.years(1))  # Time to reactivation
+        self.p_tertiary = ss.bernoulli(p=0.35)  # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4917057/
+        self.time_to_tertiary = ss.normal(ss.years(20), ss.years(2))  # Time to tertiary
+        self.p_death = ss.bernoulli(p=0.05)  # probability of dying of tertiary syphilis
+        self.time_to_death = ss.lognorm_ex(ss.years(5), ss.years(5))  # Time to death
+
+        # Transmission by stage
+        self.beta_m2f = 0.1
+        self.eff_condom = 0.0
+        self.rel_trans_primary = 1
+        self.rel_trans_secondary = 1
+        self.rel_trans_latent = 1  # Baseline level; this decays exponentially with duration of latent infection
+        self.rel_trans_tertiary = 0.0
+        self.rel_trans_latent_half_life = ss.years(1)
+
+        # Congenital syphilis outcomes
+        # Birth outcomes coded as:
+        #   0: Miscarriage
+        #   1: Neonatal death
+        #   2: Stillborn
+        #   3: Congenital syphilis
+        #   4: Live birth without syphilis-related complications - may be preterm or low birth weight
+        # Sources:
+        #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5973824/)
+        #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2819963/
+        self.birth_outcomes = sc.objdict(
+            active=ss.choice(a=5, p=np.array([0.00, 0.10, 0.20, 0.45, 0.25])),  # Outcomes for babies born to mothers with primary or secondary infection
+            early=ss.choice(a=5, p=np.array([0.00, 0.05, 0.10, 0.40, 0.45])),  # Outcomes for babies born to mothers with early latent infection
+            late=ss.choice(a=5, p=np.array([0.00, 0.00, 0.10, 0.10, 0.80])),  # Outcomes for babies born to mothers with late latent infection
+        )
+        self.birth_outcome_keys = ['miscarriage', 'nnd', 'stillborn', 'congenital', 'normal']
+        self.anc_detection = 0.8
+
+        # Initial conditions
+        self.init_prev = ss.bernoulli(p=0)
+        self.init_latent_prev = ss.bernoulli(p=0)
+        self.dist_ti_init_infected = ss.constant(0)  # Experimented with negative values, but safer to use 0
+        self.rel_init_prev = 1
+
+        # Update
+        self.update(kwargs)
+
+
 class Syphilis(BaseSTI):
 
-    def __init__(self, pars=None, name='syphilis', init_prev_data=None, init_prev_latent_data=None, **kwargs):
+    def __init__(self, pars=None, name='syph', init_prev_data=None, init_prev_latent_data=None, **kwargs):
         super().__init__(name=name)
-        self.requires = 'structuredsexual'
 
-        self.define_pars(
-            # Adult syphilis natural history, all specified in years
-            dur_primary=ss.normal(ss.dur(6, 'week'), ss.dur(1, 'week')),  # https://pubmed.ncbi.nlm.nih.gov/9101629/
-            dur_secondary=ss.lognorm_ex(ss.dur(3.6, 'month'), ss.dur(1.5, 'month')),  # https://pubmed.ncbi.nlm.nih.gov/9101629/
-            dur_early=ss.uniform(ss.dur(12, 'month'), ss.dur(124, 'month')),  # Assumption
-            p_reactivate=ss.bernoulli(p=0.35),  # Probability of reactivating from latent to secondary
-            time_to_reactivate=ss.lognorm_ex(ss.years(1), ss.years(1)),  # Time to reactivation
-            p_tertiary=ss.bernoulli(p=0.35),  # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4917057/
-            time_to_tertiary=ss.normal(ss.years(20), ss.years(2)),  # Time to tertiary
-            p_death=ss.bernoulli(p=0.05),  # probability of dying of tertiary syphilis
-            time_to_death=ss.lognorm_ex(ss.years(5), ss.years(5)),  # Time to death
-
-            # Transmission by stage
-            eff_condom=0.0,
-            rel_trans_primary=1,
-            rel_trans_secondary=1,
-            rel_trans_latent=1,  # Baseline level; this decays exponentially with duration of latent infection
-            rel_trans_tertiary=0.0,
-            rel_trans_latent_half_life=ss.years(1),
-
-            # Congenital syphilis outcomes
-            # Birth outcomes coded as:
-            #   0: Miscarriage
-            #   1: Neonatal death
-            #   2: Stillborn
-            #   3: Congenital syphilis
-            #   4: Live birth without syphilis-related complications - may be preterm or low birth weight
-            # Sources:
-            #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5973824/)
-            #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2819963/
-            birth_outcomes=sc.objdict(
-                active=ss.choice(a=5, p=np.array([0.00, 0.10, 0.20, 0.45, 0.25])),  # Outcomes for babies born to mothers with primary or secondary infection
-                early=ss.choice(a=5, p=np.array([0.00, 0.05, 0.10, 0.40, 0.45])),  # Outcomes for babies born to mothers with early latent infection
-                late=ss.choice(a=5, p=np.array([0.00, 0.00, 0.10, 0.10, 0.80])),  # Outcomes for babies born to mothers with late latent infection
-            ),
-            birth_outcome_keys=['miscarriage', 'nnd', 'stillborn', 'congenital', 'normal'],
-            anc_detection=0.8,
-
-            # Initial conditions
-            init_prev=ss.bernoulli(p=0),
-            init_latent_prev=ss.bernoulli(p=0),
-            dist_ti_init_infected=ss.constant(0),  # Experimented with negative values, but safer to use 0
-            rel_init_prev=1,
-        )
-
+        # Define default parameters
+        default_pars = SyphPars()
+        self.define_pars(**default_pars)
         self.update_pars(pars, **kwargs)
 
         # Set initial prevalence
         self.init_prev_data = init_prev_data
         self.init_prev_latent_data = init_prev_latent_data
-        if init_prev_data is not None:
-            self.pars.init_prev = ss.bernoulli(self.make_init_prev_fn)
-        if init_prev_latent_data is not None:
-            self.pars.init_latent_prev = ss.bernoulli(self.make_init_prev_latent_fn)
+        # if init_prev_data is not None:
+        #     self.pars.init_prev = ss.bernoulli(self.make_init_prev_fn)
+        # if init_prev_latent_data is not None:
+        #     self.pars.init_latent_prev = ss.bernoulli(self.make_init_prev_latent_fn)
 
         # Whether to store detailed results
         self.store_sw = False
@@ -142,17 +149,17 @@ class Syphilis(BaseSTI):
 
         self.define_states(
             # Adult syphilis states
-            ss.State('primary'),      # Primary chancres
-            ss.State('secondary'),    # Inclusive of those who may still have primary chancres
-            ss.State('early'),        # Early latent
-            ss.State('late'),         # Late latent
-            ss.State('latent'),       # Can relapse to secondary, remain in latent, or progress to tertiary,
-            ss.State('tertiary'),     # Includes complications (cardio/neuro/disfigurement)
-            ss.State('immune'),       # After effective treatment people may acquire temp immunity
-            ss.State('ever_exposed'), # Anyone ever exposed - stays true after treatment
+            ss.BoolState('primary'),      # Primary chancres
+            ss.BoolState('secondary'),    # Inclusive of those who may still have primary chancres
+            ss.BoolState('early'),        # Early latent
+            ss.BoolState('late'),         # Late latent
+            ss.BoolState('latent'),       # Can relapse to secondary, remain in latent, or progress to tertiary,
+            ss.BoolState('tertiary'),     # Includes complications (cardio/neuro/disfigurement)
+            ss.BoolState('immune'),       # After effective treatment people may acquire temp immunity
+            ss.BoolState('ever_exposed'), # Anyone ever exposed - stays true after treatment
 
             # Congenital syphilis states
-            ss.State('congenital'),
+            ss.BoolState('congenital'),
             ss.FloatArr('cs_outcome'),
 
             # Timestep of state changes
@@ -171,14 +178,6 @@ class Syphilis(BaseSTI):
         )
 
         return
-
-    @staticmethod
-    def make_init_prev_fn(module, sim, uids):
-        return sti.make_init_prev_fn(module, sim, uids, active=True)
-
-    @staticmethod
-    def make_init_prev_latent_fn(module, sim, uids):
-        return sti.make_init_prev_fn(module, sim, uids, active=True, data=module.init_prev_latent_data)
 
     @property
     def exposed(self):
@@ -212,11 +211,20 @@ class Syphilis(BaseSTI):
 
     def init_post(self):
         """ Make initial cases """
+        ss.Module.init_post(self)  # Avoid super().init_post() since we create infections here
+
+        # Initial active cases
+        if self.init_prev_data is not None:
+            p_init_infection = self.make_init_prev()
+            self.pars.init_prev.set(p_init_infection)  # Set the initial prevalence function
         initial_active_cases = self.pars.init_prev.filter()
         self.set_prognoses(initial_active_cases)
         still_sus = self.susceptible.uids
 
         # Natural history for initial latent cases
+        if self.init_prev_latent_data is not None:
+            p_init_latent = self.make_init_prev(data=self.init_prev_latent_data)
+            self.pars.init_latent_prev.set(p_init_latent[still_sus])  # Set the initial prevalence function
         initial_latent_cases = self.pars.init_latent_prev.filter(still_sus)
         ti_init_cases = self.pars.dist_ti_init_infected.rvs(initial_latent_cases).astype(int)
         self.set_prognoses(initial_latent_cases, ti=ti_init_cases)
@@ -230,24 +238,24 @@ class Syphilis(BaseSTI):
         """ Initialize results """
         super().init_results()
         results = [
-            ss.Result('n_active', dtype=int, label="Number of active cases"),
-            ss.Result('pregnant_prevalence', dtype=float, scale=False, label="Pregnant prevalence"),
-            ss.Result('detected_pregnant_prevalence', dtype=float, scale=False, label="ANC prevalence"),
-            ss.Result('delivery_prevalence', dtype=float, scale=False, label="Delivery prevalence"),
+            ss.Result('n_active', dtype=int, label="Number of active cases", auto_plot=False),
+            ss.Result('pregnant_prevalence', dtype=float, scale=False, label="Pregnant prevalence", auto_plot=False),
+            ss.Result('detected_pregnant_prevalence', dtype=float, scale=False, label="ANC prevalence", auto_plot=False),
+            ss.Result('delivery_prevalence', dtype=float, scale=False, label="Delivery prevalence", auto_plot=False),
             ss.Result('active_prevalence', dtype=float, scale=False, label="Active prevalence"),
-            ss.Result('new_nnds', dtype=int, label="Neonatal deaths"),
-            ss.Result('new_stillborns', dtype=int, label="Stillbirths"),
+            ss.Result('new_nnds', dtype=int, label="Neonatal deaths", auto_plot=False),
+            ss.Result('new_stillborns', dtype=int, label="Stillbirths", auto_plot=False),
             ss.Result('new_congenital', dtype=int, label="Congenital cases"),
-            ss.Result('new_congenital_deaths', dtype=int, label="Congenital deaths"),
-            ss.Result('cum_congenital', dtype=int, label="Cumulative congenital cases"),
-            ss.Result('cum_congenital_deaths', dtype=int, label="Cumulative congenital deaths"),
+            ss.Result('new_congenital_deaths', dtype=int, label="Congenital deaths", auto_plot=False),
+            ss.Result('cum_congenital', dtype=int, label="Cumulative congenital cases", auto_plot=False),
+            ss.Result('cum_congenital_deaths', dtype=int, label="Cumulative congenital deaths", auto_plot=False),
             ss.Result('new_deaths', dtype=int, label="Deaths"),
 
             # Add fetus testing and treatment results, which might be assembled from numerous interventions
-            ss.Result('new_fetus_treated_success', dtype=int, label="Fetal treatment success"),
-            ss.Result('new_fetus_treated_unnecessary', dtype=int, label="Fetal overtreatment"),
-            ss.Result('new_fetus_treated_failure', dtype=int, label="Fetal treatment failure"),
-            ss.Result('new_treated_unnecessary_pregnant', dtype=int, label="Overtreatment pregnant"),
+            ss.Result('new_fetus_treated_success', dtype=int, label="Fetal treatment success", auto_plot=False),
+            ss.Result('new_fetus_treated_unnecessary', dtype=int, label="Fetal overtreatment", auto_plot=False),
+            ss.Result('new_fetus_treated_failure', dtype=int, label="Fetal treatment failure", auto_plot=False),
+            ss.Result('new_treated_unnecessary_pregnant', dtype=int, label="Overtreatment pregnant", auto_plot=False),
         ]
 
         # Most results are stored by age and sex
@@ -256,25 +264,25 @@ class Syphilis(BaseSTI):
             skl = '' if sk == '' else f' ({sk.upper()})'
             if skk != '':
                 results += [
-                    ss.Result(f'active_prevalence{skk}', scale=False, label=f"Active prevalence{skl}"),
+                    ss.Result(f'active_prevalence{skk}', scale=False, label=f"Active prevalence{skl}", auto_plot=False),
                 ]
 
             for ab1,ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
                 ask = f'{skk}_{ab1}_{ab2}'
                 asl = f' ({skl}, {ab2}-{ab2})'
                 results += [
-                    ss.Result(f'active_prevalence{ask}', scale=False, label=f"Active prevalence{asl}"),
+                    ss.Result(f'active_prevalence{ask}', scale=False, label=f"Active prevalence{asl}", auto_plot=False),
                 ]
 
         # Add FSW and clients to results:
         if self.store_sw:
             results += [
-                ss.Result('prevalence_sw', dtype=float, scale=False, label="Prevalence - FSW"),
-                ss.Result('new_infections_sw', dtype=int, label="Infections - FSW"),
-                ss.Result('new_infections_not_sw', dtype=int, label="Infections - other F"),
-                ss.Result('prevalence_client', dtype=float, scale=False, label="Prevalence - clients"),
-                ss.Result('new_infections_client', dtype=int, label="Infections - clients"),
-                ss.Result('new_infections_not_client', dtype=int, label="Infections - other M"),
+                ss.Result('prevalence_sw', dtype=float, scale=False, label="Prevalence - FSW", auto_plot=False),
+                ss.Result('new_infections_sw', dtype=int, label="Infections - FSW", auto_plot=False),
+                ss.Result('new_infections_not_sw', dtype=int, label="Infections - other F", auto_plot=False),
+                ss.Result('prevalence_client', dtype=float, scale=False, label="Prevalence - clients", auto_plot=False),
+                ss.Result('new_infections_client', dtype=int, label="Infections - clients", auto_plot=False),
+                ss.Result('new_infections_not_client', dtype=int, label="Infections - other M", auto_plot=False),
             ]
 
         # Add risk groups to results
@@ -282,8 +290,8 @@ class Syphilis(BaseSTI):
             for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
                 for sex in ['female', 'male']:
                     results += [
-                        ss.Result('prevalence_risk_group_' + str(risk_group) + '_' + sex, scale=False),
-                        ss.Result('new_infections_risk_group_' + str(risk_group) + '_' + sex, dtype=int),
+                        ss.Result('prevalence_risk_group_' + str(risk_group) + '_' + sex, scale=False, auto_plot=False),
+                        ss.Result('new_infections_risk_group_' + str(risk_group) + '_' + sex, dtype=int, auto_plot=False),
                     ]
 
         self.define_results(*results)
@@ -539,7 +547,7 @@ class Syphilis(BaseSTI):
                         vals = getattr(self, ti_outcome)
                         vals[o_uids] = ti + timesteps_til_delivery[m_uids]
 
-                        setattr(self, ti_outcome, vals)
+                        self.setattribute(ti_outcome, vals)
                         new_outcomes[outcome] += len(o_uids)
 
         # Check that the birth outcomes are mutually exclusive

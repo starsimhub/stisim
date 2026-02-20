@@ -116,7 +116,7 @@ def make_df(sim, df_res_list=None):
             if sres in df_sim.results.keys() and isinstance(df_sim.results[sres], ss.Result):
                 dfs += df_sim.results[sres].to_df(resample='year', use_years=True, col_names=sres)
             else:
-                rescomps = sres.split('_')
+                rescomps = sres.split('.')
                 modname = rescomps[0]
                 if isinstance(df_sim.results[modname], ss.Results):
                     resname = '_'.join(rescomps[1:])

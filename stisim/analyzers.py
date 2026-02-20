@@ -63,6 +63,7 @@ class coinfection_stats(result_grouper):
         return
 
     def init_results(self):
+        super().init_results()
         results = [
             ss.Result(f'{self.disease1}_prev_no_{self.disease2}', dtype=float, scale=False),
             ss.Result(f'{self.disease1}_prev_has_{self.disease2}', dtype=float, scale=False),
@@ -114,19 +115,20 @@ class sw_stats(result_grouper):
         return
 
     def init_results(self):
+        super().init_results()
         results = sc.autolist()
         for d in self.diseases:
             results += [
-                ss.Result('share_new_infections_fsw_'+d, scale=False, summarize_by='mean'),
-                ss.Result('share_new_infections_client_'+d,scale=False, summarize_by='mean'),
-                ss.Result('new_infections_fsw_'+d, dtype=int),
-                ss.Result('new_infections_client_'+d, dtype=int),
-                ss.Result('new_infections_non_fsw_'+d, dtype=int),
-                ss.Result('new_infections_non_client_'+d, dtype=int),
-                ss.Result('new_transmissions_fsw_'+d, dtype=int),
-                ss.Result('new_transmissions_client_'+d, dtype=int),
-                ss.Result('new_transmissions_non_fsw_'+d, dtype=int),
-                ss.Result('new_transmissions_non_client_'+d, dtype=int),
+                ss.Result('share_new_infections_fsw_'+d, scale=False, summarize_by='mean', auto_plot=False),
+                ss.Result('share_new_infections_client_'+d,scale=False, summarize_by='mean', auto_plot=False),
+                ss.Result('new_infections_fsw_'+d, dtype=int, auto_plot=False),
+                ss.Result('new_infections_client_'+d, dtype=int, auto_plot=False),
+                ss.Result('new_infections_non_fsw_'+d, dtype=int, auto_plot=False),
+                ss.Result('new_infections_non_client_'+d, dtype=int, auto_plot=False),
+                ss.Result('new_transmissions_fsw_'+d, dtype=int, auto_plot=False),
+                ss.Result('new_transmissions_client_'+d, dtype=int, auto_plot=False),
+                ss.Result('new_transmissions_non_fsw_'+d, dtype=int, auto_plot=False),
+                ss.Result('new_transmissions_non_client_'+d, dtype=int, auto_plot=False),
             ]
         self.define_results(*results)
         return
@@ -189,9 +191,10 @@ class RelationshipDurations(ss.Analyzer):
         return
 
     def init_results(self):
+        super().init_results()
         self.define_results(
-            ss.Result('mean_duration', dtype=float, scale=False),
-            ss.Result('median_duration', dtype=float, scale=False),
+            ss.Result('mean_duration', dtype=float, scale=False, auto_plot=False),
+            ss.Result('median_duration', dtype=float, scale=False, auto_plot=False),
         )
         return
 
@@ -291,8 +294,8 @@ class NetworkDegree(ss.Analyzer):
         super().init_results()
         for relationship_type in self.relationship_types:
             self.results += [
-                ss.Result(f'{relationship_type}_f', dtype=int, scale=False, shape=len(self.bins)),
-                ss.Result(f'{relationship_type}_m', dtype=int, scale=False, shape=len(self.bins)),
+                ss.Result(f'{relationship_type}_f', dtype=int, scale=False, shape=len(self.bins), auto_plot=False),
+                ss.Result(f'{relationship_type}_m', dtype=int, scale=False, shape=len(self.bins), auto_plot=False),
             ]
         return
 
@@ -424,10 +427,11 @@ class partner_age_diff(ss.Analyzer):
         """
         Initialize the results for the age differences.
         """
+        super().init_results()
         self.define_results(
-            ss.Result('age_diff_mean', dtype=float, scale=False),
-            ss.Result('age_diff_median', dtype=float, scale=False),
-            ss.Result('age_diff_std', dtype=float, scale=False),
+            ss.Result('age_diff_mean', dtype=float, scale=False, auto_plot=False),
+            ss.Result('age_diff_median', dtype=float, scale=False, auto_plot=False),
+            ss.Result('age_diff_std', dtype=float, scale=False, auto_plot=False),
         )
         return
 
@@ -476,7 +480,7 @@ class partner_age_diff(ss.Analyzer):
 
         return
 
-          
+
 class DebutAge(ss.Analyzer):
     """
     Analyzes the debut age of relationships in a structuredsexual network.
@@ -492,8 +496,8 @@ class DebutAge(ss.Analyzer):
 
     def init_pre(self, sim, force=False):
         if self.cohort_starts is None:
-            first_cohort = sim.pars['start']
-            last_cohort = sim.pars['stop'] - self.binspan
+            first_cohort = sim.t.start.years
+            last_cohort = sim.t.stop.years - self.binspan
             self.cohort_starts = sc.inclusiverange(first_cohort, last_cohort)
             self.cohort_ends = self.cohort_starts + self.binspan
             self.n_cohorts = len(self.cohort_starts)
@@ -507,8 +511,8 @@ class DebutAge(ss.Analyzer):
     def init_results(self):
         super().init_results()
         self.define_results(
-            ss.Result('prop_active_f', dtype=float, scale=False, shape=len(self.cohort_starts)),
-            ss.Result('prop_active_m', dtype=float, scale=False, shape=len(self.cohort_starts)),
+            ss.Result('prop_active_f', dtype=float, scale=False, shape=len(self.cohort_starts), auto_plot=False),
+            ss.Result('prop_active_m', dtype=float, scale=False, shape=len(self.cohort_starts), auto_plot=False),
         )
         return
 

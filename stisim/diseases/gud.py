@@ -22,9 +22,9 @@ class Placeholder(ss.Disease):
         )
         self.update_pars(pars, **kwargs)
         self.define_states(
-            ss.State('symptomatic'),  # Symptomatic
+            ss.BoolState('symptomatic'),  # Symptomatic
             ss.FloatArr('ti_symptomatic'),  # Time of active symptoms
-            ss.State('seeking_care'),  # Care seeking
+            ss.BoolState('seeking_care'),  # Care seeking
             ss.FloatArr('ti_seeks_care'),  # Time of active symptoms
         )
         self._prev_dist = ss.bernoulli(p=0)
@@ -88,7 +88,7 @@ class GUD(ss.Infection):
     def __init__(self, pars=None, init_prev_data=None, **kwargs):
         super().__init__()
         self.define_pars(
-            dur_inf = ss.lognorm_ex(ss.dur(3, 'month'), ss.dur(1, 'month')),
+            dur_inf = ss.lognorm_ex(ss.months(3), ss.months(1)),
             beta=1.0,  # Placeholder
             init_prev=0,  # See make_init_prev_fn
             rel_init_prev=1,

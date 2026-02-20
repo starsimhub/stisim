@@ -17,7 +17,7 @@ class hiv_syph(ss.Connector):
         self.hiv = hiv_module
         self.syphilis = syphilis_module
         self.define_pars(
-            unit='month',
+            dt='month',
 
             # Changes to HIV due to syphilis coinfection
             rel_sus_hiv_syph=2.67,  # Relative increase in susceptibility to HIV due to syphilis
@@ -96,7 +96,8 @@ class hiv_ng(ss.Connector):
         self.ng = ng_module
         self.define_pars(
             # Changes to HIV due to gonorrhea coinfection
-            rel_sus_hiv_ng=1.2,  # Having an NG infection leads to XXx risk of HIV acquisition.
+            rel_sus_hiv_ng=1.2,    # Having NG increases risk of HIV acquisition
+            rel_trans_hiv_ng=1.2,  # Having NG increases HIV transmissibility
         )
         self.update_pars(pars, **kwargs)
 
@@ -105,6 +106,7 @@ class hiv_ng(ss.Connector):
     def step(self):
         ng = self.ng.infected
         self.hiv.rel_sus[ng] *= self.pars.rel_sus_hiv_ng
+        self.hiv.rel_trans[ng] *= self.pars.rel_trans_hiv_ng
         return
 
 
