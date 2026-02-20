@@ -114,8 +114,8 @@ def test_partner_seeking_rates():
     pregnancy = ss.Pregnancy(fertility_rate=10)
     death = ss.Deaths(death_rate=10)
 
-    s1 = ss.Sim(networks=[network], analyzers=[analyzer], demographics=[death, pregnancy], unit='month', stop=2040)
-    s2 = ss.Sim(networks=[high_p_pair_form], analyzers=[analyzer], demographics=[death, pregnancy], unit='month', stop=2040)
+    s1 = sti.Sim(networks=[network], analyzers=[analyzer], demographics=[death, pregnancy], stop=2040)
+    s2 = sti.Sim(networks=[high_p_pair_form], analyzers=[analyzer], demographics=[death, pregnancy], stop=2040)
 
     # Run the simulation
     ss.parallel(s1, s2, debug=True)
