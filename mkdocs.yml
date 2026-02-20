@@ -41,7 +41,20 @@ theme:
 nav:
   - Home: index.md
   - Overview: overview.md
-  - Tutorials: tutorials.md
+  - Tutorials:
+    - tutorials.md
+    - Getting started: tutorials/tut_intro.ipynb
+  - Diseases:
+    - diseases/index.md
+    - HIV: diseases/hiv.md
+    - Syphilis: diseases/syphilis.md
+    - Chlamydia: diseases/chlamydia.md
+    - Gonorrhea: diseases/gonorrhea.md
+    - Trichomoniasis: diseases/trichomoniasis.md
+    - Bacterial vaginosis: diseases/bv.md
+    - Genital ulcer disease: diseases/gud.md
+  - Networks:
+    - Structured sexual: networks/structured_sexual.md
   - What's new: whatsnew.md
   - Code of conduct: code_of_conduct.md
   - Contributing: contributing.md
