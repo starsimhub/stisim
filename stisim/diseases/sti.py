@@ -192,24 +192,25 @@ class BaseSTI(ss.Infection):
         for sk in self.sex_keys.keys():
             skk = '' if sk == '' else f'_{sk}'
             skl = '' if sk == '' else f' ({sk.upper()})'
+            is_subpop = skk != ''  # Sex-stratified results are not auto-plotted
             results += [
-                ss.Result(f'incidence{skk}', scale=False, label=f"Incidence{skl}"),
+                ss.Result(f'incidence{skk}', scale=False, label=f"Incidence{skl}", auto_plot=not is_subpop),
             ]
-            if skk != '':
+            if is_subpop:
                 results += [
-                    ss.Result(f'new_infections{skk}', dtype=int, label=f"New infections{skl}"),
-                    ss.Result(f'prevalence{skk}', scale=False, label=f"Prevalence{skl}"),
-                    ss.Result(f'n_infected{skk}', dtype=int, label=f"Number infected{skl}"),
+                    ss.Result(f'new_infections{skk}', dtype=int, label=f"New infections{skl}", auto_plot=False),
+                    ss.Result(f'prevalence{skk}', scale=False, label=f"Prevalence{skl}", auto_plot=False),
+                    ss.Result(f'n_infected{skk}', dtype=int, label=f"Number infected{skl}", auto_plot=False),
                 ]
 
             for ab1,ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
                 ask = f'{skk}_{ab1}_{ab2}'
                 asl = f' ({skl}, {ab2}-{ab2})'
                 results += [
-                    ss.Result(f'new_infections{ask}', dtype=int, label=f"New infections{asl}"),
-                    ss.Result(f'n_infected{ask}', dtype=int, label=f"Number infected{asl}"),
-                    ss.Result(f'incidence{ask}', scale=False, label=f"Incidence{asl}"),
-                    ss.Result(f'prevalence{ask}', scale=False, label=f"Prevalence{asl}"),
+                    ss.Result(f'new_infections{ask}', dtype=int, label=f"New infections{asl}", auto_plot=False),
+                    ss.Result(f'n_infected{ask}', dtype=int, label=f"Number infected{asl}", auto_plot=False),
+                    ss.Result(f'incidence{ask}', scale=False, label=f"Incidence{asl}", auto_plot=False),
+                    ss.Result(f'prevalence{ask}', scale=False, label=f"Prevalence{asl}", auto_plot=False),
                 ]
 
         if self.pars.include_care:
@@ -217,15 +218,15 @@ class BaseSTI(ss.Infection):
                 skk = '' if sk == '' else f'_{sk}'
                 skl = '' if sk == '' else f' ({sk.upper()})'
                 results += [
-                    ss.Result('new_care_seekers'+skk, dtype=int, label="New care seekers"+skl),
-                    ss.Result('new_false_pos'+skk, dtype=int, label="New false positives"+skl),
-                    ss.Result('new_true_pos'+skk, dtype=int, label="New true positives"+skl),
-                    ss.Result('new_false_neg'+skk, dtype=int, label="New false negatives"+skl),
-                    ss.Result('new_true_neg'+skk, dtype=int, label="New true negatives"+skl),
-                    ss.Result('new_treated_success'+skk, dtype=int, label="Successful treatments"+skl),
-                    ss.Result('new_treated_failure'+skk, dtype=int, label="Unsuccessful treatments"+skl),
-                    ss.Result('new_treated_unnecessary'+skk, dtype=int, label="Unnecessary treatments"+skl),
-                    ss.Result('new_treated'+skk, dtype=int, label="Treatments"+skl),
+                    ss.Result('new_care_seekers'+skk, dtype=int, label="New care seekers"+skl, auto_plot=False),
+                    ss.Result('new_false_pos'+skk, dtype=int, label="New false positives"+skl, auto_plot=False),
+                    ss.Result('new_true_pos'+skk, dtype=int, label="New true positives"+skl, auto_plot=False),
+                    ss.Result('new_false_neg'+skk, dtype=int, label="New false negatives"+skl, auto_plot=False),
+                    ss.Result('new_true_neg'+skk, dtype=int, label="New true negatives"+skl, auto_plot=False),
+                    ss.Result('new_treated_success'+skk, dtype=int, label="Successful treatments"+skl, auto_plot=False),
+                    ss.Result('new_treated_failure'+skk, dtype=int, label="Unsuccessful treatments"+skl, auto_plot=False),
+                    ss.Result('new_treated_unnecessary'+skk, dtype=int, label="Unnecessary treatments"+skl, auto_plot=False),
+                    ss.Result('new_treated'+skk, dtype=int, label="Treatments"+skl, auto_plot=False),
                 ]
 
         self.define_results(*results)
@@ -382,21 +383,22 @@ class SEIS(BaseSTI):
         for sk in self.sex_keys.keys():
             skk = '' if sk == '' else f'_{sk}'
             skl = '' if sk == '' else f' ({sk.upper()})'
+            is_subpop = skk != ''
             results += [
-                ss.Result(f'new_symptomatic{skk}', dtype=int, label=f"New symptomatic{skl}"),
-                ss.Result(f'symp_prevalence{skk}', scale=False, label=f"Symptomatic prevalence{skl}"),
+                ss.Result(f'new_symptomatic{skk}', dtype=int, label=f"New symptomatic{skl}", auto_plot=not is_subpop),
+                ss.Result(f'symp_prevalence{skk}', scale=False, label=f"Symptomatic prevalence{skl}", auto_plot=not is_subpop),
             ]
-            if skk != '':
+            if is_subpop:
                 results += [
-                    ss.Result(f'n_symptomatic{skk}', dtype=int, label=f"Number symptomatic{skl}"),
+                    ss.Result(f'n_symptomatic{skk}', dtype=int, label=f"Number symptomatic{skl}", auto_plot=False),
                 ]
 
             for ab1,ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
                 ask = f'{skk}_{ab1}_{ab2}'
                 asl = f' ({skl}, {ab2}-{ab2})'
                 results += [
-                    ss.Result(f'new_symptomatic{ask}', dtype=int, label=f"New symptomatic{asl}"),
-                    ss.Result(f'symp_prevalence{ask}', scale=False, label=f"Symptomatic prevalence{asl}"),
+                    ss.Result(f'new_symptomatic{ask}', dtype=int, label=f"New symptomatic{asl}", auto_plot=False),
+                    ss.Result(f'symp_prevalence{ask}', scale=False, label=f"Symptomatic prevalence{asl}", auto_plot=False),
                 ]
 
         self.define_results(*results)

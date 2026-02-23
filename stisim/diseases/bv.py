@@ -83,10 +83,10 @@ class SimpleBV(ss.Disease):
         super().init_results()
         results = [
             ss.Result('prevalence', scale=False, label="Prevalence"),
-            ss.Result('symp_prevalence', scale=False, label="Symptomatic prevalence"),
+            ss.Result('symp_prevalence', scale=False, label="Symptomatic prevalence", auto_plot=False),
             ss.Result('incidence', scale=False, label="Incidence"),
             ss.Result('new_infections', dtype=int, label="New infections"),
-            ss.Result('new_symptomatic', dtype=int, label="New symptomatic"),
+            ss.Result('new_symptomatic', dtype=int, label="New symptomatic", auto_plot=False),
         ]
 
         if self.pars.include_care:
@@ -95,15 +95,15 @@ class SimpleBV(ss.Disease):
                 skk = '' if sk == '' else f'_{sk}'
                 skl = '' if sk == '' else f' - {sk.upper()}'
                 results += [
-                    ss.Result('new_care_seekers'+skk, dtype=int, label="New care seekers"+skl),
-                    ss.Result('new_false_pos'+skk, dtype=int, label="New false positives"+skl),
-                    ss.Result('new_true_pos'+skk, dtype=int, label="New true positives"+skl),
-                    ss.Result('new_false_neg'+skk, dtype=int, label="New false negatives"+skl),
-                    ss.Result('new_true_neg'+skk, dtype=int, label="New true negatives"+skl),
-                    ss.Result('new_treated_success'+skk, dtype=int, label="Successful treatments"+skl),
-                    ss.Result('new_treated_failure'+skk, dtype=int, label="Unsuccessful treatments"+skl),
-                    ss.Result('new_treated_unnecessary'+skk, dtype=int, label="Unnecessary treatments"+skl),
-                    ss.Result('new_treated'+skk, dtype=int, label="Treatments"+skl),
+                    ss.Result('new_care_seekers'+skk, dtype=int, label="New care seekers"+skl, auto_plot=False),
+                    ss.Result('new_false_pos'+skk, dtype=int, label="New false positives"+skl, auto_plot=False),
+                    ss.Result('new_true_pos'+skk, dtype=int, label="New true positives"+skl, auto_plot=False),
+                    ss.Result('new_false_neg'+skk, dtype=int, label="New false negatives"+skl, auto_plot=False),
+                    ss.Result('new_true_neg'+skk, dtype=int, label="New true negatives"+skl, auto_plot=False),
+                    ss.Result('new_treated_success'+skk, dtype=int, label="Successful treatments"+skl, auto_plot=False),
+                    ss.Result('new_treated_failure'+skk, dtype=int, label="Unsuccessful treatments"+skl, auto_plot=False),
+                    ss.Result('new_treated_unnecessary'+skk, dtype=int, label="Unnecessary treatments"+skl, auto_plot=False),
+                    ss.Result('new_treated'+skk, dtype=int, label="Treatments"+skl, auto_plot=False),
                 ]
 
         self.define_results(*results)
@@ -383,17 +383,18 @@ class BV(BaseSTI):
         """Initialize results"""
         super().init_results()
         results = [
-            ss.Result("cst1_prevalence", scale=False, label="CST 1 Prevalence"),
-            ss.Result("cst3_prevalence", scale=False, label="CST 3 Prevalence"),
+            ss.Result("cst1_prevalence", scale=False, label="CST 1 Prevalence", auto_plot=False),
+            ss.Result("cst3_prevalence", scale=False, label="CST 3 Prevalence", auto_plot=False),
             ss.Result("cst4_prevalence", scale=False, label="CST 4 Prevalence"),
-            ss.Result("symp_prevalence", scale=False, label="Symptomatic prevalence"),
+            ss.Result("symp_prevalence", scale=False, label="Symptomatic prevalence", auto_plot=False),
             ss.Result(
                 "new_sexually_acquired_infections",
                 dtype=int,
                 label="New sexually acquired infections",
+                auto_plot=False,
             ),
-            ss.Result("new_symptomatic", dtype=int, label="New symptomatic"),
-            ss.Result("new_MTZ_doses", dtype=int, label="New MTZ doses administered"),
+            ss.Result("new_symptomatic", dtype=int, label="New symptomatic", auto_plot=False),
+            ss.Result("new_MTZ_doses", dtype=int, label="New MTZ doses administered", auto_plot=False),
         ]
         self.define_results(*results)
         return

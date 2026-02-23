@@ -228,8 +228,8 @@ class VMMC(ss.Intervention):
     def init_results(self):
         super().init_results()
         self.define_results(
-            ss.Result('new_circumcisions', dtype=int, label="New circumcisions"),
-            ss.Result('n_circumcised', dtype=int, label="Number circumcised")
+            ss.Result('new_circumcisions', dtype=int, label="New circumcisions", auto_plot=False),
+            ss.Result('n_circumcised', dtype=int, label="Number circumcised", auto_plot=False)
         )
         return
 

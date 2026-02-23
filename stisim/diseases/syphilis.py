@@ -90,6 +90,7 @@ class SyphPars(BaseSTIPars):
         self.time_to_death = ss.lognorm_ex(ss.years(5), ss.years(5))  # Time to death
 
         # Transmission by stage
+        self.beta_m2f = 0.1
         self.eff_condom = 0.0
         self.rel_trans_primary = 1
         self.rel_trans_secondary = 1
@@ -231,24 +232,24 @@ class Syphilis(BaseSTI):
         """ Initialize results """
         super().init_results()
         results = [
-            ss.Result('n_active', dtype=int, label="Number of active cases"),
-            ss.Result('pregnant_prevalence', dtype=float, scale=False, label="Pregnant prevalence"),
-            ss.Result('detected_pregnant_prevalence', dtype=float, scale=False, label="ANC prevalence"),
-            ss.Result('delivery_prevalence', dtype=float, scale=False, label="Delivery prevalence"),
+            ss.Result('n_active', dtype=int, label="Number of active cases", auto_plot=False),
+            ss.Result('pregnant_prevalence', dtype=float, scale=False, label="Pregnant prevalence", auto_plot=False),
+            ss.Result('detected_pregnant_prevalence', dtype=float, scale=False, label="ANC prevalence", auto_plot=False),
+            ss.Result('delivery_prevalence', dtype=float, scale=False, label="Delivery prevalence", auto_plot=False),
             ss.Result('active_prevalence', dtype=float, scale=False, label="Active prevalence"),
-            ss.Result('new_nnds', dtype=int, label="Neonatal deaths"),
-            ss.Result('new_stillborns', dtype=int, label="Stillbirths"),
+            ss.Result('new_nnds', dtype=int, label="Neonatal deaths", auto_plot=False),
+            ss.Result('new_stillborns', dtype=int, label="Stillbirths", auto_plot=False),
             ss.Result('new_congenital', dtype=int, label="Congenital cases"),
-            ss.Result('new_congenital_deaths', dtype=int, label="Congenital deaths"),
-            ss.Result('cum_congenital', dtype=int, label="Cumulative congenital cases"),
-            ss.Result('cum_congenital_deaths', dtype=int, label="Cumulative congenital deaths"),
+            ss.Result('new_congenital_deaths', dtype=int, label="Congenital deaths", auto_plot=False),
+            ss.Result('cum_congenital', dtype=int, label="Cumulative congenital cases", auto_plot=False),
+            ss.Result('cum_congenital_deaths', dtype=int, label="Cumulative congenital deaths", auto_plot=False),
             ss.Result('new_deaths', dtype=int, label="Deaths"),
 
             # Add fetus testing and treatment results, which might be assembled from numerous interventions
-            ss.Result('new_fetus_treated_success', dtype=int, label="Fetal treatment success"),
-            ss.Result('new_fetus_treated_unnecessary', dtype=int, label="Fetal overtreatment"),
-            ss.Result('new_fetus_treated_failure', dtype=int, label="Fetal treatment failure"),
-            ss.Result('new_treated_unnecessary_pregnant', dtype=int, label="Overtreatment pregnant"),
+            ss.Result('new_fetus_treated_success', dtype=int, label="Fetal treatment success", auto_plot=False),
+            ss.Result('new_fetus_treated_unnecessary', dtype=int, label="Fetal overtreatment", auto_plot=False),
+            ss.Result('new_fetus_treated_failure', dtype=int, label="Fetal treatment failure", auto_plot=False),
+            ss.Result('new_treated_unnecessary_pregnant', dtype=int, label="Overtreatment pregnant", auto_plot=False),
         ]
 
         # Most results are stored by age and sex
@@ -257,25 +258,25 @@ class Syphilis(BaseSTI):
             skl = '' if sk == '' else f' ({sk.upper()})'
             if skk != '':
                 results += [
-                    ss.Result(f'active_prevalence{skk}', scale=False, label=f"Active prevalence{skl}"),
+                    ss.Result(f'active_prevalence{skk}', scale=False, label=f"Active prevalence{skl}", auto_plot=False),
                 ]
 
             for ab1,ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
                 ask = f'{skk}_{ab1}_{ab2}'
                 asl = f' ({skl}, {ab2}-{ab2})'
                 results += [
-                    ss.Result(f'active_prevalence{ask}', scale=False, label=f"Active prevalence{asl}"),
+                    ss.Result(f'active_prevalence{ask}', scale=False, label=f"Active prevalence{asl}", auto_plot=False),
                 ]
 
         # Add FSW and clients to results:
         if self.store_sw:
             results += [
-                ss.Result('prevalence_sw', dtype=float, scale=False, label="Prevalence - FSW"),
-                ss.Result('new_infections_sw', dtype=int, label="Infections - FSW"),
-                ss.Result('new_infections_not_sw', dtype=int, label="Infections - other F"),
-                ss.Result('prevalence_client', dtype=float, scale=False, label="Prevalence - clients"),
-                ss.Result('new_infections_client', dtype=int, label="Infections - clients"),
-                ss.Result('new_infections_not_client', dtype=int, label="Infections - other M"),
+                ss.Result('prevalence_sw', dtype=float, scale=False, label="Prevalence - FSW", auto_plot=False),
+                ss.Result('new_infections_sw', dtype=int, label="Infections - FSW", auto_plot=False),
+                ss.Result('new_infections_not_sw', dtype=int, label="Infections - other F", auto_plot=False),
+                ss.Result('prevalence_client', dtype=float, scale=False, label="Prevalence - clients", auto_plot=False),
+                ss.Result('new_infections_client', dtype=int, label="Infections - clients", auto_plot=False),
+                ss.Result('new_infections_not_client', dtype=int, label="Infections - other M", auto_plot=False),
             ]
 
         # Add risk groups to results
@@ -283,8 +284,8 @@ class Syphilis(BaseSTI):
             for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
                 for sex in ['female', 'male']:
                     results += [
-                        ss.Result('prevalence_risk_group_' + str(risk_group) + '_' + sex, scale=False),
-                        ss.Result('new_infections_risk_group_' + str(risk_group) + '_' + sex, dtype=int),
+                        ss.Result('prevalence_risk_group_' + str(risk_group) + '_' + sex, scale=False, auto_plot=False),
+                        ss.Result('new_infections_risk_group_' + str(risk_group) + '_' + sex, dtype=int, auto_plot=False),
                     ]
 
         self.define_results(*results)

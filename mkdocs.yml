@@ -40,8 +40,27 @@ theme:
 
 nav:
   - Home: index.md
-  - Overview: overview.md
-  - Tutorials: tutorials.md
+  - Tutorials:
+    - tutorials.md
+    - Getting started: tutorials/tut_intro.ipynb
+    - Co-transmitting STIs: tutorials/tut_cotransmission.ipynb
+    - Results and plotting: tutorials/tut_results.ipynb
+    - Interventions: tutorials/tut_interventions.ipynb
+  - User guide:
+    - user_guide/userguide.md
+    - Diseases:
+      - user_guide/diseases/index.md
+      - HIV: user_guide/diseases/hiv.md
+      - Syphilis: user_guide/diseases/syphilis.md
+      - Chlamydia: user_guide/diseases/chlamydia.md
+      - Gonorrhea: user_guide/diseases/gonorrhea.md
+      - Trichomoniasis: user_guide/diseases/trichomoniasis.md
+      - Bacterial vaginosis: user_guide/diseases/bv.md
+      - Genital ulcer disease: user_guide/diseases/gud.md
+    - Networks:
+      - Structured sexual: user_guide/networks/structured_sexual.md
+    - Interventions:
+      - user_guide/interventions/interventions.md
   - What's new: whatsnew.md
   - Code of conduct: code_of_conduct.md
   - Contributing: contributing.md
@@ -68,9 +87,10 @@ plugins:
   - autorefs # automatically create linkable references
   - include-markdown # include other files, such as READMEs
   - mkdocs-jupyter: # enables Jupyter notebooks to be rendered
-      execute: false
+      execute: true
       allow_errors: true
       include_source: true
+      kernel_name: python3
   - mkdocstrings: # process docstrings to generate API reference
       handlers:
         python:
