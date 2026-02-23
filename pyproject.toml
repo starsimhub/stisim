@@ -41,7 +41,6 @@ dev = [
     "pytest-cov",
     "pytest-env", 
     "pytest-xdist",
-    "quartodoc",
     "jupyter",
     "mkdocs",
     "mkdocs-material",
