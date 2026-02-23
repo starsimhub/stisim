@@ -48,7 +48,7 @@ class Sim(sti.Sim):
 
         # Handle demographics
         if not modules.demographics:
-            modules.demographics = [sti.Pregnancy(), ss.Deaths()]
+            modules.demographics = [ss.Pregnancy(), ss.Deaths()]
 
         # Handle networks
         if not modules.networks:

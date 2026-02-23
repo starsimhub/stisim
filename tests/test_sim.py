@@ -131,7 +131,7 @@ def test_stis(which='discharging', n_agents=5e3, start=2010, stop=2020):
             gud=dict(prevalence=0.05),  # Placeholder for GUD
         )
 
-    pregnancy = sti.Pregnancy(fertility_rate=10)
+    pregnancy = ss.Pregnancy(fertility_rate=10)
     death = ss.Deaths(death_rate=10)
 
     sim = sti.Sim(
@@ -179,7 +179,7 @@ def test_sim_creation():
     # assert len(sim1.connectors) > 0, "No connectors initialized"
 
     # Test 2: mix of strings and modules
-    demographics = [sti.Pregnancy(), ss.Deaths()]  # Replace the default ss.Pregnancy module with the sti one
+    demographics = [ss.Pregnancy(), ss.Deaths()]
     networks = sti.StructuredSexual()
     diseases = [sti.Gonorrhea(), 'hiv']
 

@@ -78,6 +78,7 @@ class SyphilisPlaceholder(ss.Disease):
 class SyphPars(BaseSTIPars):
     def __init__(self, **kwargs):
         # Adult syphilis natural history
+        self.dur_exposed = ss.normal(ss.days(50), ss.days(10))  # https://pubmed.ncbi.nlm.nih.gov/9101629/
         self.dur_primary = ss.normal(ss.weeks(6), ss.weeks(1))  # https://pubmed.ncbi.nlm.nih.gov/9101629/
         self.dur_secondary = ss.lognorm_ex(ss.months(3.6), ss.months(1.5))  # https://pubmed.ncbi.nlm.nih.gov/9101629/
         self.dur_early = ss.uniform(ss.months(12), ss.months(14))  # Assumption
@@ -108,7 +109,7 @@ class SyphPars(BaseSTIPars):
         #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5973824/)
         #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2819963/
         self.birth_outcomes = sc.objdict(
-            active=ss.choice(a=5, p=np.array([0.00, 0.10, 0.20, 0.45, 0.25])),  # Outcomes for babies born to mothers with primary or secondary infection
+            mat_active=ss.choice(a=5, p=np.array([0.00, 0.10, 0.20, 0.45, 0.25])),  # Outcomes for babies born to mothers with primary or secondary infection
             early=ss.choice(a=5, p=np.array([0.00, 0.05, 0.10, 0.40, 0.45])),  # Outcomes for babies born to mothers with early latent infection
             late=ss.choice(a=5, p=np.array([0.00, 0.00, 0.10, 0.10, 0.80])),  # Outcomes for babies born to mothers with late latent infection
         )
@@ -138,10 +139,6 @@ class Syphilis(BaseSTI):
         # Set initial prevalence
         self.init_prev_data = init_prev_data
         self.init_prev_latent_data = init_prev_latent_data
-        # if init_prev_data is not None:
-        #     self.pars.init_prev = ss.bernoulli(self.make_init_prev_fn)
-        # if init_prev_latent_data is not None:
-        #     self.pars.init_latent_prev = ss.bernoulli(self.make_init_prev_latent_fn)
 
         # Whether to store detailed results
         self.store_sw = False
@@ -149,6 +146,7 @@ class Syphilis(BaseSTI):
 
         self.define_states(
             # Adult syphilis states
+            ss.BoolState('exposed'),      # In incubation period
             ss.BoolState('primary'),      # Primary chancres
             ss.BoolState('secondary'),    # Inclusive of those who may still have primary chancres
             ss.BoolState('early'),        # Early latent
@@ -163,6 +161,7 @@ class Syphilis(BaseSTI):
             ss.FloatArr('cs_outcome'),
 
             # Timestep of state changes
+            ss.FloatArr('ti_exposed'),
             ss.FloatArr('ti_primary'),
             ss.FloatArr('ti_secondary'),
             ss.FloatArr('ti_latent'),
@@ -180,16 +179,6 @@ class Syphilis(BaseSTI):
         return
 
     @property
-    def exposed(self):
-        """ Default is that exposure equals infection """
-        return self.infected
-
-    @property
-    def ti_exposed(self):
-        """ Alias for ti_infected """
-        return self.ti_infected
-
-    @property
     def naive(self):
         """ Never exposed """
         return ~self.ever_exposed
@@ -198,6 +187,11 @@ class Syphilis(BaseSTI):
     def sus_not_naive(self):
         """ Susceptible but with syphilis antibodies, which persist after treatment """
         return self.susceptible & self.ever_exposed
+
+    @property
+    def mat_active(self):
+        """ Definition of infection used for maternal transmission, includes exposed + primary + secondary stages """
+        return self.exposed | self.primary | self.secondary
 
     @property
     def active(self):
@@ -306,6 +300,12 @@ class Syphilis(BaseSTI):
         self.rel_sus[:] = 1
         self.rel_trans[:] = 1
 
+        # Primary from exposed
+        primary_from_exposed = self.exposed & (self.ti_primary <= ti)
+        if len(primary_from_exposed.uids) > 0:
+            self.primary[primary_from_exposed] = True
+            self.exposed[primary_from_exposed] = False
+
         # Secondary from primary
         secondary_from_primary = self.primary & (self.ti_secondary <= ti)
         if len(secondary_from_primary.uids) > 0:
@@ -340,12 +340,15 @@ class Syphilis(BaseSTI):
         # Congenital syphilis deaths
         nnd = (self.ti_nnd <= ti).uids
         stillborn = (self.ti_stillborn <= ti).uids
+        self.ti_nnd[nnd] = ti
+        self.ti_stillborn[stillborn] = ti
         self.sim.people.request_death(nnd)
         self.sim.people.request_death(stillborn)
 
         # Congenital syphilis transmission outcomes
         congenital = (self.ti_congenital <= ti).uids
         self.congenital[congenital] = True
+        self.ti_congenital[congenital] = ti
 
         # Set rel_trans
         self.rel_trans[self.primary] = self.pars.rel_trans_primary
@@ -471,10 +474,14 @@ class Syphilis(BaseSTI):
         # Set initial states upon exposure
         self.susceptible[uids] = False
         self.ever_exposed[uids] = True
-        self.primary[uids] = True
+        self.exposed[uids] = True
         self.infected[uids] = True
-        self.ti_primary[uids] = ti
+        self.ti_exposed[uids] = ti
         self.ti_infected[uids] = ti
+
+        # Exposed to primary
+        dur_exposed = self.pars.dur_exposed.rvs(uids)
+        self.ti_primary[uids] = self.ti_exposed[uids] + rr(dur_exposed)
 
         # Primary to secondary
         dur_primary = self.pars.dur_primary.rvs(uids)
@@ -524,7 +531,7 @@ class Syphilis(BaseSTI):
         new_outcomes = {k:0 for k in self.pars.birth_outcome_keys}
 
         # Determine outcomes
-        for state in ['active', 'early', 'late']:
+        for state in ['mat_active', 'early', 'late']:
 
             source_state_inds = getattr(self, state)[source_uids].nonzero()[-1]
             uids = target_uids[source_state_inds]

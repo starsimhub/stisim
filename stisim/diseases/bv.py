@@ -672,20 +672,24 @@ class BV(BaseSTI):
     def update_pregnancy(self, uids, cleared=False):
         pregnancy = self.sim.demographics.pregnancy
         if cleared:  # Update PTB risk for those who have cleared infection
-            pregnancy.rel_sus_ptb[uids] = 1
+            pregnancy.rel_ptb[uids] = 1
             pregnant = uids.intersect(pregnancy.pregnant.uids)
-            pregnancy.set_prognoses(pregnant, bv_update=True)
+            pregnancy.set_ptb()
 
         else:  # Update PTB risk for those who are newly infected
             bv_pregnant = uids.intersect(pregnancy.pregnant.uids)
             bv_not_pregnant = np.setdiff1d(uids, bv_pregnant)
-            pregnancy.rel_sus_ptb[bv_not_pregnant] = self.pars.or_ptb[1]
+            pregnancy.rel_ptb[bv_not_pregnant] = self.pars.or_ptb[1]
             # calculate trimester of pregnancy
             if len(bv_pregnant):
-                trimester = pregnancy.trimester[bv_pregnant]
-                trimester_or_ptb = [self.pars.or_ptb[max(int(i), 1)] for i in trimester]
-                pregnancy.rel_sus_ptb[bv_pregnant] = trimester_or_ptb
-                pregnancy.set_prognoses(bv_pregnant, bv_update=True)
+                # Calculate trimester for each pregnant person
+                trimester = np.zeros(len(bv_pregnant), dtype=int)
+                for tri_num, tri_uids in enumerate([pregnancy.tri1_uids, pregnancy.tri2_uids, pregnancy.tri3_uids], start=1):
+                    mask = np.isin(bv_pregnant, tri_uids)
+                    trimester[mask] = tri_num
+                trimester_or_ptb = [self.pars.or_ptb[i] for i in trimester]
+                pregnancy.rel_ptb[bv_pregnant] = trimester_or_ptb
+                pregnancy.set_ptb()
 
     def set_male_prognoses(self, uids):
         """
