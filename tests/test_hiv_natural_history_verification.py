@@ -1,16 +1,19 @@
-import unittest
-
 import starsim as ss
 import stisim as sti
+import unittest
 
+from itertools import chain
+from statistics import median, mean
+
+from tests.hiv_natural_history_analyzers import CD4ByUIDTracker, TimeToAIDSTracker
 from tests.testlib import build_testing_sim
+
+verbose = False
 
 
 class TestHIVNaturalHistoryVerification(unittest.TestCase):
 
     def setUp(self):
-        self.steps = 25
-
         # default test setup; individual tests can replace/add to them.
         self.diseases = [sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=0.05)]
 
@@ -25,38 +28,48 @@ class TestHIVNaturalHistoryVerification(unittest.TestCase):
 
         self.interventions = []
 
-
     def test_cd4_counts_decline_over_time_without_treatment(self):
         sim = build_testing_sim(diseases=self.diseases, demographics=self.demographics,
-                                interventions=self.interventions, networks=self.networks)
+                                interventions=self.interventions, networks=self.networks,
+                                analyzers=[CD4ByUIDTracker()],
+                                n_agents=5, duration=5)
+        sim.run()
+        results = sim.results['cd4byuidtracker']['hiv.ts_cd4']
 
-        # sim.run_one_step() does not work for the first step due to an initialization bug:
-        # https://github.com/starsimhub/starsim/issues/1136
-        sim.run(until='1900-01-01')
-
-        # now iterate for a while, recording CD4 counts of living people along the way (timeseries)
-        cd4 = {}
-        for step in range(self.steps):
-            sim.run_one_step()
-            for person in sim.people:
-                if bool(person['alive']) is True and bool(person['hiv.infected']) is True:
-                    uid = person['uid']
-                    cd4_count = person['hiv.cd4']
-                    cd4[uid] = cd4[uid] + [cd4_count] if uid in cd4 else [cd4_count]
-
-        # Verify that CD4 counts cannot increase (stable and/or decrease) at all steps for all HIV+ individuals who
-        # are not on treatment. No one is on treatment in this test.
-        checks_performed = 0
+        # ensure we have at least ONE agent with an actual decreasing CD4 (not just stable with the LessEqual assert)
         found_decrease = False
-        for id, cd4_counts in cd4.items():
-            for index in range(len(cd4_counts)-1):
-                self.assertTrue(cd4_counts[index] >= cd4_counts[index+1])
-            checks_performed += len(cd4_counts)-1
-
-            # Ensure that at least ONE agent had a decreasing cd4 count (not just stable)
-            if not found_decrease:
-                if cd4_counts[0] > cd4_counts[-1]:
-                    found_decrease = True
-
-        self.assertGreater(checks_performed, 0)  # just in case, make sure we actually compared some CD4 counts
+        for uid, cd4_timeseries in results.items():
+            # compute change in cd4 at all timesteps for the agent
+            cd4_deltas = [cd4_timeseries[i+1] - cd4_timeseries[i] for i in range(len(cd4_timeseries)-1)]
+            minimum_delta = min(cd4_deltas)
+            # assert CD4 can never go back up (untreated)
+            self.assertLessEqual(minimum_delta, 0, msg=f"{minimum_delta} is not less than 0")
+            if not found_decrease and minimum_delta < 0:
+                found_decrease = True
         self.assertTrue(found_decrease)
+
+    def test_median_time_from_infection_to_aids_without_treatment_using_run(self):
+        result_tolerance = 0.03  # fraction of the median
+        sim = build_testing_sim(diseases=self.diseases, demographics=self.demographics,
+                                interventions=self.interventions, networks=self.networks,
+                                analyzers=[TimeToAIDSTracker()],
+                                n_agents=200, duration=25)
+        sim.run()
+        results = sim.results
+        times_to_aids = list(chain(*results.timetoaidstracker['hiv.ti_to_aids']))
+
+        # ensure we have at least ONE agent that progressed to AIDS before computing and checking median
+        self.assertGreater(len(times_to_aids), 0)
+        median_time = median(times_to_aids)
+        if verbose:
+            print(f"{len(times_to_aids)} agents progressed to AIDS.")
+
+        expected_median = 117.89986811530153  # months, from 500k random generations from time-to-falling code.
+        delta = result_tolerance * expected_median
+        if verbose:
+            print(f"median time to AIDS stage: {median_time} timesteps.")
+            print(f"expected_median: {expected_median} timesteps.")
+            print(f"min time to AIDS stage: {min(times_to_aids)} timesteps.")
+            print(f"mean time to AIDS: {mean(times_to_aids)} timesteps.")
+            print(f"max time to AIDS stage: {max(times_to_aids)} timesteps.")
+        self.assertAlmostEqual(median_time, expected_median, delta=delta)
