@@ -2,11 +2,13 @@
 
 All notable changes to the codebase are documented in this file.
 
-## Version 1.5.0 (2026-02-20)
+## Version 1.4.7 (2026-02-20)
 
-- Fix bug with coinfection analyzer
-- Remove Pregnancy module, which has been superseded by the Starsim Pregnancy module
-- Include exposed / incubating period for syphilis, and allow maternal transmission during this period
+- Fix bugs in coinfection analyzer: age limit typo, variable name errors for male results
+- Remove STIsim Pregnancy module, now superseded by the Starsim Pregnancy module
+- Add exposed/incubation period for syphilis (`dur_exposed`), and allow maternal transmission during this stage
+- Rename syphilis birth outcome key `active` to `mat_active` to reflect inclusion of exposed stage
+- Add `.vscode/` and `*.code-workspace` to `.gitignore`
 
 ## Version 1.4.6 (2026-02-20)
 
