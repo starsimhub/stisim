@@ -38,6 +38,9 @@ class STIPars(BaseSTIPars):
     def __init__(self, **kwargs):
         super().__init__()
 
+        # Time
+        self.dt = 'month'
+
         # Natural history
         self.dur_exp = ss.constant(ss.weeks(1))  # How long after exposure before you can infect others
 
