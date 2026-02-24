@@ -3,14 +3,14 @@ Test calibration using the Zimbabwe HIV example
 """
 import sciris as sc
 import stisim as sti
-import hivsim as hs
+import hivsim
 
 
 def test_calibration():
-    """Test calibration with hs.demo('zimbabwe') and default build_fn."""
+    """Test calibration with hivsim.demo('zimbabwe') and default build_fn."""
     sc.heading('Beginning calibration')
 
-    sim = hs.demo('zimbabwe', run=False, n_agents=500)
+    sim = hivsim.demo('zimbabwe', run=False, n_agents=500)
 
     # Use the UNAIDS data that's already loaded in the zimbabwe example
     data = sim.data[['year', 'hiv.prevalence', 'hiv.new_infections']].rename(columns={'year': 'time'})

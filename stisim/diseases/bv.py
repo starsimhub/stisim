@@ -8,7 +8,7 @@ Includes:
 import numpy as np
 import starsim as ss
 import sciris as sc
-import stisim
+import stisim as sti
 from stisim.diseases.sti import BaseSTI, BaseSTIPars
 import stisim.utils as ut
 

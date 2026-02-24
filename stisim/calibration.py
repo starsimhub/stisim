@@ -260,7 +260,7 @@ class Calibration(ss.Calibration):
             hiv_beta_m2f=dict(low=0.01, high=0.1, guess=0.05),
             nw_prop_f0=dict(low=0.5, high=0.9, guess=0.8),
         )
-        calib = sti.Calibration(sim=sim, calib_pars=calib_pars, data=data, total_trials=100)
+        calib = stisim.Calibration(sim=sim, calib_pars=calib_pars, data=data, total_trials=100)
         calib.calibrate()
     """
     def __init__(self, sim, calib_pars, data=None, weights=None, extra_results=None, save_results=False, **kwargs):

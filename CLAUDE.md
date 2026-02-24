@@ -51,7 +51,10 @@ import numpy as np
 import sciris as sc
 import starsim as ss
 import stisim as sti
+import hivsim  # No alias — "hiv" would clash with hiv = hivsim.HIV()
 ```
+
+Import alias convention: We use `import stisim as sti` (there's no `STI` class to clash with) but `import hivsim` without an alias. This follows the starsim ecosystem pattern (`import fpsim as fp`, `import hpvsim as hpv`, `import covasim as cv`) but avoids aliases like `hiv` or `tb` that would be overwritten by disease instances (e.g. `hiv = hivsim.HIV()`).
 
 **Naming**:
 - Parameter classes: suffix with `Pars` (e.g., `HIVPars`)

@@ -6,7 +6,7 @@ __all__ = ['Sim', 'demo']
 
 class Sim(sti.Sim):
     """
-    A subclass of stisim.Sim that is specifically designed for HIV simulations.
+    A subclass of sti.Sim that is specifically designed for HIV simulations.
 
     Currently, this simply parses input parameters among the sim and the HIV module,
     and adds default demographics (pregnancy and deaths), networks (sexual and maternal),
@@ -66,7 +66,7 @@ class Sim(sti.Sim):
         return
 
 
-# Available examples for hs.demo()
+# Available examples for hivsim.demo()
 EXAMPLES = {
     'simple':   'Minimal HIV sim with hivsim defaults',
     'zimbabwe': 'Zimbabwe HIV model with calibrated parameters and UNAIDS data',
@@ -88,10 +88,10 @@ def demo(example=None, run=True, plot=True, **kwargs):
 
     Examples::
 
-        import hivsim as hs
-        hs.demo()                                     # Run simple default demo
-        hs.demo('zimbabwe')                            # Run Zimbabwe HIV model
-        sim = hs.demo('zimbabwe', run=False, n_agents=500)  # Just create it
+        import hivsim
+        hivsim.demo()                                     # Run simple default demo
+        hivsim.demo('zimbabwe')                            # Run Zimbabwe HIV model
+        sim = hivsim.demo('zimbabwe', run=False, n_agents=500)  # Just create it
     """
     if example is None:
         example = 'simple'
