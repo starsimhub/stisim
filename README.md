@@ -59,7 +59,7 @@ STIsim is still in the early stages of its development as a standalone software 
 3. Check on the documentation currently available at https://docs.stisim.org.
 
 ## Development roadmap
-The roadmap for futre model development can be viewed [here](https://github.com/orgs/starsimhub/projects/26/views/6).
+The roadmap for future model development can be viewed [here](https://github.com/orgs/starsimhub/projects/26/views/6).
 
 ## References
 
