@@ -2,6 +2,15 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.4.9 (2026-02-24)
+
+- Add `default_build_fn` for calibration: routes parameters by prefix (`hiv_*`, `syph_*`, `nw_*`) to diseases and networks automatically, removing need for custom `build_fn`
+- `sti.Calibration` now uses `default_build_fn` when no `build_fn` is provided
+- Fix `make_df()` time column to use years from `timevec` instead of integer index
+- Fix `parse_study()` to guard `sim_results` reordering when `save_results=False`
+- Fix calibration data column names to use dot notation (`hiv.prevalence`)
+- Standardize import conventions: `import stisim as sti`, `import hivsim` (no alias)
+
 ## Version 1.4.8 (2026-02-23)
 
 - Add `hivsim_examples` package with `simple` and `zimbabwe` pre-configured examples
