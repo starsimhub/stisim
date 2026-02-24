@@ -9,7 +9,6 @@ import numpy as np
 import starsim as ss
 import sciris as sc
 import stisim as sti
-from stisim.diseases.sti import BaseSTI, BaseSTIPars
 import stisim.utils as ut
 
 __all__ = ['SimpleBV', 'BV']
@@ -280,7 +279,7 @@ class SimpleBV(ss.Disease):
         return
 
 
-class BVPars(BaseSTIPars):
+class BVPars(sti.BaseSTIPars):
     """  Parameters for the BV model """
     def __init__(self, **kwargs):
         super().__init__()
@@ -350,7 +349,7 @@ class BVPars(BaseSTIPars):
         return
 
 
-class BV(BaseSTI):
+class BV(sti.BaseSTI):
 
     def __init__(self, pars=None, name="bv", **kwargs):
         super().__init__(name=name)
