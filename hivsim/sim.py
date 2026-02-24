@@ -110,6 +110,6 @@ def demo(example=None, run=True, plot=True, **kwargs):
     if run:
         sim.run()
         if plot:
-            sim.plot()
+            sim.plot(annualize=True)
 
     return sim

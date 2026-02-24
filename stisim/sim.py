@@ -117,7 +117,7 @@ class Sim(ss.Sim):
             self.pars['stop'] = None
         user_sim_pars = {k: v for k, v in all_pars.items() if k in self.pars.keys()}
         for k in user_sim_pars: all_pars.pop(k)
-        sim_pars = sc.mergedicts(user_sim_pars, sim_pars, _copy=True)  # Don't merge with defaults, those are set above
+        sim_pars = sc.mergedicts(sim_pars, user_sim_pars, _copy=True)  # kwargs override sim_pars
 
         # Deal with STI pars
         all_sti_pars = sti.merged_sti_pars()  # All STI parameters, ignoring duplicates
@@ -286,7 +286,10 @@ class Sim(ss.Sim):
 
             # Load age data and create people
             age_data = stidata.get_age_distribution(location, year=self.pars.start, datafolder=self.datafolder)
-            total_pop = int(age_data.value.sum())
+            if self.pars['total_pop'] is not None:
+                total_pop = int(self.pars['total_pop'])
+            else:
+                total_pop = int(age_data.value.sum() * 1000)  # Age data values are in thousands
             age_data['value'] /= sum(age_data['value'])  # Normalize the age distribution
             people = ss.People(self.pars.n_agents, age_data=age_data)
 
