@@ -39,7 +39,7 @@ def test_zimbabwe():
     prev2 = sim2.results.hiv.prevalence[:]
     assert np.allclose(prev1, prev2), 'make_sim and hs.demo should produce identical results'
 
-    sim1.plot('hiv')
+    sim1.plot()
 
 
 if __name__ == '__main__':
