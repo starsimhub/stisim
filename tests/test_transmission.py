@@ -1,5 +1,5 @@
 """
-Test HIV transmission dynamics
+Test HIV transmission dynamics (rel_trans by stage)
 """
 import numpy as np
 import starsim as ss
@@ -7,48 +7,40 @@ import stisim as sti
 
 
 class track_rel_trans(ss.Analyzer):
-    """Track rel_trans statistics by HIV stage on each timestep."""
+    """Track rel_trans values by HIV stage on each timestep."""
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.stages = ['acute', 'latent', 'falling', 'aids']
-        self.stats = ['min', 'max', 'mean', 'median']
-        self.data = {stage: {stat: [] for stat in self.stats} for stage in self.stages}
-        self.counts = {stage: [] for stage in self.stages}
+        self.acute_vals = []   # rel_trans for prior-timestep acute agents
+        self.latent_vals = []  # rel_trans for latent agents
+        self.aids_vals = []    # rel_trans for AIDS agents (cd4 < 200)
 
     def step(self):
         hiv = self.sim.diseases.hiv
-        for stage in self.stages:
-            uids = getattr(hiv, stage).uids
-            self.counts[stage].append(len(uids))
-            if len(uids) > 0:
-                vals = np.asarray(hiv.rel_trans[uids])
-                self.data[stage]['min'].append(float(np.min(vals)))
-                self.data[stage]['max'].append(float(np.max(vals)))
-                self.data[stage]['mean'].append(float(np.mean(vals)))
-                self.data[stage]['median'].append(float(np.median(vals)))
-            else:
-                for stat in self.stats:
-                    self.data[stage][stat].append(np.nan)
+        ti = self.sim.ti
+        if ti == 0:
+            return
 
-    def report(self):
-        """Print a summary table of rel_trans by stage."""
-        for stage in self.stages:
-            n = np.nanmax(self.counts[stage]) if self.counts[stage] else 0
-            if n > 0:
-                means = [v for v in self.data[stage]['mean'] if not np.isnan(v)]
-                mins = [v for v in self.data[stage]['min'] if not np.isnan(v)]
-                maxs = [v for v in self.data[stage]['max'] if not np.isnan(v)]
-                print(f"\n{stage.upper()} (max n={int(n)}):")
-                print(f"  mean of means: {np.mean(means):.3f}")
-                print(f"  overall min:   {np.min(mins):.3f}")
-                print(f"  overall max:   {np.max(maxs):.3f}")
-            else:
-                print(f"\n{stage.upper()}: no agents in this stage")
+        # Acute agents infected on the previous timestep
+        acute_uids = hiv.acute.uids
+        if len(acute_uids):
+            prev = acute_uids[np.asarray(hiv.ti_infected[acute_uids]) == ti - 1]
+            if len(prev):
+                self.acute_vals.extend(np.asarray(hiv.rel_trans[prev]).tolist())
+
+        # Latent agents
+        latent_uids = hiv.latent.uids
+        if len(latent_uids):
+            self.latent_vals.extend(np.asarray(hiv.rel_trans[latent_uids]).tolist())
+
+        # AIDS agents (cd4 < 200)
+        aids_uids = hiv.aids.uids
+        if len(aids_uids):
+            self.aids_vals.extend(np.asarray(hiv.rel_trans[aids_uids]).tolist())
 
 
 def test_rel_trans():
-    """Check rel_trans values across HIV stages at monthly dt."""
+    """Check that rel_trans is correct for acute, latent, and AIDS stages."""
     tracker = track_rel_trans()
     sim = sti.Sim(
         diseases=sti.HIV(init_prev=0.15),
@@ -60,19 +52,28 @@ def test_rel_trans():
     sim.run()
 
     tracker = sim.analyzers[0]
-    tracker.report()
 
-    acute_means = [v for v in tracker.data['acute']['mean'] if not np.isnan(v)]
-    latent_means = [v for v in tracker.data['latent']['mean'] if not np.isnan(v)]
-    aids_means = [v for v in tracker.data['aids']['mean'] if not np.isnan(v)]
+    # Acute: should be ~6x for agents infected on the prior timestep
+    assert len(tracker.acute_vals) > 0, 'Expected some prior-timestep acute agents'
+    acute_mean = np.mean(tracker.acute_vals)
+    acute_min = np.min(tracker.acute_vals)
+    print(f'Acute (prior-ts) rel_trans: mean={acute_mean:.2f}, min={acute_min:.2f} (n={len(tracker.acute_vals)})')
+    assert acute_mean > 5, f'Acute mean rel_trans {acute_mean:.2f} should be >5 (expected ~6)'
+    assert acute_min > 1, f'Acute min rel_trans {acute_min:.2f} should be >1'
 
-    assert len(acute_means) > 0, 'Expected some agents in acute stage'
-    assert len(latent_means) > 0, 'Expected some agents in latent stage'
+    # Latent: should be ~1
+    assert len(tracker.latent_vals) > 0, 'Expected some latent agents'
+    latent_mean = np.mean(tracker.latent_vals)
+    print(f'Latent rel_trans:           mean={latent_mean:.2f} (n={len(tracker.latent_vals)})')
+    assert np.isclose(latent_mean, 1.0, atol=0.01), f'Latent mean rel_trans {latent_mean:.2f} should be ~1'
 
-    print(f"\nAcute mean rel_trans:   {np.mean(acute_means):.2f} (expected ~6)")
-    print(f"Latent mean rel_trans:  {np.mean(latent_means):.2f} (expected ~1)")
-    if aids_means:
-        print(f"AIDS mean rel_trans:    {np.mean(aids_means):.2f} (expected ~8)")
+    # AIDS: should be ~8x
+    assert len(tracker.aids_vals) > 0, 'Expected some AIDS agents'
+    aids_mean = np.mean(tracker.aids_vals)
+    aids_min = np.min(tracker.aids_vals)
+    print(f'AIDS rel_trans:             mean={aids_mean:.2f}, min={aids_min:.2f} (n={len(tracker.aids_vals)})')
+    assert aids_mean > 6, f'AIDS mean rel_trans {aids_mean:.2f} should be >6 (expected ~8)'
+    assert aids_min > 1, f'AIDS min rel_trans {aids_min:.2f} should be >1'
 
     return tracker
 
