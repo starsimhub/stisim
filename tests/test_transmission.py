@@ -11,7 +11,7 @@ class track_rel_trans(ss.Analyzer):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.stages = ['acute', 'latent', 'falling']
+        self.stages = ['acute', 'latent', 'falling', 'aids']
         self.stats = ['min', 'max', 'mean', 'median']
         self.data = {stage: {stat: [] for stat in self.stats} for stage in self.stages}
         self.counts = {stage: [] for stage in self.stages}
@@ -64,17 +64,15 @@ def test_rel_trans():
 
     acute_means = [v for v in tracker.data['acute']['mean'] if not np.isnan(v)]
     latent_means = [v for v in tracker.data['latent']['mean'] if not np.isnan(v)]
-    falling_means = [v for v in tracker.data['falling']['mean'] if not np.isnan(v)]
+    aids_means = [v for v in tracker.data['aids']['mean'] if not np.isnan(v)]
 
     assert len(acute_means) > 0, 'Expected some agents in acute stage'
     assert len(latent_means) > 0, 'Expected some agents in latent stage'
 
-    if acute_means:
-        print(f"\nAcute mean rel_trans:   {np.mean(acute_means):.2f} (expected ~6)")
-    if latent_means:
-        print(f"Latent mean rel_trans:  {np.mean(latent_means):.2f} (expected ~1)")
-    if falling_means:
-        print(f"Falling mean rel_trans: {np.mean(falling_means):.2f} (expected ~8)")
+    print(f"\nAcute mean rel_trans:   {np.mean(acute_means):.2f} (expected ~6)")
+    print(f"Latent mean rel_trans:  {np.mean(latent_means):.2f} (expected ~1)")
+    if aids_means:
+        print(f"AIDS mean rel_trans:    {np.mean(aids_means):.2f} (expected ~8)")
 
     return tracker
 
