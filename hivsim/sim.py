@@ -5,7 +5,7 @@ import stisim as sti
 from stisim.diseases.hiv import HIV, HIVPars
 from stisim.interventions.hiv_interventions import HIVTest, ART, VMMC, Prep
 
-__all__ = ['Sim', 'HIV', 'HIVPars', 'HIVTest', 'ART', 'VMMC', 'Prep', 'ss', 'sti']
+__all__ = ['Sim', 'HIV', 'HIVPars', 'HIVTest', 'ART', 'VMMC', 'Prep', 'ss', 'sti', 'demo']
 
 class Sim(sti.Sim):
     """
@@ -58,7 +58,6 @@ class Sim(sti.Sim):
         if not modules.interventions:
             modules.interventions = [HIVTest(), ART(), VMMC(), Prep()]
 
-        # Handle interventions
         super().__init__(
             pars          = sim_pars,
             demographics  = modules.demographics,
@@ -68,3 +67,49 @@ class Sim(sti.Sim):
             **pars
         )
         return
+
+
+# Available examples for hs.demo()
+EXAMPLES = {
+    'simple':   'Minimal HIV sim with hivsim defaults',
+    'zimbabwe': 'Zimbabwe HIV model with calibrated parameters and UNAIDS data',
+}
+
+
+def demo(example=None, run=True, plot=True, **kwargs):
+    """
+    Create a demo HIVsim simulation.
+
+    Args:
+        example (str): Example name ('simple', 'zimbabwe'). Default: 'simple'.
+        run (bool): Whether to run the sim.
+        plot (bool): Whether to plot results (only if run=True).
+        **kwargs: Passed to the example's make_sim().
+
+    Returns:
+        Sim: Configured (and optionally run) simulation.
+
+    Examples::
+
+        import hivsim as hs
+        hs.demo()                                     # Run simple default demo
+        hs.demo('zimbabwe')                            # Run Zimbabwe HIV model
+        sim = hs.demo('zimbabwe', run=False, n_agents=500)  # Just create it
+    """
+    import importlib
+
+    if example is None:
+        example = 'simple'
+    if example not in EXAMPLES:
+        available = ', '.join(EXAMPLES.keys())
+        raise ValueError(f"Example '{example}' not found. Available: {available}")
+
+    mod = importlib.import_module(f'hivsim_examples.{example}.sim')
+    sim = mod.make_sim(**kwargs)
+
+    if run:
+        sim.run()
+        if plot:
+            sim.plot()
+
+    return sim

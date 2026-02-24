@@ -57,5 +57,8 @@ dev = [
 where = ["."]
 include = ["stisim*", "hivsim*"]
 
+[tool.setuptools.package-data]
+"hivsim_examples.zimbabwe" = ["*.csv"]
+
 [tool.setuptools.dynamic]
 version = {attr = "stisim.version.__version__"}
