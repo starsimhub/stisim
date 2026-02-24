@@ -50,25 +50,21 @@ class track_rel_trans(ss.Analyzer):
 
 
 def test_rel_trans():
-    """Check rel_trans values across HIV stages."""
+    """Check rel_trans values across HIV stages at monthly dt."""
     tracker = track_rel_trans()
-
     sim = sti.Sim(
         diseases=sti.HIV(init_prev=0.15),
         networks=sti.StructuredSexual(),
         n_agents=2000,
         start=1990,
-        dur=30,
-        dt=1,
+        dur=10,
         analyzers=[tracker],
     )
     sim.run()
 
-    # Get the analyzer from the sim (starsim deepcopies analyzers)
     tracker = sim.analyzers[0]
     tracker.report()
 
-    # Basic sanity checks
     acute_means = [v for v in tracker.data['acute']['mean'] if not np.isnan(v)]
     latent_means = [v for v in tracker.data['latent']['mean'] if not np.isnan(v)]
     falling_means = [v for v in tracker.data['falling']['mean'] if not np.isnan(v)]
@@ -76,9 +72,10 @@ def test_rel_trans():
     assert len(acute_means) > 0, 'Expected some agents in acute stage'
     assert len(latent_means) > 0, 'Expected some agents in latent stage'
 
-    # Acute rel_trans should be elevated (~6x)
-    print(f"\nAcute mean rel_trans:   {np.mean(acute_means):.2f} (expected ~6)")
-    print(f"Latent mean rel_trans:  {np.mean(latent_means):.2f} (expected ~1)")
+    if acute_means:
+        print(f"\nAcute mean rel_trans:   {np.mean(acute_means):.2f} (expected ~6)")
+    if latent_means:
+        print(f"Latent mean rel_trans:  {np.mean(latent_means):.2f} (expected ~1)")
     if falling_means:
         print(f"Falling mean rel_trans: {np.mean(falling_means):.2f} (expected ~8)")
 
