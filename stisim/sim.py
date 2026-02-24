@@ -78,7 +78,8 @@ class Sim(ss.Sim):
 
     def __init__(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None, dem_pars=None,
                  label=None, people=None, demographics=None, diseases=None, networks=None,
-                 interventions=None, analyzers=None, connectors=None, datafolder=None, **kwargs):
+                 interventions=None, analyzers=None, connectors=None, datafolder=None,
+                 data=None, **kwargs):
 
         # Inputs and defaults
         self.nw_pars = None     # Parameters for the networks - processed later
@@ -89,7 +90,7 @@ class Sim(ss.Sim):
         # self.stis = ss.ndict()   # Set during init, after processing the STIs
 
         # Call the constructor of the parent class WITHOUT pars or module args
-        super().__init__(pars=None, label=label)
+        super().__init__(pars=None, label=label, data=data)
         self.pars = sti.SimPars()  # Make default parameters
 
         # Separate the parameters, storing sim pars now and saving module pars to process in init

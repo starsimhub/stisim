@@ -84,6 +84,7 @@ def make_sim(**kwargs):
     condom_data = pd.read_csv(datadir / 'condom_use.csv')
     art_data = pd.read_csv(datadir / 'art_coverage.csv').set_index('year')
     vmmc_data = pd.read_csv(datadir / 'vmmc_coverage.csv').set_index('year')
+    hiv_data = pd.read_csv(datadir / 'zimbabwe_hiv_data.csv')
 
     # Create modules
     hiv = sti.HIV(init_prev_data=init_prev, **sti_pars)
@@ -106,6 +107,7 @@ def make_sim(**kwargs):
         networks=[network, ss.MaternalNet()],
         interventions=intvs + user_intvs,
         sim_pars=merged_sim_pars,
+        data=hiv_data,
         **kwargs,
     )
     return sim
