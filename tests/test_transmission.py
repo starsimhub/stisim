@@ -15,11 +15,9 @@ class track_rel_trans(ss.Analyzer):
         self.stats = ['min', 'max', 'mean', 'median']
         self.data = {stage: {stat: [] for stat in self.stats} for stage in self.stages}
         self.counts = {stage: [] for stage in self.stages}
-        self.tvec = []
 
     def step(self):
         hiv = self.sim.diseases.hiv
-        self.tvec.append(self.sim.ti)
         for stage in self.stages:
             uids = getattr(hiv, stage).uids
             self.counts[stage].append(len(uids))
@@ -54,7 +52,6 @@ def test_rel_trans():
     tracker = track_rel_trans()
     sim = sti.Sim(
         diseases=sti.HIV(init_prev=0.15),
-        networks=sti.StructuredSexual(),
         n_agents=2000,
         start=1990,
         dur=10,
