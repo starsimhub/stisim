@@ -2,6 +2,16 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.4.8 (2026-02-23)
+
+- Add `hivsim_examples` package with `simple` and `zimbabwe` pre-configured examples
+- Add `hs.demo()` function for quickly running example HIV simulations (e.g. `hs.demo('zimbabwe')`)
+- Add `Sim.plot()` override that auto-selects curated HIV result keys when HIV is present
+- Add `data` parameter to `sti.Sim` for passing comparison data (e.g. UNAIDS estimates) to starsim's plot overlay
+- Fix `process_demographics()` to use `total_pop` from sim_pars when set, and correctly scale age data (values in thousands)
+- Fix `separate_pars()` so kwargs override `sim_pars` defaults (e.g. `stop=1995` overrides `sim_pars=dict(stop=2025)`)
+- Fix `get_age_distribution()` to handle CSV files without a `year` column
+
 ## Version 1.4.7 (2026-02-20)
 
 - Fix bugs in coinfection analyzer: age limit typo, variable name errors for male results

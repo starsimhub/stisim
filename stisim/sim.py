@@ -78,7 +78,8 @@ class Sim(ss.Sim):
 
     def __init__(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None, dem_pars=None,
                  label=None, people=None, demographics=None, diseases=None, networks=None,
-                 interventions=None, analyzers=None, connectors=None, datafolder=None, **kwargs):
+                 interventions=None, analyzers=None, connectors=None, datafolder=None,
+                 data=None, **kwargs):
 
         # Inputs and defaults
         self.nw_pars = None     # Parameters for the networks - processed later
@@ -89,7 +90,7 @@ class Sim(ss.Sim):
         # self.stis = ss.ndict()   # Set during init, after processing the STIs
 
         # Call the constructor of the parent class WITHOUT pars or module args
-        super().__init__(pars=None, label=label)
+        super().__init__(pars=None, label=label, data=data)
         self.pars = sti.SimPars()  # Make default parameters
 
         # Separate the parameters, storing sim pars now and saving module pars to process in init
@@ -116,7 +117,7 @@ class Sim(ss.Sim):
             self.pars['stop'] = None
         user_sim_pars = {k: v for k, v in all_pars.items() if k in self.pars.keys()}
         for k in user_sim_pars: all_pars.pop(k)
-        sim_pars = sc.mergedicts(user_sim_pars, sim_pars, _copy=True)  # Don't merge with defaults, those are set above
+        sim_pars = sc.mergedicts(sim_pars, user_sim_pars, _copy=True)  # kwargs override sim_pars
 
         # Deal with STI pars
         all_sti_pars = sti.merged_sti_pars()  # All STI parameters, ignoring duplicates
@@ -188,6 +189,31 @@ class Sim(ss.Sim):
         super().init(force=force, **kwargs)  # Call the parent init method
 
         return self
+
+    def plot(self, key=None, **kwargs):
+        """
+        Plot sim results. If key is the name of a disease in the sim (e.g. 'hiv'),
+        shows a curated panel for that disease. Otherwise falls back to the
+        standard starsim plot.
+
+        Args:
+            key (str/list): Result key(s) to plot, or a disease name for curated plots
+            **kwargs: Passed to ss.Sim.plot()
+
+        Returns:
+            matplotlib.figure.Figure
+        """
+        if isinstance(key, str) and key in self.diseases:
+            if key == 'hiv':
+                key = [
+                    'hiv_new_infections',
+                    'hiv_new_deaths',
+                    'hiv_n_infected',
+                    'hiv_prevalence',
+                    'hiv_n_on_art',
+                    'n_alive',
+                ]
+        return super().plot(key=key, **kwargs)
 
     def process_networks(self):
         """
@@ -261,7 +287,10 @@ class Sim(ss.Sim):
 
             # Load age data and create people
             age_data = stidata.get_age_distribution(location, year=self.pars.start, datafolder=self.datafolder)
-            total_pop = int(age_data.value.sum())
+            if self.pars['total_pop'] is not None:
+                total_pop = int(self.pars['total_pop'])
+            else:
+                total_pop = int(age_data.value.sum() * 1000)  # Age data values are in thousands
             age_data['value'] /= sum(age_data['value'])  # Normalize the age distribution
             people = ss.People(self.pars.n_agents, age_data=age_data)
 
