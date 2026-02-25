@@ -8,7 +8,7 @@ import starsim as ss
 import os
 
 
-__all__ = ['Calibration', 'compute_gof']
+__all__ = ['Calibration', 'compute_gof', 'default_build_fn']
 
 
 def compute_gof(actual, predicted, normalize=True, use_frac=False, use_squared=False,
@@ -123,7 +123,13 @@ def make_df(sim, df_res_list=None):
                     dfs += df_sim.results[modname][resname].to_df(resample='year', use_years=True, col_names=sres)
 
     df_res = pd.concat(dfs, axis=1)
-    df_res['time'] = df_res.index
+    # Remove duplicate timevec columns from concat, then extract year
+    if 'timevec' in df_res.columns:
+        timevec = df_res['timevec'].iloc[:, 0] if isinstance(df_res['timevec'], pd.DataFrame) else df_res['timevec']
+        df_res = df_res.loc[:, ~df_res.columns.duplicated()]
+        df_res['time'] = timevec.dt.year
+    else:
+        df_res['time'] = df_res.index
     return df_res
 
 
@@ -152,13 +158,124 @@ def eval_fn(sim, data=None, sim_result_list=None, weights=None, df_res_list=None
     return fit
 
 
+def default_build_fn(sim, calib_pars, **kwargs):
+    """
+    Default build function for STIsim calibration.
+
+    Routes calibration parameters to the correct sim component based on naming
+    conventions:
+        - ``hiv_*``   → ``sim.diseases.hiv.pars[*]``
+        - ``syph_*``  → ``sim.diseases.syphilis.pars[*]``
+        - ``{disease}_*`` → ``sim.diseases.{disease}.pars[*]``
+        - ``nw_*``    → ``sim.networks.structuredsexual.pars[*]``
+
+    Parameters whose names don't match any prefix are skipped with a warning.
+
+    Args:
+        sim (Sim): An initialized simulation
+        calib_pars (dict): Calibration parameters with values set by the sampler
+
+    Returns:
+        Sim: The modified simulation
+
+    Example::
+
+        calib_pars = dict(
+            hiv_beta_m2f=dict(low=0.01, high=0.10, guess=0.035, value=0.05),
+            hiv_eff_condom=dict(low=0.5, high=0.99, guess=0.95, value=0.90),
+            nw_f1_conc=dict(low=0.005, high=0.3, guess=0.16, value=0.10),
+        )
+        sim = default_build_fn(sim, calib_pars)
+    """
+    if not sim.initialized:
+        sim.init()
+
+    # Build lookup of disease short names to disease objects
+    disease_map = {}
+    for name, disease in sim.diseases.items():
+        disease_map[name] = disease
+        # Also map common short names
+        if name == 'syphilis':
+            disease_map['syph'] = disease
+
+    # Get the structured sexual network if available
+    nw = None
+    if 'structuredsexual' in sim.networks:
+        nw = sim.networks.structuredsexual
+
+    for k, pars in calib_pars.items():
+        # Skip metadata keys
+        if k in ['rand_seed', 'index', 'mismatch']:
+            continue
+
+        # Extract value
+        if isinstance(pars, dict):
+            v = pars.get('value', pars)
+        elif sc.isnumber(pars):
+            v = pars
+        else:
+            continue
+
+        # Route by prefix
+        matched = False
+
+        # Check disease prefixes
+        for prefix, disease in disease_map.items():
+            if k.startswith(prefix + '_'):
+                par_name = k[len(prefix) + 1:]
+                disease.pars[par_name] = v
+                matched = True
+                break
+
+        # Check network prefix
+        if not matched and k.startswith('nw_') and nw is not None:
+            par_name = k[3:]
+            if hasattr(nw.pars[par_name], 'set'):
+                nw.pars[par_name].set(v)
+            else:
+                nw.pars[par_name] = v
+            matched = True
+
+        if not matched:
+            print(f'Warning: calibration parameter "{k}" not matched to any disease or network')
+
+    return sim
+
+
 class Calibration(ss.Calibration):
     """
-    Customized STIsim calibration class
-    Inherits all the functionality of the Starsim calibration class, but adds a
-    default evaluation function that uses the data provided in the constructor
+    Customized STIsim calibration class.
+
+    Inherits all the functionality of the Starsim calibration class, but adds:
+    - A default build function that routes parameters by prefix (e.g. ``hiv_beta_m2f``)
+    - A default evaluation function that uses the data provided in the constructor
+
+    If no ``build_fn`` is provided, uses :func:`default_build_fn` which routes
+    parameters to diseases and networks by prefix convention.
+
+    Args:
+        sim (Sim): The simulation to calibrate
+        calib_pars (dict): Parameters to calibrate, e.g. ``dict(hiv_beta_m2f=dict(low=0.01, high=0.1))``
+        data (DataFrame): Calibration targets with 'time' column + result columns
+        weights (dict): Optional weight multipliers per result
+        extra_results (list): Additional results to track beyond data columns
+        save_results (bool): Save sim results for each trial
+
+    Examples::
+
+        sim = make_sim()
+        data = pd.read_csv('calibration_data.csv')
+        calib_pars = dict(
+            hiv_beta_m2f=dict(low=0.01, high=0.1, guess=0.05),
+            nw_prop_f0=dict(low=0.5, high=0.9, guess=0.8),
+        )
+        calib = stisim.Calibration(sim=sim, calib_pars=calib_pars, data=data, total_trials=100)
+        calib.calibrate()
     """
     def __init__(self, sim, calib_pars, data=None, weights=None, extra_results=None, save_results=False, **kwargs):
+
+        # Use default build_fn if none provided
+        kwargs.setdefault('build_fn', default_build_fn)
 
         super().__init__(sim, calib_pars, **kwargs)
 
@@ -222,8 +339,9 @@ class Calibration(ss.Calibration):
     def parse_study(self, study):
         """Parse the study into a data frame -- called automatically """
         super().parse_study(study)
-        self.load_results(study)
-        self.sim_results = [self.sim_results[i] for i in self.df.index]
+        if self.save_results:
+            self.load_results(study)
+            self.sim_results = [self.sim_results[i] for i in self.df.index]
         return
 
     def load_results(self, study):

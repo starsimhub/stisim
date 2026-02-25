@@ -8,9 +8,8 @@ Includes:
 import numpy as np
 import starsim as ss
 import sciris as sc
-import stisim
-from stisim.diseases.sti import BaseSTI, BaseSTIPars
 import stisim.utils as ut
+from stisim.diseases.sti import BaseSTI, BaseSTIPars
 
 __all__ = ['SimpleBV', 'BV']
 
