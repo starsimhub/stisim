@@ -98,6 +98,15 @@ class SyphPars(BaseSTIPars):
         self.rel_trans_tertiary = 0.0
         self.rel_trans_latent_half_life = ss.years(1)
 
+        # Symptom visibility by stage [female, male]
+        # Primary: chancres are internal in women (less visible), external in men (more visible)
+        # ~60% of primary chancres overall go unnoticed
+        self.p_symp_primary = [0.3, 0.5]
+        self.p_symp_primary_dist = ss.bernoulli(p=0)  # Placeholder, set per-agent in set_prognoses
+        # Secondary: disseminated rash — visible for both sexes
+        self.p_symp_secondary = [0.85, 0.85]
+        self.p_symp_secondary_dist = ss.bernoulli(p=0)
+
         # Congenital syphilis outcomes
         # Birth outcomes coded as:
         #   0: Miscarriage
@@ -156,6 +165,10 @@ class Syphilis(BaseSTI):
             ss.BoolState('immune'),       # After effective treatment people may acquire temp immunity
             ss.BoolState('ever_exposed'), # Anyone ever exposed - stays true after treatment
 
+            # Symptom visibility — determined at infection/stage entry, reflects anatomical site
+            ss.BoolState('chancre_visible'),  # Whether primary chancre is at a visible site (set in set_prognoses)
+            ss.BoolState('rash_visible'),     # Whether secondary rash is noticeable (set in step_state)
+
             # Congenital syphilis states
             ss.BoolState('congenital'),
             ss.FloatArr('cs_outcome'),
@@ -202,6 +215,16 @@ class Syphilis(BaseSTI):
     def infectious(self):
         """ Infectious """
         return self.active | self.latent
+
+    @property
+    def ulcerative(self):
+        """ Has a visible genital ulcer (chancre at a visible site during primary stage) """
+        return self.chancre_visible & self.primary
+
+    @property
+    def symptomatic(self):
+        """ Has noticeable symptoms: visible ulcer or visible rash """
+        return self.ulcerative | (self.rash_visible & self.secondary)
 
     def init_post(self):
         """ Make initial cases """
@@ -312,6 +335,7 @@ class Syphilis(BaseSTI):
             self.secondary[secondary_from_primary] = True
             self.primary[secondary_from_primary] = False
             self.set_secondary_prognoses(secondary_from_primary.uids)
+            self._set_rash_visible(secondary_from_primary.uids)
 
         # Secondary reactivation from latent
         secondary_from_latent = self.latent & (self.ti_latent >= ti) & (self.ti_secondary <= ti)
@@ -319,12 +343,14 @@ class Syphilis(BaseSTI):
             self.secondary[secondary_from_latent] = True
             self.latent[secondary_from_latent] = False
             self.set_secondary_prognoses(secondary_from_latent.uids)
+            self._set_rash_visible(secondary_from_latent.uids)
 
-        # Latent
+        # Latent — clear rash visibility
         latent = self.secondary & (self.ti_latent <= ti)
         if len(latent.uids) > 0:
             self.latent[latent] = True
             self.secondary[latent] = False
+            self.rash_visible[latent] = False
             self.set_latent_prognoses(latent.uids)
 
         # Tertiary
@@ -446,6 +472,15 @@ class Syphilis(BaseSTI):
         self.results['cum_congenital_deaths'][:] = np.cumsum(self.results['new_congenital_deaths'])
         return
 
+    def _set_rash_visible(self, uids):
+        """ Determine whether secondary rash is noticeable (sex-specific) """
+        ppl = self.sim.people
+        p_vis = np.full(len(uids), np.nan)
+        p_vis[ppl.female[uids]] = self.pars.p_symp_secondary[0]
+        p_vis[ppl.male[uids]] = self.pars.p_symp_secondary[1]
+        self.pars.p_symp_secondary_dist.set(p_vis)
+        self.rash_visible[uids] = self.pars.p_symp_secondary_dist.rvs(uids)
+
     def set_latent_trans(self, ti=None):
         if ti is None: ti = self.ti
         dur_latent = ti - self.ti_latent[self.latent]
@@ -487,6 +522,14 @@ class Syphilis(BaseSTI):
         dur_primary = self.pars.dur_primary.rvs(uids)
         self.ti_secondary[uids] = self.ti_primary[uids] + rr(dur_primary)
         self.dur_early[uids] = self.pars.dur_early.rvs(uids)
+
+        # Determine whether primary chancre will be at a visible site (sex-specific)
+        ppl = self.sim.people
+        p_vis = np.full(len(uids), np.nan)
+        p_vis[ppl.female[uids]] = self.pars.p_symp_primary[0]
+        p_vis[ppl.male[uids]] = self.pars.p_symp_primary[1]
+        self.pars.p_symp_primary_dist.set(p_vis)
+        self.chancre_visible[uids] = self.pars.p_symp_primary_dist.rvs(uids)
 
         return
 
