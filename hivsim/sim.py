@@ -2,10 +2,7 @@ import sciris as sc
 import starsim as ss
 import stisim as sti
 
-from stisim.diseases.hiv import HIV, HIVPars
-from stisim.interventions.hiv_interventions import HIVTest, ART, VMMC, Prep
-
-__all__ = ['Sim', 'HIV', 'HIVPars', 'HIVTest', 'ART', 'VMMC', 'Prep', 'ss', 'sti', 'demo']
+__all__ = ['Sim', 'demo']
 
 class Sim(sti.Sim):
     """
@@ -27,7 +24,7 @@ class Sim(sti.Sim):
         sim_pars = sc.mergedicts(sim_pars)
         hiv_pars = sc.mergedicts(hiv_pars)
         default_sim_keys = ss.SimPars().keys()
-        default_hiv_keys = HIVPars().keys()
+        default_hiv_keys = sti.HIVPars().keys()
 
         # Pull modules out for special processing
         modules = sc.objdict()
@@ -56,7 +53,7 @@ class Sim(sti.Sim):
 
         # Handle interventions
         if not modules.interventions:
-            modules.interventions = [HIVTest(), ART(), VMMC(), Prep()]
+            modules.interventions = [sti.HIVTest(), sti.ART(), sti.VMMC(), sti.Prep()]
 
         super().__init__(
             pars          = sim_pars,
@@ -96,23 +93,21 @@ def demo(example=None, run=True, plot=True, **kwargs):
         hs.demo('zimbabwe')                            # Run Zimbabwe HIV model
         sim = hs.demo('zimbabwe', run=False, n_agents=500)  # Just create it
     """
-    import importlib
-
     if example is None:
         example = 'simple'
     if example not in EXAMPLES:
         available = ', '.join(EXAMPLES.keys())
         raise ValueError(f"Example '{example}' not found. Available: {available}")
 
-    mod = importlib.import_module(f'hivsim_examples.{example}.sim')
+    mod = sc.importbyname(f'hivsim_examples.{example}.sim')
     sim = mod.make_sim(**kwargs)
 
     if run:
         sim.run()
         if plot:
             try:
-                sim.plot(annualize=True)
+                sim.plot('hiv', annualize=True)
             except Exception:
-                sim.plot()
+                sim.plot('hiv')
 
     return sim

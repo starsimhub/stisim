@@ -192,26 +192,27 @@ class Sim(ss.Sim):
 
     def plot(self, key=None, **kwargs):
         """
-        Plot sim results. If HIV is present and no key is specified, shows a
-        curated 2x3 HIV panel (new infections, deaths, PLHIV, prevalence,
-        ART, population). Otherwise falls back to the standard starsim plot.
+        Plot sim results. If key is the name of a disease in the sim (e.g. 'hiv'),
+        shows a curated panel for that disease. Otherwise falls back to the
+        standard starsim plot.
 
         Args:
-            key (str/list): Result key(s) to plot; if None, auto-selects based on diseases
+            key (str/list): Result key(s) to plot, or a disease name for curated plots
             **kwargs: Passed to ss.Sim.plot()
 
         Returns:
             matplotlib.figure.Figure
         """
-        if key is None and 'hiv' in self.diseases:
-            key = [
-                'hiv_new_infections',
-                'hiv_new_deaths',
-                'hiv_n_infected',
-                'hiv_prevalence',
-                'hiv_n_on_art',
-                'n_alive',
-            ]
+        if isinstance(key, str) and key in self.diseases:
+            if key == 'hiv':
+                key = [
+                    'hiv_new_infections',
+                    'hiv_new_deaths',
+                    'hiv_n_infected',
+                    'hiv_prevalence',
+                    'hiv_n_on_art',
+                    'n_alive',
+                ]
         return super().plot(key=key, **kwargs)
 
     def process_networks(self):
