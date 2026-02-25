@@ -274,12 +274,15 @@ class Calibration(ss.Calibration):
         calib = stisim.Calibration(sim=sim, calib_pars=calib_pars, data=data, total_trials=100)
         calib.calibrate()
     """
-    def __init__(self, sim, calib_pars, data=None, weights=None, extra_results=None, save_results=False, **kwargs):
+    def __init__(self, sim, calib_pars, data=None, weights=None, extra_results=None, save_results=False, check_fn=None, **kwargs):
 
         # Use default build_fn if none provided
         kwargs.setdefault('build_fn', default_build_fn)
 
         super().__init__(sim, calib_pars, **kwargs)
+
+        # Post-sim check function: takes a sim, returns False to reject (return inf mismatch)
+        self.check_fn = check_fn
 
         # Custom STIsim calibration elements
         # Load data -- this is expecting a dataframe with a column for 'time' and other columns for to sim results
@@ -391,6 +394,11 @@ class Calibration(ss.Calibration):
 
         sim = self.run_sim(pars)
 
+        # Check for invalid simulations (e.g. disease die-out)
+        if sim is not None and self.check_fn is not None:
+            if not self.check_fn(sim):
+                return np.inf
+
         # Compute fit
         fit = self.eval_fn(sim, **self.eval_kw)
 
@@ -455,3 +463,10 @@ class Calibration(ss.Calibration):
         cal.data = self.data
         cal.df = self.df.iloc[0:n_results, ]
         return cal
+
+
+
+
+
+
+
