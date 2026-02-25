@@ -5,7 +5,7 @@ import unittest
 from itertools import chain
 from statistics import median, mean
 
-from tests.hiv_natural_history_analyzers import CD4ByUIDTracker, TimeToAIDSTracker
+from tests.hiv_natural_history_analyzers import CD4ByUIDTracker, RelativeInfectivityTracker, TimeToAIDSTracker
 from tests.testlib import build_testing_sim
 
 verbose = False
@@ -73,3 +73,30 @@ class TestHIVNaturalHistoryVerification(unittest.TestCase):
             print(f"mean time to AIDS: {mean(times_to_aids)} timesteps.")
             print(f"max time to AIDS stage: {max(times_to_aids)} timesteps.")
         self.assertAlmostEqual(median_time, expected_median, delta=delta)
+
+    def test_latent_transmission_ratio_is_always_1(self):
+        sim = build_testing_sim(diseases=self.diseases, demographics=self.demographics,
+                                interventions=self.interventions, networks=self.networks,
+                                analyzers=[RelativeInfectivityTracker(states=['latent'])],
+                                n_agents=5, duration=5)
+        sim.run()
+        latent_ratios = sim.results['relativeinfectivitytracker']['hiv.latent_infectivity_ratios']
+        latent_ratios = list(set(chain(*latent_ratios)))
+
+        self.assertEqual(len(latent_ratios), 1)
+        self.assertEqual(latent_ratios[0], 1)
+
+
+    def test_acute_transmission_is_higher_than_latent(self):
+        # since test_latent_transmission_ratio_is_always_1 ensures latent ratio is 1, we check > 1 here
+        sim = build_testing_sim(diseases=self.diseases, demographics=self.demographics,
+                                interventions=self.interventions, networks=self.networks,
+                                analyzers=[RelativeInfectivityTracker(states=['acute'])],
+                                n_agents=50, duration=5)
+        sim.run()
+        acute_ratios = sim.results['relativeinfectivitytracker']['hiv.acute_infectivity_ratios']
+        acute_ratios = list(set(chain(*acute_ratios)))
+
+        self.assertGreater(len(acute_ratios), 0)  # make sure we compare at least one item
+        minimum_ratio = min(acute_ratios)
+        self.assertGreater(minimum_ratio, 1)

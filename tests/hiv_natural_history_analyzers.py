@@ -10,6 +10,8 @@ class TimeToAIDSTracker(ss.Analyzer):
         # This is a toggle that allows the first time step to count pre-simulation infections (once)
         self.has_results = False
 
+    def step(self):
+        pass
 
     def init_results(self):
         super().init_results()
@@ -32,6 +34,10 @@ class TimeToAIDSTracker(ss.Analyzer):
 
 class CD4ByUIDTracker(ss.Analyzer):
     # Records an agent-uid-keyed dict of timeseries of CD4 count. Results obtainable by analyzer key 'hiv.ts_cd4'
+
+    def step(self):
+        pass
+
     def init_results(self):
         super().init_results()
         self.results['hiv.ts_cd4'] = {}
@@ -44,3 +50,37 @@ class CD4ByUIDTracker(ss.Analyzer):
                 self.results['hiv.ts_cd4'][uid] = []
             cd4 = hiv.cd4[uid]
             self.results['hiv.ts_cd4'][uid].append(cd4)
+
+class RelativeInfectivityTracker(ss.Analyzer):
+    # records the rel_trans (infectivity ratio) of agents in the specified states (acute, falling, and/or latent).
+    # Results are obtainable by the analyzer keys below.
+    STATES = {
+        'acute':   {'result_name': 'hiv.acute_infectivity_ratios',   'filter': lambda hiv: hiv.acute},
+        'falling': {'result_name': 'hiv.falling_infectivity_ratios', 'filter': lambda hiv: hiv.falling},
+        'latent':  {'result_name': 'hiv.latent_infectivity_ratios',  'filter': lambda hiv: hiv.latent}
+    }
+
+    def __init__(self, states: list[str], *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.states_to_track = states
+
+    def step(self):
+        pass
+
+    def init_results(self):
+        super().init_results()
+        for state in self.states_to_track:
+            if state not in self.STATES:
+                raise Exception(f"Unknown infectivity state: {state}")
+            state_dict = self.STATES[state]
+            self.define_results(ss.Result(state_dict['result_name'], dtype=list, scale=False))
+
+    def update_results(self):
+        hiv = self.sim.diseases.hiv
+        for state in self.states_to_track:
+            state_dict = self.STATES[state]
+            # we ignore ti_infected < self.ti because relative transmission is updated BEFORE infection in the model
+            # timestep and all just-infected agents have rel_trans == 1 (but this value is not used in any infection
+            # events, as rel_trans will be properly updated for the NEXT transmission step)
+            ratios = hiv.rel_trans[(state_dict['filter'](hiv=hiv) & (hiv.ti_infected < self.ti))]
+            self.results[state_dict['result_name']][self.ti] = ratios
