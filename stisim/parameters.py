@@ -135,6 +135,6 @@ def dem_pars():
     """
     death_pars = ss.Deaths().pars
     birth_pars = ss.Births().pars
-    # preg_pars = ss.PregnancyPars()
+    preg_pars = ss.PregnancyPars()
     migration_pars = sti.Migration().pars
-    return mergepars(death_pars, birth_pars, migration_pars)
+    return mergepars(death_pars, birth_pars, preg_pars, migration_pars)
