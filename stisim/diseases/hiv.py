@@ -252,7 +252,7 @@ class HIV(BaseSTI):
 
     @property
     def aids(self):
-        return self.infected & (self.cd4 < 200)
+        return self.cd4 < 200
 
     def make_p_hiv_death(self, uids=None):
         cd4_bins = np.array([1000, 500, 350, 200, 50, 0])
