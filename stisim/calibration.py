@@ -7,6 +7,8 @@ import sciris as sc
 import starsim as ss
 import os
 
+# Lazy import (do not import unless actually used, saves load time)
+op = sc.importbyname('optuna', lazy=True)
 
 __all__ = ['Calibration', 'compute_gof', 'default_build_fn']
 
