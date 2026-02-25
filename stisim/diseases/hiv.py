@@ -250,6 +250,10 @@ class HIV(BaseSTI):
     def symptomatic(self):
         return self.infectious
 
+    @property
+    def aids(self):
+        return self.cd4 < 200
+
     def make_p_hiv_death(self, uids=None):
         cd4_bins = np.array([1000, 500, 350, 200, 50, 0])
         p_hiv_death = ss.peryear(np.array([0.003, 0.003, 0.005, 0.01, 0.05, 0.300])).to_prob(self.dt)

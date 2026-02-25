@@ -22,9 +22,6 @@ class BaseSTIPars(ss.Pars):
         # Settings
         self.include_care = True  # Determines whether testing results are included
 
-        # Time
-        self.dt = 'month'
-
         # Transmission
         self.beta = 0  # Placeholder: no transmission. This will be set in validate_beta
         self.beta_m2f = None
@@ -40,6 +37,9 @@ class BaseSTIPars(ss.Pars):
 class STIPars(BaseSTIPars):
     def __init__(self, **kwargs):
         super().__init__()
+
+        # Time
+        self.dt = 'month'
 
         # Natural history
         self.dur_exp = ss.constant(ss.weeks(1))  # How long after exposure before you can infect others
