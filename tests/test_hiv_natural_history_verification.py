@@ -100,3 +100,17 @@ class TestHIVNaturalHistoryVerification(unittest.TestCase):
         self.assertGreater(len(acute_ratios), 0)  # make sure we compare at least one item
         minimum_ratio = min(acute_ratios)
         self.assertGreater(minimum_ratio, 1)
+
+    def test_falling_transmission_is_higher_than_latent(self):
+        # since test_latent_transmission_ratio_is_always_1 ensures latent ratio is 1, we check > 1 here
+        sim = build_testing_sim(diseases=self.diseases, demographics=self.demographics,
+                                interventions=self.interventions, networks=self.networks,
+                                analyzers=[RelativeInfectivityTracker(states=['falling'])],
+                                n_agents=50, duration=5)
+        sim.run()
+        acute_ratios = sim.results['relativeinfectivitytracker']['hiv.falling_infectivity_ratios']
+        acute_ratios = list(set(chain(*acute_ratios)))
+
+        self.assertGreater(len(acute_ratios), 0)  # make sure we compare at least one item
+        minimum_ratio = min(acute_ratios)
+        self.assertGreater(minimum_ratio, 1)
