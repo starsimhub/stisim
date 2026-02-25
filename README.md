@@ -77,6 +77,7 @@ The following repositories contain end-to-end analyses built with STIsim, and ar
 - **[hiv_kenya](https://github.com/starsimhub/hiv_kenya)** -- HIV transmission model for Kenya with structured sexual networks, testing (FSW-targeted and general population), ART, and PrEP. Includes both Python and R interfaces and Optuna-based calibration.
 - **[hiv_zambia](https://github.com/starsimhub/hiv_zambia)** -- HIV transmission model for Zambia. Similar structure to the Kenya model, useful for comparing how the same framework is adapted to a different country context.
 - **[stisim_vddx_zim](https://github.com/starsimhub/stisim_vddx_zim)** -- Multi-STI model (gonorrhea, chlamydia, trichomoniasis, BV) for Zimbabwe evaluating point-of-care diagnostics vs. syndromic management for vaginal discharge. Demonstrates co-circulating STIs, intervention comparison, and scenario analysis.
+- **[hiv_vmb_southafrica](https://github.com/starsimhub/hiv_vmb_southafrica)** -- HIV-vaginal microbiome transmission model calibrated to South Africa. This model was developed to evaluate novel products to shift the vaginal microbiome and their impact on HIV and pre-term birth.
 
 ## Contributing
 
