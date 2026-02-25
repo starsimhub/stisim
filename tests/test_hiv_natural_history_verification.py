@@ -5,7 +5,8 @@ import unittest
 from itertools import chain
 from statistics import median, mean
 
-from tests.hiv_natural_history_analyzers import CD4ByUIDTracker, RelativeInfectivityTracker, TimeToAIDSTracker
+from tests.hiv_natural_history_analyzers import CD4ByUIDTracker, RelativeInfectivityTracker, TimeToAIDSTracker, \
+    TransmissionTracker
 from tests.testlib import build_testing_sim
 
 verbose = False
@@ -17,14 +18,14 @@ class TestHIVNaturalHistoryVerification(unittest.TestCase):
         # default test setup; individual tests can replace/add to them.
         self.diseases = [sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=0.05)]
 
-        pregnancy = ss.Pregnancy(fertility_rate=10)
-        death = ss.Deaths(death_rate=10)
-        self.demographics = [pregnancy, death]
+        self.pregnancy = ss.Pregnancy(fertility_rate=10)
+        self.death = ss.Deaths(death_rate=10)
+        self.demographics = [self.pregnancy, self.death]
 
-        sexual = sti.StructuredSexual(recall_prior=True)
-        prior = sti.PriorPartners()
-        maternal = ss.MaternalNet()
-        self.networks = [sexual, prior, maternal]
+        self.sexual = sti.StructuredSexual(recall_prior=True)
+        self.prior = sti.PriorPartners()
+        self.maternal = ss.MaternalNet()
+        self.networks = [self.sexual, self.prior, self.maternal]
 
         self.interventions = []
 
@@ -114,3 +115,13 @@ class TestHIVNaturalHistoryVerification(unittest.TestCase):
         self.assertGreater(len(acute_ratios), 0)  # make sure we compare at least one item
         minimum_ratio = min(acute_ratios)
         self.assertGreater(minimum_ratio, 1)
+
+    def test_no_transmission_if_no_sexual_network(self):
+        networks = [self.prior, self.maternal]
+        sim = build_testing_sim(diseases=self.diseases, demographics=self.demographics,
+                                interventions=self.interventions, networks=networks,
+                                analyzers=[TransmissionTracker()],
+                                n_agents=50, duration=5)
+        sim.run()
+        hiv_transmisions = sum(sim.results['transmissiontracker']['hiv.n_transmissions'])
+        self.assertEqual(0, hiv_transmisions)

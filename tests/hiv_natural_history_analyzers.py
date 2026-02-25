@@ -51,6 +51,7 @@ class CD4ByUIDTracker(ss.Analyzer):
             cd4 = hiv.cd4[uid]
             self.results['hiv.ts_cd4'][uid].append(cd4)
 
+
 class RelativeInfectivityTracker(ss.Analyzer):
     # records the rel_trans (infectivity ratio) of agents in the specified states (acute, falling, and/or latent).
     # Results are obtainable by the analyzer keys below.
@@ -84,3 +85,18 @@ class RelativeInfectivityTracker(ss.Analyzer):
             # events, as rel_trans will be properly updated for the NEXT transmission step)
             ratios = hiv.rel_trans[(state_dict['filter'](hiv=hiv) & (hiv.ti_infected < self.ti))]
             self.results[state_dict['result_name']][self.ti] = ratios
+
+
+class TransmissionTracker(ss.Analyzer):
+    # records the number of hiv transmissions per timestep, accessible by analyzer key 'hiv.n_transmissions' .
+    def step(self):
+        pass
+
+    def init_results(self):
+        super().init_results()
+        self.define_results(ss.Result('hiv.n_transmissions', dtype=list, scale=False))
+
+    def update_results(self):
+        hiv = self.sim.diseases.hiv
+        transmissions = len((hiv.ti_infected == self.ti).uids)
+        self.results['hiv.n_transmissions'][self.ti] = transmissions
