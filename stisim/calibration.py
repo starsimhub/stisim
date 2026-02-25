@@ -177,6 +177,15 @@ def default_build_fn(sim, calib_pars, **kwargs):
 
     Returns:
         Sim: The modified simulation
+
+    Example::
+
+        calib_pars = dict(
+            hiv_beta_m2f=dict(low=0.01, high=0.10, guess=0.035, value=0.05),
+            hiv_eff_condom=dict(low=0.5, high=0.99, guess=0.95, value=0.90),
+            nw_f1_conc=dict(low=0.005, high=0.3, guess=0.16, value=0.10),
+        )
+        sim = default_build_fn(sim, calib_pars)
     """
     if not sim.initialized:
         sim.init()
@@ -266,8 +275,7 @@ class Calibration(ss.Calibration):
     def __init__(self, sim, calib_pars, data=None, weights=None, extra_results=None, save_results=False, **kwargs):
 
         # Use default build_fn if none provided
-        if 'build_fn' not in kwargs and kwargs.get('build_fn') is None:
-            kwargs['build_fn'] = default_build_fn
+        kwargs.setdefault('build_fn', default_build_fn)
 
         super().__init__(sim, calib_pars, **kwargs)
 
