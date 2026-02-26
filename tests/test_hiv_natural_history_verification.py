@@ -125,3 +125,16 @@ class TestHIVNaturalHistoryVerification(unittest.TestCase):
         sim.run()
         hiv_transmisions = sum(sim.results['transmissiontracker']['hiv.n_transmissions'])
         self.assertEqual(0, hiv_transmisions)
+
+    # Not currently implemented in hivsim, so leaving this partially-completed test commented out for future work
+    # def test_perinatally_infected_progress_faster(self):
+    #     sim = build_testing_sim(diseases=self.diseases, demographics=self.demographics,
+    #                             interventions=self.interventions, networks=self.networks,
+    #                             analyzers=[BirthTracker()],
+    #                             n_agents=500, duration=30)
+    #     sim.run()
+    #
+    #     peri_infected_uids = sim.results['birthtracker']['hiv.perinatally_infected_uids']
+    #     tis_acute = sim.results['birthtracker']['hiv.tis_acute']
+    #     tis_latent = sim.results['birthtracker']['hiv.tis_latent']
+    #     tis_falling = sim.results['birthtracker']['hiv.tis_falling']

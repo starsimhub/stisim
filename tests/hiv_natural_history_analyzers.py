@@ -100,3 +100,44 @@ class TransmissionTracker(ss.Analyzer):
         hiv = self.sim.diseases.hiv
         transmissions = len((hiv.ti_infected == self.ti).uids)
         self.results['hiv.n_transmissions'][self.ti] = transmissions
+
+# perinatal infection progression not currently implemented in hivsim, so leaving this untested analyzer out for
+# future work
+# class BirthTracker(ss.Analyzer):
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         self.uids_seen = {}
+#
+#     def step(self):
+#         pass
+#
+#     def init_results(self):
+#         super().init_results()
+#         # self.define_results(ss.Result('hiv.perinatally_infected_uids', dtype=list, scale=False))
+#         self.results['hiv.perinatally_infected_uids'] = []
+#         self.results['hiv.tis_acute'] = {}
+#         self.results['hiv.tis_latent'] = {}
+#         self.results['hiv.tis_falling'] = {}
+#
+#     def update_results(self):
+#         hiv = self.sim.diseases.hiv
+#
+#         tis_acute = hiv.ti_acute - hiv.ti_infected
+#         tis_latent = hiv.ti_latent - hiv.ti_acute
+#         tis_falling = hiv.ti_falling - hiv.ti_latent
+#
+#         # checking for any new infections and their computed times to different stages
+#         infected_uids = hiv.infected.uids
+#         for uid in infected_uids:
+#             if uid not in self.uids_seen:
+#                 self.results['hiv.tis_acute'][uid] = tis_acute[uid]
+#                 self.results['hiv.tis_latent'][uid] = tis_latent[uid]
+#                 self.results['hiv.tis_falling'][uid] = tis_falling[uid]
+#                 self.uids_seen[uid] = None  # record to skip next time we see this uid
+#
+#         # checking birth stats for this timestep, looking for perinatally infected agents
+#         people = self.sim.people
+#         born = (people.age >= 0) & (people.age < float(self.sim.dt))  # agents where this is their first non-negative age
+#         born_infected = born & (hiv.ti_infected <= self.ti)
+#         born_infected_uids = born_infected.uids
+#         self.results['hiv.perinatally_infected_uids'].extend(born_infected_uids)
