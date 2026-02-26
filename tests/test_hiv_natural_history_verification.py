@@ -6,7 +6,7 @@ from itertools import chain
 from statistics import median, mean
 
 from tests.hiv_natural_history_analyzers import CD4ByUIDTracker, RelativeInfectivityTracker, TimeToAIDSTracker, \
-    TransmissionTracker
+    TransmissionTracker, BreastfeedingTransmissionTracker
 from tests.testlib import build_testing_sim
 
 verbose = False
@@ -125,6 +125,17 @@ class TestHIVNaturalHistoryVerification(unittest.TestCase):
         sim.run()
         hiv_transmisions = sum(sim.results['transmissiontracker']['hiv.n_transmissions'])
         self.assertEqual(0, hiv_transmisions)
+
+    def test_breastfeeding_hiv_transmission_occurs(self):
+        sim = build_testing_sim(diseases=self.diseases, demographics=self.demographics,
+                                interventions=self.interventions, networks=self.networks,
+                                analyzers=[BreastfeedingTransmissionTracker()],
+                                n_agents=50, duration=10)
+        sim.run()
+        hiv_transmissions = sum(sim.results['breastfeedingtransmissiontracker']['hiv.n_bf_transmissions'])
+
+        # ensure at least one such transmission occurs
+        self.assertGreater(hiv_transmissions, 0)
 
     # Not currently implemented in hivsim, so leaving this partially-completed test commented out for future work
     # def test_perinatally_infected_progress_faster(self):

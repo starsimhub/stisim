@@ -101,6 +101,22 @@ class TransmissionTracker(ss.Analyzer):
         transmissions = len((hiv.ti_infected == self.ti).uids)
         self.results['hiv.n_transmissions'][self.ti] = transmissions
 
+class BreastfeedingTransmissionTracker(ss.Analyzer):
+    # records the number of breastfeeding-related hiv transmissions per timestep, accessible by analyzer key
+    # 'hiv.n_bf_transmissions' .
+    def step(self):
+        pass
+
+    def init_results(self):
+        super().init_results()
+        self.define_results(ss.Result('hiv.n_bf_transmissions', dtype=list, scale=False))
+
+    def update_results(self):
+        hiv = self.sim.diseases.hiv
+        transmissions = len((hiv.ti_infected == self.ti).uids)
+        self.results['hiv.n_bf_transmissions'][self.ti] = transmissions
+
+
 # perinatal infection progression not currently implemented in hivsim, so leaving this untested analyzer out for
 # future work
 # class BirthTracker(ss.Analyzer):
