@@ -16,7 +16,10 @@ class TestHIVNaturalHistoryVerification(unittest.TestCase):
 
     def setUp(self):
         # default test setup; individual tests can replace/add to them.
-        self.diseases = [sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=0.05)]
+        self.init_prev = 0.05
+        self.beta_m2f = 0.05
+        self.beta_m2c = 0.1
+        self.diseases = [sti.HIV(beta_m2f=self.beta_m2f, beta_m2c=self.beta_m2c, init_prev=self.init_prev)]
 
         self.pregnancy = ss.Pregnancy(fertility_rate=10)
         self.death = ss.Deaths(death_rate=10)
@@ -136,6 +139,56 @@ class TestHIVNaturalHistoryVerification(unittest.TestCase):
 
         # ensure at least one such transmission occurs
         self.assertGreater(hiv_transmissions, 0)
+
+    def _run_beta_test(self, baseline_m2f, baseline_m2c, multiplier=2, result_tolerance=0.1,
+                       n_agents=50000, duration=1, init_prev=0.05, fertility=None):
+        if fertility is None:
+            demographics = self.demographics
+        else:
+            pregnancy = ss.Pregnancy(fertility_rate=fertility)
+            demographics = [pregnancy, self.death]
+
+        baseline_hiv = sti.HIV(beta_m2f=baseline_m2f, beta_m2c=baseline_m2c, init_prev=init_prev)
+        sim = build_testing_sim(diseases=[baseline_hiv], demographics=demographics,
+                                interventions=self.interventions, networks=self.networks,
+                                analyzers=[TransmissionTracker()],
+                                n_agents=n_agents, duration=duration)
+        sim.run()
+        hiv_transmissions_baseline = sum(sim.results['transmissiontracker']['hiv.n_transmissions'])
+
+        # ensure at least one such transmission occurs
+        self.assertGreater(hiv_transmissions_baseline, 0)
+
+        # Now multiply betas as selected
+        test_hiv = sti.HIV(beta_m2f=multiplier * baseline_m2f, beta_m2c=multiplier * baseline_m2c, init_prev=init_prev)
+        sim = build_testing_sim(diseases=[test_hiv], demographics=demographics,
+                                interventions=self.interventions, networks=self.networks,
+                                analyzers=[TransmissionTracker()],
+                                n_agents=n_agents, duration=duration)
+        sim.run()
+        hiv_transmissions_test = sum(sim.results['transmissiontracker']['hiv.n_transmissions'])
+
+        # ensure at least one such transmission occurs
+        self.assertGreater(hiv_transmissions_test, 0)
+
+        # check transmission ratio, expected to be approximately increased by "multiplier" if base beta is low enough
+        expected_ratio = multiplier
+        delta = result_tolerance * expected_ratio
+        test_ratio = hiv_transmissions_test / hiv_transmissions_baseline
+        msg = f"baseline: {hiv_transmissions_baseline} test: {hiv_transmissions_test} ratio: {test_ratio} delta: {delta}"
+        self.assertAlmostEqual(test_ratio, expected_ratio, delta=delta, msg=msg)
+        if verbose:
+            print(msg)
+
+    def test_doubling_hiv_maternal_beta_doubles_relevant_transmissions(self):
+        # setting baseline beta low, fertility HIGH, prevalence HIGH to generate enough births/transmissions quickly
+        self._run_beta_test(baseline_m2f=0, baseline_m2c=0.0025, multiplier=2, fertility=1000,
+                            duration=5, n_agents=3000, init_prev=1.0)
+
+    def test_doubling_hiv_sexual_beta_doubles_relevant_transmissions(self):
+        # doubling both beta for m2f (implicitly f2m) (sexual transmission only, no mother-to-child transmission)
+        # This happens to be a realistic baseline m2f beta
+        self._run_beta_test(baseline_m2f=0.001, baseline_m2c=0, multiplier=2)
 
     # Not currently implemented in hivsim, so leaving this partially-completed test commented out for future work
     # def test_perinatally_infected_progress_faster(self):
