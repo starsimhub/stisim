@@ -233,8 +233,10 @@ class SyphTest(STITest):
                 if new_pos.any():
                     pos_mother_inds = np.in1d(sim.networks.maternalnet.p1, new_pos.uids)
                     unborn_uids = sim.networks.maternalnet.p2[pos_mother_inds]
-                    ti_births = sim.networks.maternalnet.edges.end[pos_mother_inds].astype(int)
-                    self.newborn_test.schedule(unborn_uids, ti_births)
+                    ti_births = sim.demographics.pregnancy.ti_delivery[sim.networks.maternalnet.p1[pos_mother_inds]]
+                    valid = ~np.isnan(ti_births)
+                    if valid.any():
+                        self.newborn_test.schedule(unborn_uids[valid], ti_births[valid].astype(int))
 
         return
 
@@ -275,7 +277,7 @@ class ANCSyphTest(SyphTest):
     Need to adjust timing using Trivedi (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7138526/)
     """
     def __init__(self, test_prob_data=None, years=None, start=None, stop=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
-        super().__init__(test_prob_data=test_prob_data, years=years, start=start, stop=stop, eligibility=eligibility, product=product, name=name, label=label, **kwargs)
+        super().__init__(test_prob_data=test_prob_data, years=years, start=start, stop=stop, eligibility=eligibility, product=product, name=name, label=label, newborn_test=newborn_test, **kwargs)
         self.define_pars(
             dt_scale=False,
         )
