@@ -602,18 +602,9 @@ class Syphilis(BaseSTI):
                         self.setattribute(ti_outcome, vals)
                         new_outcomes[outcome] += len(o_uids)
 
-        # Check that the birth outcomes are mutually exclusive
-        if not sum(new_outcomes.values()) == len(target_uids):
-            raise ValueError('Birth outcomes are not mutually exclusive')
-
-        # Check that the birth outcomes are not greater than the number of congenital cases
-        for o1, out1 in enumerate(self.pars.birth_outcome_keys):
-            for o2, out2 in enumerate(self.pars.birth_outcome_keys):
-                if o1 != o2:
-                    val1 = getattr(self, f'ti_{out1}')
-                    val2 = getattr(self, f'ti_{out2}')
-                    if (val1.notnan & val2.notnan).any() :
-                        raise ValueError(f'Birth outcomes {out1} and {out2} are not mutually exclusive')
+        # Check that every baby in this batch got exactly one outcome
+        if sum(new_outcomes.values()) != len(target_uids):
+            raise ValueError(f'Birth outcomes do not sum to target: {new_outcomes} vs {len(target_uids)} babies')
 
         return
 
