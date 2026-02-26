@@ -570,27 +570,22 @@ class Syphilis(BaseSTI):
     def set_congenital(self, target_uids, source_uids=None):
         """
         Natural history of syphilis for congenital infection.
-        Birth outcomes depend on the mother's disease stage.
+        Birth outcomes depend on the mother's disease stage:
+          mat_active (exposed|primary|secondary), early latent, late latent.
         """
         ti = self.ti
-        self.susceptible[target_uids] = False
-        self.infected[target_uids] = True
         new_outcomes = {k:0 for k in self.pars.birth_outcome_keys}
 
-        # Map birth outcome categories to maternal disease states
-        # mat_active = primary or secondary (property 'active')
-        state_map = {'mat_active': 'active', 'early': 'early', 'late': 'late'}
-
         # Determine outcomes based on mother's stage
-        for outcome_cat, disease_state in state_map.items():
+        for state in ['mat_active', 'early', 'late']:
 
-            source_state_inds = getattr(self, disease_state)[source_uids].nonzero()[-1]
+            source_state_inds = getattr(self, state)[source_uids].nonzero()[-1]
             uids = target_uids[source_state_inds]
             source_state_uids = source_uids[source_state_inds]
 
             if len(uids) > 0:
 
-                birth_outcomes = self.pars.birth_outcomes[outcome_cat]
+                birth_outcomes = self.pars.birth_outcomes[state]
                 assigned_outcomes = birth_outcomes.rvs(uids)
                 self.cs_outcome[uids] = assigned_outcomes
                 timesteps_til_delivery = self.sim.demographics.pregnancy.ti_delivery - self.ti
