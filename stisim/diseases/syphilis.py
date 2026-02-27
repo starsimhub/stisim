@@ -366,15 +366,18 @@ class Syphilis(BaseSTI):
         # Congenital syphilis deaths
         nnd = (self.ti_nnd <= ti).uids
         stillborn = (self.ti_stillborn <= ti).uids
-        self.ti_nnd[nnd] = ti
-        self.ti_stillborn[stillborn] = ti
-        self.sim.people.request_death(nnd)
-        self.sim.people.request_death(stillborn)
+        if len(nnd):
+            self.sim.people.request_death(nnd)
+            self.ti_nnd[nnd] = np.nan  # Clear after firing
+        if len(stillborn):
+            self.sim.people.request_death(stillborn)
+            self.ti_stillborn[stillborn] = np.nan  # Clear after firing
 
         # Congenital syphilis transmission outcomes
         congenital = (self.ti_congenital <= ti).uids
         self.congenital[congenital] = True
-        self.ti_congenital[congenital] = ti
+        self._new_congenital_count = len(congenital)  # Store for update_results (before clearing)
+        self.ti_congenital[congenital] = np.nan  # Clear after firing to prevent re-counting
 
         # Set rel_trans
         self.rel_trans[self.primary] = self.pars.rel_trans_primary
@@ -448,7 +451,7 @@ class Syphilis(BaseSTI):
         # Congenital results
         self.results['new_nnds'][ti]       = np.count_nonzero(self.ti_nnd == ti)
         self.results['new_stillborns'][ti] = np.count_nonzero(self.ti_stillborn == ti)
-        self.results['new_congenital'][ti] = np.count_nonzero(self.ti_congenital == ti)
+        self.results['new_congenital'][ti] = getattr(self, '_new_congenital_count', 0)
         self.results['new_congenital_deaths'][ti] = self.results['new_nnds'][ti] + self.results['new_stillborns'][ti]
         self.results['new_deaths'][ti] = np.count_nonzero(self.ti_dead == ti)
 
