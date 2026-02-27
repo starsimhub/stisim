@@ -413,7 +413,7 @@ class Syphilis(BaseSTI):
         self.chancre_visible[uids] = False
         self.rash_visible[uids] = False
 
-        # Time/date states
+        # Clear future scheduled events (but keep ti_dead, ti_nnd, ti_stillborn for records)
         self.ti_exposed[uids] = np.nan
         self.ti_infected[uids] = np.nan
         self.ti_primary[uids] = np.nan
@@ -421,10 +421,6 @@ class Syphilis(BaseSTI):
         self.ti_latent[uids] = np.nan
         self.ti_tertiary[uids] = np.nan
         self.ti_congenital[uids] = np.nan
-        self.ti_nnd[uids] = np.nan
-        self.ti_stillborn[uids] = np.nan
-        self.ti_dead[uids] = np.nan
-        self.cs_outcome[uids] = np.nan
 
     def update_results(self):
         super().update_results()
