@@ -606,8 +606,9 @@ class Syphilis(BaseSTI):
         ti = self.ti
         new_outcomes = {k:0 for k in self.pars.birth_outcome_keys}
 
-        # Mark all babies as no longer susceptible to prevent re-transmission
-        # each timestep. Normal-outcome babies will be reset to susceptible below.
+        # Mark all babies as no longer susceptible to prevent repeated MTC
+        # transmission every timestep of pregnancy. Even normal-outcome babies
+        # stay non-susceptible (they're babies, no sexual transmission).
         self.susceptible[target_uids] = False
 
         # Determine outcomes based on mother's stage
@@ -636,12 +637,8 @@ class Syphilis(BaseSTI):
                         self.setattribute(ti_outcome, vals)
                         new_outcomes[outcome] += len(o_uids)
 
-        # Normal-outcome babies escaped infection — restore susceptibility
-        normal_idx = self.pars.birth_outcome_keys.index('normal')
-        normal_uids = target_uids[self.cs_outcome[target_uids] == normal_idx]
-        self.susceptible[normal_uids] = True
-
         # Adverse-outcome babies are infected
+        normal_idx = self.pars.birth_outcome_keys.index('normal')
         adverse_uids = target_uids[self.cs_outcome[target_uids] != normal_idx]
         self.infected[adverse_uids] = True
 
