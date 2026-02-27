@@ -396,7 +396,8 @@ class Syphilis(BaseSTI):
         return
 
     def step_die(self, uids):
-        """ Clear all states for dead agents (including NND/stillborn babies) """
+        """ Clear all states and dates for dead agents (including NND/stillborn babies) """
+        # Boolean states
         self.susceptible[uids] = False
         self.infected[uids] = False
         self.exposed[uids] = False
@@ -408,8 +409,22 @@ class Syphilis(BaseSTI):
         self.tertiary[uids] = False
         self.immune[uids] = False
         self.congenital[uids] = False
+        self.ever_exposed[uids] = False
         self.chancre_visible[uids] = False
         self.rash_visible[uids] = False
+
+        # Time/date states
+        self.ti_exposed[uids] = np.nan
+        self.ti_infected[uids] = np.nan
+        self.ti_primary[uids] = np.nan
+        self.ti_secondary[uids] = np.nan
+        self.ti_latent[uids] = np.nan
+        self.ti_tertiary[uids] = np.nan
+        self.ti_congenital[uids] = np.nan
+        self.ti_nnd[uids] = np.nan
+        self.ti_stillborn[uids] = np.nan
+        self.ti_dead[uids] = np.nan
+        self.cs_outcome[uids] = np.nan
 
     def update_results(self):
         super().update_results()
