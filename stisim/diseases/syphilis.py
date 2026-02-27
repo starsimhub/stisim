@@ -637,11 +637,6 @@ class Syphilis(BaseSTI):
                         self.setattribute(ti_outcome, vals)
                         new_outcomes[outcome] += len(o_uids)
 
-        # Adverse-outcome babies are infected
-        normal_idx = self.pars.birth_outcome_keys.index('normal')
-        adverse_uids = target_uids[self.cs_outcome[target_uids] != normal_idx]
-        self.infected[adverse_uids] = True
-
         # Check that every baby in this batch got exactly one outcome
         if sum(new_outcomes.values()) != len(target_uids):
             raise ValueError(f'Birth outcomes do not sum to target: {new_outcomes} vs {len(target_uids)} babies')
