@@ -41,7 +41,7 @@ class HIVPars(BaseSTIPars):
         # dist_ti_init_infected=ss.constant(0),  # Experimented with negative values, but safer to use 0
 
         # Care seeking
-        self.care_seeking = ss.normal(loc=1, scale=0.1)  # Distribution of relative care-seeking behavior
+        self.care_seeking = ss.normal(loc=1, scale=0.5)  # Distribution of relative care-seeking behavior (wide spread for low-care-seeking extremes)
         self.maternal_care_scale = 2  # Factor for scaling up care-seeking behavior during pregnancy
 
         # Treatment effects
@@ -49,7 +49,9 @@ class HIVPars(BaseSTIPars):
         self.art_efficacy = 0.96  # Efficacy of ART
         self.time_to_art_efficacy = ss.months(6)  # Time to reach full ART efficacy (in months) - linear increase in efficacy
         self.art_cd4_pars = dict(cd4_max=1000, cd4_healthy=500)
-        self.dur_on_art = ss.lognorm_ex(ss.years(18), ss.years(5))
+        self.dur_on_art = ss.lognorm_ex(ss.years(3), ss.years(1.5))  # Base ART duration (scaled by rel_dur_on_art and trend)
+        self.rel_dur_on_art = 1.0  # Calibratable scalar that scales ART duration
+        self.dur_on_art_trend = sc.objdict(years=np.array([2004, 2015, 2030]), vals=np.array([0.5, 1.0, 1.5]))  # Time-varying scale: early ART has worse retention
         self.dur_post_art = ss.normal()  # Note defined in years!
         self.dur_post_art_scale_factor = 0.1
 
@@ -276,6 +278,7 @@ class HIV(BaseSTI):
         """
         uids = ss.uids(self.care_seeking.isnan)
         self.care_seeking[uids] = self.pars.care_seeking.rvs(uids)
+        self.care_seeking[uids] = np.maximum(self.care_seeking[uids], 0.01)  # Floor to prevent division by zero
         self.baseline_care_seeking[uids] = sc.dcp(self.care_seeking[uids])  # Copy it so pregnancy can modify it
         return
 
@@ -524,6 +527,10 @@ class HIV(BaseSTI):
 
         # Determine when agents goes off ART
         dur_on_art = self.pars.dur_on_art.rvs(uids)
+        year = self.t.now('year')
+        trend = self.pars.dur_on_art_trend
+        time_scale = np.interp(year, trend.years, trend.vals)
+        dur_on_art = dur_on_art * self.pars.rel_dur_on_art * time_scale
         self.ti_stop_art[uids] = ti + dur_on_art.astype(int)
 
         # ART nullifies all states and all future dates in the natural history
