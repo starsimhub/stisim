@@ -164,6 +164,7 @@ class Syphilis(BaseSTI):
             ss.BoolState('tertiary'),     # Includes complications (cardio/neuro/disfigurement)
             ss.BoolState('immune'),       # After effective treatment people may acquire temp immunity
             ss.BoolState('ever_exposed'), # Anyone ever exposed - stays true after treatment
+            ss.IntArr('n_infections', default=0),  # Lifetime infection count (incremented each time infected)
 
             # Symptom visibility — determined at infection/stage entry, reflects anatomical site
             ss.BoolState('chancre_visible'),  # Whether primary chancre is at a visible site (set in set_prognoses)
@@ -267,6 +268,7 @@ class Syphilis(BaseSTI):
             ss.Result('cum_congenital', dtype=int, label="Cumulative congenital cases", auto_plot=False),
             ss.Result('cum_congenital_deaths', dtype=int, label="Cumulative congenital deaths", auto_plot=False),
             ss.Result('new_deaths', dtype=int, label="Deaths"),
+            ss.Result('new_reinfections', dtype=int, scale=True, label="Reinfections"),
 
             # Add fetus testing and treatment results, which might be assembled from numerous interventions
             ss.Result('new_fetus_treated_success', dtype=int, label="Fetal treatment success", auto_plot=False),
@@ -413,6 +415,7 @@ class Syphilis(BaseSTI):
         self.immune[uids] = False
         self.congenital[uids] = False
         self.ever_exposed[uids] = False
+        self.n_infections[uids] = 0
         self.chancre_visible[uids] = False
         self.rash_visible[uids] = False
 
@@ -454,6 +457,7 @@ class Syphilis(BaseSTI):
         self.results['new_congenital'][ti] = getattr(self, '_new_congenital_count', 0)
         self.results['new_congenital_deaths'][ti] = self.results['new_nnds'][ti] + self.results['new_stillborns'][ti]
         self.results['new_deaths'][ti] = np.count_nonzero(self.ti_dead == ti)
+        self.results['new_reinfections'][ti] = np.count_nonzero((self.ti_infected == ti) & (self.n_infections > 1))
 
         # Add FSW and clients to results:
         if self.store_sw:
@@ -540,6 +544,7 @@ class Syphilis(BaseSTI):
 
         # Set initial states upon exposure
         self.susceptible[uids] = False
+        self.n_infections[uids] += 1
         self.ever_exposed[uids] = True
         self.exposed[uids] = True
         self.infected[uids] = True
