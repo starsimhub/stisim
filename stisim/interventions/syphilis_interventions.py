@@ -132,7 +132,7 @@ class NewbornTreatment(SyphTx):
         """ Change states of congenital cases """
         self.sim.diseases[disease].congenital[treat_succ] = False
         self.sim.diseases[disease].ti_congenital[treat_succ] = np.nan
-        # sim.diseases.syphilis.susceptible[treat_succ] = True  # Leave this out for now
+        self.sim.diseases[disease].cs_outcome[treat_succ] = 4  # Reset to 'normal' outcome
 
     def administer(self, sim, uids, disease, return_format='dict'):
         """ Administer treatment to newborns """
@@ -141,8 +141,14 @@ class NewbornTreatment(SyphTx):
         sus_uids = uids[sus[uids]]
         con_uids = uids[con[uids]]
 
-        successful = self.pars.treat_eff.filter(con_uids)
-        unsuccessful = np.setdiff1d(con_uids, successful)
+        # Babies that are neither susceptible nor congenital are MTC-infected
+        # (susceptible cleared during pregnancy, congenital not yet fired).
+        # Treat them as congenital cases.
+        mtc_uids = uids[~sus[uids] & ~con[uids]]
+        all_con = con_uids | mtc_uids
+
+        successful = self.pars.treat_eff.filter(all_con)
+        unsuccessful = np.setdiff1d(np.asarray(all_con), np.asarray(successful))
         unnecessary = sus_uids
 
         # Return outcomes
