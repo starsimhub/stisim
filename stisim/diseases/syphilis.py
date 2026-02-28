@@ -192,6 +192,68 @@ class Syphilis(BaseSTI):
 
         return
 
+    def infect(self):
+        """
+        Override to use rel_trans=1 for maternal transmission.
+        Stage-specific rel_trans (primary >> latent) only applies to sexual
+        transmission. For MTC, all infected stages transmit equally since
+        spirochetemia during pregnancy affects the fetus regardless of the
+        mother's clinical stage.
+        """
+        new_cases = []
+        sources = []
+        networks = []
+        betamap = self.validate_beta()
+
+        # Sexual rel_trans: stage-specific (set in step_state)
+        rel_trans_sexual = self.rel_trans.asnew(self.infectious * self.rel_trans)
+        # MTC rel_trans: all infected stages transmit equally
+        rel_trans_mtc = self.rel_trans.asnew(self.infectious * 1.0)
+        rel_sus = self.rel_sus.asnew(self.susceptible * self.rel_sus)
+
+        for i, (nkey, route) in enumerate(self.sim.networks.items()):
+            nk = ss.standardize_netkey(nkey)
+
+            # Use MTC rel_trans for maternal network, sexual for everything else
+            is_maternal = isinstance(route, ss.MaternalNet)
+            rel_trans = rel_trans_mtc if is_maternal else rel_trans_sexual
+
+            if isinstance(route, ss.Network):
+                if len(route):
+                    edges = route.edges
+                    p1p2b0 = [edges.p1, edges.p2, betamap[nk][0]]
+                    p2p1b1 = [edges.p2, edges.p1, betamap[nk][1]]
+                    for src, trg, beta in [p1p2b0, p2p1b1]:
+                        if beta:
+                            disease_beta = beta.to_prob(self.t.dt) if isinstance(beta, ss.Rate) else beta
+                            beta_per_dt = route.net_beta(disease_beta=disease_beta, disease=self)
+                            randvals = self.trans_rng.rvs(src, trg)
+                            args = (src, trg, rel_trans, rel_sus, beta_per_dt, randvals)
+                            target_uids, source_uids = self.compute_transmission(*args)
+                            new_cases.append(target_uids)
+                            sources.append(source_uids)
+                            networks.append(np.full(len(target_uids), dtype=ss.dtypes.int, fill_value=i))
+
+            elif isinstance(route, ss.Route):
+                disease_beta = betamap[nk][0].to_prob(self.t.dt) if isinstance(betamap[nk][0], ss.Rate) else betamap[nk][0]
+                target_uids = route.compute_transmission(rel_sus, rel_trans, disease_beta, disease=self)
+                new_cases.append(target_uids)
+                sources.append(np.full(len(target_uids), dtype=ss.dtypes.float, fill_value=np.nan))
+                networks.append(np.full(len(target_uids), dtype=ss.dtypes.int, fill_value=i))
+
+        # Finalize: concatenate, deduplicate
+        if len(new_cases) and len(sources):
+            new_cases = ss.uids.cat(new_cases)
+            new_cases, inds = new_cases.unique(return_index=True)
+            sources = ss.uids.cat(sources)[inds]
+            networks = np.concatenate(networks)[inds]
+        else:
+            new_cases = ss.uids()
+            sources = ss.uids()
+            networks = np.empty(0, dtype=ss.dtypes.int)
+
+        return new_cases, sources, networks
+
     @property
     def naive(self):
         """ Never exposed """
