@@ -2,6 +2,11 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.5.0 (2026-03-02)
+
+- Establish realistic syphilis dynamics: calibrated natural history, transmission, and treatment parameters
+- *GitHub info*: PR [TBD](https://github.com/starsimhub/stisim/pull/TBD)
+
 ## Version 1.4.9 (2026-02-24)
 
 - Add `default_build_fn` for calibration: routes parameters by prefix (`hiv_*`, `syph_*`, `nw_*`) to diseases and networks automatically, removing need for custom `build_fn`

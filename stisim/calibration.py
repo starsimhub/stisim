@@ -7,6 +7,8 @@ import sciris as sc
 import starsim as ss
 import os
 
+# Lazy import (do not import unless actually used, saves load time)
+op = sc.importbyname('optuna', lazy=True)
 
 __all__ = ['Calibration', 'compute_gof', 'default_build_fn']
 
@@ -272,12 +274,15 @@ class Calibration(ss.Calibration):
         calib = stisim.Calibration(sim=sim, calib_pars=calib_pars, data=data, total_trials=100)
         calib.calibrate()
     """
-    def __init__(self, sim, calib_pars, data=None, weights=None, extra_results=None, save_results=False, **kwargs):
+    def __init__(self, sim, calib_pars, data=None, weights=None, extra_results=None, save_results=False, check_fn=None, **kwargs):
 
         # Use default build_fn if none provided
         kwargs.setdefault('build_fn', default_build_fn)
 
         super().__init__(sim, calib_pars, **kwargs)
+
+        # Post-sim check function: takes a sim, returns False to reject (return inf mismatch)
+        self.check_fn = check_fn
 
         # Custom STIsim calibration elements
         # Load data -- this is expecting a dataframe with a column for 'time' and other columns for to sim results
@@ -311,6 +316,68 @@ class Calibration(ss.Calibration):
         self.eval_fn = eval_fn
         return
 
+    def worker(self):
+        """ Run a single worker, catching exceptions so one crash doesn't kill all workers """
+        if self.verbose:
+            op.logging.set_verbosity(op.logging.DEBUG)
+        else:
+            op.logging.set_verbosity(op.logging.ERROR)
+        study = op.load_study(storage=self.run_args.storage, study_name=self.run_args.study_name, sampler=self.run_args.sampler)
+        try:
+            output = study.optimize(self.run_trial, n_trials=self.run_args.n_trials, callbacks=None)
+        except Exception as E:
+            print(f'Worker failed with error: {E}')
+            output = None
+        return output
+
+    def calibrate(self, calib_pars=None, **kwargs):
+        """
+        Perform calibration with crash-recovery support.
+
+        If continue_db=True and the database already has completed trials, only
+        the remaining trials will be run. This allows recovery from crashes by
+        simply re-running the same command.
+        """
+        if calib_pars is not None:
+            self.calib_pars = calib_pars
+        self.run_args.update(kwargs)
+
+        t0 = sc.tic()
+        self.study = self.make_study()
+
+        # Resume logic: count existing trials and only run the remainder
+        if self.run_args.continue_db:
+            study = op.load_study(storage=self.run_args.storage, study_name=self.run_args.study_name)
+            n_existing = len([t for t in study.trials if t.state == op.trial.TrialState.COMPLETE])
+            total_trials = self.run_args.n_trials * self.run_args.n_workers
+            if n_existing > 0:
+                n_remaining = max(0, total_trials - n_existing)
+                if n_remaining == 0:
+                    print(f'Calibration already has {n_existing} completed trials, no more needed')
+                else:
+                    self.run_args.n_trials = int(np.ceil(n_remaining / self.run_args.n_workers))
+                    print(f'Resuming calibration: {n_existing} trials complete, running ~{n_remaining} more')
+                    self.run_workers()
+            else:
+                self.run_workers()
+        else:
+            self.run_workers()
+
+        study = op.load_study(storage=self.run_args.storage, study_name=self.run_args.study_name, sampler=self.run_args.sampler)
+        self.best_pars = sc.objdict(study.best_params)
+        self.elapsed = sc.toc(t0, output=True)
+
+        self.parse_study(study)
+
+        if self.verbose:
+            print('Best pars:', self.best_pars)
+
+        self.calibrated = True
+        if not self.run_args.keep_db:
+            self.remove_db()
+
+        return self
+
     def run_trial(self, trial):
         """ Define the objective for Optuna """
         if self.calib_pars is not None:
@@ -327,6 +394,11 @@ class Calibration(ss.Calibration):
 
         sim = self.run_sim(pars)
 
+        # Check for invalid simulations (e.g. disease die-out)
+        if sim is not None and self.check_fn is not None:
+            if not self.check_fn(sim):
+                return np.inf
+
         # Compute fit
         fit = self.eval_fn(sim, **self.eval_kw)
 
@@ -340,14 +412,17 @@ class Calibration(ss.Calibration):
         """Parse the study into a data frame -- called automatically """
         super().parse_study(study)
         if self.save_results:
-            self.load_results(study)
-            self.sim_results = [self.sim_results[i] for i in self.df.index]
+            loaded = self.load_results(study)
+            # Filter sim_results to only successfully loaded trials
+            if loaded is not None:
+                self.sim_results = [self.sim_results[i] for i in range(len(self.sim_results))]
         return
 
     def load_results(self, study):
         """
-        Load the results from the tmp files
+        Load the results from the tmp files, tracking which loaded successfully
         """
+        loaded_trials = set()
         if self.save_results:
             print('Loading saved results...')
             for trial in study.trials:
@@ -356,6 +431,7 @@ class Calibration(ss.Calibration):
                     filename = self.tmp_filename % trial.number
                     results = sc.load(filename)
                     self.sim_results.append(results)
+                    loaded_trials.add(n)
                     try:
                         os.remove(filename)
                         if self.verbose: print(f'    Removed temporary file {filename}')
@@ -366,7 +442,7 @@ class Calibration(ss.Calibration):
                 except Exception as E:
                     errormsg = f'Warning, could not load trial {n}: {str(E)}'
                     if self.verbose: print(errormsg)
-        return
+        return loaded_trials
 
     def shrink(self, n_results=100, make_df=True):
         """ Shrink the results to only the best fit """
@@ -387,3 +463,10 @@ class Calibration(ss.Calibration):
         cal.data = self.data
         cal.df = self.df.iloc[0:n_results, ]
         return cal
+
+
+
+
+
+
+

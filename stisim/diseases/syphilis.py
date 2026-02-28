@@ -98,6 +98,15 @@ class SyphPars(BaseSTIPars):
         self.rel_trans_tertiary = 0.0
         self.rel_trans_latent_half_life = ss.years(1)
 
+        # Symptom visibility by stage [female, male]
+        # Primary: chancres are internal in women (less visible), external in men (more visible)
+        # ~60% of primary chancres overall go unnoticed
+        self.p_symp_primary = [0.3, 0.5]
+        self.p_symp_primary_dist = ss.bernoulli(p=0)  # Placeholder, set per-agent in set_prognoses
+        # Secondary: disseminated rash — visible for both sexes
+        self.p_symp_secondary = [0.85, 0.85]
+        self.p_symp_secondary_dist = ss.bernoulli(p=0)
+
         # Congenital syphilis outcomes
         # Birth outcomes coded as:
         #   0: Miscarriage
@@ -155,6 +164,11 @@ class Syphilis(BaseSTI):
             ss.BoolState('tertiary'),     # Includes complications (cardio/neuro/disfigurement)
             ss.BoolState('immune'),       # After effective treatment people may acquire temp immunity
             ss.BoolState('ever_exposed'), # Anyone ever exposed - stays true after treatment
+            ss.IntArr('n_infections', default=0),  # Lifetime infection count (incremented each time infected)
+
+            # Symptom visibility — determined at infection/stage entry, reflects anatomical site
+            ss.BoolState('chancre_visible'),  # Whether primary chancre is at a visible site (set in set_prognoses)
+            ss.BoolState('rash_visible'),     # Whether secondary rash is noticeable (set in step_state)
 
             # Congenital syphilis states
             ss.BoolState('congenital'),
@@ -177,6 +191,68 @@ class Syphilis(BaseSTI):
         )
 
         return
+
+    def infect(self):
+        """
+        Override to use rel_trans=1 for maternal transmission.
+        Stage-specific rel_trans (primary >> latent) only applies to sexual
+        transmission. For MTC, all infected stages transmit equally since
+        spirochetemia during pregnancy affects the fetus regardless of the
+        mother's clinical stage.
+        """
+        new_cases = []
+        sources = []
+        networks = []
+        betamap = self.validate_beta()
+
+        # Sexual rel_trans: stage-specific (set in step_state)
+        rel_trans_sexual = self.rel_trans.asnew(self.infectious * self.rel_trans)
+        # MTC rel_trans: all infected stages transmit equally
+        rel_trans_mtc = self.rel_trans.asnew(self.infectious * 1.0)
+        rel_sus = self.rel_sus.asnew(self.susceptible * self.rel_sus)
+
+        for i, (nkey, route) in enumerate(self.sim.networks.items()):
+            nk = ss.standardize_netkey(nkey)
+
+            # Use MTC rel_trans for maternal network, sexual for everything else
+            is_maternal = isinstance(route, ss.MaternalNet)
+            rel_trans = rel_trans_mtc if is_maternal else rel_trans_sexual
+
+            if isinstance(route, ss.Network):
+                if len(route):
+                    edges = route.edges
+                    p1p2b0 = [edges.p1, edges.p2, betamap[nk][0]]
+                    p2p1b1 = [edges.p2, edges.p1, betamap[nk][1]]
+                    for src, trg, beta in [p1p2b0, p2p1b1]:
+                        if beta:
+                            disease_beta = beta.to_prob(self.t.dt) if isinstance(beta, ss.Rate) else beta
+                            beta_per_dt = route.net_beta(disease_beta=disease_beta, disease=self)
+                            randvals = self.trans_rng.rvs(src, trg)
+                            args = (src, trg, rel_trans, rel_sus, beta_per_dt, randvals)
+                            target_uids, source_uids = self.compute_transmission(*args)
+                            new_cases.append(target_uids)
+                            sources.append(source_uids)
+                            networks.append(np.full(len(target_uids), dtype=ss.dtypes.int, fill_value=i))
+
+            elif isinstance(route, ss.Route):
+                disease_beta = betamap[nk][0].to_prob(self.t.dt) if isinstance(betamap[nk][0], ss.Rate) else betamap[nk][0]
+                target_uids = route.compute_transmission(rel_sus, rel_trans, disease_beta, disease=self)
+                new_cases.append(target_uids)
+                sources.append(np.full(len(target_uids), dtype=ss.dtypes.float, fill_value=np.nan))
+                networks.append(np.full(len(target_uids), dtype=ss.dtypes.int, fill_value=i))
+
+        # Finalize: concatenate, deduplicate
+        if len(new_cases) and len(sources):
+            new_cases = ss.uids.cat(new_cases)
+            new_cases, inds = new_cases.unique(return_index=True)
+            sources = ss.uids.cat(sources)[inds]
+            networks = np.concatenate(networks)[inds]
+        else:
+            new_cases = ss.uids()
+            sources = ss.uids()
+            networks = np.empty(0, dtype=ss.dtypes.int)
+
+        return new_cases, sources, networks
 
     @property
     def naive(self):
@@ -202,6 +278,16 @@ class Syphilis(BaseSTI):
     def infectious(self):
         """ Infectious """
         return self.active | self.latent
+
+    @property
+    def ulcerative(self):
+        """ Has a visible genital ulcer (chancre at a visible site during primary stage) """
+        return self.chancre_visible & self.primary
+
+    @property
+    def symptomatic(self):
+        """ Has noticeable symptoms: visible ulcer or visible rash """
+        return self.ulcerative | (self.rash_visible & self.secondary)
 
     def init_post(self):
         """ Make initial cases """
@@ -244,6 +330,7 @@ class Syphilis(BaseSTI):
             ss.Result('cum_congenital', dtype=int, label="Cumulative congenital cases", auto_plot=False),
             ss.Result('cum_congenital_deaths', dtype=int, label="Cumulative congenital deaths", auto_plot=False),
             ss.Result('new_deaths', dtype=int, label="Deaths"),
+            ss.Result('new_reinfections', dtype=int, scale=True, label="Reinfections"),
 
             # Add fetus testing and treatment results, which might be assembled from numerous interventions
             ss.Result('new_fetus_treated_success', dtype=int, label="Fetal treatment success", auto_plot=False),
@@ -312,6 +399,7 @@ class Syphilis(BaseSTI):
             self.secondary[secondary_from_primary] = True
             self.primary[secondary_from_primary] = False
             self.set_secondary_prognoses(secondary_from_primary.uids)
+            self._set_rash_visible(secondary_from_primary.uids)
 
         # Secondary reactivation from latent
         secondary_from_latent = self.latent & (self.ti_latent >= ti) & (self.ti_secondary <= ti)
@@ -319,12 +407,14 @@ class Syphilis(BaseSTI):
             self.secondary[secondary_from_latent] = True
             self.latent[secondary_from_latent] = False
             self.set_secondary_prognoses(secondary_from_latent.uids)
+            self._set_rash_visible(secondary_from_latent.uids)
 
-        # Latent
+        # Latent — clear rash visibility
         latent = self.secondary & (self.ti_latent <= ti)
         if len(latent.uids) > 0:
             self.latent[latent] = True
             self.secondary[latent] = False
+            self.rash_visible[latent] = False
             self.set_latent_prognoses(latent.uids)
 
         # Tertiary
@@ -340,15 +430,18 @@ class Syphilis(BaseSTI):
         # Congenital syphilis deaths
         nnd = (self.ti_nnd <= ti).uids
         stillborn = (self.ti_stillborn <= ti).uids
-        self.ti_nnd[nnd] = ti
-        self.ti_stillborn[stillborn] = ti
-        self.sim.people.request_death(nnd)
-        self.sim.people.request_death(stillborn)
+        if len(nnd):
+            self.sim.people.request_death(nnd)
+            self.ti_nnd[nnd] = np.nan  # Clear after firing
+        if len(stillborn):
+            self.sim.people.request_death(stillborn)
+            self.ti_stillborn[stillborn] = np.nan  # Clear after firing
 
         # Congenital syphilis transmission outcomes
         congenital = (self.ti_congenital <= ti).uids
         self.congenital[congenital] = True
-        self.ti_congenital[congenital] = ti
+        self._new_congenital_count = len(congenital)  # Store for update_results (before clearing)
+        self.ti_congenital[congenital] = np.nan  # Clear after firing to prevent re-counting
 
         # Set rel_trans
         self.rel_trans[self.primary] = self.pars.rel_trans_primary
@@ -368,6 +461,34 @@ class Syphilis(BaseSTI):
             self.late[is_late] = True
 
         return
+
+    def step_die(self, uids):
+        """ Clear all states and dates for dead agents (including NND/stillborn babies) """
+        # Boolean states
+        self.susceptible[uids] = False
+        self.infected[uids] = False
+        self.exposed[uids] = False
+        self.primary[uids] = False
+        self.secondary[uids] = False
+        self.latent[uids] = False
+        self.early[uids] = False
+        self.late[uids] = False
+        self.tertiary[uids] = False
+        self.immune[uids] = False
+        self.congenital[uids] = False
+        self.ever_exposed[uids] = False
+        self.n_infections[uids] = 0
+        self.chancre_visible[uids] = False
+        self.rash_visible[uids] = False
+
+        # Clear future scheduled events (but keep ti_dead, ti_nnd, ti_stillborn for records)
+        self.ti_exposed[uids] = np.nan
+        self.ti_infected[uids] = np.nan
+        self.ti_primary[uids] = np.nan
+        self.ti_secondary[uids] = np.nan
+        self.ti_latent[uids] = np.nan
+        self.ti_tertiary[uids] = np.nan
+        self.ti_congenital[uids] = np.nan
 
     def update_results(self):
         super().update_results()
@@ -395,9 +516,10 @@ class Syphilis(BaseSTI):
         # Congenital results
         self.results['new_nnds'][ti]       = np.count_nonzero(self.ti_nnd == ti)
         self.results['new_stillborns'][ti] = np.count_nonzero(self.ti_stillborn == ti)
-        self.results['new_congenital'][ti] = np.count_nonzero(self.ti_congenital == ti)
+        self.results['new_congenital'][ti] = getattr(self, '_new_congenital_count', 0)
         self.results['new_congenital_deaths'][ti] = self.results['new_nnds'][ti] + self.results['new_stillborns'][ti]
         self.results['new_deaths'][ti] = np.count_nonzero(self.ti_dead == ti)
+        self.results['new_reinfections'][ti] = np.count_nonzero((self.ti_infected == ti) & (self.n_infections > 1))
 
         # Add FSW and clients to results:
         if self.store_sw:
@@ -446,6 +568,15 @@ class Syphilis(BaseSTI):
         self.results['cum_congenital_deaths'][:] = np.cumsum(self.results['new_congenital_deaths'])
         return
 
+    def _set_rash_visible(self, uids):
+        """ Determine whether secondary rash is noticeable (sex-specific) """
+        ppl = self.sim.people
+        p_vis = np.full(len(uids), np.nan)
+        p_vis[ppl.female[uids]] = self.pars.p_symp_secondary[0]
+        p_vis[ppl.male[uids]] = self.pars.p_symp_secondary[1]
+        self.pars.p_symp_secondary_dist.set(p_vis)
+        self.rash_visible[uids] = self.pars.p_symp_secondary_dist.rvs(uids)
+
     def set_latent_trans(self, ti=None):
         if ti is None: ti = self.ti
         dur_latent = ti - self.ti_latent[self.latent]
@@ -457,7 +588,9 @@ class Syphilis(BaseSTI):
 
     def set_prognoses(self, uids, source_uids=None, ti=None):
         """
-        Set initial prognoses for adults newly infected with syphilis
+        Set initial prognoses for adults newly infected with syphilis.
+        Note: congenital infections are routed to set_congenital by starsim's
+        set_outcomes(), so only adult infections reach this method.
         """
 
         if ti is None:
@@ -473,6 +606,7 @@ class Syphilis(BaseSTI):
 
         # Set initial states upon exposure
         self.susceptible[uids] = False
+        self.n_infections[uids] += 1
         self.ever_exposed[uids] = True
         self.exposed[uids] = True
         self.infected[uids] = True
@@ -487,6 +621,14 @@ class Syphilis(BaseSTI):
         dur_primary = self.pars.dur_primary.rvs(uids)
         self.ti_secondary[uids] = self.ti_primary[uids] + rr(dur_primary)
         self.dur_early[uids] = self.pars.dur_early.rvs(uids)
+
+        # Determine whether primary chancre will be at a visible site (sex-specific)
+        ppl = self.sim.people
+        p_vis = np.full(len(uids), np.nan)
+        p_vis[ppl.female[uids]] = self.pars.p_symp_primary[0]
+        p_vis[ppl.male[uids]] = self.pars.p_symp_primary[1]
+        self.pars.p_symp_primary_dist.set(p_vis)
+        self.chancre_visible[uids] = self.pars.p_symp_primary_dist.rvs(uids)
 
         return
 
@@ -524,13 +666,19 @@ class Syphilis(BaseSTI):
 
     def set_congenital(self, target_uids, source_uids=None):
         """
-        Natural history of syphilis for congenital infection
+        Natural history of syphilis for congenital infection.
+        Birth outcomes depend on the mother's disease stage:
+          mat_active (exposed|primary|secondary), early latent, late latent.
         """
         ti = self.ti
-        self.susceptible[target_uids] = False
         new_outcomes = {k:0 for k in self.pars.birth_outcome_keys}
 
-        # Determine outcomes
+        # Mark all babies as no longer susceptible to prevent repeated MTC
+        # transmission every timestep of pregnancy. Even normal-outcome babies
+        # stay non-susceptible (they're babies, no sexual transmission).
+        self.susceptible[target_uids] = False
+
+        # Determine outcomes based on mother's stage
         for state in ['mat_active', 'early', 'late']:
 
             source_state_inds = getattr(self, state)[source_uids].nonzero()[-1]
@@ -539,7 +687,6 @@ class Syphilis(BaseSTI):
 
             if len(uids) > 0:
 
-                # Birth outcomes must be modified to add probability of susceptible birth
                 birth_outcomes = self.pars.birth_outcomes[state]
                 assigned_outcomes = birth_outcomes.rvs(uids)
                 self.cs_outcome[uids] = assigned_outcomes
@@ -557,18 +704,9 @@ class Syphilis(BaseSTI):
                         self.setattribute(ti_outcome, vals)
                         new_outcomes[outcome] += len(o_uids)
 
-        # Check that the birth outcomes are mutually exclusive
-        if not sum(new_outcomes.values()) == len(target_uids):
-            raise ValueError('Birth outcomes are not mutually exclusive')
-
-        # Check that the birth outcomes are not greater than the number of congenital cases
-        for o1, out1 in enumerate(self.pars.birth_outcome_keys):
-            for o2, out2 in enumerate(self.pars.birth_outcome_keys):
-                if o1 != o2:
-                    val1 = getattr(self, f'ti_{out1}')
-                    val2 = getattr(self, f'ti_{out2}')
-                    if (val1.notnan & val2.notnan).any() :
-                        raise ValueError(f'Birth outcomes {out1} and {out2} are not mutually exclusive')
+        # Check that every baby in this batch got exactly one outcome
+        if sum(new_outcomes.values()) != len(target_uids):
+            raise ValueError(f'Birth outcomes do not sum to target: {new_outcomes} vs {len(target_uids)} babies')
 
         return
 

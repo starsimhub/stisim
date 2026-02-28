@@ -38,18 +38,21 @@ class SyphTx(STITreatment):
 
     def change_states(self, disease, treat_succ):
         """ Change the states of people who are treated """
-        self.sim.diseases[disease].primary[treat_succ] = False
-        self.sim.diseases[disease].secondary[treat_succ] = False
-        self.sim.diseases[disease].early[treat_succ] = False
-        self.sim.diseases[disease].late[treat_succ] = False
-        self.sim.diseases[disease].latent[treat_succ] = False
-        self.sim.diseases[disease].tertiary[treat_succ] = False
-        self.sim.diseases[disease].ti_primary[treat_succ] = np.nan
-        self.sim.diseases[disease].ti_secondary[treat_succ] = np.nan
-        self.sim.diseases[disease].ti_latent[treat_succ] = np.nan
-        self.sim.diseases[disease].ti_tertiary[treat_succ] = np.nan
-        self.sim.diseases[disease].susceptible[treat_succ] = True
-        self.sim.diseases[disease].infected[treat_succ] = False
+        d = self.sim.diseases[disease]
+        d.primary[treat_succ] = False
+        d.secondary[treat_succ] = False
+        d.early[treat_succ] = False
+        d.late[treat_succ] = False
+        d.latent[treat_succ] = False
+        d.tertiary[treat_succ] = False
+        d.chancre_visible[treat_succ] = False
+        d.rash_visible[treat_succ] = False
+        d.ti_primary[treat_succ] = np.nan
+        d.ti_secondary[treat_succ] = np.nan
+        d.ti_latent[treat_succ] = np.nan
+        d.ti_tertiary[treat_succ] = np.nan
+        d.susceptible[treat_succ] = True
+        d.infected[treat_succ] = False
 
     def treat_fetus(self, sim, mother_uids):
         """
@@ -129,7 +132,7 @@ class NewbornTreatment(SyphTx):
         """ Change states of congenital cases """
         self.sim.diseases[disease].congenital[treat_succ] = False
         self.sim.diseases[disease].ti_congenital[treat_succ] = np.nan
-        # sim.diseases.syphilis.susceptible[treat_succ] = True  # Leave this out for now
+        self.sim.diseases[disease].cs_outcome[treat_succ] = 4  # Reset to 'normal' outcome
 
     def administer(self, sim, uids, disease, return_format='dict'):
         """ Administer treatment to newborns """
@@ -138,8 +141,14 @@ class NewbornTreatment(SyphTx):
         sus_uids = uids[sus[uids]]
         con_uids = uids[con[uids]]
 
-        successful = self.pars.treat_eff.filter(con_uids)
-        unsuccessful = np.setdiff1d(con_uids, successful)
+        # Babies that are neither susceptible nor congenital are MTC-infected
+        # (susceptible cleared during pregnancy, congenital not yet fired).
+        # Treat them as congenital cases.
+        mtc_uids = uids[~sus[uids] & ~con[uids]]
+        all_con = con_uids | mtc_uids
+
+        successful = self.pars.treat_eff.filter(all_con)
+        unsuccessful = np.setdiff1d(np.asarray(all_con), np.asarray(successful))
         unnecessary = sus_uids
 
         # Return outcomes
@@ -230,8 +239,10 @@ class SyphTest(STITest):
                 if new_pos.any():
                     pos_mother_inds = np.in1d(sim.networks.maternalnet.p1, new_pos.uids)
                     unborn_uids = sim.networks.maternalnet.p2[pos_mother_inds]
-                    ti_births = sim.networks.maternalnet.edges.end[pos_mother_inds].astype(int)
-                    self.newborn_test.schedule(unborn_uids, ti_births)
+                    ti_births = sim.demographics.pregnancy.ti_delivery[sim.networks.maternalnet.p1[pos_mother_inds]]
+                    valid = ~np.isnan(ti_births)
+                    if valid.any():
+                        self.newborn_test.schedule(unborn_uids[valid], ti_births[valid].astype(int))
 
         return
 
@@ -272,7 +283,7 @@ class ANCSyphTest(SyphTest):
     Need to adjust timing using Trivedi (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7138526/)
     """
     def __init__(self, test_prob_data=None, years=None, start=None, stop=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
-        super().__init__(test_prob_data=test_prob_data, years=years, start=start, stop=stop, eligibility=eligibility, product=product, name=name, label=label, **kwargs)
+        super().__init__(test_prob_data=test_prob_data, years=years, start=start, stop=stop, eligibility=eligibility, product=product, name=name, label=label, newborn_test=newborn_test, **kwargs)
         self.define_pars(
             dt_scale=False,
         )
