@@ -638,6 +638,51 @@ class Calibration(ss.Calibration):
         par_cols = [c for c in df.columns if c not in _META_KEYS]
         return [{col: row[col] for col in par_cols} for _, row in df.iterrows()]
 
+    def save(self, filename, shrink=True, n_results=None, save_pars=True, pars_filename=None):
+        """
+        Save calibration results.
+
+        Optionally shrinks to the top *n_results* before saving (default:
+        keep top 10% of completed trials).  Also saves the parameter
+        DataFrame as a separate file.
+
+        Args:
+            filename (str/Path): Path for the saved calibration object.
+            shrink (bool): If True (default), shrink before saving. The full
+                (unshrunk) object is saved with a ``_full`` suffix first.
+            n_results (int): Number of top results to keep when shrinking.
+                Default: ``len(self.df) // 10`` (minimum 1).
+            save_pars (bool): If True (default), also save ``calib.df``.
+            pars_filename (str/Path): Path for the parameter DataFrame. If
+                None, uses ``{stem}_pars.df`` next to *filename*.
+
+        Returns:
+            The (possibly shrunk) calibration object.
+        """
+        filename = sc.path(filename)
+
+        if shrink:
+            if n_results is None:
+                n_results = max(len(self.df) // 10, 1)
+            full_filename = filename.parent / (filename.stem + '_full' + filename.suffix)
+            sc.save(full_filename, self)
+            print(f'Saved full calibration to {full_filename}')
+            calib = self.shrink(n_results=n_results)
+        else:
+            calib = self
+
+        sc.save(filename, calib)
+        print(f'Saved calibration to {filename}')
+
+        if save_pars:
+            if pars_filename is None:
+                pars_filename = filename.parent / (filename.stem + '_pars.df')
+            df = calib.df if hasattr(calib, 'df') else self.df
+            sc.save(pars_filename, df)
+            print(f'Saved parameters to {pars_filename}')
+
+        return calib
+
     def shrink(self, n_results=100, make_df=True):
         """ Shrink the results to only the best fit """
         cal = sc.objdict()
