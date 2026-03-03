@@ -46,6 +46,7 @@ nav:
     - Co-transmitting STIs: tutorials/tut_cotransmission.ipynb
     - Results and plotting: tutorials/tut_results.ipynb
     - Interventions: tutorials/tut_interventions.ipynb
+    - Calibration: tutorials/tut_calibration.ipynb
   - User guide:
     - user_guide/userguide.md
     - Diseases:
