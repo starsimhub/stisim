@@ -6,7 +6,7 @@ from itertools import chain
 from statistics import median, mean
 
 from tests.hiv_natural_history_analyzers import CD4ByUIDTracker, RelativeInfectivityTracker, TimeToAIDSTracker, \
-    TransmissionTracker, BreastfeedingTransmissionTracker
+    TransmissionTracker, BreastfeedingTransmissionTracker, MTCTTracker
 from tests.testlib import build_testing_sim
 
 verbose = False
@@ -189,6 +189,21 @@ class TestHIVNaturalHistoryVerification(unittest.TestCase):
         # doubling both beta for m2f (implicitly f2m) (sexual transmission only, no mother-to-child transmission)
         # This happens to be a realistic baseline m2f beta
         self._run_beta_test(baseline_m2f=0.001, baseline_m2c=0, multiplier=2)
+
+
+    def test_mtct_untreated(self):
+        sim = build_testing_sim(diseases=self.diseases, demographics=self.demographics,
+                                interventions=self.interventions, networks=self.networks,
+                                analyzers=[MTCTTracker()],
+                                n_agents=4000, duration=3)
+        sim.run()
+
+        mtc_tranmissions = sim.results['mtcttracker']['hiv.n_mtct_transmissions']
+        total_mtc_tranmissions = sum(mtc_tranmissions)
+
+        if verbose:
+            print(f"{total_mtc_tranmissions} mother-to-child transmissions were recorded")
+        self.assertGreater(total_mtc_tranmissions, 0)  # make sure we compare at least one transmission
 
     # Not currently implemented in hivsim, so leaving this partially-completed test commented out for future work
     # def test_perinatally_infected_progress_faster(self):

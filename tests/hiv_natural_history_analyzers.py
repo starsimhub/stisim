@@ -116,6 +116,39 @@ class BreastfeedingTransmissionTracker(ss.Analyzer):
         transmissions = len((hiv.ti_infected == self.ti).uids)
         self.results['hiv.n_bf_transmissions'][self.ti] = transmissions
 
+class MTCTTracker(ss.Analyzer):
+    """
+    Records the number of mother-to-child hiv transmissions per timestep, accessible by analyzer key
+    'hiv.n_mtct_transmissions'. MTCT definition used is "unborn child becomes infected".
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.has_results = False
+
+    def step(self):
+        pass
+
+    def init_results(self):
+        super().init_results()
+        self.define_results(ss.Result('hiv.n_mtct_transmissions', dtype=list, scale=False))
+
+    def update_results(self):
+        hiv = self.sim.diseases.hiv
+        transmissions = len((hiv.ti_infected == self.ti).uids)
+        self.results['hiv.n_mtct_transmissions'][self.ti] = transmissions
+
+        # we count infections this step for unborn children (transmitted by mother)
+        people = self.sim.people
+        infected = hiv.infected
+        if self.has_results:
+            infected_this_step = infected & (hiv.ti_infected == self.ti)
+        else:
+            infected_this_step = (hiv.ti_infected <= self.ti)
+            self.has_results = True
+        mtct_this_step = (infected_this_step & (people.age < 0)).uids
+
+        self.results['hiv.n_mtct_transmissions'][self.ti] = len(mtct_this_step)
+
 
 # perinatal infection progression not currently implemented in hivsim, so leaving this untested analyzer out for
 # future work
