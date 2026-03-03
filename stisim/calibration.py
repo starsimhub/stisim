@@ -661,7 +661,7 @@ class Calibration(ss.Calibration):
         """
         filename = sc.path(filename)
 
-        if shrink:
+        if shrink and self.sim_results:
             if n_results is None:
                 n_results = max(len(self.df) // 10, 1)
             full_filename = filename.parent / (filename.stem + '_full' + filename.suffix)
