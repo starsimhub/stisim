@@ -2,10 +2,35 @@
 
 All notable changes to the codebase are documented in this file.
 
-## Version 1.5.0 (2026-03-02)
+## Version 1.5.0 (2026-03-03)
 
-- Establish realistic syphilis dynamics: calibrated natural history, transmission, and treatment parameters
-- *GitHub info*: PR [TBD](https://github.com/starsimhub/stisim/pull/TBD)
+### Calibration API
+- New dot-notation parameter routing: `'hiv.beta_m2f'` automatically finds and sets the right module parameter via `sim.get_module()` (requires Starsim 3.2.0+)
+- Support nested parameter format: `dict(hiv=dict(beta_m2f=dict(low=..., high=...)))` alongside flat `{'hiv.beta_m2f': dict(...)}`
+- Add `flatten_calib_pars()` to normalize between nested and flat formats
+- Add `set_sim_pars(sim, pars)` for setting calibrated parameters on any sim (pre- or post-init)
+- Add `Calibration.get_pars(n)` to extract top-N parameter sets as flat dicts
+- Add `make_calib_sims()` for creating and running sims from calibrated parameters, with filtering (`check_fn`) and seed replication (`seeds_per_par`)
+- Add `Calibration.save()` method for shrink/save workflow (replaces manual shrink + saveobj boilerplate)
+- No custom `build_fn` needed -- `default_build_fn` handles all module types automatically
+
+### Syphilis dynamics
+- Fix `Syphilis.infect()`: use `rel_trans=1` for maternal transmission, stage-specific for sexual
+- Fix `NewbornTreatment` to detect MTC-infected babies (susceptible=False, congenital not yet fired)
+- Fix congenital syphilis over-counting: clear `ti_*` after events fire, mark babies non-susceptible after MTC
+- Add `step_die` to Syphilis to clear states on death
+- Add `n_infections` counter and `new_reinfections` result
+
+### HIV
+- Add time-varying ART duration and wider care-seeking distribution
+
+### Documentation
+- Add calibration tutorial: ABC philosophy, dot notation, `make_calib_sims`, custom analyzer fitting example, production workflow
+- Add custom results section to results tutorial with `define_results` pattern and `ss.Result` options
+- Cross-link calibration and results tutorials
+- Fix `resample()` API usage in results tutorial
+
+- *GitHub info*: PR [301](https://github.com/starsimhub/stisim/pull/301)
 
 ## Version 1.4.9 (2026-02-24)
 
