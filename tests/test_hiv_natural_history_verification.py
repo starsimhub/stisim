@@ -4,6 +4,7 @@ HIV natural history verification tests
 Tests to ensure appropriate behavior of HIV as a disease absent any treatment.
 """
 
+import matplotlib.pyplot as plt
 import pytest
 import sciris as sc
 import sys
@@ -20,6 +21,7 @@ from testlib import build_testing_sim
 
 
 verbose = False
+do_plot = False
 sc.options(interactive=False)
 
 
@@ -85,5 +87,15 @@ def test_median_time_from_infection_to_aids_without_treatment():
 
 
 if __name__ == '__main__':
+    do_plot = True
+    sc.options(interactive=do_plot)
+    timer = sc.timer()
+
     test_cd4_counts_decline_over_time_without_treatment()
     test_median_time_from_infection_to_aids_without_treatment()
+
+    sc.heading("Total:")
+    timer.toc()
+
+    if do_plot:
+        plt.show()
