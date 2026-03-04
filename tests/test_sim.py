@@ -115,7 +115,7 @@ def test_bv(include_hiv=False, n_agents=500):
     sim_args = dict(start=2015, stop=2030, n_agents=n_agents, diseases=dis, networks=nets, demographics=dem, connectors=con)
 
     s0 = ss.Sim(**sim_args, interventions=intvs)
-    s1 = ss.Sim(**sim_args, interventions=intvs + [menstrual_hygiene(start=ss.date(2020), new_val=0.1)])
+    s1 = ss.Sim(**sim_args, interventions=intvs + [menstrual_hygiene(start=2020, new_val=0.1)])
     ss.parallel(s0, s1, debug=debug)
     return s0, s1
 
