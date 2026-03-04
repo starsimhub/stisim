@@ -18,8 +18,7 @@ from testlib import build_testing_sim
 debug = False  # Run in serial
 
 # Get the directory containing this test file
-TEST_DIR = Path(__file__).parent
-TEST_DATA_DIR = TEST_DIR / 'test_data'
+TEST_DATA_DIR = Path(tests_directory, 'test_data')
 
 
 def test_hiv_sim(n_agents=500):
