@@ -1,6 +1,8 @@
 """
 Simple sim tests
 """
+import sys
+
 import sciris as sc
 import starsim as ss
 import stisim as sti
@@ -8,7 +10,10 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 
-from tests.testlib import build_testing_sim
+tests_directory = Path(__file__).resolve().parent
+sys.path.append(str(tests_directory))
+
+from testlib import build_testing_sim
 
 debug = False  # Run in serial
 
@@ -24,12 +29,10 @@ def test_hiv_sim(n_agents=500):
 
     pregnancy = ss.Pregnancy(fertility_rate=10)
     death = ss.Deaths(death_rate=10)
-    demographics = [pregnancy, death]
 
     sexual = sti.StructuredSexual(recall_prior=True)
     prior = sti.PriorPartners()
     maternal = ss.MaternalNet()
-    networks = [sexual, prior, maternal]
 
     testing1 = sti.HIVTest(name='gp', test_prob_data=0.2, start=2000)
     testing2 = sti.HIVTest(name='fsw', test_prob_data=0.2, start=2000, eligibility=lambda sim: sim.networks.structuredsexual.fsw)
@@ -38,7 +41,9 @@ def test_hiv_sim(n_agents=500):
     interventions = [testing1, testing2, art, vmmc]
 
     sim = build_testing_sim(diseases=diseases, n_agents=500,
-                            demographics=demographics, interventions=interventions, networks=networks)
+                            pregnancy=pregnancy, death=death,
+                            maternal_network=maternal, prior_network=prior, sexual_network=sexual,
+                            interventions=interventions)
 
     return sim
 
