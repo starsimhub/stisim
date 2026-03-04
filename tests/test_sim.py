@@ -1,6 +1,7 @@
 """
 Simple sim tests
 """
+import os
 import sys
 
 import sciris as sc
@@ -9,7 +10,7 @@ import stisim as sti
 import pandas as pd
 import numpy as np
 
-tests_directory = Path(__file__).resolve().parent
+tests_directory = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(str(tests_directory))
 
 from testlib import build_testing_sim
@@ -17,8 +18,7 @@ from testlib import build_testing_sim
 debug = False  # Run in serial
 
 # Get the directory containing this test file
-TEST_DATA_DIR = Path(tests_directory, 'test_data')
-
+TEST_DATA_DIR = os.path.join(tests_directory, 'test_data')
 
 def test_hiv_sim(n_agents=500):
     sc.heading('Test simplest possible HIV sim ')
@@ -165,14 +165,15 @@ def test_sim_creation():
 
     nw_pars = dict(debut=ss.lognorm_ex(20, 5))
     sti_pars = dict(ng=dict(eff_condom=0.6))
-    datafolder = './test_data/'
+
+    # datafolder = TEST_DATA_DIR
 
     # Test 1: default networks with custom pars, demographics from location string, and diseases from disease names with custom pars
     sim1 = sti.Sim(
         pars=pars,
         nw_pars=nw_pars,
         demographics='zimbabwe',
-        datafolder=datafolder,
+        datafolder=TEST_DATA_DIR,
         diseases=['ng', 'ct', 'tv', 'bv', 'hiv'],
         sti_pars=sti_pars,
         # connectors=True
@@ -209,7 +210,7 @@ def test_sim_creation():
         beta_m2f=0.05,  # STI parameter applied to all STIs
         prop_f0=0.45,
         location='zimbabwe',
-        datafolder='./test_data/',
+        datafolder=TEST_DATA_DIR,
         diseases=['ng', 'ct', 'tv'],
         ng=dict(eff_condom=0.6),  # Gonorrhea-specific parameter
     )
