@@ -32,6 +32,8 @@ def get_age_distribution(location=None, year=None, datafolder=None):
 
     # Remap column names
     raw_df = raw_df.rename(columns={'Time': 'year', 'AgeStart': 'age', 'Value': 'value'})
+    if 'year' not in raw_df.columns:
+        raw_df['year'] = year
     raw_df = raw_df[['year', 'age', 'value']]
 
     return raw_df

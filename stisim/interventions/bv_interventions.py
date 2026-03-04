@@ -68,8 +68,8 @@ class treat_BV(ss.Intervention):
     def init_results(self):
         super().init_results()
         results = [
-            ss.Result("new_doses", dtype=int, label="New doses administered"),
-            ss.Result("new_treated", dtype=int, label="New people treated"),
+            ss.Result("new_doses", dtype=int, label="New doses administered", auto_plot=False),
+            ss.Result("new_treated", dtype=int, label="New people treated", auto_plot=False),
         ]
         self.define_results(*results)
         return

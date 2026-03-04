@@ -8,7 +8,6 @@ import starsim as ss
 import stisim as sti
 import pandas as pd
 import numpy as np
-from pathlib import Path
 
 tests_directory = Path(__file__).resolve().parent
 sys.path.append(str(tests_directory))
@@ -166,7 +165,7 @@ def test_sim_creation():
 
     nw_pars = dict(debut=ss.lognorm_ex(20, 5))
     sti_pars = dict(ng=dict(eff_condom=0.6))
-    datafolder = str(TEST_DATA_DIR)
+    datafolder = './test_data/'
 
     # Test 1: default networks with custom pars, demographics from location string, and diseases from disease names with custom pars
     sim1 = sti.Sim(
@@ -210,7 +209,7 @@ def test_sim_creation():
         beta_m2f=0.05,  # STI parameter applied to all STIs
         prop_f0=0.45,
         location='zimbabwe',
-        datafolder=str(TEST_DATA_DIR),
+        datafolder='./test_data/',
         diseases=['ng', 'ct', 'tv'],
         ng=dict(eff_condom=0.6),  # Gonorrhea-specific parameter
     )

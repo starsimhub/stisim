@@ -26,7 +26,7 @@ class HIVPars(BaseSTIPars):
 
         # Transmission
         self.beta = 0  # Placeholder, replaced by network-specific betas
-        self.beta_m2f = None
+        self.beta_m2f = 0.05
         self.rel_beta_f2m = 0.5
         self.beta_m2c = ss.permonth(0.025)  # Approx 0.2 over the course of the pregnany
         self.rel_trans_acute = ss.normal(loc=6, scale=0.5)  # Increase transmissibility during acute HIV infection
@@ -41,7 +41,7 @@ class HIVPars(BaseSTIPars):
         # dist_ti_init_infected=ss.constant(0),  # Experimented with negative values, but safer to use 0
 
         # Care seeking
-        self.care_seeking = ss.normal(loc=1, scale=0.1)  # Distribution of relative care-seeking behavior
+        self.care_seeking = ss.normal(loc=1, scale=0.5)  # Distribution of relative care-seeking behavior (wide spread for low-care-seeking extremes)
         self.maternal_care_scale = 2  # Factor for scaling up care-seeking behavior during pregnancy
 
         # Treatment effects
@@ -49,7 +49,9 @@ class HIVPars(BaseSTIPars):
         self.art_efficacy = 0.96  # Efficacy of ART
         self.time_to_art_efficacy = ss.months(6)  # Time to reach full ART efficacy (in months) - linear increase in efficacy
         self.art_cd4_pars = dict(cd4_max=1000, cd4_healthy=500)
-        self.dur_on_art = ss.lognorm_ex(ss.years(18), ss.years(5))
+        self.dur_on_art = ss.lognorm_ex(ss.years(3), ss.years(1.5))  # Base ART duration (scaled by rel_dur_on_art and trend)
+        self.rel_dur_on_art = 1.0  # Calibratable scalar that scales ART duration
+        self.dur_on_art_trend = sc.objdict(years=np.array([2004, 2015, 2030]), vals=np.array([0.5, 1.0, 1.5]))  # Time-varying scale: early ART has worse retention
         self.dur_post_art = ss.normal()  # Note defined in years!
         self.dur_post_art_scale_factor = 0.1
 
@@ -118,30 +120,30 @@ class HIV(BaseSTI):
         super().init_results()
         results = [
             ss.Result('new_deaths', dtype=int, label='Deaths'),
-            ss.Result('cum_deaths', dtype=int, label='Cumulative deaths'),
+            ss.Result('cum_deaths', dtype=int, label='Cumulative deaths', auto_plot=False),
             ss.Result('new_diagnoses', dtype=int, label='Diagnoses'),
-            ss.Result('cum_diagnoses', dtype=int, label='Cumulative diagnoses'),
-            ss.Result('new_agents_on_art', dtype=int, label='New treated'),
+            ss.Result('cum_diagnoses', dtype=int, label='Cumulative diagnoses', auto_plot=False),
+            ss.Result('new_agents_on_art', dtype=int, label='New treated', auto_plot=False),
             ss.Result('prevalence_15_49', dtype=float, label='Prevalence 15-49', scale=False),
-            ss.Result('prevalence_sw', dtype=float, label='FSW prevalence', scale=False),
-            ss.Result('new_infections_sw', dtype=int, label='New infections - FSW'),
-            ss.Result('new_infections_not_sw', dtype=int, label='New infections - Other F'),
-            ss.Result('prevalence_client', dtype=float, label='Client prevalence', scale=False),
-            ss.Result('new_infections_client', dtype=int, label='New infections - Clients'),
-            ss.Result('new_infections_not_client', dtype=int, label='New infections - Other M'),
+            ss.Result('prevalence_sw', dtype=float, label='FSW prevalence', scale=False, auto_plot=False),
+            ss.Result('new_infections_sw', dtype=int, label='New infections - FSW', auto_plot=False),
+            ss.Result('new_infections_not_sw', dtype=int, label='New infections - Other F', auto_plot=False),
+            ss.Result('prevalence_client', dtype=float, label='Client prevalence', scale=False, auto_plot=False),
+            ss.Result('new_infections_client', dtype=int, label='New infections - Clients', auto_plot=False),
+            ss.Result('new_infections_not_client', dtype=int, label='New infections - Other M', auto_plot=False),
             ss.Result('p_on_art', dtype=float, label='Proportion on ART', scale=False),
         ]
 
         if self.include_mtct:
-            results += [ss.Result('n_on_art_pregnant', dtype=int)]
+            results += [ss.Result('n_on_art_pregnant', dtype=int, auto_plot=False)]
 
         # Add FSW and clients to results:
         if 'structuredsexual' in self.sim.networks.keys():
             for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
                 for sex in ['female', 'male']:
                     results += [
-                        ss.Result('prevalence_risk_group_' + str(risk_group) + '_' + sex, scale=False),
-                        ss.Result('new_infections_risk_group_' + str(risk_group) + '_' + sex, dtype=int),
+                        ss.Result('prevalence_risk_group_' + str(risk_group) + '_' + sex, scale=False, auto_plot=False),
+                        ss.Result('new_infections_risk_group_' + str(risk_group) + '_' + sex, dtype=int, auto_plot=False),
                     ]
 
         self.define_results(*results)
@@ -276,6 +278,7 @@ class HIV(BaseSTI):
         """
         uids = ss.uids(self.care_seeking.isnan)
         self.care_seeking[uids] = self.pars.care_seeking.rvs(uids)
+        self.care_seeking[uids] = np.maximum(self.care_seeking[uids], 0.01)  # Floor to prevent division by zero
         self.baseline_care_seeking[uids] = sc.dcp(self.care_seeking[uids])  # Copy it so pregnancy can modify it
         return
 
@@ -524,6 +527,10 @@ class HIV(BaseSTI):
 
         # Determine when agents goes off ART
         dur_on_art = self.pars.dur_on_art.rvs(uids)
+        year = self.t.now('year')
+        trend = self.pars.dur_on_art_trend
+        time_scale = np.interp(year, trend.years, trend.vals)
+        dur_on_art = dur_on_art * self.pars.rel_dur_on_art * time_scale
         self.ti_stop_art[uids] = ti + dur_on_art.astype(int)
 
         # ART nullifies all states and all future dates in the natural history
@@ -579,4 +586,5 @@ class HIV(BaseSTI):
         self.ti_zero[uids] = ti + dur_post_art.astype(int)
 
         return
+
 
