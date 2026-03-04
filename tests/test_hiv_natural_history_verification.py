@@ -11,7 +11,7 @@ import sys
 
 from itertools import chain
 from pathlib import Path
-from statistics import median, mean
+from statistics import mean
 
 tests_directory = Path(__file__).resolve().parent
 sys.path.append(str(tests_directory))
@@ -26,12 +26,17 @@ sc.options(interactive=False)
 
 
 @sc.timer()
-def test_cd4_counts_decline_over_time_without_treatment():
+def test_cd4_counts_decline_untreated():
     sc.heading("Ensuring CD4 counts decline without treatment")
 
-    sim = build_testing_sim(analyzers=[CD4ByUIDTracker()], n_agents=5, duration=5)
+    sim = build_testing_sim(analyzers=[CD4ByUIDTracker()],
+                            maternal_network=None, prior_network=None, sexual_network=None,
+                            pregnancy=None, death=None,
+                            n_agents=5, duration=5)
     sim.run()
     results = sim.results['cd4byuidtracker']['hiv.ts_cd4']
+
+    assert len(results) > 0, f"Test requires at least one agent to have HIV, 0 found."
 
     found_decrease = False
     for uid, cd4_timeseries in results.items():
@@ -49,40 +54,30 @@ def test_cd4_counts_decline_over_time_without_treatment():
 
 
 @sc.timer()
-def test_median_time_from_infection_to_aids_without_treatment():
-    sc.heading("Ensuring median time from infection to AIDS (to falling state) is median(acute_dur + latent_dur)")
+def test_time_from_infection_to_aids_untreated():
+    """Note: if a different definition of AIDS is represented in HIV module, update to use that."""
+    sc.heading("Regression: Ensuring mean time from infection to AIDS (to falling state) is reasonable.")
 
-    result_tolerance = 0.03  # fraction of the median
-    sim = build_testing_sim(analyzers=[TimeToAIDSTracker()], n_agents=500, duration=5)
+    result_tolerance = 0.03  # fraction of the expected value
+    sim = build_testing_sim(analyzers=[TimeToAIDSTracker()], n_agents=2000, duration=5)
     sim.run()
     results = sim.results
     times_to_aids = list(chain(*results.timetoaidstracker['hiv.ti_to_aids']))
 
-    # ensure we have at least ONE agent that progressed to AIDS before computing and checking median
+    # ensure we have at least ONE agent that progressed to AIDS before computing and checking mean
     assert len(times_to_aids) > 0, "Failed to generate at least one HIV infection for testing"
 
-    """
-    import starsim as ss
-    from statistics import median
-    dur_acute = ss.lognorm_ex(3, 1)  # months
-    dur_latent = ss.lognorm_ex(120, 36)  # months
-    dur_acute.init(force=True)
-    dur_latent.init(force=True)
-    ti_falling = dur_acute.rvs(1000000) + dur_latent.rvs(1000000)
-    expected_median = median(ti_falling)
-    """
-    median_time = median(times_to_aids)
-    expected_median = 117.73883435759095  # months, from 1m random generations as above
+    mean_time = mean(times_to_aids)
+    expected_mean = 121.02083587646484  # months, from 10k agents, 25 years 5% prevalence
     if verbose:
         print(f"{len(times_to_aids)} agents progressed to AIDS.")
-        print(f"median time to AIDS stage: {median_time} timesteps.")
-        print(f"expected_median: {expected_median} timesteps.")
+        print(f"mean time to AIDS stage: {mean_time} timesteps.")
+        print(f"expected_mean: {expected_mean} timesteps.")
         print(f"min time to AIDS stage: {min(times_to_aids)} timesteps.")
-        print(f"mean time to AIDS: {mean(times_to_aids)} timesteps.")
         print(f"max time to AIDS stage: {max(times_to_aids)} timesteps.")
-    delta = result_tolerance * expected_median
-    msg = f"median time to AIDS: {median_time} not within delta: {delta} of expected: {expected_median}"
-    assert median_time == pytest.approx(expected=expected_median, rel=result_tolerance), msg
+    delta = result_tolerance * expected_mean
+    msg = f"mean time to AIDS: {mean_time} not within delta: {delta} of expected: {expected_mean}"
+    assert mean_time == pytest.approx(expected=expected_mean, rel=result_tolerance), msg
     return sim
 
 
@@ -91,8 +86,8 @@ if __name__ == '__main__':
     sc.options(interactive=do_plot)
     timer = sc.timer()
 
-    test_cd4_counts_decline_over_time_without_treatment()
-    test_median_time_from_infection_to_aids_without_treatment()
+    test_cd4_counts_decline_untreated()
+    test_time_from_infection_to_aids_untreated()
 
     sc.heading("Total:")
     timer.toc()
