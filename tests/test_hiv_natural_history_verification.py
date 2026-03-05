@@ -87,7 +87,7 @@ def test_latent_transmission_ratio_is_1():
 
     sim = build_testing_sim(analyzers=[RelativeInfectivityTracker(states=['latent'])], n_agents=100, duration=1)
     sim.run()
-    latent_ratios = sim.results['relativeinfectivitytracker']['hiv.latent_infectivity_ratios']
+    latent_ratios = sim.results['relativeinfectivitytracker']['hiv.latent_rel_trans']
     latent_ratios = list(set(chain(*latent_ratios)))
 
     assert len(latent_ratios) > 0, "Cannot test latent HIV transmission ratios, no latent transmission detected."
@@ -102,7 +102,7 @@ def test_acute_transmission_higher_than_latent():
 
     sim = build_testing_sim(analyzers=[RelativeInfectivityTracker(states=['acute'])], n_agents=500, duration=1)
     sim.run()
-    acute_ratios = sim.results['relativeinfectivitytracker']['hiv.acute_infectivity_ratios']
+    acute_ratios = sim.results['relativeinfectivitytracker']['hiv.acute_rel_trans']
     acute_ratios = list(set(chain(*acute_ratios)))
 
     assert len(acute_ratios) > 0, "Cannot test acute HIV transmission ratios, no acute transmission detected."

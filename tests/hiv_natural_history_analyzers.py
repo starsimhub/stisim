@@ -61,9 +61,9 @@ class RelativeInfectivityTracker(ss.Analyzer):
     Results are obtainable by the analyzer keys below.
     """
     STATES = {
-        'acute':   {'result_name': 'hiv.acute_infectivity_ratios',   'filter': lambda hiv: hiv.acute},
-        'falling': {'result_name': 'hiv.falling_infectivity_ratios', 'filter': lambda hiv: hiv.falling},
-        'latent':  {'result_name': 'hiv.latent_infectivity_ratios',  'filter': lambda hiv: hiv.latent}
+        'acute':   {'result_name': 'hiv.acute_rel_trans',   'filter': lambda hiv: hiv.acute},
+        'falling': {'result_name': 'hiv.falling_rel_trans', 'filter': lambda hiv: hiv.falling},
+        'latent':  {'result_name': 'hiv.latent_rel_trans',  'filter': lambda hiv: hiv.latent}
     }
 
     def __init__(self, states: list[str], *args, **kwargs):
