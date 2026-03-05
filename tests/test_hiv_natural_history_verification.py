@@ -110,6 +110,24 @@ def test_acute_transmission_higher_than_latent():
     assert minimum_ratio > 1, f"Acute HIV transmission ratios must be greater than 1. Lowest detected value: {minimum_ratio}"
     return sim
 
+
+@sc.timer()
+def test_falling_transmission_is_higher_than_latent():
+    sc.heading("Checking HIV transmission ratio falling > latent.")
+
+    sim = build_testing_sim(analyzers=[RelativeInfectivityTracker(states=['falling'])], n_agents=25, duration=10)
+    sim.run()
+    falling_ratios = sim.results['relativeinfectivitytracker']['hiv.falling_rel_trans']
+    falling_ratios = list(set(chain(*falling_ratios)))
+
+    assert len(falling_ratios) > 0, "Cannot test falling HIV transmission ratios, no falling transmission detected."
+    minimum_ratio = min(falling_ratios)
+    assert minimum_ratio >= 1, f"Falling HIV transmission ratios must always be >= 1. Lowest detected value: {minimum_ratio}"
+    maximum_ratio = max(falling_ratios)
+    assert maximum_ratio > 1, f"Falling HIV transmission ratios must eventually be > 1. Highest detected value: {maximum_ratio}"
+    return sim
+
+
 if __name__ == '__main__':
     do_plot = True
     sc.options(interactive=do_plot)
@@ -119,23 +137,10 @@ if __name__ == '__main__':
     test_time_from_infection_to_aids_untreated()
     test_latent_transmission_ratio_is_1()
     test_acute_transmission_higher_than_latent()
+    test_falling_transmission_is_higher_than_latent()
 
     sc.heading("Total:")
     timer.toc()
 
     if do_plot:
         plt.show()
-
-    def test_falling_transmission_is_higher_than_latent(self):
-        # since test_latent_transmission_ratio_is_always_1 ensures latent ratio is 1, we check > 1 here
-        sim = build_testing_sim(diseases=self.diseases, demographics=self.demographics,
-                                interventions=self.interventions, networks=self.networks,
-                                analyzers=[RelativeInfectivityTracker(states=['falling'])],
-                                n_agents=50, duration=5)
-        sim.run()
-        acute_ratios = sim.results['relativeinfectivitytracker']['hiv.falling_infectivity_ratios']
-        acute_ratios = list(set(chain(*acute_ratios)))
-
-        self.assertGreater(len(acute_ratios), 0)  # make sure we compare at least one item
-        minimum_ratio = min(acute_ratios)
-        self.assertGreater(minimum_ratio, 1)
