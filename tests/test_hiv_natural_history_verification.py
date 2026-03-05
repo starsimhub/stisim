@@ -16,7 +16,7 @@ from statistics import mean
 tests_directory = Path(__file__).resolve().parent
 sys.path.append(str(tests_directory))
 
-from hiv_natural_history_analyzers import CD4ByUIDTracker, TimeToAIDSTracker
+from hiv_natural_history_analyzers import CD4ByUIDTracker, RelativeInfectivityTracker, TimeToAIDSTracker
 from testlib import build_testing_sim
 
 
@@ -81,6 +81,35 @@ def test_time_from_infection_to_aids_untreated():
     return sim
 
 
+@sc.timer()
+def test_latent_transmission_ratio_is_1():
+    sc.heading("Ensuring latent HIV transmission ratio is always 1.")
+
+    sim = build_testing_sim(analyzers=[RelativeInfectivityTracker(states=['latent'])], n_agents=100, duration=1)
+    sim.run()
+    latent_ratios = sim.results['relativeinfectivitytracker']['hiv.latent_rel_trans']
+    latent_ratios = list(set(chain(*latent_ratios)))
+
+    assert len(latent_ratios) > 0, "Cannot test latent HIV transmission ratios, no latent transmission detected."
+    assert len(latent_ratios) == 1, f"Multiple latent HIV transmission ratios detected (only 1 is valid): {latent_ratios}"
+    assert latent_ratios[0] == 1, f"Only one latent HIV transmission ratio detected, but it is not 1: {latent_ratios}"
+    return sim
+
+
+@sc.timer()
+def test_acute_transmission_higher_than_latent():
+    sc.heading("Checking HIV transmission ratio acute > latent.")
+
+    sim = build_testing_sim(analyzers=[RelativeInfectivityTracker(states=['acute'])], n_agents=500, duration=1)
+    sim.run()
+    acute_ratios = sim.results['relativeinfectivitytracker']['hiv.acute_rel_trans']
+    acute_ratios = list(set(chain(*acute_ratios)))
+
+    assert len(acute_ratios) > 0, "Cannot test acute HIV transmission ratios, no acute transmission detected."
+    minimum_ratio = min(acute_ratios)
+    assert minimum_ratio > 1, f"Acute HIV transmission ratios must be greater than 1. Lowest detected value: {minimum_ratio}"
+    return sim
+
 if __name__ == '__main__':
     do_plot = True
     sc.options(interactive=do_plot)
@@ -88,6 +117,8 @@ if __name__ == '__main__':
 
     test_cd4_counts_decline_untreated()
     test_time_from_infection_to_aids_untreated()
+    test_latent_transmission_ratio_is_1()
+    test_acute_transmission_higher_than_latent()
 
     sc.heading("Total:")
     timer.toc()
