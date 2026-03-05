@@ -2,12 +2,81 @@
 
 All notable changes to the codebase are documented in this file.
 
-## Version 1.5.0 (2025-02-XX)
+## Version 1.5.0 (2026-03-03)
 
-- Fix bug with coinfection analyzer
-- Remove Pregnancy module, which has been superseded by the Starsim Pregnancy module
-- Include exposed / incubating period for syphilis, and allow maternal transmission during this period
-- *GitHub info*: TBC
+### Calibration API
+- New dot-notation parameter routing: `'hiv.beta_m2f'` automatically finds and sets the right module parameter via `sim.get_module()` (requires Starsim 3.2.0+)
+- Support nested parameter format: `dict(hiv=dict(beta_m2f=dict(low=..., high=...)))` alongside flat `{'hiv.beta_m2f': dict(...)}`
+- Add `flatten_calib_pars()` to normalize between nested and flat formats
+- Add `set_sim_pars(sim, pars)` for setting calibrated parameters on any sim (pre- or post-init)
+- Add `Calibration.get_pars(n)` to extract top-N parameter sets as flat dicts
+- Add `make_calib_sims()` for creating and running sims from calibrated parameters, with filtering (`check_fn`) and seed replication (`seeds_per_par`)
+- Add `Calibration.save()` method for shrink/save workflow (replaces manual shrink + saveobj boilerplate)
+- No custom `build_fn` needed -- `default_build_fn` handles all module types automatically
+
+### Syphilis dynamics
+- Fix `Syphilis.infect()`: use `rel_trans=1` for maternal transmission, stage-specific for sexual
+- Fix `NewbornTreatment` to detect MTC-infected babies (susceptible=False, congenital not yet fired)
+- Fix congenital syphilis over-counting: clear `ti_*` after events fire, mark babies non-susceptible after MTC
+- Add `step_die` to Syphilis to clear states on death
+- Add `n_infections` counter and `new_reinfections` result
+
+### HIV
+- Add time-varying ART duration and wider care-seeking distribution
+
+### Documentation
+- Add calibration tutorial: ABC philosophy, dot notation, `make_calib_sims`, custom analyzer fitting example, production workflow
+- Add custom results section to results tutorial with `define_results` pattern and `ss.Result` options
+- Cross-link calibration and results tutorials
+- Fix `resample()` API usage in results tutorial
+
+- *GitHub info*: PR [301](https://github.com/starsimhub/stisim/pull/301)
+
+## Version 1.4.9 (2026-02-24)
+
+- Add `default_build_fn` for calibration: routes parameters by prefix (`hiv_*`, `syph_*`, `nw_*`) to diseases and networks automatically, removing need for custom `build_fn`
+- `sti.Calibration` now uses `default_build_fn` when no `build_fn` is provided
+- Fix `make_df()` time column to use years from `timevec` instead of integer index
+- Fix `parse_study()` to guard `sim_results` reordering when `save_results=False`
+- Fix calibration data column names to use dot notation (`hiv.prevalence`)
+- Standardize import conventions: `import stisim as sti`, `import hivsim` (no alias)
+
+## Version 1.4.8 (2026-02-23)
+
+- Add `hivsim_examples` package with `simple` and `zimbabwe` pre-configured examples
+- Add `hs.demo()` function for quickly running example HIV simulations (e.g. `hs.demo('zimbabwe')`)
+- Add `Sim.plot()` override that auto-selects curated HIV result keys when HIV is present
+- Add `data` parameter to `sti.Sim` for passing comparison data (e.g. UNAIDS estimates) to starsim's plot overlay
+- Fix `process_demographics()` to use `total_pop` from sim_pars when set, and correctly scale age data (values in thousands)
+- Fix `separate_pars()` so kwargs override `sim_pars` defaults (e.g. `stop=1995` overrides `sim_pars=dict(stop=2025)`)
+- Fix `get_age_distribution()` to handle CSV files without a `year` column
+
+## Version 1.4.7 (2026-02-20)
+
+- Fix bugs in coinfection analyzer: age limit typo, variable name errors for male results
+- Remove STIsim Pregnancy module, now superseded by the Starsim Pregnancy module
+- Add exposed/incubation period for syphilis (`dur_exposed`), and allow maternal transmission during this stage
+- Rename syphilis birth outcome key `active` to `mat_active` to reflect inclusion of exposed stage
+- Add `.vscode/` and `*.code-workspace` to `.gitignore`
+
+## Version 1.4.6 (2026-02-20)
+
+- Add sensible `beta_m2f` defaults for all diseases (NG: 0.06, CT: 0.06, TV: 0.1, HIV: 0.05, syphilis: 0.1)
+- Add `rel_trans_hiv_ng` parameter to the HIV-NG connector
+- Fix connector handling in `Sim.init()` when a single connector is passed
+- Set `auto_plot=False` on subpopulation, care-seeking, and detail results so `sim.plot()` shows only high-level results
+- Add tutorials: intro (gonorrhea), co-transmission, results/plotting, and interventions
+- Add user guide pages for interventions (testing, treatment, ART, VMMC, PrEP)
+- Update disease docs with `beta_m2f` defaults and per-act description
+- Pre-build font cache in docs CI workflow
+
+## Version 1.4.5 (2026-02-20)
+
+- Fix BV trimester KeyError during initialization
+- Add documentation: intro tutorial, disease reference pages, and network guide
+- Configure mkdocs to execute notebooks and add user guide structure
+- Update README with Python/R install instructions and example repos
+- Move devtests to `tests/devtests/` and rename `test_hiv` to `devtest_hiv`
 
 ## Version 1.4.3 (2025-12-08)
 

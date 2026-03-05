@@ -50,7 +50,8 @@ class Trichomoniasis(SEIS):
             dur_prepid=ss.lognorm_ex(ss.weeks(6), ss.weeks(4)),
             eff_condom=0.0,
 
-            # Initial conditions
+            # Transmission and initial conditions
+            beta_m2f=0.1,
             init_prev=ss.bernoulli(p=0.01)
         )
         self.update_pars(pars, **kwargs)

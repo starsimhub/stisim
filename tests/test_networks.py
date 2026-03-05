@@ -102,6 +102,37 @@ def test_relationship_duration():
     print(f"Increasing relationship duration parameters results in longer mean relationship duration: {mean_duration_long} vs {mean_duration}")
 
 
+def test_partner_seeking_rates():
+    """
+    Test the partner seeking rates in the structured sexual network.
+    """
+
+    # Create a structured sexual network with default parameters
+    network = sti.StructuredSexual()
+    high_p_pair_form = sti.StructuredSexual(pars={'p_pair_form': ss.bernoulli(p=0.9)})
+    analyzer = sti.TimeBetweenRelationships()
+    pregnancy = ss.Pregnancy(fertility_rate=10)
+    death = ss.Deaths(death_rate=10)
+
+    s1 = sti.Sim(networks=[network], analyzers=[analyzer], demographics=[death, pregnancy], stop=2040)
+    s2 = sti.Sim(networks=[high_p_pair_form], analyzers=[analyzer], demographics=[death, pregnancy], stop=2040)
+
+    # Run the simulation
+    ss.parallel(s1, s2, debug=True)
+
+    # compute the mean time between relationships for both sims, excluding the time until first relationship because some agents
+    # take a long time to get their initial pairing, and some never do. This effect is magnified in higher probability
+    # scenarios so the time between relationships gets skewed in the wrong direction.
+    s1_consolidated = [item for sublist in s1.results.timebetweenrelationships.times_between_relationships.values() for
+                    index, item in enumerate(sublist) if index > 0 and item > 0]
+    s2_consolidated = [item for sublist in s2.results.timebetweenrelationships.times_between_relationships.values() for
+                    index, item in enumerate(sublist) if index > 0 and item > 0]
+    s1_mean = np.mean(s1_consolidated)
+    s2_mean = np.mean(s2_consolidated)
+
+    assert s2_mean < s1_mean, f"Mean time between relationships should be lower in high p_pair_form scenario ({s2_mean}) than in default ({s1_mean})"
+
+    
 def test_debut_age():
     """
     Test the debut age in the structured sexual network.
@@ -109,6 +140,7 @@ def test_debut_age():
 
     # Create a structured sexual network with default parameters
     network = sti.StructuredSexual()
+
     late_debut_network = sti.StructuredSexual(pars={'debut_pars_f': [25, 3], 'debut_pars_m': [26, 3]})
     analyzer = sti.DebutAge()
 
@@ -127,4 +159,5 @@ if __name__ == '__main__':
     test_network_degrees()
     test_pair_formation()
     test_relationship_duration()
+    test_partner_seeking_rates()
     test_debut_age()

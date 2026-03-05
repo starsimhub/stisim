@@ -1,21 +1,24 @@
 """
 Simple sim tests
 """
+import os
+import sys
+
 import sciris as sc
 import starsim as ss
 import stisim as sti
 import pandas as pd
 import numpy as np
-from pathlib import Path
 
-from tests.testlib import build_testing_sim
+tests_directory = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(str(tests_directory))
+
+from testlib import build_testing_sim
 
 debug = False  # Run in serial
 
 # Get the directory containing this test file
-TEST_DIR = Path(__file__).parent
-TEST_DATA_DIR = TEST_DIR / 'test_data'
-
+TEST_DATA_DIR = os.path.join(tests_directory, 'test_data')
 
 def test_hiv_sim(n_agents=500):
     sc.heading('Test simplest possible HIV sim ')
@@ -24,12 +27,10 @@ def test_hiv_sim(n_agents=500):
 
     pregnancy = ss.Pregnancy(fertility_rate=10)
     death = ss.Deaths(death_rate=10)
-    demographics = [pregnancy, death]
 
     sexual = sti.StructuredSexual(recall_prior=True)
     prior = sti.PriorPartners()
     maternal = ss.MaternalNet()
-    networks = [sexual, prior, maternal]
 
     testing1 = sti.HIVTest(name='gp', test_prob_data=0.2, start=2000)
     testing2 = sti.HIVTest(name='fsw', test_prob_data=0.2, start=2000, eligibility=lambda sim: sim.networks.structuredsexual.fsw)
@@ -38,7 +39,9 @@ def test_hiv_sim(n_agents=500):
     interventions = [testing1, testing2, art, vmmc]
 
     sim = build_testing_sim(diseases=diseases, n_agents=500,
-                            demographics=demographics, interventions=interventions, networks=networks)
+                            pregnancy=pregnancy, death=death,
+                            maternal_network=maternal, prior_network=prior, sexual_network=sexual,
+                            interventions=interventions)
 
     return sim
 
@@ -112,7 +115,7 @@ def test_bv(include_hiv=False, n_agents=500):
     sim_args = dict(start=2015, stop=2030, n_agents=n_agents, diseases=dis, networks=nets, demographics=dem, connectors=con)
 
     s0 = ss.Sim(**sim_args, interventions=intvs)
-    s1 = ss.Sim(**sim_args, interventions=intvs + [menstrual_hygiene(start=ss.date(2020), new_val=0.1)])
+    s1 = ss.Sim(**sim_args, interventions=intvs + [menstrual_hygiene(start=2020, new_val=0.1)])
     ss.parallel(s0, s1, debug=debug)
     return s0, s1
 
@@ -162,14 +165,15 @@ def test_sim_creation():
 
     nw_pars = dict(debut=ss.lognorm_ex(20, 5))
     sti_pars = dict(ng=dict(eff_condom=0.6))
-    datafolder = str(TEST_DATA_DIR)
+
+    # datafolder = TEST_DATA_DIR
 
     # Test 1: default networks with custom pars, demographics from location string, and diseases from disease names with custom pars
     sim1 = sti.Sim(
         pars=pars,
         nw_pars=nw_pars,
         demographics='zimbabwe',
-        datafolder=datafolder,
+        datafolder=TEST_DATA_DIR,
         diseases=['ng', 'ct', 'tv', 'bv', 'hiv'],
         sti_pars=sti_pars,
         # connectors=True
@@ -206,7 +210,7 @@ def test_sim_creation():
         beta_m2f=0.05,  # STI parameter applied to all STIs
         prop_f0=0.45,
         location='zimbabwe',
-        datafolder=str(TEST_DATA_DIR),
+        datafolder=TEST_DATA_DIR,
         diseases=['ng', 'ct', 'tv'],
         ng=dict(eff_condom=0.6),  # Gonorrhea-specific parameter
     )
