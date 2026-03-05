@@ -41,6 +41,7 @@ class SimPars(ss.SimPars):
         self.birth_rate = None
         self.death_rate = None
         self.use_aging  = False
+        self.age_scale = 1.0
         self.use_pregnancy = True
         self.use_migration = False
 

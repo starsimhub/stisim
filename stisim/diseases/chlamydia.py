@@ -42,6 +42,7 @@ class CTPars(STIPars):
         self.p_pid = ss.bernoulli(p=0.0)  # Assumption used in https://doi.org/10.1086/598983, based on https://doi.org/10.1016/s0029-7844(02)02118-x
         self.dur_prepid = ss.lognorm_ex(ss.months(1.5), ss.months(3))
 
+        self.beta_m2f = 0.06
         self.init_prev = ss.bernoulli(p=0.01)
         self.eff_condom = 0.0  # doi:10.1001/archpedi.159.6.536
 
