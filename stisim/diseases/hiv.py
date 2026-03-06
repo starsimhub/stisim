@@ -418,8 +418,7 @@ class HIV(BaseSTI):
 
         # Update rel_trans to account for acute and late-stage infection
         self.rel_trans[self.acute] *= self.pars.rel_trans_acute.rvs(self.acute.uids)
-        aids = self.cd4 < 200
-        self.rel_trans[aids] *= self.pars.rel_trans_falling.rvs(aids.uids)
+        self.rel_trans[self.aids] *= self.pars.rel_trans_falling.rvs(self.aids.uids)
 
         # Update transmission for agents on ART
         # When agents start ART, determine the reduction of transmission (linearly decreasing over 6 months)
