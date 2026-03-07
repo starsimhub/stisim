@@ -17,7 +17,7 @@ import stisim as sti
 datadir = sc.thispath()
 
 # Sim settings
-sim_pars = dict(start=1990, stop=2025)
+sim_pars = dict(start=1990, stop=2025, age_scale=1000)
 
 # Calibrated parameters
 sti_pars = dict(

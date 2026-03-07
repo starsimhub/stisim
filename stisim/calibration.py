@@ -7,8 +7,10 @@ import sciris as sc
 import starsim as ss
 import os
 
+# Lazy import (do not import unless actually used, saves load time)
+op = sc.importbyname('optuna', lazy=True)
 
-__all__ = ['Calibration', 'compute_gof', 'default_build_fn']
+__all__ = ['Calibration', 'compute_gof', 'default_build_fn', 'set_sim_pars', 'flatten_calib_pars', 'make_calib_sims']
 
 
 def compute_gof(actual, predicted, normalize=True, use_frac=False, use_squared=False,
@@ -158,88 +160,290 @@ def eval_fn(sim, data=None, sim_result_list=None, weights=None, df_res_list=None
     return fit
 
 
+# Metadata keys to skip when routing parameters
+_META_KEYS = {'rand_seed', 'index', 'mismatch'}
+# Keys that indicate a parameter spec dict (not a nested module dict)
+_SPEC_KEYS = {'low', 'high', 'guess', 'value', 'suggest_type'}
+
+
+def flatten_calib_pars(calib_pars):
+    """
+    Normalize calibration parameters to flat dot-notation format.
+
+    Accepts two formats:
+
+    **Nested** (grouped by module)::
+
+        dict(hiv=dict(beta_m2f=dict(low=0.01, high=0.10)))
+
+    **Flat** (dot notation — returned unchanged)::
+
+        {'hiv.beta_m2f': dict(low=0.01, high=0.10)}
+
+    Nested format is detected when a value is a dict whose keys don't
+    overlap with spec keys (``low``, ``high``, ``guess``, etc.).
+
+    Returns:
+        dict: Flat dict with ``'module.par'`` keys.
+    """
+    flat = {}
+    for key, value in calib_pars.items():
+        if not isinstance(value, dict) or (set(value.keys()) & _SPEC_KEYS):
+            flat[key] = value  # Already flat, scalar, or metadata
+        else:
+            for par_name, spec in value.items():
+                flat[f'{key}.{par_name}'] = spec
+    return flat
+
+
+def _parse_calib_key(key):
+    """
+    Parse a calibration parameter key into (module_name, par_name).
+
+    Uses dot notation: ``'hiv.beta_m2f'`` → ``('hiv', 'beta_m2f')``.
+    Keys without a dot or in :data:`_META_KEYS` return ``(None, None)``.
+    """
+    if key in _META_KEYS:
+        return None, None
+    if '.' not in key:
+        return None, None
+    mod_name, par_name = key.split('.', 1)
+    return mod_name, par_name
+
+
+def _parse_legacy_key(key, sim):
+    """
+    Parse a legacy underscore-separated key (e.g. ``'hiv_beta_m2f'``) by
+    greedy-matching against the sim's known module names (longest first).
+
+    Also supports common aliases: ``nw_`` → ``structuredsexual``,
+    ``conn_`` → first connector, ``syph_`` → ``syph``.
+
+    Returns ``(module_name, par_name)`` or ``(None, None)`` if unmatched.
+    """
+    # Collect all module names, plus common aliases
+    mod_names = [m.name for m in sim.get_modules()]
+    aliases = {}
+    for name in mod_names:
+        if 'structuredsexual' in name:
+            aliases['nw'] = name
+    for m in sim.get_modules():
+        if isinstance(m, ss.Connector):
+            aliases['conn'] = m.name
+
+    all_names = list(aliases.items()) + [(n, n) for n in mod_names]
+    # Sort by prefix length descending (greedy match)
+    all_names.sort(key=lambda x: len(x[0]), reverse=True)
+
+    for prefix, mod_name in all_names:
+        if key.startswith(prefix + '_'):
+            par_name = key[len(prefix) + 1:]
+            if par_name:
+                return mod_name, par_name
+    return None, None
+
+
+def _set_par(module, par_name, value):
+    """Set a parameter on a module, calling ``.set()`` for distributions."""
+    par = module.pars[par_name]
+    if hasattr(par, 'set'):
+        par.set(value)
+    else:
+        module.pars[par_name] = value
+
+
+def set_sim_pars(sim, pars):
+    """
+    Set calibrated parameters on a sim.
+
+    All parameters are set directly on the module objects via
+    ``sim.get_module()``.  This works on uninitialized sims because every
+    module stores its ``pars`` dict immediately on construction.
+
+    Supports both dot notation (``'hiv.beta_m2f'``) and legacy underscore
+    format (``'hiv_beta_m2f'``).  Legacy keys are matched greedily against
+    the sim's module names (longest match first).
+
+    Args:
+        sim (Sim): A simulation (modules must be instances, not strings)
+        pars (dict): Flat parameter dict, e.g. ``{'hiv.beta_m2f': 0.05, ...}``
+
+    Returns:
+        Sim: The same sim, modified in place
+    """
+    for key, value in pars.items():
+        mod_name, par_name = _parse_calib_key(key)
+
+        # Fall back to legacy underscore matching if no dot found
+        if mod_name is None and key not in _META_KEYS:
+            mod_name, par_name = _parse_legacy_key(key, sim)
+
+        if mod_name is None:
+            continue
+        if isinstance(value, dict):
+            value = value.get('value', None)
+        if value is None:
+            continue
+        module = sim.get_module(mod_name, die=False)
+        if module is None:
+            print(f'Warning: module "{mod_name}" not found for parameter "{key}"')
+            continue
+        _set_par(module, par_name, value)
+    return sim
+
+
 def default_build_fn(sim, calib_pars, **kwargs):
     """
     Default build function for STIsim calibration.
 
-    Routes calibration parameters to the correct sim component based on naming
-    conventions:
-        - ``hiv_*``   → ``sim.diseases.hiv.pars[*]``
-        - ``syph_*``  → ``sim.diseases.syphilis.pars[*]``
-        - ``{disease}_*`` → ``sim.diseases.{disease}.pars[*]``
-        - ``nw_*``    → ``sim.networks.structuredsexual.pars[*]``
+    Routes calibration parameters to the correct sim module using dot notation:
 
-    Parameters whose names don't match any prefix are skipped with a warning.
+        - ``'hiv.beta_m2f'``              → ``sim.get_module('hiv').pars['beta_m2f']``
+        - ``'structuredsexual.prop_f0'``   → ``sim.get_module('structuredsexual').pars['prop_f0']``
+        - ``'hiv_syph.rel_sus_syph_hiv'``  → ``sim.get_module('hiv_syph').pars['rel_sus_syph_hiv']``
+        - ``'symp_algo.rel_test'``         → ``sim.get_module('symp_algo').pars['rel_test']``
+
+    All parameters are set on the uninitialized sim before ``sim.init()`` is
+    called.  This works because every module stores its ``pars`` dict
+    immediately on construction.
 
     Args:
-        sim (Sim): An initialized simulation
+        sim (Sim): An uninitialized simulation (modules must be instances, not strings)
         calib_pars (dict): Calibration parameters with values set by the sampler
 
     Returns:
-        Sim: The modified simulation
+        Sim: The initialized and modified simulation
 
     Example::
 
-        calib_pars = dict(
-            hiv_beta_m2f=dict(low=0.01, high=0.10, guess=0.035, value=0.05),
-            hiv_eff_condom=dict(low=0.5, high=0.99, guess=0.95, value=0.90),
-            nw_f1_conc=dict(low=0.005, high=0.3, guess=0.16, value=0.10),
-        )
+        calib_pars = {
+            'hiv.beta_m2f':               dict(low=0.01, high=0.10, guess=0.035, value=0.05),
+            'structuredsexual.f1_conc':    dict(low=0.005, high=0.3, guess=0.16, value=0.10),
+            'hiv_syph.rel_sus_syph_hiv':   dict(low=1.0, high=4.0, guess=2.5, value=3.0),
+            'symp_algo.rel_test':          dict(low=0.5, high=1.5, guess=1.0, value=1.2),
+        }
         sim = default_build_fn(sim, calib_pars)
     """
+    set_sim_pars(sim, calib_pars)
+
     if not sim.initialized:
         sim.init()
 
-    # Build lookup of disease short names to disease objects
-    disease_map = {}
-    for name, disease in sim.diseases.items():
-        disease_map[name] = disease
-        # Also map common short names
-        if name == 'syphilis':
-            disease_map['syph'] = disease
-
-    # Get the structured sexual network if available
-    nw = None
-    if 'structuredsexual' in sim.networks:
-        nw = sim.networks.structuredsexual
-
-    for k, pars in calib_pars.items():
-        # Skip metadata keys
-        if k in ['rand_seed', 'index', 'mismatch']:
-            continue
-
-        # Extract value
-        if isinstance(pars, dict):
-            v = pars.get('value', pars)
-        elif sc.isnumber(pars):
-            v = pars
-        else:
-            continue
-
-        # Route by prefix
-        matched = False
-
-        # Check disease prefixes
-        for prefix, disease in disease_map.items():
-            if k.startswith(prefix + '_'):
-                par_name = k[len(prefix) + 1:]
-                disease.pars[par_name] = v
-                matched = True
-                break
-
-        # Check network prefix
-        if not matched and k.startswith('nw_') and nw is not None:
-            par_name = k[3:]
-            if hasattr(nw.pars[par_name], 'set'):
-                nw.pars[par_name].set(v)
-            else:
-                nw.pars[par_name] = v
-            matched = True
-
-        if not matched:
-            print(f'Warning: calibration parameter "{k}" not matched to any disease or network')
-
     return sim
+
+
+def make_calib_sims(calib=None, calib_pars=None, sim=None, n_parsets=None,
+                    check_fn=None, seeds_per_par=1, **kwargs):
+    """
+    Create and run simulations using calibrated parameters.
+
+    Provide either a :class:`Calibration` object or a set of calibration
+    parameters directly. The function creates one sim per parameter set (with
+    optional seed replication), runs them in parallel, and optionally filters
+    the results.
+
+    Args:
+        calib (Calibration): A completed calibration. Extracts pars via
+            ``calib.get_pars()`` and uses ``calib.sim`` as the base if *sim*
+            is not provided.
+        calib_pars: Parameter source — one of:
+
+            - **dict**: single parameter set → 1 sim (× *seeds_per_par*)
+            - **list[dict]**: N parameter sets → N sims
+            - **DataFrame**: rows are parameter sets (like ``calib.df``)
+
+        sim (Sim): Base (uninitialized) simulation to copy. If ``None``, uses
+            ``calib.sim``.
+        n_parsets (int): Number of top parameter sets to use. ``None`` = all.
+        check_fn (callable): Post-run filter — ``check_fn(sim) → bool``.
+            Sims returning ``False`` are dropped. If ``None`` and *calib* is
+            provided, uses ``calib.check_fn``.
+        seeds_per_par (int): Random seeds per parameter set. When > 1, each
+            par set is run with multiple seeds and only the first surviving
+            seed (per ``check_fn``) is kept.
+        **kwargs: Passed to ``ss.parallel()``.
+
+    Returns:
+        ss.MultiSim: A MultiSim containing the completed simulations.
+
+    Examples::
+
+        # From a Calibration object
+        msim = sti.make_calib_sims(calib=calib, n_parsets=200)
+
+        # From a saved parameters DataFrame
+        pars_df = sc.loadobj('results/pars.df')
+        msim = sti.make_calib_sims(calib_pars=pars_df, sim=make_sim(), n_parsets=50)
+
+        # Single parameter set with multiple seeds
+        msim = sti.make_calib_sims(
+            calib_pars={'hiv.beta_m2f': 0.05, 'syph.beta_m2f': 0.2},
+            sim=make_sim(), seeds_per_par=5,
+        )
+
+        # Different scenario with calibrated parameters
+        msim = sti.make_calib_sims(
+            calib_pars=pars_df, n_parsets=10, seeds_per_par=5,
+            sim=make_sim(scenario='intervention'),
+            check_fn=lambda s: float(np.sum(s.results.syph.new_infections[-60:])) > 0,
+        )
+    """
+    # --- Normalize inputs to par_sets (list of flat dicts) and base_sim ---
+    if calib is not None:
+        par_sets = calib.get_pars(n=n_parsets)
+        base_sim = sim if sim is not None else calib.sim
+        if check_fn is None:
+            check_fn = getattr(calib, 'check_fn', None)
+    elif calib_pars is not None:
+        base_sim = sim
+        if isinstance(calib_pars, pd.DataFrame):
+            meta = _META_KEYS
+            df = calib_pars.head(n_parsets) if n_parsets else calib_pars
+            par_cols = [c for c in df.columns if c not in meta]
+            par_sets = [{col: row[col] for col in par_cols} for _, row in df.iterrows()]
+        elif isinstance(calib_pars, dict):
+            par_sets = [calib_pars]
+        elif isinstance(calib_pars, list):
+            par_sets = calib_pars[:n_parsets] if n_parsets else calib_pars
+        else:
+            raise TypeError(f'calib_pars must be a dict, list, or DataFrame, not {type(calib_pars)}')
+    else:
+        raise ValueError('Provide either calib or calib_pars')
+
+    if base_sim is None:
+        raise ValueError('No base sim available — pass sim= or use a Calibration that has one')
+
+    # --- Create sims ---
+    sims = []
+    for i, pars in enumerate(par_sets):
+        for seed in range(1, seeds_per_par + 1):
+            s = sc.dcp(base_sim)
+            s.pars['rand_seed'] = i * seeds_per_par + seed
+            set_sim_pars(s, pars)
+            s.par_idx = i
+            s.seed = seed
+            sims.append(s)
+
+    # --- Run ---
+    msim = ss.parallel(sims, **kwargs)
+
+    # --- Filter ---
+    if check_fn is not None:
+        kept = [s for s in msim.sims if check_fn(s)]
+        if seeds_per_par > 1:
+            seen = set()
+            filtered = []
+            for s in kept:
+                if s.par_idx not in seen:
+                    filtered.append(s)
+                    seen.add(s.par_idx)
+            kept = filtered
+        dropped = len(msim.sims) - len(kept)
+        if dropped:
+            print(f'Dropped {dropped}/{len(msim.sims)} sims via check_fn')
+        msim.sims = kept
+
+    return msim
 
 
 class Calibration(ss.Calibration):
@@ -247,15 +451,20 @@ class Calibration(ss.Calibration):
     Customized STIsim calibration class.
 
     Inherits all the functionality of the Starsim calibration class, but adds:
-    - A default build function that routes parameters by prefix (e.g. ``hiv_beta_m2f``)
-    - A default evaluation function that uses the data provided in the constructor
 
-    If no ``build_fn`` is provided, uses :func:`default_build_fn` which routes
-    parameters to diseases and networks by prefix convention.
+    - A default build function that routes parameters using dot notation
+      (e.g. ``'hiv.beta_m2f'``)
+    - A default evaluation function that uses the data provided in the
+      constructor
+    - :meth:`get_pars` for extracting calibrated parameter sets
+
+    If no ``build_fn`` is provided, uses :func:`default_build_fn` which looks
+    up modules via ``sim.get_module()`` and sets their parameters.
 
     Args:
         sim (Sim): The simulation to calibrate
-        calib_pars (dict): Parameters to calibrate, e.g. ``dict(hiv_beta_m2f=dict(low=0.01, high=0.1))``
+        calib_pars (dict): Parameters to calibrate using dot notation, e.g.
+            ``{'hiv.beta_m2f': dict(low=0.01, high=0.1, guess=0.05)}``
         data (DataFrame): Calibration targets with 'time' column + result columns
         weights (dict): Optional weight multipliers per result
         extra_results (list): Additional results to track beyond data columns
@@ -265,19 +474,29 @@ class Calibration(ss.Calibration):
 
         sim = make_sim()
         data = pd.read_csv('calibration_data.csv')
-        calib_pars = dict(
-            hiv_beta_m2f=dict(low=0.01, high=0.1, guess=0.05),
-            nw_prop_f0=dict(low=0.5, high=0.9, guess=0.8),
-        )
-        calib = stisim.Calibration(sim=sim, calib_pars=calib_pars, data=data, total_trials=100)
+        calib_pars = {
+            'hiv.beta_m2f': dict(low=0.01, high=0.1, guess=0.05),
+            'structuredsexual.prop_f0': dict(low=0.5, high=0.9, guess=0.8),
+        }
+        calib = sti.Calibration(sim=sim, calib_pars=calib_pars, data=data, total_trials=100)
         calib.calibrate()
+
+        # Extract best parameters and run multi-sim
+        par_sets = calib.get_pars(n=200)
+        msim = sti.make_calib_sims(calib=calib, n_parsets=200)
     """
-    def __init__(self, sim, calib_pars, data=None, weights=None, extra_results=None, save_results=False, **kwargs):
+    def __init__(self, sim, calib_pars, data=None, weights=None, extra_results=None, save_results=False, check_fn=None, **kwargs):
 
         # Use default build_fn if none provided
         kwargs.setdefault('build_fn', default_build_fn)
 
+        # Flatten nested calib_pars to dot notation for Optuna
+        calib_pars = flatten_calib_pars(calib_pars)
+
         super().__init__(sim, calib_pars, **kwargs)
+
+        # Post-sim check function: takes a sim, returns False to reject (return inf mismatch)
+        self.check_fn = check_fn
 
         # Custom STIsim calibration elements
         # Load data -- this is expecting a dataframe with a column for 'time' and other columns for to sim results
@@ -311,6 +530,68 @@ class Calibration(ss.Calibration):
         self.eval_fn = eval_fn
         return
 
+    def worker(self):
+        """ Run a single worker, catching exceptions so one crash doesn't kill all workers """
+        if self.verbose:
+            op.logging.set_verbosity(op.logging.DEBUG)
+        else:
+            op.logging.set_verbosity(op.logging.ERROR)
+        study = op.load_study(storage=self.run_args.storage, study_name=self.run_args.study_name, sampler=self.run_args.sampler)
+        try:
+            output = study.optimize(self.run_trial, n_trials=self.run_args.n_trials, callbacks=None)
+        except Exception as E:
+            print(f'Worker failed with error: {E}')
+            output = None
+        return output
+
+    def calibrate(self, calib_pars=None, **kwargs):
+        """
+        Perform calibration with crash-recovery support.
+
+        If continue_db=True and the database already has completed trials, only
+        the remaining trials will be run. This allows recovery from crashes by
+        simply re-running the same command.
+        """
+        if calib_pars is not None:
+            self.calib_pars = calib_pars
+        self.run_args.update(kwargs)
+
+        t0 = sc.tic()
+        self.study = self.make_study()
+
+        # Resume logic: count existing trials and only run the remainder
+        if self.run_args.continue_db:
+            study = op.load_study(storage=self.run_args.storage, study_name=self.run_args.study_name)
+            n_existing = len([t for t in study.trials if t.state == op.trial.TrialState.COMPLETE])
+            total_trials = self.run_args.n_trials * self.run_args.n_workers
+            if n_existing > 0:
+                n_remaining = max(0, total_trials - n_existing)
+                if n_remaining == 0:
+                    print(f'Calibration already has {n_existing} completed trials, no more needed')
+                else:
+                    self.run_args.n_trials = int(np.ceil(n_remaining / self.run_args.n_workers))
+                    print(f'Resuming calibration: {n_existing} trials complete, running ~{n_remaining} more')
+                    self.run_workers()
+            else:
+                self.run_workers()
+        else:
+            self.run_workers()
+
+        study = op.load_study(storage=self.run_args.storage, study_name=self.run_args.study_name, sampler=self.run_args.sampler)
+        self.best_pars = sc.objdict(study.best_params)
+        self.elapsed = sc.toc(t0, output=True)
+
+        self.parse_study(study)
+
+        if self.verbose:
+            print('Best pars:', self.best_pars)
+
+        self.calibrated = True
+        if not self.run_args.keep_db:
+            self.remove_db()
+
+        return self
+
     def run_trial(self, trial):
         """ Define the objective for Optuna """
         if self.calib_pars is not None:
@@ -327,6 +608,11 @@ class Calibration(ss.Calibration):
 
         sim = self.run_sim(pars)
 
+        # Check for invalid simulations (e.g. disease die-out)
+        if sim is not None and self.check_fn is not None:
+            if not self.check_fn(sim):
+                return np.inf
+
         # Compute fit
         fit = self.eval_fn(sim, **self.eval_kw)
 
@@ -340,14 +626,17 @@ class Calibration(ss.Calibration):
         """Parse the study into a data frame -- called automatically """
         super().parse_study(study)
         if self.save_results:
-            self.load_results(study)
-            self.sim_results = [self.sim_results[i] for i in self.df.index]
+            loaded = self.load_results(study)
+            # Filter sim_results to only successfully loaded trials
+            if loaded is not None:
+                self.sim_results = [self.sim_results[i] for i in range(len(self.sim_results))]
         return
 
     def load_results(self, study):
         """
-        Load the results from the tmp files
+        Load the results from the tmp files, tracking which loaded successfully
         """
+        loaded_trials = set()
         if self.save_results:
             print('Loading saved results...')
             for trial in study.trials:
@@ -356,6 +645,7 @@ class Calibration(ss.Calibration):
                     filename = self.tmp_filename % trial.number
                     results = sc.load(filename)
                     self.sim_results.append(results)
+                    loaded_trials.add(n)
                     try:
                         os.remove(filename)
                         if self.verbose: print(f'    Removed temporary file {filename}')
@@ -366,7 +656,73 @@ class Calibration(ss.Calibration):
                 except Exception as E:
                     errormsg = f'Warning, could not load trial {n}: {str(E)}'
                     if self.verbose: print(errormsg)
-        return
+        return loaded_trials
+
+    def get_pars(self, n=None):
+        """
+        Extract top-N calibrated parameter sets as a list of flat dicts.
+
+        Each dict maps ``'module.par'`` keys to scalar values (metadata columns
+        like ``index``, ``mismatch``, and ``rand_seed`` are stripped).  The
+        returned dicts can be passed directly to :func:`set_sim_pars` or
+        :func:`make_calib_sims`.
+
+        Args:
+            n (int): Number of top parameter sets. ``None`` returns all.
+
+        Returns:
+            list[dict]: Parameter sets sorted by mismatch (best first).
+        """
+        if self.df is None:
+            raise ValueError('No calibration results available — run calibrate() first')
+        df = self.df.head(n) if n else self.df
+        par_cols = [c for c in df.columns if c not in _META_KEYS]
+        return [{col: row[col] for col in par_cols} for _, row in df.iterrows()]
+
+    def save(self, filename, shrink=True, n_results=None, save_pars=True, pars_filename=None):
+        """
+        Save calibration results.
+
+        Optionally shrinks to the top *n_results* before saving (default:
+        keep top 10% of completed trials).  Also saves the parameter
+        DataFrame as a separate file.
+
+        Args:
+            filename (str/Path): Path for the saved calibration object.
+            shrink (bool): If True (default), shrink before saving. The full
+                (unshrunk) object is saved with a ``_full`` suffix first.
+            n_results (int): Number of top results to keep when shrinking.
+                Default: ``len(self.df) // 10`` (minimum 1).
+            save_pars (bool): If True (default), also save ``calib.df``.
+            pars_filename (str/Path): Path for the parameter DataFrame. If
+                None, uses ``{stem}_pars.df`` next to *filename*.
+
+        Returns:
+            The (possibly shrunk) calibration object.
+        """
+        filename = sc.path(filename)
+
+        if shrink and self.sim_results:
+            if n_results is None:
+                n_results = max(len(self.df) // 10, 1)
+            full_filename = filename.parent / (filename.stem + '_full' + filename.suffix)
+            sc.save(full_filename, self)
+            print(f'Saved full calibration to {full_filename}')
+            calib = self.shrink(n_results=n_results)
+        else:
+            calib = self
+
+        sc.save(filename, calib)
+        print(f'Saved calibration to {filename}')
+
+        if save_pars:
+            if pars_filename is None:
+                pars_filename = filename.parent / (filename.stem + '_pars.df')
+            df = calib.df if hasattr(calib, 'df') else self.df
+            sc.save(pars_filename, df)
+            print(f'Saved parameters to {pars_filename}')
+
+        return calib
 
     def shrink(self, n_results=100, make_df=True):
         """ Shrink the results to only the best fit """
@@ -387,3 +743,10 @@ class Calibration(ss.Calibration):
         cal.data = self.data
         cal.df = self.df.iloc[0:n_results, ]
         return cal
+
+
+
+
+
+
+

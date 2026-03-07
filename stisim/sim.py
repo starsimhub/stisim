@@ -290,7 +290,7 @@ class Sim(ss.Sim):
             if self.pars['total_pop'] is not None:
                 total_pop = int(self.pars['total_pop'])
             else:
-                total_pop = int(age_data.value.sum() * 1000)  # Age data values are in thousands
+                total_pop = int(age_data.value.sum() * self.pars['age_scale'])  # Age data values are in thousands
             age_data['value'] /= sum(age_data['value'])  # Normalize the age distribution
             people = ss.People(self.pars.n_agents, age_data=age_data)
 
