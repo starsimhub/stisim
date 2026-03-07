@@ -211,6 +211,38 @@ def _parse_calib_key(key):
     return mod_name, par_name
 
 
+def _parse_legacy_key(key, sim):
+    """
+    Parse a legacy underscore-separated key (e.g. ``'hiv_beta_m2f'``) by
+    greedy-matching against the sim's known module names (longest first).
+
+    Also supports common aliases: ``nw_`` → ``structuredsexual``,
+    ``conn_`` → first connector, ``syph_`` → ``syph``.
+
+    Returns ``(module_name, par_name)`` or ``(None, None)`` if unmatched.
+    """
+    # Collect all module names, plus common aliases
+    mod_names = [m.name for m in sim.get_modules()]
+    aliases = {}
+    for name in mod_names:
+        if 'structuredsexual' in name:
+            aliases['nw'] = name
+    for m in sim.get_modules():
+        if isinstance(m, ss.Connector):
+            aliases['conn'] = m.name
+
+    all_names = list(aliases.items()) + [(n, n) for n in mod_names]
+    # Sort by prefix length descending (greedy match)
+    all_names.sort(key=lambda x: len(x[0]), reverse=True)
+
+    for prefix, mod_name in all_names:
+        if key.startswith(prefix + '_'):
+            par_name = key[len(prefix) + 1:]
+            if par_name:
+                return mod_name, par_name
+    return None, None
+
+
 def _set_par(module, par_name, value):
     """Set a parameter on a module, calling ``.set()`` for distributions."""
     par = module.pars[par_name]
@@ -228,6 +260,10 @@ def set_sim_pars(sim, pars):
     ``sim.get_module()``.  This works on uninitialized sims because every
     module stores its ``pars`` dict immediately on construction.
 
+    Supports both dot notation (``'hiv.beta_m2f'``) and legacy underscore
+    format (``'hiv_beta_m2f'``).  Legacy keys are matched greedily against
+    the sim's module names (longest match first).
+
     Args:
         sim (Sim): A simulation (modules must be instances, not strings)
         pars (dict): Flat parameter dict, e.g. ``{'hiv.beta_m2f': 0.05, ...}``
@@ -237,6 +273,11 @@ def set_sim_pars(sim, pars):
     """
     for key, value in pars.items():
         mod_name, par_name = _parse_calib_key(key)
+
+        # Fall back to legacy underscore matching if no dot found
+        if mod_name is None and key not in _META_KEYS:
+            mod_name, par_name = _parse_legacy_key(key, sim)
+
         if mod_name is None:
             continue
         if isinstance(value, dict):
@@ -357,7 +398,7 @@ def make_calib_sims(calib=None, calib_pars=None, sim=None, n_parsets=None,
         base_sim = sim
         if isinstance(calib_pars, pd.DataFrame):
             meta = _META_KEYS
-            df = calib_pars.sort_values('mismatch').head(n_parsets) if (n_parsets and 'mismatch' in calib_pars.columns) else calib_pars.head(n_parsets) if n_parsets else calib_pars
+            df = calib_pars.head(n_parsets) if n_parsets else calib_pars
             par_cols = [c for c in df.columns if c not in meta]
             par_sets = [{col: row[col] for col in par_cols} for _, row in df.iterrows()]
         elif isinstance(calib_pars, dict):
