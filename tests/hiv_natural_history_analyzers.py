@@ -2,8 +2,9 @@ import starsim as ss
 
 
 class TimeToAIDSTracker(ss.Analyzer):
-    # Records the time to AIDS for each infected model agent. Results are obtainable from the analyzer by key
-    # 'hiv.ti_to_aids' .
+    """
+    Records the time to AIDS (falling) for each infected model agent. Results are obtainable from the analyzer by key 'hiv.ti_to_aids' .
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -16,24 +17,26 @@ class TimeToAIDSTracker(ss.Analyzer):
     def init_results(self):
         super().init_results()
         # results are a list of times to AIDS for agents infected at each timestep
-        self.define_results(
-            ss.Result('hiv.ti_to_aids', dtype=list, scale=False),
-        )
+        self.define_results(ss.Result('hiv.ti_to_aids', dtype=list, scale=False))
 
     def update_results(self):
-        infected = self.sim.people.filter('hiv.infected')  # self.sim.people.hiv.infected.uids
+        hiv = self.sim.diseases.hiv
+        infected = hiv.infected
+
         if self.has_results:
-            infected_this_step = infected('hiv.ti_infected') == self.ti
+            infected_this_step = infected & (hiv.ti_infected == self.ti)
         else:
-            infected_this_step = infected('hiv.ti_infected') <= self.ti
+            infected_this_step = infected & (hiv.ti_infected <= self.ti)
             self.has_results = True
 
-        times_to_aids = infected_this_step.states['hiv.ti_falling'] - infected_this_step.states['hiv.ti_infected']
+        times_to_aids = hiv.ti_falling[infected_this_step] - hiv.ti_infected[infected_this_step]
         self.results['hiv.ti_to_aids'][self.ti] = times_to_aids
 
 
 class CD4ByUIDTracker(ss.Analyzer):
-    # Records an agent-uid-keyed dict of timeseries of CD4 count. Results obtainable by analyzer key 'hiv.ts_cd4'
+    """
+    Records an agent-uid-keyed dict of timeseries of CD4 count. Results obtainable by analyzer key 'hiv.ts_cd4'
+    """
 
     def step(self):
         pass
@@ -53,12 +56,16 @@ class CD4ByUIDTracker(ss.Analyzer):
 
 
 class RelativeInfectivityTracker(ss.Analyzer):
-    # records the rel_trans (infectivity ratio) of agents in the specified states (acute, falling, and/or latent).
-    # Results are obtainable by the analyzer keys below.
+    """
+    Records the rel_trans (infectivity ratio) of agents in the specified states (acute, falling, and/or latent).
+    Results are obtainable by the analyzer keys below.
+    """
     STATES = {
-        'acute':   {'result_name': 'hiv.acute_infectivity_ratios',   'filter': lambda hiv: hiv.acute},
-        'falling': {'result_name': 'hiv.falling_infectivity_ratios', 'filter': lambda hiv: hiv.falling},
-        'latent':  {'result_name': 'hiv.latent_infectivity_ratios',  'filter': lambda hiv: hiv.latent}
+        'acute':   {'result_name': 'hiv.acute_rel_trans',   'filter': lambda hiv: hiv.acute},
+        'falling': {'result_name': 'hiv.falling_rel_trans', 'filter': lambda hiv: hiv.falling},
+        'latent':  {'result_name': 'hiv.latent_rel_trans',  'filter': lambda hiv: hiv.latent},
+        'aids':    {'result_name': 'hiv.aids_rel_trans',    'filter': lambda hiv: hiv.aids}
+
     }
 
     def __init__(self, states: list[str], *args, **kwargs):
@@ -80,41 +87,46 @@ class RelativeInfectivityTracker(ss.Analyzer):
         hiv = self.sim.diseases.hiv
         for state in self.states_to_track:
             state_dict = self.STATES[state]
-            # we ignore ti_infected < self.ti because relative transmission is updated BEFORE infection in the model
+            # we ignore ti_infected == self.ti because relative transmission is updated BEFORE infection in the model
             # timestep and all just-infected agents have rel_trans == 1 (but this value is not used in any infection
             # events, as rel_trans will be properly updated for the NEXT transmission step)
             ratios = hiv.rel_trans[(state_dict['filter'](hiv=hiv) & (hiv.ti_infected < self.ti))]
             self.results[state_dict['result_name']][self.ti] = ratios
 
 
-class TransmissionTracker(ss.Analyzer):
-    # records the number of hiv transmissions per timestep, accessible by analyzer key 'hiv.n_transmissions' .
+class TransmissionCountTracker(ss.Analyzer):
+    """
+    Records the number of HIV transmissions per timestep, per specified transmission mode.
+    Results are obtainable by the analyzer keys below.
+    """
+
+    MODES = {
+        'sexual': {'result_name': 'hiv.n_sexual_transmissions', 'filter': lambda hiv: hiv.new_transmissions_sex.notnanvals}
+    }
+
+    def __init__(self, modes: list[str], *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.modes = modes
+
     def step(self):
         pass
 
     def init_results(self):
         super().init_results()
-        self.define_results(ss.Result('hiv.n_transmissions', dtype=list, scale=False))
+        for mode in self.modes:
+            if mode not in self.MODES:
+                raise Exception(f"Unknown transmission mode: {mode}")
+            mode_dict = self.MODES[mode]
+            self.define_results(ss.Result(mode_dict['result_name'], dtype=list, scale=False))
+
 
     def update_results(self):
         hiv = self.sim.diseases.hiv
-        transmissions = len((hiv.ti_infected == self.ti).uids)
-        self.results['hiv.n_transmissions'][self.ti] = transmissions
-
-class BreastfeedingTransmissionTracker(ss.Analyzer):
-    # records the number of breastfeeding-related hiv transmissions per timestep, accessible by analyzer key
-    # 'hiv.n_bf_transmissions' .
-    def step(self):
-        pass
-
-    def init_results(self):
-        super().init_results()
-        self.define_results(ss.Result('hiv.n_bf_transmissions', dtype=list, scale=False))
-
-    def update_results(self):
-        hiv = self.sim.diseases.hiv
-        transmissions = len((hiv.ti_infected == self.ti).uids)
-        self.results['hiv.n_bf_transmissions'][self.ti] = transmissions
+        for mode in self.modes:
+            mode_dict = self.MODES[mode]
+            transmissions = mode_dict['filter'](hiv=hiv)
+            total_transmissions = sum(transmissions)
+            self.results[mode_dict['result_name']][self.ti] = total_transmissions
 
 
 # perinatal infection progression not currently implemented in hivsim, so leaving this untested analyzer out for
