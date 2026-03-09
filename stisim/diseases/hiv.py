@@ -252,6 +252,10 @@ class HIV(BaseSTI):
     def symptomatic(self):
         return self.infectious
 
+    @property
+    def aids(self):
+        return self.cd4 < 200
+
     def make_p_hiv_death(self, uids=None):
         cd4_bins = np.array([1000, 500, 350, 200, 50, 0])
         p_hiv_death = ss.peryear(np.array([0.003, 0.003, 0.005, 0.01, 0.05, 0.300])).to_prob(self.dt)
@@ -414,8 +418,7 @@ class HIV(BaseSTI):
 
         # Update rel_trans to account for acute and late-stage infection
         self.rel_trans[self.acute] *= self.pars.rel_trans_acute.rvs(self.acute.uids)
-        aids = self.cd4 < 200
-        self.rel_trans[aids] *= self.pars.rel_trans_falling.rvs(aids.uids)
+        self.rel_trans[self.aids] *= self.pars.rel_trans_falling.rvs(self.aids.uids)
 
         # Update transmission for agents on ART
         # When agents start ART, determine the reduction of transmission (linearly decreasing over 6 months)
