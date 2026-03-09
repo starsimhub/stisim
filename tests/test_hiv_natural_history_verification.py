@@ -110,6 +110,22 @@ def test_acute_transmission_higher_than_latent():
     assert minimum_ratio > 1, f"Acute HIV transmission ratios must be greater than 1. Lowest detected value: {minimum_ratio}"
     return sim
 
+
+@sc.timer()
+def test_aids_transmission_is_higher_than_latent():
+    sc.heading("Checking HIV transmission ratio AIDS > latent.")
+
+    sim = build_testing_sim(analyzers=[RelativeInfectivityTracker(states=['aids'])], n_agents=25, duration=10)
+    sim.run()
+    aids_ratios = sim.results['relativeinfectivitytracker']['hiv.aids_rel_trans']
+    aids_ratios = list(set(chain(*aids_ratios)))
+
+    assert len(aids_ratios) > 0, "Cannot test AIDS HIV transmission ratios, no AIDS transmission detected."
+    minimum_ratio = min(aids_ratios)
+    assert minimum_ratio > 1, f"AIDS HIV transmission ratios must always be > 1. Minimum detected value: {minimum_ratio}"
+    return sim
+
+
 if __name__ == '__main__':
     do_plot = True
     sc.options(interactive=do_plot)
@@ -119,6 +135,7 @@ if __name__ == '__main__':
     test_time_from_infection_to_aids_untreated()
     test_latent_transmission_ratio_is_1()
     test_acute_transmission_higher_than_latent()
+    test_aids_transmission_is_higher_than_latent()
 
     sc.heading("Total:")
     timer.toc()
