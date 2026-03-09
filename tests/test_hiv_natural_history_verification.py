@@ -112,19 +112,17 @@ def test_acute_transmission_higher_than_latent():
 
 
 @sc.timer()
-def test_falling_transmission_is_higher_than_latent():
-    sc.heading("Checking HIV transmission ratio falling > latent.")
+def test_aids_transmission_is_higher_than_latent():
+    sc.heading("Checking HIV transmission ratio AIDS > latent.")
 
-    sim = build_testing_sim(analyzers=[RelativeInfectivityTracker(states=['falling'])], n_agents=25, duration=10)
+    sim = build_testing_sim(analyzers=[RelativeInfectivityTracker(states=['aids'])], n_agents=25, duration=10)
     sim.run()
-    falling_ratios = sim.results['relativeinfectivitytracker']['hiv.falling_rel_trans']
-    falling_ratios = list(set(chain(*falling_ratios)))
+    aids_ratios = sim.results['relativeinfectivitytracker']['hiv.aids_rel_trans']
+    aids_ratios = list(set(chain(*aids_ratios)))
 
-    assert len(falling_ratios) > 0, "Cannot test falling HIV transmission ratios, no falling transmission detected."
-    minimum_ratio = min(falling_ratios)
-    assert minimum_ratio >= 1, f"Falling HIV transmission ratios must always be >= 1. Lowest detected value: {minimum_ratio}"
-    maximum_ratio = max(falling_ratios)
-    assert maximum_ratio > 1, f"Falling HIV transmission ratios must eventually be > 1. Highest detected value: {maximum_ratio}"
+    assert len(aids_ratios) > 0, "Cannot test AIDS HIV transmission ratios, no AIDS transmission detected."
+    minimum_ratio = min(aids_ratios)
+    assert minimum_ratio > 1, f"AIDS HIV transmission ratios must always be > 1. Minimum detected value: {minimum_ratio}"
     return sim
 
 
@@ -137,7 +135,7 @@ if __name__ == '__main__':
     test_time_from_infection_to_aids_untreated()
     test_latent_transmission_ratio_is_1()
     test_acute_transmission_higher_than_latent()
-    test_falling_transmission_is_higher_than_latent()
+    test_aids_transmission_is_higher_than_latent()
 
     sc.heading("Total:")
     timer.toc()
