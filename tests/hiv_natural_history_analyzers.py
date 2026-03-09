@@ -94,36 +94,22 @@ class RelativeInfectivityTracker(ss.Analyzer):
             self.results[state_dict['result_name']][self.ti] = ratios
 
 
-class TransmissionCountTracker(ss.Analyzer):
+class SexualTransmissionCountTracker(ss.Analyzer):
     """
-    Records the number of HIV transmissions per timestep, per specified transmission mode.
-    Results are obtainable by the analyzer keys below.
+    Records the number of sexual HIV transmissions per timestep, results obtainable by analyzer key
+    'hiv.n_sexual_transmissions' .
     """
 
-    MODES = {
-        'sexual': {'result_name': 'hiv.n_sexual_transmissions', 'filter': lambda hiv: hiv.new_transmissions_sex.notnanvals}
-    }
-
-    def __init__(self, modes: list[str], *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.modes = modes
+    result_name = 'hiv.n_sexual_transmissions'
 
     def step(self):
         pass
 
     def init_results(self):
         super().init_results()
-        for mode in self.modes:
-            if mode not in self.MODES:
-                raise Exception(f"Unknown transmission mode: {mode}")
-            mode_dict = self.MODES[mode]
-            self.define_results(ss.Result(mode_dict['result_name'], dtype=list, scale=False))
-
+        self.define_results(ss.Result(self.result_name, dtype=list, scale=False))
 
     def update_results(self):
         hiv = self.sim.diseases.hiv
-        for mode in self.modes:
-            mode_dict = self.MODES[mode]
-            transmissions = mode_dict['filter'](hiv=hiv)
-            total_transmissions = sum(transmissions)
-            self.results[mode_dict['result_name']][self.ti] = total_transmissions
+        transmissions = sum(hiv.new_transmissions_sex.notnanvals)
+        self.results[self.result_name][self.ti] = transmissions

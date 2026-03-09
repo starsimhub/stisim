@@ -16,7 +16,7 @@ from statistics import mean
 tests_directory = Path(__file__).resolve().parent
 sys.path.append(str(tests_directory))
 
-from hiv_natural_history_analyzers import CD4ByUIDTracker, RelativeInfectivityTracker, TimeToAIDSTracker, TransmissionCountTracker
+from hiv_natural_history_analyzers import CD4ByUIDTracker, RelativeInfectivityTracker, TimeToAIDSTracker, SexualTransmissionCountTracker
 from testlib import build_testing_sim
 
 
@@ -130,9 +130,10 @@ def test_aids_transmission_is_higher_than_latent():
 def test_no_sexual_transmission_without_network():
     sc.heading("Ensuring no sexual transmission if there is no sexual network.")
 
-    sim = build_testing_sim(analyzers=[TransmissionCountTracker(modes=['sexual'])], sexual_network=None, n_agents=100, duration=1)
+    analyzer = SexualTransmissionCountTracker()
+    sim = build_testing_sim(analyzers=[analyzer], sexual_network=None, n_agents=100, duration=1)
     sim.run()
-    n_hiv_transmissions = sum(sim.results['transmissioncounttracker']['hiv.n_sexual_transmissions'])
+    n_hiv_transmissions = sum(sim.results[analyzer.name][analyzer.result_name])
 
     assert n_hiv_transmissions == 0, f"Expected no sexual transmissions, but {n_hiv_transmissions} were detected."
     return sim
