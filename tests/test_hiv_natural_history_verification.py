@@ -16,7 +16,7 @@ from statistics import mean
 tests_directory = Path(__file__).resolve().parent
 sys.path.append(str(tests_directory))
 
-from hiv_natural_history_analyzers import CD4ByUIDTracker, RelativeInfectivityTracker, TimeToAIDSTracker, TransmissionTracker
+from hiv_natural_history_analyzers import CD4ByUIDTracker, RelativeInfectivityTracker, TimeToAIDSTracker, TransmissionCountTracker
 from testlib import build_testing_sim
 
 
@@ -126,6 +126,18 @@ def test_aids_transmission_is_higher_than_latent():
     return sim
 
 
+@sc.timer()
+def test_no_sexual_transmission_without_network():
+    sc.heading("Ensuring no sexual transmission if there is no sexual network.")
+
+    sim = build_testing_sim(analyzers=[TransmissionCountTracker(modes=['sexual'])], sexual_network=None, n_agents=100, duration=1)
+    sim.run()
+    n_hiv_transmissions = sum(sim.results['transmissioncounttracker']['hiv.n_sexual_transmissions'])
+
+    assert n_hiv_transmissions == 0, f"Expected no sexual transmissions, but {n_hiv_transmissions} were detected."
+    return sim
+
+
 if __name__ == '__main__':
     do_plot = True
     sc.options(interactive=do_plot)
@@ -136,19 +148,10 @@ if __name__ == '__main__':
     test_latent_transmission_ratio_is_1()
     test_acute_transmission_higher_than_latent()
     test_aids_transmission_is_higher_than_latent()
+    test_no_sexual_transmission_without_network()
 
     sc.heading("Total:")
     timer.toc()
 
     if do_plot:
         plt.show()
-
-    def test_no_transmission_if_no_sexual_network(self):
-        networks = [self.prior, self.maternal]
-        sim = build_testing_sim(diseases=self.diseases, demographics=self.demographics,
-                                interventions=self.interventions, networks=networks,
-                                analyzers=[TransmissionTracker()],
-                                n_agents=50, duration=5)
-        sim.run()
-        hiv_transmisions = sum(sim.results['transmissiontracker']['hiv.n_transmissions'])
-        self.assertEqual(0, hiv_transmisions)
