@@ -94,35 +94,6 @@ class RelativeInfectivityTracker(ss.Analyzer):
             self.results[state_dict['result_name']][self.ti] = ratios
 
 
-class TransmissionTracker(ss.Analyzer):
-    # records the number of hiv transmissions per timestep, accessible by analyzer key 'hiv.n_transmissions' .
-    def step(self):
-        pass
-
-    def init_results(self):
-        super().init_results()
-        self.define_results(ss.Result('hiv.n_transmissions', dtype=list, scale=False))
-
-    def update_results(self):
-        hiv = self.sim.diseases.hiv
-        transmissions = len((hiv.ti_infected == self.ti).uids)
-        self.results['hiv.n_transmissions'][self.ti] = transmissions
-
-class BreastfeedingTransmissionTracker(ss.Analyzer):
-    # records the number of breastfeeding-related hiv transmissions per timestep, accessible by analyzer key
-    # 'hiv.n_bf_transmissions' .
-    def step(self):
-        pass
-
-    def init_results(self):
-        super().init_results()
-        self.define_results(ss.Result('hiv.n_bf_transmissions', dtype=list, scale=False))
-
-    def update_results(self):
-        hiv = self.sim.diseases.hiv
-        transmissions = len((hiv.ti_infected == self.ti).uids)
-        self.results['hiv.n_bf_transmissions'][self.ti] = transmissions
-
 class MTCTTracker(ss.Analyzer):
     """
     Records the number of mother-to-child hiv transmissions per timestep, accessible by analyzer key
