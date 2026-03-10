@@ -13,6 +13,8 @@ from itertools import chain
 from pathlib import Path
 from statistics import mean
 
+import starsim as ss
+
 tests_directory = Path(__file__).resolve().parent
 sys.path.append(str(tests_directory))
 
@@ -126,19 +128,23 @@ def test_aids_transmission_is_higher_than_latent():
     return sim
 
 
-def test_mtct_untreated(self):
-    sim = build_testing_sim(diseases=self.diseases, demographics=self.demographics,
-                            interventions=self.interventions, networks=self.networks,
-                            analyzers=[MTCTTracker()],
-                            n_agents=4000, duration=3)
+@sc.timer()
+def test_mtc_transmission_occurs():
+    sc.heading("Ensuring that pre-term mother-to-child transmission occurs.")
+
+    # setting fertility rate super high to enable shrinking the test agent/timewise
+    analyzer = MTCTTracker()
+    sim = build_testing_sim(analyzers=[analyzer], n_agents=500, duration=1, pregnancy=ss.Pregnancy(fertility_rate=1000))
     sim.run()
 
-    mtc_tranmissions = sim.results['mtcttracker']['hiv.n_mtct_transmissions']
+    mtc_tranmissions = sim.results[analyzer.name][analyzer.result_name]
     total_mtc_tranmissions = sum(mtc_tranmissions)
 
     if verbose:
         print(f"{total_mtc_tranmissions} mother-to-child transmissions were recorded")
-    self.assertGreater(total_mtc_tranmissions, 0)  # make sure we compare at least one transmission
+    assert total_mtc_tranmissions > 0, f"Expected MTC transmissions to occur, but none were recorded."
+    return sim
+
 
 # Not currently implemented in hivsim, so leaving this partially-completed test commented out for future work
 # def test_perinatally_infected_progress_faster(self):
@@ -164,6 +170,7 @@ if __name__ == '__main__':
     test_latent_transmission_ratio_is_1()
     test_acute_transmission_higher_than_latent()
     test_aids_transmission_is_higher_than_latent()
+    test_mtc_transmission_occurs()
 
     sc.heading("Total:")
     timer.toc()
