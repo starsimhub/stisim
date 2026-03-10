@@ -133,3 +133,5 @@ flake8_junit.xml
 *.code-workspace
 *.png
 *.obj
+tutorial_output/
+starsim_calibration.db
