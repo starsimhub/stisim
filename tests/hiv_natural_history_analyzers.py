@@ -115,12 +115,10 @@ class MTCTTracker(ss.Analyzer):
 
     def update_results(self):
         hiv = self.sim.diseases.hiv
-        transmissions = len((hiv.ti_infected == self.ti).uids)
-        self.results[self.result_name][self.ti] = transmissions
-
-        # we count infections this step for unborn children (transmitted by mother)
         people = self.sim.people
         infected = hiv.infected
+
+        # we count infections this step for unborn children (transmitted by mother)
         if self.has_results:
             infected_this_step = infected & (hiv.ti_infected == self.ti)
         else:
