@@ -21,6 +21,7 @@ sys.path.append(str(tests_directory))
 
 from hiv_natural_history_analyzers import CD4ByUIDTracker, RelativeInfectivityTracker, TimeToAIDSTracker, \
     SexualTransmissionCountTracker, MTCTransmissionCountTracker
+
 from testlib import build_testing_sim
 
 
@@ -213,6 +214,23 @@ def test_doubling_hiv_sexual_beta_doubles_transmissions():
     _run_beta_test(baseline_m2f=0.001, baseline_m2c=0, mode='sexual', multiplier=2, duration=1, n_agents=100000)
 
 
+@sc.timer()
+def test_mtc_transmission_occurs():
+    sc.heading("Ensuring that pre-term mother-to-child transmission occurs.")
+
+    # setting fertility rate super high to enable shrinking the test agent/timewise
+    analyzer = MTCTransmissionCountTracker()
+    sim = build_testing_sim(analyzers=[analyzer], n_agents=500, duration=1, pregnancy=ss.Pregnancy(fertility_rate=1000))
+    sim.run()
+
+    mtc_tranmissions = sim.results[analyzer.name][analyzer.result_name]
+    total_mtc_tranmissions = sum(mtc_tranmissions)
+
+    if verbose:
+        print(f"{total_mtc_tranmissions} mother-to-child transmissions were recorded")
+    assert total_mtc_tranmissions > 0, f"Expected MTC transmissions to occur, but none were recorded."
+    return sim
+
 # Not currently implemented in hivsim, so leaving this partially-completed test commented out for future work
 # def test_perinatally_infected_progress_faster(self):
 #     sim = build_testing_sim(diseases=self.diseases, demographics=self.demographics,
@@ -240,6 +258,7 @@ if __name__ == '__main__':
     test_no_sexual_transmission_without_network()
     test_doubling_hiv_maternal_beta_doubles_transmissions()
     test_doubling_hiv_sexual_beta_doubles_transmissions()
+    test_mtc_transmission_occurs()
 
     sc.heading("Total:")
     timer.toc()

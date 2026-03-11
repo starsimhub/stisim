@@ -135,6 +135,8 @@ class MTCTransmissionCountTracker(ss.Analyzer):
         transmitting_mothers = hiv.ti_transmitted_mtc == self.ti
 
         # now back-out mtc transmissions by removing any potential sexual transmissions
+        # TODO: Update how mtc transmissions are counted once this issue is fixed:
+        #  https://github.com/starsimhub/stisim/issues/325
         transmissions =  sum(hiv.new_transmissions[transmitting_mothers] - hiv.new_transmissions_sex[transmitting_mothers])
         self.results[self.result_name][self.ti] = transmissions
 
