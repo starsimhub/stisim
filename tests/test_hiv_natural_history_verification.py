@@ -150,7 +150,7 @@ def _run_beta_test(baseline_m2f, baseline_m2c, mode: str, multiplier=2, result_t
     elif mode == 'mtc':
         analyzer = MTCTransmissionCountTracker()
     else:
-        raise Exception(f'Unknown beta test mode: {mode}')
+        raise ValueError(f'Unknown beta test mode: {mode}')
 
     pregnancy = ss.Pregnancy(fertility_rate=fertility)
 
