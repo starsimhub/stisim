@@ -108,13 +108,13 @@ class SyphTx(STITreatment):
         """
         sim = self.sim
         treat_uids = super().step()
-        # Treat unborn babies of successfully treated mothers
-        treat_pregnant_uids = sim.people.pregnancy.pregnant.uids & self.outcomes['successful']
-        overtreat_pregnant_uids = sim.people.pregnancy.pregnant.uids & self.outcomes['unnecessary']
-        # Store results - Unnecessary
-        sim.diseases.syph.results['new_treated_unnecessary_pregnant'][self.ti] += len(overtreat_pregnant_uids)
-        if len(treat_pregnant_uids):
-            self.treat_fetus(sim, mother_uids=treat_pregnant_uids)
+        # Treat unborn babies of successfully treated mothers (only if pregnancy is modeled)
+        if hasattr(sim.people, 'pregnancy'):
+            treat_pregnant_uids = sim.people.pregnancy.pregnant.uids & self.outcomes['successful']
+            overtreat_pregnant_uids = sim.people.pregnancy.pregnant.uids & self.outcomes['unnecessary']
+            sim.diseases.syph.results['new_treated_unnecessary_pregnant'][self.ti] += len(overtreat_pregnant_uids)
+            if len(treat_pregnant_uids):
+                self.treat_fetus(sim, mother_uids=treat_pregnant_uids)
         return treat_uids
 
 
@@ -234,7 +234,7 @@ class SyphTest(STITest):
 
         if (after_start & before_stop):
             # Schedule newborn tests if the mother is positive
-            if self.newborn_test is not None:
+            if self.newborn_test is not None and hasattr(sim.networks, 'maternalnet') and hasattr(sim.people, 'pregnancy'):
                 new_pos = self.ti_positive == self.ti
                 if new_pos.any():
                     pos_mother_inds = np.in1d(sim.networks.maternalnet.p1, new_pos.uids)
