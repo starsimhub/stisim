@@ -79,9 +79,11 @@ class STITest(ss.Intervention):
                         HIVDx). For STITest, a product is required.
         test_prob_data: annual testing probability (if dt_scale=True, the default)
                         or per-timestep probability (if dt_scale=False). Accepts a
-                        scalar (constant probability) or an array (one value per
-                        entry in ``years``). Default: 1.0 (test all eligible agents
-                        per year).
+                        scalar (constant probability), an array (one value per
+                        entry in ``years``), or a DataFrame (subclass-specific,
+                        e.g. SymptomaticTesting accepts risk-group-stratified
+                        DataFrames). Default: 1.0 (test all eligible agents per
+                        year).
         years (array):  calendar years corresponding to entries in test_prob_data
                         when test_prob_data is an array. Mutually exclusive with start.
         start (float):  calendar year when the intervention activates (inclusive).
