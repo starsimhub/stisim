@@ -15,7 +15,6 @@ import starsim as ss
 import stisim as sti
 import hivsim
 import matplotlib.pyplot as pl
-import pytest
 
 n_agents = 1_000
 do_plot  = False
@@ -86,7 +85,7 @@ def test_art_legacy_compat(do_plot=do_plot):
     # Legacy init_prob
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        art3 = sti.ART(coverage=0.5, init_prob=ss.bernoulli(p=0.5))
+        sti.ART(coverage=0.5, init_prob=ss.bernoulli(p=0.5))
         n_deprecation = sum(1 for x in w if issubclass(x.category, FutureWarning))
     assert n_deprecation >= 1, f'Expected FutureWarning for init_prob, got {n_deprecation}'
 
@@ -142,9 +141,22 @@ def test_art_stratified_coverage(do_plot=do_plot):
     sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents)
     sim.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), sti.ART(coverage=strat_df)]
     sim.run()
-    assert sim.results.hiv.n_on_art[-1] > 0, 'Expected people on ART with stratified coverage'
+    assert sim.results.hiv.n_on_art[-1] > 0, 'Expected people on ART with stratified coverage (canonical names)'
 
-    return sim
+    # Test with lowercase column names + Sex alias
+    rows_lc = []
+    for year in [2005, 2015]:
+        for sex in [0, 1]:
+            for age_bin in ['[15,25)', '[25,35)', '[35,45)']:
+                p = 0.4 if year == 2005 else 0.8
+                rows_lc.append(dict(year=year, sex=sex, agebin=age_bin, coverage=min(p, 1.0)))
+
+    sim2 = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents)
+    sim2.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), sti.ART(coverage=pd.DataFrame(rows_lc))]
+    sim2.run()
+    assert sim2.results.hiv.n_on_art[-1] > 0, 'Expected people on ART with stratified coverage (lowercase/sex alias)'
+
+    return sim, sim2
 
 
 # %% Functional tests
@@ -228,8 +240,8 @@ def test_art_reduces_mortality(do_plot=do_plot):
     ]
     sim_art.run()
 
-    deaths_no_art = float(np.sum(sim_no_art.results.hiv.new_deaths))
-    deaths_art    = float(np.sum(sim_art.results.hiv.new_deaths))
+    deaths_no_art = sim_no_art.results.hiv.new_deaths.sum()
+    deaths_art    = sim_art.results.hiv.new_deaths.sum()
 
     if do_plot:
         fig, ax = pl.subplots()
@@ -250,7 +262,7 @@ def test_art_parameter_sensitivity(do_plot=do_plot):
     """ Check that ART coverage and initiation parameters affect outcomes as expected """
     sc.heading('Testing ART parameter sensitivity...')
 
-    # TODO: collaborator to implement
+    # TODO: implement
     # Vary art_initiation probability (low vs high)
     # Vary coverage level (low vs high)
     # Assert: higher coverage → more people on ART
@@ -287,7 +299,7 @@ def test_art_duration(do_plot=do_plot):
     """ Check that agents remain on ART for expected durations """
     sc.heading('Testing ART duration tracking...')
 
-    # TODO: collaborator to implement
+    # TODO: implement
     # Run a sim with ART, check ti_art for agents
     # Verify mean duration is reasonable (not too short, not infinite)
 

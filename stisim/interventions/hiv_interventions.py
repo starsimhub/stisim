@@ -75,12 +75,16 @@ def _parse_coverage_df(data, valid_names, yearvec):
 
     Handles two cases:
         1. Legacy: index=years, single column in valid_names → 1D interpolated array
-        2. Stratified: columns include Year, Gender, AgeBin, and a value column → dict of arrays by (age, sex)
+        2. Stratified: columns include Year, Gender/Sex, AgeBin, and a value column → dict of arrays by (age, sex)
     """
 
-    # Check for stratified format (has Year, Gender, AgeBin columns)
-    stratified_cols = {'Year', 'Gender', 'AgeBin'}
-    if stratified_cols.issubset(set(data.columns)):
+    # Check for stratified format — normalize column names for flexible matching
+    col_lower = {c.lower(): c for c in data.columns}
+    has_year   = 'year' in col_lower
+    has_sex    = 'gender' in col_lower or 'sex' in col_lower
+    has_agebin = 'agebin' in col_lower or 'age_bin' in col_lower or 'age' in col_lower
+
+    if has_year and has_sex and has_agebin:
         return _parse_stratified_df(data, yearvec)
 
     # Legacy single-column format: index=years, column in valid_names
@@ -104,16 +108,64 @@ def _parse_coverage_df(data, valid_names, yearvec):
     raise ValueError(errormsg)
 
 
+def _normalize_stratified_cols(data):
+    """
+    Normalize column names in a stratified DataFrame to canonical form.
+    Supports: Year/year, Gender/Sex/gender/sex, AgeBin/age_bin/agebin/age,
+    Count/count, lb/LB, ub/UB.
+
+    Returns a copy of the DataFrame with canonical column names, and raises
+    ValueError if required columns (year, sex/gender, age bin) are missing.
+    """
+    rename = {}
+    col_lower = {c.lower(): c for c in data.columns}
+
+    # Year
+    for alias in ['year']:
+        if alias in col_lower:
+            rename[col_lower[alias]] = 'Year'
+            break
+    else:
+        raise ValueError(f'Stratified coverage DataFrame must have a "Year" column. Found: {list(data.columns)}')
+
+    # Sex/Gender
+    for alias in ['gender', 'sex']:
+        if alias in col_lower:
+            rename[col_lower[alias]] = 'Gender'
+            break
+    else:
+        raise ValueError(f'Stratified coverage DataFrame must have a "Gender" or "Sex" column. Found: {list(data.columns)}')
+
+    # Age bin
+    for alias in ['agebin', 'age_bin', 'age']:
+        if alias in col_lower:
+            rename[col_lower[alias]] = 'AgeBin'
+            break
+    else:
+        raise ValueError(f'Stratified coverage DataFrame must have an "AgeBin" or "Age" column. Found: {list(data.columns)}')
+
+    # Optional columns
+    for alias, canonical in [('count', 'Count'), ('lb', 'lb'), ('ub', 'ub')]:
+        if alias in col_lower:
+            rename[col_lower[alias]] = canonical
+
+    df = data.rename(columns=rename)
+    return df
+
+
 def _parse_stratified_df(data, yearvec):
     """
-    Parse a stratified coverage DataFrame with Year, Gender, AgeBin columns.
+    Parse a stratified coverage DataFrame.
+
+    Accepts flexible column names (Year/year, Gender/Sex, AgeBin/age_bin/age).
+    The value column is detected as the first numeric column that's not a
+    metadata column (Year, Gender, AgeBin, Count, lb, ub).
 
     Returns a dict keyed by (age_bin, sex) with interpolated arrays, plus
     the list of age_bins and sex_keys for iteration.
-
-    The value column is detected as the first numeric column that's not
-    Year, Gender, Count, lb, ub.
     """
+    data = _normalize_stratified_cols(data)
+
     skip_cols = {'Year', 'Gender', 'AgeBin', 'Count', 'lb', 'ub'}
     val_col = None
     for col in data.columns:
@@ -139,7 +191,6 @@ def _parse_stratified_df(data, yearvec):
             else:
                 years = subset['Year'].values.astype(float)
                 vals  = subset[val_col].values.astype(float)
-                # Fill NaNs with the last known value
                 mask = ~np.isnan(vals)
                 if mask.any():
                     vals = np.interp(years, years[mask], vals[mask])
