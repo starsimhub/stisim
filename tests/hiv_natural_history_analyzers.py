@@ -94,41 +94,6 @@ class RelativeInfectivityTracker(ss.Analyzer):
             self.results[state_dict['result_name']][self.ti] = ratios
 
 
-class MTCTTracker(ss.Analyzer):
-    """
-    Records the number of mother-to-child hiv transmissions per timestep, accessible by analyzer key
-    'hiv.n_mtc_transmissions'. MTCT definition used is "unborn child becomes infected".
-    """
-
-    result_name = 'hiv.n_mtc_transmissions'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.has_results = False
-
-    def step(self):
-        pass
-
-    def init_results(self):
-        super().init_results()
-        self.define_results(ss.Result(self.result_name, dtype=list, scale=False))
-
-    def update_results(self):
-        hiv = self.sim.diseases.hiv
-        people = self.sim.people
-        infected = hiv.infected
-
-        # we count infections this step for unborn children (transmitted by mother)
-        if self.has_results:
-            infected_this_step = infected & (hiv.ti_infected == self.ti)
-        else:
-            infected_this_step = (hiv.ti_infected <= self.ti)
-            self.has_results = True
-        mtct_this_step = (infected_this_step & (people.age < 0)).uids
-
-        self.results[self.result_name][self.ti] = len(mtct_this_step)
-
-
 class SexualTransmissionCountTracker(ss.Analyzer):
     """
     Records the number of sexual HIV transmissions per timestep, results obtainable by analyzer key
@@ -170,6 +135,8 @@ class MTCTransmissionCountTracker(ss.Analyzer):
         transmitting_mothers = hiv.ti_transmitted_mtc == self.ti
 
         # now back-out mtc transmissions by removing any potential sexual transmissions
+        # TODO: Update how mtc transmissions are counted once this issue is fixed:
+        #  https://github.com/starsimhub/stisim/issues/325
         transmissions =  sum(hiv.new_transmissions[transmitting_mothers] - hiv.new_transmissions_sex[transmitting_mothers])
         self.results[self.result_name][self.ti] = transmissions
 

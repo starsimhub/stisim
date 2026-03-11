@@ -21,7 +21,7 @@ sys.path.append(str(tests_directory))
 
 from hiv_natural_history_analyzers import CD4ByUIDTracker, RelativeInfectivityTracker, TimeToAIDSTracker, \
     SexualTransmissionCountTracker, MTCTransmissionCountTracker
-from hiv_natural_history_analyzers import CD4ByUIDTracker, MTCTTracker, RelativeInfectivityTracker, TimeToAIDSTracker
+
 from testlib import build_testing_sim
 
 
@@ -219,7 +219,7 @@ def test_mtc_transmission_occurs():
     sc.heading("Ensuring that pre-term mother-to-child transmission occurs.")
 
     # setting fertility rate super high to enable shrinking the test agent/timewise
-    analyzer = MTCTTracker()
+    analyzer = MTCTransmissionCountTracker()
     sim = build_testing_sim(analyzers=[analyzer], n_agents=500, duration=1, pregnancy=ss.Pregnancy(fertility_rate=1000))
     sim.run()
 
