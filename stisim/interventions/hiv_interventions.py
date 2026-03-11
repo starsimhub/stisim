@@ -225,6 +225,10 @@ class ART(ss.Intervention):
         # Handle deprecated kwargs
         coverage, future_coverage = _handle_deprecated_coverage(coverage, coverage_data, kwargs)
 
+        # Default coverage: 85% of infected on ART (matches old future_coverage default)
+        if coverage is None and coverage_data is None and future_coverage is None:
+            coverage = 0.85
+
         # Handle deprecated init_prob → art_initiation
         init_prob = kwargs.pop('init_prob', None)
         if init_prob is not None:
@@ -424,6 +428,10 @@ class VMMC(ss.Intervention):
 
         # Handle deprecated kwargs
         coverage, future_coverage = _handle_deprecated_coverage(coverage, coverage_data, kwargs)
+
+        # Default coverage: 10% of males circumcised (matches old future_coverage default)
+        if coverage is None and coverage_data is None and future_coverage is None:
+            coverage = 0.1
 
         self.define_pars(
             eff_circ=0.6,
