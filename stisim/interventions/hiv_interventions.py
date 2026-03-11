@@ -125,11 +125,12 @@ class ART(ss.Intervention):
         # Apply correction to match ART coverage data:
         self.art_coverage_correction(sim, target_coverage=n_to_treat)
 
-        # Adjust rel_sus for protected unborn agents
-        if hiv.on_art[sim.people.pregnancy.pregnant].any():
-            mother_uids = (hiv.on_art & sim.people.pregnancy.pregnant).uids
-            infants = sim.networks.maternalnet.find_contacts(mother_uids)
-            hiv.rel_sus[ss.uids(infants)] = 0
+        # Adjust rel_sus for protected unborn agents (only if pregnancy is modeled)
+        if hasattr(sim.people, 'pregnancy') and hasattr(sim.networks, 'maternalnet'):
+            if hiv.on_art[sim.people.pregnancy.pregnant].any():
+                mother_uids = (hiv.on_art & sim.people.pregnancy.pregnant).uids
+                infants = sim.networks.maternalnet.find_contacts(mother_uids)
+                hiv.rel_sus[ss.uids(infants)] = 0
 
         return
 
