@@ -14,10 +14,13 @@ from pathlib import Path
 from statistics import mean
 
 import starsim as ss
+import stisim as sti
 
 tests_directory = Path(__file__).resolve().parent
 sys.path.append(str(tests_directory))
 
+from hiv_natural_history_analyzers import CD4ByUIDTracker, RelativeInfectivityTracker, TimeToAIDSTracker, \
+    SexualTransmissionCountTracker, MTCTransmissionCountTracker
 from hiv_natural_history_analyzers import CD4ByUIDTracker, MTCTTracker, RelativeInfectivityTracker, TimeToAIDSTracker
 from testlib import build_testing_sim
 
@@ -129,6 +132,89 @@ def test_aids_transmission_is_higher_than_latent():
 
 
 @sc.timer()
+def test_no_sexual_transmission_without_network():
+    sc.heading("Ensuring no sexual transmission if there is no sexual network.")
+
+    analyzer = SexualTransmissionCountTracker()
+    sim = build_testing_sim(analyzers=[analyzer], sexual_network=None, n_agents=100, duration=1)
+    sim.run()
+    n_hiv_transmissions = sum(sim.results[analyzer.name][analyzer.result_name])
+
+    assert n_hiv_transmissions == 0, f"Expected no sexual transmissions, but {n_hiv_transmissions} were detected."
+    return sim
+
+
+def _run_beta_test(baseline_m2f, baseline_m2c, mode: str, multiplier=2, result_tolerance=0.16,
+                   n_agents=50000, duration=1, init_prev=0.2, fertility=10, rand_seed=1):
+    if mode == 'sexual':
+        analyzer = SexualTransmissionCountTracker()
+    elif mode == 'mtc':
+        analyzer = MTCTransmissionCountTracker()
+    else:
+        raise ValueError(f'Unknown beta test mode: {mode}')
+
+    pregnancy = ss.Pregnancy(fertility_rate=fertility)
+
+    # run baseline sim
+    baseline_hiv = sti.HIV(beta_m2f=baseline_m2f, beta_m2c=baseline_m2c, init_prev=init_prev)
+    sim = build_testing_sim(diseases=[baseline_hiv], pregnancy=pregnancy,
+                            analyzers=[analyzer],
+                            n_agents=n_agents, duration=duration)
+    sim.pars['rand_seed'] = rand_seed
+
+    sim.run()
+    hiv_transmissions_baseline = sim.results[analyzer.name][analyzer.result_name]
+    hiv_transmissions_baseline = sum(hiv_transmissions_baseline)
+
+    # ensure at least one such transmission occurs
+    assert hiv_transmissions_baseline > 0, f"Cannot assess effect of beta, no {mode} HIV transmissions occurred in baseline."
+
+    # Now multiply betas as selected and run test
+    test_hiv = sti.HIV(beta_m2f=multiplier * baseline_m2f, beta_m2c=multiplier * baseline_m2c, init_prev=init_prev)
+    sim = build_testing_sim(diseases=[test_hiv], pregnancy=pregnancy,
+                            analyzers=[analyzer],
+                            n_agents=n_agents, duration=duration)
+    sim.run()
+    sim.pars['rand_seed'] = rand_seed
+
+    hiv_transmissions_test = sum(sim.results[analyzer.name][analyzer.result_name])
+
+    # ensure at least one such transmission occurs
+    assert hiv_transmissions_test > 0, f"Cannot assess effect of beta, no {mode} HIV transmissions occurred in test."
+
+    # check transmission ratio, expected to be approximately increased by "multiplier" if base beta is low enough
+    expected_ratio = multiplier
+    delta = result_tolerance * expected_ratio
+    test_ratio = hiv_transmissions_test / hiv_transmissions_baseline
+
+    if verbose:
+        msg = f"{mode} transmission ratio: {test_ratio} ({hiv_transmissions_test}/{hiv_transmissions_baseline}) expected: {expected_ratio}"
+        print(msg)
+
+    msg = f"{mode} transmission ratio: {test_ratio} not within delta: {delta} of expected: {expected_ratio}"
+    assert test_ratio == pytest.approx(expected=expected_ratio, rel=result_tolerance), msg
+
+
+
+@sc.timer()
+def test_doubling_hiv_maternal_beta_doubles_transmissions():
+    sc.heading("Checking that doubling mtc beta roughly doubles mtc transmissions.")
+
+    # setting baseline beta low, fertility HIGH, prevalence HIGH to generate enough births/transmissions quickly
+    _run_beta_test(baseline_m2f=0, baseline_m2c=0.0025, mode='mtc', multiplier=2, fertility=1000,
+                   duration=5, n_agents=40000, init_prev=1.0)
+
+
+@sc.timer()
+def test_doubling_hiv_sexual_beta_doubles_transmissions():
+    sc.heading("Checking that doubling sexual beta roughly doubles sexual transmissions at low infectivity.")
+
+    # doubling both beta for m2f (implicitly f2m) (sexual transmission only, no mother-to-child transmission)
+    # This happens to be a realistic baseline m2f beta
+    _run_beta_test(baseline_m2f=0.001, baseline_m2c=0, mode='sexual', multiplier=2, duration=1, n_agents=100000)
+
+
+@sc.timer()
 def test_mtc_transmission_occurs():
     sc.heading("Ensuring that pre-term mother-to-child transmission occurs.")
 
@@ -144,7 +230,6 @@ def test_mtc_transmission_occurs():
         print(f"{total_mtc_tranmissions} mother-to-child transmissions were recorded")
     assert total_mtc_tranmissions > 0, f"Expected MTC transmissions to occur, but none were recorded."
     return sim
-
 
 # Not currently implemented in hivsim, so leaving this partially-completed test commented out for future work
 # def test_perinatally_infected_progress_faster(self):
@@ -170,6 +255,9 @@ if __name__ == '__main__':
     test_latent_transmission_ratio_is_1()
     test_acute_transmission_higher_than_latent()
     test_aids_transmission_is_higher_than_latent()
+    test_no_sexual_transmission_without_network()
+    test_doubling_hiv_maternal_beta_doubles_transmissions()
+    test_doubling_hiv_sexual_beta_doubles_transmissions()
     test_mtc_transmission_occurs()
 
     sc.heading("Total:")

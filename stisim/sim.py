@@ -78,8 +78,8 @@ class Sim(ss.Sim):
 
     def __init__(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None, dem_pars=None,
                  label=None, people=None, demographics=None, diseases=None, networks=None,
-                 interventions=None, analyzers=None, connectors=None, datafolder=None,
-                 data=None, **kwargs):
+                 interventions=None, analyzers=None, connectors=None, custom=None,
+                 datafolder=None, data=None, **kwargs):
 
         # Inputs and defaults
         self.nw_pars = None     # Parameters for the networks - processed later
@@ -95,7 +95,7 @@ class Sim(ss.Sim):
 
         # Separate the parameters, storing sim pars now and saving module pars to process in init
         sim_kwargs = dict(label=label, people=people, demographics=demographics, diseases=diseases, networks=networks,
-                    interventions=interventions, analyzers=analyzers, connectors=connectors)
+                    interventions=interventions, analyzers=analyzers, connectors=connectors, custom=custom)
         sim_kwargs = {key: val for key, val in sim_kwargs.items() if val is not None}
         updated_pars = self.separate_pars(pars, sim_pars, sti_pars, nw_pars, dem_pars, sim_kwargs, **kwargs)
         self.pars.update(updated_pars)
