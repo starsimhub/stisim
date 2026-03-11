@@ -38,11 +38,11 @@ Key parameters:
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `product` | (required) | Diagnostic product (e.g., `STIDx`, `HIVDx`) |
-| `test_prob_data` | 1.0 | Annual testing rate (scalar or array over years). Automatically scaled by dt when `dt_scale=True`. |
-| `eligibility` | all agents | Function `f(sim) -> UIDs` defining who can be tested |
-| `start` / `stop` | sim start/end | Active period for the intervention |
-| `dt_scale` | True | If True, interpret `test_prob_data` as an annual rate and multiply by dt. Set to False to use as a per-timestep probability. |
+| `product` | (required for STITest; HIVTest auto-creates a perfect HIVDx) | Diagnostic product (e.g., `STIDx`, `HIVDx`) |
+| `test_prob_data` | 1.0 | Annual testing probability (scalar or array over years). Converted to per-timestep probability via `ss.probperyear` when `dt_scale=True`. |
+| `eligibility` | all agents (HIVTest: undiagnosed only) | Function `f(sim) -> BoolArr` defining who can be tested, e.g. `lambda sim: sim.people.female & (sim.people.age >= 15)` |
+| `start` / `stop` | first/last sim year | Calendar year (inclusive) when the intervention activates/deactivates |
+| `dt_scale` | True | If True (default), interpret `test_prob_data` as an annual probability. Set to False to interpret as a per-timestep probability. |
 
 ### HIVTest
 
@@ -126,10 +126,11 @@ hiv.ti_diagnosed = ti         │
 
 **Key points:**
 
+- **Intervention order matters**: interventions run in the order they appear in the list. HIVTest must come before ART so that agents diagnosed this timestep can initiate ART in the same step.
 - Agents must be **diagnosed** before they can go on ART. If you add ART without HIVTest, a warning is raised and no agents will be treated.
-- `test_prob_data` is an **annual testing rate** by default (`dt_scale=True`). With monthly timesteps (dt=1/12), `test_prob_data=0.1` means ~0.83% per month, or ~10% per year. To use a per-timestep probability directly, set `dt_scale=False`.
+- `test_prob_data` is an **annual testing probability** by default (`dt_scale=True`). It is converted to a per-timestep probability via `ss.probperyear`. With monthly timesteps, `test_prob_data=0.1` means ~0.88% per month, correctly recovering ~10% per year. To use a per-timestep probability directly, set `dt_scale=False`.
 - ART `art_initiation` (default 0.9) controls what fraction of newly diagnosed agents are willing to start treatment.
-- If `coverage` is provided, ART force-fits the number on treatment to match the target by adding/removing agents based on CD4 and care-seeking.
+- If `coverage` is provided, ART force-fits the number on treatment to match the target each timestep. Agents are added or removed immediately (not gradually) to hit the target, prioritized by CD4 count and care-seeking propensity.
 - If no `coverage` is provided (the default), ART simply treats everyone who initiates, with no capacity constraint.
 
 ### HIVTest
@@ -148,7 +149,7 @@ fsw_test = sti.HIVTest(
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `test_prob_data` | 1.0 | Annual testing rate (scaled by dt when `dt_scale=True`) |
+| `test_prob_data` | 1.0 | Annual testing probability (converted via `ss.probperyear` when `dt_scale=True`) |
 | `eligibility` | undiagnosed | Function `f(sim) -> BoolArr` defining who can be tested |
 | `start` | sim start | Year testing begins |
 
@@ -178,12 +179,12 @@ art = sti.ART(coverage=stratified_df)
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `coverage` | None | Coverage target: scalar, dict, DataFrame, or stratified DataFrame |
-| `art_initiation` | bernoulli(0.9) | Probability a newly diagnosed person initiates ART |
+| `coverage` | None (no target; treat all who initiate) | Coverage target: scalar, dict, DataFrame, or stratified DataFrame. Dict values are linearly interpolated between years. DataFrame requires index=years and a column named `n_art` (absolute numbers) or `p_art` (proportion of infected). Stratified DataFrames need columns Year, Gender/Sex, AgeBin `[lo,hi)`, and a numeric value column. |
+| `art_initiation` | bernoulli(0.9) | Probability a newly diagnosed person initiates ART. Set to 1 to treat all diagnosed. |
 
 ### VMMC
 
-Voluntary medical male circumcision. Reduces male susceptibility to HIV by 60%.
+Voluntary medical male circumcision. Targets all males by default; reduces susceptibility to HIV acquisition by 60%.
 
 ```python
 vmmc = sti.VMMC(coverage=0.3)
@@ -192,12 +193,13 @@ vmmc = sti.VMMC(coverage={'year': [2010, 2025], 'value': [0, 0.4]})
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `coverage` | None | Coverage target (same formats as ART) |
+| `coverage` | None (does nothing without coverage data) | Coverage target (same formats as ART). Required for VMMC to have any effect. |
 | `eff_circ` | 0.6 | Efficacy (60% reduction in HIV acquisition risk) |
+| `eligibility` | all males | Optional function to further restrict who is eligible |
 
 ### PrEP
 
-Pre-exposure prophylaxis targeting FSWs. Reduces susceptibility by 80%.
+Pre-exposure prophylaxis. By default targets HIV-negative FSWs (female sex workers) who are not already on PrEP. Use the `eligibility` parameter to target a different population.
 
 ```python
 prep = sti.Prep(coverage=[0, 0.5], years=[2020, 2025])
@@ -205,9 +207,10 @@ prep = sti.Prep(coverage=[0, 0.5], years=[2020, 2025])
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `coverage` | ramps to 80% | Coverage at each year |
-| `years` | [2004, 2005, 2015, 2025] | Corresponding years |
-| `eff_prep` | 0.8 | Efficacy (80% reduction) |
+| `coverage` | [0, 0.01, 0.5, 0.8] | Coverage values at each year (linearly interpolated between years) |
+| `years` | [2004, 2005, 2015, 2025] | Calendar years corresponding to coverage values |
+| `eff_prep` | 0.8 | Efficacy (80% reduction in HIV acquisition risk) |
+| `eligibility` | HIV-negative FSWs not on PrEP | Optional function to override default targeting |
 
 ## Combining interventions
 

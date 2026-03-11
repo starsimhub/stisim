@@ -245,21 +245,20 @@ class HIVTest(STITest):
 
     The testing → diagnosis → ART pipeline works as follows:
 
-        1. HIVTest tests eligible agents each timestep (annual rate, scaled by dt)
+        1. HIVTest tests eligible agents each timestep (annual probability, converted via ss.probperyear)
         2. Positive results set hiv.diagnosed=True and hiv.ti_diagnosed
         3. ART checks for newly diagnosed agents (ti_diagnosed == current ti)
         4. Newly diagnosed agents initiate ART with probability art_initiation
         5. If coverage data is provided, ART corrects to match targets
 
     Args:
-        test_prob_data: annual testing rate (default interpretation with
-            dt_scale=True). A value of 0.1 means ~10% of eligible agents tested
-            per year. To specify a per-timestep probability instead, set
-            dt_scale=False.
+        test_prob_data: annual testing probability (if dt_scale=True, the default).
+            A value of 0.1 means ~10% of eligible agents tested per year. To
+            specify a per-timestep probability instead, set dt_scale=False.
         eligibility (func): who can be tested. Default: undiagnosed agents.
-        start (float): year testing begins
-        dt_scale (bool): if True (default), test_prob_data is an annual rate,
-            automatically scaled by dt. Set to False for per-timestep probability.
+        start (float): calendar year when testing begins
+        dt_scale (bool): if True (default), test_prob_data is an annual probability.
+            Set to False for per-timestep probability.
 
     Example::
 
@@ -312,14 +311,22 @@ class ART(ss.Intervention):
     Coverage can be specified in several formats:
         - None: no coverage target; treat all who initiate (default)
         - Scalar (e.g. 0.8): constant proportion of infected on ART
-        - Dict: {'year': [2000, 2020], 'value': [0, 0.9]} — interpolated
-        - DataFrame: index=years, column 'n_art' (numbers) or 'p_art' (proportion)
-        - Stratified DataFrame: columns Year, Gender/Sex, AgeBin + a value column
+        - Dict: {'year': [2000, 2020], 'value': [0, 0.9]} — linearly interpolated
+        - DataFrame: index=years, column 'n_art' (absolute numbers) or 'p_art'
+          (proportion of infected). Values are linearly interpolated to the sim
+          yearvec.
+        - Stratified DataFrame: columns Year, Gender/Sex, AgeBin (format
+          '[lo,hi)'), plus a numeric value column. Values are interpolated per
+          stratum.
+
+    Intervention ordering: HIVTest must appear before ART in the interventions
+    list so that agents diagnosed this timestep can initiate ART in the same step.
 
     Args:
-        coverage:         coverage target in any format above
+        coverage:         coverage target in any format above (default None)
         art_initiation:   probability a newly diagnosed person initiates ART
-                          (default: ss.bernoulli(p=0.9))
+                          (default: ss.bernoulli(p=0.9)). Set to 1 to treat all
+                          diagnosed.
 
     Example::
 
@@ -361,10 +368,14 @@ class ART(ss.Intervention):
     def init_pre(self, sim):
         super().init_pre(sim)
 
-        # Warn if no HIV testing intervention found
-        has_hiv_test = any(isinstance(m, HIVTest) for m in sim.interventions())
-        if not has_hiv_test:
+        # Warn if no HIV testing intervention found, or if it comes after ART
+        intvs = list(sim.interventions())
+        hiv_test_indices = [i for i, m in enumerate(intvs) if isinstance(m, HIVTest)]
+        art_index = next((i for i, m in enumerate(intvs) if m is self), len(intvs))
+        if not hiv_test_indices:
             ss.warn('ART intervention added without an HIV testing intervention; diagnosed agents may never be identified')
+        elif all(i > art_index for i in hiv_test_indices):
+            ss.warn('HIVTest appears after ART in the intervention list; agents diagnosed this timestep will not initiate ART until the next step')
 
         # Parse coverage data
         self.coverage, self.coverage_format, self.age_bins, self.sex_keys = parse_coverage(
@@ -536,14 +547,15 @@ class VMMC(ss.Intervention):
 
     Coverage formats (same as ART):
         - Scalar: constant proportion of males (e.g. 0.3)
-        - Dict: {'year': [...], 'value': [...]} — interpolated
+        - Dict: {'year': [...], 'value': [...]} — linearly interpolated
         - DataFrame: index=years, column 'n_vmmc' or 'p_vmmc'
         - Stratified DataFrame: Year/Gender/AgeBin columns
 
     Args:
-        coverage:    coverage target in any format above
+        coverage:    coverage target in any format above (default None; VMMC does
+                     nothing without coverage data)
         eff_circ:    efficacy (default 0.6 = 60% reduction in HIV acquisition)
-        eligibility: optional eligibility function
+        eligibility: optional function to restrict who is eligible (default: all males)
 
     Example::
 
@@ -654,17 +666,18 @@ class VMMC(ss.Intervention):
 
 class Prep(ss.Intervention):
     """
-    Pre-exposure prophylaxis (PrEP) for female sex workers.
+    Pre-exposure prophylaxis (PrEP).
 
-    Reduces HIV susceptibility by eff_prep (default 80%) for eligible FSWs
-    who are HIV-negative and not already on PrEP. Coverage ramps up over
-    time according to the years/coverage parameters.
+    By default targets HIV-negative FSWs who are not already on PrEP.
+    Reduces HIV susceptibility by eff_prep (default 80%). Coverage ramps up
+    over time according to the years/coverage parameters (linearly interpolated).
+    Use the eligibility parameter to target a different population.
 
     Args:
-        coverage (list):  coverage values at each year (default ramps 0→80%)
-        years (list):     corresponding years
+        coverage (list):  coverage values at each year (default [0, 0.01, 0.5, 0.8])
+        years (list):     corresponding calendar years (default [2004, 2005, 2015, 2025])
         eff_prep (float): efficacy (default 0.8 = 80% reduction in acquisition)
-        eligibility:      optional custom eligibility function
+        eligibility:      function to override default FSW targeting
 
     Example::
 
@@ -702,6 +715,7 @@ def _parse_age_bin(ab_str):
     """
     Parse age bin string like "[15,25)" into (lo, hi).
     Also handles numeric tuples and plain strings like "15-25".
+    All bins are treated as half-open intervals [lo, hi) regardless of bracket style.
     """
     if isinstance(ab_str, (tuple, list)):
         return float(ab_str[0]), float(ab_str[1])

@@ -573,7 +573,8 @@ class art_coverage(ss.Analyzer):
         analyzer.results['p_art_m_25_35']    # Men 25-35 on ART (proportion of infected)
 
     Args:
-        age_bins (list): age bin edges, e.g. [15, 25, 35, 45, 65]. Default: [15, 25, 35, 45, 65]
+        age_bins (list): age bin edges, e.g. [15, 25, 35, 45, 65]. Default: [15, 25, 35, 45, 65].
+            Bins are half-open intervals: [lo, hi), i.e. lo <= age < hi.
     """
 
     def __init__(self, age_bins=None, *args, **kwargs):

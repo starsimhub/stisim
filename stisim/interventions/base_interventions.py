@@ -63,35 +63,49 @@ class STITest(ss.Intervention):
     Controls who gets tested, how often, and with what diagnostic product.
     Each timestep, eligible agents are tested with a probability derived from
     test_prob_data. By default (dt_scale=True), test_prob_data is interpreted
-    as an **annual testing rate** and automatically scaled by dt to get a
-    per-timestep probability.
-
-    For example, with monthly timesteps (dt=1/12):
-        - test_prob_data=0.1  → ~0.83% per month → ~10% tested per year
-        - test_prob_data=1.0  → ~8.3% per month  → ~100% tested per year
+    as an **annual testing probability** and converted to a per-timestep
+    probability via ``ss.probperyear``. This correctly recovers the annual
+    probability over a full year of timesteps (e.g. test_prob_data=0.24 with
+    monthly dt gives ~2.26% per month, recovering exactly 24% per year).
 
     If you need to specify a per-timestep probability directly (not an annual
-    rate), set dt_scale=False:
+    probability), set dt_scale=False:
         - test_prob_data=0.5, dt_scale=False → 50% chance per timestep
 
     Args:
-        product (ss.Product):  diagnostic product that determines test outcomes
-        test_prob_data:        annual testing rate (if dt_scale=True, the default)
-                               or per-timestep probability (if dt_scale=False);
-                               scalar or array over years
-        years (array):         years corresponding to test_prob_data if array
-        start/stop (float):    active period for the intervention
-        eligibility (func):    function f(sim) -> BoolArr or UIDs defining who can be tested
-        rel_test (float):      relative testing probability multiplier (default 1)
-        dt_scale (bool):       if True (default), interpret test_prob_data as an annual
-                               rate and multiply by dt to get per-timestep probability.
-                               Set to False to use test_prob_data as-is per timestep.
+        product:        diagnostic product (e.g. STIDx, HIVDx) that determines
+                        test outcomes (sensitivity, specificity). If None,
+                        subclasses supply a default (e.g. HIVTest uses a perfect
+                        HIVDx). For STITest, a product is required.
+        test_prob_data: annual testing probability (if dt_scale=True, the default)
+                        or per-timestep probability (if dt_scale=False). Accepts a
+                        scalar (constant probability) or an array (one value per
+                        entry in ``years``). Default: 1.0 (test all eligible agents
+                        per year).
+        years (array):  calendar years corresponding to entries in test_prob_data
+                        when test_prob_data is an array. Mutually exclusive with start.
+        start (float):  calendar year when the intervention activates (inclusive).
+                        Defaults to the first simulation year.
+        stop (float):   calendar year when the intervention deactivates (inclusive).
+                        Defaults to the last simulation year.
+        eligibility:    function ``f(sim) -> BoolArr`` or ``f(sim) -> UIDs`` defining
+                        who can be tested. Can filter on any agent property, e.g.
+                        ``lambda sim: sim.people.female & (sim.people.age > 15)``.
+                        Default: all agents (subclasses may override, e.g. HIVTest
+                        defaults to undiagnosed agents only).
+        rel_test:       relative testing probability multiplier (default 1.0)
+        dt_scale:       if True (default), interpret test_prob_data as an annual
+                        probability. Set to False to interpret test_prob_data as a
+                        per-timestep probability.
 
     States set on agents:
-        tested (bool):      ever tested
-        diagnosed (bool):   ever diagnosed positive
-        ti_tested (float):  timestep of last test
+        tested (bool):       ever tested
+        diagnosed (bool):    ever diagnosed positive
+        ti_tested (float):   timestep of last test
+        ti_scheduled (float): timestep of next scheduled test
         ti_positive (float): timestep of last positive result
+        ti_negative (float): timestep of last negative result
+        tests (float):       cumulative number of tests received
     """
 
     def __init__(self, pars=None, test_prob_data=None, years=None, start=None, stop=None, eligibility=None, product=None, name=None, label=None, **kwargs):
@@ -178,7 +192,8 @@ class STITest(ss.Intervention):
 
         # Scale and validate
         test_prob *= self.pars.rel_test
-        if self.pars.dt_scale: test_prob *= self.t.dt_year
+        if self.pars.dt_scale:
+            test_prob = ss.probperyear(test_prob).to_prob(sim.dt)
         test_prob = np.clip(test_prob, a_min=0, a_max=1)
 
         return test_prob
