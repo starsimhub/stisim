@@ -639,3 +639,52 @@ class art_coverage(ss.Analyzer):
 
         return
 
+    def plot(self, by_age=True):
+        """
+        Plot ART coverage over time.
+
+        Creates a 2-panel figure: aggregate coverage (left) and by age/sex (right).
+        If by_age=False, only plots aggregate.
+
+        Example::
+
+            sim.run()
+            sim.analyzers.art_coverage.plot()
+        """
+        yearvec = self.sim.t.yearvec
+        sex_colors = {'f': '#d46e9c', 'm': '#4a90d9'}
+        sex_labels = {'f': 'Women', 'm': 'Men'}
+
+        if by_age and len(self.age_bins) > 2:
+            fig, axes = pl.subplots(1, 3, figsize=(16, 5))
+        else:
+            fig, axes = pl.subplots(1, 1, figsize=(6, 5))
+            axes = [axes]
+
+        # Panel 1: aggregate
+        ax = axes[0]
+        ax.plot(yearvec, self.results['p_art'],   color='k',              linewidth=2, label='Overall')
+        ax.plot(yearvec, self.results['p_art_f'], color=sex_colors['f'], linewidth=1.5, label='Women')
+        ax.plot(yearvec, self.results['p_art_m'], color=sex_colors['m'], linewidth=1.5, label='Men')
+        ax.set_xlabel('Year')
+        ax.set_ylabel('ART coverage (proportion of infected)')
+        ax.set_title('ART coverage')
+        ax.set_ylim(0, 1)
+        ax.legend(frameon=False)
+
+        # Panels 2-3: by age (women, men)
+        if by_age and len(self.age_bins) > 2 and len(axes) > 1:
+            for sex, ax in zip(['f', 'm'], axes[1:]):
+                for i in range(len(self.age_bins) - 1):
+                    lo, hi = self.age_bins[i], self.age_bins[i + 1]
+                    key = f'p_art_{sex}_{lo}_{hi}'
+                    ax.plot(yearvec, self.results[key], label=f'{lo}-{hi}')
+                ax.set_xlabel('Year')
+                ax.set_ylabel('ART coverage')
+                ax.set_title(f'{sex_labels[sex]} by age')
+                ax.set_ylim(0, 1)
+                ax.legend(frameon=False, fontsize=9)
+
+        pl.tight_layout()
+        return fig
+
