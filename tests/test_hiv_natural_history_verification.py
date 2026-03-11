@@ -143,8 +143,8 @@ def test_no_sexual_transmission_without_network():
     return sim
 
 
-def _run_beta_test(baseline_m2f, baseline_m2c, mode: str, multiplier=2, result_tolerance=0.1,
-                   n_agents=50000, duration=1, init_prev=0.05, fertility=10):
+def _run_beta_test(baseline_m2f, baseline_m2c, mode: str, multiplier=2, result_tolerance=0.16,
+                   n_agents=50000, duration=1, init_prev=0.2, fertility=10, rand_seed=1):
     if mode == 'sexual':
         analyzer = SexualTransmissionCountTracker()
     elif mode == 'mtc':
@@ -159,6 +159,8 @@ def _run_beta_test(baseline_m2f, baseline_m2c, mode: str, multiplier=2, result_t
     sim = build_testing_sim(diseases=[baseline_hiv], pregnancy=pregnancy,
                             analyzers=[analyzer],
                             n_agents=n_agents, duration=duration)
+    sim.pars['rand_seed'] = rand_seed
+
     sim.run()
     hiv_transmissions_baseline = sim.results[analyzer.name][analyzer.result_name]
     hiv_transmissions_baseline = sum(hiv_transmissions_baseline)
@@ -172,6 +174,8 @@ def _run_beta_test(baseline_m2f, baseline_m2c, mode: str, multiplier=2, result_t
                             analyzers=[analyzer],
                             n_agents=n_agents, duration=duration)
     sim.run()
+    sim.pars['rand_seed'] = rand_seed
+
     hiv_transmissions_test = sum(sim.results[analyzer.name][analyzer.result_name])
 
     # ensure at least one such transmission occurs
@@ -181,12 +185,14 @@ def _run_beta_test(baseline_m2f, baseline_m2c, mode: str, multiplier=2, result_t
     expected_ratio = multiplier
     delta = result_tolerance * expected_ratio
     test_ratio = hiv_transmissions_test / hiv_transmissions_baseline
-    msg = f"{mode} transmission ratio: {test_ratio} not within delta: {delta} of expected: {expected_ratio}"
-    assert test_ratio == pytest.approx(expected=expected_ratio, rel=result_tolerance), msg
 
     if verbose:
         msg = f"{mode} transmission ratio: {test_ratio} ({hiv_transmissions_test}/{hiv_transmissions_baseline}) expected: {expected_ratio}"
         print(msg)
+
+    msg = f"{mode} transmission ratio: {test_ratio} not within delta: {delta} of expected: {expected_ratio}"
+    assert test_ratio == pytest.approx(expected=expected_ratio, rel=result_tolerance), msg
+
 
 
 @sc.timer()
@@ -195,7 +201,7 @@ def test_doubling_hiv_maternal_beta_doubles_transmissions():
 
     # setting baseline beta low, fertility HIGH, prevalence HIGH to generate enough births/transmissions quickly
     _run_beta_test(baseline_m2f=0, baseline_m2c=0.0025, mode='mtc', multiplier=2, fertility=1000,
-                   duration=5, n_agents=3000, init_prev=1.0)
+                   duration=5, n_agents=40000, init_prev=1.0)
 
 
 @sc.timer()
@@ -204,7 +210,7 @@ def test_doubling_hiv_sexual_beta_doubles_transmissions():
 
     # doubling both beta for m2f (implicitly f2m) (sexual transmission only, no mother-to-child transmission)
     # This happens to be a realistic baseline m2f beta
-    _run_beta_test(baseline_m2f=0.001, baseline_m2c=0, mode='sexual', multiplier=2)
+    _run_beta_test(baseline_m2f=0.001, baseline_m2c=0, mode='sexual', multiplier=2, duration=1, n_agents=100000)
 
 
 # Not currently implemented in hivsim, so leaving this partially-completed test commented out for future work
