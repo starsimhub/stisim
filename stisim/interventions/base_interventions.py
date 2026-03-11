@@ -58,7 +58,31 @@ class STIDx(ss.Product):
 
 class STITest(ss.Intervention):
     """
-    Base class for STI testing
+    Base class for STI testing.
+
+    Controls who gets tested, how often, and with what diagnostic product.
+    Each timestep, eligible agents are tested with probability test_prob_data
+    (scaled by dt if dt_scale=True). Positive results can trigger treatment.
+
+    Important: test_prob_data is a *per-year* rate by default (dt_scale=True).
+    With monthly timesteps (dt=1/12), test_prob_data=0.1 means ~0.83% chance
+    per month, or ~10% per year. To test everyone in one timestep, use
+    test_prob_data=1/dt (e.g. 12 for monthly dt).
+
+    Args:
+        product (ss.Product):  diagnostic product that determines test outcomes
+        test_prob_data:        testing probability per year; scalar or array over years
+        years (array):         years corresponding to test_prob_data if array
+        start/stop (float):    active period for the intervention
+        eligibility (func):    function f(sim) -> BoolArr or UIDs defining who can be tested
+        rel_test (float):      relative testing probability multiplier (default 1)
+        dt_scale (bool):       if True (default), scale probability by dt
+
+    States set on agents:
+        tested (bool):      ever tested
+        diagnosed (bool):   ever diagnosed positive
+        ti_tested (float):  timestep of last test
+        ti_positive (float): timestep of last positive result
     """
 
     def __init__(self, pars=None, test_prob_data=None, years=None, start=None, stop=None, eligibility=None, product=None, name=None, label=None, **kwargs):

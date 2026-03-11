@@ -237,7 +237,39 @@ class HIVDx(ss.Product):
 
 class HIVTest(STITest):
     """
-    Base class for HIV testing
+    HIV-specific testing intervention.
+
+    Tests eligible agents for HIV; positive results set hiv.diagnosed=True,
+    which is a prerequisite for ART initiation. By default, only undiagnosed
+    agents are eligible.
+
+    The testing → diagnosis → ART pipeline works as follows:
+
+        1. HIVTest tests eligible agents each timestep (per-year probability)
+        2. Positive results set hiv.diagnosed=True and hiv.ti_diagnosed
+        3. ART checks for newly diagnosed agents (ti_diagnosed == current ti)
+        4. Newly diagnosed agents initiate ART with probability art_initiation
+        5. If coverage data is provided, ART corrects to match targets
+
+    Args:
+        test_prob_data: per-year testing probability (scaled by dt). A value of
+            0.1 means ~10% of eligible agents tested per year. With monthly dt,
+            this is ~0.83% per timestep. Use 1/dt (e.g. 12) to test everyone
+            immediately.
+        eligibility (func): who can be tested. Default: undiagnosed agents.
+        start (float): year testing begins
+
+    Example::
+
+        # Test 20% of undiagnosed agents per year starting in 2000
+        test = sti.HIVTest(test_prob_data=0.2, start=2000, name='hiv_test')
+
+        # FSW-targeted testing at higher rate
+        fsw_test = sti.HIVTest(
+            test_prob_data=0.5,
+            name='fsw_test',
+            eligibility=lambda sim: sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.diagnosed,
+        )
     """
     def __init__(self, product=None, pars=None, test_prob_data=None, years=None, start=None, eligibility=None, name=None, label=None, **kwargs):
         if product is None: product = HIVDx(name=f'HIVDx_{name}')
@@ -256,18 +288,47 @@ class HIVTest(STITest):
 
 class ART(ss.Intervention):
     """
-    ART-treatment intervention.
+    Antiretroviral therapy intervention.
 
-    Coverage can be specified as:
-        - A scalar (constant proportion of infected)
-        - A dict with 'year' and 'value' keys (interpolated over time)
-        - A DataFrame with index=years, single column 'n_art' or 'p_art' (legacy)
-        - A DataFrame with Year/Gender/AgeBin columns (age/sex stratified)
+    Requires HIVTest (or equivalent) to diagnose agents first — ART only
+    initiates agents who have hiv.diagnosed=True. A warning is raised if no
+    HIVTest is found in the sim.
+
+    Processing flow each timestep:
+        1. Agents scheduled to stop ART are removed
+        2. Newly diagnosed agents (ti_diagnosed == this timestep) are filtered
+           by art_initiation probability
+        3. If coverage is specified: agents are added/removed to match the target
+           number, prioritized by CD4 count and care-seeking propensity
+        4. If no coverage is specified: all newly diagnosed who pass art_initiation
+           go directly on ART (no capacity constraint)
+        5. Mothers on ART protect unborn infants (rel_sus=0) via MaternalNet
+
+    Coverage can be specified in several formats:
+        - None: no coverage target; treat all who initiate (default)
+        - Scalar (e.g. 0.8): constant proportion of infected on ART
+        - Dict: {'year': [2000, 2020], 'value': [0, 0.9]} — interpolated
+        - DataFrame: index=years, column 'n_art' (numbers) or 'p_art' (proportion)
+        - Stratified DataFrame: columns Year, Gender/Sex, AgeBin + a value column
 
     Args:
-        coverage:         coverage data in any supported format
-        art_initiation:   probability that a newly diagnosed person initiates ART (ss.bernoulli)
-        coverage_data:    deprecated, use coverage instead
+        coverage:         coverage target in any format above
+        art_initiation:   probability a newly diagnosed person initiates ART
+                          (default: ss.bernoulli(p=0.9))
+
+    Example::
+
+        # Simple: 80% of infected on ART
+        art = sti.ART(coverage=0.8)
+
+        # Time-varying coverage
+        art = sti.ART(coverage={'year': [2000, 2010, 2025], 'value': [0, 0.5, 0.9]})
+
+        # No coverage target — just treat everyone who gets diagnosed
+        art = sti.ART()
+
+        # From a CSV file
+        art = sti.ART(coverage=pd.read_csv('art_coverage.csv').set_index('year'))
     """
 
     def __init__(self, pars=None, coverage=None, coverage_data=None, **kwargs):
@@ -461,19 +522,30 @@ class ART(ss.Intervention):
 
 class VMMC(ss.Intervention):
     """
-    Voluntary medical male circumcision intervention.
+    Voluntary medical male circumcision.
 
-    Coverage can be specified as:
-        - A scalar (constant proportion of males)
-        - A dict with 'year' and 'value' keys (interpolated over time)
-        - A DataFrame with index=years, single column 'n_vmmc' or 'p_vmmc' (legacy)
-        - A DataFrame with Year/Gender/AgeBin columns (age stratified)
+    Reduces male susceptibility to HIV acquisition by eff_circ (default 60%).
+    Unlike ART, VMMC does not require diagnosis — it circumcises males up to a
+    coverage target, prioritized by willingness (a random per-agent score).
+
+    If no coverage is specified, VMMC does nothing. Coverage must be provided
+    explicitly via the coverage parameter.
+
+    Coverage formats (same as ART):
+        - Scalar: constant proportion of males (e.g. 0.3)
+        - Dict: {'year': [...], 'value': [...]} — interpolated
+        - DataFrame: index=years, column 'n_vmmc' or 'p_vmmc'
+        - Stratified DataFrame: Year/Gender/AgeBin columns
 
     Args:
-        coverage:    coverage data in any supported format
-        eff_circ:    efficacy of circumcision (reduction in HIV acquisition risk)
-        eligibility: optional eligibility function or filter
-        coverage_data: deprecated, use coverage instead
+        coverage:    coverage target in any format above
+        eff_circ:    efficacy (default 0.6 = 60% reduction in HIV acquisition)
+        eligibility: optional eligibility function
+
+    Example::
+
+        vmmc = sti.VMMC(coverage=0.3)
+        vmmc = sti.VMMC(coverage={'year': [2010, 2025], 'value': [0, 0.4]})
     """
 
     def __init__(self, pars=None, coverage=None, coverage_data=None, eligibility=None, **kwargs):
@@ -578,7 +650,23 @@ class VMMC(ss.Intervention):
 
 
 class Prep(ss.Intervention):
-    """ PrEP for FSW """
+    """
+    Pre-exposure prophylaxis (PrEP) for female sex workers.
+
+    Reduces HIV susceptibility by eff_prep (default 80%) for eligible FSWs
+    who are HIV-negative and not already on PrEP. Coverage ramps up over
+    time according to the years/coverage parameters.
+
+    Args:
+        coverage (list):  coverage values at each year (default ramps 0→80%)
+        years (list):     corresponding years
+        eff_prep (float): efficacy (default 0.8 = 80% reduction in acquisition)
+        eligibility:      optional custom eligibility function
+
+    Example::
+
+        prep = sti.Prep(coverage=[0, 0.5], years=[2020, 2025])
+    """
     def __init__(self, pars=None, eligibility=None, **kwargs):
         super().__init__()
         self.define_pars(
