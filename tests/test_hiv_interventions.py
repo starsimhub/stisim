@@ -127,7 +127,7 @@ def test_art_stratified_coverage(do_plot=do_plot):
         for gender in [0, 1]:
             for age_bin in ['[15,25)', '[25,35)', '[35,45)']:
                 p = 0.3 if year == 2005 else 0.7
-                p *= (1.2 if gender == 1 else 1.0)
+                p *= (1.2 if gender == 0 else 1.0)  # Higher for women (0=female)
                 rows.append(dict(Year=year, Gender=gender, AgeBin=age_bin, NationalARTPrevalence=min(p, 1.0)))
     strat_df = pd.DataFrame(rows)
 
@@ -136,10 +136,10 @@ def test_art_stratified_coverage(do_plot=do_plot):
     sim.run()
     assert sim.results.hiv.n_on_art[-1] > 0, 'Expected people on ART with stratified coverage (canonical names)'
 
-    # Test with lowercase column names + Sex alias
+    # Test with lowercase column names + Sex alias + string gender values
     rows_lc = []
     for year in [2005, 2015]:
-        for sex in [0, 1]:
+        for sex in ['f', 'm']:
             for age_bin in ['[15,25)', '[25,35)', '[35,45)']:
                 p = 0.4 if year == 2005 else 0.8
                 rows_lc.append(dict(year=year, sex=sex, agebin=age_bin, coverage=min(p, 1.0)))
@@ -147,7 +147,7 @@ def test_art_stratified_coverage(do_plot=do_plot):
     sim2 = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents)
     sim2.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), sti.ART(coverage=pd.DataFrame(rows_lc))]
     sim2.run()
-    assert sim2.results.hiv.n_on_art[-1] > 0, 'Expected people on ART with stratified coverage (lowercase/sex alias)'
+    assert sim2.results.hiv.n_on_art[-1] > 0, 'Expected people on ART with stratified coverage (string sex values)'
 
     return sim, sim2
 
@@ -266,7 +266,7 @@ def test_art_stratified_coverage_matching(do_plot=do_plot):
                 ab = f'[{lo},{hi})'
                 base_p = 0.3 if year == 2005 else 0.7
                 age_factor = 1 + (lo - 15) * 0.01  # Slightly higher for older
-                sex_factor = 1.1 if gender == 1 else 1.0  # Higher for women
+                sex_factor = 1.1 if gender == 0 else 1.0  # Higher for women (0=female)
                 p = min(base_p * age_factor * sex_factor, 0.95)
                 rows.append(dict(Year=year, Gender=gender, AgeBin=ab, coverage=p))
                 if year == 2015:
@@ -291,7 +291,7 @@ def test_art_stratified_coverage_matching(do_plot=do_plot):
     # computes a global target from stratified data, not per-stratum force-fitting)
     for (ab, gender), target_p in targets.items():
         lo, hi = ab.strip('[]()').split(',')
-        sex = 'f' if gender == 1 else 'm'
+        sex = 'f' if gender == 0 else 'm'
         key = f'p_art_{sex}_{lo}_{hi}'
         measured_p = np.mean(ac[key][-24:])
         print(f'  {key}: target={target_p:.2f}, measured={measured_p:.2f}')

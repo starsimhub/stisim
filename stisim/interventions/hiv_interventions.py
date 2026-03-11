@@ -108,14 +108,32 @@ def _parse_coverage_df(data, valid_names, yearvec):
     raise ValueError(errormsg)
 
 
+def _normalize_sex(val):
+    """
+    Normalize a gender/sex value to integer form.
+    Convention: 0 = female, 1 = male.
+
+    Accepts: 0, 1, 'f', 'm', 'female', 'male' (case-insensitive).
+    """
+    if isinstance(val, str):
+        v = val.strip().lower()
+        if v in ('f', 'female'): return 0
+        if v in ('m', 'male'):   return 1
+        raise ValueError(f'Cannot parse sex value: {val!r}. Expected 0/1, f/m, or female/male.')
+    return int(val)
+
+
 def _normalize_stratified_cols(data):
     """
-    Normalize column names in a stratified DataFrame to canonical form.
+    Normalize column names and gender values in a stratified DataFrame.
     Supports: Year/year, Gender/Sex/gender/sex, AgeBin/age_bin/agebin/age,
     Count/count, lb/LB, ub/UB.
 
-    Returns a copy of the DataFrame with canonical column names, and raises
-    ValueError if required columns (year, sex/gender, age bin) are missing.
+    Gender values are normalized to integers: 0 = female, 1 = male.
+    Accepts: 0/1, 'f'/'m', 'female'/'male' (case-insensitive).
+
+    Returns a copy of the DataFrame with canonical column names and normalized
+    gender values.
     """
     rename = {}
     col_lower = {c.lower(): c for c in data.columns}
@@ -150,6 +168,10 @@ def _normalize_stratified_cols(data):
             rename[col_lower[alias]] = canonical
 
     df = data.rename(columns=rename)
+
+    # Normalize gender values to integers: 0=female, 1=male
+    df['Gender'] = df['Gender'].map(_normalize_sex)
+
     return df
 
 
@@ -426,7 +448,7 @@ class ART(ss.Intervention):
 
                 # Find eligible agents in this stratum
                 age_mask = (sim.people.age >= lo) & (sim.people.age < hi)
-                sex_mask = sim.people.female if sex == 1 else sim.people.male
+                sex_mask = sim.people.female if sex == 0 else sim.people.male
                 stratum_uids = eligible_uids[age_mask[eligible_uids] & sex_mask[eligible_uids]]
 
                 if self.coverage_format == 'n':
@@ -629,7 +651,7 @@ class VMMC(ss.Intervention):
         total = 0
         for ab in self.age_bins:
             lo, hi = _parse_age_bin(ab)
-            for sex in (self.sex_keys or [0]):  # VMMC is males only, but handle data gracefully
+            for sex in (self.sex_keys or [1]):  # VMMC is males only (1=male); handle data gracefully
                 cov = self.coverage.get((ab, sex), np.zeros(1))
                 cov_val = cov[self.ti] if len(cov) > self.ti else cov[-1]
                 age_mask = (sim.people.age >= lo) & (sim.people.age < hi)

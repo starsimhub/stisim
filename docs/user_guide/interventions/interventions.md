@@ -179,7 +179,7 @@ art = sti.ART(coverage=stratified_df)
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `coverage` | None (no target; treat all who initiate) | Coverage target: scalar, dict, DataFrame, or stratified DataFrame. Dict values are linearly interpolated between years. DataFrame requires index=years and a column named `n_art` (absolute numbers) or `p_art` (proportion of infected). Stratified DataFrames need columns Year, Gender/Sex, AgeBin `[lo,hi)`, and a numeric value column. |
+| `coverage` | None (no target; treat all who initiate) | Coverage target: scalar, dict, DataFrame, or stratified DataFrame. Dict values are linearly interpolated between years. DataFrame requires index=years and a column named `n_art` (absolute numbers) or `p_art` (proportion of infected). Stratified DataFrames need columns Year, Gender/Sex, AgeBin `[lo,hi)`, and a numeric value column. Gender accepts: 0/f/female (female), 1/m/male (male). |
 | `art_initiation` | bernoulli(0.9) | Probability a newly diagnosed person initiates ART. Set to 1 to treat all diagnosed. |
 
 ### VMMC
