@@ -12,7 +12,7 @@ import stisim as sti
 import pylab as pl
 from collections import defaultdict
 
-__all__ = ["result_grouper", "coinfection_stats", "sw_stats", "RelationshipDurations", "NetworkDegree", "DebutAge", "partner_age_diff", "TimeBetweenRelationships"]
+__all__ = ["result_grouper", "coinfection_stats", "sw_stats", "RelationshipDurations", "NetworkDegree", "DebutAge", "partner_age_diff", "TimeBetweenRelationships", "art_coverage"]
 
 class result_grouper(ss.Analyzer):
     @staticmethod
@@ -562,4 +562,80 @@ class DebutAge(ss.Analyzer):
         pl.ylabel('Share')
         pl.title('Proportion of males who are sexually active')
         pl.show()
+
+
+class art_coverage(ss.Analyzer):
+    """
+    Track ART coverage (number and proportion) by sex and age bin.
+
+    Results are stored as time series per stratum, accessible via:
+        analyzer.results['n_art_f_15_25']    # Women 15-25 on ART (count)
+        analyzer.results['p_art_m_25_35']    # Men 25-35 on ART (proportion of infected)
+
+    Args:
+        age_bins (list): age bin edges, e.g. [15, 25, 35, 45, 65]. Default: [15, 25, 35, 45, 65]
+    """
+
+    def __init__(self, age_bins=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.name = 'art_coverage'
+        self.age_bins = age_bins or [15, 25, 35, 45, 65]
+        return
+
+    def init_results(self):
+        super().init_results()
+        results = []
+
+        # Aggregate results
+        results.append(ss.Result('n_art',   dtype=int,   label='Total on ART'))
+        results.append(ss.Result('p_art',   scale=False, label='ART coverage (proportion of infected)'))
+        results.append(ss.Result('n_art_f', dtype=int,   label='Women on ART'))
+        results.append(ss.Result('n_art_m', dtype=int,   label='Men on ART'))
+        results.append(ss.Result('p_art_f', scale=False, label='ART coverage (women)'))
+        results.append(ss.Result('p_art_m', scale=False, label='ART coverage (men)'))
+
+        # Per age bin × sex
+        for i in range(len(self.age_bins) - 1):
+            lo, hi = self.age_bins[i], self.age_bins[i + 1]
+            for sex in ['f', 'm']:
+                results.append(ss.Result(f'n_art_{sex}_{lo}_{hi}', dtype=int, label=f'On ART {sex.upper()} {lo}-{hi}'))
+                results.append(ss.Result(f'p_art_{sex}_{lo}_{hi}', scale=False, label=f'ART coverage {sex.upper()} {lo}-{hi}'))
+
+        self.define_results(*results)
+        return
+
+    def step(self):
+        sim = self.sim
+        ti  = self.ti
+        ppl = sim.people
+        hiv = sim.diseases.hiv
+
+        on_art   = hiv.on_art
+        infected = hiv.infected
+        female   = ppl.female
+        male     = ppl.male
+        age      = ppl.age
+
+        # Aggregate
+        n_art = len(on_art.uids)
+        n_inf = len(infected.uids)
+        self.results['n_art'][ti]   = n_art
+        self.results['p_art'][ti]   = sc.safedivide(n_art, n_inf)
+        self.results['n_art_f'][ti] = len((on_art & female).uids)
+        self.results['n_art_m'][ti] = len((on_art & male).uids)
+        self.results['p_art_f'][ti] = sc.safedivide(len((on_art & female).uids), len((infected & female).uids))
+        self.results['p_art_m'][ti] = sc.safedivide(len((on_art & male).uids), len((infected & male).uids))
+
+        # Per age bin × sex
+        for i in range(len(self.age_bins) - 1):
+            lo, hi = self.age_bins[i], self.age_bins[i + 1]
+            age_mask = (age >= lo) & (age < hi)
+            for sex, sex_mask in [('f', female), ('m', male)]:
+                stratum     = age_mask & sex_mask
+                n_on        = len((on_art & stratum).uids)
+                n_inf_strat = len((infected & stratum).uids)
+                self.results[f'n_art_{sex}_{lo}_{hi}'][ti] = n_on
+                self.results[f'p_art_{sex}_{lo}_{hi}'][ti] = sc.safedivide(n_on, n_inf_strat)
+
+        return
 

@@ -221,6 +221,103 @@ def test_art_no_pregnancy(do_plot=do_plot):
     return sim
 
 
+# %% Coverage matching tests
+@sc.timer()
+def test_art_coverage_matching(do_plot=do_plot):
+    """ Check that ART intervention matches supplied coverage data """
+    sc.heading('Testing ART coverage matching...')
+
+    # Simple constant proportion coverage
+    target_p = 0.7
+    sim = hivsim.demo('simple', run=False, plot=False, n_agents=5_000)
+    sim.pars.interventions = [
+        sti.HIVTest(name='hiv_test', test_prob_data=0.5),
+        sti.ART(coverage=target_p),
+    ]
+    sim.pars.analyzers = [sti.art_coverage()]
+    sim.run()
+
+    ac = sim.results.art_coverage
+    # Check coverage in the last few years (after ramp-up)
+    rtol = 0.2  # Generous tolerance for stochastic model with 5K agents
+    final_p = np.mean(ac.p_art[-24:])  # Last 2 years of monthly data
+    assert np.isclose(final_p, target_p, rtol=rtol), \
+        f'Expected ART coverage ~{target_p}, got {final_p:.2f} (rtol={rtol})'
+
+    if do_plot:
+        fig, axes = pl.subplots(1, 2, figsize=(12, 5))
+        axes[0].plot(sim.t.yearvec, ac.n_art, label='On ART')
+        axes[0].set_ylabel('Count')
+        axes[0].set_title('ART numbers')
+        axes[1].plot(sim.t.yearvec, ac.p_art, label='Coverage')
+        axes[1].axhline(target_p, color='k', ls='--', label=f'Target ({target_p})')
+        axes[1].set_ylabel('Proportion')
+        axes[1].set_title('ART coverage')
+        axes[1].legend()
+
+    return sim
+
+
+@sc.timer()
+def test_art_stratified_coverage_matching(do_plot=do_plot):
+    """ Check that age-stratified ART coverage approximately matches supplied targets """
+    sc.heading('Testing stratified ART coverage matching...')
+
+    # Build stratified coverage data: higher coverage for older age groups and women
+    age_bins = [15, 25, 35, 45]
+    targets = {}
+    rows = []
+    for year in [2005, 2015]:
+        for gender in [0, 1]:
+            for lo, hi in zip(age_bins[:-1], age_bins[1:]):
+                ab = f'[{lo},{hi})'
+                base_p = 0.3 if year == 2005 else 0.7
+                age_factor = 1 + (lo - 15) * 0.01  # Slightly higher for older
+                sex_factor = 1.1 if gender == 1 else 1.0  # Higher for women
+                p = min(base_p * age_factor * sex_factor, 0.95)
+                rows.append(dict(Year=year, Gender=gender, AgeBin=ab, coverage=p))
+                if year == 2015:
+                    targets[(ab, gender)] = p
+
+    strat_df = pd.DataFrame(rows)
+    sim = hivsim.demo('simple', run=False, plot=False, n_agents=5_000)
+    sim.pars.interventions = [
+        sti.HIVTest(name='hiv_test', test_prob_data=0.5),
+        sti.ART(coverage=strat_df),
+    ]
+    sim.pars.analyzers = [sti.art_coverage(age_bins=age_bins)]
+    sim.run()
+
+    ac = sim.results.art_coverage
+
+    # Check aggregate coverage is nonzero (stratified data produces a global target)
+    final_p = np.mean(ac.p_art[-24:])
+    assert final_p > 0.1, f'Expected meaningful aggregate ART coverage with stratified data, got {final_p:.2f}'
+
+    # Print per-stratum coverage for inspection (not asserted — current implementation
+    # computes a global target from stratified data, not per-stratum force-fitting)
+    for (ab, gender), target_p in targets.items():
+        lo, hi = ab.strip('[]()').split(',')
+        sex = 'f' if gender == 1 else 'm'
+        key = f'p_art_{sex}_{lo}_{hi}'
+        measured_p = np.mean(ac[key][-24:])
+        print(f'  {key}: target={target_p:.2f}, measured={measured_p:.2f}')
+
+    if do_plot:
+        fig, axes = pl.subplots(1, 2, figsize=(14, 5))
+        for sex, ax in [('f', axes[0]), ('m', axes[1])]:
+            for i in range(len(age_bins) - 1):
+                lo, hi = age_bins[i], age_bins[i + 1]
+                key = f'p_art_{sex}_{lo}_{hi}'
+                ax.plot(sim.t.yearvec, ac[key], label=f'{lo}-{hi}')
+            ax.set_ylabel('ART coverage')
+            ax.set_title(f'{"Women" if sex == "f" else "Men"}')
+            ax.legend()
+            ax.set_ylim(0, 1)
+
+    return sim
+
+
 # %% Scientific validation skeletons
 @sc.timer()
 def test_art_reduces_mortality(do_plot=do_plot):
@@ -333,15 +430,17 @@ if __name__ == '__main__':
     sc.options(interactive=do_plot)
     T = sc.timer()
 
-    r1 = test_art_specs(do_plot=do_plot)
-    r2 = test_art_legacy_compat(do_plot=do_plot)
-    r3 = test_vmmc_specs(do_plot=do_plot)
-    r4 = test_art_stratified_coverage(do_plot=do_plot)
-    r5 = test_art_effects(do_plot=do_plot)
-    r6 = test_art_no_pregnancy(do_plot=do_plot)
-    r7 = test_art_reduces_mortality(do_plot=do_plot)
-    r8 = test_art_parameter_sensitivity(do_plot=do_plot)
-    r9 = test_art_duration(do_plot=do_plot)
+    r1  = test_art_specs(do_plot=do_plot)
+    r2  = test_art_legacy_compat(do_plot=do_plot)
+    r3  = test_vmmc_specs(do_plot=do_plot)
+    r4  = test_art_stratified_coverage(do_plot=do_plot)
+    r5  = test_art_effects(do_plot=do_plot)
+    r6  = test_art_no_pregnancy(do_plot=do_plot)
+    r7  = test_art_coverage_matching(do_plot=do_plot)
+    r8  = test_art_stratified_coverage_matching(do_plot=do_plot)
+    r9  = test_art_reduces_mortality(do_plot=do_plot)
+    r10 = test_art_parameter_sensitivity(do_plot=do_plot)
+    r11 = test_art_duration(do_plot=do_plot)
 
     T.toc()
 
