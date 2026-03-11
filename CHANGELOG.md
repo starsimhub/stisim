@@ -2,6 +2,9 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.6.0 (2026-04-01)
+Placeholder for changes to MTCT and PrEP.
+
 ## Version 1.5.0 (2026-03-03)
 
 ### Calibration API
