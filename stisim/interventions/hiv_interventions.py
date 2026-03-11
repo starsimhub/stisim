@@ -329,8 +329,11 @@ class ART(ss.Intervention):
         # Time-varying coverage
         art = sti.ART(coverage={'year': [2000, 2010, 2025], 'value': [0, 0.5, 0.9]})
 
-        # No coverage target — just treat everyone who gets diagnosed
+        # No coverage target — 90% of newly diagnosed initiate (default art_initiation)
         art = sti.ART()
+
+        # Treat ALL diagnosed with no coverage constraint
+        art = sti.ART(art_initiation=1)
 
         # From a CSV file
         art = sti.ART(coverage=pd.read_csv('art_coverage.csv').set_index('year'))
@@ -342,13 +345,8 @@ class ART(ss.Intervention):
         # Handle deprecated kwargs
         coverage, future_coverage = _handle_deprecated_coverage(coverage, coverage_data, kwargs)
 
-        # Handle deprecated init_prob → art_initiation
-        init_prob = kwargs.pop('init_prob', None)
-        if init_prob is not None:
-            warnings.warn('init_prob is deprecated; use art_initiation instead', FutureWarning, stacklevel=2)
-
         self.define_pars(
-            art_initiation=init_prob if init_prob is not None else ss.bernoulli(p=0.9),
+            art_initiation=ss.bernoulli(p=0.9),
         )
         self.update_pars(pars, **kwargs)
 

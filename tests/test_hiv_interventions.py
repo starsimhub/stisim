@@ -82,13 +82,6 @@ def test_art_legacy_compat(do_plot=do_plot):
         n_deprecation = sum(1 for x in w if issubclass(x.category, FutureWarning))
     assert n_deprecation >= 2, f'Expected 2+ FutureWarnings for coverage_data+future_coverage, got {n_deprecation}'
 
-    # Legacy init_prob
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        sti.ART(coverage=0.5, init_prob=ss.bernoulli(p=0.5))
-        n_deprecation = sum(1 for x in w if issubclass(x.category, FutureWarning))
-    assert n_deprecation >= 1, f'Expected FutureWarning for init_prob, got {n_deprecation}'
-
     # Run both legacy sims to verify they work
     for art in [art1, art2]:
         sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents)

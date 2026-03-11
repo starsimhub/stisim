@@ -157,8 +157,11 @@ fsw_test = sti.HIVTest(
 ART accepts coverage in multiple formats:
 
 ```python
-# No coverage target — treat all who are diagnosed
+# No coverage target — 90% of newly diagnosed initiate ART (default)
 art = sti.ART()
+
+# Treat ALL diagnosed, no coverage constraint
+art = sti.ART(art_initiation=1)
 
 # Constant proportion of infected
 art = sti.ART(coverage=0.8)
