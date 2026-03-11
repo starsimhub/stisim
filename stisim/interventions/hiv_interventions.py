@@ -225,10 +225,6 @@ class ART(ss.Intervention):
         # Handle deprecated kwargs
         coverage, future_coverage = _handle_deprecated_coverage(coverage, coverage_data, kwargs)
 
-        # Default coverage: 85% of infected on ART (matches old future_coverage default)
-        if coverage is None and coverage_data is None and future_coverage is None:
-            coverage = 0.85
-
         # Handle deprecated init_prob → art_initiation
         init_prob = kwargs.pop('init_prob', None)
         if init_prob is not None:
@@ -266,8 +262,8 @@ class ART(ss.Intervention):
         """
         Get the target number of people on ART this timestep.
 
-        For stratified coverage, returns a dict of {(age_bin, sex): n_to_treat}.
-        For aggregate coverage, returns an int.
+        Returns None if no coverage data is provided (meaning: no capacity
+        constraint, just treat everyone who initiates). Returns an int otherwise.
         """
         # Legacy future_coverage mode
         if self._future_coverage is not None and self.t.now('year') >= self._future_coverage['year']:
@@ -275,7 +271,7 @@ class ART(ss.Intervention):
             return int(p_cov * len(eligible_uids))
 
         if self.coverage is None:
-            return 0
+            return None
 
         # Stratified coverage
         if isinstance(self.coverage, dict):
@@ -323,7 +319,7 @@ class ART(ss.Intervention):
         hiv = sim.diseases.hiv
         inf_uids = hiv.infected.uids
 
-        # Determine treatment target
+        # Determine treatment target (None = no capacity constraint)
         n_to_treat = self._get_n_to_treat(inf_uids)
 
         # Check who is stopping ART
@@ -337,17 +333,23 @@ class ART(ss.Intervention):
                     raise ValueError(errormsg)
 
         # Initiate ART for newly diagnosed
-        on_art = hiv.on_art
         diagnosed = hiv.ti_diagnosed == self.ti
         if len(diagnosed.uids):
             dx_to_treat = self.pars.art_initiation.filter(diagnosed.uids)
 
-            n_available_spots = n_to_treat - len(on_art.uids)
-            if n_available_spots > 0:
-                self.prioritize_art(sim, n=n_available_spots, awaiting_art_uids=dx_to_treat)
+            if n_to_treat is None:
+                # No coverage target — treat all who initiate
+                hiv.start_art(dx_to_treat)
+            else:
+                # Coverage target — only treat if spots available
+                on_art = hiv.on_art
+                n_available_spots = n_to_treat - len(on_art.uids)
+                if n_available_spots > 0:
+                    self.prioritize_art(sim, n=n_available_spots, awaiting_art_uids=dx_to_treat)
 
-        # Correct coverage to match target
-        self.art_coverage_correction(sim, target_coverage=n_to_treat)
+        # Correct coverage to match target (only if target is set)
+        if n_to_treat is not None:
+            self.art_coverage_correction(sim, target_coverage=n_to_treat)
 
         # Adjust rel_sus for protected unborn agents (only if pregnancy is modeled)
         if hasattr(sim.people, 'pregnancy') and hasattr(sim.networks, 'maternalnet'):
@@ -429,10 +431,6 @@ class VMMC(ss.Intervention):
         # Handle deprecated kwargs
         coverage, future_coverage = _handle_deprecated_coverage(coverage, coverage_data, kwargs)
 
-        # Default coverage: 10% of males circumcised (matches old future_coverage default)
-        if coverage is None and coverage_data is None and future_coverage is None:
-            coverage = 0.1
-
         self.define_pars(
             eff_circ=0.6,
         )
@@ -475,7 +473,7 @@ class VMMC(ss.Intervention):
             return int(self._future_coverage['prop'] * len(eligible_uids))
 
         if self.coverage is None:
-            return 0
+            return None
 
         # Stratified coverage
         if isinstance(self.coverage, dict):
@@ -510,7 +508,7 @@ class VMMC(ss.Intervention):
 
         n_to_circ = self._get_n_to_circ(m_uids)
 
-        if n_to_circ > 0:
+        if n_to_circ is not None and n_to_circ > 0:
             eligible_uids = (sim.people.male & ~self.circumcised).uids
             weights = self.willingness[eligible_uids]
             choices = np.argsort(-weights)[:n_to_circ]
@@ -519,7 +517,7 @@ class VMMC(ss.Intervention):
             self.circumcised[new_circs] = True
             self.ti_circumcised[new_circs] = self.ti
 
-        self.results['new_circumcisions'][self.ti] = n_to_circ
+        self.results['new_circumcisions'][self.ti] = n_to_circ or 0
         self.results['n_circumcised'][self.ti] = count(self.circumcised)
 
         # Reduce rel_sus
