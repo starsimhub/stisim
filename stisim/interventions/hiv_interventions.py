@@ -245,24 +245,29 @@ class HIVTest(STITest):
 
     The testing → diagnosis → ART pipeline works as follows:
 
-        1. HIVTest tests eligible agents each timestep (per-year probability)
+        1. HIVTest tests eligible agents each timestep (annual rate, scaled by dt)
         2. Positive results set hiv.diagnosed=True and hiv.ti_diagnosed
         3. ART checks for newly diagnosed agents (ti_diagnosed == current ti)
         4. Newly diagnosed agents initiate ART with probability art_initiation
         5. If coverage data is provided, ART corrects to match targets
 
     Args:
-        test_prob_data: per-year testing probability (scaled by dt). A value of
-            0.1 means ~10% of eligible agents tested per year. With monthly dt,
-            this is ~0.83% per timestep. Use 1/dt (e.g. 12) to test everyone
-            immediately.
+        test_prob_data: annual testing rate (default interpretation with
+            dt_scale=True). A value of 0.1 means ~10% of eligible agents tested
+            per year. To specify a per-timestep probability instead, set
+            dt_scale=False.
         eligibility (func): who can be tested. Default: undiagnosed agents.
         start (float): year testing begins
+        dt_scale (bool): if True (default), test_prob_data is an annual rate,
+            automatically scaled by dt. Set to False for per-timestep probability.
 
     Example::
 
         # Test 20% of undiagnosed agents per year starting in 2000
         test = sti.HIVTest(test_prob_data=0.2, start=2000, name='hiv_test')
+
+        # Test everyone every timestep (per-timestep probability)
+        test = sti.HIVTest(test_prob_data=1.0, dt_scale=False, name='hiv_test')
 
         # FSW-targeted testing at higher rate
         fsw_test = sti.HIVTest(

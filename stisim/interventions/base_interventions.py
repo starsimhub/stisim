@@ -61,22 +61,31 @@ class STITest(ss.Intervention):
     Base class for STI testing.
 
     Controls who gets tested, how often, and with what diagnostic product.
-    Each timestep, eligible agents are tested with probability test_prob_data
-    (scaled by dt if dt_scale=True). Positive results can trigger treatment.
+    Each timestep, eligible agents are tested with a probability derived from
+    test_prob_data. By default (dt_scale=True), test_prob_data is interpreted
+    as an **annual testing rate** and automatically scaled by dt to get a
+    per-timestep probability.
 
-    Important: test_prob_data is a *per-year* rate by default (dt_scale=True).
-    With monthly timesteps (dt=1/12), test_prob_data=0.1 means ~0.83% chance
-    per month, or ~10% per year. To test everyone in one timestep, use
-    test_prob_data=1/dt (e.g. 12 for monthly dt).
+    For example, with monthly timesteps (dt=1/12):
+        - test_prob_data=0.1  → ~0.83% per month → ~10% tested per year
+        - test_prob_data=1.0  → ~8.3% per month  → ~100% tested per year
+
+    If you need to specify a per-timestep probability directly (not an annual
+    rate), set dt_scale=False:
+        - test_prob_data=0.5, dt_scale=False → 50% chance per timestep
 
     Args:
         product (ss.Product):  diagnostic product that determines test outcomes
-        test_prob_data:        testing probability per year; scalar or array over years
+        test_prob_data:        annual testing rate (if dt_scale=True, the default)
+                               or per-timestep probability (if dt_scale=False);
+                               scalar or array over years
         years (array):         years corresponding to test_prob_data if array
         start/stop (float):    active period for the intervention
         eligibility (func):    function f(sim) -> BoolArr or UIDs defining who can be tested
         rel_test (float):      relative testing probability multiplier (default 1)
-        dt_scale (bool):       if True (default), scale probability by dt
+        dt_scale (bool):       if True (default), interpret test_prob_data as an annual
+                               rate and multiply by dt to get per-timestep probability.
+                               Set to False to use test_prob_data as-is per timestep.
 
     States set on agents:
         tested (bool):      ever tested

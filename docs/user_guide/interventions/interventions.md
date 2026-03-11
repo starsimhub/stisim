@@ -28,7 +28,7 @@ The base testing class. Controls who gets tested, how often, and with what diagn
 ```python
 test = sti.STITest(
     product=my_diagnostic,      # Diagnostic product (required)
-    test_prob_data=0.1,         # Per-timestep probability of testing
+    test_prob_data=0.1,         # Annual testing rate (10% per year)
     eligibility=lambda sim: sim.people.female,  # Who is eligible
     start=2015,                 # When testing begins
 )
@@ -39,10 +39,10 @@ Key parameters:
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `product` | (required) | Diagnostic product (e.g., `STIDx`, `HIVDx`) |
-| `test_prob_data` | 1.0 | Testing probability -- scalar, array, or time-varying |
+| `test_prob_data` | 1.0 | Annual testing rate (scalar or array over years). Automatically scaled by dt when `dt_scale=True`. |
 | `eligibility` | all agents | Function `f(sim) -> UIDs` defining who can be tested |
 | `start` / `stop` | sim start/end | Active period for the intervention |
-| `dt_scale` | True | Scale probability by timestep length |
+| `dt_scale` | True | If True, interpret `test_prob_data` as an annual rate and multiply by dt. Set to False to use as a per-timestep probability. |
 
 ### HIVTest
 
@@ -127,7 +127,7 @@ hiv.ti_diagnosed = ti         │
 **Key points:**
 
 - Agents must be **diagnosed** before they can go on ART. If you add ART without HIVTest, a warning is raised and no agents will be treated.
-- `test_prob_data` is a **per-year rate**, automatically scaled by dt. With monthly timesteps (dt=1/12), `test_prob_data=0.1` means ~0.83% per month, not 10% per month. To test everyone in one timestep, use `test_prob_data=1/dt` (e.g. 12 for monthly).
+- `test_prob_data` is an **annual testing rate** by default (`dt_scale=True`). With monthly timesteps (dt=1/12), `test_prob_data=0.1` means ~0.83% per month, or ~10% per year. To use a per-timestep probability directly, set `dt_scale=False`.
 - ART `art_initiation` (default 0.9) controls what fraction of newly diagnosed agents are willing to start treatment.
 - If `coverage` is provided, ART force-fits the number on treatment to match the target by adding/removing agents based on CD4 and care-seeking.
 - If no `coverage` is provided (the default), ART simply treats everyone who initiates, with no capacity constraint.
@@ -148,7 +148,7 @@ fsw_test = sti.HIVTest(
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `test_prob_data` | 1.0 | Per-year testing probability (scaled by dt) |
+| `test_prob_data` | 1.0 | Annual testing rate (scaled by dt when `dt_scale=True`) |
 | `eligibility` | undiagnosed | Function `f(sim) -> BoolArr` defining who can be tested |
 | `start` | sim start | Year testing begins |
 
