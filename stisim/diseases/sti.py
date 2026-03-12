@@ -511,6 +511,10 @@ class SEIS(BaseSTI):
         return
 
     def set_pars(self, par, uids):
+        # Handle scalar calibration values by converting to [scalar, scalar]
+        if sc.isnumber(par):
+            par = [par, par]
+
         if sc.isnumber(par[0]):  # Single par, e.g. for bernoulli
             arr = np.full(len(uids), np.nan)
             arr[self.sim.people.female[uids]] = par[0]

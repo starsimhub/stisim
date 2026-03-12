@@ -203,6 +203,7 @@ def download_data(location, indicators=None, start=1950, stop=2100, step=10):
     country_code = get_country_code(df, location)
 
     for indicator in indicators:
+        print(f'STIsim data: downloading {indicator} for {location}...')
         icode = indicator_codes[indicator]
         dfs = sc.autolist()
         if indicator == 'age': years = [start]
