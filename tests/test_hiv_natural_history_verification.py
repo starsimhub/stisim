@@ -15,6 +15,7 @@ from statistics import mean
 
 import starsim as ss
 import stisim as sti
+from stisim import ART, HIVTest
 
 tests_directory = Path(__file__).resolve().parent
 sys.path.append(str(tests_directory))
@@ -231,6 +232,40 @@ def test_mtc_transmission_occurs():
     assert total_mtc_tranmissions > 0, f"Expected MTC transmissions to occur, but none were recorded."
     return sim
 
+"""
+(~ pop=10)
+ART coverage 50% of a 100% infected population, no pregnancy, no (natural) death for 20 years
+Assert: Zero no-ART agents alive at end
+Assert: Non-zero number of ART agents alive at end
+"""
+
+@sc.timer()
+def test_art_increases_longevity():  # TODO: all
+    sc.heading("Ensuring that untreated HIV always kills and ART can prevent this (to some degree).")
+
+    test_intervention = HIVTest(test_prob_data=12)  # everyone tests first timestep
+    initial_art_intervention = ART(init_prob=0.5) # , future_coverage={'year': 1900, 'prop': 0.5})  # 50% of agents uptake ART
+    interventions = [test_intervention, initial_art_intervention]
+    disease = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=1.0)
+
+    sim = build_testing_sim(n_agents=20, duration=10, pregnancy=None, interventions=interventions, diseases=[disease], analyzers=[MTCTransmissionCountTracker()])
+    sim.run()
+    ss.probperyear
+    # mtc_tranmissions = sim.results[analyzer.name][analyzer.result_name]
+    # total_mtc_tranmissions = sum(mtc_tranmissions)
+
+    # at the end of the sim, assert that all agents are on ART (no non-ART agents alive)
+    # at the end of the sim, assert that at least one person is alive
+    hiv = sim.diseases.hiv
+    n_alive = len(sim.people.alive.uids)
+    n_alive_not_on_art = len((sim.people.alive & ~hiv.on_art).uids)
+
+    assert n_alive > 0, f"Expected at least one agent to still be living, found none."
+    assert n_alive_not_on_art == 0, f"Expected no agents to be still living without ART, there are {n_alive_not_on_art} ."
+
+    return sim
+
+
 # Not currently implemented in hivsim, so leaving this partially-completed test commented out for future work
 # def test_perinatally_infected_progress_faster(self):
 #     sim = build_testing_sim(diseases=self.diseases, demographics=self.demographics,
@@ -259,6 +294,7 @@ if __name__ == '__main__':
     test_doubling_hiv_maternal_beta_doubles_transmissions()
     test_doubling_hiv_sexual_beta_doubles_transmissions()
     test_mtc_transmission_occurs()
+    test_art_increases_longevity()
 
     sc.heading("Total:")
     timer.toc()
