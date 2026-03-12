@@ -241,11 +241,13 @@ def test_cd4_rises_on_ART():
 
     # To keep test small, infect everyone with HIV and put everyone on ART immediately
     analyzer = CD4ByUIDTracker(subpop=CD4ByUIDTracker.ONART)
-    test_intervention = HIVTest(test_prob_data=12)
-    initial_art_intervention = ART(init_prob=1.0, future_coverage={'year': 1900, 'prop': 1.0})
-    hiv = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=1.0)
+    test_intervention = HIVTest(test_prob_data=1.0, dt_scale=False)  # everyone tests, first timestep
+    initial_art_intervention = ART(art_initiation=1.0)  # everyone diagnosed starts ART.
+
+    # agents are on art for the full sim length
+    #   ... and more (due to bug: https://github.com/starsimhub/stisim/issues/336)
+    hiv = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=1.0, dur_on_art=ss.constant(v=ss.years(40)))
     sim = build_testing_sim(analyzers=[analyzer], diseases=[hiv],
-                            # TODO: keeping pregnancy only due to this bug requiring it for now: https://github.com/starsimhub/stisim/issues/313
                             death=None, maternal_network=None, prior_network=None, sexual_network=None,
                             interventions=[test_intervention, initial_art_intervention],
                             n_agents=5, duration=1)
