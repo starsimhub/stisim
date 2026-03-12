@@ -15,6 +15,7 @@ from statistics import mean
 
 import starsim as ss
 import stisim as sti
+
 from stisim import ART, HIVTest
 
 tests_directory = Path(__file__).resolve().parent
@@ -35,12 +36,13 @@ sc.options(interactive=False)
 def test_cd4_counts_decline_untreated():
     sc.heading("Ensuring CD4 counts decline without treatment")
 
-    sim = build_testing_sim(analyzers=[CD4ByUIDTracker()],
+    analyzer = CD4ByUIDTracker(subpop=CD4ByUIDTracker.INFECTED)
+    sim = build_testing_sim(analyzers=[analyzer],
                             maternal_network=None, prior_network=None, sexual_network=None,
                             pregnancy=None, death=None,
                             n_agents=5, duration=5)
     sim.run()
-    results = sim.results['cd4byuidtracker']['hiv.ts_cd4']
+    results = sim.results[analyzer.name][analyzer.result_name]
 
     assert len(results) > 0, f"Test requires at least one agent to have HIV, 0 found."
 
@@ -232,6 +234,37 @@ def test_mtc_transmission_occurs():
     assert total_mtc_tranmissions > 0, f"Expected MTC transmissions to occur, but none were recorded."
     return sim
 
+
+@sc.timer()
+def test_cd4_rises_on_ART():
+    sc.heading("Ensuring that agent CD4 levels rise when on ART (monotonically in a short test)")
+
+    # To keep test small, infect everyone with HIV and put everyone on ART immediately
+    analyzer = CD4ByUIDTracker(subpop=CD4ByUIDTracker.ONART)
+    test_intervention = HIVTest(test_prob_data=1.0, dt_scale=False)  # everyone tests, first timestep
+    initial_art_intervention = ART(art_initiation=1.0)  # everyone diagnosed starts ART.
+
+    # agents are on art for the full sim length
+    #   ... and more (due to bug: https://github.com/starsimhub/stisim/issues/336)
+    hiv = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=1.0, dur_on_art=ss.constant(v=ss.years(40)))
+    sim = build_testing_sim(analyzers=[analyzer], diseases=[hiv],
+                            death=None, maternal_network=None, prior_network=None, sexual_network=None,
+                            interventions=[test_intervention, initial_art_intervention],
+                            n_agents=5, duration=1)
+    sim.run()
+    cd4_ts_by_uid = sim.results[analyzer.name][analyzer.result_name]
+
+    # Ensure at least one agent timeseries was recorded
+    assert len(cd4_ts_by_uid.keys()) > 0
+
+    # assert that cd4 cound must go up monotonically while on ART (it eventually maxes out (delta=0) after a long time)
+    for uid, cd4_ts in cd4_ts_by_uid.items():
+        delta_cd4 = [cd4_ts[i+1] - cd4_ts[i] for i in range(len(cd4_ts)-1)]
+        for delta in delta_cd4:
+            assert delta > 0, f"Expected CD4 count on ART to go up, but instead changed by: {delta}"
+    return sim
+
+
 """
 (~ pop=10)
 ART coverage 50% of a 100% infected population, no pregnancy, no (natural) death for 20 years
@@ -296,6 +329,7 @@ if __name__ == '__main__':
     test_doubling_hiv_maternal_beta_doubles_transmissions()
     test_doubling_hiv_sexual_beta_doubles_transmissions()
     test_mtc_transmission_occurs()
+    test_cd4_rises_on_ART()
     test_art_increases_longevity()
 
     sc.heading("Total:")
