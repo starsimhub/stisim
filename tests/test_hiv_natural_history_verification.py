@@ -22,7 +22,7 @@ tests_directory = Path(__file__).resolve().parent
 sys.path.append(str(tests_directory))
 
 from hiv_natural_history_analyzers import CD4ByUIDTracker, RelativeInfectivityTracker, TimeToAIDSTracker, \
-    SexualTransmissionCountTracker, MTCTransmissionCountTracker
+    SexualTransmissionCountTracker, MTCTransmissionCountTracker, PrevalenceTracker
 
 from testlib import build_testing_sim
 
@@ -300,6 +300,25 @@ def test_art_increases_longevity():
     return sim
 
 
+@sc.timer()
+def test_no_hiv_with_no_outbreaks():
+    sc.heading("Ensuring that HIV prevalence remains zero without any seeding infections/events.")
+
+    analyzer = PrevalenceTracker()
+    disease = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=0)
+    sim = build_testing_sim(n_agents=1000, duration=3, diseases=[disease], analyzers=[analyzer])
+    sim.run()
+
+    # prevalence should be 0 at all timesteps
+    prevalence_ts = sim.results[analyzer.name][analyzer.result_name]
+    unique_values = list(set(prevalence_ts))
+
+    assert len(unique_values) == 1, f"Found {len(unique_values)} unique prevalence values, but there should only be one."
+    assert unique_values[0] == 0, f"Found a single unique prevalence value: {unique_values[0]}, but it is not 0 as expected."
+
+    return sim
+
+
 # Not currently implemented in hivsim, so leaving this partially-completed test commented out for future work
 # def test_perinatally_infected_progress_faster(self):
 #     sim = build_testing_sim(diseases=self.diseases, demographics=self.demographics,
@@ -330,6 +349,7 @@ if __name__ == '__main__':
     test_mtc_transmission_occurs()
     test_cd4_rises_on_ART()
     test_art_increases_longevity()
+    test_no_hiv_with_no_outbreaks()
 
     sc.heading("Total:")
     timer.toc()

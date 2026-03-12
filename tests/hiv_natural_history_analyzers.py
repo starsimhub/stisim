@@ -1,3 +1,4 @@
+import sciris as sc
 import starsim as ss
 
 
@@ -133,7 +134,7 @@ class SexualTransmissionCountTracker(ss.Analyzer):
 class MTCTransmissionCountTracker(ss.Analyzer):
     """
     Records the number of mother-to-child HIV transmissions per timestep, results obtainable by analyzer key
-    'hivhiv.n_mtc_transmissions' .
+    'hiv.n_mtc_transmissions' .
     """
 
     result_name = 'hiv.n_mtc_transmissions'
@@ -155,6 +156,29 @@ class MTCTransmissionCountTracker(ss.Analyzer):
         transmissions =  sum(hiv.new_transmissions[transmitting_mothers] - hiv.new_transmissions_sex[transmitting_mothers])
         self.results[self.result_name][self.ti] = transmissions
 
+
+class PrevalenceTracker(ss.Analyzer):
+    """
+    Records the HIV prevalence by timestep, accessible by analyzer key 'hiv.prevalence'.
+    """
+
+    result_name = 'hiv.prevalence'
+
+    def step(self):
+        pass
+
+    def init_results(self):
+        super().init_results()
+        self.define_results(ss.Result(self.result_name, dtype=list, scale=False))
+
+    def update_results(self):
+        hiv = self.sim.diseases.hiv
+        ppl = self.sim.people
+        n_infected = len(hiv.infected.uids)
+        n_alive = len(ppl.alive.uids)
+        prevalence = sc.safedivide(numerator=n_infected, denominator=n_alive)
+
+        self.results[self.result_name][self.ti] = prevalence
 
 # perinatal infection progression not currently implemented in hivsim, so leaving this untested analyzer out for
 # future work
