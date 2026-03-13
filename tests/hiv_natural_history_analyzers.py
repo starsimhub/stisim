@@ -1,3 +1,4 @@
+import sciris as sc
 import starsim as ss
 
 
@@ -35,24 +36,39 @@ class TimeToAIDSTracker(ss.Analyzer):
 
 class CD4ByUIDTracker(ss.Analyzer):
     """
-    Records an agent-uid-keyed dict of timeseries of CD4 count. Results obtainable by analyzer key 'hiv.ts_cd4'
+    Records an agent-uid-keyed dict of timeseries of CD4 count for specified subpopulation. Results obtainable by
+    analyzer key 'hiv.ts_cd4' .
     """
+    result_name = 'hiv.ts_cd4'
+
+    INFECTED = 'infected'
+    ONART = 'onart'
+    SUBPOPS = {
+        INFECTED: {'filter': lambda hiv: hiv.infected.uids},
+        ONART:    {'filter': lambda hiv: hiv.on_art.uids}
+    }
+
+    def __init__(self, subpop: str = None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.subpop = self.INFECTED if subpop is None else subpop
+        if self.subpop not in self.SUBPOPS.keys():
+            raise Exception(f"Unknown sub-population specified for analyzer CD4ByUIDTracker: {self.subpop}")
 
     def step(self):
         pass
 
     def init_results(self):
         super().init_results()
-        self.results['hiv.ts_cd4'] = {}
+        self.results[self.result_name] = {}
 
     def update_results(self):
         hiv = self.sim.diseases.hiv
-        infected_uids = hiv.infected.uids
-        for uid in infected_uids:
-            if uid not in self.results['hiv.ts_cd4']:
-                self.results['hiv.ts_cd4'][uid] = []
+        uids = self.SUBPOPS[self.subpop]['filter'](hiv=hiv)
+        for uid in uids:
+            if uid not in self.results[self.result_name]:
+                self.results[self.result_name][uid] = []
             cd4 = hiv.cd4[uid]
-            self.results['hiv.ts_cd4'][uid].append(cd4)
+            self.results[self.result_name][uid].append(cd4)
 
 
 class RelativeInfectivityTracker(ss.Analyzer):
@@ -118,7 +134,7 @@ class SexualTransmissionCountTracker(ss.Analyzer):
 class MTCTransmissionCountTracker(ss.Analyzer):
     """
     Records the number of mother-to-child HIV transmissions per timestep, results obtainable by analyzer key
-    'hivhiv.n_mtc_transmissions' .
+    'hiv.n_mtc_transmissions' .
     """
 
     result_name = 'hiv.n_mtc_transmissions'
@@ -140,6 +156,29 @@ class MTCTransmissionCountTracker(ss.Analyzer):
         transmissions =  sum(hiv.new_transmissions[transmitting_mothers] - hiv.new_transmissions_sex[transmitting_mothers])
         self.results[self.result_name][self.ti] = transmissions
 
+
+class PrevalenceTracker(ss.Analyzer):
+    """
+    Records the HIV prevalence by timestep, accessible by analyzer key 'hiv.prevalence'.
+    """
+
+    result_name = 'hiv.prevalence'
+
+    def step(self):
+        pass
+
+    def init_results(self):
+        super().init_results()
+        self.define_results(ss.Result(self.result_name, dtype=list, scale=False))
+
+    def update_results(self):
+        hiv = self.sim.diseases.hiv
+        ppl = self.sim.people
+        n_infected = len(hiv.infected.uids)
+        n_alive = len(ppl.alive.uids)
+        prevalence = sc.safedivide(numerator=n_infected, denominator=n_alive)
+
+        self.results[self.result_name][self.ti] = prevalence
 
 # perinatal infection progression not currently implemented in hivsim, so leaving this untested analyzer out for
 # future work
