@@ -483,9 +483,9 @@ class StructuredSexual(ss.SexualNetwork):
         # track the duration of all new relationships
         relationships = (dur > 1)
 
-        for (a, b, reldur) in zip(p1[relationships], p2[relationships], dur[relationships]):
+        for (a, b, reldur, etype) in zip(p1[relationships], p2[relationships], dur[relationships], edge_types[relationships]):
             pair = (min(a,b), max(a,b))
-            self.relationship_durs[pair].append({'start': self.ti, 'dur': reldur}) # set dur to intended duration. When the relationship actually ends, this will be updated
+            self.relationship_durs[pair].append({'start': self.ti, 'dur': reldur, 'edge_type': int(etype)}) # set dur to intended duration. When the relationship actually ends, this will be updated
 
         self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, sw=[False]*match_count, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types)
 

@@ -2,6 +2,49 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.5.0 (2026-03-13)
+
+### Interventions
+- Refactor ART and VMMC coverage input: accept scalar, dict, or DataFrame formats with flexible column names (#126)
+- Add `art_coverage` analyzer for tracking ART coverage by age and sex
+- Simplify `art_initiation`: accept plain number, drop `init_prob` backward compat
+- Guard pregnancy/maternalnet access in HIV and syphilis interventions so they work without a pregnancy module (#319)
+- Document HIV intervention pipeline and ordering (#314)
+
+### HIV
+- Add `aids` property to HIV module (cd4 < 200)
+- Fix `dur_on_art` being silently scaled by `dur_on_art_trend`: default is now `None` (#336)
+- Add time-varying ART duration and wider care-seeking distribution
+- Add custom module support to Sim constructor (#318)
+
+### Syphilis dynamics
+- Fix `Syphilis.infect()`: use `rel_trans=1` for maternal transmission, stage-specific for sexual
+- Fix `NewbornTreatment` to detect MTC-infected babies (susceptible=False, congenital not yet fired)
+- Fix congenital syphilis over-counting: clear `ti_*` after events fire, mark babies non-susceptible after MTC
+- Add `step_die` to Syphilis to clear states on death
+- Add `n_infections` counter and `new_reinfections` result
+
+### Calibration API
+- New dot-notation parameter routing: `'hiv.beta_m2f'` automatically finds and sets the right module parameter via `sim.get_module()` (requires Starsim 3.2.0+)
+- Support nested parameter format: `dict(hiv=dict(beta_m2f=dict(low=..., high=...)))` alongside flat `{'hiv.beta_m2f': dict(...)}`
+- Add `flatten_calib_pars()` to normalize between nested and flat formats
+- Add `set_sim_pars(sim, pars)` for setting calibrated parameters on any sim (pre- or post-init)
+- Add `Calibration.get_pars(n)` to extract top-N parameter sets as flat dicts
+- Add `make_calib_sims()` for creating and running sims from calibrated parameters, with filtering (`check_fn`) and seed replication (`seeds_per_par`)
+- Add `Calibration.save()` method for shrink/save workflow (replaces manual shrink + saveobj boilerplate)
+- No custom `build_fn` needed -- `default_build_fn` handles all module types automatically
+
+### Documentation
+- Add calibration tutorial with ABC philosophy, custom analyzer fitting, production workflow
+- Update co-transmission tutorial: HIV-syphilis example with epidemiological explanation of connector effects
+- Add custom results section to results tutorial
+- Cross-link calibration and results tutorials
+
+### Tests
+- Add HIV natural history verification test suite: CD4 decline, transmission doubling, MTCT, AIDS property (#178, #226, #227, #228, #237, #238, #295)
+- Add HIV intervention tests: ART coverage formats, duration, effects, parameter sensitivity
+- Add `testlib.py` with shared `build_testing_sim()` helper
+
 ## Version 1.4.9 (2026-02-24)
 
 - Add `default_build_fn` for calibration: routes parameters by prefix (`hiv_*`, `syph_*`, `nw_*`) to diseases and networks automatically, removing need for custom `build_fn`
