@@ -41,14 +41,14 @@ theme:
 nav:
   - Home: index.md
   - Tutorials:
-    - tutorials.md
+    - tutorials/index.md
     - Getting started: tutorials/tut_intro.ipynb
     - Co-transmitting STIs: tutorials/tut_cotransmission.ipynb
     - Results and plotting: tutorials/tut_results.ipynb
     - Interventions: tutorials/tut_interventions.ipynb
     - Calibration: tutorials/tut_calibration.ipynb
   - User guide:
-    - user_guide/userguide.md
+    - user_guide/index.md
     - Diseases:
       - user_guide/diseases/index.md
       - HIV: user_guide/diseases/hiv.md
