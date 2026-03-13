@@ -28,7 +28,7 @@ HIV in STIsim is modeled with CD4-based disease progression through acute, laten
                     ▼                     ▼
              ┌─────────────┐       ┌─────────────┐
              │   Falling   │       │   On ART    │  CD4 reconstitutes
-             │   (~3 yr)   │       │  (~18 yr)   │  Transmissibility: 0.04x
+             │   (~3 yr)   │       │   (~3 yr)   │  Transmissibility: 0.04x
              │ 8x baseline │       └──────┬──────┘
              └──────┬──────┘              │ ART dropout
                     │                     ▼
@@ -82,7 +82,7 @@ HIV in STIsim is modeled with CD4-based disease progression through acute, laten
 | `art_efficacy` | 0.96 | ART efficacy at reducing transmission |
 | `time_to_art_efficacy` | 6 months | Time to reach full ART efficacy (linear ramp) |
 | `art_cd4_growth` | 0.1 | Logistic growth rate for CD4 reconstitution on ART |
-| `dur_on_art` | lognorm(18 yr, 5 yr) | Duration on ART before dropout |
+| `dur_on_art` | lognorm(3 yr, 1.5 yr) | Duration on ART before dropout |
 
 ### Care seeking
 
