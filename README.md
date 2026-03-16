@@ -53,10 +53,10 @@ See [r.starsim.org](https://r.starsim.org) for more information on using Starsim
 
 ## Usage and documentation
 
-STIsim is still in the early stages of its development as a standalone software package, and therefore is still lacking complete documentation. We are working on a user guide and tutorials, but in the meantime, the best ways to learn about the model are:
-1. Read the articles that have been published about analyses using STIsim (see references below)
-2. Email us: [info@starsim.org](mailto:info@starsim.org)
-3. Check on the documentation currently available at https://docs.stisim.org.
+Documentation, including tutorials and a user guide, is available at https://docs.stisim.org. Additional resources:
+1. The [examples](#examples) below show how to set up, calibrate, and run country-level models
+2. Read the articles that have been published about analyses using STIsim (see [references](#references) below)
+3. Email us: [info@starsim.org](mailto:info@starsim.org)
 
 ## Development roadmap
 The roadmap for future model development can be viewed [here](https://github.com/orgs/starsimhub/projects/26/views/6).
@@ -77,6 +77,7 @@ The following repositories contain end-to-end analyses built with STIsim, and ar
 - **[hiv_kenya](https://github.com/starsimhub/hiv_kenya)** -- HIV transmission model for Kenya with structured sexual networks, testing (FSW-targeted and general population), ART, and PrEP. Includes both Python and R interfaces and Optuna-based calibration.
 - **[hiv_zambia](https://github.com/starsimhub/hiv_zambia)** -- HIV transmission model for Zambia. Similar structure to the Kenya model, useful for comparing how the same framework is adapted to a different country context.
 - **[stisim_vddx_zim](https://github.com/starsimhub/stisim_vddx_zim)** -- Multi-STI model (gonorrhea, chlamydia, trichomoniasis, BV) for Zimbabwe evaluating point-of-care diagnostics vs. syndromic management for vaginal discharge. Demonstrates co-circulating STIs, intervention comparison, and scenario analysis.
+- **[syph_dx_zim](https://github.com/starsimhub/syph_dx_zim)** -- Joint HIV-syphilis model for Zimbabwe evaluating syphilis diagnostic algorithms. Features coinfection connectors, stage-specific syphilis transmission, congenital syphilis, and treatment pathway analysis.
 - **[hiv_vmb_southafrica](https://github.com/starsimhub/hiv_vmb_southafrica)** -- HIV-vaginal microbiome transmission model calibrated to South Africa. This model was developed to evaluate novel products to shift the vaginal microbiome and their impact on HIV and pre-term birth.
 
 ## Contributing
