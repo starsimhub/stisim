@@ -299,6 +299,24 @@ def test_art_increases_longevity():
     return sim
 
 
+@sc.timer()
+def test_no_hiv_with_no_outbreaks():
+    sc.heading("Ensuring that HIV infections remains zero without any seeding infections/events.")
+
+    disease = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=0)
+    sim = build_testing_sim(n_agents=1000, duration=3, diseases=[disease])  # , analyzers=[analyzer])
+    sim.run()
+
+    # HIV infections should be 0 at all timesteps
+    n_infected = sim.results.hiv.n_infected
+    unique_values = list(set(n_infected))
+
+    assert len(unique_values) == 1, f"Found {len(unique_values)} unique HIV infection counts, but there should only be one."
+    assert unique_values[0] == 0, f"Found a single unique infection count: {unique_values[0]}, but it is not 0 as expected."
+
+    return sim
+
+
 # Not currently implemented in hivsim, so leaving this partially-completed test commented out for future work
 # def test_perinatally_infected_progress_faster(self):
 #     sim = build_testing_sim(diseases=self.diseases, demographics=self.demographics,
@@ -329,6 +347,7 @@ if __name__ == '__main__':
     test_mtc_transmission_occurs()
     test_cd4_rises_on_ART()
     test_art_increases_longevity()
+    test_no_hiv_with_no_outbreaks()
 
     sc.heading("Total:")
     timer.toc()

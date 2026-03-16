@@ -1,3 +1,4 @@
+import sciris as sc
 import starsim as ss
 
 
@@ -140,7 +141,7 @@ class SexualTransmissionCountTracker(ss.Analyzer):
 class MTCTransmissionCountTracker(ss.Analyzer):
     """
     Records the number of mother-to-child HIV transmissions per timestep, results obtainable by analyzer key
-    'hivhiv.n_mtc_transmissions' .
+    'hiv.n_mtc_transmissions' .
     """
 
     result_name = 'hiv.n_mtc_transmissions'
