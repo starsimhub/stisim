@@ -51,7 +51,7 @@ class HIVPars(BaseSTIPars):
         self.art_cd4_pars = dict(cd4_max=1000, cd4_healthy=500)
         self.dur_on_art = ss.lognorm_ex(ss.years(3), ss.years(1.5))  # Base ART duration (scaled by rel_dur_on_art and trend)
         self.rel_dur_on_art = 1.0  # Calibratable scalar that scales ART duration
-        self.dur_on_art_trend = sc.objdict(years=np.array([2004, 2015, 2030]), vals=np.array([0.5, 1.0, 1.5]))  # Time-varying scale: early ART has worse retention
+        self.dur_on_art_trend = None  # Optional time-varying scale, e.g. sc.objdict(years=np.array([2004, 2015, 2030]), vals=np.array([0.5, 1.0, 1.5]))
         self.dur_post_art = ss.normal()  # Note defined in years!
         self.dur_post_art_scale_factor = 0.1
 
@@ -530,10 +530,12 @@ class HIV(BaseSTI):
 
         # Determine when agents goes off ART
         dur_on_art = self.pars.dur_on_art.rvs(uids)
-        year = self.t.now('year')
+        dur_on_art = dur_on_art * self.pars.rel_dur_on_art
         trend = self.pars.dur_on_art_trend
-        time_scale = np.interp(year, trend.years, trend.vals)
-        dur_on_art = dur_on_art * self.pars.rel_dur_on_art * time_scale
+        if trend is not None:
+            year = self.t.now('year')
+            time_scale = np.interp(year, trend.years, trend.vals)
+            dur_on_art = dur_on_art * time_scale
         self.ti_stop_art[uids] = ti + dur_on_art.astype(int)
 
         # ART nullifies all states and all future dates in the natural history
