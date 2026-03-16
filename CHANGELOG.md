@@ -2,7 +2,27 @@
 
 All notable changes to the codebase are documented in this file.
 
-## Version 1.5.0 (2026-03-03)
+## Version 1.5.0 (2026-03-13)
+
+### Interventions
+- Refactor ART and VMMC coverage input: accept scalar, dict, or DataFrame formats with flexible column names (#126)
+- Add `art_coverage` analyzer for tracking ART coverage by age and sex
+- Simplify `art_initiation`: accept plain number, drop `init_prob` backward compat
+- Guard pregnancy/maternalnet access in HIV and syphilis interventions so they work without a pregnancy module (#319)
+- Document HIV intervention pipeline and ordering (#314)
+
+### HIV
+- Add `aids` property to HIV module (cd4 < 200)
+- Fix `dur_on_art` being silently scaled by `dur_on_art_trend`: default is now `None` (#336)
+- Add time-varying ART duration and wider care-seeking distribution
+- Add custom module support to Sim constructor (#318)
+
+### Syphilis dynamics
+- Fix `Syphilis.infect()`: use `rel_trans=1` for maternal transmission, stage-specific for sexual
+- Fix `NewbornTreatment` to detect MTC-infected babies (susceptible=False, congenital not yet fired)
+- Fix congenital syphilis over-counting: clear `ti_*` after events fire, mark babies non-susceptible after MTC
+- Add `step_die` to Syphilis to clear states on death
+- Add `n_infections` counter and `new_reinfections` result
 
 ### Calibration API
 - New dot-notation parameter routing: `'hiv.beta_m2f'` automatically finds and sets the right module parameter via `sim.get_module()` (requires Starsim 3.2.0+)
@@ -14,23 +34,16 @@ All notable changes to the codebase are documented in this file.
 - Add `Calibration.save()` method for shrink/save workflow (replaces manual shrink + saveobj boilerplate)
 - No custom `build_fn` needed -- `default_build_fn` handles all module types automatically
 
-### Syphilis dynamics
-- Fix `Syphilis.infect()`: use `rel_trans=1` for maternal transmission, stage-specific for sexual
-- Fix `NewbornTreatment` to detect MTC-infected babies (susceptible=False, congenital not yet fired)
-- Fix congenital syphilis over-counting: clear `ti_*` after events fire, mark babies non-susceptible after MTC
-- Add `step_die` to Syphilis to clear states on death
-- Add `n_infections` counter and `new_reinfections` result
-
-### HIV
-- Add time-varying ART duration and wider care-seeking distribution
-
 ### Documentation
-- Add calibration tutorial: ABC philosophy, dot notation, `make_calib_sims`, custom analyzer fitting example, production workflow
-- Add custom results section to results tutorial with `define_results` pattern and `ss.Result` options
+- Add calibration tutorial with ABC philosophy, custom analyzer fitting, production workflow
+- Update co-transmission tutorial: HIV-syphilis example with epidemiological explanation of connector effects
+- Add custom results section to results tutorial
 - Cross-link calibration and results tutorials
-- Fix `resample()` API usage in results tutorial
 
-- *GitHub info*: PR [301](https://github.com/starsimhub/stisim/pull/301)
+### Tests
+- Add HIV natural history verification test suite: CD4 decline, transmission doubling, MTCT, AIDS property (#178, #226, #227, #228, #237, #238, #295)
+- Add HIV intervention tests: ART coverage formats, duration, effects, parameter sensitivity
+- Add `testlib.py` with shared `build_testing_sim()` helper
 
 ## Version 1.4.9 (2026-02-24)
 

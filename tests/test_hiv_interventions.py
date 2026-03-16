@@ -389,31 +389,48 @@ def test_art_duration(do_plot=do_plot):
     """ Check that agents remain on ART for expected durations """
     sc.heading('Testing ART duration tracking...')
 
-    # TODO: implement
-    # Run a sim with ART, check ti_art for agents
-    # Verify mean duration is reasonable (not too short, not infinite)
+    # Set a known constant ART duration and create a mini sim
+    dur_years = 5
+    run_years = dur_years - 1
+    sim_kwargs = dict(n_agents=10, dur=run_years, start=1990, verbose=-1)
 
-    sim = hivsim.demo('simple', run=False, plot=False, n_agents=2_000)
-    sim.run()
+    # HIV parameters: everyone starts infected and with a fixed duration on ART
+    hiv_pars = dict(init_prev=1.0, dur_on_art=ss.constant(v=ss.years(dur_years)))
 
+    # Interventions: 100% testing and ART initiation to ensure everyone starts ART at ti~0
+    interventions=[
+        sti.HIVTest(test_prob_data=1.0, dt_scale=False),
+        sti.ART(art_initiation=1.0),
+    ]
+
+    # Make the sim
+    sim = hivsim.demo(
+        'simple', plot=False,
+        demographics=[ss.Deaths(death_rate=0)],  # No deaths to isolate ART duration effect
+        interventions=interventions,
+        **hiv_pars,
+        **sim_kwargs,
+    )
+
+    # All agents should still be on ART — the sim is shorter than dur_on_art
     hiv = sim.diseases.hiv
+    n_alive  = len(sim.people.alive.uids)
+    n_on_art = len(hiv.on_art.uids)
+    assert n_on_art == n_alive, f'Expected all {n_alive} living agents on ART, got {n_on_art}'
+
+    # Everyone started ART at ti~0, so mean duration should approximate run_years
     on_art = hiv.on_art.uids
-    if len(on_art):
-        ti_start = hiv.ti_art[on_art]
-        current_ti = sim.t.ti
-        durations_years = (current_ti - ti_start) * float(sim.pars.dt)
-        mean_dur = float(np.nanmean(durations_years))
+    ti_start = hiv.ti_art[on_art]
+    durations_years = (sim.t.ti - ti_start) * float(sim.pars.dt)
+    mean_dur = float(np.nanmean(durations_years))
+    assert np.isclose(mean_dur, run_years, atol=0.5), f'Expected mean ART duration ~{run_years} years, got {mean_dur:.1f}'
 
-        if do_plot:
-            fig, ax = pl.subplots()
-            ax.hist(durations_years[~np.isnan(durations_years)], bins=20)
-            ax.set_xlabel('Years on ART')
-            ax.set_ylabel('Count')
-            ax.set_title(f'ART duration distribution (mean={mean_dur:.1f} years)')
-
-    # TODO: uncomment once expected durations are established
-    # assert mean_dur > 1, f'Expected mean ART duration > 1 year, got {mean_dur:.1f}'
-    # assert mean_dur < 30, f'Expected mean ART duration < 30 years, got {mean_dur:.1f}'
+    if do_plot:
+        fig, ax = pl.subplots()
+        ax.hist(durations_years[~np.isnan(durations_years)], bins=20)
+        ax.set_xlabel('Years on ART')
+        ax.set_ylabel('Count')
+        ax.set_title(f'ART duration distribution (mean={mean_dur:.1f} years)')
 
     return sim
 
