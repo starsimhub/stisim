@@ -42,15 +42,12 @@ class CD4ByUIDTracker(ss.Analyzer):
 
     INFECTED = 'infected'
     ONART = 'onart'
-    SUBPOPS = {
-        INFECTED: {'filter': lambda hiv: hiv.infected.uids},
-        ONART:    {'filter': lambda hiv: hiv.on_art.uids}
-    }
+    SUBPOPS = [INFECTED, ONART]
 
     def __init__(self, subpop: str = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.subpop = self.INFECTED if subpop is None else subpop
-        if self.subpop not in self.SUBPOPS.keys():
+        if self.subpop not in self.SUBPOPS:
             raise Exception(f"Unknown sub-population specified for analyzer CD4ByUIDTracker: {self.subpop}")
 
     def step(self):
@@ -62,12 +59,22 @@ class CD4ByUIDTracker(ss.Analyzer):
 
     def update_results(self):
         hiv = self.sim.diseases.hiv
-        uids = self.SUBPOPS[self.subpop]['filter'](hiv=hiv)
+        result_name = self.result_name
+
+        # determine which agent uids are in the sub-population of interest
+        if self.subpop == self.INFECTED:
+            uids = hiv.infected.uids
+        elif self.subpop == self.ONART:
+            uids = hiv.on_art.uids
+        else:
+            raise Exception(f"Unknown sub-population specified for analyzer CD4ByUIDTracker: {self.subpop}")
+
+        # record cd4 count for agents of interest
         for uid in uids:
-            if uid not in self.results[self.result_name]:
-                self.results[self.result_name][uid] = []
+            if uid not in self.results[result_name]:
+                self.results[result_name][uid] = []
             cd4 = hiv.cd4[uid]
-            self.results[self.result_name][uid].append(cd4)
+            self.results[result_name][uid].append(cd4)
 
 
 class RelativeInfectivityTracker(ss.Analyzer):
