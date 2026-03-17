@@ -317,6 +317,42 @@ def test_no_hiv_with_no_outbreaks():
     return sim
 
 
+@sc.timer()
+def test_cd4_falls_after_ART_dropout():
+    sc.heading("Ensuring that agent CD4 levels fall after discontinuing ART")
+
+    # To keep test small, infect everyone with HIV and put everyone on ART immediately.
+    # ART will be given to the agents for half of the simulation duration, after which all discontinue.
+    analyzer = CD4ByUIDTracker(subpop=CD4ByUIDTracker.INFECTED)
+    test_intervention = HIVTest(test_prob_data=1.0, dt_scale=False)  # everyone tests, first timestep
+    initial_art_intervention = ART(art_initiation=1.0)  # everyone diagnosed starts ART.
+
+    duration = 2  # years
+    art_duration = ss.years(duration / 2)
+    hiv = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=1.0, dur_on_art=ss.constant(v=art_duration))
+    sim = build_testing_sim(analyzers=[analyzer], diseases=[hiv],
+                            death=None, maternal_network=None, prior_network=None, sexual_network=None,
+                            interventions=[test_intervention, initial_art_intervention],
+                            n_agents=5, duration=duration)
+    sim.run()
+    cd4_ts_by_uid = sim.results[analyzer.name][analyzer.result_name]
+
+    # Ensure at least one agent timeseries was recorded
+    assert len(cd4_ts_by_uid.keys()) > 0
+
+    # because cd4 counts are updated before interventions are applied (like going on/off art), this test will result in
+    # the number of delta cd4_values "on ART" being one greater than the number of delta_cd4 values "off ART"
+    n_dts_on_art = art_duration * 12  # number of steps where agents are on ART, time indicies 0 through (nOn-1)
+    for uid, cd4_ts in cd4_ts_by_uid.items():
+        delta_cd4 = [cd4_ts[i+1] - cd4_ts[i] for i in range(len(cd4_ts)-1)]
+        for i, delta in enumerate(delta_cd4):
+            if i < n_dts_on_art:
+                assert delta > 0, f"Expected CD4 count on ART to go up, but instead changed by: {delta}"
+            else:
+                assert delta < 0, f"Expected CD4 count off ART to go down, but instead changed by: {delta}"
+
+    return sim
+
 # Not currently implemented in hivsim, so leaving this partially-completed test commented out for future work
 # def test_perinatally_infected_progress_faster(self):
 #     sim = build_testing_sim(diseases=self.diseases, demographics=self.demographics,
@@ -348,6 +384,7 @@ if __name__ == '__main__':
     test_cd4_rises_on_ART()
     test_art_increases_longevity()
     test_no_hiv_with_no_outbreaks()
+    test_cd4_falls_after_ART_dropout()
 
     sc.heading("Total:")
     timer.toc()
