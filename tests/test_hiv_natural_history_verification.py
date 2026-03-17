@@ -5,13 +5,14 @@ Tests to ensure appropriate behavior of HIV as a disease absent any treatment.
 """
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pytest
 import sciris as sc
 import sys
 
 from itertools import chain
 from pathlib import Path
-from statistics import mean
+from statistics import log, mean
 
 import starsim as ss
 import stisim as sti
@@ -317,6 +318,31 @@ def test_no_hiv_with_no_outbreaks():
     return sim
 
 
+@sc.timer()
+def test_early_outbreak_is_exponential():
+    sc.heading("Ensuring that early sexual-transmitted HIV outbreaks follow an exponential pattern.")
+
+    # short sim, no death/maternal/pregnancy to keep things simple
+    disease = sti.HIV(beta_m2f=0.001, beta_m2c=0, init_prev=0.01)
+    sim = build_testing_sim(n_agents=100000, duration=1, diseases=[disease],
+                            pregnancy=None, maternal_network=None, death=None)
+    sim.run()
+
+    hiv = sim.diseases.hiv
+    n_infected = hiv.results.n_infected
+    log_n_infected = [log(n_infected[i]) for i in range(len(n_infected))]
+
+    # determining how much variance of log_n_infected is explained by a linear trend (linear trending log data => source is exponential)
+    corr_coef = np.corrcoef(range(len(log_n_infected)), log_n_infected)[0, 1]
+    if verbose:
+        print(f"log(n_infections) correlation with time: {corr_coef}")
+
+    threshold = 0.9  # correlation coefficient, threshold**2 is variance explained minimum
+    assert corr_coef > threshold, f"log(n_infections) is not linearly correlated with time > r-threshold: {threshold} actual r: {corr_coef}"
+
+    return sim
+
+
 # Not currently implemented in hivsim, so leaving this partially-completed test commented out for future work
 # def test_perinatally_infected_progress_faster(self):
 #     sim = build_testing_sim(diseases=self.diseases, demographics=self.demographics,
@@ -348,6 +374,7 @@ if __name__ == '__main__':
     test_cd4_rises_on_ART()
     test_art_increases_longevity()
     test_no_hiv_with_no_outbreaks()
+    test_early_outbreak_is_exponential()
 
     sc.heading("Total:")
     timer.toc()
