@@ -1,7 +1,10 @@
+"""
+User API for creating an STI simulation
+"""
+
 import starsim as ss
 import stisim as sti
 import sciris as sc
-from itertools import combinations
 from .data import loaders as stidata
 from .data import downloaders as stidl
 
@@ -100,6 +103,15 @@ class Sim(ss.Sim):
         updated_pars = self.separate_pars(pars, sim_pars, sti_pars, nw_pars, dem_pars, sim_kwargs, **kwargs)
         self.pars.update(updated_pars)
         return
+    
+    def get_valid_pars(self):
+        """ Helper function to identify valid parameters """
+        vp = sc.objdict()
+        vp.sim_pars = self.pars # STIsim and Starsim Sim parameters
+        vp.all_sti_pars = sti.merged_sti_pars()  # All STI parameters, ignoring duplicates
+        vp.default_nw_pars = sti.NetworkPars()
+        vp.default_dem_pars = sti.dem_pars()
+        return vp
 
     def separate_pars(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None, dem_pars=None, sim_kwargs=None, **kwargs):
         """
@@ -111,38 +123,48 @@ class Sim(ss.Sim):
         # Merge in pars and kwargs
         all_pars = sc.mergedicts(pars, sim_pars, sti_pars, nw_pars, dem_pars, sim_kwargs, kwargs)
         all_pars = self.remap_pars(all_pars)  # Remap any parameter names
+        vp = self.get_valid_pars()
 
         # Deal with sim pars
         if 'dur' in all_pars.keys():
             self.pars['stop'] = None
-        user_sim_pars = {k: v for k, v in all_pars.items() if k in self.pars.keys()}
+        user_sim_pars = {k: v for k, v in all_pars.items() if k in vp.sim_pars}
         for k in user_sim_pars: all_pars.pop(k)
         sim_pars = sc.mergedicts(sim_pars, user_sim_pars, _copy=True)  # kwargs override sim_pars
 
         # Deal with STI pars
-        all_sti_pars = sti.merged_sti_pars()  # All STI parameters, ignoring duplicates
         user_sti_pars = {}
         for k, v in all_pars.items():
-            if k in all_sti_pars.keys(): user_sti_pars[k] = v  # Just set
+            if k in vp.all_sti_pars.keys(): user_sti_pars[k] = v  # Just set
             if sc.checktype(v, dict):  # See whether it contains STI pars
-                user_sti_pars[k] = {gk: gv for gk, gv in v.items() if gk in all_sti_pars}
+                user_sti_pars[k] = {gk: gv for gk, gv in v.items() if gk in vp.all_sti_pars}
         for k in user_sti_pars: all_pars.pop(k)
         sti_pars = sc.mergedicts(user_sti_pars, sti_pars, _copy=True)
 
         # Deal with network pars
-        default_nw_pars = sti.NetworkPars()
-        user_nw_pars = {k: v for k, v in all_pars.items() if k in default_nw_pars.keys()}
+        user_nw_pars = {k: v for k, v in all_pars.items() if k in vp.default_nw_pars.keys()}
         for k in user_nw_pars: all_pars.pop(k)
-        nw_pars = sc.mergedicts(default_nw_pars, user_nw_pars, nw_pars, _copy=True)
+        nw_pars = sc.mergedicts(vp.default_nw_pars, user_nw_pars, nw_pars, _copy=True)
 
-        default_dem_pars = sti.dem_pars()
-        user_dem_pars = {k: v for k, v in all_pars.items() if k in default_dem_pars.keys()}
+        # Deal with demographics parameters
+        user_dem_pars = {k: v for k, v in all_pars.items() if k in vp.default_dem_pars.keys()}
         for k in user_dem_pars: all_pars.pop(k)
-        dem_pars = sc.mergedicts(default_dem_pars, user_dem_pars, dem_pars, _copy=True)
+        dem_pars = sc.mergedicts(vp.default_dem_pars, user_dem_pars, dem_pars, _copy=True)
 
         # Raise an exception if there are any leftover pars
         if all_pars:
-            raise ValueError(f'Unrecognized parameters: {all_pars.keys()}. Refer to parameters.py for parameters.')
+            par_options = []
+            errormsg = f'Unrecognized parameters: {all_pars.keys()}. Valid parameters are:\n'
+            for key,subdict in vp.items():
+                errormsg += f'  {key}: \n'
+                for subkey in sorted(subdict.keys()):
+                    errormsg += f'    {subkey}\n'
+                    par_options.append(subkey)
+            
+            for key in all_pars.keys():
+                suggest = sc.suggest(key, par_options)
+                errormsg += f'\nDid you mean "{suggest}" instead of "{key}"?'
+            raise ValueError(errormsg)
 
         # Store the parameters for the modules - thse will be fed into the modules during init
         self.sti_pars = sti_pars    # Parameters for the STI modules
@@ -160,7 +182,11 @@ class Sim(ss.Sim):
         if 'beta' in pars and sc.isnumber(pars['beta']):
             pars['beta_m2f'] = pars.pop('beta')
         if 'location' in pars:
-            pars['demographics'] = pars.pop('location')
+            if 'demographics' not in pars:
+                pars['demographics'] = pars.pop('location')
+            else:
+                errormsg = f'Cannot use location={pars["location"]} when demographics are already specified'
+                raise ValueError(errormsg)
         return pars
 
     def init(self, force=False, **kwargs):
