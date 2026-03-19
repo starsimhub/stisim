@@ -21,7 +21,7 @@ class Migration(ss.Demographics):
         super().__init__()
         self.define_pars(
             # Migration parameters
-            dt = ss.years(1),  # Unit of time for migration data
+            # dt = ss.years(1),  # Unit of time for migration data # TODO: not implemented
             migration_propensity = ss.normal(loc=1, scale=0.1),  # Propensity to emigrate
             slot_scale = 5, # Random slots will be assigned to newborn agents between min=n_agents and max=slot_scale*n_agents
             min_slots  = 100, # Minimum number of slots, useful if the population size is very small
@@ -124,7 +124,7 @@ class Migration(ss.Demographics):
             # Choose people to twin
             choices = np.argsort(-weights)[:new_migrants]
             twin_uids = uids.uids[choices]
-            new_people = self.make_immigrants(twin_uids)
+            self.make_immigrants(twin_uids)
 
         # new_migrants is negative -> remove people from the population
         elif new_migrants < 0:

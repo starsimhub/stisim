@@ -1,7 +1,6 @@
 """
 Set parameters
 """
-import numpy as np
 import sciris as sc
 import starsim as ss
 import stisim as sti
@@ -20,14 +19,8 @@ class SimPars(ss.SimPars):
         # Initialize the parent class
         super().__init__()
 
-        # General parameters
-        self.label   = ''  # The label of the simulation
-        self.verbose = ss.options.verbose  # Whether or not to display information during the run -- options are 0 (silent), 0.1 (some; default), 1 (default), 2 (everything)
-
         # Population parameters
         self.n_agents  = 1e3   # Number of agents
-        self.total_pop = None  # If defined, used for calculating the scale factor
-        self.pop_scale = None  # How much to scale the population
 
         # Simulation parameters
         self.start     = ss.years(2000)   # Start of the simulation
@@ -38,10 +31,7 @@ class SimPars(ss.SimPars):
         self.verbose = 1/12
 
         # Demographic parameters
-        self.birth_rate = None
-        self.death_rate = None
-        self.use_aging  = False
-        self.age_scale = 1.0
+        self.age_scale = 1.0 # If age data values are supplied, convert from e.g. thousands
         self.use_pregnancy = True
         self.use_migration = False
 
@@ -125,7 +115,7 @@ def mergepars(*args):
     """
     # Convert any Pars objects to plain dicts and merge
     dicts = [dict(sc.dcp(arg)) for arg in args if arg is not None]
-    merged_pars = sc.mergedicts(*dicts)
+    merged_pars = sc.objdict(sc.mergedicts(*dicts))
     return merged_pars
 
 
