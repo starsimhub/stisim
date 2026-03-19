@@ -108,10 +108,17 @@ class Sim(ss.Sim):
         """ Helper function to identify valid parameters """
         vp = sc.objdict()
         vp.sim_pars = self.pars # STIsim and Starsim Sim parameters
-        vp.all_sti_pars = sti.merged_sti_pars()  # All STI parameters, ignoring duplicates
+        vp.all_sti_pars = sc.objdict(sti.merged_sti_pars())  # All STI parameters, ignoring duplicates
         vp.default_nw_pars = sti.NetworkPars()
         vp.default_dem_pars = sti.dem_pars()
-        return vp
+        
+        # Validation
+        all_pars = sorted([key for d in vp.values() for key in d.keys()])
+        duplicates = [key for key in all_pars if all_pars.count(key) > 1]
+        # if duplicates: # TODO: decide if we want to make this an error
+        #     errormsg = f'Duplicate parameters found: {duplicates}'
+        #     raise ValueError(errormsg)
+        return vp, duplicates
 
     def separate_pars(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None, dem_pars=None, sim_kwargs=None, **kwargs):
         """
@@ -123,7 +130,14 @@ class Sim(ss.Sim):
         # Merge in pars and kwargs
         all_pars = sc.mergedicts(pars, sim_pars, sti_pars, nw_pars, dem_pars, sim_kwargs, kwargs)
         all_pars = self.remap_pars(all_pars)  # Remap any parameter names
-        vp = self.get_valid_pars()
+        vp, duplicates = self.get_valid_pars()
+
+        # Check if any parameter in all_pars is in duplicates
+        ambiguous = set(all_pars.keys()) & set(duplicates)
+        if ambiguous: # Warn if and only if this parameter is specified
+            warnmsg = f'Ambiguous parameter(s) found: {ambiguous}'
+            # warnmsg += 'To avoid this warning, use explicit keyword arguments (e.g. sim_pars, sti_pars, nw_pars, dem_pars) to disambiguate.' # TODO: this doesn't actually work since parameter lists are flattened first
+            ss.warn(warnmsg)
 
         # Deal with sim pars
         if 'dur' in all_pars.keys():
@@ -156,7 +170,7 @@ class Sim(ss.Sim):
             par_options = []
             errormsg = f'Unrecognized parameters: {all_pars.keys()}. Valid parameters are:\n'
             for key,subdict in vp.items():
-                errormsg += f'  {key}: \n'
+                errormsg += f'\n  {key}: \n'
                 for subkey in sorted(subdict.keys()):
                     errormsg += f'    {subkey}\n'
                     par_options.append(subkey)
@@ -164,6 +178,7 @@ class Sim(ss.Sim):
             for key in all_pars.keys():
                 suggest = sc.suggest(key, par_options)
                 errormsg += f'\nDid you mean "{suggest}" instead of "{key}"?'
+            
             raise ValueError(errormsg)
 
         # Store the parameters for the modules - thse will be fed into the modules during init
