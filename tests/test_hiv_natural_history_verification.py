@@ -324,6 +324,7 @@ def test_vmmc_reduces_male_infections():
     n_agents = 1000
     duration = 1  # years
 
+    # base, no VMMC comparison sim
     sim_baseline = build_testing_sim(n_agents=n_agents, duration=duration, pregnancy=None, death=None)
     sim_baseline.run()
     baseline_infections = sum(sim_baseline.diseases.hiv.results.new_infections_m)
@@ -346,13 +347,26 @@ def test_vmmc_reduces_male_infections():
     # ensuring test validity
     assert vmmc_eff.pars.eff_circ > vmmc.pars.eff_circ, f"Test setup failure, vmmc_eff: {vmmc_eff.pars.eff_circ} should have a higher eff_circ than vmmc: {vmmc.pars.eff_circ}"
     assert baseline_infections > 0, f"Expected male HIV infections in sim, found none."
-    assert vmmc_infections > 0, f"Expected male HIV infections in sim, found none."
+    assert vmmc_infections     > 0, f"Expected male HIV infections in sim, found none."
     assert vmmc_infections_eff > 0, f"Expected male HIV infections in sim, found none."
 
-    assert vmmc_infections < baseline_infections, f"Expected VMMC to reduce male HIV infections, but it did not: baseline: {baseline_infections} VMMC: {vmmc_infections}"
-    assert vmmc_infections_eff < vmmc_infections, f"Expected VMMC+ to reduce male HIV infections, but it did not: VMMC: {vmmc_infections} VMMC+: {vmmc_infections_eff}"
+    assert vmmc_infections     < baseline_infections, f"Expected VMMC to reduce male HIV infections, but it did not: baseline: {baseline_infections} VMMC: {vmmc_infections}"
+    assert vmmc_infections_eff < vmmc_infections,     f"Expected VMMC+ to reduce male HIV infections, but it did not: VMMC: {vmmc_infections} VMMC+: {vmmc_infections_eff}"
 
     return sim_baseline, sim_vmmc, sim_vmmc_eff
+
+@sc.timer()
+def test_vmmc_is_male_only():
+    sc.heading("Ensuring that VMMC intervention does not circumcize females.")
+
+    vmmc = VMMC(coverage=1.0)  # targeting all males
+    sim = build_testing_sim(n_agents=10, duration=1, interventions=[vmmc], pregnancy=None, death=None)
+    sim.run()
+
+    n_vmmc_female = len((sim.people.vmmc.circumcised & sim.people.female).uids)
+    assert n_vmmc_female == 0, f"Expected no females to be targeted by VMMC, but {n_vmmc_female} were"
+
+    return sim
 
 
 # Not currently implemented in hivsim, so leaving this partially-completed test commented out for future work
@@ -387,7 +401,8 @@ if __name__ == '__main__':
     test_art_increases_longevity()
     test_no_hiv_with_no_outbreaks()
     test_vmmc_reduces_male_infections()
-    
+    test_vmmc_is_male_only()
+
     sc.heading("Total:")
     timer.toc()
 
