@@ -319,7 +319,7 @@ def test_no_hiv_with_no_outbreaks():
 
 @sc.timer()
 def test_vmmc_reduces_male_infections():
-    sc.heading("Ensuring that VMMC intervention reduces cumulative infections in males.")
+    sc.heading("Ensuring that VMMC intervention reduces cumulative infections in males + eff_circ works properly.")
 
     n_agents = 1000
     duration = 1  # years
@@ -330,18 +330,29 @@ def test_vmmc_reduces_male_infections():
 
     # applying VMMC to all males
     vmmc = VMMC(coverage=1.0)
-    sim_test = build_testing_sim(n_agents=n_agents, duration=duration, interventions=[vmmc], pregnancy=None, death=None)
-    sim_test.run()
-    test_infections = sum(sim_test.diseases.hiv.results.new_infections_m)
+    sim_vmmc = build_testing_sim(n_agents=n_agents, duration=duration, interventions=[vmmc], pregnancy=None, death=None)
+    sim_vmmc.run()
+    vmmc_infections = sum(sim_vmmc.diseases.hiv.results.new_infections_m)
+
+    # applying more effective VMMC to all males
+    vmmc_eff = VMMC(coverage=1.0, eff_circ=0.8)
+    sim_vmmc_eff = build_testing_sim(n_agents=n_agents, duration=duration, interventions=[vmmc_eff], pregnancy=None, death=None)
+    sim_vmmc_eff.run()
+    vmmc_infections_eff = sum(sim_vmmc_eff.diseases.hiv.results.new_infections_m)
 
     if verbose:
-        print(f"New male HIV infections, baseline: {baseline_infections} VMMC: {test_infections}")
+        print(f"New male HIV infections, baseline: {baseline_infections} VMMC: {vmmc_infections}, VMMC+: {vmmc_infections_eff}")
 
+    # ensuring test validity
+    assert vmmc_eff.pars.eff_circ > vmmc.pars.eff_circ, f"Test setup failure, vmmc_eff: {vmmc_eff.pars.eff_circ} should have a higher eff_circ than vmmc: {vmmc.pars.eff_circ}"
     assert baseline_infections > 0, f"Expected male HIV infections in sim, found none."
-    assert test_infections > 0, f"Expected male HIV infections in sim, found none."
-    assert test_infections < baseline_infections, f"Expected VMMC to reduce male HIV infections, but it did not: baseline: {baseline_infections} VMMC: {test_infections}"
+    assert vmmc_infections > 0, f"Expected male HIV infections in sim, found none."
+    assert vmmc_infections_eff > 0, f"Expected male HIV infections in sim, found none."
 
-    return sim_baseline, sim_test
+    assert vmmc_infections < baseline_infections, f"Expected VMMC to reduce male HIV infections, but it did not: baseline: {baseline_infections} VMMC: {vmmc_infections}"
+    assert vmmc_infections_eff < vmmc_infections, f"Expected VMMC+ to reduce male HIV infections, but it did not: VMMC: {vmmc_infections} VMMC+: {vmmc_infections_eff}"
+
+    return sim_baseline, sim_vmmc, sim_vmmc_eff
 
 
 # Not currently implemented in hivsim, so leaving this partially-completed test commented out for future work
