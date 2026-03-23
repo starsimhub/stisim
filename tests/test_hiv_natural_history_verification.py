@@ -16,7 +16,7 @@ from statistics import mean
 import starsim as ss
 import stisim as sti
 
-from stisim import ART, HIVTest
+from stisim import ART, HIVTest, VMMC
 
 tests_directory = Path(__file__).resolve().parent
 sys.path.append(str(tests_directory))
@@ -317,6 +317,33 @@ def test_no_hiv_with_no_outbreaks():
     return sim
 
 
+@sc.timer()
+def test_vmmc_reduces_male_infections():
+    sc.heading("Ensuring that VMMC intervention reduces cumulative infections in males.")
+
+    n_agents = 10000
+    duration = 1  # years
+
+    sim_baseline = build_testing_sim(n_agents=n_agents, duration=duration, pregnancy=None, death=None)  # , analyzers=[analyzer])
+    sim_baseline.run()
+    baseline_infections = sum(sim_baseline.diseases.hiv.results.new_infections_m)
+
+    # applying VMMC to all males
+    vmmc = VMMC(coverage=1.0)
+    sim_test = build_testing_sim(n_agents=n_agents, duration=duration, interventions=[vmmc], pregnancy=None, death=None)  # , analyzers=[analyzer])
+    sim_test.run()
+    test_infections = sum(sim_test.diseases.hiv.results.new_infections_m)
+
+    if verbose:
+        print(f"New male HIV infections, baseline: {baseline_infections} VMMC: {test_infections}")
+
+    assert baseline_infections > 0, f"Expected male HIV infections in sim, found none."
+    assert test_infections > 0, f"Expected male HIV infections in sim, found none."
+    assert test_infections < baseline_infections, f"Expected VMMC to reduce male HIV infections, but it did not: baseline: {baseline_infections} VMMC: {test_infections}"
+
+    return sim_baseline, sim_test
+
+
 # Not currently implemented in hivsim, so leaving this partially-completed test commented out for future work
 # def test_perinatally_infected_progress_faster(self):
 #     sim = build_testing_sim(diseases=self.diseases, demographics=self.demographics,
@@ -348,7 +375,8 @@ if __name__ == '__main__':
     test_cd4_rises_on_ART()
     test_art_increases_longevity()
     test_no_hiv_with_no_outbreaks()
-
+    test_vmmc_reduces_male_infections()
+    
     sc.heading("Total:")
     timer.toc()
 
