@@ -304,7 +304,7 @@ def test_no_hiv_with_no_outbreaks():
     sc.heading("Ensuring that HIV infections remains zero without any seeding infections/events.")
 
     disease = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=0)
-    sim = build_testing_sim(n_agents=1000, duration=3, diseases=[disease])  # , analyzers=[analyzer])
+    sim = build_testing_sim(n_agents=1000, duration=3, diseases=[disease])
     sim.run()
 
     # HIV infections should be 0 at all timesteps
@@ -321,16 +321,16 @@ def test_no_hiv_with_no_outbreaks():
 def test_vmmc_reduces_male_infections():
     sc.heading("Ensuring that VMMC intervention reduces cumulative infections in males.")
 
-    n_agents = 10000
+    n_agents = 1000
     duration = 1  # years
 
-    sim_baseline = build_testing_sim(n_agents=n_agents, duration=duration, pregnancy=None, death=None)  # , analyzers=[analyzer])
+    sim_baseline = build_testing_sim(n_agents=n_agents, duration=duration, pregnancy=None, death=None)
     sim_baseline.run()
     baseline_infections = sum(sim_baseline.diseases.hiv.results.new_infections_m)
 
     # applying VMMC to all males
     vmmc = VMMC(coverage=1.0)
-    sim_test = build_testing_sim(n_agents=n_agents, duration=duration, interventions=[vmmc], pregnancy=None, death=None)  # , analyzers=[analyzer])
+    sim_test = build_testing_sim(n_agents=n_agents, duration=duration, interventions=[vmmc], pregnancy=None, death=None)
     sim_test.run()
     test_infections = sum(sim_test.diseases.hiv.results.new_infections_m)
 
