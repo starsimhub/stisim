@@ -356,6 +356,7 @@ def test_vmmc_reduces_male_infections():
 
     return sim_baseline, sim_vmmc, sim_vmmc_eff
 
+
 @sc.timer()
 def test_vmmc_is_male_only():
     sc.heading("Ensuring that VMMC intervention does not circumcise females.")
@@ -368,6 +369,7 @@ def test_vmmc_is_male_only():
     assert n_vmmc_female == 0, f"Expected no females to be targeted by VMMC, but {n_vmmc_female} were"
 
     return sim
+
 
 @pytest.mark.xfail(reason="eligibility not honored: https://github.com/starsimhub/stisim/issues/353")
 @sc.timer()
@@ -405,6 +407,7 @@ def test_vmmc_targeting():
     assert n_incorrect_circ == 0, f"Expected no out-of-range aged agents to be circumsized, but {n_incorrect_circ} were."
 
     return sim
+
 
 # Not currently implemented in hivsim, so leaving this partially-completed test commented out for future work
 # def test_perinatally_infected_progress_faster(self):
