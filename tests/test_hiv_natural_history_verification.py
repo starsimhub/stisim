@@ -317,6 +317,50 @@ def test_no_hiv_with_no_outbreaks():
     return sim
 
 
+@sc.timer()
+def test_increased_testing_speeds_diagnosis():
+    sc.heading("Ensuring that increased testing diagnoses agents more quickly (short test to prevent conflating HIV deaths)")
+
+    base_prob = 0.05
+    base_testing = HIVTest(test_prob_data=base_prob, dt_scale=False)
+    higher_prob = base_prob * 2
+    higher_testing = HIVTest(test_prob_data=higher_prob, dt_scale=False)
+
+    n_agents = 100
+    duration = 1  # years by default
+    disease = sti.HIV(init_prev=1.0)
+
+    sim1 = build_testing_sim(n_agents=n_agents, duration=duration,
+                            diseases=[disease],
+                            pregnancy=None, death=None,
+                            prior_network=None, sexual_network=None, maternal_network=None,
+                            interventions=[base_testing])
+    sim2 = build_testing_sim(n_agents=n_agents, duration=duration,
+                            diseases=[disease],
+                            pregnancy=None, death=None,
+                            prior_network=None, sexual_network=None, maternal_network=None,
+                            interventions=[higher_testing])
+    sims = [sim1, sim2]
+    msim = ss.parallel(*sims)
+
+    hiv = sim1.diseases.hiv
+    n_diagnosed_base = hiv.results.n_diagnosed[-1]  # total diagnoses by end of simulation
+
+    hiv = sim2.diseases.hiv
+    n_diagnosed_higher = hiv.results.n_diagnosed[-1]  # total diagnoses by end of simulation
+
+    if True:
+        print(f"Testing rate: {base_prob}/dt n_diagnosed: {n_diagnosed_base} after {duration} year(s)\n"
+              f"Testing rate: {higher_prob}/dt n_diagnosed: {n_diagnosed_higher} after {duration} year(s)\n")
+
+    assert n_diagnosed_base > 0, "Expected at least one agent to be diagnosed, found none."
+    assert n_diagnosed_higher > 0, "Expected at least one agent to be diagnosed, found none."
+    assert n_diagnosed_higher > n_diagnosed_base, (f"Expected higher testing rates to diagnose agents faster, "
+                                                   f"but went from {n_diagnosed_base} to {n_diagnosed_higher} diagnoses in {duration} year(s) instead.")
+
+    return sims
+
+
 # Not currently implemented in hivsim, so leaving this partially-completed test commented out for future work
 # def test_perinatally_infected_progress_faster(self):
 #     sim = build_testing_sim(diseases=self.diseases, demographics=self.demographics,
@@ -348,6 +392,7 @@ if __name__ == '__main__':
     test_cd4_rises_on_ART()
     test_art_increases_longevity()
     test_no_hiv_with_no_outbreaks()
+    test_increased_testing_speeds_diagnosis()
 
     sc.heading("Total:")
     timer.toc()
