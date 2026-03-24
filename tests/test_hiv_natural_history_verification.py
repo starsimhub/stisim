@@ -5,7 +5,6 @@ Tests to ensure appropriate behavior of HIV as a disease absent any treatment.
 """
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pytest
 import sciris as sc
 import sys
