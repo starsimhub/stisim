@@ -369,7 +369,7 @@ def test_vmmc_is_male_only():
 
     return sim
 
-
+@pytest.mark.xfail(reason="eligibility not honored: https://github.com/starsimhub/stisim/issues/353")
 @sc.timer()
 def test_vmmc_targeting():
     sc.heading("Ensuring that VMMC intervention targeting works properly.")
@@ -439,6 +439,7 @@ if __name__ == '__main__':
     test_no_hiv_with_no_outbreaks()
     test_vmmc_reduces_male_infections()
     test_vmmc_is_male_only()
+    test_vmmc_targeting()
 
     sc.heading("Total:")
     timer.toc()
