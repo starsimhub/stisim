@@ -369,6 +369,42 @@ def test_vmmc_is_male_only():
     return sim
 
 
+@sc.timer()
+def test_vmmc_targeting():
+    sc.heading("Ensuring that VMMC intervention targeting works properly.")
+
+    min_age = 20
+    max_age = 25
+    duration = 1  # years
+
+    # target all males [20, 25)
+    vmmc_eligible = lambda sim: sim.people.male & (sim.people.age >= min_age) & (sim.people.age < max_age)
+    vmmc = VMMC(coverage=1.0, eligibility=vmmc_eligible)
+
+    sim = build_testing_sim(n_agents=1000, duration=duration, interventions=[vmmc], pregnancy=None, death=None)
+    sim.run()
+
+    people = sim.people
+    correct_ages = (people.age >= (min_age + duration)) & (people.age < (max_age + duration))
+
+    n_incorrect_circ = len(( people.vmmc.circumcised    & (~correct_ages)            ).uids)
+    n_correct_circ =   len(( people.vmmc.circumcised    & correct_ages    & people.male ).uids)
+    n_missing_circ =   len(( (~people.vmmc.circumcised) & correct_ages    & people.male ).uids)
+
+    verbose = True
+    if verbose:
+        print(f"Target males [20, 25) : correct circ: {n_correct_circ} mising circ: {n_missing_circ} n_incorrect circ: {n_incorrect_circ}")
+
+    # Ensure circumcision occurred
+    assert n_correct_circ > 0, f"Expected circumcisions to occur, but none did"
+
+    # Ensure all males [20, 25) (originally) were circumcised
+    assert n_missing_circ == 0, f"Expected all males in target demographic to be circumcised, but {n_missing_circ} were not."
+
+    assert n_incorrect_circ == 0, f"Expected no out-of-range aged agents to be circumsized, but {n_incorrect_circ} were."
+
+    return sim
+
 # Not currently implemented in hivsim, so leaving this partially-completed test commented out for future work
 # def test_perinatally_infected_progress_faster(self):
 #     sim = build_testing_sim(diseases=self.diseases, demographics=self.demographics,
