@@ -330,25 +330,26 @@ def test_increased_testing_speeds_diagnosis():
     duration = 1  # years by default
     disease = sti.HIV(init_prev=1.0)
 
-    sim = build_testing_sim(n_agents=n_agents, duration=duration,
+    sim1 = build_testing_sim(n_agents=n_agents, duration=duration,
                             diseases=[disease],
                             pregnancy=None, death=None,
                             prior_network=None, sexual_network=None, maternal_network=None,
                             interventions=[base_testing])
-    sim.run()
-    hiv = sim.diseases.hiv
-    n_diagnosed_base = hiv.results.n_diagnosed[-1]  # total diagnoses by end of simulation
-
-    sim = build_testing_sim(n_agents=n_agents, duration=duration,
+    sim2 = build_testing_sim(n_agents=n_agents, duration=duration,
                             diseases=[disease],
                             pregnancy=None, death=None,
                             prior_network=None, sexual_network=None, maternal_network=None,
                             interventions=[higher_testing])
-    sim.run()
-    hiv = sim.diseases.hiv
+    sims = [sim1, sim2]
+    msim = ss.parallel(*sims)
+
+    hiv = sim1.diseases.hiv
+    n_diagnosed_base = hiv.results.n_diagnosed[-1]  # total diagnoses by end of simulation
+
+    hiv = sim2.diseases.hiv
     n_diagnosed_higher = hiv.results.n_diagnosed[-1]  # total diagnoses by end of simulation
 
-    if verbose:
+    if True:
         print(f"Testing rate: {base_prob}/dt n_diagnosed: {n_diagnosed_base} after {duration} year(s)\n"
               f"Testing rate: {higher_prob}/dt n_diagnosed: {n_diagnosed_higher} after {duration} year(s)\n")
 
@@ -357,7 +358,7 @@ def test_increased_testing_speeds_diagnosis():
     assert n_diagnosed_higher > n_diagnosed_base, (f"Expected higher testing rates to diagnose agents faster, "
                                                    f"but went from {n_diagnosed_base} to {n_diagnosed_higher} diagnoses in {duration} year(s) instead.")
 
-    return sim
+    return sims
 
 
 # Not currently implemented in hivsim, so leaving this partially-completed test commented out for future work
