@@ -42,7 +42,7 @@ class CD4ByUIDTracker(ss.Analyzer):
     result_name = 'hiv.ts_cd4'
 
     INFECTED = 'infected'
-    ONART = 'onart'
+    ONART = 'on_art'
     SUBPOPS = [INFECTED, ONART]
 
     def __init__(self, subpop: str = None, *args, **kwargs):
@@ -86,7 +86,7 @@ class RelativeInfectivityByUIDTracker(ss.Analyzer):
     result_name = 'hiv.ts_rel_trans'
 
     INFECTED = 'infected'
-    ONART = 'onart'
+    ONART = 'on_art'
     SUBPOPS = [INFECTED, ONART]
 
     def __init__(self, subpop: str = None, *args, **kwargs):
