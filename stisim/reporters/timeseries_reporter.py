@@ -1,6 +1,6 @@
 import starsim as ss
 
-from stisim.itimeseries_reporter import ITimeSeriesReporter
+from stisim.reporters.itimeseries_reporter import ITimeSeriesReporter
 
 
 class TimeSeriesReporter(ITimeSeriesReporter):

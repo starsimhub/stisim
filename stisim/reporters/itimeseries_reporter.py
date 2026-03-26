@@ -1,4 +1,4 @@
-from stisim.ireporter import IReporter
+from stisim.reporters.ireporter import IReporter
 
 
 class ITimeSeriesReporter(IReporter):

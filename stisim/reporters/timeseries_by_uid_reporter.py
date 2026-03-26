@@ -1,4 +1,4 @@
-from stisim.itimeseries_reporter import ITimeSeriesReporter
+from stisim.reporters.itimeseries_reporter import ITimeSeriesReporter
 
 
 class TimeSeriesByUIDReporter(ITimeSeriesReporter):
