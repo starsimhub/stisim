@@ -586,7 +586,7 @@ class VMMC(ss.Intervention):
     """
 
     def __init__(self, pars=None, coverage=None, coverage_data=None, eligibility=None, **kwargs):
-        super().__init__()
+        super().__init__(eligibility=eligibility)
 
         # Handle deprecated kwargs
         coverage, future_coverage = _handle_deprecated_coverage(coverage, coverage_data, kwargs)
@@ -602,7 +602,6 @@ class VMMC(ss.Intervention):
         self.coverage_format  = None
         self.age_bins         = None
         self.sex_keys         = None
-        self.eligibility      = eligibility
 
         # States
         self.willingness     = ss.FloatArr('willingness', default=ss.random())
@@ -664,12 +663,14 @@ class VMMC(ss.Intervention):
 
     def step(self):
         sim = self.sim
-        m_uids = sim.people.male.uids
+        
+        # Get eligible people by combining user-specified eligibility function with male & uncircumcised
+        eligible_uids = self.check_eligibility()
+        eligible_uids = ((sim.people.male & ~self.circumcised) & eligible_uids).uids
 
-        n_to_circ = self._get_n_to_circ(m_uids)
+        n_to_circ = self._get_n_to_circ(eligible_uids)
 
         if n_to_circ is not None and n_to_circ > 0:
-            eligible_uids = (sim.people.male & ~self.circumcised).uids
             weights = self.willingness[eligible_uids]
             choices = np.argsort(-weights)[:n_to_circ]
             new_circs = eligible_uids[choices]

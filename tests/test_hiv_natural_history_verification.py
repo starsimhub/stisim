@@ -16,7 +16,7 @@ from statistics import mean
 import starsim as ss
 import stisim as sti
 
-from stisim import ART, HIVTest
+from stisim import ART, HIVTest, VMMC
 
 tests_directory = Path(__file__).resolve().parent
 sys.path.append(str(tests_directory))
@@ -303,7 +303,7 @@ def test_no_hiv_with_no_outbreaks():
     sc.heading("Ensuring that HIV infections remains zero without any seeding infections/events.")
 
     disease = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=0)
-    sim = build_testing_sim(n_agents=1000, duration=3, diseases=[disease])  # , analyzers=[analyzer])
+    sim = build_testing_sim(n_agents=1000, duration=3, diseases=[disease])
     sim.run()
 
     # HIV infections should be 0 at all timesteps
@@ -435,6 +435,97 @@ def test_increased_testing_speeds_diagnosis():
     return sims
 
 
+@sc.timer()
+def test_vmmc_reduces_male_infections():
+    sc.heading("Ensuring that VMMC intervention reduces cumulative infections in males + eff_circ works properly.")
+
+    n_agents = 1000
+    duration = 1  # years
+
+    # base, no VMMC comparison sim
+    sim_baseline = build_testing_sim(n_agents=n_agents, duration=duration, pregnancy=None, death=None)
+
+    # applying VMMC to all males
+    vmmc = VMMC(coverage=1.0)
+    sim_vmmc = build_testing_sim(n_agents=n_agents, duration=duration, interventions=[vmmc], pregnancy=None, death=None)
+
+    # applying more effective VMMC to all males
+    vmmc_eff = VMMC(coverage=1.0, eff_circ=0.8)
+    sim_vmmc_eff = build_testing_sim(n_agents=n_agents, duration=duration, interventions=[vmmc_eff], pregnancy=None, death=None)
+
+    sims = [sim_baseline, sim_vmmc, sim_vmmc_eff]
+    msim = ss.parallel(*sims)
+
+    baseline_inf = sum(sim_baseline.diseases.hiv.results.new_infections_m)
+    vmmc_inf = sum(sim_vmmc.diseases.hiv.results.new_infections_m)
+    vmmc_inf_eff = sum(sim_vmmc_eff.diseases.hiv.results.new_infections_m)
+
+    if verbose:
+        print(f"New male HIV infections, baseline: {baseline_inf} VMMC: {vmmc_inf}, VMMC+: {vmmc_inf_eff}")
+
+    # ensuring test validity
+    assert vmmc_eff.pars.eff_circ > vmmc.pars.eff_circ, f"Test setup failure, vmmc_eff: {vmmc_eff.pars.eff_circ} should have a higher eff_circ than vmmc: {vmmc.pars.eff_circ}"
+    assert baseline_inf > 0, f"Expected male HIV infections in sim, found none."
+    assert vmmc_inf     > 0, f"Expected male HIV infections in sim, found none."
+    assert vmmc_inf_eff > 0, f"Expected male HIV infections in sim, found none."
+
+    assert vmmc_inf     < baseline_inf, f"Expected VMMC to reduce male HIV infections, but it did not: baseline: {baseline_inf} VMMC: {vmmc_inf}"
+    assert vmmc_inf_eff < vmmc_inf,     f"Expected VMMC+ to reduce male HIV infections, but it did not: VMMC: {vmmc_inf} VMMC+: {vmmc_inf_eff}"
+
+    return sim_baseline, sim_vmmc, sim_vmmc_eff
+
+
+@sc.timer()
+def test_vmmc_is_male_only():
+    sc.heading("Ensuring that VMMC intervention does not circumcise females.")
+
+    vmmc = VMMC(coverage=1.0)  # targeting all males
+    sim = build_testing_sim(n_agents=10, duration=1, interventions=[vmmc], pregnancy=None, death=None)
+    sim.run()
+
+    n_vmmc_female = len((sim.people.vmmc.circumcised & sim.people.female).uids)
+    assert n_vmmc_female == 0, f"Expected no females to be targeted by VMMC, but {n_vmmc_female} were"
+
+    return sim
+
+
+@sc.timer()
+def test_vmmc_targeting():
+    sc.heading("Ensuring that VMMC intervention targeting works properly.")
+
+    min_age = 20
+    max_age = 25
+    duration = 1  # years
+
+    # Target all males [20, 25) — eligibility is checked dynamically at each timestep,
+    # so agents who turn 20 during the sim will also be circumcised
+    vmmc_eligible = lambda sim: sim.people.male & (sim.people.age >= min_age) & (sim.people.age < max_age)
+    vmmc = VMMC(coverage=1.0, eligibility=vmmc_eligible)
+
+    sim = build_testing_sim(n_agents=1000, duration=duration, interventions=[vmmc], pregnancy=None, death=None)
+    sim.run()
+
+    people = sim.people
+    # Agents eligible at any point during the sim had ages in [min_age, max_age) at some timestep,
+    # so by the end their ages span [min_age, max_age + duration)
+    correct_ages = (people.age >= min_age) & (people.age < (max_age + duration))
+
+    n_incorrect_circ = len(( people.vmmc.circumcised    & (~correct_ages)            ).uids)
+    n_correct_circ =   len(( people.vmmc.circumcised    & correct_ages    & people.male ).uids)
+    n_missing_circ =   len(( (~people.vmmc.circumcised) & correct_ages    & people.male ).uids)
+
+    if verbose:
+        print(f"Target males [20, 25) : correct circ: {n_correct_circ} mising circ: {n_missing_circ} n_incorrect circ: {n_incorrect_circ}")
+
+    # Ensure circumcision occurred
+    assert n_correct_circ > 0, f"Expected circumcisions to occur, but none did"
+
+    # Ensure no out-of-range agents were circumcised
+    assert n_incorrect_circ == 0, f"Expected no out-of-range aged agents to be circumcised, but {n_incorrect_circ} were."
+
+    return sim
+
+
 # Not currently implemented in hivsim, so leaving this partially-completed test commented out for future work
 # def test_perinatally_infected_progress_faster(self):
 #     sim = build_testing_sim(diseases=self.diseases, demographics=self.demographics,
@@ -467,6 +558,9 @@ if __name__ == '__main__':
     test_art_increases_longevity()
     test_no_hiv_with_no_outbreaks()
     test_increased_testing_speeds_diagnosis()
+    test_vmmc_reduces_male_infections()
+    test_vmmc_is_male_only()
+    test_vmmc_targeting()
     test_cd4_falls_after_ART_dropout()
     test_rel_trans_rises_after_ART_dropout()
 
