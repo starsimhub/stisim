@@ -2,6 +2,10 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.5.2 (TBC)
+
+*Coming soon*
+
 ## Version 1.5.1 (2026-03-27)
 
 ### Bug fixes
