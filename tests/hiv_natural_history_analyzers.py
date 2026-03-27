@@ -42,7 +42,7 @@ class CD4ByUIDTracker(ss.Analyzer):
     result_name = 'hiv.ts_cd4'
 
     INFECTED = 'infected'
-    ONART = 'onart'
+    ONART = 'on_art'
     SUBPOPS = [INFECTED, ONART]
 
     def __init__(self, subpop: str = None, *args, **kwargs):
@@ -78,6 +78,51 @@ class CD4ByUIDTracker(ss.Analyzer):
             self.results[result_name][uid].append(cd4)
 
 
+class RelativeInfectivityByUIDTracker(ss.Analyzer):
+    """
+    Records an agent-uid-keyed dict of timeseries of CD4 count for specified subpopulation. Results obtainable by
+    analyzer key 'hiv.ts_cd4' .
+    """
+    result_name = 'hiv.ts_rel_trans'
+
+    INFECTED = 'infected'
+    ONART = 'on_art'
+    SUBPOPS = [INFECTED, ONART]
+
+    def __init__(self, subpop: str = None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.subpop = self.INFECTED if subpop is None else subpop
+        if self.subpop not in self.SUBPOPS:
+            raise Exception(f"Unknown sub-population specified for analyzer RelativeInfectivityByUIDTracker: {self.subpop}")
+
+    def step(self):
+        pass
+
+    def init_results(self):
+        super().init_results()
+        self.results[self.result_name] = {}
+
+    def update_results(self):
+        hiv = self.sim.diseases.hiv
+        result_name = self.result_name
+
+        # determine which agent uids are in the sub-population of interest
+        if self.subpop == self.INFECTED:
+            uids = hiv.infected.uids
+        elif self.subpop == self.ONART:
+            uids = hiv.on_art.uids
+        else:
+            raise Exception(f"Unknown sub-population specified for analyzer RelativeInfectivityByUIDTracker: {self.subpop}")
+
+        # record rel_trans for agents of interest
+        for uid in uids:
+            if uid not in self.results[result_name]:
+                self.results[result_name][uid] = []
+            rel_trans = hiv.rel_trans[uid]
+            self.results[result_name][uid].append(rel_trans)
+
+
+# TODO: consider replacing usage of this analyzer with RelativeInfectivityByUIDTracker usage & updates
 class RelativeInfectivityTracker(ss.Analyzer):
     """
     Records the rel_trans (infectivity ratio) of agents in the specified states (acute, falling, and/or latent).
