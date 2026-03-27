@@ -1,6 +1,6 @@
 # Syphilis
 
-Syphilis in STIsim progresses through primary, secondary, latent, and tertiary stages, with stage-dependent transmissibility and congenital syphilis outcomes.
+Syphilis in STIsim progresses through exposed, primary, secondary, latent, and tertiary stages, with stage-dependent transmissibility and congenital syphilis outcomes. Treatment at any stage clears the infection but leaves the agent seropositive and susceptible to reinfection.
 
 **Class:** `sti.Syphilis` | **Alias:** `'syphilis'` / `'syph'` | **Base class:** `BaseSTI`
 
@@ -8,42 +8,57 @@ Syphilis in STIsim progresses through primary, secondary, latent, and tertiary s
 
 ```
                          ┌─────────────┐
-                         │ Susceptible │
-                         └──────┬──────┘
-                                │ infection
-                                ▼
-                         ┌─────────────┐
-                         │   Primary   │  Chancre stage
-                         │  (~6 wk)   │  Transmissibility: 1x
-                         └──────┬──────┘
-                                │
-                                ▼
-                         ┌─────────────┐
-                         │  Secondary  │  Systemic symptoms
-                         │ (~3.6 mo)  │  Transmissibility: 1x
-                         └──────┬──────┘
-                                │
-                                ▼
-                  ┌─────────────────────────────┐
-                  │        Latent               │
-                  │   Early (~12-14 mo)         │  Transmissibility: decays
-                  │   Late (indefinite)         │  with half-life of 1 yr
-                  └──────────┬──────────────────┘
-                             │
-                 ┌───────────┼───────────┐
-                 │           │           │
-                 ▼           ▼           ▼
-          ┌──────────┐ ┌──────────┐ ┌───────────┐
-          │Reactivate│ │ Tertiary │ │ Remains   │
-          │   (35%)  │ │  (35%)   │ │  latent   │
-          │→Secondary│ │ (~20 yr) │ │           │
-          └──────────┘ └────┬─────┘ └───────────┘
-                            │
+                         │ Susceptible │◄──────────────────────────────┐
+                         └──────┬──────┘                               │
+                                │ infection                            │
+                                ▼                                      │
+                         ┌─────────────┐                               │
+                         │   Exposed   │  Incubation                   │
+                         │  (~50 d)    │  Not yet infectious           │
+                         └──────┬──────┘                               │
+                                │                                      │
+                                ▼                                      │
+                         ┌─────────────┐                               │
+                         │   Primary   │  Chancre stage        treatment at
+                         │  (~6 wk)    │  Transmissibility: 1x   any stage
+                         └──────┬──────┘                         clears infection
+                                │                                (sets susceptible
+                                ▼                                 + ever_exposed)
+                         ┌─────────────┐                               │
+                         │  Secondary  │  Systemic symptoms            │
+                         │ (~3.6 mo)   │  Transmissibility: 1x        │
+                         └──────┬──────┘                               │
+                                │                                      │
+                                ▼                                      │
+                  ┌─────────────────────────────┐                      │
+                  │        Latent               │  Transmissibility:   │
+                  │   Early (~12-14 mo)         │  decays with         │
+                  │   Late (indefinite)         │  half-life of 1 yr   │
+                  └──────────┬──────────────────┘                      │
+                             │                                         │
+                 ┌───────────┼───────────┐                             │
+                 │           │           │                             │
+                 ▼           ▼           ▼                             │
+          ┌──────────┐ ┌──────────┐ ┌───────────┐                     │
+          │Reactivate│ │ Tertiary │ │ Remains   │                     │
+          │   (35%)  │ │  (35%)   │ │  latent   │                     │
+          │→Secondary│ │ (~20 yr) │ │  (30%)    │                     │
+          └──────────┘ └────┬─────┘ └───────────┘                     │
+                            │                                         │
                             ▼
                      ┌─────────────┐
                      │ Death (5%)  │
                      └─────────────┘
 ```
+
+**Treatment and reinfection:** Treatment (via `SyphTx`) clears all stage states and returns the agent to susceptible. The `ever_exposed` flag persists -- these agents are seropositive (detectable by treponemal tests) but can be reinfected. This reinfection cycle is a key driver of syphilis epidemics: symptomatic agents seek care, get treated, become susceptible again, and are reinfected by their partners.
+
+**Key properties:**
+
+- `active` = primary | secondary (used by connectors for HIV susceptibility effects)
+- `infectious` = active | latent
+- `naive` = never exposed (seronegative)
+- `sus_not_naive` = susceptible & ever_exposed (seropositive but susceptible to reinfection)
 
 ## Parameters
 
@@ -51,6 +66,7 @@ Syphilis in STIsim progresses through primary, secondary, latent, and tertiary s
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
+| `dur_exposed` | normal(50 d, 10 d) | Duration of incubation period |
 | `dur_primary` | normal(6 wk, 1 wk) | Duration of primary stage |
 | `dur_secondary` | lognorm(3.6 mo, 1.5 mo) | Duration of secondary stage |
 | `dur_early` | uniform(12 mo, 14 mo) | Duration of early latent stage |
