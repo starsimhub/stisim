@@ -2,6 +2,38 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.5.1 (2026-03-27)
+
+### Bug fixes
+- Fix VMMC eligibility: pass `eligibility` to parent class and use `check_eligibility()` in `step()`, so user-supplied eligibility functions are no longer silently ignored (#353)
+- Fix starsim compatibility: convert `ss.years`/`ss.date` to `int` in `get_age_distribution()` for newer starsim `__len__` behavior
+- Fix rand_seed placement in beta transmission test (#354)
+
+### Parameter handling
+- Remove parameters from `SimPars` that duplicate starsim's `Sim` (`label`, `verbose`, `total_pop`, `pop_scale`, `birth_rate`, `death_rate`, `use_aging`) (#351)
+- Add `get_valid_pars()` to detect ambiguous parameters across namespaces (#351)
+- Improve error messages for unrecognized parameters with suggestions via `sc.suggest()` (#351)
+- Handle `location`/`demographics` conflict in `remap_pars()` (#351)
+- `mergepars()` now returns `sc.objdict` for dot-notation access (#351)
+
+### Other changes
+- Delete legacy `setup.py` (use `pyproject.toml`)
+- Relax `sc.require` to only check starsim, with `die=False`
+- Comment out unused `dt` parameter in Migration
+
+### Tests
+- Add VMMC tests: reduces male infections, male-only targeting, eligibility targeting (#251, #355)
+- Add ART dropout tests: CD4 decline and rel_trans increase after stopping ART (#244)
+- Add exponential early-phase epidemic growth test (#260)
+- Add increased testing speeds diagnosis test (#253)
+- Add no-HIV-without-seeding test (#271)
+
+### Documentation
+- Fix `sti.Pregnancy` → `ss.Pregnancy` in Getting Started tutorial (#343)
+- Fix tutorials and user guide nav nesting
+- Update syphilis docs: exposed stage, treatment/reinfection, key properties
+- Fix HIV `dur_on_art` default in docs
+
 ## Version 1.5.0 (2026-03-13)
 
 ### Interventions
