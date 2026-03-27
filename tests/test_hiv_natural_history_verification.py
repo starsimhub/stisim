@@ -164,10 +164,9 @@ def _run_beta_test(baseline_m2f, baseline_m2c, mode: str, multiplier=2, result_t
                             analyzers=[analyzer],
                             n_agents=n_agents, duration=duration)
     sim.pars['rand_seed'] = rand_seed
-
     sim.run()
-    hiv_transmissions_baseline = sim.results[analyzer.name][analyzer.result_name]
-    hiv_transmissions_baseline = sum(hiv_transmissions_baseline)
+
+    hiv_transmissions_baseline = sum(sim.results[analyzer.name][analyzer.result_name])
 
     # ensure at least one such transmission occurs
     assert hiv_transmissions_baseline > 0, f"Cannot assess effect of beta, no {mode} HIV transmissions occurred in baseline."
@@ -177,8 +176,8 @@ def _run_beta_test(baseline_m2f, baseline_m2c, mode: str, multiplier=2, result_t
     sim = build_testing_sim(diseases=[test_hiv], pregnancy=pregnancy,
                             analyzers=[analyzer],
                             n_agents=n_agents, duration=duration)
-    sim.run()
     sim.pars['rand_seed'] = rand_seed
+    sim.run()
 
     hiv_transmissions_test = sum(sim.results[analyzer.name][analyzer.result_name])
 
