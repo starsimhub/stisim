@@ -30,7 +30,8 @@ classifiers = [
 ]
 
 dependencies = [
-    "starsim>=3.0.1",
+    "starsim>=3.3.0",
+    "sciris>=3.2.9",
     "optuna",
     "requests",
 ]
