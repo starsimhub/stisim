@@ -307,6 +307,12 @@ def default_build_fn(sim, calib_pars, **kwargs):
     called.  This works because every module stores its ``pars`` dict
     immediately on construction.
 
+    ``rand_seed`` is handled specially: ``set_sim_pars`` skips it (it is in
+    ``_META_KEYS``), so it is applied directly to ``sim.pars`` here.  This
+    ensures that ``reseed=True`` in :class:`Calibration` actually uses a
+    different seed per trial, and that the stored ``rand_seed`` column in
+    ``calib.df`` can be used to reproduce each trial exactly.
+
     Args:
         sim (Sim): An uninitialized simulation (modules must be instances, not strings)
         calib_pars (dict): Calibration parameters with values set by the sampler
@@ -325,6 +331,11 @@ def default_build_fn(sim, calib_pars, **kwargs):
         sim = default_build_fn(sim, calib_pars)
     """
     set_sim_pars(sim, calib_pars)
+
+    # Apply rand_seed explicitly — set_sim_pars skips it (in _META_KEYS),
+    # but reseed=True expects each trial to run with its own seed.
+    if calib_pars is not None and 'rand_seed' in calib_pars:
+        sim.pars['rand_seed'] = int(calib_pars['rand_seed'])
 
     if not sim.initialized:
         sim.init()
