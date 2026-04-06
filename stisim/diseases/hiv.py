@@ -113,6 +113,21 @@ class HIV(BaseSTI):
     @property
     def include_mtct(self): return 'pregnancy' in self.sim.demographics
 
+    def plot(self):
+        """ Plot key HIV results """
+        import matplotlib.pyplot as plt
+        res = self.results
+        keys = ['new_infections', 'new_deaths', 'prevalence', 'prevalence_15_49', 'new_diagnoses', 'p_on_art']
+        keys = [k for k in keys if k in res] # Only plot keys that exist
+        with sc.options.with_style('fancy'):
+            fig, axs = sc.getrowscols(len(keys), make=True)
+            for ax, k in zip(axs.flatten(), keys):
+                ax.plot(res.timevec, res[k], lw=2, alpha=0.8)
+                ax.set_title(res[k].label)
+                ax.set_xlabel('Year')
+            sc.figlayout()
+        return ss.return_fig(fig)
+
     def init_results(self):
         """
         Initialize results

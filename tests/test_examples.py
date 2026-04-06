@@ -44,9 +44,9 @@ def test_zimbabwe():
     assert np.isclose(n_alive_start, 9_980_999, rtol=0.05), \
         f'n_alive at t=0 ({n_alive_start}) should be close to 9,980,999'
 
-    # Run a full version for plotting
-    sim3 = hivsim.demo('zimbabwe')
-    return 
+    # Run a full version (no plot when running via pytest)
+    sim3 = hivsim.demo('zimbabwe', plot=False)
+    return
 
 
 if __name__ == '__main__':
