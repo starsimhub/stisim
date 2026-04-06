@@ -553,45 +553,30 @@ def test_par_ranges(n_agents=2000):
     """
     sc.heading('Test HIV parameter ranges')
 
-    base_pars = dict(n_agents=n_agents, diseases='hiv', beta_m2f=0.05, init_prev=0.05)
-
-    # [lo, hi, result_key] — higher value should give higher result
+    # [lo, hi] — lo should always give fewer infections/deaths than hi
     par_effects = dict(
-        beta_m2f   = [0.01,  0.2,  'cum_infections'],  # More transmission → more infections
-        init_prev  = [0.01,  0.1,  'cum_infections'],   # More initial cases → more infections (#233)
-        art_efficacy = [0.5, 0.96, 'cum_deaths'],       # More effective ART → fewer deaths (#236) — note: reversed below
+        beta_m2f     = [0.01,  0.2 ],  # More transmission → more infections & deaths
+        init_prev    = [0.01,  0.1 ],  # More initial cases → more infections & deaths (#233)
+        dur_falling  = [10,    1   ],  # Shorter falling stage → more deaths (#235)
+        art_efficacy = [0.96,  0.5 ],  # Less effective ART → more deaths (#236)
     )
 
-    for par, (lo, hi, result_key) in par_effects.items():
+    result_keys = ['cum_infections', 'cum_deaths']
 
-        pars0 = sc.dcp(base_pars)
-        pars1 = sc.dcp(base_pars)
-        pars0[par] = lo
-        pars1[par] = hi
+    for par, (lo, hi) in par_effects.items():
 
-        # ART efficacy only matters if ART is present
-        if par == 'art_efficacy':
-            s0 = hivsim.Sim(n_agents=n_agents, dur=20, verbose=0, **{par: lo})
-            s1 = hivsim.Sim(n_agents=n_agents, dur=20, verbose=0, **{par: hi})
-        else:
-            s0 = sti.Sim(pars0, label=f'{par} {lo}')
-            s1 = sti.Sim(pars1, label=f'{par} {hi}')
-
+        s0 = hivsim.Sim(n_agents=n_agents, dur=20, verbose=0, **{par: lo})
+        s1 = hivsim.Sim(n_agents=n_agents, dur=20, verbose=0, **{par: hi})
         ss.parallel(s0, s1)
 
-        ind = 1 if par == 'init_prev' else -1
-        v0 = s0.results.hiv[result_key][ind]
-        v1 = s1.results.hiv[result_key][ind]
+        for result_key in result_keys:
+            ind = 1 if par == 'init_prev' else -1
+            v0 = s0.results.hiv[result_key][ind]
+            v1 = s1.results.hiv[result_key][ind]
 
-        print(f'Checking {result_key:18s} with varying {par:15s} ... ', end='')
-
-        if par == 'art_efficacy':
-            # Higher ART efficacy → fewer deaths
-            assert v0 >= v1, f'Expected {result_key} to be higher with {par}={lo} than {hi}, but {v0} < {v1}'
-        else:
+            print(f'Checking {result_key:18s} with varying {par:15s} ... ', end='')
             assert v0 <= v1, f'Expected {result_key} to be lower with {par}={lo} than {hi}, but {v0} > {v1}'
-
-        print(f'✓ ({v0:.1f} vs {v1:.1f})')
+            print(f'✓ ({v0:.1f} vs {v1:.1f})')
 
     return
 
