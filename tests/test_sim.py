@@ -1,159 +1,59 @@
 """
-Simple sim tests
+Sim constructor tests: verify that sims can be built in various ways
+and that parameters get routed to the correct modules.
+
+Not for scientific validation — that lives in test_hiv.py, test_stis.py,
+test_networks.py, and test_hiv_interventions.py.
 """
 import os
-import sys
-
-import sciris as sc
+import numpy as np
 import starsim as ss
 import stisim as sti
-import pandas as pd
-import numpy as np
+import hivsim
 
-tests_directory = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(str(tests_directory))
+TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_data')
 
-from testlib import build_testing_sim
 
-debug = False  # Run in serial
+# %% Minimal sim tests
 
-# Get the directory containing this test file
-TEST_DATA_DIR = os.path.join(tests_directory, 'test_data')
-
-def test_hiv_sim(n_agents=500):
-    sc.heading('Test simplest possible HIV sim ')
-
-    diseases = [sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=0.05)]
-
-    pregnancy = ss.Pregnancy(fertility_rate=10)
-    death = ss.Deaths(death_rate=10)
-
-    sexual = sti.StructuredSexual(recall_prior=True)
-    prior = sti.PriorPartners()
-    maternal = ss.MaternalNet()
-
-    testing1 = sti.HIVTest(name='gp', test_prob_data=0.2, start=2000)
-    testing2 = sti.HIVTest(name='fsw', test_prob_data=0.2, start=2000, eligibility=lambda sim: sim.networks.structuredsexual.fsw)
-    art = sti.ART(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_art': np.linspace(0, 0.9, 21)}))
-    vmmc = sti.VMMC(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_vmmc': np.linspace(0.025, 0.125, 21)}))
-    interventions = [testing1, testing2, art, vmmc]
-
-    sim = build_testing_sim(diseases=diseases, n_agents=500,
-                            pregnancy=pregnancy, death=death,
-                            maternal_network=maternal, prior_network=prior, sexual_network=sexual,
-                            interventions=interventions)
-
+def test_minimal_hiv():
+    """ Simplest possible HIV sim — no manually specified modules """
+    sim = sti.Sim(diseases='hiv', n_agents=500, dur=10)
+    sim.run()
+    assert sim.results.hiv.cum_infections[-1] > 0
     return sim
 
 
-def test_msm_hiv(n_agents=500):
-    hiv = sti.HIV(beta_m2m=0.1, init_prev=0.05)
-    pregnancy = ss.Pregnancy(fertility_rate=10)
-    death = ss.Deaths(death_rate=10)
-    msm = sti.AgeMatchedMSM()
-    sim = sti.Sim(
-        start=1990,
-        dur=10,
-        n_agents=n_agents,
-        diseases=hiv,
-        networks=msm,
-        demographics=[pregnancy, death],
-    )
-    sim.run(verbose=1/12)
-
+def test_minimal_sti():
+    """ Simplest possible non-HIV STI sim """
+    sim = sti.Sim(diseases='ng', n_agents=500, dur=10)
+    sim.run()
+    assert sim.results.ng.cum_infections[-1] > 0
     return sim
 
 
-def test_bv(include_hiv=False, n_agents=500):
-
-    class menstrual_hygiene(ss.Intervention):
-        def __init__(self, pars=None, **kwargs):
-            super().__init__()
-            self.define_pars(
-                start=2000,
-                new_val=None,
-            )
-            self.update_pars(pars, **kwargs)
-            return
-
-        def step(self):
-            if self.t.now() == self.pars.start:
-                self.sim.diseases.bv.pars.p_poor_menstrual_hygiene.set(self.pars.new_val)
-            return
-
-    bv = sti.BV(
-        # p_poor_menstrual_hygiene=0.3,  # Proportion with poor menstrual hygiene
-        init_prev=0.025,
-    )
-    nets = []
-    dem = []
-    intvs = []
-    dis = [bv]
-    con = []
-
-    if include_hiv:
-        hiv = sti.HIV(
-            beta_m2f=0.5,
-            beta_m2c=0.1,
-            init_prev=0.1,
-        )
-
-        nets += [sti.StructuredSexual(store_register=True), ss.MaternalNet()]
-
-        pregnancy = ss.Pregnancy(fertility_rate=10)
-        death = ss.Deaths(death_rate=10)
-        dem += [pregnancy, death]
-
-        testing = sti.HIVTest(test_prob_data=0.2, start=2000)
-        art = sti.ART(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_art': np.linspace(0, 0.9, 21)}))
-        vmmc = sti.VMMC(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_vmmc': np.linspace(0.025, 0.125, 21)}))
-        intvs += [testing, art, vmmc]
-        dis += [hiv]
-        con += [sti.hiv_bv(hiv_module=hiv, bv_module=bv)]
-
-    # Make sim
-    sim_args = dict(start=2015, stop=2030, n_agents=n_agents, diseases=dis, networks=nets, demographics=dem, connectors=con)
-
-    s0 = ss.Sim(**sim_args, interventions=intvs)
-    s1 = ss.Sim(**sim_args, interventions=intvs + [menstrual_hygiene(start=2020, new_val=0.1)])
-    ss.parallel(s0, s1, debug=debug)
-    return s0, s1
-
-
-def test_stis(which='discharging', n_agents=5e3, start=2010, stop=2020):
-    sc.heading('Test STI sim')
-
-    if which == 'discharging':
-        sti_pars = dict(
-            ng=dict(beta_m2f=0.06, init_prev=0.02),
-            ct=dict(beta_m2f=0.06, init_prev=0.05),
-            tv=dict(beta_m2f=0.1, init_prev=0.1),
-            bv=dict(),  # Bacterial vaginosis does not have a beta_m2f parameter
-        )
-    elif which == 'ulcerative':
-        sti_pars = dict(
-            syph=dict(beta_m2f=0.1, init_prev=0.01),
-            gud=dict(prevalence=0.05),  # Placeholder for GUD
-        )
-
-    pregnancy = ss.Pregnancy(fertility_rate=10)
-    death = ss.Deaths(death_rate=10)
-
-    sim = sti.Sim(
-        n_agents=n_agents,
-        start=start,
-        stop=stop,
-        diseases=list(sti_pars.keys()),
-        sti_pars=sti_pars,
-        demographics=[pregnancy, death],
-    )
-
-    sim.run(verbose=1/12)
-
+def test_multi_disease():
+    """ Multiple diseases in one sim """
+    sim = sti.Sim(diseases=['hiv', 'syph', 'ng'], n_agents=1000, dur=10)
+    sim.run()
+    assert len(sim.diseases) == 3
+    for name in ['hiv', 'syph', 'ng']:
+        assert name in sim.diseases
     return sim
 
+
+def test_time():
+    """ Check that simulation time vector is initialized correctly """
+    sim = sti.Sim(start=2010, diseases='hiv')
+    sim.run()
+    assert sim.pars.start == sim.t.yearvec[0]
+    return sim
+
+
+# %% Constructor flexibility tests
 
 def test_sim_creation():
+    """ Test various constructor patterns for sti.Sim """
 
     start = 2010
     stop = 2020
@@ -166,8 +66,6 @@ def test_sim_creation():
     nw_pars = dict(debut=ss.lognorm_ex(20, 5))
     sti_pars = dict(ng=dict(eff_condom=0.6))
 
-    # datafolder = TEST_DATA_DIR
-
     # Test 1: default networks with custom pars, demographics from location string, and diseases from disease names with custom pars
     sim1 = sti.Sim(
         pars=pars,
@@ -176,13 +74,11 @@ def test_sim_creation():
         datafolder=TEST_DATA_DIR,
         diseases=['ng', 'ct', 'tv', 'bv', 'hiv'],
         sti_pars=sti_pars,
-        # connectors=True
     )
     sim1.init()
 
     assert sim1.diseases.ng.pars.eff_condom == 0.6, "Disease parameter not set correctly"
     assert len(sim1.diseases) == 5, "Incorrect number of diseases initialized"
-    # assert len(sim1.connectors) > 0, "No connectors initialized"
 
     # Test 2: mix of strings and modules
     demographics = [ss.Pregnancy(), ss.Deaths()]
@@ -194,25 +90,23 @@ def test_sim_creation():
         networks=networks,
         demographics=demographics,
         diseases=diseases,
-        # connectors=True,
     )
 
     sim2.init()
 
     assert isinstance(sim2.networks.structuredsexual, sti.StructuredSexual), "Network not initialized correctly"
     assert len(sim2.diseases) == 2, "Incorrect number of diseases initialized"
-    # assert len(sim2.connectors) > 0, "No connectors initialized"
     assert len(sim2.demographics) == 2, "Incorrect number of demographics initialized"
 
     # Test 3: flat pars dict
     pars = dict(
-        start=2010,  # Sim par
-        beta_m2f=0.05,  # STI parameter applied to all STIs
+        start=2010,
+        beta_m2f=0.05,
         prop_f0=0.45,
         location='zimbabwe',
         datafolder=TEST_DATA_DIR,
         diseases=['ng', 'ct', 'tv'],
-        ng=dict(eff_condom=0.6),  # Gonorrhea-specific parameter
+        ng=dict(eff_condom=0.6),
     )
 
     sim3 = sti.Sim(**pars)
@@ -228,34 +122,106 @@ def test_sim_creation():
     return
 
 
-def devtest_location():
-    """
-    Won't currently run on GH actions, but can run locally to check authentication key
-    """
-    sc.heading('Test location-based sim creation')
-    sim1 = sti.Sim(location='zambia', start=1990, stop=2040)
-    sim1.run()
-    assert len(sim1.demographics) == 3, "Demographics not initialized"
+# %% hivsim.Sim tests (#349)
 
-    return
+def test_hivsim_defaults():
+    """ hivsim.Sim() with no args should create a complete HIV sim with sensible defaults """
+    sim = hivsim.Sim(n_agents=500, dur=10)
+    sim.init()
 
+    # Check default modules are present
+    assert 'hiv' in sim.diseases, "HIV disease not added"
+    assert len(sim.diseases) == 1, "Should have exactly 1 disease"
+    assert len(sim.networks) == 2, "Should have 2 networks (sexual + maternal)"
+    assert len(sim.demographics) == 2, "Should have 2 demographics (pregnancy + deaths)"
+    assert len(sim.interventions) == 4, "Should have 4 interventions (test, ART, VMMC, PrEP)"
 
-def test_time():
-    sim = sti.Sim(start=2010, diseases='hiv')
     sim.run()
-    assert sim.pars.start == sim.t.yearvec[0], "Timevec seems incorrect"
+    assert sim.results.hiv.cum_infections[-1] > 0
     return sim
 
 
+def test_hivsim_pars():
+    """ Parameters passed to hivsim.Sim should route to the HIV module """
+    beta = 0.05
+    sim = hivsim.Sim(beta_m2f=beta, n_agents=500, dur=5)
+    sim.init()
+    assert sim.diseases.hiv.pars.beta_m2f == beta, f"beta_m2f not routed to HIV: {sim.diseases.hiv.pars.beta_m2f}"
+    return sim
+
+
+def test_hivsim_custom_modules():
+    """ User-supplied modules should replace defaults """
+    custom_art = sti.ART()
+    sim = hivsim.Sim(interventions=[custom_art], n_agents=500, dur=5)
+    sim.init()
+
+    # User passed 1 intervention, so defaults should be replaced
+    assert len(sim.interventions) == 1, f"Expected 1 intervention, got {len(sim.interventions)}"
+
+    # But other defaults should still be present
+    assert len(sim.networks) == 2, "Default networks should still be present"
+    assert len(sim.demographics) == 2, "Default demographics should still be present"
+    return sim
+
+
+# %% Demo tests (merged from test_examples.py)
+
+def test_demo_simple():
+    """ hivsim.demo('simple') and make_sim() should produce identical results """
+    from hivsim_examples.simple.sim import make_sim
+
+    seed = 42
+    kw = dict(n_agents=200, dur=5)
+
+    sim1 = make_sim(rand_seed=seed, **kw)
+    sim1.run()
+
+    sim2 = hivsim.demo('simple', run=False, rand_seed=seed, **kw)
+    sim2.run()
+
+    prev1 = sim1.results.hiv.prevalence[:]
+    prev2 = sim2.results.hiv.prevalence[:]
+    assert np.allclose(prev1, prev2), 'make_sim and hivsim.demo should produce identical results'
+
+
+def test_demo_zimbabwe():
+    """ hivsim.demo('zimbabwe') and make_sim() should produce identical results """
+    from hivsim_examples.zimbabwe.sim import make_sim
+
+    seed = 42
+    sim1 = make_sim(rand_seed=seed, n_agents=500, stop=1995)
+    sim1.run()
+
+    sim2 = hivsim.demo('zimbabwe', run=False, rand_seed=seed, n_agents=500, stop=1995)
+    sim2.run()
+
+    prev1 = sim1.results.hiv.prevalence[:]
+    prev2 = sim2.results.hiv.prevalence[:]
+    assert np.allclose(prev1, prev2), 'make_sim and hivsim.demo should produce identical results'
+
+    # Check population is scaled to ~10M (Zimbabwe 1990)
+    n_alive_start = sim1.results.n_alive[0]
+    assert np.isclose(n_alive_start, 9_980_999, rtol=0.05), \
+        f'n_alive at t=0 ({n_alive_start}) should be close to 9,980,999'
+
+    # Run a full version (no plot when running via pytest)
+    sim3 = hivsim.demo('zimbabwe', plot=False)
+    return
+
+
+# %% Run as a script
 if __name__ == '__main__':
 
-    do_plot = False
-
-    s0 = test_hiv_sim()
-    s1 = test_msm_hiv()
-    s2 = test_bv()
-    s3 = test_stis(which='discharging')
+    test_minimal_hiv()
+    test_minimal_sti()
+    test_multi_disease()
+    test_time()
     test_sim_creation()
-    devtest_location()
-    s4 = test_time()
+    test_hivsim_defaults()
+    test_hivsim_pars()
+    test_hivsim_custom_modules()
+    test_demo_simple()
+    test_demo_zimbabwe()
 
+    print('All tests passed!')

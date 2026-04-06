@@ -1,7 +1,9 @@
 """
-HIV natural history verification tests
+HIV scientific validation: CD4 decline, transmission ratios, ART effects,
+VMMC, diagnosis timing, and natural history progression.
 
-Tests to ensure appropriate behavior of HIV as a disease absent any treatment.
+All HIV-specific biological/clinical validation lives here. Intervention
+mechanics (coverage formats, stratification) live in test_hiv_interventions.py.
 """
 
 import matplotlib.pyplot as plt

@@ -1,9 +1,10 @@
 """
-Test impact of including the HIV-Syphilis connector
+Multi-disease interaction validation: verify that connectors modify
+transmission and disease progression as expected.
 
 One simulation is run with HIV and syphilis, but no connector. A second simulation
 is run with the addition of the connector. Adding the connector should increase
-transmission of HIV overall due to syphilis coinfection. The prevalance should
+transmission of HIV overall due to syphilis coinfection. The prevalence should
 therefore be higher when the connector is included.
 """
 
