@@ -545,7 +545,7 @@ def test_vmmc_targeting():
 
 def test_par_ranges(n_agents=2000):
     """
-    Test that HIV parameters affect dynamics in the expected direction (#233, #235, #236).
+    Test that HIV parameters affect dynamics in the expected direction.
 
     Each entry maps a parameter name to [lo, hi, result_key]. Higher parameter
     values should produce higher result values. For init_prev we compare at t=1
@@ -556,9 +556,9 @@ def test_par_ranges(n_agents=2000):
     # [lo, hi] — lo should always give fewer infections/deaths than hi
     par_effects = dict(
         beta_m2f     = [0.01,  0.2 ],  # More transmission → more infections & deaths
-        init_prev    = [0.01,  0.1 ],  # More initial cases → more infections & deaths (#233)
-        dur_falling  = [10,    1   ],  # Shorter falling stage → more deaths (#235)
-        art_efficacy = [0.96,  0.5 ],  # Less effective ART → more deaths (#236)
+        init_prev    = [0.01,  0.1 ],  # More initial cases → more infections & deaths
+        dur_falling  = [10,    1   ],  # Shorter falling stage → more deaths
+        art_efficacy = [0.96,  0.5 ],  # Less effective ART → more deaths
     )
 
     result_keys = ['cum_infections', 'cum_deaths']
@@ -588,7 +588,7 @@ def test_par_ranges(n_agents=2000):
 
 def test_prevalence_by_sex(n_agents=5000):
     """
-    Under default parameters, female HIV prevalence should exceed male prevalence (#262).
+    Under default parameters, female HIV prevalence should exceed male prevalence.
 
     This is a basic sanity check: biological susceptibility (rel_beta_f2m < 1 means
     women are more easily infected) and network structure should produce higher
