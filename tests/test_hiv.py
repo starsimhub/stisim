@@ -1,7 +1,9 @@
 """
-HIV natural history verification tests
+HIV scientific validation: CD4 decline, transmission ratios, ART effects,
+VMMC, diagnosis timing, and natural history progression.
 
-Tests to ensure appropriate behavior of HIV as a disease absent any treatment.
+All HIV-specific biological/clinical validation lives here. Intervention
+mechanics (coverage formats, stratification) live in test_hiv_interventions.py.
 """
 
 import matplotlib.pyplot as plt
@@ -540,11 +542,47 @@ def test_vmmc_targeting():
 #     tis_falling = sim.results['birthtracker']['hiv.tis_falling']
 
 
+def test_par_ranges(n_agents=2000):
+    """ Test that HIV epi parameters affect dynamics in the expected direction """
+    sc.heading('Test HIV parameter ranges')
+
+    base_pars = dict(n_agents=n_agents, diseases='hiv', beta_m2f=0.05, init_prev=0.05)
+
+    par_effects = dict(
+        beta_m2f=[0.01, 0.2],
+    )
+
+    for par, par_val in par_effects.items():
+        lo = par_val[0]
+        hi = par_val[1]
+
+        pars0 = sc.dcp(base_pars)
+        pars1 = sc.dcp(base_pars)
+
+        pars0[par] = lo
+        pars1[par] = hi
+
+        s0 = sti.Sim(pars0, label=f'{par} {par_val[0]}')
+        s1 = sti.Sim(pars1, label=f'{par} {par_val[1]}')
+        ss.parallel(s0, s1)
+
+        ind = 1 if par == 'init_prev' else -1
+        v0 = s0.results.hiv.cum_infections[ind]
+        v1 = s1.results.hiv.cum_infections[ind]
+
+        print(f'Checking with varying {par:10s} ... ', end='')
+        assert v0 <= v1, f'Expected infections to be lower with {par}={lo} than with {par}={hi}, but {v0} > {v1})'
+        print(f'✓ ({v0} <= {v1})')
+
+    return s0, s1
+
+
 if __name__ == '__main__':
     do_plot = True
     sc.options(interactive=do_plot)
     timer = sc.timer()
 
+    test_par_ranges()
     test_cd4_counts_decline_untreated()
     test_time_from_infection_to_aids_untreated()
     test_latent_transmission_ratio_is_1()
