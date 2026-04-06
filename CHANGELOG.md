@@ -2,6 +2,31 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.5.2 (2026-04-06)
+
+### Bug fixes
+- Fix `default_build_fn` to apply `rand_seed` when `reseed=True`, so each calibration trial uses its own seed
+- Fix timepar handling in data loaders (remove unnecessary `TimePar` catch)
+- Fix stray plot appearing when running pytest (`test_zimbabwe` called `hivsim.demo` with `plot=True`)
+
+### Improvements
+- Add `HIV.plot()` with curated 6-panel view (new infections, deaths, prevalence, prevalence 15-49, diagnoses, proportion on ART)
+- Pin `starsim>=3.3.1` and `sciris>=3.2.9`
+
+### Tests
+- Add baseline regression test and benchmark test using Zimbabwe HIV example
+- Refactor test suite with clear file responsibilities: `test_sim.py` (constructor/routing), `test_hiv.py` (HIV scientific validation), `test_stis.py` (non-HIV STI validation), `test_networks.py` (network dynamics)
+- Add `hivsim.Sim` constructor tests (defaults, parameter routing, custom modules)
+- Add HIV sensitivity tests: `test_par_ranges` checks `beta_m2f`, `init_prev`, `dur_falling`, and `art_efficacy` against both `cum_infections` and `cum_deaths`
+- Add `test_prevalence_by_sex` verifying female > male HIV prevalence under defaults
+- Add MSM network test
+- Rename `test_diseases.py` to `test_stis.py`, `test_hiv_natural_history_verification.py` to `test_hiv.py`
+- Merge `test_examples.py` into `test_sim.py`
+
+### Documentation
+- Fix calibration tutorial to use disease instances instead of strings
+- Add note about `scikit-learn` requirement for `plot_param_importances`
+
 ## Version 1.5.1 (2026-03-27)
 
 ### Bug fixes

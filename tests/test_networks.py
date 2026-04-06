@@ -1,7 +1,32 @@
+"""
+Network dynamics validation: verify that network parameters (concurrency, pair
+formation, relationship duration, debut age, MSM) affect behaviour as expected.
+"""
 import stisim as sti
 import starsim as ss
 import numpy as np
 import sciris as sc
+
+
+def test_msm_network(n_agents=500):
+    """ Test MSM HIV transmission via AgeMatchedMSM network """
+    hiv = sti.HIV(beta_m2m=0.1, init_prev=0.05)
+    pregnancy = ss.Pregnancy(fertility_rate=10)
+    death = ss.Deaths(death_rate=10)
+    msm = sti.AgeMatchedMSM()
+    sim = sti.Sim(
+        start=1990,
+        dur=10,
+        n_agents=n_agents,
+        diseases=hiv,
+        networks=msm,
+        demographics=[pregnancy, death],
+    )
+    sim.run(verbose=1/12)
+
+    assert sim.results.hiv.cum_infections[-1] > 0, "MSM network should produce HIV infections"
+    return sim
+
 
 def test_network_degrees():
     """
@@ -156,6 +181,7 @@ def test_debut_age():
 
 
 if __name__ == '__main__':
+    test_msm_network()
     test_network_degrees()
     test_pair_formation()
     test_relationship_duration()

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "stisim"
 dynamic = ["version"]
-description = "STI modelling toolbox built on the Starsim platform"
+description = "STI and HIV modeling toolbox built on the Starsim framework"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {file = "LICENSE"}
@@ -30,7 +30,8 @@ classifiers = [
 ]
 
 dependencies = [
-    "starsim>=3.0.1",
+    "starsim>=3.3.1",
+    "sciris>=3.2.9",
     "optuna",
     "requests",
 ]
