@@ -122,7 +122,7 @@ def test_sim_creation():
     return
 
 
-# %% hivsim.Sim tests (#349)
+# %% hivsim.Sim tests
 
 def test_hivsim_defaults():
     """ hivsim.Sim() with no args should create a complete HIV sim with sensible defaults """
