@@ -17,6 +17,7 @@ from statistics import mean
 
 import starsim as ss
 import stisim as sti
+import hivsim
 
 from stisim import ART, HIVTest, VMMC
 
@@ -543,38 +544,75 @@ def test_vmmc_targeting():
 
 
 def test_par_ranges(n_agents=2000):
-    """ Test that HIV epi parameters affect dynamics in the expected direction """
+    """
+    Test that HIV parameters affect dynamics in the expected direction (#233, #235, #236).
+
+    Each entry maps a parameter name to [lo, hi, result_key]. Higher parameter
+    values should produce higher result values. For init_prev we compare at t=1
+    (before dynamics wash it out); for everything else we compare at t=-1.
+    """
     sc.heading('Test HIV parameter ranges')
 
     base_pars = dict(n_agents=n_agents, diseases='hiv', beta_m2f=0.05, init_prev=0.05)
 
+    # [lo, hi, result_key] — higher value should give higher result
     par_effects = dict(
-        beta_m2f=[0.01, 0.2],
+        beta_m2f   = [0.01,  0.2,  'cum_infections'],  # More transmission → more infections
+        init_prev  = [0.01,  0.1,  'cum_infections'],   # More initial cases → more infections (#233)
+        art_efficacy = [0.5, 0.96, 'cum_deaths'],       # More effective ART → fewer deaths (#236) — note: reversed below
     )
 
-    for par, par_val in par_effects.items():
-        lo = par_val[0]
-        hi = par_val[1]
+    for par, (lo, hi, result_key) in par_effects.items():
 
         pars0 = sc.dcp(base_pars)
         pars1 = sc.dcp(base_pars)
-
         pars0[par] = lo
         pars1[par] = hi
 
-        s0 = sti.Sim(pars0, label=f'{par} {par_val[0]}')
-        s1 = sti.Sim(pars1, label=f'{par} {par_val[1]}')
+        # ART efficacy only matters if ART is present
+        if par == 'art_efficacy':
+            s0 = hivsim.Sim(n_agents=n_agents, dur=20, verbose=0, **{par: lo})
+            s1 = hivsim.Sim(n_agents=n_agents, dur=20, verbose=0, **{par: hi})
+        else:
+            s0 = sti.Sim(pars0, label=f'{par} {lo}')
+            s1 = sti.Sim(pars1, label=f'{par} {hi}')
+
         ss.parallel(s0, s1)
 
         ind = 1 if par == 'init_prev' else -1
-        v0 = s0.results.hiv.cum_infections[ind]
-        v1 = s1.results.hiv.cum_infections[ind]
+        v0 = s0.results.hiv[result_key][ind]
+        v1 = s1.results.hiv[result_key][ind]
 
-        print(f'Checking with varying {par:10s} ... ', end='')
-        assert v0 <= v1, f'Expected infections to be lower with {par}={lo} than with {par}={hi}, but {v0} > {v1})'
-        print(f'✓ ({v0} <= {v1})')
+        print(f'Checking {result_key:18s} with varying {par:15s} ... ', end='')
 
-    return s0, s1
+        if par == 'art_efficacy':
+            # Higher ART efficacy → fewer deaths
+            assert v0 >= v1, f'Expected {result_key} to be higher with {par}={lo} than {hi}, but {v0} < {v1}'
+        else:
+            assert v0 <= v1, f'Expected {result_key} to be lower with {par}={lo} than {hi}, but {v0} > {v1}'
+
+        print(f'✓ ({v0:.1f} vs {v1:.1f})')
+
+    return
+
+
+def test_prevalence_by_sex(n_agents=5000):
+    """
+    Under default parameters, female HIV prevalence should exceed male prevalence (#262).
+
+    This is a basic sanity check: biological susceptibility (rel_beta_f2m < 1 means
+    women are more easily infected) and network structure should produce higher
+    female prevalence. If this fails, something fundamental has changed.
+    """
+    sim = sti.Sim(diseases='hiv', n_agents=n_agents, dur=30, beta_m2f=0.05, init_prev=0.05)
+    sim.run(verbose=0)
+
+    prev_f = sim.results.hiv.prevalence_f[-1]
+    prev_m = sim.results.hiv.prevalence_m[-1]
+
+    print(f'Prevalence — F: {prev_f:.3f}, M: {prev_m:.3f}')
+    assert prev_f > prev_m, f'Expected female prevalence ({prev_f:.3f}) > male ({prev_m:.3f})'
+    return sim
 
 
 if __name__ == '__main__':
@@ -583,6 +621,7 @@ if __name__ == '__main__':
     timer = sc.timer()
 
     test_par_ranges()
+    test_prevalence_by_sex()
     test_cd4_counts_decline_untreated()
     test_time_from_infection_to_aids_untreated()
     test_latent_transmission_ratio_is_1()
