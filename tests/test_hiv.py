@@ -563,12 +563,17 @@ def test_par_ranges(n_agents=2000):
 
     result_keys = ['cum_infections', 'cum_deaths']
 
+    # Build all 8 sims and run in one parallel call
+    sims = []
     for par, (lo, hi) in par_effects.items():
+        sims.append(hivsim.Sim(n_agents=n_agents, dur=20, verbose=0, label=f'{par}={lo}', **{par: lo}))
+        sims.append(hivsim.Sim(n_agents=n_agents, dur=20, verbose=0, label=f'{par}={hi}', **{par: hi}))
 
-        s0 = hivsim.Sim(n_agents=n_agents, dur=20, verbose=0, **{par: lo})
-        s1 = hivsim.Sim(n_agents=n_agents, dur=20, verbose=0, **{par: hi})
-        ss.parallel(s0, s1)
+    ss.parallel(*sims)
 
+    # Check results pairwise
+    for i, (par, (lo, hi)) in enumerate(par_effects.items()):
+        s0, s1 = sims[2*i], sims[2*i+1]
         for result_key in result_keys:
             ind = 1 if par == 'init_prev' else -1
             v0 = s0.results.hiv[result_key][ind]
