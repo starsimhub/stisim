@@ -23,8 +23,6 @@ files.migration = 'migration.csv'
 def get_age_distribution(location=None, year=None, datafolder=None):
     """ Load age distribution for a given location & year"""
     if datafolder is None: datafolder = filesdir
-    if hasattr(year, 'years'):
-        year = int(year.years)
     filepath = sc.makefilepath(filename= f'{location}_age_{year}.csv', folder=datafolder)
     try:
         raw_df = pd.read_csv(filepath)
