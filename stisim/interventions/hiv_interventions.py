@@ -199,8 +199,8 @@ def _parse_stratified_df(data, yearvec):
 
     fmt = 'p' if data[val_col].dropna().max() <= 1.0 else 'n'
 
-    # Extract unique age bins and sex keys
-    age_bins = sorted(data['AgeBin'].unique())
+    # Extract unique age bins and sex keys (sort numerically, not lexicographically)
+    age_bins = sorted(data['AgeBin'].unique(), key=lambda ab: ss.parse_age_range(ab)[0])
     sex_keys = sorted(data['Gender'].unique())
 
     # Build interpolated arrays for each (age_bin, sex) combination
@@ -441,13 +441,12 @@ class ART(ss.Intervention):
         total = 0
 
         for ab in self.age_bins:
-            lo, hi = _parse_age_bin(ab)
             for sex in self.sex_keys:
                 cov = self.coverage.get((ab, sex), np.zeros(1))
                 cov_val = cov[self.ti] if len(cov) > self.ti else cov[-1]
 
                 # Find eligible agents in this stratum
-                age_mask = (sim.people.age >= lo) & (sim.people.age < hi)
+                age_mask = ss.apply_age_range(ab, sim.people.age)
                 sex_mask = sim.people.female if sex == 0 else sim.people.male
                 stratum_uids = eligible_uids[age_mask[eligible_uids] & sex_mask[eligible_uids]]
 
@@ -649,11 +648,10 @@ class VMMC(ss.Intervention):
         sim = self.sim
         total = 0
         for ab in self.age_bins:
-            lo, hi = _parse_age_bin(ab)
             for sex in (self.sex_keys or [1]):  # VMMC is males only (1=male); handle data gracefully
                 cov = self.coverage.get((ab, sex), np.zeros(1))
                 cov_val = cov[self.ti] if len(cov) > self.ti else cov[-1]
-                age_mask = (sim.people.age >= lo) & (sim.people.age < hi)
+                age_mask = ss.apply_age_range(ab, sim.people.age)
                 stratum_uids = eligible_uids[age_mask[eligible_uids]]
                 if self.coverage_format == 'n':
                     total += int(cov_val / sim.pars.pop_scale)
@@ -733,20 +731,3 @@ class Prep(ss.Intervention):
         return
 
 
-# %% Utility functions
-def _parse_age_bin(ab_str):
-    """
-    Parse age bin string like "[15,25)" into (lo, hi).
-    Also handles numeric tuples and plain strings like "15-25".
-    All bins are treated as half-open intervals [lo, hi) regardless of bracket style.
-    """
-    if isinstance(ab_str, (tuple, list)):
-        return float(ab_str[0]), float(ab_str[1])
-    s = str(ab_str).strip('[]() ')
-    if ',' in s:
-        parts = s.split(',')
-    elif '-' in s:
-        parts = s.split('-')
-    else:
-        raise ValueError(f'Cannot parse age bin: {ab_str}')
-    return float(parts[0].strip()), float(parts[1].strip().rstrip(')'))
