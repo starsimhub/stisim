@@ -7,10 +7,7 @@ import numpy as np
 import sciris as sc
 import pandas as pd
 from scipy.interpolate import interp1d
-
-
-# %% Helper functions
-def count(arr): return np.count_nonzero(arr)
+from stisim.utils import count
 
 
 # %% Base classes
