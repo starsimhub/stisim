@@ -14,7 +14,7 @@ import sciris as sc
 
 # %% Coverage parsing
 
-def parse_coverage(data, valid_names=None, yearvec=None):
+def parse_coverage(data, valid_names=None, yearvec=None, smoothness=0, **interp_kw):
     """
     Parse coverage data into a per-timestep array.
 
@@ -41,10 +41,17 @@ def parse_coverage(data, valid_names=None, yearvec=None):
         # Age/sex stratified DataFrame (Gender column is optional)
         parse_coverage(strat_df, valid_names=['p_art'], yearvec=yearvec)
 
+        # Smooth interpolation between data points
+        parse_coverage(data, yearvec=yearvec, smoothness=5)
+
     Args:
         data:        coverage input in any of the formats above, or None
         valid_names: list of valid column names, e.g. ['n_art', 'p_art']
         yearvec:     simulation year vector for interpolation
+        smoothness:  interpolation smoothness (0=linear, higher=smoother S-curves);
+                     passed to sc.smoothinterp
+        **interp_kw: additional keyword arguments passed to sc.smoothinterp
+                     (e.g. method='nearest', growth=0.1)
     """
     if valid_names is None:
         valid_names = []
@@ -65,18 +72,18 @@ def parse_coverage(data, valid_names=None, yearvec=None):
         fmt = data.get('format', None)
         if fmt is None:
             fmt = 'p' if np.all(values <= 1.0) else 'n'
-        arr = sc.smoothinterp(yearvec, years, values, smoothness=0)
+        arr = sc.smoothinterp(yearvec, years, values, smoothness=smoothness, **interp_kw)
         return arr, fmt, None, None
 
     # DataFrame — check for stratified vs single-column
     if isinstance(data, pd.DataFrame):
-        return _parse_coverage_df(data, valid_names, yearvec)
+        return _parse_coverage_df(data, valid_names, yearvec, smoothness=smoothness, **interp_kw)
 
     errormsg = f'Coverage data format not recognized: {type(data)}. Expected None, number, dict, or DataFrame.'
     raise ValueError(errormsg)
 
 
-def _parse_coverage_df(data, valid_names, yearvec):
+def _parse_coverage_df(data, valid_names, yearvec, smoothness=0, **interp_kw):
     """
     Parse a DataFrame of coverage data.
 
@@ -91,13 +98,13 @@ def _parse_coverage_df(data, valid_names, yearvec):
     has_agebin = 'agebin' in col_lower or 'age_bin' in col_lower or 'age' in col_lower
 
     if has_year and has_agebin:  # Gender/Sex column is optional
-        return _parse_stratified_df(data, yearvec)
+        return _parse_stratified_df(data, yearvec, smoothness=smoothness, **interp_kw)
 
     # Single-column format: index=years, column in valid_names (e.g. n_art or p_art)
     if len(data.columns) == 1 and data.columns[0] in valid_names:
         colname = data.columns[0]
         fmt = 'n' if colname.startswith('n_') else 'p'
-        arr = sc.smoothinterp(yearvec, data.index.values, data[colname].values, smoothness=0)
+        arr = sc.smoothinterp(yearvec, data.index.values, data[colname].values, smoothness=smoothness, **interp_kw)
         return arr, fmt, None, None
 
     # Try to find a valid column
@@ -105,9 +112,9 @@ def _parse_coverage_df(data, valid_names, yearvec):
         if col in valid_names:
             fmt = 'n' if col.startswith('n_') else 'p'
             if data.index.name in ['year', 'Year'] or np.all(data.index > 1900):
-                arr = sc.smoothinterp(yearvec, data.index.values, data[col].values, smoothness=0)
+                arr = sc.smoothinterp(yearvec, data.index.values, data[col].values, smoothness=smoothness, **interp_kw)
             else:
-                arr = sc.smoothinterp(yearvec, np.arange(len(data)), data[col].values, smoothness=0)
+                arr = sc.smoothinterp(yearvec, np.arange(len(data)), data[col].values, smoothness=smoothness, **interp_kw)
             return arr, fmt, None, None
 
     errormsg = f'DataFrame columns {list(data.columns)} do not match any valid names {valid_names}.'
@@ -182,7 +189,7 @@ def _normalize_stratified_cols(data):
     return df
 
 
-def _parse_stratified_df(data, yearvec):
+def _parse_stratified_df(data, yearvec, smoothness=0, **interp_kw):
     """
     Parse a stratified coverage DataFrame.
 
@@ -232,10 +239,11 @@ def _parse_stratified_df(data, yearvec):
             else:
                 years = subset['Year'].values.astype(float)
                 vals  = subset[val_col].values.astype(float)
+                # Fill NaN gaps before interpolating to yearvec
                 mask = ~np.isnan(vals)
                 if mask.any():
-                    vals = np.interp(years, years[mask], vals[mask])
-                coverage[key] = sc.smoothinterp(yearvec, years, vals, smoothness=0)
+                    vals = sc.smoothinterp(years, years[mask], vals[mask], smoothness=0)
+                coverage[key] = sc.smoothinterp(yearvec, years, vals, smoothness=smoothness, **interp_kw)
 
     return coverage, fmt, age_bins, sex_keys
 
