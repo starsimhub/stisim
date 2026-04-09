@@ -62,6 +62,9 @@ nav:
       - Structured sexual: user_guide/networks/structured_sexual.md
     - Interventions:
       - user_guide/interventions/interventions.md
+  - Examples:
+    - examples/index.md
+    - Modeling ART interruptions: examples/art_interruptions.ipynb
   - What's new: whatsnew.md
   - Code of conduct: code_of_conduct.md
   - Contributing: contributing.md
@@ -71,11 +74,14 @@ nav:
 markdown_extensions:
   - toc:
       toc_depth: 3
-  - attr_list # enables HTMl and CSS classes to inline elements
+  - attr_list # enables HTML and CSS classes to inline elements
   - md_in_html # enables grids
   - admonition # warnings, etc.
   - def_list
   - footnotes
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
 # javascript customization for math
 extra_javascript:
