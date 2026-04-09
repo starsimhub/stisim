@@ -234,6 +234,13 @@ def test_mtc_transmission_occurs():
     if verbose:
         print(f"{total_mtc_tranmissions} mother-to-child transmissions were recorded")
     assert total_mtc_tranmissions > 0, f"Expected MTC transmissions to occur, but none were recorded."
+
+    # Verify consistency: new_infections_mtct + new_infections_sex == new_infections
+    total = sim.results.hiv.new_infections.sum()
+    sex = sim.results.hiv.new_infections_sex.sum()
+    mtct = sim.results.hiv.new_infections_mtct.sum()
+    assert sex + mtct == total, f'Expected sex ({sex}) + mtct ({mtct}) == total ({total})'
+
     return sim
 
 

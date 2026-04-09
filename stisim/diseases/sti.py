@@ -116,6 +116,9 @@ class BaseSTI(ss.Infection):
         # Set initial prevalence
         self.init_prev_data = init_prev_data
 
+        # MTCT tracking: count of congenital infections this timestep, set in set_outcomes()
+        self._n_mtct = 0
+
         # Results
         self.age_range = [15, 50]  # Age range for main results e.g. prevalence
         self.age_bins = np.array([0, 15, 20, 25, 30, 35, 50, 65, 100])  # Age bins for results
@@ -229,6 +232,12 @@ class BaseSTI(ss.Infection):
                     ss.Result('new_treated'+skk, dtype=int, label="Treatments"+skl, auto_plot=False),
                 ]
 
+        # Transmission route results
+        results += [
+            ss.Result('new_infections_sex', dtype=int, label='New infections (sexual)', auto_plot=False),
+            ss.Result('new_infections_mtct', dtype=int, label='New infections (MTCT)', auto_plot=False),
+        ]
+
         self.define_results(*results)
 
         return
@@ -278,10 +287,12 @@ class BaseSTI(ss.Infection):
         super().set_outcomes(uids, sources=sources)
         self.new_transmissions[:] = 0  # Total
         self.new_transmissions_sex[:] = 0  # Sexual transmissions only
+        self._n_mtct = 0
 
         if sources is not None:
             # Separate sexual and congenital transmission
             congenital = self.sim.people.age[uids] <= 0
+            self._n_mtct = np.count_nonzero(congenital)
             sex_transmission = sources[~congenital]
             mtc_transmission = sources[congenital]
 
@@ -334,6 +345,11 @@ class BaseSTI(ss.Infection):
                     ask = f'{skk}_{ab1}_{ab2}'
                     self.results[f'{akey}{ask}'][ti] = ares[ai]
                     ai += 1
+
+        # Transmission route results
+        self.results['new_infections_mtct'][ti] = self._n_mtct
+        self.results['new_infections_sex'][ti] = self.results['new_infections'][ti] - self._n_mtct
+
         return
 
 
