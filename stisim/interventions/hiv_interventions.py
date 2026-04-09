@@ -7,7 +7,7 @@ import starsim as ss
 import numpy as np
 from stisim.interventions.base_interventions import STITest
 from stisim.interventions.utils import (
-    parse_coverage, _handle_deprecated_coverage, compute_coverage_target,
+    parse_coverage, compute_coverage_target,
 )
 from stisim.utils import count
 
@@ -101,16 +101,16 @@ class ART(ss.Intervention):
            go directly on ART (no capacity constraint)
         5. Mothers on ART protect unborn infants (rel_sus=0) via MaternalNet
 
-    Coverage can be specified in several formats:
-        - None: no coverage target; treat all who initiate (default)
-        - Scalar (e.g. 0.8): constant proportion of infected on ART
-        - Dict: {'year': [2000, 2020], 'value': [0, 0.9]} — linearly interpolated
-        - DataFrame: index=years, column 'n_art' (absolute numbers) or 'p_art'
-          (proportion of infected). Values are linearly interpolated to the sim
-          yearvec.
-        - Stratified DataFrame: columns Year, Gender/Sex, AgeBin (format
-          '[lo,hi)'), plus a numeric value column. Values are interpolated per
-          stratum.
+    Coverage is parsed by :func:`parse_coverage` and accepts:
+        - ``None``: no coverage target; treat all who initiate (default)
+        - Scalar (e.g. ``0.8``): constant proportion of infected on ART
+        - Dict: ``{'year': [...], 'value': [...]}`` — interpolated to yearvec
+        - Dict with mixed format: ``{'year': [...], 'value': [...], 'format': ['n','n','p','p']}``
+        - Single-column DataFrame: index=years, column ``n_art`` or ``p_art``
+        - Dual-column DataFrame: both ``n_art`` and ``p_art`` columns — uses
+          ``format_priority`` to resolve (default: ``n_art`` when non-NaN)
+        - Stratified DataFrame: columns Year, AgeBin (e.g. ``[15,25)``), and
+          optionally Gender/Sex, plus a numeric value column
 
     Intervention ordering: HIVTest must appear before ART in the interventions
     list so that agents diagnosed this timestep can initiate ART in the same step.
@@ -120,8 +120,11 @@ class ART(ss.Intervention):
         art_initiation:   probability a newly diagnosed person initiates ART
                           (default: ss.bernoulli(p=0.9)). Set to 1 to treat all
                           diagnosed.
+        smoothness:       interpolation smoothness (0=linear, default)
+        format_priority:  when both n_art and p_art are non-NaN, prefer this format
+                          ('n' or 'p', default 'n')
 
-    Example::
+    Examples::
 
         # Simple: 80% of infected on ART
         art = sti.ART(coverage=0.8)
@@ -132,18 +135,18 @@ class ART(ss.Intervention):
         # No coverage target — 90% of newly diagnosed initiate (default art_initiation)
         art = sti.ART()
 
-        # Treat ALL diagnosed with no coverage constraint
-        art = sti.ART(art_initiation=1)
-
         # From a CSV file
         art = sti.ART(coverage=pd.read_csv('art_coverage.csv').set_index('year'))
+
+        # Historical n_art then projected p_art
+        df = pd.read_csv('n_art.csv').set_index('year')
+        df['p_art'] = np.nan
+        df.loc[2023:, 'p_art'] = 0.90
+        art = sti.ART(coverage=df)
     """
 
-    def __init__(self, pars=None, coverage=None, coverage_data=None, smoothness=0, **kwargs):
+    def __init__(self, pars=None, coverage=None, smoothness=0, format_priority='n', **kwargs):
         super().__init__()
-
-        # Handle deprecated kwargs
-        coverage, future_coverage = _handle_deprecated_coverage(coverage, coverage_data, kwargs)
 
         self.define_pars(
             art_initiation=ss.bernoulli(p=0.9),
@@ -151,10 +154,10 @@ class ART(ss.Intervention):
         self.update_pars(pars, **kwargs)
 
         self._raw_coverage    = coverage
-        self._future_coverage = future_coverage  # Legacy compat, removed once deprecated
         self._smoothness      = smoothness
+        self._format_priority = format_priority
         self.coverage         = None  # Set in init_pre
-        self.coverage_format  = None  # 'n' or 'p'
+        self.coverage_format  = None  # 'n', 'p', or per-timestep array
         self.age_bins         = None  # For stratified coverage
         self.sex_keys         = None  # For stratified coverage
         return
@@ -174,7 +177,7 @@ class ART(ss.Intervention):
         # Parse coverage data
         self.coverage, self.coverage_format, self.age_bins, self.sex_keys = parse_coverage(
             self._raw_coverage, valid_names=['n_art', 'p_art'], yearvec=self.t.yearvec,
-            smoothness=self._smoothness,
+            smoothness=self._smoothness, format_priority=self._format_priority,
         )
         self.initialized = True
         return
@@ -184,7 +187,6 @@ class ART(ss.Intervention):
         return compute_coverage_target(
             self.coverage, self.coverage_format, self.age_bins, self.sex_keys,
             self.ti, eligible_uids, self.sim,
-            future_coverage=self._future_coverage,
         )
 
     def step(self):
@@ -296,29 +298,26 @@ class VMMC(ss.Intervention):
     If no coverage is specified, VMMC does nothing. Coverage must be provided
     explicitly via the coverage parameter.
 
-    Coverage formats (same as ART):
-        - Scalar: constant proportion of males (e.g. 0.3)
-        - Dict: {'year': [...], 'value': [...]} — linearly interpolated
-        - DataFrame: index=years, column 'n_vmmc' or 'p_vmmc'
-        - Stratified DataFrame: Year/Gender/AgeBin columns
+    Coverage is parsed by :func:`parse_coverage` (same formats as ART, using
+    ``n_vmmc``/``p_vmmc`` column names). Age-only stratification is supported
+    (no Gender column required, since VMMC is males-only).
 
     Args:
-        coverage:    coverage target in any format above (default None; VMMC does
-                     nothing without coverage data)
-        eff_circ:    efficacy (default 0.6 = 60% reduction in HIV acquisition)
-        eligibility: optional function to restrict who is eligible (default: all males)
+        coverage:         coverage target (default None; VMMC does nothing without data).
+                          See :func:`parse_coverage` for supported formats.
+        eff_circ:         efficacy (default 0.6 = 60% reduction in HIV acquisition)
+        eligibility:      optional function to restrict who is eligible (default: all males)
+        smoothness:       interpolation smoothness (0=linear, default)
+        format_priority:  when both n_vmmc and p_vmmc are non-NaN, prefer this format
 
-    Example::
+    Examples::
 
         vmmc = sti.VMMC(coverage=0.3)
         vmmc = sti.VMMC(coverage={'year': [2010, 2025], 'value': [0, 0.4]})
     """
 
-    def __init__(self, pars=None, coverage=None, coverage_data=None, eligibility=None, smoothness=0, **kwargs):
+    def __init__(self, pars=None, coverage=None, eligibility=None, smoothness=0, format_priority='n', **kwargs):
         super().__init__(eligibility=eligibility)
-
-        # Handle deprecated kwargs
-        coverage, future_coverage = _handle_deprecated_coverage(coverage, coverage_data, kwargs)
 
         self.define_pars(
             eff_circ=0.6,
@@ -326,8 +325,8 @@ class VMMC(ss.Intervention):
         self.update_pars(pars, **kwargs)
 
         self._raw_coverage    = coverage
-        self._future_coverage = future_coverage
         self._smoothness      = smoothness
+        self._format_priority = format_priority
         self.coverage         = None
         self.coverage_format  = None
         self.age_bins         = None
@@ -344,7 +343,7 @@ class VMMC(ss.Intervention):
         super().init_pre(sim)
         self.coverage, self.coverage_format, self.age_bins, self.sex_keys = parse_coverage(
             self._raw_coverage, valid_names=['n_vmmc', 'p_vmmc'], yearvec=self.t.yearvec,
-            smoothness=self._smoothness,
+            smoothness=self._smoothness, format_priority=self._format_priority,
         )
         return
 
@@ -361,7 +360,6 @@ class VMMC(ss.Intervention):
         return compute_coverage_target(
             self.coverage, self.coverage_format, self.age_bins, self.sex_keys,
             self.ti, eligible_uids, self.sim,
-            future_coverage=self._future_coverage,
         )
 
     def step(self):

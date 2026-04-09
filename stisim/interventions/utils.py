@@ -5,7 +5,6 @@ Coverage parsing, stratified targeting, and related helpers used across
 intervention classes (ART, VMMC, etc.).
 """
 
-import warnings
 import starsim as ss
 import numpy as np
 import pandas as pd
@@ -14,13 +13,46 @@ import sciris as sc
 
 # %% Coverage parsing
 
-def parse_coverage(data, valid_names=None, yearvec=None, smoothness=0, **interp_kw):
+def _interp_by_format(years, values, formats, yearvec, smoothness=0, **interp_kw):
+    """
+    Interpolate values onto yearvec, handling mixed n/p format segments.
+
+    Interpolates within same-format segments separately (so we don't blend
+    absolute numbers with proportions). Returns (coverage_array, format_array).
+    """
+    formats = np.array(formats)
+    arr = np.full(len(yearvec), np.nan)
+    fmt_arr = np.empty(len(yearvec), dtype='U1')
+
+    # Forward-fill format from input years to yearvec
+    for i, yr in enumerate(years):
+        idx = np.searchsorted(yearvec, yr, side='left')
+        end = np.searchsorted(yearvec, years[i + 1], side='left') if i + 1 < len(years) else len(yearvec)
+        fmt_arr[idx:end] = formats[i]
+    # Fill any leading timesteps before first data year
+    first_idx = np.searchsorted(yearvec, years[0], side='left')
+    if first_idx > 0:
+        fmt_arr[:first_idx] = formats[0]
+
+    # Interpolate each format segment separately
+    for fmt in np.unique(formats):
+        seg_mask = formats == fmt
+        seg_years = years[seg_mask]
+        seg_values = values[seg_mask]
+        if len(seg_years) > 0:
+            yv_mask = fmt_arr == fmt
+            arr[yv_mask] = sc.smoothinterp(yearvec[yv_mask], seg_years, seg_values, smoothness=smoothness, **interp_kw)
+
+    return arr, fmt_arr
+
+
+def parse_coverage(data, valid_names=None, yearvec=None, smoothness=0, format_priority='n', **interp_kw):
     """
     Parse coverage data into a per-timestep array.
 
     Returns (coverage_array, coverage_format, age_bins, sex_keys) where:
         - coverage_array: 1D array (len=yearvec) for aggregate, or dict of arrays for stratified
-        - coverage_format: 'n' (absolute numbers) or 'p' (proportion)
+        - coverage_format: 'n' or 'p' (string if uniform), or 1D array of 'n'/'p' per timestep (if mixed)
         - age_bins: list of age bin strings if stratified, else None
         - sex_keys: list of sex values if stratified, else None
 
@@ -35,8 +67,14 @@ def parse_coverage(data, valid_names=None, yearvec=None, smoothness=0, **interp_
         # Time-varying dict with explicit format
         parse_coverage({'year': [2000, 2020], 'value': [1000, 50000], 'format': 'n'}, yearvec=yearvec)
 
+        # Mixed format: switch from absolute numbers to proportion
+        parse_coverage({'year': [2000, 2020, 2023], 'value': [1000, 50000, 0.9], 'format': ['n', 'n', 'p']}, yearvec=yearvec)
+
         # Single-column DataFrame
         parse_coverage(pd.DataFrame(index=years, data={'n_art': vals}), valid_names=['n_art'], yearvec=yearvec)
+
+        # Dual-column DataFrame: n_art for historical, p_art for projected
+        parse_coverage(dual_df, valid_names=['n_art', 'p_art'], yearvec=yearvec)
 
         # Age/sex stratified DataFrame (Gender column is optional)
         parse_coverage(strat_df, valid_names=['p_art'], yearvec=yearvec)
@@ -45,13 +83,14 @@ def parse_coverage(data, valid_names=None, yearvec=None, smoothness=0, **interp_
         parse_coverage(data, yearvec=yearvec, smoothness=5)
 
     Args:
-        data:        coverage input in any of the formats above, or None
-        valid_names: list of valid column names, e.g. ['n_art', 'p_art']
-        yearvec:     simulation year vector for interpolation
-        smoothness:  interpolation smoothness (0=linear, higher=smoother S-curves);
-                     passed to sc.smoothinterp
-        **interp_kw: additional keyword arguments passed to sc.smoothinterp
-                     (e.g. method='nearest', growth=0.1)
+        data:             coverage input in any of the formats above, or None
+        valid_names:      list of valid column names, e.g. ['n_art', 'p_art']
+        yearvec:          simulation year vector for interpolation
+        smoothness:       interpolation smoothness (0=linear, higher=smoother S-curves);
+                          passed to sc.smoothinterp
+        format_priority:  when both n_* and p_* are non-NaN, prefer this format ('n' or 'p')
+        **interp_kw:      additional keyword arguments passed to sc.smoothinterp
+                          (e.g. method='nearest', growth=0.1)
     """
     if valid_names is None:
         valid_names = []
@@ -72,24 +111,32 @@ def parse_coverage(data, valid_names=None, yearvec=None, smoothness=0, **interp_
         fmt = data.get('format', None)
         if fmt is None:
             fmt = 'p' if np.all(values <= 1.0) else 'n'
+
+        # Mixed format: per-entry format list
+        if isinstance(fmt, (list, np.ndarray)):
+            arr, fmt_arr = _interp_by_format(years, values, fmt, yearvec, smoothness=smoothness, **interp_kw)
+            return arr, fmt_arr, None, None
+
+        # Uniform format
         arr = sc.smoothinterp(yearvec, years, values, smoothness=smoothness, **interp_kw)
         return arr, fmt, None, None
 
     # DataFrame — check for stratified vs single-column
     if isinstance(data, pd.DataFrame):
-        return _parse_coverage_df(data, valid_names, yearvec, smoothness=smoothness, **interp_kw)
+        return _parse_coverage_df(data, valid_names, yearvec, smoothness=smoothness, format_priority=format_priority, **interp_kw)
 
     errormsg = f'Coverage data format not recognized: {type(data)}. Expected None, number, dict, or DataFrame.'
     raise ValueError(errormsg)
 
 
-def _parse_coverage_df(data, valid_names, yearvec, smoothness=0, **interp_kw):
+def _parse_coverage_df(data, valid_names, yearvec, smoothness=0, format_priority='n', **interp_kw):
     """
     Parse a DataFrame of coverage data.
 
-    Handles two cases:
-        1. Single-column: index=years, column in valid_names → 1D interpolated array
-        2. Stratified: columns include Year, AgeBin, and optionally Gender/Sex → dict of arrays by stratum
+    Handles three cases:
+        1. Stratified: columns include Year, AgeBin, and optionally Gender/Sex → dict of arrays by stratum
+        2. Dual-column: both n_* and p_* columns present → mixed-format with per-timestep format array
+        3. Single-column: index=years, column in valid_names → 1D interpolated array
     """
 
     # Check for stratified format — normalize column names for flexible matching
@@ -99,6 +146,13 @@ def _parse_coverage_df(data, valid_names, yearvec, smoothness=0, **interp_kw):
 
     if has_year and has_agebin:  # Gender/Sex column is optional
         return _parse_stratified_df(data, yearvec, smoothness=smoothness, **interp_kw)
+
+    # Check for dual-column format (both n_* and p_* columns)
+    n_cols = [c for c in data.columns if c in valid_names and c.startswith('n_')]
+    p_cols = [c for c in data.columns if c in valid_names and c.startswith('p_')]
+    if n_cols and p_cols:
+        return _parse_dual_column_df(data, n_cols[0], p_cols[0], yearvec,
+                                     format_priority=format_priority, smoothness=smoothness, **interp_kw)
 
     # Single-column format: index=years, column in valid_names (e.g. n_art or p_art)
     if len(data.columns) == 1 and data.columns[0] in valid_names:
@@ -119,6 +173,56 @@ def _parse_coverage_df(data, valid_names, yearvec, smoothness=0, **interp_kw):
 
     errormsg = f'DataFrame columns {list(data.columns)} do not match any valid names {valid_names}.'
     raise ValueError(errormsg)
+
+
+def _parse_dual_column_df(data, n_col, p_col, yearvec, format_priority='n', smoothness=0, **interp_kw):
+    """
+    Parse a DataFrame with both n_* and p_* columns into a mixed-format coverage array.
+
+    For each year, uses the priority column when non-NaN, falls back to the other.
+    Interpolates within same-format segments separately.
+    """
+    years = data.index.values.astype(float)
+    n_vals = data[n_col].values.astype(float)
+    p_vals = data[p_col].values.astype(float)
+
+    n_valid = ~np.isnan(n_vals)
+    p_valid = ~np.isnan(p_vals)
+
+    # Build per-year format: priority column wins when non-NaN
+    values = np.full(len(years), np.nan)
+    formats = np.empty(len(years), dtype='U1')
+
+    if format_priority == 'n':
+        use_n = n_valid | (~n_valid & ~p_valid)  # Use n when available, or when both NaN
+        use_p = ~n_valid & p_valid
+    else:
+        use_p = p_valid | (~p_valid & ~n_valid)
+        use_n = ~p_valid & n_valid
+
+    values[use_n] = n_vals[use_n]
+    values[use_p] = p_vals[use_p]
+    formats[use_n] = 'n'
+    formats[use_p] = 'p'
+
+    # Drop rows where both are NaN
+    valid = ~np.isnan(values)
+    if not valid.any():
+        return np.zeros(len(yearvec)), 'p', None, None
+
+    years = years[valid]
+    values = values[valid]
+    formats = formats[valid]
+
+    # If all same format, return uniform
+    unique_fmts = np.unique(formats)
+    if len(unique_fmts) == 1:
+        arr = sc.smoothinterp(yearvec, years, values, smoothness=smoothness, **interp_kw)
+        return arr, unique_fmts[0], None, None
+
+    # Mixed format: interpolate segments separately
+    arr, fmt_arr = _interp_by_format(years, values, formats, yearvec, smoothness=smoothness, **interp_kw)
+    return arr, fmt_arr, None, None
 
 
 def _normalize_sex(val):
@@ -248,25 +352,6 @@ def _parse_stratified_df(data, yearvec, smoothness=0, **interp_kw):
     return coverage, fmt, age_bins, sex_keys
 
 
-def _handle_deprecated_coverage(coverage, coverage_data, kwargs):
-    """
-    Handle deprecated coverage_data and future_coverage kwargs.
-    Returns the normalized coverage input and any remaining future_coverage.
-    """
-    future_coverage = kwargs.pop('future_coverage', None)
-
-    if coverage_data is not None and coverage is not None:
-        raise ValueError('Cannot specify both coverage and coverage_data. Use coverage only.')
-
-    if coverage_data is not None:
-        warnings.warn('coverage_data is deprecated; use coverage instead', FutureWarning, stacklevel=3)
-        coverage = coverage_data
-
-    if future_coverage is not None:
-        warnings.warn('future_coverage is deprecated; extend coverage data to cover the full simulation period instead', FutureWarning, stacklevel=3)
-
-    return coverage, future_coverage
-
 
 # %% Coverage targeting helpers
 
@@ -313,22 +398,22 @@ def coverage_to_number(cov_val, coverage_format, pop_scale=None, n_eligible=None
 
 
 def compute_coverage_target(coverage, coverage_format, age_bins, sex_keys,
-                            ti, eligible_uids, sim, future_coverage=None):
+                            ti, eligible_uids, sim):
     """
     Compute the target number of people to cover this timestep.
 
-    Handles aggregate, stratified, and legacy future_coverage modes.
+    Handles aggregate and stratified coverage, including mixed n/p format
+    (where coverage_format is a per-timestep array).
     Returns None if no coverage constraint, int otherwise.
 
     Shared by ART, VMMC, and potentially other coverage-targeted interventions.
     """
-    # Legacy future_coverage mode (deprecated, will be removed)
-    if future_coverage is not None and sim.t.now('year') >= future_coverage['year']:
-        return int(future_coverage['prop'] * len(eligible_uids))
-
     # No coverage data — no constraint
     if coverage is None:
         return None
+
+    # Resolve format for this timestep (string if uniform, array if mixed)
+    fmt = coverage_format[ti] if isinstance(coverage_format, np.ndarray) else coverage_format
 
     # Stratified coverage: loop over age/sex strata and sum targets
     if isinstance(coverage, dict):
@@ -342,12 +427,12 @@ def compute_coverage_target(coverage, coverage_format, age_bins, sex_keys,
 
                 # Count eligible agents and convert to a target number
                 n = (age_sex_mask(ab, sex, sim.people) & eligible_uids).count()
-                total += coverage_to_number(cov_val, coverage_format,
+                total += coverage_to_number(cov_val, fmt,
                                             pop_scale=sim.pars.pop_scale, n_eligible=n)
         return total
 
     # Aggregate coverage: single value for the whole population
     cov_val = coverage[ti]
     n_eligible = len(eligible_uids)
-    return coverage_to_number(cov_val, coverage_format,
+    return coverage_to_number(cov_val, fmt,
                               pop_scale=sim.pars.pop_scale, n_eligible=n_eligible)
