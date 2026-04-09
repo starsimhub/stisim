@@ -139,7 +139,7 @@ class ART(ss.Intervention):
         art = sti.ART(coverage=pd.read_csv('art_coverage.csv').set_index('year'))
     """
 
-    def __init__(self, pars=None, coverage=None, coverage_data=None, **kwargs):
+    def __init__(self, pars=None, coverage=None, coverage_data=None, smoothness=0, **kwargs):
         super().__init__()
 
         # Handle deprecated kwargs
@@ -152,6 +152,7 @@ class ART(ss.Intervention):
 
         self._raw_coverage    = coverage
         self._future_coverage = future_coverage  # Legacy compat, removed once deprecated
+        self._smoothness      = smoothness
         self.coverage         = None  # Set in init_pre
         self.coverage_format  = None  # 'n' or 'p'
         self.age_bins         = None  # For stratified coverage
@@ -173,6 +174,7 @@ class ART(ss.Intervention):
         # Parse coverage data
         self.coverage, self.coverage_format, self.age_bins, self.sex_keys = parse_coverage(
             self._raw_coverage, valid_names=['n_art', 'p_art'], yearvec=self.t.yearvec,
+            smoothness=self._smoothness,
         )
         self.initialized = True
         return
@@ -312,7 +314,7 @@ class VMMC(ss.Intervention):
         vmmc = sti.VMMC(coverage={'year': [2010, 2025], 'value': [0, 0.4]})
     """
 
-    def __init__(self, pars=None, coverage=None, coverage_data=None, eligibility=None, **kwargs):
+    def __init__(self, pars=None, coverage=None, coverage_data=None, eligibility=None, smoothness=0, **kwargs):
         super().__init__(eligibility=eligibility)
 
         # Handle deprecated kwargs
@@ -325,6 +327,7 @@ class VMMC(ss.Intervention):
 
         self._raw_coverage    = coverage
         self._future_coverage = future_coverage
+        self._smoothness      = smoothness
         self.coverage         = None
         self.coverage_format  = None
         self.age_bins         = None
@@ -341,6 +344,7 @@ class VMMC(ss.Intervention):
         super().init_pre(sim)
         self.coverage, self.coverage_format, self.age_bins, self.sex_keys = parse_coverage(
             self._raw_coverage, valid_names=['n_vmmc', 'p_vmmc'], yearvec=self.t.yearvec,
+            smoothness=self._smoothness,
         )
         return
 
@@ -392,42 +396,63 @@ class Prep(ss.Intervention):
 
     By default targets HIV-negative FSWs who are not already on PrEP.
     Reduces HIV susceptibility by eff_prep (default 80%). Coverage ramps up
-    over time according to the years/coverage parameters (linearly interpolated).
+    over time via ``parse_coverage`` (same flexible inputs as ART/VMMC).
     Use the eligibility parameter to target a different population.
 
+    Note: PrEP uses a per-agent probability model (coverage = probability of
+    being on PrEP) rather than a target-count model like ART/VMMC.
+
     Args:
-        coverage (list):  coverage values at each year (default [0, 0.01, 0.5, 0.8])
-        years (list):     corresponding calendar years (default [2004, 2005, 2015, 2025])
-        eff_prep (float): efficacy (default 0.8 = 80% reduction in acquisition)
-        eligibility:      function to override default FSW targeting
+        coverage:    coverage data in any format accepted by parse_coverage;
+                     also accepts legacy (years, coverage) list pairs via pars
+        eff_prep:    efficacy (default 0.8 = 80% reduction in acquisition)
+        smoothness:  interpolation smoothness (0=linear, default)
+        eligibility: function to override default FSW targeting
 
-    Example::
+    Examples::
 
-        prep = sti.Prep(coverage=[0, 0.5], years=[2020, 2025])
+        prep = sti.Prep(coverage={'year': [2020, 2025], 'value': [0, 0.5]})
+        prep = sti.Prep(coverage=0.3)
     """
-    def __init__(self, pars=None, eligibility=None, **kwargs):
+    def __init__(self, pars=None, coverage=None, eligibility=None, smoothness=0, **kwargs):
         super().__init__()
         self.define_pars(
             coverage_dist=ss.bernoulli(p=0),
-            coverage=[0, 0.01, 0.5, 0.8],
-            years=[2004, 2005, 2015, 2025],
             eff_prep=0.8,
         )
         self.update_pars(pars, **kwargs)
         self.eligibility = eligibility
+        self._smoothness = smoothness
+        self._coverage_arr = None  # Set in init_pre
+
+        # Support legacy (years, coverage) pars by converting to dict format
+        if coverage is None and 'years' in self.pars and 'coverage' in self.pars:
+            coverage = {'year': self.pars.years, 'value': self.pars.coverage}
+        elif coverage is None:
+            coverage = {'year': [2004, 2005, 2015, 2025], 'value': [0, 0.01, 0.5, 0.8]}
+        self._raw_coverage = coverage
+
         self.define_states(
             ss.BoolArr('on_prep', label='On PrEP'),
         )
         return
 
+    def init_pre(self, sim):
+        super().init_pre(sim)
+        self._coverage_arr, _, _, _ = parse_coverage(
+            self._raw_coverage, valid_names=['p_prep'], yearvec=self.t.yearvec,
+            smoothness=self._smoothness,
+        )
+        return
+
     def step(self):
         sim = self.sim
-        self.coverage = np.interp(self.t.yearvec, self.pars.years, self.pars.coverage)
-        if self.coverage[self.ti] > 0:
-            self.pars.coverage_dist.set(p=self.coverage[self.ti])
-            el_fsw = self.sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected & ~self.on_prep
+        cov_val = self._coverage_arr[self.ti]
+        if cov_val > 0:
+            self.pars.coverage_dist.set(p=cov_val)
+            el_fsw = sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected & ~self.on_prep
             fsw_on_prep = self.pars.coverage_dist.filter(el_fsw)
-            self.sim.diseases.hiv.rel_sus[fsw_on_prep] *= 1 - self.pars.eff_prep
+            sim.diseases.hiv.rel_sus[fsw_on_prep] *= 1 - self.pars.eff_prep
 
         return
 
