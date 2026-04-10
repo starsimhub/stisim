@@ -23,6 +23,12 @@ def test_minimal_hiv():
     assert sim.results.hiv.cum_infections[-1] > 0
     return sim
 
+def test_starsim():
+    """ Test that starsim modules can be used in sti.Sim """
+    sim = ss.Sim(diseases='sir', networks='random', n_agents=500, dur=10)
+    sim.run()
+    return sim 
+
 
 def test_minimal_sti():
     """ Simplest possible non-HIV STI sim """
@@ -81,9 +87,27 @@ def test_sim_creation():
     assert len(sim1.diseases) == 5, "Incorrect number of diseases initialized"
 
     # Test 2: mix of strings and modules
+    class MyNetwork(ss.Network):
+        def __init__(self, pars=None):
+            super().__init__(pars)
+            self.pars.debut = ss.lognorm_ex(20, 5)
+
+    class MentalHealth(ss.Disease):
+        def __init__(self, pars=None):
+            super().__init__(pars)
+            self.pars.beta_m2f = 0.01
+
+        def step(self):
+            """ Increase rel_sus to HIV """
+            hiv = self.sim.diseases.hiv
+            hiv.pars.rel_sus *= 1.01
+
+            # Plus then some mental health dynamics here...
+            
+
     demographics = [ss.Pregnancy(), ss.Deaths()]
-    networks = sti.StructuredSexual()
-    diseases = [sti.Gonorrhea(), 'hiv']
+    networks = [sti.StructuredSexual(), MyNetwork()]
+    diseases = [sti.Gonorrhea(), 'hiv', MentalHealth()]
 
     sim2 = sti.Sim(
         pars=pars,
@@ -95,7 +119,7 @@ def test_sim_creation():
     sim2.init()
 
     assert isinstance(sim2.networks.structuredsexual, sti.StructuredSexual), "Network not initialized correctly"
-    assert len(sim2.diseases) == 2, "Incorrect number of diseases initialized"
+    assert len(sim2.diseases) == 3, "Incorrect number of diseases initialized"
     assert len(sim2.demographics) == 2, "Incorrect number of demographics initialized"
 
     # Test 3: flat pars dict
@@ -132,7 +156,7 @@ def test_hivsim_defaults():
     # Check default modules are present
     assert 'hiv' in sim.diseases, "HIV disease not added"
     assert len(sim.diseases) == 1, "Should have exactly 1 disease"
-    assert len(sim.networks) == 2, "Should have 2 networks (sexual + maternal)"
+    assert len(sim.networks) == 3, "Should have 3 networks (sexual + maternal + breastfeeding)"
     assert len(sim.demographics) == 2, "Should have 2 demographics (pregnancy + deaths)"
     assert len(sim.interventions) == 4, "Should have 4 interventions (test, ART, VMMC, PrEP)"
 
@@ -160,7 +184,7 @@ def test_hivsim_custom_modules():
     assert len(sim.interventions) == 1, f"Expected 1 intervention, got {len(sim.interventions)}"
 
     # But other defaults should still be present
-    assert len(sim.networks) == 2, "Default networks should still be present"
+    assert len(sim.networks) == 3, "Default networks should still be present"
     assert len(sim.demographics) == 2, "Default demographics should still be present"
     return sim
 

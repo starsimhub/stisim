@@ -49,7 +49,7 @@ class Sim(sti.Sim):
 
         # Handle networks
         if not modules.networks:
-            modules.networks = [sti.StructuredSexual(), ss.MaternalNet()]
+            modules.networks = [sti.StructuredSexual(), ss.MaternalNet(), ss.BreastfeedingNet()]
 
         # Handle interventions
         if not modules.interventions:

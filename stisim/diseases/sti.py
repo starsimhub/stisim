@@ -116,8 +116,9 @@ class BaseSTI(ss.Infection):
         # Set initial prevalence
         self.init_prev_data = init_prev_data
 
-        # MTCT tracking: count of congenital infections this timestep, set in set_outcomes()
-        self._n_mtct = 0
+        # MTCT tracking: counts set in set_outcomes()
+        self._n_prenatal = 0
+        self._n_postnatal = 0
 
         # Results
         self.age_range = [15, 50]  # Age range for main results e.g. prevalence
@@ -171,6 +172,8 @@ class BaseSTI(ss.Infection):
             betamap['structuredsexual'][1] = self.pars.beta_m2f * self.pars.rel_beta_f2m
         if self.pars.beta_m2c is not None and betamap and 'maternal' in betamap.keys():
             betamap['maternal'][0] = ss.permonth(self.pars.beta_m2c)
+        if hasattr(self.pars, 'beta_breastfeed') and betamap and 'breastfeeding' in betamap.keys():
+            betamap['breastfeeding'][0] = ss.permonth(self.pars.beta_breastfeed)
         if self.pars.beta_m2m is not None and betamap and 'msm' in betamap.keys():
             betamap['msm'][0] = self.pars.beta_m2m
             betamap['msm'][1] = self.pars.beta_m2m
@@ -236,11 +239,20 @@ class BaseSTI(ss.Infection):
         results += [
             ss.Result('new_infections_sex', dtype=int, label='New infections (sexual)', auto_plot=False),
             ss.Result('new_infections_mtct', dtype=int, label='New infections (MTCT)', auto_plot=False),
+            ss.Result('new_infections_prenatal', dtype=int, label='New infections (prenatal MTCT)', auto_plot=False),
+            ss.Result('new_infections_postnatal', dtype=int, label='New infections (postnatal MTCT)', auto_plot=False),
         ]
 
         self.define_results(*results)
 
         return
+
+    def step(self):
+        """ Override to pass network indices to set_outcomes for MTCT tracking """
+        new_cases, sources, networks = self.infect()
+        if len(new_cases):
+            self.set_outcomes(new_cases, sources, networks)
+        return new_cases, sources, networks
 
     def infect(self):
         """ Determine who gets infected on this timestep via transmission on the network """
@@ -283,21 +295,35 @@ class BaseSTI(ss.Infection):
 
         return new_cases, sources, networks
 
-    def set_outcomes(self, uids, sources=None):
+    def set_outcomes(self, uids, sources=None, networks=None):
         super().set_outcomes(uids, sources=sources)
         self.new_transmissions[:] = 0  # Total
         self.new_transmissions_sex[:] = 0  # Sexual transmissions only
-        self._n_mtct = 0
+        self._n_prenatal = 0
+        self._n_postnatal = 0
 
         if sources is not None:
-            # Separate sexual and congenital transmission
-            congenital = self.sim.people.age[uids] <= 0
-            self._n_mtct = np.count_nonzero(congenital)
-            sex_transmission = sources[~congenital]
-            mtc_transmission = sources[congenital]
+            # Classify infections by network type (prenatal, postnatal, or sexual)
+            is_prenatal = np.zeros(len(uids), dtype=bool)
+            is_postnatal = np.zeros(len(uids), dtype=bool)
+            if networks is not None:
+                net_list = list(self.sim.networks.values())
+                for idx in np.unique(networks):
+                    net = net_list[idx]
+                    mask = networks == idx
+                    if isinstance(net, ss.PrenatalNet):
+                        is_prenatal |= mask
+                    elif isinstance(net, ss.PostnatalNet):
+                        is_postnatal |= mask
+
+            is_mtct = is_prenatal | is_postnatal
+            self._n_prenatal = np.count_nonzero(is_prenatal)
+            self._n_postnatal = np.count_nonzero(is_postnatal)
+
+            sex_transmission = sources[~is_mtct]
+            mtc_transmission = sources[is_mtct]
 
             # Get the unique sources and counts
-            # Only needed for sexual transmission, not MTC.
             unique_sources, counts = np.unique(sources, return_counts=True)
             self.ti_transmitted[unique_sources] = self.ti
             unique_sources_sex, counts_sex = np.unique(sex_transmission, return_counts=True)
@@ -347,8 +373,10 @@ class BaseSTI(ss.Infection):
                     ai += 1
 
         # Transmission route results
-        self.results['new_infections_mtct'][ti] = self._n_mtct
-        self.results['new_infections_sex'][ti] = self.results['new_infections'][ti] - self._n_mtct
+        self.results['new_infections_prenatal'][ti] = self._n_prenatal
+        self.results['new_infections_postnatal'][ti] = self._n_postnatal
+        self.results['new_infections_mtct'][ti] = self._n_prenatal + self._n_postnatal
+        self.results['new_infections_sex'][ti] = self.results['new_infections'][ti] - self.results['new_infections_mtct'][ti]
 
         return
 
