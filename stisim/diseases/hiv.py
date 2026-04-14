@@ -231,7 +231,7 @@ class HIV(BaseSTI):
         post_art_dur = ti_zero - ti_stop_art
         time_post_art = self.ti - ti_stop_art
         cd4_start = self.cd4_postart[zero_later_uids]
-        if post_art_dur.any() <= 0:
+        if (post_art_dur <= 0).any():
             post_art_dur[post_art_dur <= 0] = 1
             # error_msg = 'Post-ART duration is negative'
             # raise ValueError(error_msg)
@@ -272,6 +272,12 @@ class HIV(BaseSTI):
         return self.cd4 < 200
 
     def make_p_hiv_death(self, uids=None):
+        """
+        Calculate per-timestep HIV death probability based on current CD4 count.
+
+        Uses CD4-stratified annual mortality rates, digitized into bins. Rates are
+        converted from per-year to per-timestep probabilities.
+        """
         cd4_bins = np.array([1000, 500, 350, 200, 50, 0])
         p_hiv_death = ss.peryear(np.array([0.003, 0.003, 0.005, 0.01, 0.05, 0.300])).to_prob(self.dt)
         return p_hiv_death[np.digitize(self.cd4[uids], cd4_bins)]

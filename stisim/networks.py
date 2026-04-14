@@ -402,6 +402,7 @@ class StructuredSexual(ss.SexualNetwork):
         return p1, p2
 
     def add_pairs_sw(self):
+        """ Match and add sex worker partnerships for this timestep. Each partnership has duration=1 timestep. Updates lifetime_sw_partners counts. """
         ppl = self.sim.people
 
         try:
@@ -430,6 +431,7 @@ class StructuredSexual(ss.SexualNetwork):
         return
 
     def add_pairs_nonsw(self):
+        """ Match and add non-sex-worker partnerships (stable, casual, one-time) for this timestep. Assigns relationship type, duration, and acts based on risk group and age, and updates partner counts. """
         ppl = self.sim.people
 
         try:

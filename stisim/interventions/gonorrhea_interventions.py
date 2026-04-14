@@ -8,10 +8,6 @@ import sciris as sc
 from stisim.interventions.base_interventions import STITreatment
 
 
-# %% Helper functions
-def count(arr): return np.count_nonzero(arr)
-
-
 # %% Gonorrhea classes
 __all__ = ["GonorrheaTreatment", "UpdateDrugs"]
 

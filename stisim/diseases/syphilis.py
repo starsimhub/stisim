@@ -8,15 +8,9 @@ from sciris import randround as rr # Since used frequently
 import starsim as ss
 import stisim as sti
 from stisim.diseases.sti import BaseSTI, BaseSTIPars
+from stisim.utils import count, div, countdiv, cond_prob
 
 __all__ = ['Syphilis', 'SyphilisPlaceholder']
-
-
-# Define some helper functions
-def count(arr): return np.count_nonzero(arr)
-def div(a, b): return sc.safedivide(a, b)
-def countdiv(a, b): return sc.safedivide(count(a), count(b))
-def cond_prob(a, b): return sc.safedivide(count(a & b), count(b))
 
 
 class SyphilisPlaceholder(ss.Disease):

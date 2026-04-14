@@ -9,10 +9,7 @@ import numpy as np
 import pandas as pd
 import sciris as sc
 from stisim.interventions.base_interventions import STITest
-
-
-# %% Helper functions
-def count(arr): return np.count_nonzero(arr)
+from stisim.utils import count
 
 
 def parse_coverage(data, valid_names=None, yearvec=None):
