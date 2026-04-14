@@ -12,6 +12,13 @@ __all__ = ['HIV', 'HIVPars']
 
 
 class HIVPars(BaseSTIPars):
+    """
+    Parameters for the HIV disease module.
+
+    Holds natural history parameters (CD4 dynamics, acute/latent/falling stage
+    durations), transmission rates, ART treatment effects, and care-seeking
+    behavior configuration.
+    """
     def __init__(self, **kwargs):
         super().__init__()
 
@@ -60,6 +67,19 @@ class HIVPars(BaseSTIPars):
 
 
 class HIV(BaseSTI):
+    """
+    HIV disease module.
+
+    Models HIV infection with CD4-driven natural history (acute, latent, and
+    falling stages), ART treatment with CD4 reconstitution, diagnosis tracking,
+    and AIDS-related mortality. Supports mother-to-child transmission when a
+    pregnancy demographic module is present.
+
+    Args:
+        pars (dict): Override default parameters from ``HIVPars``.
+        init_prev_data: Optional initial prevalence data by age/sex/risk group.
+        **kwargs: Additional parameters passed to ``update_pars``.
+    """
 
     def __init__(self, pars=None, init_prev_data=None, **kwargs):
         super().__init__()

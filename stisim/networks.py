@@ -32,6 +32,16 @@ class NoPartnersFound(Exception):
 
 
 class NetworkPars(ss.Pars):
+    """Default parameters for the structured sexual network.
+
+    Holds configuration for sexual debut ages, risk group proportions,
+    age-difference preferences, concurrency limits, relationship durations,
+    coital act frequency, condom use, and sex work. These defaults are used
+    by :class:`StructuredSexual` and its subclasses unless overridden.
+
+    Args:
+        **kwargs: Any parameter name-value pairs to override defaults.
+    """
     def __init__(self, **kwargs):
         super().__init__()
 
@@ -127,8 +137,18 @@ class NetworkPars(ss.Pars):
 
 
 class StructuredSexual(ss.SexualNetwork):
-    """
-    Structured sexual network
+    """Structured heterosexual network with risk groups, concurrency, and sex work.
+
+    Agents are assigned to one of three risk groups (low, medium, high) that
+    govern partnership formation, concurrency, and relationship duration. A
+    subset of agents participate in sex work. Partnerships are formed each
+    timestep by matching under-partnered agents using age preferences.
+
+    Args:
+        pars (dict): Parameter overrides (see :class:`NetworkPars` for defaults).
+        condom_data: Optional condom-use data (DataFrame or dict).
+        name (str): Network name (default: auto-assigned).
+        **kwargs: Additional parameter overrides forwarded to ``update_pars``.
     """
 
     def __init__(self, pars=None, condom_data=None, name=None, **kwargs):
@@ -664,9 +684,17 @@ class StructuredSexual(ss.SexualNetwork):
 
 
 class PriorPartners(ss.DynamicNetwork):
-    """
-    Lightweight network for storing prior partners, for use in partner notification
-    In this network, 'dur' refers to the duration of time since the relationship ended
+    """Lightweight network that tracks prior sexual partners for partner notification.
+
+    Stores edges representing ended relationships and increments their duration
+    each timestep. Edges older than ``dur_recall`` are removed. Used by partner
+    notification interventions to trace recent contacts.
+
+    Args:
+        pars (dict): Parameter overrides; key parameter is ``dur_recall``
+            (default 1 year).
+        name (str): Network name (default ``'priorpartners'``).
+        **kwargs: Additional parameter overrides.
     """
     def __init__(self, pars=None, name='priorpartners', **kwargs):
         super().__init__(name=name)
@@ -691,6 +719,18 @@ class PriorPartners(ss.DynamicNetwork):
 
 
 class AgeMatchedMSM(StructuredSexual):
+    """Men-who-have-sex-with-men network using exact age-sorted matching.
+
+    Extends :class:`StructuredSexual` for MSM partnerships. Eligible males
+    are sorted by age and paired sequentially so that partners have similar
+    ages. The ``msm_share`` parameter controls what fraction of males
+    participate.
+
+    Args:
+        pars (dict): Parameter overrides; key parameter is ``msm_share``
+            (default ``ss.bernoulli(p=0.015)``).
+        **kwargs: Additional parameter overrides.
+    """
 
     def __init__(self, pars=None, **kwargs):
         super().__init__(name='msm')
@@ -742,6 +782,16 @@ class AgeMatchedMSM(StructuredSexual):
 
 
 class AgeApproxMSM(StructuredSexual):
+    """Men-who-have-sex-with-men network using approximate age-preference matching.
+
+    Extends :class:`StructuredSexual` for MSM partnerships. Unlike
+    :class:`AgeMatchedMSM`, this variant splits eligible males into two
+    arbitrary groups and matches them using the standard age-difference
+    preference distributions rather than exact age sorting.
+
+    Args:
+        **kwargs: Parameter overrides forwarded to :class:`StructuredSexual`.
+    """
 
     def __init__(self, **kwargs):
         super().__init__(name='msm', **kwargs)

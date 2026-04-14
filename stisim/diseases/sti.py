@@ -16,6 +16,12 @@ __all__ = ['BaseSTI', 'SEIS', 'BaseSTIPars', 'STIPars']
 
 
 class BaseSTIPars(ss.Pars):
+    """
+    Base parameters shared by all STI disease modules.
+
+    Holds transmission parameters (beta values, condom efficacy), timestep
+    settings, and initial prevalence configuration.
+    """
     def __init__(self, **kwargs):
         super().__init__()
 
@@ -38,6 +44,14 @@ class BaseSTIPars(ss.Pars):
 
 
 class STIPars(BaseSTIPars):
+    """
+    Parameters for SEIS-type STI models.
+
+    Extends ``BaseSTIPars`` with natural history parameters including symptom
+    probabilities, care-seeking behavior, PID progression, and clearance
+    durations. Used as the default parameter set for chlamydia, gonorrhea,
+    and trichomoniasis.
+    """
     def __init__(self, **kwargs):
         super().__init__()
 
@@ -95,7 +109,16 @@ class STIPars(BaseSTIPars):
 class BaseSTI(ss.Infection):
     """
     Base class for sexually transmitted infections.
-    Modifies make_new_cases to account for barrier protection.
+
+    Extends ``ss.Infection`` with STI-specific transmission logic, including
+    network-specific beta values, condom efficacy, and initial prevalence by
+    sex and risk group. All STIsim disease modules inherit from this class.
+
+    Args:
+        name (str): Module name used for results and parameter routing.
+        pars (dict): Override default parameters from ``BaseSTIPars``.
+        init_prev_data: Initial prevalence data (float or DataFrame by age/sex/risk group).
+        **kwargs: Additional parameters passed to ``update_pars``.
     """
     def __init__(self, name=None, pars=None, init_prev_data=None, **kwargs):
         super().__init__(name=name)
@@ -338,6 +361,20 @@ class BaseSTI(ss.Infection):
 
 
 class SEIS(BaseSTI):
+    """
+    SEIS (Susceptible-Exposed-Infectious-Susceptible) disease template.
+
+    Provides the standard natural history framework for bacterial STIs: latent
+    exposure period, sex-stratified symptom onset, symptomatic care-seeking,
+    PID complications in females, and natural clearance. Used as the base class
+    for chlamydia, gonorrhea, and trichomoniasis.
+
+    Args:
+        pars (dict): Override default parameters from ``STIPars``.
+        name (str): Module name used for results and parameter routing.
+        init_prev_data: Optional initial prevalence data by age/sex.
+        **kwargs: Additional parameters passed to ``update_pars``.
+    """
 
     def __init__(self, pars=None, name=None, init_prev_data=None, **kwargs):
         super().__init__(name=name, init_prev_data=init_prev_data)

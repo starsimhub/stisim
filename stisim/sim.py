@@ -59,8 +59,8 @@ class Sim(ss.Sim):
         You can also pass in custom parameters for the default modules, such as networks or demographics, like this:
         ```python
         sim = sti.Sim(network_pars={
-                    'structuredsexual' = {(sw_seeking_rate=0.5)},
-                    'maternalnet': {'maternal_age': 30}
+                    'structuredsexual': dict(sw_seeking_rate=0.5),
+                    'maternalnet': dict(maternal_age=30),
         })
         ```
 

@@ -243,6 +243,15 @@ __all__ = ["HIVDx", "HIVTest", "ART", "VMMC", "Prep"]
 
 
 class HIVDx(ss.Product):
+    """HIV diagnostic product used by :class:`HIVTest`.
+
+    A simple perfect-sensitivity test that classifies agents as positive
+    (infected) or negative (susceptible) based on their current HIV state.
+
+    Args:
+        *args: Positional arguments forwarded to ``ss.Product``.
+        **kwargs: Keyword arguments forwarded to ``ss.Product``.
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.result_list = ['positive', 'negative']

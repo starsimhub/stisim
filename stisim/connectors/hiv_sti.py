@@ -10,6 +10,18 @@ __all__ = ['hiv_syph', 'hiv_tv', 'hiv_ng', 'hiv_ct', 'hiv_bv']
 
 
 class hiv_syph(ss.Connector):
+    """Connector for bidirectional HIV-syphilis coinfection interactions.
+
+    Models how syphilis increases susceptibility to HIV (default 2.67x) and
+    HIV transmissibility (1.2x), and how HIV/AIDS status can modify syphilis
+    susceptibility and transmissibility.
+
+    Args:
+        hiv_module: The HIV disease module instance.
+        syphilis_module: The syphilis disease module instance.
+        pars (dict): Optional parameter overrides for relative susceptibility
+            and transmissibility multipliers.
+    """
 
     def __init__(self, hiv_module, syphilis_module, pars=None, **kwargs):
         super().__init__()
@@ -65,6 +77,17 @@ class hiv_syph(ss.Connector):
 
 
 class hiv_tv(ss.Connector):
+    """Connector for HIV-trichomoniasis coinfection interaction.
+
+    Models how trichomoniasis increases susceptibility to HIV acquisition
+    (default 1.5x). Effect is unidirectional: trichomoniasis affects HIV
+    susceptibility only.
+
+    Args:
+        hiv_module: The HIV disease module instance.
+        tv_module: The trichomoniasis disease module instance.
+        pars (dict): Optional parameter overrides.
+    """
 
     def __init__(self, hiv_module, tv_module, pars=None, **kwargs):
         super().__init__()
@@ -88,6 +111,16 @@ class hiv_tv(ss.Connector):
 
 
 class hiv_ng(ss.Connector):
+    """Connector for HIV-gonorrhea coinfection interaction.
+
+    Models how gonorrhea increases both susceptibility to HIV acquisition
+    (default 1.2x) and HIV transmissibility (default 1.2x).
+
+    Args:
+        hiv_module: The HIV disease module instance.
+        ng_module: The gonorrhea disease module instance.
+        pars (dict): Optional parameter overrides.
+    """
 
     def __init__(self, hiv_module, ng_module, pars=None, **kwargs):
         super().__init__()
@@ -111,6 +144,17 @@ class hiv_ng(ss.Connector):
 
 
 class hiv_ct(ss.Connector):
+    """Connector for HIV-chlamydia coinfection interaction.
+
+    Models how chlamydia infection modifies susceptibility to HIV acquisition.
+    The default relative susceptibility multiplier is 1 (no effect), serving
+    as a placeholder for user-defined values.
+
+    Args:
+        hiv_module: The HIV disease module instance.
+        ct_module: The chlamydia disease module instance.
+        pars (dict): Optional parameter overrides.
+    """
 
     def __init__(self, hiv_module, ct_module, pars=None, **kwargs):
         super().__init__()
@@ -155,6 +199,18 @@ class hiv_simplebv(ss.Connector):
 
 
 class hiv_bv(hiv_simplebv):
+    """Connector for HIV-bacterial vaginosis coinfection interaction.
+
+    Extends ``hiv_simplebv`` to use the CST-IV vaginal microbiome state
+    (rather than a simple infected flag) to determine which agents receive
+    increased HIV susceptibility (default 2x) and transmissibility (default 2x).
+
+    Args:
+        hiv_module: The HIV disease module instance.
+        bv_module: The BV disease module instance.
+        pars (dict): Optional parameter overrides.
+    """
+
     def step(self):
         cst4 = self.bv.cst4.uids
         self.hiv.rel_sus[cst4] *= self.pars.rel_sus_hiv_bv
