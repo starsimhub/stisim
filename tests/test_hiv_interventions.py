@@ -290,9 +290,9 @@ def test_art_stratified_coverage_matching(do_plot=do_plot):
     # Print per-stratum coverage for inspection (not asserted — current implementation
     # computes a global target from stratified data, not per-stratum force-fitting)
     for (ab, gender), target_p in targets.items():
-        lo, hi = ab.strip('[]()').split(',')
+        lo, hi = ss.parse_age_range(ab)
         sex = 'f' if gender == 0 else 'm'
-        key = f'p_art_{sex}_{lo}_{hi}'
+        key = f'p_art_{sex}_{int(lo)}_{int(hi)}'
         measured_p = np.mean(ac[key][-24:])
         print(f'  {key}: target={target_p:.2f}, measured={measured_p:.2f}')
 
