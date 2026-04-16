@@ -58,38 +58,36 @@ def test_art_specs(do_plot=do_plot):
 
 
 @sc.timer()
-def test_art_legacy_compat(do_plot=do_plot):
-    """ Check that deprecated coverage_data and future_coverage still work """
-    sc.heading('Testing ART legacy backward compatibility...')
+def test_art_mixed_coverage(do_plot=do_plot):
+    """ Check that mixed n/p coverage format works (dual-column DF and dict with format list) """
+    sc.heading('Testing mixed n/p coverage format...')
 
-    years = np.arange(2000, 2011)
-    p_vals = np.linspace(0, 0.9, len(years))
+    # Dual-column DataFrame: n_art for early years, p_art for later
+    years = np.arange(2000, 2021)
+    df = pd.DataFrame(index=years)
+    df['n_art'] = np.nan
+    df['p_art'] = np.nan
+    df.loc[2000:2010, 'n_art'] = np.linspace(0, 5000, 11)
+    df.loc[2011:2020, 'p_art'] = np.linspace(0.5, 0.9, 10)
 
-    # Legacy coverage_data
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        art1 = sti.ART(coverage_data=pd.DataFrame(index=years, data={'p_art': p_vals}))
-        n_deprecation = sum(1 for x in w if issubclass(x.category, FutureWarning))
-    assert n_deprecation >= 1, f'Expected FutureWarning for coverage_data, got {n_deprecation} warnings'
+    art1 = sti.ART(coverage=df)
+    sim1 = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents)
+    sim1.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), art1]
+    sim1.run()
+    assert sim1.results.hiv.n_on_art[-1] > 0, 'Expected people on ART with dual-column DataFrame'
 
-    # Legacy coverage_data + future_coverage
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        art2 = sti.ART(
-            coverage_data=pd.DataFrame(index=years, data={'p_art': p_vals}),
-            future_coverage={'year': 2008, 'prop': 0.85},
-        )
-        n_deprecation = sum(1 for x in w if issubclass(x.category, FutureWarning))
-    assert n_deprecation >= 2, f'Expected 2+ FutureWarnings for coverage_data+future_coverage, got {n_deprecation}'
+    # Dict with per-entry format list
+    art2 = sti.ART(coverage={
+        'year':   [2000, 2010, 2015, 2020],
+        'value':  [0,    5000, 0.5,  0.9],
+        'format': ['n',  'n',  'p',  'p'],
+    })
+    sim2 = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents)
+    sim2.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), art2]
+    sim2.run()
+    assert sim2.results.hiv.n_on_art[-1] > 0, 'Expected people on ART with mixed-format dict'
 
-    # Run both legacy sims to verify they work
-    for art in [art1, art2]:
-        sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents)
-        sim.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), art]
-        sim.run()
-        assert sim.results.hiv.n_on_art[-1] > 0, 'Expected people on ART with legacy format'
-
-    return
+    return sim1, sim2
 
 
 @sc.timer()
@@ -290,9 +288,9 @@ def test_art_stratified_coverage_matching(do_plot=do_plot):
     # Print per-stratum coverage for inspection (not asserted — current implementation
     # computes a global target from stratified data, not per-stratum force-fitting)
     for (ab, gender), target_p in targets.items():
-        lo, hi = ab.strip('[]()').split(',')
+        lo, hi = ss.parse_age_range(ab)
         sex = 'f' if gender == 0 else 'm'
-        key = f'p_art_{sex}_{lo}_{hi}'
+        key = f'p_art_{sex}_{int(lo)}_{int(hi)}'
         measured_p = np.mean(ac[key][-24:])
         print(f'  {key}: target={target_p:.2f}, measured={measured_p:.2f}')
 
@@ -441,7 +439,7 @@ if __name__ == '__main__':
     T = sc.timer()
 
     r1  = test_art_specs(do_plot=do_plot)
-    r2  = test_art_legacy_compat(do_plot=do_plot)
+    r2  = test_art_mixed_coverage(do_plot=do_plot)
     r3  = test_vmmc_specs(do_plot=do_plot)
     r4  = test_art_stratified_coverage(do_plot=do_plot)
     r5  = test_art_effects(do_plot=do_plot)

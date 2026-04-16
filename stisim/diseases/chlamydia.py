@@ -50,7 +50,7 @@ class CTPars(STIPars):
 
         self.beta_m2f = 0.06
         self.init_prev = ss.bernoulli(p=0.01)
-        self.eff_condom = 0.0  # doi:10.1001/archpedi.159.6.536
+        self.eff_condom = 0.4  # doi:10.1001/archpedi.159.6.536
 
         self.update(kwargs)
         return

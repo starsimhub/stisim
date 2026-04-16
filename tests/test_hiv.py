@@ -220,20 +220,41 @@ def test_doubling_hiv_sexual_beta_doubles_transmissions():
 
 
 @sc.timer()
-def test_mtc_transmission_occurs():
-    sc.heading("Ensuring that pre-term mother-to-child transmission occurs.")
+def test_mtct(do_plot=do_plot):
+    """ Check prenatal and postnatal MTCT: both occur, results are consistent """
+    sc.heading('Testing MTCT (prenatal + postnatal)...')
 
-    # setting fertility rate super high to enable shrinking the test agent/timewise
-    analyzer = MTCTransmissionCountTracker()
-    sim = build_testing_sim(analyzers=[analyzer], n_agents=500, duration=1, pregnancy=ss.Pregnancy(fertility_rate=1000))
+    # High fertility + high breastfeeding beta to ensure both transmission routes
+    sim = hivsim.demo('simple', run=False, plot=False, n_agents=2_000,
+                      beta_breastfeed=ss.permonth(0.1), init_prev=0.3)
     sim.run()
 
-    mtc_tranmissions = sim.results[analyzer.name][analyzer.result_name]
-    total_mtc_tranmissions = sum(mtc_tranmissions)
+    total = sim.results.hiv.new_infections.sum()
+    sex = sim.results.hiv.new_infections_sex.sum()
+    mtct = sim.results.hiv.new_infections_mtct.sum()
+    prenatal = sim.results.hiv.new_infections_prenatal.sum()
+    postnatal = sim.results.hiv.new_infections_postnatal.sum()
 
     if verbose:
-        print(f"{total_mtc_tranmissions} mother-to-child transmissions were recorded")
-    assert total_mtc_tranmissions > 0, f"Expected MTC transmissions to occur, but none were recorded."
+        print(f'Total: {total}, Sexual: {sex}, MTCT: {mtct} (prenatal: {prenatal}, postnatal: {postnatal})')
+
+    # Both routes should produce infections
+    assert prenatal > 0, f'Expected prenatal MTCT infections, got {prenatal}'
+    assert postnatal > 0, f'Expected postnatal MTCT infections with BreastfeedingNet, got {postnatal}'
+
+    # Consistency checks
+    assert sex + mtct == total, f'Expected sex ({sex}) + mtct ({mtct}) == total ({total})'
+    assert prenatal + postnatal == mtct, f'Expected prenatal ({prenatal}) + postnatal ({postnatal}) == mtct ({mtct})'
+
+    if do_plot:
+        fig, ax = plt.subplots()
+        ax.plot(sim.t.yearvec, sim.results.hiv.new_infections_prenatal, label='Prenatal')
+        ax.plot(sim.t.yearvec, sim.results.hiv.new_infections_postnatal, label='Postnatal')
+        ax.set_ylabel('New MTCT infections')
+        ax.set_xlabel('Year')
+        ax.legend()
+        ax.set_title('Prenatal vs postnatal MTCT')
+
     return sim
 
 
@@ -620,7 +641,7 @@ if __name__ == '__main__':
     test_no_sexual_transmission_without_network()
     test_doubling_hiv_maternal_beta_doubles_transmissions()
     test_doubling_hiv_sexual_beta_doubles_transmissions()
-    test_mtc_transmission_occurs()
+    test_mtct()
     test_cd4_rises_on_ART()
     test_art_increases_longevity()
     test_no_hiv_with_no_outbreaks()

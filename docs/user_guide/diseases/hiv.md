@@ -90,3 +90,44 @@ HIV in STIsim is modeled with CD4-based disease progression through acute, laten
 |-----------|---------|-------------|
 | `care_seeking` | normal(1, 0.1) | Relative care-seeking behavior (per agent) |
 | `maternal_care_scale` | 2 | Multiplicative increase in care seeking during pregnancy |
+
+## Results
+
+HIV produces the standard BaseSTI results (`new_infections`, `prevalence`, `incidence`, etc.) plus HIV-specific results:
+
+### HIV-specific results
+
+| Result | Description |
+|--------|-------------|
+| `new_deaths` | HIV/AIDS deaths this timestep |
+| `cum_deaths` | Cumulative HIV/AIDS deaths |
+| `new_diagnoses` | Newly diagnosed this timestep |
+| `cum_diagnoses` | Cumulative diagnoses |
+| `new_agents_on_art` | Agents starting ART this timestep |
+| `p_on_art` | Proportion of infected agents on ART |
+| `prevalence_15_49` | HIV prevalence among 15-49 year olds |
+| `n_on_art_pregnant` | Number of pregnant women on ART (only present when pregnancy is in the sim) |
+
+### Transmission route results
+
+All STI diseases (including HIV) track infections by transmission route:
+
+| Result | Description |
+|--------|-------------|
+| `new_infections` | Total new infections (sexual + MTCT) |
+| `new_infections_sex` | New infections via sexual transmission |
+| `new_infections_mtct` | New infections via mother-to-child transmission |
+
+These are always consistent: `new_infections_sex + new_infections_mtct == new_infections`.
+
+**Accessing MTCT results:**
+
+```python
+sim.run()
+
+# Total MTCT infections over the simulation
+total_mtct = sim.results.hiv.new_infections_mtct.sum()
+
+# Time series
+plt.plot(sim.t.yearvec, sim.results.hiv.new_infections_mtct)
+```

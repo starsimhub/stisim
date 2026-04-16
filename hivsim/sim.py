@@ -47,9 +47,12 @@ class Sim(sti.Sim):
         if not modules.demographics:
             modules.demographics = [ss.Pregnancy(), ss.Deaths()]
 
-        # Handle networks
+        # Handle networks — include BreastfeedingNet only when Pregnancy is present
+        has_pregnancy = any(isinstance(m, ss.Pregnancy) for m in modules.demographics)
         if not modules.networks:
             modules.networks = [sti.StructuredSexual(), ss.MaternalNet()]
+            if has_pregnancy:
+                modules.networks.append(ss.BreastfeedingNet())
 
         # Handle interventions
         if not modules.interventions:

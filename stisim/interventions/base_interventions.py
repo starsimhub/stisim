@@ -304,7 +304,7 @@ class SymptomaticTesting(STITest):
     def init_pre(self, sim):
         super().init_pre(sim)
         if self.treat_prob_data is not None:
-            self.treat_prob = np.interp(sim.yearvec, self.treat_prob_data.year.values, self.treat_prob_data.treat_prob.values)
+            self.treat_prob = sc.smoothinterp(sim.yearvec, self.treat_prob_data.year.values, self.treat_prob_data.treat_prob.values, smoothness=0)
         return
 
     def init_results(self):

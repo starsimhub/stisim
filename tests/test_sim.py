@@ -132,7 +132,7 @@ def test_hivsim_defaults():
     # Check default modules are present
     assert 'hiv' in sim.diseases, "HIV disease not added"
     assert len(sim.diseases) == 1, "Should have exactly 1 disease"
-    assert len(sim.networks) == 2, "Should have 2 networks (sexual + maternal)"
+    assert len(sim.networks) == 3, "Should have 3 networks (sexual + maternal + breastfeeding)"
     assert len(sim.demographics) == 2, "Should have 2 demographics (pregnancy + deaths)"
     assert len(sim.interventions) == 4, "Should have 4 interventions (test, ART, VMMC, PrEP)"
 
@@ -160,7 +160,7 @@ def test_hivsim_custom_modules():
     assert len(sim.interventions) == 1, f"Expected 1 intervention, got {len(sim.interventions)}"
 
     # But other defaults should still be present
-    assert len(sim.networks) == 2, "Default networks should still be present"
+    assert len(sim.networks) == 3, "Default networks should still be present"
     assert len(sim.demographics) == 2, "Default demographics should still be present"
     return sim
 
