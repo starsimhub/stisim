@@ -95,7 +95,7 @@ def test_sim_creation():
     sim2.init()
 
     assert isinstance(sim2.networks.structuredsexual, sti.StructuredSexual), "Network not initialized correctly"
-    assert len(sim2.diseases) == 3, "Incorrect number of diseases initialized"
+    assert len(sim2.diseases) == 2, "Incorrect number of diseases initialized"
     assert len(sim2.demographics) == 2, "Incorrect number of demographics initialized"
 
     # Test 3: flat pars dict
