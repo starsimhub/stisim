@@ -28,7 +28,8 @@ class HIVPars(BaseSTIPars):
         self.beta = 0  # Placeholder, replaced by network-specific betas
         self.beta_m2f = 0.05
         self.rel_beta_f2m = 0.5
-        self.beta_m2c = ss.permonth(0.025)  # Approx 0.2 over the course of the pregnany
+        self.beta_m2c = ss.permonth(0.025)  # Prenatal MTCT: ~20% over pregnancy
+        self.beta_breastfeed = ss.permonth(0.005)  # Postnatal MTCT via breastfeeding (~14% over 12 months without ART)
         self.rel_trans_acute = ss.normal(loc=6, scale=0.5)  # Increase transmissibility during acute HIV infection
         self.rel_trans_falling = ss.normal(loc=8, scale=0.5)  # Increase transmissibility during late HIV infection
         self.eff_condom = 0.9

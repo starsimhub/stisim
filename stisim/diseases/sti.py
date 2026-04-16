@@ -30,6 +30,7 @@ class BaseSTIPars(ss.Pars):
         self.beta_m2f = None
         self.rel_beta_f2m = 0.5
         self.beta_m2c = None
+        self.beta_breastfeed = None
         self.beta_m2m = None
         self.eff_condom = 1
         self.rel_init_prev = 1
@@ -111,14 +112,12 @@ class BaseSTI(ss.Infection):
             ss.FloatArr('ti_transmitted'),
             ss.FloatArr('new_transmissions'),
             ss.FloatArr('new_transmissions_sex'),
+            ss.FloatArr('infection_net'),  # Network index at time of infection (NaN if uninfected)
         )
 
         # Set initial prevalence
         self.init_prev_data = init_prev_data
 
-        # Transmission route counts this timestep, set in set_outcomes()
-        self._n_mtct = 0
-        self._n_sexual = 0
 
         # Results
         self.age_range = [15, 50]  # Age range for main results e.g. prevalence
@@ -166,13 +165,27 @@ class BaseSTI(ss.Infection):
         return init_prev
 
     def validate_beta(self):
+        """
+        Map disease-specific transmission parameters onto the betamap.
+
+        The parent class (ss.Infection) builds a betamap keyed by standardized
+        network name, with [beta_p1→p2, beta_p2→p1] per network. Here we
+        override entries for STI-specific networks using disease parameters:
+
+            - structuredsexual: beta_m2f (and rel_beta_f2m for female→male)
+            - maternal: beta_m2c (prenatal MTCT)
+            - breastfeeding: beta_breastfeed (postnatal MTCT, HIV only)
+            - msm: beta_m2m (bidirectional)
+        """
         betamap = super().validate_beta()
-        if self.pars.beta_m2f is not None and betamap and 'structuredsexual' in betamap.keys():
+        if self.pars.beta_m2f is not None and 'structuredsexual' in betamap:
             betamap['structuredsexual'][0] = self.pars.beta_m2f
             betamap['structuredsexual'][1] = self.pars.beta_m2f * self.pars.rel_beta_f2m
-        if self.pars.beta_m2c is not None and betamap and 'maternal' in betamap.keys():
+        if self.pars.beta_m2c is not None and 'maternal' in betamap:
             betamap['maternal'][0] = ss.permonth(self.pars.beta_m2c)
-        if self.pars.beta_m2m is not None and betamap and 'msm' in betamap.keys():
+        if self.pars.beta_breastfeed is not None and 'breastfeeding' in betamap:
+            betamap['breastfeeding'][0] = ss.permonth(self.pars.beta_breastfeed)
+        if self.pars.beta_m2m is not None and 'msm' in betamap:
             betamap['msm'][0] = self.pars.beta_m2m
             betamap['msm'][1] = self.pars.beta_m2m
         return betamap
@@ -237,11 +250,20 @@ class BaseSTI(ss.Infection):
         results += [
             ss.Result('new_infections_sex', dtype=int, label='New infections (sexual)', auto_plot=False),
             ss.Result('new_infections_mtct', dtype=int, label='New infections (MTCT)', auto_plot=False),
+            ss.Result('new_infections_prenatal', dtype=int, label='New infections (prenatal MTCT)', auto_plot=False),
+            ss.Result('new_infections_postnatal', dtype=int, label='New infections (postnatal MTCT)', auto_plot=False),
         ]
 
         self.define_results(*results)
 
         return
+
+    def step(self):
+        """ Override to pass network indices to set_outcomes for MTCT tracking """
+        new_cases, sources, networks = self.infect()
+        if len(new_cases):
+            self.set_outcomes(new_cases, sources, net_ids=networks)
+        return new_cases, sources, networks
 
     def infect(self):
         """ Determine who gets infected on this timestep via transmission on the network """
@@ -284,27 +306,48 @@ class BaseSTI(ss.Infection):
 
         return new_cases, sources, networks
 
-    def set_outcomes(self, uids, sources=None):
+    def set_outcomes(self, uids, sources=None, net_ids=None):
         """
         Set prognoses for newly infected agents and track transmission routes.
 
         Args:
             uids: UIDs of agents newly infected this timestep (not all agents)
             sources: UIDs of the agents who transmitted to each new case
+            net_ids: array of network indices indicating which network each
+                     infection came from (used to distinguish prenatal vs
+                     postnatal MTCT). Passed from step() via infect().
         """
         super().set_outcomes(uids, sources=sources)
         self.new_transmissions[:] = 0
         self.new_transmissions_sex[:] = 0
-        self._n_mtct = 0
-        self._n_sexual = 0
 
         if sources is not None:
-            # Separate sexual and congenital transmission (age <= 0 = unborn)
-            congenital = self.sim.people.age[uids] <= 0
-            self._n_mtct = ut.count(congenital)
-            self._n_sexual = ut.count(~congenital)
-            sex_transmission = sources[~congenital]
-            mtc_transmission = sources[congenital]
+            # Classify each new infection by its transmission route.
+            # net_ids is an integer array (one per new infection) where each value
+            # is the index into sim.networks (in insertion order) of the network
+            # that caused that infection. We loop over the unique network indices,
+            # look up the actual network object, and use isinstance to classify
+            # as prenatal MTCT, postnatal MTCT, or horizontal (sexual) transmission.
+            is_prenatal = np.zeros(len(uids), dtype=bool)
+            is_postnatal = np.zeros(len(uids), dtype=bool)
+            if net_ids is not None:
+                net_list = list(self.sim.networks.values())
+                for idx in np.unique(net_ids):
+                    net = net_list[idx]
+                    mask = net_ids == idx
+                    if isinstance(net, ss.PrenatalNet):
+                        is_prenatal |= mask
+                    elif isinstance(net, ss.PostnatalNet):
+                        is_postnatal |= mask
+
+            is_mtct = is_prenatal | is_postnatal
+
+            # Store network index per agent for use in update_results
+            if net_ids is not None:
+                self.infection_net[uids] = net_ids.astype(float)
+
+            sex_transmission = sources[~is_mtct]
+            mtc_transmission = sources[is_mtct]
 
             # Track per-source transmission counts
             unique_sources, counts = np.unique(sources, return_counts=True)
@@ -355,9 +398,28 @@ class BaseSTI(ss.Infection):
                     self.results[f'{akey}{ask}'][ti] = ares[ai]
                     ai += 1
 
-        # Transmission route results (set in set_outcomes)
-        self.results['new_infections_mtct'][ti] = self._n_mtct
-        self.results['new_infections_sex'][ti] = self._n_sexual
+        # Transmission route results: classify new infections by the network
+        # they came from (stored in infection_net by set_outcomes).
+        # TODO: refactor once starsim tracks transmission route natively
+        #   (see https://github.com/starsimhub/starsim/issues/1232)
+        new_this_ti = self.ti_infected == ti
+        n_prenatal = 0
+        n_postnatal = 0
+        n_horizontal = 0
+        if ut.count(new_this_ti):
+            for idx, net in enumerate(self.sim.networks.values()):
+                infected_via = new_this_ti & (self.infection_net == float(idx))
+                n = ut.count(infected_via)
+                if isinstance(net, ss.PrenatalNet):
+                    n_prenatal += n
+                elif isinstance(net, ss.PostnatalNet):
+                    n_postnatal += n
+                else:
+                    n_horizontal += n
+        self.results['new_infections_prenatal'][ti] = n_prenatal
+        self.results['new_infections_postnatal'][ti] = n_postnatal
+        self.results['new_infections_mtct'][ti] = n_prenatal + n_postnatal
+        self.results['new_infections_sex'][ti] = n_horizontal
 
         return
 
