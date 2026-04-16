@@ -134,7 +134,7 @@ def test_hivsim_defaults():
     assert len(sim.diseases) == 1, "Should have exactly 1 disease"
     assert len(sim.networks) == 3, "Should have 3 networks (sexual + maternal + breastfeeding)"
     assert len(sim.demographics) == 2, "Should have 2 demographics (pregnancy + deaths)"
-    assert len(sim.interventions) == 5, "Should have 5 interventions (test, ANC test, ART, VMMC, PrEP)"
+    assert len(sim.interventions) == 4, "Should have 4 interventions (test, ART, VMMC, PrEP)"
 
     sim.run()
     assert sim.results.hiv.cum_infections[-1] > 0

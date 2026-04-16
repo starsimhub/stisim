@@ -164,7 +164,7 @@ anc_test = sti.HIVTest(
 )
 ```
 
-`hivsim.Sim` includes ANC testing by default (alongside general-population testing).
+ANC testing is not included in `hivsim.Sim` defaults (which use a single general-population `HIVTest`). Add it explicitly when modeling targeted testing pathways.
 
 ### 2. Prenatal protection (MaternalNet)
 

@@ -336,15 +336,19 @@ def test_anc_testing():
 
     kw = dict(n_agents=5_000, init_prev=0.3)
 
-    # With ANC testing (hivsim defaults include it)
-    sim_anc = hivsim.Sim(**kw)
-    sim_anc.run()
-
-    # Without ANC testing: build with custom interventions list (no ANC test)
-    sim_no_anc = hivsim.Sim(
-        interventions=[sti.HIVTest(), sti.ART(), sti.VMMC(), sti.Prep()],
+    # With ANC testing: explicitly add it alongside defaults
+    anc_eligibility = lambda sim: sim.demographics.pregnancy.tri1_uids[
+        ~sim.diseases.hiv.diagnosed[sim.demographics.pregnancy.tri1_uids]
+    ]
+    anc_test = sti.HIVTest(test_prob_data=0.9, dt_scale=False, name='anc_test', eligibility=anc_eligibility)
+    sim_anc = hivsim.Sim(
+        interventions=[sti.HIVTest(), anc_test, sti.ART(), sti.VMMC(), sti.Prep()],
         **kw,
     )
+    sim_anc.run()
+
+    # Without ANC testing
+    sim_no_anc = hivsim.Sim(**kw)
     sim_no_anc.run()
 
     art_preg_anc = sim_anc.results.hiv.n_on_art_pregnant.sum()
