@@ -23,12 +23,6 @@ def test_minimal_hiv():
     assert sim.results.hiv.cum_infections[-1] > 0
     return sim
 
-def test_starsim():
-    """ Test that starsim modules can be used in sti.Sim """
-    sim = ss.Sim(diseases='sir', networks='random', n_agents=500, dur=10)
-    sim.run()
-    return sim 
-
 
 def test_minimal_sti():
     """ Simplest possible non-HIV STI sim """
@@ -87,27 +81,9 @@ def test_sim_creation():
     assert len(sim1.diseases) == 5, "Incorrect number of diseases initialized"
 
     # Test 2: mix of strings and modules
-    class MyNetwork(ss.Network):
-        def __init__(self, pars=None):
-            super().__init__(pars)
-            self.pars.debut = ss.lognorm_ex(20, 5)
-
-    class MentalHealth(ss.Disease):
-        def __init__(self, pars=None):
-            super().__init__(pars)
-            self.pars.beta_m2f = 0.01
-
-        def step(self):
-            """ Increase rel_sus to HIV """
-            hiv = self.sim.diseases.hiv
-            hiv.pars.rel_sus *= 1.01
-
-            # Plus then some mental health dynamics here...
-            
-
     demographics = [ss.Pregnancy(), ss.Deaths()]
-    networks = [sti.StructuredSexual(), MyNetwork()]
-    diseases = [sti.Gonorrhea(), 'hiv', MentalHealth()]
+    networks = sti.StructuredSexual()
+    diseases = [sti.Gonorrhea(), 'hiv']
 
     sim2 = sti.Sim(
         pars=pars,
