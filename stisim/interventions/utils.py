@@ -50,17 +50,11 @@ def parse_coverage(data, valid_names=None, yearvec=None, smoothness=0, format_pr
     """
     Parse coverage data into a per-timestep array.
 
-    Coverage data specifies how many people should receive an intervention over
-    time. It can be expressed as absolute numbers ('n' format, e.g. 50,000 people
-    on ART) or as a proportion of the eligible population ('p' format, e.g. 90%
-    of infected on ART). The format is auto-detected from column names (n_* vs
-    p_*) or from values (all <= 1.0 → proportion).
-
     Returns (coverage_array, coverage_format, age_bins, sex_keys) where:
         - coverage_array: 1D array (len=yearvec) for aggregate, or dict of arrays for stratified
         - coverage_format: 'n' or 'p' (string if uniform), or 1D array of 'n'/'p' per timestep (if mixed)
         - age_bins: list of age bin strings if stratified, else None
-        - sex_keys: list of sex integer values (0=female, 1=male) if stratified, else None
+        - sex_keys: list of sex values if stratified, else None
 
     Examples::
 
@@ -82,7 +76,7 @@ def parse_coverage(data, valid_names=None, yearvec=None, smoothness=0, format_pr
         # Dual-column DataFrame: n_art for historical, p_art for projected
         parse_coverage(dual_df, valid_names=['n_art', 'p_art'], yearvec=yearvec)
 
-        # Age/sex stratified DataFrame (Sex column is optional)
+        # Age/sex stratified DataFrame (Gender column is optional)
         parse_coverage(strat_df, valid_names=['p_art'], yearvec=yearvec)
 
         # Smooth interpolation between data points
@@ -150,7 +144,7 @@ def _parse_coverage_df(data, valid_names, yearvec, smoothness=0, format_priority
     has_year   = 'year' in col_lower
     has_agebin = 'agebin' in col_lower or 'age_bin' in col_lower or 'age' in col_lower
 
-    if has_year and has_agebin:  # Sex column is optional
+    if has_year and has_agebin:  # Gender/Sex column is optional
         return _parse_stratified_df(data, yearvec, smoothness=smoothness, **interp_kw)
 
     # Check for dual-column format (both n_* and p_* columns)
@@ -233,7 +227,7 @@ def _parse_dual_column_df(data, n_col, p_col, yearvec, format_priority='n', smoo
 
 def _normalize_sex(val):
     """
-    Normalize a sex value to integer form.
+    Normalize a gender/sex value to integer form.
     Convention: 0 = female, 1 = male.
 
     Accepts: 0, 1, 'f', 'm', 'female', 'male' (case-insensitive).
@@ -242,68 +236,59 @@ def _normalize_sex(val):
         v = val.strip().lower()
         if v in ('f', 'female'): return 0
         if v in ('m', 'male'):   return 1
-        errormsg = f'Cannot parse sex value: {val!r}. Expected 0/1, f/m, or female/male.'
-        raise ValueError(errormsg)
+        raise ValueError(f'Cannot parse sex value: {val!r}. Expected 0/1, f/m, or female/male.')
     return int(val)
 
 
 def _normalize_stratified_cols(data):
     """
-    Normalize column names and sex values in a stratified DataFrame.
+    Normalize column names and gender values in a stratified DataFrame.
+    Supports: Year/year, Gender/Sex/gender/sex, AgeBin/age_bin/agebin/age,
+    Count/count, lb/LB, ub/UB.
 
-    Accepts either 'Sex' or 'Gender' as the column name (both are mapped to
-    the canonical internal name 'Sex'). Values are normalized to integers via
-    _normalize_sex: 0 = female, 1 = male.
-
-    Supported column aliases:
-        - Year: 'year', 'Year'
-        - Sex:  'sex', 'Sex', 'gender', 'Gender'
-        - AgeBin: 'agebin', 'age_bin', 'AgeBin', 'age', 'Age'
-        - Optional: 'count'/'Count', 'lb'/'LB', 'ub'/'UB'
+    Gender values are normalized to integers: 0 = female, 1 = male.
+    Accepts: 0/1, 'f'/'m', 'female'/'male' (case-insensitive).
 
     Returns a copy of the DataFrame with canonical column names and normalized
-    sex values.
+    gender values.
     """
     rename = {}
     col_lower = {c.lower(): c for c in data.columns}
 
-    # Year (required)
+    # Year
     for alias in ['year']:
         if alias in col_lower:
             rename[col_lower[alias]] = 'Year'
             break
     else:
-        errormsg = f'Stratified coverage DataFrame must have a "Year" column. Found: {list(data.columns)}'
-        raise ValueError(errormsg)
+        raise ValueError(f'Stratified coverage DataFrame must have a "Year" column. Found: {list(data.columns)}')
 
-    # Sex (optional — age-only stratification is valid, e.g. for VMMC)
-    # Accepts both 'Sex' and 'Gender' as column names
-    stratified_by_sex = False
-    for alias in ['sex', 'gender']:
+    # Sex/Gender (optional — age-only stratification is valid, e.g. for VMMC)
+    has_sex = False
+    for alias in ['gender', 'sex']:
         if alias in col_lower:
-            rename[col_lower[alias]] = 'Sex'
-            stratified_by_sex = True
+            rename[col_lower[alias]] = 'Gender'
+            has_sex = True
             break
 
-    # Age bin (required)
+    # Age bin
     for alias in ['agebin', 'age_bin', 'age']:
         if alias in col_lower:
             rename[col_lower[alias]] = 'AgeBin'
             break
     else:
-        errormsg = f'Stratified coverage DataFrame must have an "AgeBin" or "Age" column. Found: {list(data.columns)}'
-        raise ValueError(errormsg)
+        raise ValueError(f'Stratified coverage DataFrame must have an "AgeBin" or "Age" column. Found: {list(data.columns)}')
 
-    # Optional metadata columns
+    # Optional columns
     for alias, canonical in [('count', 'Count'), ('lb', 'lb'), ('ub', 'ub')]:
         if alias in col_lower:
             rename[col_lower[alias]] = canonical
 
     df = data.rename(columns=rename)
 
-    # Normalize sex values to integers: 0=female, 1=male
-    if stratified_by_sex:
-        df['Sex'] = df['Sex'].map(_normalize_sex)
+    # Normalize gender values to integers: 0=female, 1=male
+    if has_sex:
+        df['Gender'] = df['Gender'].map(_normalize_sex)
 
     return df
 
@@ -323,9 +308,9 @@ def _parse_stratified_df(data, yearvec, smoothness=0, **interp_kw):
     if no Gender column is present.
     """
     data = _normalize_stratified_cols(data)
-    stratified_by_sex = 'Sex' in data.columns
+    has_sex = 'Gender' in data.columns
 
-    skip_cols = {'Year', 'Sex', 'AgeBin', 'Count', 'lb', 'ub'}
+    skip_cols = {'Year', 'Gender', 'AgeBin', 'Count', 'lb', 'ub'}
     val_col = None
     for col in data.columns:
         if col not in skip_cols and pd.api.types.is_numeric_dtype(data[col]):
@@ -338,7 +323,7 @@ def _parse_stratified_df(data, yearvec, smoothness=0, **interp_kw):
 
     # Extract unique age bins (sort numerically, not lexicographically)
     age_bins = sorted(data['AgeBin'].unique(), key=lambda ab: ss.parse_age_range(ab)[0])
-    sex_keys = sorted(data['Sex'].unique()) if stratified_by_sex else None
+    sex_keys = sorted(data['Gender'].unique()) if has_sex else None
 
     # Build interpolated arrays for each stratum
     coverage = {}
@@ -347,7 +332,7 @@ def _parse_stratified_df(data, yearvec, smoothness=0, **interp_kw):
             # Filter data for this stratum
             ab_mask = data['AgeBin'] == ab
             if sex is not None:
-                subset = data[ab_mask & (data['Sex'] == sex)].sort_values('Year')
+                subset = data[ab_mask & (data['Gender'] == sex)].sort_values('Year')
                 key = (ab, sex)
             else:
                 subset = data[ab_mask].sort_values('Year')
@@ -389,7 +374,7 @@ def age_sex_mask(age_bin, sex, people):
     return mask
 
 
-def _coverage_to_number(cov_val, coverage_format, pop_scale=None, n_eligible=None):
+def coverage_to_number(cov_val, coverage_format, pop_scale=None, n_eligible=None):
     """
     Convert a coverage value to a target count.
 
@@ -442,12 +427,12 @@ def compute_coverage_target(coverage, coverage_format, age_bins, sex_keys,
 
                 # Count eligible agents and convert to a target number
                 n = (age_sex_mask(ab, sex, sim.people) & eligible_uids).count()
-                total += _coverage_to_number(cov_val, fmt,
+                total += coverage_to_number(cov_val, fmt,
                                             pop_scale=sim.pars.pop_scale, n_eligible=n)
         return total
 
     # Aggregate coverage: single value for the whole population
     cov_val = coverage[ti]
     n_eligible = len(eligible_uids)
-    return _coverage_to_number(cov_val, fmt,
+    return coverage_to_number(cov_val, fmt,
                               pop_scale=sim.pars.pop_scale, n_eligible=n_eligible)
