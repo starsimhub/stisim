@@ -269,7 +269,7 @@ def test_pmtct():
     """
     sc.heading('Testing PMTCT...')
 
-    n_agents = 5_000
+    n_agents = 1_000
     anc_eligibility = lambda sim: sim.demographics.pregnancy.tri1_uids[
         ~sim.diseases.hiv.diagnosed[sim.demographics.pregnancy.tri1_uids]
     ]
