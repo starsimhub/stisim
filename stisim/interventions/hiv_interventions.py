@@ -101,7 +101,7 @@ class ART(ss.Intervention):
            go directly on ART (no capacity constraint)
         5. Mothers on ART protect unborn infants (rel_sus=0) via MaternalNet
 
-    Coverage is parsed by :func:`parse_coverage` and accepts:
+    Coverage is parsed by `parse_coverage` and accepts:
         - ``None``: no coverage target; treat all who initiate (default)
         - Scalar (e.g. ``0.8``): constant proportion of infected on ART
         - Dict: ``{'year': [...], 'value': [...]}`` — interpolated to yearvec
@@ -298,13 +298,13 @@ class VMMC(ss.Intervention):
     If no coverage is specified, VMMC does nothing. Coverage must be provided
     explicitly via the coverage parameter.
 
-    Coverage is parsed by :func:`parse_coverage` (same formats as ART, using
+    Coverage is parsed by `parse_coverage` (same formats as ART, using
     ``n_vmmc``/``p_vmmc`` column names). Age-only stratification is supported
     (no Gender column required, since VMMC is males-only).
 
     Args:
         coverage:         coverage target (default None; VMMC does nothing without data).
-                          See :func:`parse_coverage` for supported formats.
+                          See `parse_coverage` for supported formats.
         eff_circ:         efficacy (default 0.6 = 60% reduction in HIV acquisition)
         eligibility:      optional function to restrict who is eligible (default: all males)
         smoothness:       interpolation smoothness (0=linear, default)
