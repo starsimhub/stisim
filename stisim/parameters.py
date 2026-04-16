@@ -10,9 +10,22 @@ __all__ = ['SimPars', 'sti_aliases', 'sti_register', 'merged_sti_pars', 'make_st
 
 
 class SimPars(ss.SimPars):
-    """
-    Subclass of Starsim's SimPars with defaults for STI simulations. Refer to
-    Starsim's SimPars for more information on the parameters.
+    """Simulation-level parameters with STIsim-specific defaults.
+
+    Extends Starsim's ``ss.SimPars`` with defaults suited to STI modeling:
+    monthly timesteps, year-2000 start, year-2030 end, and optional pregnancy
+    and migration modules.
+
+    Args:
+        n_agents (int): Number of agents (default 1000).
+        start (float): Simulation start year (default 2000).
+        stop (float): Simulation end year (default 2030).
+        dur (float): Duration in years; used if ``stop`` is not set.
+        dt (float): Timestep in years (default 1/12, i.e. monthly).
+        rand_seed (int): Random seed (default 1).
+        use_pregnancy (bool): Enable the pregnancy module (default True).
+        use_migration (bool): Enable the migration module (default False).
+        **kwargs: Any additional parameter overrides.
     """
     def __init__(self, **kwargs):
 

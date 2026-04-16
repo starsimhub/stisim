@@ -15,6 +15,13 @@ from collections import defaultdict
 __all__ = ["result_grouper", "coinfection_stats", "sw_stats", "RelationshipDurations", "NetworkDegree", "DebutAge", "partner_age_diff", "TimeBetweenRelationships", "art_coverage"]
 
 class result_grouper(ss.Analyzer):
+    """Base analyzer providing conditional probability utilities for grouped results.
+
+    Provides a ``cond_prob`` static method that computes the proportion of a
+    numerator group within a denominator group. Intended as a base class for
+    analyzers that compute stratified prevalence or infection statistics.
+    """
+
     @staticmethod
     def cond_prob(numerator, denominator):
         numer = len((denominator & numerator).uids)
@@ -107,6 +114,16 @@ class coinfection_stats(result_grouper):
 
 
 class sw_stats(result_grouper):
+    """Track new infections and transmissions among sex workers and their clients.
+
+    At each timestep, records the number and share of new infections and
+    transmissions attributable to female sex workers (FSW), clients, and
+    non-sex-worker populations, disaggregated by disease.
+
+    Args:
+        diseases (list): List of disease names (str) to track, e.g. ``['hiv', 'syphilis']``.
+    """
+
     def __init__(self, diseases=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = 'sw_stats'
@@ -180,8 +197,11 @@ class sw_stats(result_grouper):
 
 
 class RelationshipDurations(ss.Analyzer):
-    """
-    Analyzes the durations of relationships in a structuredsexual network.
+    """Analyze relationship durations in a StructuredSexual network.
+
+    Records the mean and median duration of all relationships (stable, casual,
+    etc.) at each timestep, disaggregated by sex. Durations are extracted from
+    the network's ``relationship_durs`` tracking dict.
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -260,6 +280,23 @@ class RelationshipDurations(ss.Analyzer):
 
 
 class NetworkDegree(ss.Analyzer):
+    """Analyze lifetime partner count distributions in a StructuredSexual network.
+
+    At a specified year, records the number of lifetime partners per agent,
+    disaggregated by sex and relationship type (stable, casual, one-time, sex
+    work). Results are binned into a histogram for plotting and comparison
+    with survey data.
+
+    Args:
+        year (float): Calendar year at which to record partner counts. Defaults
+            to the last year of the simulation.
+        bins (array): Bin edges for the partner count histogram. Defaults to
+            ``[0, 1, ..., 20, 100]``.
+        relationship_types (list): Relationship types to track, e.g.
+            ``['stable', 'casual']``. Use ``'partners'`` for combined
+            stable + casual counts.
+    """
+
     def __init__(self, year=None, bins=None, relationship_types=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.year = year
@@ -412,6 +449,22 @@ class TimeBetweenRelationships(ss.Analyzer):
 
       
 class partner_age_diff(ss.Analyzer):
+    """Analyze age differences between sexual partners.
+
+    Records the mean, median, and standard deviation of male-female age
+    differences (male age minus female age) at each timestep. At a specified
+    year, stores full age-difference distributions disaggregated by female
+    age group for detailed plotting.
+
+    Args:
+        year (float): Calendar year at which to store detailed age-difference
+            distributions. Defaults to 2000.
+        age_bins (list): Female age group names matching the network's
+            ``f_age_group_bins`` keys. Defaults to ``['teens', 'young', 'adult']``.
+        network (str): Name of the network to analyze. Defaults to
+            ``'structuredsexual'``.
+    """
+
     def __init__(self, year=2000, age_bins=['teens', 'young', 'adult'], network='structuredsexual', *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.year = year
@@ -479,8 +532,17 @@ class partner_age_diff(ss.Analyzer):
 
 
 class DebutAge(ss.Analyzer):
-    """
-    Analyzes the debut age of relationships in a structuredsexual network.
+    """Analyze the proportion of agents who have sexually debuted by age.
+
+    Tracks the share of agents who are sexually active (past their debut age)
+    at each single-year age bin, disaggregated by sex and birth cohort. Useful
+    for validating debut age distributions against survey data such as DHS.
+
+    Args:
+        bins (array): Age bins to evaluate, e.g. ``np.arange(12, 31)``.
+            Defaults to ages 12-30.
+        cohort_starts (array): Birth-year cohort start years. Defaults to all
+            cohorts that fit within the simulation timespan.
     """
     def __init__(self, bins=None, cohort_starts=None, *args, **kwargs):
         super().__init__(*args, **kwargs)

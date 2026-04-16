@@ -2,6 +2,16 @@ import starsim as ss
 import stisim as sti
 
 class gud_syph(ss.Connector):
+    """Connector for bidirectional GUD-syphilis coinfection interaction.
+
+    Models how GUD increases susceptibility to and transmissibility of syphilis
+    (default 2x each), and how active syphilis increases susceptibility to and
+    transmissibility of GUD (default 2x each).
+
+    Args:
+        pars (dict): Optional parameter overrides for relative susceptibility
+            and transmissibility multipliers.
+    """
 
     def __init__(self, pars=None, **kwargs):
         super().__init__(label='GUD-Syphilis', requires=[sti.GUD, sti.Syphilis])
