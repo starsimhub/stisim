@@ -62,7 +62,8 @@ HIV in STIsim is modeled with CD4-based disease progression through acute, laten
 |-----------|---------|-------------|
 | `beta_m2f` | 0.05 | Per-act male-to-female transmission probability |
 | `rel_beta_f2m` | 0.5 | Female-to-male transmission relative to male-to-female |
-| `beta_m2c` | 0.025/mo | Mother-to-child transmission probability |
+| `beta_m2c` | 0.025/mo | Prenatal mother-to-child transmission probability |
+| `beta_breastfeed` | 0.005/mo | Postnatal (breastfeeding) transmission probability |
 | `rel_trans_acute` | normal(6, 0.5) | Relative transmissibility during acute phase |
 | `rel_trans_falling` | normal(8, 0.5) | Relative transmissibility during late stage |
 | `eff_condom` | 0.9 | Condom efficacy for reducing transmission |
@@ -120,6 +121,15 @@ All STI diseases (including HIV) track infections by transmission route:
 
 These are always consistent: `new_infections_sex + new_infections_mtct == new_infections`.
 
+When pregnancy is modeled, prenatal and postnatal MTCT are tracked separately:
+
+| Result | Description |
+|--------|-------------|
+| `new_infections_prenatal` | New infections via prenatal (in utero) transmission |
+| `new_infections_postnatal` | New infections via postnatal (breastfeeding) transmission |
+
+These satisfy: `new_infections_prenatal + new_infections_postnatal == new_infections_mtct`.
+
 **Accessing MTCT results:**
 
 ```python
@@ -130,4 +140,48 @@ total_mtct = sim.results.hiv.new_infections_mtct.sum()
 
 # Time series
 plt.plot(sim.t.yearvec, sim.results.hiv.new_infections_mtct)
+```
+
+## PMTCT (prevention of mother-to-child transmission)
+
+STIsim models PMTCT through three mechanisms:
+
+### 1. ANC testing
+
+ANC (antenatal care) testing identifies HIV-positive pregnant women so they can start ART. This is implemented as an `HIVTest` with pregnancy-based eligibility, the same pattern used for FSW-targeted testing:
+
+```python
+import stisim as sti
+
+# Test undiagnosed pregnant women in first trimester
+anc_test = sti.HIVTest(
+    test_prob_data=0.9,
+    dt_scale=False,
+    name='anc_test',
+    eligibility=lambda sim: sim.demographics.pregnancy.tri1_uids[
+        ~sim.diseases.hiv.diagnosed[sim.demographics.pregnancy.tri1_uids]
+    ],
+)
+```
+
+`hivsim.Sim` includes ANC testing by default (alongside general-population testing).
+
+### 2. Prenatal protection (MaternalNet)
+
+When a pregnant woman is on ART, her unborn infant's susceptibility is reduced by the `pmtct_efficacy` parameter on the ART intervention (default 0.96). This is applied each timestep via the MaternalNet.
+
+### 3. Postnatal protection (BreastfeedingNet)
+
+When a breastfeeding mother is on ART, her infant's susceptibility is similarly reduced by `pmtct_efficacy` via the BreastfeedingNet. Additionally, the mother's own transmissibility (`rel_trans`) is reduced by ART efficacy (default 0.96), so total postnatal protection compounds both effects.
+
+### Configuring PMTCT
+
+```python
+import stisim as sti
+
+# Custom PMTCT efficacy
+art = sti.ART(pmtct_efficacy=0.98)
+
+# Complete protection (previous default behavior)
+art = sti.ART(pmtct_efficacy=1.0)
 ```

@@ -259,6 +259,105 @@ def test_mtct(do_plot=do_plot):
 
 
 @sc.timer()
+def test_pmtct_efficacy():
+    """
+    Verify that pmtct_efficacy parameter controls prenatal MTCT:
+    - Low efficacy → more prenatal infections
+    - Full efficacy → near-zero prenatal infections
+    """
+    sc.heading('Testing parameterized PMTCT efficacy...')
+
+    kw = dict(run=False, plot=False, n_agents=5_000, init_prev=0.5, beta_breastfeed=0)
+
+    # Low PMTCT efficacy: expect prenatal infections
+    sim_low = hivsim.demo('simple', **kw)
+    sim_low.init()
+    for intv in sim_low.interventions.values():
+        if isinstance(intv, ART):
+            intv.pars.pmtct_efficacy = 0.5
+    sim_low.run()
+    prenatal_low = sim_low.results.hiv.new_infections_prenatal.sum()
+
+    # Full PMTCT efficacy: expect near-zero prenatal infections
+    sim_full = hivsim.demo('simple', **kw)
+    sim_full.init()
+    for intv in sim_full.interventions.values():
+        if isinstance(intv, ART):
+            intv.pars.pmtct_efficacy = 1.0
+    sim_full.run()
+    prenatal_full = sim_full.results.hiv.new_infections_prenatal.sum()
+
+    if verbose:
+        print(f'Prenatal MTCT: low_eff={prenatal_low}, full_eff={prenatal_full}')
+
+    assert prenatal_low > prenatal_full, \
+        f'Lower PMTCT efficacy should produce more prenatal MTCT ({prenatal_low} vs {prenatal_full})'
+
+
+@sc.timer()
+def test_breastfeeding_art_protection():
+    """
+    Verify that maternal ART reduces postnatal MTCT via BreastfeedingNet.
+    Compare sim with effective ART vs sim with zero ART efficacy.
+    """
+    sc.heading('Testing breastfeeding ART protection...')
+
+    kw = dict(run=False, plot=False, n_agents=5_000, init_prev=0.5,
+              beta_breastfeed=ss.permonth(0.1), beta_m2c=0)
+
+    # With effective ART (default pmtct_efficacy=0.96)
+    sim_art = hivsim.demo('simple', **kw)
+    sim_art.run()
+    postnatal_art = sim_art.results.hiv.new_infections_postnatal.sum()
+
+    # With zero ART efficacy (no transmission reduction)
+    sim_noart = hivsim.demo('simple', art_efficacy=0, **kw)
+    sim_noart.init()
+    for intv in sim_noart.interventions.values():
+        if isinstance(intv, ART):
+            intv.pars.pmtct_efficacy = 0
+    sim_noart.run()
+    postnatal_noart = sim_noart.results.hiv.new_infections_postnatal.sum()
+
+    if verbose:
+        print(f'Postnatal MTCT: with_art={postnatal_art}, without_art={postnatal_noart}')
+
+    assert postnatal_art < postnatal_noart, \
+        f'ART should reduce postnatal MTCT ({postnatal_art} vs {postnatal_noart})'
+
+
+@sc.timer()
+def test_anc_testing():
+    """
+    Verify that ANC testing (HIVTest with pregnancy eligibility) leads to
+    more pregnant women on ART.
+    """
+    sc.heading('Testing ANC testing pathway...')
+
+    kw = dict(n_agents=5_000, init_prev=0.3)
+
+    # With ANC testing (hivsim defaults include it)
+    sim_anc = hivsim.Sim(**kw)
+    sim_anc.run()
+
+    # Without ANC testing: build with custom interventions list (no ANC test)
+    sim_no_anc = hivsim.Sim(
+        interventions=[sti.HIVTest(), sti.ART(), sti.VMMC(), sti.Prep()],
+        **kw,
+    )
+    sim_no_anc.run()
+
+    art_preg_anc = sim_anc.results.hiv.n_on_art_pregnant.sum()
+    art_preg_no_anc = sim_no_anc.results.hiv.n_on_art_pregnant.sum()
+
+    if verbose:
+        print(f'Pregnant women on ART: with_anc={art_preg_anc}, without_anc={art_preg_no_anc}')
+
+    assert art_preg_anc >= art_preg_no_anc, \
+        f'ANC testing should increase pregnant women on ART ({art_preg_anc} vs {art_preg_no_anc})'
+
+
+@sc.timer()
 def test_cd4_rises_on_ART():
     sc.heading("Ensuring that agent CD4 levels rise when on ART (monotonically in a short test)")
 
@@ -642,6 +741,9 @@ if __name__ == '__main__':
     test_doubling_hiv_maternal_beta_doubles_transmissions()
     test_doubling_hiv_sexual_beta_doubles_transmissions()
     test_mtct()
+    test_pmtct_efficacy()
+    test_breastfeeding_art_protection()
+    test_anc_testing()
     test_cd4_rises_on_ART()
     test_art_increases_longevity()
     test_no_hiv_with_no_outbreaks()

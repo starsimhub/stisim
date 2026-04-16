@@ -47,13 +47,23 @@ class Sim(sti.Sim):
         if not modules.demographics:
             modules.demographics = [ss.Pregnancy(), ss.Deaths()]
 
-        # Handle networks
+        # Handle networks — include BreastfeedingNet only when Pregnancy is present
+        has_pregnancy = any(isinstance(m, ss.Pregnancy) for m in modules.demographics)
         if not modules.networks:
-            modules.networks = [sti.StructuredSexual(), ss.MaternalNet(), ss.BreastfeedingNet()]
+            modules.networks = [sti.StructuredSexual(), ss.MaternalNet()]
+            if has_pregnancy:
+                modules.networks.append(ss.BreastfeedingNet())
 
-        # Handle interventions
+        # Handle interventions — include ANC testing only when Pregnancy is present
         if not modules.interventions:
             modules.interventions = [sti.HIVTest(), sti.ART(), sti.VMMC(), sti.Prep()]
+            if has_pregnancy:
+                anc_eligibility = lambda sim: sim.demographics.pregnancy.tri1_uids[
+                    ~sim.diseases.hiv.diagnosed[sim.demographics.pregnancy.tri1_uids]
+                ]
+                modules.interventions.insert(1, sti.HIVTest(
+                    test_prob_data=0.9, dt_scale=False, name='anc_test', eligibility=anc_eligibility,
+                ))
 
         super().__init__(
             pars          = sim_pars,
