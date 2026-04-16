@@ -322,7 +322,12 @@ class BaseSTI(ss.Infection):
         self.new_transmissions_sex[:] = 0
 
         if sources is not None:
-            # Classify infections by network type (prenatal, postnatal, or sexual)
+            # Classify each new infection by its transmission route.
+            # net_ids is an integer array (one per new infection) where each value
+            # is the index into sim.networks (in insertion order) of the network
+            # that caused that infection. We loop over the unique network indices,
+            # look up the actual network object, and use isinstance to classify
+            # as prenatal MTCT, postnatal MTCT, or horizontal (sexual) transmission.
             is_prenatal = np.zeros(len(uids), dtype=bool)
             is_postnatal = np.zeros(len(uids), dtype=bool)
             if net_ids is not None:
