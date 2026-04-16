@@ -259,106 +259,90 @@ def test_mtct(do_plot=do_plot):
 
 
 @sc.timer()
-def test_pmtct_efficacy():
+def test_pmtct():
     """
-    Verify that pmtct_efficacy parameter controls prenatal MTCT:
-    - Low efficacy → more prenatal infections
-    - Full efficacy → near-zero prenatal infections
+    Test PMTCT across combinations of ANC testing, PMTCT efficacy, and
+    breastfeeding duration. Runs 8 sims in parallel and checks that:
+      - Higher ANC testing → more pregnant women on ART
+      - Higher PMTCT efficacy → fewer MTCT infections
+      - Longer breastfeeding → more postnatal infections
     """
-    sc.heading('Testing parameterized PMTCT efficacy...')
+    sc.heading('Testing PMTCT...')
 
-    kw = dict(run=False, plot=False, n_agents=5_000, init_prev=0.5, beta_breastfeed=0)
-
-    # Low PMTCT efficacy: expect prenatal infections
-    sim_low = hivsim.demo('simple', **kw)
-    sim_low.init()
-    for intv in sim_low.interventions.values():
-        if isinstance(intv, ART):
-            intv.pars.pmtct_efficacy = 0.5
-    sim_low.run()
-    prenatal_low = sim_low.results.hiv.new_infections_prenatal.sum()
-
-    # Full PMTCT efficacy: expect near-zero prenatal infections
-    sim_full = hivsim.demo('simple', **kw)
-    sim_full.init()
-    for intv in sim_full.interventions.values():
-        if isinstance(intv, ART):
-            intv.pars.pmtct_efficacy = 1.0
-    sim_full.run()
-    prenatal_full = sim_full.results.hiv.new_infections_prenatal.sum()
-
-    if verbose:
-        print(f'Prenatal MTCT: low_eff={prenatal_low}, full_eff={prenatal_full}')
-
-    assert prenatal_low > prenatal_full, \
-        f'Lower PMTCT efficacy should produce more prenatal MTCT ({prenatal_low} vs {prenatal_full})'
-
-
-@sc.timer()
-def test_breastfeeding_art_protection():
-    """
-    Verify that maternal ART reduces postnatal MTCT via BreastfeedingNet.
-    Compare sim with effective ART vs sim with zero ART efficacy.
-    """
-    sc.heading('Testing breastfeeding ART protection...')
-
-    kw = dict(run=False, plot=False, n_agents=5_000, init_prev=0.5,
-              beta_breastfeed=ss.permonth(0.1), beta_m2c=0)
-
-    # With effective ART (default pmtct_efficacy=0.96)
-    sim_art = hivsim.demo('simple', **kw)
-    sim_art.run()
-    postnatal_art = sim_art.results.hiv.new_infections_postnatal.sum()
-
-    # With zero ART efficacy (no transmission reduction)
-    sim_noart = hivsim.demo('simple', art_efficacy=0, **kw)
-    sim_noart.init()
-    for intv in sim_noart.interventions.values():
-        if isinstance(intv, ART):
-            intv.pars.pmtct_efficacy = 0
-    sim_noart.run()
-    postnatal_noart = sim_noart.results.hiv.new_infections_postnatal.sum()
-
-    if verbose:
-        print(f'Postnatal MTCT: with_art={postnatal_art}, without_art={postnatal_noart}')
-
-    assert postnatal_art < postnatal_noart, \
-        f'ART should reduce postnatal MTCT ({postnatal_art} vs {postnatal_noart})'
-
-
-@sc.timer()
-def test_anc_testing():
-    """
-    Verify that ANC testing (HIVTest with pregnancy eligibility) leads to
-    more pregnant women on ART.
-    """
-    sc.heading('Testing ANC testing pathway...')
-
-    kw = dict(n_agents=5_000, init_prev=0.3)
-
-    # With ANC testing: explicitly add it alongside defaults
+    n_agents = 5_000
     anc_eligibility = lambda sim: sim.demographics.pregnancy.tri1_uids[
         ~sim.diseases.hiv.diagnosed[sim.demographics.pregnancy.tri1_uids]
     ]
-    anc_test = sti.HIVTest(test_prob_data=0.9, dt_scale=False, name='anc_test', eligibility=anc_eligibility)
-    sim_anc = hivsim.Sim(
-        interventions=[sti.HIVTest(), anc_test, sti.ART(), sti.VMMC(), sti.Prep()],
-        **kw,
+
+    def make_sim(anc_prob, pmtct_eff, dur_bf):
+        """ Build a PMTCT sim with the given parameter combination """
+        pregnancy = ss.Pregnancy(dur_breastfeed=dur_bf)
+        intvs = [sti.HIVTest(), sti.ART(pmtct_efficacy=pmtct_eff), sti.VMMC(), sti.Prep()]
+        if anc_prob > 0:
+            intvs.insert(1, sti.HIVTest(
+                test_prob_data=anc_prob, dt_scale=False, name='anc_test', eligibility=anc_eligibility,
+            ))
+        sim = hivsim.Sim(
+            n_agents=n_agents, init_prev=0.3,
+            demographics=[pregnancy, ss.Deaths()],
+            interventions=intvs,
+        )
+        return sim
+
+    # Parameter combinations: (anc_prob, pmtct_efficacy, dur_breastfeed)
+    combos = dict(
+        anc_hi_eff_hi_bf_short = (0.9, 0.96, ss.years(0.25)),
+        anc_hi_eff_hi_bf_long  = (0.9, 0.96, ss.years(2.0)),
+        anc_hi_eff_lo_bf_short = (0.9, 0.3,  ss.years(0.25)),
+        anc_hi_eff_lo_bf_long  = (0.9, 0.3,  ss.years(2.0)),
+        anc_lo_eff_hi_bf_short = (0.0, 0.96, ss.years(0.25)),
+        anc_lo_eff_hi_bf_long  = (0.0, 0.96, ss.years(2.0)),
+        anc_lo_eff_lo_bf_short = (0.0, 0.3,  ss.years(0.25)),
+        anc_lo_eff_lo_bf_long  = (0.0, 0.3,  ss.years(2.0)),
     )
-    sim_anc.run()
 
-    # Without ANC testing
-    sim_no_anc = hivsim.Sim(**kw)
-    sim_no_anc.run()
+    sims = {name: make_sim(*pars) for name, pars in combos.items()}
+    msim = ss.MultiSim(list(sims.values()))
+    msim.run()
 
-    art_preg_anc = sim_anc.results.hiv.n_on_art_pregnant.sum()
-    art_preg_no_anc = sim_no_anc.results.hiv.n_on_art_pregnant.sum()
+    # Extract results keyed by combo name
+    r = {}
+    for name, sim in zip(sims.keys(), msim.sims):
+        r[name] = sc.objdict(
+            mtct      = sim.results.hiv.new_infections_mtct.sum(),
+            prenatal  = sim.results.hiv.new_infections_prenatal.sum(),
+            postnatal = sim.results.hiv.new_infections_postnatal.sum(),
+            art_preg  = sim.results.hiv.n_on_art_pregnant.sum(),
+        )
 
     if verbose:
-        print(f'Pregnant women on ART: with_anc={art_preg_anc}, without_anc={art_preg_no_anc}')
+        for name, vals in r.items():
+            print(f'{name:30s}  mtct={vals.mtct:5.0f}  pre={vals.prenatal:5.0f}  post={vals.postnatal:5.0f}  art_preg={vals.art_preg:5.0f}')
 
-    assert art_preg_anc >= art_preg_no_anc, \
-        f'ANC testing should increase pregnant women on ART ({art_preg_anc} vs {art_preg_no_anc})'
+    # Helper to average a result across matching combos
+    def avg(key, filt):
+        vals = [r[k][key] for k in r if filt(k)]
+        return sum(vals) / len(vals)
+
+    # 1. Higher ANC testing → more pregnant women on ART (averaging over other axes)
+    art_preg_hi_anc = avg('art_preg', lambda k: k.startswith('anc_hi'))
+    art_preg_lo_anc = avg('art_preg', lambda k: k.startswith('anc_lo'))
+    assert art_preg_hi_anc >= art_preg_lo_anc, \
+        f'High ANC testing should increase pregnant women on ART ({art_preg_hi_anc:.0f} vs {art_preg_lo_anc:.0f})'
+
+    # 2. Higher PMTCT efficacy → fewer MTCT infections (averaging over other axes)
+    mtct_hi_eff = avg('mtct', lambda k: 'eff_hi' in k)
+    mtct_lo_eff = avg('mtct', lambda k: 'eff_lo' in k)
+    assert mtct_hi_eff < mtct_lo_eff, \
+        f'High PMTCT efficacy should reduce MTCT ({mtct_hi_eff:.0f} vs {mtct_lo_eff:.0f})'
+
+    # 3. Longer breastfeeding → more postnatal infections (averaging over other axes)
+    post_long_bf = avg('postnatal', lambda k: k.endswith('bf_long'))
+    post_short_bf = avg('postnatal', lambda k: k.endswith('bf_short'))
+    assert post_long_bf > post_short_bf, \
+        f'Longer breastfeeding should increase postnatal MTCT ({post_long_bf:.0f} vs {post_short_bf:.0f})'
+
+    return msim
 
 
 @sc.timer()
@@ -745,9 +729,7 @@ if __name__ == '__main__':
     test_doubling_hiv_maternal_beta_doubles_transmissions()
     test_doubling_hiv_sexual_beta_doubles_transmissions()
     test_mtct()
-    test_pmtct_efficacy()
-    test_breastfeeding_art_protection()
-    test_anc_testing()
+    test_pmtct()
     test_cd4_rises_on_ART()
     test_art_increases_longevity()
     test_no_hiv_with_no_outbreaks()
