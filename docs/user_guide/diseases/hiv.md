@@ -89,7 +89,7 @@ HIV in STIsim is modeled with CD4-based disease progression through acute, laten
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `care_seeking` | normal(1, 0.1) | Relative care-seeking behavior (per agent) |
+| `care_seeking` | normal(1, 0.5) | Relative care-seeking behavior (per agent) |
 | `maternal_care_scale` | 2 | Multiplicative increase in care seeking during pregnancy |
 
 ## Results
@@ -172,7 +172,9 @@ When a pregnant woman is on ART, her unborn infant's susceptibility is reduced b
 
 ### 3. Postnatal protection (BreastfeedingNet)
 
-When a breastfeeding mother is on ART, her infant's susceptibility is similarly reduced by `pmtct_efficacy` via the BreastfeedingNet. Additionally, the mother's own transmissibility (`rel_trans`) is reduced by ART efficacy (default 0.96), so total postnatal protection compounds both effects.
+When a breastfeeding mother is on ART, her infant's susceptibility is similarly reduced by `pmtct_efficacy` via the BreastfeedingNet.
+
+For both prenatal and postnatal transmission, total protection compounds two effects: the infant's reduced susceptibility (`rel_sus`, from `pmtct_efficacy`) and the mother's reduced transmissibility (`rel_trans`, from `art_efficacy`).
 
 ### Configuring PMTCT
 
