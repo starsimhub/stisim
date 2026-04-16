@@ -6,10 +6,7 @@ import starsim as ss
 import numpy as np
 import sciris as sc
 from stisim.interventions.base_interventions import STITreatment
-
-
-# %% Helper functions
-def count(arr): return np.count_nonzero(arr)
+from stisim.utils import count
 
 
 # %% Gonorrhea classes

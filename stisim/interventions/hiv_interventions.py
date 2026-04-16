@@ -3,242 +3,13 @@ Define HIV interventions for STIsim
 By default, these all have units of a year and timesteps of 1/12
 """
 
-import warnings
 import starsim as ss
 import numpy as np
-import pandas as pd
-import sciris as sc
 from stisim.interventions.base_interventions import STITest
-
-
-# %% Helper functions
-def count(arr): return np.count_nonzero(arr)
-
-
-def parse_coverage(data, valid_names=None, yearvec=None):
-    """
-    Parse coverage data into a per-timestep array.
-
-    Accepts multiple input formats and normalizes them into
-    (coverage_array, coverage_format, age_bins, sex_keys) where:
-        - coverage_array: 1D array (len=yearvec) for aggregate, or dict of arrays for stratified
-        - coverage_format: 'n' (absolute numbers) or 'p' (proportion)
-        - age_bins: list of (lo, hi) tuples if stratified, else None
-        - sex_keys: list of sex values if stratified, else None
-
-    Supported input formats:
-        None                      → (None, None, None, None)
-        0.9                       → constant proportion
-        {'year': [...], 'value': [...]}                          → interpolated, infer format
-        {'year': [...], 'value': [...], 'format': 'n'}          → interpolated, explicit format
-        pd.DataFrame(index=years, columns=['n_art'])             → legacy single-column
-        pd.DataFrame(columns=['Year','Gender','AgeBin',...])     → age/sex stratified
-
-    Args:
-        data:        coverage input in any supported format
-        valid_names: list of valid column names, e.g. ['n_art', 'p_art']
-        yearvec:     simulation year vector for interpolation
-    """
-    if valid_names is None:
-        valid_names = []
-
-    # None → no coverage
-    if data is None:
-        return None, None, None, None
-
-    # Scalar → constant proportion
-    if sc.isnumber(data):
-        arr = np.full(len(yearvec), float(data))
-        return arr, 'p', None, None
-
-    # Dict with year + value keys → interpolate
-    if isinstance(data, dict) and 'year' in data and 'value' in data:
-        years  = np.array(data['year'], dtype=float)
-        values = np.array(data['value'], dtype=float)
-        fmt = data.get('format', None)
-        if fmt is None:
-            fmt = 'p' if np.all(values <= 1.0) else 'n'
-        arr = sc.smoothinterp(yearvec, years, values, smoothness=0)
-        return arr, fmt, None, None
-
-    # DataFrame — check for stratified vs legacy
-    if isinstance(data, pd.DataFrame):
-        return _parse_coverage_df(data, valid_names, yearvec)
-
-    errormsg = f'Coverage data format not recognized: {type(data)}. Expected None, number, dict, or DataFrame.'
-    raise ValueError(errormsg)
-
-
-def _parse_coverage_df(data, valid_names, yearvec):
-    """
-    Parse a DataFrame of coverage data.
-
-    Handles two cases:
-        1. Legacy: index=years, single column in valid_names → 1D interpolated array
-        2. Stratified: columns include Year, Gender/Sex, AgeBin, and a value column → dict of arrays by (age, sex)
-    """
-
-    # Check for stratified format — normalize column names for flexible matching
-    col_lower = {c.lower(): c for c in data.columns}
-    has_year   = 'year' in col_lower
-    has_sex    = 'gender' in col_lower or 'sex' in col_lower
-    has_agebin = 'agebin' in col_lower or 'age_bin' in col_lower or 'age' in col_lower
-
-    if has_year and has_sex and has_agebin:
-        return _parse_stratified_df(data, yearvec)
-
-    # Legacy single-column format: index=years, column in valid_names
-    if len(data.columns) == 1 and data.columns[0] in valid_names:
-        colname = data.columns[0]
-        fmt = 'n' if colname.startswith('n_') else 'p'
-        arr = sc.smoothinterp(yearvec, data.index.values, data[colname].values, smoothness=0)
-        return arr, fmt, None, None
-
-    # Try to find a valid column
-    for col in data.columns:
-        if col in valid_names:
-            fmt = 'n' if col.startswith('n_') else 'p'
-            if data.index.name in ['year', 'Year'] or np.all(data.index > 1900):
-                arr = sc.smoothinterp(yearvec, data.index.values, data[col].values, smoothness=0)
-            else:
-                arr = sc.smoothinterp(yearvec, np.arange(len(data)), data[col].values, smoothness=0)
-            return arr, fmt, None, None
-
-    errormsg = f'DataFrame columns {list(data.columns)} do not match any valid names {valid_names}.'
-    raise ValueError(errormsg)
-
-
-def _normalize_sex(val):
-    """
-    Normalize a gender/sex value to integer form.
-    Convention: 0 = female, 1 = male.
-
-    Accepts: 0, 1, 'f', 'm', 'female', 'male' (case-insensitive).
-    """
-    if isinstance(val, str):
-        v = val.strip().lower()
-        if v in ('f', 'female'): return 0
-        if v in ('m', 'male'):   return 1
-        raise ValueError(f'Cannot parse sex value: {val!r}. Expected 0/1, f/m, or female/male.')
-    return int(val)
-
-
-def _normalize_stratified_cols(data):
-    """
-    Normalize column names and gender values in a stratified DataFrame.
-    Supports: Year/year, Gender/Sex/gender/sex, AgeBin/age_bin/agebin/age,
-    Count/count, lb/LB, ub/UB.
-
-    Gender values are normalized to integers: 0 = female, 1 = male.
-    Accepts: 0/1, 'f'/'m', 'female'/'male' (case-insensitive).
-
-    Returns a copy of the DataFrame with canonical column names and normalized
-    gender values.
-    """
-    rename = {}
-    col_lower = {c.lower(): c for c in data.columns}
-
-    # Year
-    for alias in ['year']:
-        if alias in col_lower:
-            rename[col_lower[alias]] = 'Year'
-            break
-    else:
-        raise ValueError(f'Stratified coverage DataFrame must have a "Year" column. Found: {list(data.columns)}')
-
-    # Sex/Gender
-    for alias in ['gender', 'sex']:
-        if alias in col_lower:
-            rename[col_lower[alias]] = 'Gender'
-            break
-    else:
-        raise ValueError(f'Stratified coverage DataFrame must have a "Gender" or "Sex" column. Found: {list(data.columns)}')
-
-    # Age bin
-    for alias in ['agebin', 'age_bin', 'age']:
-        if alias in col_lower:
-            rename[col_lower[alias]] = 'AgeBin'
-            break
-    else:
-        raise ValueError(f'Stratified coverage DataFrame must have an "AgeBin" or "Age" column. Found: {list(data.columns)}')
-
-    # Optional columns
-    for alias, canonical in [('count', 'Count'), ('lb', 'lb'), ('ub', 'ub')]:
-        if alias in col_lower:
-            rename[col_lower[alias]] = canonical
-
-    df = data.rename(columns=rename)
-
-    # Normalize gender values to integers: 0=female, 1=male
-    df['Gender'] = df['Gender'].map(_normalize_sex)
-
-    return df
-
-
-def _parse_stratified_df(data, yearvec):
-    """
-    Parse a stratified coverage DataFrame.
-
-    Accepts flexible column names (Year/year, Gender/Sex, AgeBin/age_bin/age).
-    The value column is detected as the first numeric column that's not a
-    metadata column (Year, Gender, AgeBin, Count, lb, ub).
-
-    Returns a dict keyed by (age_bin, sex) with interpolated arrays, plus
-    the list of age_bins and sex_keys for iteration.
-    """
-    data = _normalize_stratified_cols(data)
-
-    skip_cols = {'Year', 'Gender', 'AgeBin', 'Count', 'lb', 'ub'}
-    val_col = None
-    for col in data.columns:
-        if col not in skip_cols and pd.api.types.is_numeric_dtype(data[col]):
-            val_col = col
-            break
-    if val_col is None:
-        raise ValueError(f'Could not find a numeric value column in stratified coverage DataFrame. Columns: {list(data.columns)}')
-
-    fmt = 'p' if data[val_col].dropna().max() <= 1.0 else 'n'
-
-    # Extract unique age bins and sex keys (sort numerically, not lexicographically)
-    age_bins = sorted(data['AgeBin'].unique(), key=lambda ab: ss.parse_age_range(ab)[0])
-    sex_keys = sorted(data['Gender'].unique())
-
-    # Build interpolated arrays for each (age_bin, sex) combination
-    coverage = {}
-    for ab in age_bins:
-        for sex in sex_keys:
-            subset = data[(data['AgeBin'] == ab) & (data['Gender'] == sex)].sort_values('Year')
-            if len(subset) == 0:
-                coverage[(ab, sex)] = np.zeros(len(yearvec))
-            else:
-                years = subset['Year'].values.astype(float)
-                vals  = subset[val_col].values.astype(float)
-                mask = ~np.isnan(vals)
-                if mask.any():
-                    vals = np.interp(years, years[mask], vals[mask])
-                coverage[(ab, sex)] = sc.smoothinterp(yearvec, years, vals, smoothness=0)
-
-    return coverage, fmt, age_bins, sex_keys
-
-
-def _handle_deprecated_coverage(coverage, coverage_data, kwargs):
-    """
-    Handle deprecated coverage_data and future_coverage kwargs.
-    Returns the normalized coverage input and any remaining future_coverage.
-    """
-    future_coverage = kwargs.pop('future_coverage', None)
-
-    if coverage_data is not None and coverage is not None:
-        raise ValueError('Cannot specify both coverage and coverage_data. Use coverage only.')
-
-    if coverage_data is not None:
-        warnings.warn('coverage_data is deprecated; use coverage instead', FutureWarning, stacklevel=3)
-        coverage = coverage_data
-
-    if future_coverage is not None:
-        warnings.warn('future_coverage is deprecated; extend coverage data to cover the full simulation period instead', FutureWarning, stacklevel=3)
-
-    return coverage, future_coverage
+from stisim.interventions.utils import (
+    parse_coverage, _handle_deprecated_coverage, compute_coverage_target,
+)
+from stisim.utils import count
 
 
 # %% HIV classes
@@ -407,55 +178,12 @@ class ART(ss.Intervention):
         return
 
     def _get_n_to_treat(self, eligible_uids):
-        """
-        Get the target number of people on ART this timestep.
-
-        Returns None if no coverage data is provided (meaning: no capacity
-        constraint, just treat everyone who initiates). Returns an int otherwise.
-        """
-        # Legacy future_coverage mode
-        if self._future_coverage is not None and self.t.now('year') >= self._future_coverage['year']:
-            p_cov = self._future_coverage['prop']
-            return int(p_cov * len(eligible_uids))
-
-        if self.coverage is None:
-            return None
-
-        # Stratified coverage
-        if isinstance(self.coverage, dict):
-            return self._get_n_to_treat_stratified(eligible_uids)
-
-        # Aggregate coverage
-        if self.coverage_format == 'n':
-            return int(self.coverage[self.ti] / self.sim.pars.pop_scale)
-        else:
-            return int(self.coverage[self.ti] * len(eligible_uids))
-
-    def _get_n_to_treat_stratified(self, eligible_uids):
-        """
-        Compute target ART numbers by age/sex stratum.
-
-        Returns the total target across all strata.
-        """
-        sim = self.sim
-        total = 0
-
-        for ab in self.age_bins:
-            for sex in self.sex_keys:
-                cov = self.coverage.get((ab, sex), np.zeros(1))
-                cov_val = cov[self.ti] if len(cov) > self.ti else cov[-1]
-
-                # Find eligible agents in this stratum
-                age_mask = ss.apply_age_range(ab, sim.people.age)
-                sex_mask = sim.people.female if sex == 0 else sim.people.male
-                stratum_uids = eligible_uids[age_mask[eligible_uids] & sex_mask[eligible_uids]]
-
-                if self.coverage_format == 'n':
-                    total += int(cov_val / sim.pars.pop_scale)
-                else:
-                    total += int(cov_val * len(stratum_uids))
-
-        return total
+        """Get the target number of people on ART this timestep."""
+        return compute_coverage_target(
+            self.coverage, self.coverage_format, self.age_bins, self.sex_keys,
+            self.ti, eligible_uids, self.sim,
+            future_coverage=self._future_coverage,
+        )
 
     def step(self):
         """
@@ -625,39 +353,12 @@ class VMMC(ss.Intervention):
         return
 
     def _get_n_to_circ(self, eligible_uids):
-        """ Get the target number of circumcisions this timestep """
-        # Legacy future_coverage mode
-        if self._future_coverage is not None and self.t.now('year') >= self._future_coverage['year']:
-            return int(self._future_coverage['prop'] * len(eligible_uids))
-
-        if self.coverage is None:
-            return None
-
-        # Stratified coverage
-        if isinstance(self.coverage, dict):
-            return self._get_n_stratified(eligible_uids)
-
-        # Aggregate coverage
-        if self.coverage_format == 'n':
-            return int(self.coverage[self.ti] / self.sim.pars.pop_scale)
-        else:
-            return int(self.coverage[self.ti] * len(eligible_uids))
-
-    def _get_n_stratified(self, eligible_uids):
-        """ Compute target circumcisions by age stratum """
-        sim = self.sim
-        total = 0
-        for ab in self.age_bins:
-            for sex in (self.sex_keys or [1]):  # VMMC is males only (1=male); handle data gracefully
-                cov = self.coverage.get((ab, sex), np.zeros(1))
-                cov_val = cov[self.ti] if len(cov) > self.ti else cov[-1]
-                age_mask = ss.apply_age_range(ab, sim.people.age)
-                stratum_uids = eligible_uids[age_mask[eligible_uids]]
-                if self.coverage_format == 'n':
-                    total += int(cov_val / sim.pars.pop_scale)
-                else:
-                    total += int(cov_val * len(stratum_uids))
-        return total
+        """Get the target number of circumcisions this timestep."""
+        return compute_coverage_target(
+            self.coverage, self.coverage_format, self.age_bins, self.sex_keys,
+            self.ti, eligible_uids, self.sim,
+            future_coverage=self._future_coverage,
+        )
 
     def step(self):
         sim = self.sim
