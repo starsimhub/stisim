@@ -107,7 +107,8 @@ HIV produces the standard BaseSTI results (`new_infections`, `prevalence`, `inci
 | `new_agents_on_art` | Agents starting ART this timestep |
 | `p_on_art` | Proportion of infected agents on ART |
 | `prevalence_15_49` | HIV prevalence among 15-49 year olds |
-| `n_on_art_pregnant` | Number of pregnant women on ART (only present when pregnancy is in the sim) |
+| `n_on_art_pregnant` | Number of pregnant women on ART (only when pregnancy is in the sim) |
+| `p_diagnosed_pregnant` | Proportion of HIV+ pregnant women who are diagnosed (only when pregnancy is in the sim) |
 
 ### Transmission route results
 
@@ -164,13 +165,17 @@ anc_test = sti.HIVTest(
 )
 ```
 
-ANC testing is not included in `hivsim.Sim` defaults (which use a single general-population `HIVTest`). Add it explicitly when modeling targeted testing pathways.
+ANC testing is not included in `hivsim.Sim` defaults (which use a single general-population `HIVTest`). Add it explicitly when modeling targeted testing pathways. The `p_diagnosed_pregnant` result tracks what proportion of HIV+ pregnant women have been diagnosed, which measures the effectiveness of the ANC testing pathway.
 
-### 2. Prenatal protection (MaternalNet)
+### 2. ART retention during pregnancy
+
+Pregnant women on ART are less likely to drop out thanks to the `maternal_care_scale` parameter (default 2), which doubles care-seeking behavior during pregnancy. This makes it much less likely that pregnant women stop ART, keeping them on treatment through delivery and breastfeeding.
+
+### 3. Prenatal protection (MaternalNet)
 
 When a pregnant woman is on ART, her unborn infant's susceptibility is reduced by the `pmtct_efficacy` parameter on the ART intervention (default 0.96). This is applied each timestep via the MaternalNet.
 
-### 3. Postnatal protection (BreastfeedingNet)
+### 4. Postnatal protection (BreastfeedingNet)
 
 When a breastfeeding mother is on ART, her infant's susceptibility is similarly reduced by `pmtct_efficacy` via the BreastfeedingNet.
 

@@ -151,7 +151,10 @@ class HIV(BaseSTI):
         ]
 
         if self.include_mtct:
-            results += [ss.Result('n_on_art_pregnant', dtype=int, auto_plot=False)]
+            results += [
+                ss.Result('n_on_art_pregnant', dtype=int, auto_plot=False),
+                ss.Result('p_diagnosed_pregnant', dtype=float, label='Proportion of HIV+ pregnant women diagnosed', scale=False, auto_plot=False),
+            ]
 
         # Add FSW and clients to results:
         if 'structuredsexual' in self.sim.networks.keys():
@@ -466,7 +469,11 @@ class HIV(BaseSTI):
         self.results['cum_diagnoses'][ti] = np.sum(self.results['new_diagnoses'][:ti + 1])
         self.results['new_agents_on_art'][ti] = np.count_nonzero(self.ti_art == ti)
         if self.include_mtct:
-            self.results['n_on_art_pregnant'][ti] = np.count_nonzero(self.on_art & self.sim.people.pregnancy.pregnant)
+            pregnant = self.sim.people.pregnancy.pregnant
+            self.results['n_on_art_pregnant'][ti] = np.count_nonzero(self.on_art & pregnant)
+            n_infected_pregnant = np.count_nonzero(self.infected & pregnant)
+            n_diagnosed_pregnant = np.count_nonzero(self.diagnosed & pregnant & self.infected)
+            self.results['p_diagnosed_pregnant'][ti] = sc.safedivide(n_diagnosed_pregnant, n_infected_pregnant)
         self.results['p_on_art'][ti] = sc.safedivide(self.results['n_on_art'][ti], self.results['n_infected'][ti])
 
         # Subset by age group:
