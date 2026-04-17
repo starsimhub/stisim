@@ -2,9 +2,39 @@
 
 All notable changes to the codebase are documented in this file.
 
-## Version 1.5.3 (TBC)
+## Version 1.5.3 (2026-04-17)
 
-*Coming soon*
+### Interventions
+- Extract shared coverage-targeting logic into `interventions/utils.py`: `parse_coverage`, `age_sex_mask`, `compute_coverage_target` (#328)
+- Replace `_parse_age_bin` with starsim's `ss.parse_age_range` and `ss.apply_age_range` (#326)
+- Expose `smoothness` parameter for coverage interpolation (default 0 = linear) (#327)
+- Support mixed n/p coverage format: historical absolute numbers transitioning to projected proportions within a single DataFrame or dict (#383)
+- Remove deprecated `coverage_data` and `future_coverage` parameters; use `coverage` instead (#383)
+- Refactor PrEP to use `parse_coverage` (#327)
+- Add `pmtct_efficacy` parameter to ART (default 0.96), replacing hardcoded `rel_sus=0` for prenatal MTCT protection (#404)
+- Extend PMTCT protection to breastfed infants via BreastfeedingNet (#407)
+- Add ANC HIV testing pattern using `HIVTest` with pregnancy eligibility (#322)
+
+### HIV / MTCT
+- Add `new_infections_mtct`, `new_infections_sex`, `new_infections_prenatal`, `new_infections_postnatal` results to BaseSTI (#325)
+- Implement breastfeeding HIV transmission via BreastfeedingNet with `beta_breastfeed` parameter (#323)
+- Add `p_diagnosed_pregnant` result tracking ANC testing coverage (#322)
+- Include BreastfeedingNet in `hivsim.Sim` defaults (conditional on Pregnancy module)
+
+### Bug fixes
+- Fix chlamydia `eff_condom` default: updated to 0.4 based on linked citation (#391)
+- Fix `hivsim.Sim`: conditionally add BreastfeedingNet only when Pregnancy is present (#413)
+- Fix disease count assertion in `test_sim_creation` (#413)
+
+### Documentation
+- Add examples gallery with first entry: Modeling ART interruptions (#394)
+- Add PMTCT section to HIV user guide (ANC testing, prenatal/postnatal protection)
+- Document HIV transmission route results (MTCT, prenatal, postnatal)
+- Add docstrings across interventions, diseases, networks, and analyzers (#409)
+
+### Tests
+- Add `test_pmtct`: 8-sim combinatorial test for ANC testing, PMTCT efficacy, and breastfeeding duration
+- Add `test_mtct`: prenatal + postnatal MTCT consistency checks
 
 ## Version 1.5.2 (2026-04-06)
 
