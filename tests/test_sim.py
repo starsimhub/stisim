@@ -132,7 +132,7 @@ def test_hivsim_defaults():
     # Check default modules are present
     assert 'hiv' in sim.diseases, "HIV disease not added"
     assert len(sim.diseases) == 1, "Should have exactly 1 disease"
-    assert len(sim.networks) == 2, "Should have 2 networks (sexual + maternal)"
+    assert len(sim.networks) == 3, "Should have 3 networks (sexual + maternal + breastfeeding)"
     assert len(sim.demographics) == 2, "Should have 2 demographics (pregnancy + deaths)"
     assert len(sim.interventions) == 4, "Should have 4 interventions (test, ART, VMMC, PrEP)"
 
@@ -160,7 +160,7 @@ def test_hivsim_custom_modules():
     assert len(sim.interventions) == 1, f"Expected 1 intervention, got {len(sim.interventions)}"
 
     # But other defaults should still be present
-    assert len(sim.networks) == 2, "Default networks should still be present"
+    assert len(sim.networks) == 3, "Default networks should still be present"
     assert len(sim.demographics) == 2, "Default demographics should still be present"
     return sim
 
@@ -175,14 +175,14 @@ def test_demo_simple():
     kw = dict(n_agents=200, dur=5)
 
     sim1 = make_sim(rand_seed=seed, **kw)
-    sim1.run()
-
     sim2 = hivsim.demo('simple', run=False, rand_seed=seed, **kw)
-    sim2.run()
+    msim = ss.parallel([sim1, sim2])
+    sim1, sim2 = msim.sims
 
     prev1 = sim1.results.hiv.prevalence[:]
     prev2 = sim2.results.hiv.prevalence[:]
     assert np.allclose(prev1, prev2), 'make_sim and hivsim.demo should produce identical results'
+    return msim
 
 
 def test_demo_zimbabwe():
@@ -191,10 +191,9 @@ def test_demo_zimbabwe():
 
     seed = 42
     sim1 = make_sim(rand_seed=seed, n_agents=500, stop=1995)
-    sim1.run()
-
     sim2 = hivsim.demo('zimbabwe', run=False, rand_seed=seed, n_agents=500, stop=1995)
-    sim2.run()
+    msim = ss.parallel([sim1, sim2])
+    sim1, sim2 = msim.sims
 
     prev1 = sim1.results.hiv.prevalence[:]
     prev2 = sim2.results.hiv.prevalence[:]

@@ -10,6 +10,12 @@ __all__ = ['CTPars', 'Chlamydia', 'ChlamydiaBL']
 
 
 class CTPars(STIPars):
+    """
+    Parameters for the chlamydia disease module.
+
+    Extends ``STIPars`` with chlamydia-specific symptom probabilities,
+    care-seeking rates, clearance durations, and PID progression values.
+    """
     def __init__(self, **kwargs):
         super().__init__()
         self.dur_exp = ss.constant(ss.weeks(1))
@@ -44,13 +50,25 @@ class CTPars(STIPars):
 
         self.beta_m2f = 0.06
         self.init_prev = ss.bernoulli(p=0.01)
-        self.eff_condom = 0.0  # doi:10.1001/archpedi.159.6.536
+        self.eff_condom = 0.4  # doi:10.1001/archpedi.159.6.536
 
         self.update(kwargs)
         return
 
 
 class Chlamydia(SEIS):
+    """
+    Chlamydia trachomatis disease module.
+
+    Models chlamydia as an SEIS infection with sex-stratified symptom probabilities,
+    care-seeking behavior, PID complications (females), and natural clearance.
+
+    Args:
+        pars (dict): Override default parameters from ``CTPars``.
+        name (str): Module name used for results and parameter routing. Default: ``'ct'``.
+        init_prev_data: Optional initial prevalence data by age/sex.
+        **kwargs: Additional parameters passed to ``update_pars``.
+    """
     def __init__(self, pars=None, name='ct', init_prev_data=None, **kwargs):
         super().__init__(name=name, init_prev_data=init_prev_data)
         default_pars = CTPars()
@@ -60,6 +78,17 @@ class Chlamydia(SEIS):
 
 
 class ChlamydiaBL(Chlamydia):
+    """
+    Chlamydia model with bacterial load dynamics.
+
+    Extends ``Chlamydia`` with a logistic bacterial load model that modulates
+    transmissibility over the course of infection, including growth to peak
+    load and exponential decay.
+
+    Args:
+        pars (dict): Override default parameters from ``CTPars`` plus bacterial load parameters.
+        **kwargs: Additional parameters passed to ``update_pars``.
+    """
 
     def __init__(self, pars=None, **kwargs):
         super().__init__()

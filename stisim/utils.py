@@ -19,20 +19,20 @@ def cond_prob(a, b): return sc.safedivide(count(a & b), count(b))
 
 class TimeSeries:
     """
-    Class to store time-series data
+    Store time-series data.
 
     Internally values are stored as lists rather than numpy arrays because
     insert/remove operations on lists tend to be faster (and working with sparse
-    data is a key role of TimeSeries objects). Note that methods like :meth:`interpolate()`
+    data is a key role of TimeSeries objects). Note that methods like ``interpolate()``
     return numpy arrays, so the output types from such functions should generally match up
     with what is required by the calling function.
 
-    :param t: Optionally specify a scalar, list, or array of time values
-    :param vals: Optionally specify a scalar, list, or array of values (must be same size as ``t``)
-    :param units: Optionally specify units (as a string)
-    :param assumption: Optionally specify a scalar assumption
-    :param sigma: Optionally specify a scalar uncertainty
-
+    Args:
+        t: Optionally specify a scalar, list, or array of time values.
+        vals: Optionally specify a scalar, list, or array of values (must be same size as ``t``).
+        units: Optionally specify units (as a string).
+        assumption: Optionally specify a scalar assumption.
+        sigma: Optionally specify a scalar uncertainty.
     """
 
     # Use slots here to guarantee that __deepcopy__() and __eq__() only have to check these

@@ -15,6 +15,19 @@ __all__ = ['SimpleBV', 'BV']
 
 
 class SimpleBV(ss.Disease):
+    """
+    Simple bacterial vaginosis model for generating background BV prevalence.
+
+    Models BV as a spontaneous condition (not sexually transmitted) using a
+    logistic regression model with risk factors (douching, menstrual hygiene,
+    number of partners). Includes symptomatic/asymptomatic states, care-seeking,
+    and natural clearance or persistence.
+
+    Args:
+        pars (dict): Override default parameters.
+        name (str): Module name. Default: ``'bv'``.
+        **kwargs: Additional parameters passed to ``update_pars``.
+    """
 
     def __init__(self, pars=None, name='bv', **kwargs):
         super().__init__(name=name)
@@ -280,7 +293,13 @@ class SimpleBV(ss.Disease):
 
 
 class BVPars(BaseSTIPars):
-    """  Parameters for the BV model """
+    """
+    Parameters for the detailed BV (community state type) model.
+
+    Holds CST transition probabilities, risk factor relative risks (douching,
+    menstrual hygiene, circumcision, concurrency), treatment parameters, and
+    spontaneous clearance configuration.
+    """
     def __init__(self, **kwargs):
         super().__init__()
 
@@ -350,6 +369,19 @@ class BVPars(BaseSTIPars):
 
 
 class BV(BaseSTI):
+    """
+    Detailed bacterial vaginosis model based on community state types (CSTs).
+
+    Models BV through vaginal microbiome CST transitions (CST 1, 3, 4), with
+    risk factors including douching, menstrual hygiene, partner concurrency,
+    and circumcision status. Supports optional sexual transmission of BV-
+    associated microbes.
+
+    Args:
+        pars (dict): Override default parameters from ``BVPars``.
+        name (str): Module name. Default: ``'bv'``.
+        **kwargs: Additional parameters passed to ``update_pars``.
+    """
 
     def __init__(self, pars=None, name="bv", **kwargs):
         super().__init__(name=name)

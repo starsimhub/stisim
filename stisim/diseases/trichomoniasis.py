@@ -9,6 +9,19 @@ __all__ = ['Trichomoniasis']
 
 
 class Trichomoniasis(SEIS):
+    """
+    Trichomonas vaginalis disease module.
+
+    Models trichomoniasis as an SEIS infection with sex-stratified symptom
+    probabilities and clearance durations. Females may develop persistent
+    asymptomatic infections that do not spontaneously clear.
+
+    Args:
+        pars (dict): Override default parameters (defined inline).
+        name (str): Module name used for results and parameter routing. Default: ``'tv'``.
+        init_prev_data: Optional initial prevalence data by age/sex.
+        **kwargs: Additional parameters passed to ``update_pars``.
+    """
 
     def __init__(self, pars=None, name='tv', init_prev_data=None, **kwargs):
         super().__init__(name=name, init_prev_data=init_prev_data)

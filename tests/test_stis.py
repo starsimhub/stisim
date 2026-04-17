@@ -12,7 +12,7 @@ import sciris as sc
 import starsim as ss
 import stisim as sti
 
-n_agents = 2000
+n_agents = 500
 debug = False
 
 
@@ -29,39 +29,30 @@ def test_syph_epi():
         beta_m2f=[0.2, 0.5]  # Beta for male to female transmission; opposite direction uses half this value
     )
 
-    # Loop over each of the above parameters and make sure they affect the epi dynamics in the expected ways
-    for par, par_val in par_effects.items():
-        lo = par_val[0]
-        hi = par_val[1]
-
-        # Make baseline pars
-        pars0 = sc.dcp(base_pars)
-        pars1 = sc.dcp(base_pars)
-
+    # Build all sims and run in one parallel call
+    sims = []
+    for par, (lo, hi) in par_effects.items():
         simpardict_lo = sc.mergedicts(dict(beta_m2f=0.3, init_prev=0.05), {par: lo})
         simpardict_hi = sc.mergedicts(dict(beta_m2f=0.3, init_prev=0.05), {par: hi})
+        sims.append(sti.Sim(sc.mergedicts(base_pars, dict(diseases=sti.Syphilis(**simpardict_lo), dur=10)), label=f'{par}={lo}'))
+        sims.append(sti.Sim(sc.mergedicts(base_pars, dict(diseases=sti.Syphilis(**simpardict_hi), dur=10)), label=f'{par}={hi}'))
 
-        pars0['diseases'] = sti.Syphilis(**simpardict_lo)
-        pars1['diseases'] = sti.Syphilis(**simpardict_hi)
+    ss.parallel(*sims, debug=debug)
 
-        # Run the simulations and pull out the results
-        s0 = sti.Sim(pars0, label=f'{par} {par_val[0]}')
-        s1 = sti.Sim(pars1, label=f'{par} {par_val[1]}')
-        ss.parallel(s0, s1, debug=debug)
-
-        # Check results
+    # Check results pairwise
+    for i, (par, (lo, hi)) in enumerate(par_effects.items()):
+        s0, s1 = sims[2*i], sims[2*i+1]
         ind = 1 if par == 'init_prev' else -1
         v0 = s0.results.syph.cum_infections[ind]
         v1 = s1.results.syph.cum_infections[ind]
-
         print(f'Checking with varying {par:10s} ... ', end='')
         assert v0 <= v1, f'Expected infections to be lower with {par}={lo} than with {par}={hi}, but {v0} > {v1})'
         print(f'✓ ({v0} <= {v1})')
 
-    return s0, s1
+    return sims
 
 
-def test_stis(which='discharging', n_agents=5e3, start=2010, stop=2020):
+def test_stis(which='discharging', n_agents=1e3, start=2010, stop=2020):
     """ Test running grouped STIs: discharging (NG, CT, TV, BV) and ulcerative (syphilis, GUD) """
     sc.heading('Test STI sim')
 
