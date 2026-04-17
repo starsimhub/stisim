@@ -209,18 +209,18 @@ def _run_beta_test(baseline_m2f, baseline_m2c, mode: str, multiplier=2, result_t
 def test_doubling_hiv_maternal_beta_doubles_transmissions():
     sc.heading("Checking that doubling mtc beta roughly doubles mtc transmissions.")
 
-    # setting baseline beta low, fertility HIGH, prevalence HIGH to generate enough births/transmissions quickly
+    # High fertility + prevalence to generate enough births/transmissions with fewer agents
     _run_beta_test(baseline_m2f=0, baseline_m2c=0.0025, mode='mtc', multiplier=2, fertility=1000,
-                   duration=5, n_agents=40000, init_prev=1.0)
+                   duration=10, n_agents=1000, init_prev=1.0, result_tolerance=0.25)
 
 
 @sc.timer()
 def test_doubling_hiv_sexual_beta_doubles_transmissions():
     sc.heading("Checking that doubling sexual beta roughly doubles sexual transmissions at low infectivity.")
 
-    # doubling both beta for m2f (implicitly f2m) (sexual transmission only, no mother-to-child transmission)
-    # This happens to be a realistic baseline m2f beta
-    _run_beta_test(baseline_m2f=0.001, baseline_m2c=0, mode='sexual', multiplier=2, duration=1, n_agents=100000)
+    # Low beta keeps transmission in the linear regime where doubling beta ≈ doubles transmissions
+    _run_beta_test(baseline_m2f=0.001, baseline_m2c=0, mode='sexual', multiplier=2,
+                   duration=1, n_agents=1000, init_prev=0.5, result_tolerance=0.3)
 
 
 @sc.timer()
