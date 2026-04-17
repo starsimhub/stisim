@@ -9,6 +9,8 @@ Jupyter notebook — download and adapt to your own use case.
 
     ---
 
+    ![ART interruptions](art_interruptions_thumb.png){ width="280" }
+
     Simulate exogenous shocks to ART coverage using mixed-format DataFrames.
     Build scenario-specific coverage, run counterfactuals, and compare outcomes.
 
