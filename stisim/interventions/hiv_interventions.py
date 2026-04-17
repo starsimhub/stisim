@@ -76,6 +76,16 @@ class HIVTest(STITest):
             name='fsw_test',
             eligibility=lambda sim: sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.diagnosed,
         )
+
+        # ANC testing: test undiagnosed pregnant women in first trimester
+        anc_test = sti.HIVTest(
+            test_prob_data=0.9,
+            dt_scale=False,
+            name='anc_test',
+            eligibility=lambda sim: sim.demographics.pregnancy.tri1_uids[
+                ~sim.diseases.hiv.diagnosed[sim.demographics.pregnancy.tri1_uids]
+            ],
+        )
     """
     def __init__(self, product=None, pars=None, test_prob_data=None, years=None, start=None, eligibility=None, name=None, label=None, **kwargs):
         if product is None: product = HIVDx(name=f'HIVDx_{name}')
@@ -108,7 +118,8 @@ class ART(ss.Intervention):
            number, prioritized by CD4 count and care-seeking propensity
         4. If no coverage is specified: all newly diagnosed who pass art_initiation
            go directly on ART (no capacity constraint)
-        5. Mothers on ART protect unborn infants (rel_sus=0) via MaternalNet
+        5. Mothers on ART reduce infant susceptibility (prenatal via MaternalNet,
+           postnatal via BreastfeedingNet) by pmtct_efficacy
 
     Coverage is parsed by :func:`parse_coverage` and accepts:
         - ``None``: no coverage target; treat all who initiate (default)
@@ -129,6 +140,10 @@ class ART(ss.Intervention):
         art_initiation:   probability a newly diagnosed person initiates ART
                           (default: ss.bernoulli(p=0.9)). Set to 1 to treat all
                           diagnosed.
+        pmtct_efficacy:   efficacy of maternal ART in reducing infant susceptibility
+                          to HIV (default 0.96). Applied to both prenatal (MaternalNet)
+                          and postnatal (BreastfeedingNet) transmission. Set to 1.0 for
+                          complete protection (previous default behavior).
         smoothness:       interpolation smoothness (0=linear, default)
         format_priority:  when both n_art and p_art are non-NaN, prefer this format
                           ('n' or 'p', default 'n')
@@ -159,6 +174,9 @@ class ART(ss.Intervention):
 
         self.define_pars(
             art_initiation=ss.bernoulli(p=0.9),
+            pmtct_efficacy=0.96,  # How much maternal ART reduces infant susceptibility
+                                   # to HIV via MaternalNet (prenatal) and BreastfeedingNet
+                                   # (postnatal). Conceptually like infant PrEP.
         )
         self.update_pars(pars, **kwargs)
 
@@ -239,12 +257,29 @@ class ART(ss.Intervention):
         if n_to_treat is not None:
             self.art_coverage_correction(sim, target_coverage=n_to_treat)
 
-        # Adjust rel_sus for protected unborn agents (only if pregnancy is modeled)
-        if hasattr(sim.people, 'pregnancy') and hasattr(sim.networks, 'maternalnet'):
-            if hiv.on_art[sim.people.pregnancy.pregnant].any():
-                mother_uids = (hiv.on_art & sim.people.pregnancy.pregnant).uids
-                infants = sim.networks.maternalnet.find_contacts(mother_uids)
-                hiv.rel_sus[ss.uids(infants)] = 0
+        # PMTCT: reduce susceptibility of infants whose mothers are on ART.
+        # This applies to both prenatal (MaternalNet) and postnatal (BreastfeedingNet)
+        # transmission. Conceptually, maternal ART acts like infant PrEP — viral
+        # suppression in the mother reduces the infant's exposure to HIV.
+        # Note: the mother's own rel_trans is also reduced by ART (in update_transmission),
+        # so total protection compounds both effects.
+        pmtct_eff = self.pars.pmtct_efficacy
+        if hasattr(sim.people, 'pregnancy'):
+            preg = sim.people.pregnancy
+
+            # Prenatal: protect unborn infants of pregnant mothers on ART
+            if hasattr(sim.networks, 'maternalnet'):
+                art_pregnant = (hiv.on_art & preg.pregnant).uids
+                if len(art_pregnant):
+                    unborn = sim.networks.maternalnet.find_contacts(art_pregnant)
+                    hiv.rel_sus[ss.uids(unborn)] *= 1 - pmtct_eff
+
+            # Postnatal: protect breastfed infants of breastfeeding mothers on ART
+            if hasattr(sim.networks, 'breastfeedingnet'):
+                art_breastfeeding = (hiv.on_art & preg.breastfeeding).uids
+                if len(art_breastfeeding):
+                    breastfed = sim.networks.breastfeedingnet.find_contacts(art_breastfeeding)
+                    hiv.rel_sus[ss.uids(breastfed)] *= 1 - pmtct_eff
 
         return
 

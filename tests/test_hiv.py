@@ -259,6 +259,93 @@ def test_mtct(do_plot=do_plot):
 
 
 @sc.timer()
+def test_pmtct():
+    """
+    Test PMTCT across combinations of ANC testing, PMTCT efficacy, and
+    breastfeeding duration. Runs 8 sims in parallel and checks that:
+      - Higher ANC testing → more pregnant women on ART
+      - Higher PMTCT efficacy → fewer MTCT infections
+      - Longer breastfeeding → more postnatal infections
+    """
+    sc.heading('Testing PMTCT...')
+
+    n_agents = 1_000
+    anc_eligibility = lambda sim: sim.demographics.pregnancy.tri1_uids[
+        ~sim.diseases.hiv.diagnosed[sim.demographics.pregnancy.tri1_uids]
+    ]
+
+    def make_sim(anc_prob, pmtct_eff, dur_bf):
+        """ Build a PMTCT sim with the given parameter combination """
+        pregnancy = ss.Pregnancy(dur_breastfeed=dur_bf)
+        intvs = [sti.HIVTest(), sti.ART(pmtct_efficacy=pmtct_eff), sti.VMMC(), sti.Prep()]
+        if anc_prob > 0:
+            intvs.insert(1, sti.HIVTest(
+                test_prob_data=anc_prob, dt_scale=False, name='anc_test', eligibility=anc_eligibility,
+            ))
+        sim = hivsim.Sim(
+            n_agents=n_agents, init_prev=0.3,
+            demographics=[pregnancy, ss.Deaths()],
+            interventions=intvs,
+        )
+        return sim
+
+    # Parameter combinations: (anc_prob, pmtct_efficacy, dur_breastfeed)
+    combos = dict(
+        anc_hi_eff_hi_bf_short = (0.9, 0.96, ss.years(0.25)),
+        anc_hi_eff_hi_bf_long  = (0.9, 0.96, ss.years(2.0)),
+        anc_hi_eff_lo_bf_short = (0.9, 0.3,  ss.years(0.25)),
+        anc_hi_eff_lo_bf_long  = (0.9, 0.3,  ss.years(2.0)),
+        anc_lo_eff_hi_bf_short = (0.0, 0.96, ss.years(0.25)),
+        anc_lo_eff_hi_bf_long  = (0.0, 0.96, ss.years(2.0)),
+        anc_lo_eff_lo_bf_short = (0.0, 0.3,  ss.years(0.25)),
+        anc_lo_eff_lo_bf_long  = (0.0, 0.3,  ss.years(2.0)),
+    )
+
+    sims = {name: make_sim(*pars) for name, pars in combos.items()}
+    msim = ss.MultiSim(list(sims.values()))
+    msim.run()
+
+    # Extract results keyed by combo name
+    r = {}
+    for name, sim in zip(sims.keys(), msim.sims):
+        r[name] = sc.objdict(
+            mtct      = sim.results.hiv.new_infections_mtct.sum(),
+            prenatal  = sim.results.hiv.new_infections_prenatal.sum(),
+            postnatal = sim.results.hiv.new_infections_postnatal.sum(),
+            art_preg  = sim.results.hiv.n_on_art_pregnant.sum(),
+        )
+
+    if verbose:
+        for name, vals in r.items():
+            print(f'{name:30s}  mtct={vals.mtct:5.0f}  pre={vals.prenatal:5.0f}  post={vals.postnatal:5.0f}  art_preg={vals.art_preg:5.0f}')
+
+    # Helper to average a result across matching combos
+    def avg(key, filt):
+        vals = [r[k][key] for k in r if filt(k)]
+        return sum(vals) / len(vals)
+
+    # 1. Higher ANC testing → more pregnant women on ART (averaging over other axes)
+    art_preg_hi_anc = avg('art_preg', lambda k: k.startswith('anc_hi'))
+    art_preg_lo_anc = avg('art_preg', lambda k: k.startswith('anc_lo'))
+    assert art_preg_hi_anc >= art_preg_lo_anc, \
+        f'High ANC testing should increase pregnant women on ART ({art_preg_hi_anc:.0f} vs {art_preg_lo_anc:.0f})'
+
+    # 2. Higher PMTCT efficacy → fewer MTCT infections (averaging over other axes)
+    mtct_hi_eff = avg('mtct', lambda k: 'eff_hi' in k)
+    mtct_lo_eff = avg('mtct', lambda k: 'eff_lo' in k)
+    assert mtct_hi_eff < mtct_lo_eff, \
+        f'High PMTCT efficacy should reduce MTCT ({mtct_hi_eff:.0f} vs {mtct_lo_eff:.0f})'
+
+    # 3. Longer breastfeeding → more postnatal infections (averaging over other axes)
+    post_long_bf = avg('postnatal', lambda k: k.endswith('bf_long'))
+    post_short_bf = avg('postnatal', lambda k: k.endswith('bf_short'))
+    assert post_long_bf > post_short_bf, \
+        f'Longer breastfeeding should increase postnatal MTCT ({post_long_bf:.0f} vs {post_short_bf:.0f})'
+
+    return msim
+
+
+@sc.timer()
 def test_cd4_rises_on_ART():
     sc.heading("Ensuring that agent CD4 levels rise when on ART (monotonically in a short test)")
 
@@ -642,6 +729,7 @@ if __name__ == '__main__':
     test_doubling_hiv_maternal_beta_doubles_transmissions()
     test_doubling_hiv_sexual_beta_doubles_transmissions()
     test_mtct()
+    test_pmtct()
     test_cd4_rises_on_ART()
     test_art_increases_longevity()
     test_no_hiv_with_no_outbreaks()
