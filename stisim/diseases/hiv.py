@@ -12,6 +12,13 @@ __all__ = ['HIV', 'HIVPars']
 
 
 class HIVPars(BaseSTIPars):
+    """
+    Parameters for the HIV disease module.
+
+    Holds natural history parameters (CD4 dynamics, acute/latent/falling stage
+    durations), transmission rates, ART treatment effects, and care-seeking
+    behavior configuration.
+    """
     def __init__(self, **kwargs):
         super().__init__()
 
@@ -61,6 +68,19 @@ class HIVPars(BaseSTIPars):
 
 
 class HIV(BaseSTI):
+    """
+    HIV disease module.
+
+    Models HIV infection with CD4-driven natural history (acute, latent, and
+    falling stages), ART treatment with CD4 reconstitution, diagnosis tracking,
+    and AIDS-related mortality. Supports mother-to-child transmission when a
+    pregnancy demographic module is present.
+
+    Args:
+        pars (dict): Override default parameters from ``HIVPars``.
+        init_prev_data: Optional initial prevalence data by age/sex/risk group.
+        **kwargs: Additional parameters passed to ``update_pars``.
+    """
 
     def __init__(self, pars=None, init_prev_data=None, **kwargs):
         super().__init__()
@@ -151,7 +171,10 @@ class HIV(BaseSTI):
         ]
 
         if self.include_mtct:
-            results += [ss.Result('n_on_art_pregnant', dtype=int, auto_plot=False)]
+            results += [
+                ss.Result('n_on_art_pregnant', dtype=int, auto_plot=False),
+                ss.Result('p_diagnosed_pregnant', dtype=float, label='Proportion of HIV+ pregnant women diagnosed', scale=False, auto_plot=False),
+            ]
 
         # Add FSW and clients to results:
         if 'structuredsexual' in self.sim.networks.keys():
@@ -232,7 +255,7 @@ class HIV(BaseSTI):
         post_art_dur = ti_zero - ti_stop_art
         time_post_art = self.ti - ti_stop_art
         cd4_start = self.cd4_postart[zero_later_uids]
-        if post_art_dur.any() <= 0:
+        if (post_art_dur <= 0).any():
             post_art_dur[post_art_dur <= 0] = 1
             # error_msg = 'Post-ART duration is negative'
             # raise ValueError(error_msg)
@@ -273,6 +296,12 @@ class HIV(BaseSTI):
         return self.cd4 < 200
 
     def make_p_hiv_death(self, uids=None):
+        """
+        Calculate per-timestep HIV death probability based on current CD4 count.
+
+        Uses CD4-stratified annual mortality rates, digitized into bins. Rates are
+        converted from per-year to per-timestep probabilities.
+        """
         cd4_bins = np.array([1000, 500, 350, 200, 50, 0])
         p_hiv_death = ss.peryear(np.array([0.003, 0.003, 0.005, 0.01, 0.05, 0.300])).to_prob(self.dt)
         return p_hiv_death[np.digitize(self.cd4[uids], cd4_bins)]
@@ -466,7 +495,11 @@ class HIV(BaseSTI):
         self.results['cum_diagnoses'][ti] = np.sum(self.results['new_diagnoses'][:ti + 1])
         self.results['new_agents_on_art'][ti] = np.count_nonzero(self.ti_art == ti)
         if self.include_mtct:
-            self.results['n_on_art_pregnant'][ti] = np.count_nonzero(self.on_art & self.sim.people.pregnancy.pregnant)
+            pregnant = self.sim.people.pregnancy.pregnant
+            self.results['n_on_art_pregnant'][ti] = np.count_nonzero(self.on_art & pregnant)
+            n_infected_pregnant = np.count_nonzero(self.infected & pregnant)
+            n_diagnosed_pregnant = np.count_nonzero(self.diagnosed & pregnant & self.infected)
+            self.results['p_diagnosed_pregnant'][ti] = sc.safedivide(n_diagnosed_pregnant, n_infected_pregnant)
         self.results['p_on_art'][ti] = sc.safedivide(self.results['n_on_art'][ti], self.results['n_infected'][ti])
 
         # Subset by age group:

@@ -13,9 +13,19 @@ __all__ = ['Migration']
 
 
 class Migration(ss.Demographics):
-    """
-    Remove / add migrants
-    Assumes a datafile with the number of migrants each year
+    """Demographic module that adds and removes migrants each timestep.
+
+    Reads a migration data source specifying the net number of migrants per
+    year. Positive values add immigrants (cloned from existing agents with
+    matching age/sex); negative values remove emigrants chosen by a
+    per-agent migration propensity score.
+
+    Args:
+        pars (dict): Parameter overrides (e.g. ``migration_propensity``,
+            ``slot_scale``, ``min_slots``).
+        migration_data (DataFrame): Must contain ``'Time'`` and ``'Value'``
+            columns giving the net number of migrants per year.
+        **kwargs: Additional parameter overrides.
     """
     def __init__(self, pars=None, migration_data=None, **kwargs):
         super().__init__()

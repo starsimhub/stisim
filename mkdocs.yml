@@ -3,7 +3,7 @@
 
 site_name: STIsim
 site_description: Agent-based modeling framework for sexually-transmitted infections
-site_url: https://docs.idmod.org/projects/stisim
+site_url: https://docs.stisim.org
 
 repo_name: starsimhub/stisim
 repo_url: https://github.com/starsimhub/stisim

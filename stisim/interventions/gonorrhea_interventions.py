@@ -6,7 +6,6 @@ import starsim as ss
 import numpy as np
 import sciris as sc
 from stisim.interventions.base_interventions import STITreatment
-from stisim.utils import count
 
 
 # %% Gonorrhea classes
@@ -14,11 +13,21 @@ __all__ = ["GonorrheaTreatment", "UpdateDrugs"]
 
 
 class GonorrheaTreatment(STITreatment):
-    """
-    Treatment for gonorrhea infection.
-        - successful treatment clears infection immediately
-        - unsuccessful treatment reduces dur_inf and rel_trans, but results in lower rel_treat
-        - unnecessary treatment results in lower rel_treat
+    """Treatment for gonorrhea infection with antimicrobial resistance tracking.
+
+    Successful treatment clears infection immediately. Unsuccessful treatment
+    reduces infection duration and relative transmissibility but lowers the
+    agent's future treatment response (``rel_treat``). Unnecessary treatment
+    also reduces ``rel_treat``, modeling resistance accumulation.
+
+    Args:
+        pars (dict): Parameter overrides (e.g. ``base_treat_eff``,
+            ``rel_treat_unsucc``, ``rel_treat_unneed``).
+        eligibility (func): Function returning eligible UIDs.
+        max_capacity (int): Maximum treatments per timestep.
+        years (list): Calendar years during which the intervention is active.
+        name (str): Intervention name.
+        **kwargs: Additional parameter overrides.
     """
     def __init__(self, pars=None, eligibility=None, max_capacity=None, years=None, name=None, *args, **kwargs):
         super().__init__(diseases='ng', name=name, eligibility=eligibility, max_capacity=max_capacity, years=years, *args)
@@ -65,9 +74,19 @@ class GonorrheaTreatment(STITreatment):
 
 
 class UpdateDrugs(ss.Intervention):
-    """
-    An intervention that samples rel_treat and updates the rel_treat values if they fall below
-    a given level.
+    """Intervention that switches the gonorrhea drug regimen when resistance is high.
+
+    Monitors the population-level mean ``rel_treat`` and, when it drops below
+    ``threshold_amr``, resets all agents' treatment response to 1.0 (simulating
+    a switch to a new drug). The previous ``rel_treat`` values are stored for
+    reference.
+
+    Args:
+        pars (dict): Parameter overrides; key parameter is ``threshold_amr``
+            (default 0.05).
+        eligibility (func): Function returning UIDs to monitor.
+        years (list): Calendar years during which the intervention is active.
+        **kwargs: Additional parameter overrides.
     """
     def __init__(self, pars=None, eligibility=None, years=None, *args, **kwargs):
         super().__init__(*args)

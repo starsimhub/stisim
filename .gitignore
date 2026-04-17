@@ -1,5 +1,6 @@
 # MkDocs
 _site/
+docs/api.md
 
 supervisord.log
 
