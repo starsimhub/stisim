@@ -14,7 +14,7 @@ sc.options(interactive=False)
 
 def make_sim():
     """Create a minimal Zimbabwe HIV sim for calibration tests."""
-    return hivsim.demo('zimbabwe', run=False, n_agents=n_agents)
+    return hivsim.demo('zimbabwe', run=False, n_agents=n_agents, dt=ss.year, dur=10)
 
 
 @sc.timer()
