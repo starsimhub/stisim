@@ -173,14 +173,26 @@ art = sti.ART(coverage={'year': [2000, 2010, 2025], 'value': [0, 0.5, 0.9]})
 # From a DataFrame (absolute numbers)
 art = sti.ART(coverage=pd.read_csv('art_data.csv').set_index('year'))
 
+# Historical absolute numbers then projected proportions (mixed n/p format)
+df = pd.read_csv('n_art.csv').set_index('year')
+df['p_art'] = np.nan
+df.loc[2023:, 'p_art'] = 0.90
+art = sti.ART(coverage=df)
+
 # Age/sex stratified (columns: Year, Gender/Sex, AgeBin, + value)
 art = sti.ART(coverage=stratified_df)
+
+# Smoother interpolation (default 0 = linear)
+art = sti.ART(coverage={'year': [2000, 2025], 'value': [0, 0.9]}, smoothness=5)
 ```
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `coverage` | None (no target; treat all who initiate) | Coverage target: scalar, dict, DataFrame, or stratified DataFrame. Dict values are linearly interpolated between years. DataFrame requires index=years and a column named `n_art` (absolute numbers) or `p_art` (proportion of infected). Stratified DataFrames need columns Year, Gender/Sex, AgeBin `[lo,hi)`, and a numeric value column. Gender accepts: 0/f/female (female), 1/m/male (male). |
+| `coverage` | None (no target; treat all who initiate) | Coverage target: scalar, dict, DataFrame, or stratified DataFrame. Dict values are interpolated between years (controlled by `smoothness`). DataFrame requires index=years and a column named `n_art` (absolute numbers) or `p_art` (proportion of infected). Dual-column DataFrames with both `n_art` and `p_art` support mixed format (use `format_priority` to resolve). Stratified DataFrames need columns Year, Sex, AgeBin `[lo,hi)`, and a numeric value column. Sex accepts: 0/f/female, 1/m/male. |
 | `art_initiation` | bernoulli(0.9) | Probability a newly diagnosed person initiates ART. Set to 1 to treat all diagnosed. |
+| `pmtct_efficacy` | 0.96 | Efficacy of maternal ART in reducing infant susceptibility to HIV, applied to both prenatal (MaternalNet) and postnatal (BreastfeedingNet) transmission. |
+| `smoothness` | 0 | Interpolation smoothness for coverage data (0 = linear, higher = smoother S-curves). |
+| `format_priority` | 'n' | When both `n_art` and `p_art` are non-NaN, prefer this format (`'n'` or `'p'`). |
 
 ### VMMC
 
