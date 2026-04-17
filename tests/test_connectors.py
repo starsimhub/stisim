@@ -29,12 +29,12 @@ def test_hiv_syph():
         return hiv, syphilis, coinfection_analyzer
 
     hiv, syphilis, coinfection_analyzer = make_args()
-    pars = dict(analyzers=coinfection_analyzer, diseases=[hiv, syphilis])
+    pars = dict(analyzers=coinfection_analyzer, diseases=[hiv, syphilis], n_agents=500, dur=10)
     s0 = sti.Sim(pars)
 
     pars['connectors'] = sti.hiv_syph(hiv, syphilis, rel_sus_hiv_syph=20, rel_trans_hiv_syph=20)
     hiv, syphilis, coinfection_analyzer = make_args()
-    pars = dict(analyzers=coinfection_analyzer, diseases=[hiv, syphilis])
+    pars = dict(analyzers=coinfection_analyzer, diseases=[hiv, syphilis], n_agents=500, dur=10)
     s1 = sti.Sim(pars)
 
     ss.parallel(s0, s1, debug=debug)
