@@ -37,16 +37,20 @@ def test_art_specs(do_plot=do_plot):
         df_n   = sti.ART(coverage=pd.DataFrame(index=years, data={'n_art': p_vals * 1e6})),
     )
 
-    results = dict()
+    sims = []
     for label, art in specs.items():
         sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents)
         sim.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), art]
-        sim.run()
-        n_art = sim.results.hiv.n_on_art[-1]
-        results[label] = n_art
+        sim.label = label
+        sims.append(sim)
 
-    for label, n_art in results.items():
-        assert n_art > 0, f'Expected people on ART with {label} format, got {n_art}'
+    msim = ss.parallel(sims)
+
+    results = dict()
+    for sim in msim.sims:
+        n_art = sim.results.hiv.n_on_art[-1]
+        results[sim.label] = n_art
+        assert n_art > 0, f'Expected people on ART with {sim.label} format, got {n_art}'
 
     if do_plot:
         fig, ax = pl.subplots()
@@ -73,8 +77,7 @@ def test_art_mixed_coverage(do_plot=do_plot):
     art1 = sti.ART(coverage=df)
     sim1 = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents)
     sim1.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), art1]
-    sim1.run()
-    assert sim1.results.hiv.n_on_art[-1] > 0, 'Expected people on ART with dual-column DataFrame'
+    sim1.label = 'dual_column_df'
 
     # Dict with per-entry format list
     art2 = sti.ART(coverage={
@@ -84,10 +87,13 @@ def test_art_mixed_coverage(do_plot=do_plot):
     })
     sim2 = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents)
     sim2.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), art2]
-    sim2.run()
-    assert sim2.results.hiv.n_on_art[-1] > 0, 'Expected people on ART with mixed-format dict'
+    sim2.label = 'mixed_format_dict'
 
-    return sim1, sim2
+    msim = ss.parallel([sim1, sim2])
+    for sim in msim.sims:
+        assert sim.results.hiv.n_on_art[-1] > 0, f'Expected people on ART with {sim.label}'
+
+    return msim
 
 
 @sc.timer()
@@ -101,16 +107,20 @@ def test_vmmc_specs(do_plot=do_plot):
         df_p   = sti.VMMC(coverage=pd.DataFrame(index=np.arange(2000, 2021), data={'p_vmmc': np.linspace(0, 0.3, 21)})),
     )
 
-    results = dict()
+    sims = []
     for label, vmmc in specs.items():
         sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents)
         sim.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.1), vmmc]
-        sim.run()
-        n_circ = sim.results.vmmc.n_circumcised[-1]
-        results[label] = n_circ
+        sim.label = label
+        sims.append(sim)
 
-    for label, n_circ in results.items():
-        assert n_circ > 0, f'Expected circumcisions with {label} format, got {n_circ}'
+    msim = ss.parallel(sims)
+
+    results = dict()
+    for sim in msim.sims:
+        n_circ = sim.results.vmmc.n_circumcised[-1]
+        results[sim.label] = n_circ
+        assert n_circ > 0, f'Expected circumcisions with {sim.label} format, got {n_circ}'
 
     return results
 
@@ -318,7 +328,7 @@ def test_art_reduces_mortality(do_plot=do_plot):
     # Without ART
     sim_no_art = hivsim.demo('simple', run=False, plot=False, n_agents=2_000)
     sim_no_art.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3)]
-    sim_no_art.run()
+    sim_no_art.label = 'no_art'
 
     # With ART
     sim_art = hivsim.demo('simple', run=False, plot=False, n_agents=2_000)
@@ -326,7 +336,10 @@ def test_art_reduces_mortality(do_plot=do_plot):
         sti.HIVTest(name='hiv_test', test_prob_data=0.3),
         sti.ART(coverage=0.8),
     ]
-    sim_art.run()
+    sim_art.label = 'with_art'
+
+    msim = ss.parallel([sim_no_art, sim_art])
+    sim_no_art, sim_art = msim.sims
 
     deaths_no_art = sim_no_art.results.hiv.new_deaths.sum()
     deaths_art    = sim_art.results.hiv.new_deaths.sum()
@@ -350,18 +363,13 @@ def test_art_parameter_sensitivity(do_plot=do_plot):
     """ Check that ART coverage and initiation parameters affect outcomes as expected """
     sc.heading('Testing ART parameter sensitivity...')
 
-    # TODO: implement
-    # Vary art_initiation probability (low vs high)
-    # Vary coverage level (low vs high)
-    # Assert: higher coverage → more people on ART
-    # Assert: higher initiation → faster ART uptake
-
     par_effects = dict(
         coverage       = [0.2, 0.9],
         art_initiation = [0.3, 0.95],
     )
 
     results = dict()
+    sims = []
     for par, (lo, hi) in par_effects.items():
         for val in [lo, hi]:
             if par == 'coverage':
@@ -370,14 +378,19 @@ def test_art_parameter_sensitivity(do_plot=do_plot):
                 art = sti.ART(coverage=0.5, art_initiation=ss.bernoulli(p=val))
             sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents)
             sim.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), art]
-            sim.run()
-            results[(par, val)] = float(sim.results.hiv.n_on_art[-1])
+            sim.label = (par, val)
+            sims.append(sim)
+    
+    msim = ss.parallel(sims)
 
-    # TODO: uncomment once validated with larger populations
-    # for par, (lo, hi) in par_effects.items():
-    #     v_lo = results[(par, lo)]
-    #     v_hi = results[(par, hi)]
-    #     assert v_lo <= v_hi, f'Expected higher {par} to increase ART uptake, but {par}={lo} gave {v_lo} vs {par}={hi} gave {v_hi}'
+    for sim in msim.sims:
+        n_on_art = sim.results.hiv.n_on_art[-1]
+        results[sim.label] = n_on_art
+
+    for par, (lo, hi) in par_effects.items():
+        v_lo = results[(par, lo)]
+        v_hi = results[(par, hi)]
+        assert v_lo <= v_hi, f'Expected higher {par} to increase ART uptake, but {par}={lo} gave {v_lo} vs {par}={hi} gave {v_hi}'
 
     return results
 

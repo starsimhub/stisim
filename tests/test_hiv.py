@@ -161,30 +161,34 @@ def _run_beta_test(baseline_m2f, baseline_m2c, mode: str, multiplier=2, result_t
 
     pregnancy = ss.Pregnancy(fertility_rate=fertility)
 
-    # run baseline sim
+    # Build baseline and test sims
     baseline_hiv = sti.HIV(beta_m2f=baseline_m2f, beta_m2c=baseline_m2c, init_prev=init_prev)
-    sim = build_testing_sim(diseases=[baseline_hiv], pregnancy=pregnancy,
+    sim_baseline = build_testing_sim(diseases=[baseline_hiv], pregnancy=pregnancy,
                             analyzers=[analyzer],
                             n_agents=n_agents, duration=duration)
-    sim.pars['rand_seed'] = rand_seed
-    sim.run()
+    sim_baseline.pars['rand_seed'] = rand_seed
+    sim_baseline.label = 'baseline'
 
-    hiv_transmissions_baseline = sum(sim.results[analyzer.name][analyzer.result_name])
+    if mode == 'sexual':
+        analyzer_test = SexualTransmissionCountTracker()
+    else:
+        analyzer_test = MTCTransmissionCountTracker()
 
-    # ensure at least one such transmission occurs
+    test_hiv = sti.HIV(beta_m2f=multiplier * baseline_m2f, beta_m2c=multiplier * baseline_m2c, init_prev=init_prev)
+    sim_test = build_testing_sim(diseases=[test_hiv], pregnancy=ss.Pregnancy(fertility_rate=fertility),
+                            analyzers=[analyzer_test],
+                            n_agents=n_agents, duration=duration)
+    sim_test.pars['rand_seed'] = rand_seed
+    sim_test.label = 'test'
+
+    # Run in parallel
+    msim = ss.parallel([sim_baseline, sim_test])
+    sim_baseline, sim_test = msim.sims
+
+    hiv_transmissions_baseline = sum(sim_baseline.results[analyzer.name][analyzer.result_name])
     assert hiv_transmissions_baseline > 0, f"Cannot assess effect of beta, no {mode} HIV transmissions occurred in baseline."
 
-    # Now multiply betas as selected and run test
-    test_hiv = sti.HIV(beta_m2f=multiplier * baseline_m2f, beta_m2c=multiplier * baseline_m2c, init_prev=init_prev)
-    sim = build_testing_sim(diseases=[test_hiv], pregnancy=pregnancy,
-                            analyzers=[analyzer],
-                            n_agents=n_agents, duration=duration)
-    sim.pars['rand_seed'] = rand_seed
-    sim.run()
-
-    hiv_transmissions_test = sum(sim.results[analyzer.name][analyzer.result_name])
-
-    # ensure at least one such transmission occurs
+    hiv_transmissions_test = sum(sim_test.results[analyzer_test.name][analyzer_test.result_name])
     assert hiv_transmissions_test > 0, f"Cannot assess effect of beta, no {mode} HIV transmissions occurred in test."
 
     # check transmission ratio, expected to be approximately increased by "multiplier" if base beta is low enough

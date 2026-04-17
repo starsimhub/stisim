@@ -175,14 +175,14 @@ def test_demo_simple():
     kw = dict(n_agents=200, dur=5)
 
     sim1 = make_sim(rand_seed=seed, **kw)
-    sim1.run()
-
     sim2 = hivsim.demo('simple', run=False, rand_seed=seed, **kw)
-    sim2.run()
+    msim = ss.parallel([sim1, sim2])
+    sim1, sim2 = msim.sims
 
     prev1 = sim1.results.hiv.prevalence[:]
     prev2 = sim2.results.hiv.prevalence[:]
     assert np.allclose(prev1, prev2), 'make_sim and hivsim.demo should produce identical results'
+    return msim
 
 
 def test_demo_zimbabwe():
@@ -191,10 +191,9 @@ def test_demo_zimbabwe():
 
     seed = 42
     sim1 = make_sim(rand_seed=seed, n_agents=500, stop=1995)
-    sim1.run()
-
     sim2 = hivsim.demo('zimbabwe', run=False, rand_seed=seed, n_agents=500, stop=1995)
-    sim2.run()
+    msim = ss.parallel([sim1, sim2])
+    sim1, sim2 = msim.sims
 
     prev1 = sim1.results.hiv.prevalence[:]
     prev2 = sim2.results.hiv.prevalence[:]
