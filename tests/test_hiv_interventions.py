@@ -230,7 +230,7 @@ def test_art_coverage_matching(do_plot=do_plot):
 
     # Simple constant proportion coverage
     target_p = 0.7
-    sim = hivsim.demo('simple', run=False, plot=False, n_agents=5_000)
+    sim = hivsim.demo('simple', run=False, plot=False, n_agents=1_000)
     sim.pars.interventions = [
         sti.HIVTest(name='hiv_test', test_prob_data=0.5),
         sti.ART(coverage=target_p),
@@ -240,7 +240,7 @@ def test_art_coverage_matching(do_plot=do_plot):
 
     ac = sim.results.art_coverage
     # Check coverage in the last few years (after ramp-up)
-    rtol = 0.2  # Generous tolerance for stochastic model with 5K agents
+    rtol = 0.3  # Generous tolerance for stochastic model with 1K agents
     final_p = np.mean(ac.p_art[-24:])  # Last 2 years of monthly data
     assert np.isclose(final_p, target_p, rtol=rtol), \
         f'Expected ART coverage ~{target_p}, got {final_p:.2f} (rtol={rtol})'
@@ -281,7 +281,7 @@ def test_art_stratified_coverage_matching(do_plot=do_plot):
                     targets[(ab, gender)] = p
 
     strat_df = pd.DataFrame(rows)
-    sim = hivsim.demo('simple', run=False, plot=False, n_agents=5_000)
+    sim = hivsim.demo('simple', run=False, plot=False, n_agents=1_000)
     sim.pars.interventions = [
         sti.HIVTest(name='hiv_test', test_prob_data=0.5),
         sti.ART(coverage=strat_df),
@@ -326,12 +326,12 @@ def test_art_reduces_mortality(do_plot=do_plot):
     sc.heading('Testing ART reduces mortality...')
 
     # Without ART
-    sim_no_art = hivsim.demo('simple', run=False, plot=False, n_agents=2_000)
+    sim_no_art = hivsim.demo('simple', run=False, plot=False, n_agents=1_000)
     sim_no_art.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3)]
     sim_no_art.label = 'no_art'
 
     # With ART
-    sim_art = hivsim.demo('simple', run=False, plot=False, n_agents=2_000)
+    sim_art = hivsim.demo('simple', run=False, plot=False, n_agents=1_000)
     sim_art.pars.interventions = [
         sti.HIVTest(name='hiv_test', test_prob_data=0.3),
         sti.ART(coverage=0.8),

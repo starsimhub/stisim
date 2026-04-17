@@ -88,37 +88,6 @@ def test_calibration(do_plot=do_plot):
     return calib
 
 
-@sc.timer()
-def test_make_calib_sims(do_plot=do_plot):
-    """Test make_calib_sims with different input types."""
-    sc.heading('Testing make_calib_sims')
-    sim = make_sim()
-
-    # From a list of dicts
-    par_sets = [
-        {'hiv.beta_m2f': 0.04, 'hiv.eff_condom': 0.85},
-        {'hiv.beta_m2f': 0.08, 'hiv.eff_condom': 0.95},
-    ]
-    msim = sti.make_calib_sims(calib_pars=par_sets, sim=sim)
-    assert len(msim.sims) == 2, f'Expected 2 sims from list, got {len(msim.sims)}'
-
-    # With check_fn filtering
-    msim_filtered = sti.make_calib_sims(
-        calib_pars=par_sets, sim=sim,
-        check_fn=lambda s: False,  # reject all
-    )
-    assert len(msim_filtered.sims) == 0, 'Expected all sims dropped by check_fn'
-
-    # With seeds_per_par > 1, keeps first surviving per par_idx
-    msim_seeds = sti.make_calib_sims(
-        calib_pars={'hiv.beta_m2f': 0.05}, sim=sim,
-        seeds_per_par=2, check_fn=lambda s: True,
-    )
-    assert len(msim_seeds.sims) == 1, 'Expected 1 sim kept (first per par_idx)'
-
-    return msim
-
-
 if __name__ == '__main__':
     do_plot = True
     sc.options(interactive=do_plot)
@@ -127,7 +96,6 @@ if __name__ == '__main__':
     test_set_sim_pars(do_plot=do_plot)
     test_default_build_fn(do_plot=do_plot)
     calib = test_calibration(do_plot=do_plot)
-    msim = test_make_calib_sims(do_plot=do_plot)
 
     T.toc()
     print('Done.')

@@ -70,7 +70,7 @@ def test_time_from_infection_to_aids_untreated():
     sc.heading("Regression: Ensuring mean time from infection to AIDS (to falling state) is reasonable.")
 
     result_tolerance = 0.03  # fraction of the expected value
-    sim = build_testing_sim(analyzers=[TimeToAIDSTracker()], n_agents=2000, duration=5)
+    sim = build_testing_sim(analyzers=[TimeToAIDSTracker()], n_agents=500, duration=5)
     sim.run()
     results = sim.results
     times_to_aids = list(chain(*results.timetoaidstracker['hiv.ti_to_aids']))
@@ -229,7 +229,7 @@ def test_mtct(do_plot=do_plot):
     sc.heading('Testing MTCT (prenatal + postnatal)...')
 
     # High fertility + high breastfeeding beta to ensure both transmission routes
-    sim = hivsim.demo('simple', run=False, plot=False, n_agents=2_000,
+    sim = hivsim.demo('simple', run=False, plot=False, n_agents=1_000,
                       beta_breastfeed=ss.permonth(0.1), init_prev=0.3)
     sim.run()
 
@@ -655,7 +655,7 @@ def test_vmmc_targeting():
 #     tis_falling = sim.results['birthtracker']['hiv.tis_falling']
 
 
-def test_par_ranges(n_agents=2000):
+def test_par_ranges(n_agents=1000):
     """
     Test that HIV parameters affect dynamics in the expected direction.
 
@@ -698,7 +698,7 @@ def test_par_ranges(n_agents=2000):
     return
 
 
-def test_prevalence_by_sex(n_agents=5000):
+def test_prevalence_by_sex(n_agents=1000):
     """
     Under default parameters, female HIV prevalence should exceed male prevalence.
 

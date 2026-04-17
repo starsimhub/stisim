@@ -12,7 +12,7 @@ import sciris as sc
 import starsim as ss
 import stisim as sti
 
-n_agents = 2000
+n_agents = 500
 debug = False
 
 
@@ -61,7 +61,7 @@ def test_syph_epi():
     return s0, s1
 
 
-def test_stis(which='discharging', n_agents=5e3, start=2010, stop=2020):
+def test_stis(which='discharging', n_agents=1e3, start=2010, stop=2020):
     """ Test running grouped STIs: discharging (NG, CT, TV, BV) and ulcerative (syphilis, GUD) """
     sc.heading('Test STI sim')
 
