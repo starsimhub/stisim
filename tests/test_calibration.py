@@ -72,7 +72,7 @@ def test_calibration(do_plot=do_plot):
 
     calib = sti.Calibration(
         sim=sim, calib_pars=calib_pars, data=data,
-        total_trials=2, n_workers=1, die=True, reseed=False, debug=True,
+        total_trials=2, n_workers=2, die=True, reseed=False,
     )
     calib.calibrate()
 
