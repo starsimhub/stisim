@@ -65,9 +65,10 @@ p:has(+ ul) {
 
 .sti-gallery img {
   width: 100%;
-  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
   display: block;
-  background: #fafafa;
+  background: #ffffff;
 }
 
 .sti-gallery figcaption {
