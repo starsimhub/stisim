@@ -18,4 +18,17 @@ Jupyter notebook — download and adapt to your own use case.
 
     :material-tag-outline: *New in v1.5.3* · :material-clock-outline: *~30s*
 
+-   :material-chart-line:{ .lg .middle } **Time-varying age at sexual debut**
+
+    ---
+
+    ![Time-varying AFS](dynamic_debut_thumb.png){ width="280" }
+
+    Use callable distribution parameters to model AFS declining over time.
+    Compare static vs dynamic debut and see the effect on birth-cohort means.
+
+    [:octicons-arrow-right-24: Open example](dynamic_debut.ipynb)
+
+    :material-tag-outline: *New in v1.5.4* · :material-clock-outline: *~30s*
+
 </div>
