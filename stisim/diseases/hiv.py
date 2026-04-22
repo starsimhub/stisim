@@ -39,6 +39,9 @@ class HIVPars(BaseSTIPars):
         self.beta_breastfeed = ss.permonth(0.005)  # Postnatal MTCT via breastfeeding (~14% over 12 months without ART)
         self.rel_trans_acute = ss.normal(loc=5.3, scale=0.5)  # Increase transmissibility during acute HIV infection (Bellan 2015: RH=5.3, EHM≈7.3)
         self.rel_trans_falling = ss.normal(loc=8, scale=0.5)  # Increase transmissibility during late HIV infection
+        self.rel_beta_m2f_by_age = None  # Age-dependent M→F susceptibility multipliers for females.
+        # List of (age_lo, age_hi, multiplier) tuples; applies to rel_sus so affects M→F only.
+        # Example (EMOD eSwatini calibration): [(15, 25, 1.72), (25, np.inf, 1.0)]
         self.eff_condom = 0.9
 
         # Initialization
@@ -460,6 +463,15 @@ class HIV(BaseSTI):
         # Reset susceptibility and infectiousness
         self.rel_sus[:] = 1
         self.rel_trans[:] = 1
+
+        # Age-dependent M→F susceptibility: modulate female rel_sus by age bin.
+        # Only affects M→F transmission (p_transmit = rel_trans[src] * rel_sus[trg] * beta).
+        # Does not affect F→M because rel_sus[male_trg] is unchanged.
+        if self.pars.rel_beta_m2f_by_age is not None:
+            ppl = self.sim.people
+            for age_lo, age_hi, mult in self.pars.rel_beta_m2f_by_age:
+                in_bin = ppl.female & (ppl.age >= age_lo) & (ppl.age < age_hi)
+                self.rel_sus[in_bin] *= mult
 
         # Update rel_trans to account for acute and late-stage infection
         self.rel_trans[self.acute] *= self.pars.rel_trans_acute.rvs(self.acute.uids)
