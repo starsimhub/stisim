@@ -5,5 +5,5 @@ runnable notebook.
 
 <div class="sti-gallery">
   <a href="art_interruptions.ipynb"><figure><img src="art_interruptions_thumb.png" alt="ART supply interruption"><figcaption>What happens if ART supply is temporarily cut off?</figcaption></figure></a>
-  <a href="dynamic_debut.ipynb"><figure><img src="dynamic_debut_thumb.png" alt="Time-varying age at sexual debut"><figcaption>Time-varying age at sexual debut</figcaption></figure></a>
+  <a href="dynamic_debut.ipynb"><figure><img src="dynamic_debut_thumb.png" alt="Declining age at first sex"><figcaption>What happens when age at first sex declines over time?</figcaption></figure></a>
 </div>
