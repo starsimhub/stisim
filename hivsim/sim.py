@@ -4,72 +4,98 @@ import stisim as sti
 
 __all__ = ['Sim', 'demo']
 
+
+# Defaults supplied by hivsim when the user doesn't override them.
+# Exposed at module level so callers can see exactly what they're getting.
+def _default_demographics():
+    return [ss.Pregnancy(), ss.Deaths()]
+
+
+def _default_interventions():
+    return [sti.HIVTest(), sti.ART(), sti.VMMC(), sti.Prep()]
+
+
+def _default_networks(demographics):
+    """Default networks: sexual + maternal, + breastfeeding if Pregnancy is present."""
+    nets = [sti.StructuredSexual(), ss.MaternalNet()]
+    if any(isinstance(m, ss.Pregnancy) for m in sc.tolist(demographics)):
+        nets.append(ss.BreastfeedingNet())
+    return nets
+
+
 class Sim(sti.Sim):
     """
-    A subclass of sti.Sim that is specifically designed for HIV simulations.
+    A thin subclass of sti.Sim that supplies HIV-appropriate defaults.
 
-    Currently, this simply parses input parameters among the sim and the HIV module,
-    and adds default demographics (pregnancy and deaths), networks (sexual and maternal),
-    and interventions (testing, ART, VMMC, and PrEP).
+    Equivalent to::
 
-    In future this will support location data and other features.
+        sti.Sim(
+            diseases='hiv',
+            demographics=[ss.Pregnancy(), ss.Deaths()],
+            networks=[sti.StructuredSexual(), ss.MaternalNet(), ss.BreastfeedingNet()],
+            interventions=[sti.HIVTest(), sti.ART(), sti.VMMC(), sti.Prep()],
+        )
+
+    Parameter routing (hiv_pars, network pars, etc.) is entirely delegated to
+    sti.Sim's ``separate_pars`` machinery. Users can customize:
+        - A whole module slot by passing the module directly (``diseases=MyHIV()``)
+        - Or by passing pars for the default module (``hiv=dict(rel_trans_acute=26)``
+          or flat ``rel_trans_acute=26``)
+        - But not both for the same slot (sti.Sim raises XOR violation).
+
+    Collisions between ``pars`` and ``kwargs`` raise an error: specify a value
+    exactly once.
     """
     def __init__(self, pars=None, sim_pars=None, hiv_pars=None, location=None, **kwargs):
 
         if location is not None:
             raise NotImplementedError('Location-based sim creation is not implemented yet')
 
-        # Initialize parameters
+        # Fail loudly on overlapping keys between `pars` and `**kwargs` — rather
+        # than silently taking the later value, force the caller to pick one.
+        if pars is not None:
+            overlap = set(pars) & set(kwargs)
+            if overlap:
+                raise ValueError(
+                    f'Keys appear in both `pars` and kwargs: {sorted(overlap)}. '
+                    f'Specify each parameter in exactly one place.'
+                )
+
         pars = sc.mergedicts(pars, kwargs)
-        sim_pars = sc.mergedicts(sim_pars)
-        hiv_pars = sc.mergedicts(hiv_pars)
-        default_sim_keys = ss.SimPars().keys()
-        default_hiv_keys = sti.HIVPars().keys()
 
-        # Pull modules out for special processing
-        modules = sc.objdict()
-        for mod_type in ['diseases', 'networks', 'demographics', 'interventions']:
-            modules[mod_type] = sc.mergelists(pars.pop(mod_type, None)) # Remove from kwargs and turn into a list
+        # Default diseases → 'hiv' string, so sti.Sim's string-path constructs
+        # HIV and applies routed sti_pars (including `hiv=dict(...)` or flat keys).
+        pars.setdefault('diseases', 'hiv')
 
-        # Handle diseases -- first, figure out what parameters belong in HIV
-        for key in list(pars.keys()):
-            if key in default_hiv_keys:
-                if key in default_sim_keys: # If the key is in both, copy
-                    val = pars[key]
-                else: # Else, pop
-                    val = pars.pop(key)
-                hiv_pars[key] = val
+        # Default demographics → pregnancy + deaths.
+        demographics = pars.pop('demographics', None) or _default_demographics()
 
-        hiv = sti.HIV(pars=hiv_pars)
-        modules.diseases.insert(0, hiv)
+        # Default networks — since there's no string shortcut for our combo,
+        # consume network pars from kwargs into the instance here. (If the user
+        # passed their own `networks=[...]`, any nw_pars they also passed will
+        # still be routed by sti.Sim and caught by its XOR validation.)
+        if 'networks' not in pars:
+            nw_kwargs = dict(pars.pop('nw_pars', None) or {})
+            for k in list(pars):
+                if k in sti.NetworkPars().keys():
+                    nw_kwargs[k] = pars.pop(k)
+            if nw_kwargs:
+                # Apply user's nw_pars to the default StructuredSexual.
+                pars['networks'] = [sti.StructuredSexual(**nw_kwargs), ss.MaternalNet()]
+                if any(isinstance(m, ss.Pregnancy) for m in sc.tolist(demographics)):
+                    pars['networks'].append(ss.BreastfeedingNet())
+            else:
+                pars['networks'] = _default_networks(demographics)
 
-        # Handle demographics
-        if not modules.demographics:
-            modules.demographics = [ss.Pregnancy(), ss.Deaths()]
+        # Default interventions.
+        pars.setdefault('interventions', _default_interventions())
 
-        # Handle networks — include BreastfeedingNet only when Pregnancy is present.
-        # Pull any StructuredSexual parameters out of kwargs so they reach the
-        # default network (e.g. `debut_f=17`, `fsw_shares=0.03`).
-        has_pregnancy = any(isinstance(m, ss.Pregnancy) for m in modules.demographics)
-        if not modules.networks:
-            default_nw_keys = sti.NetworkPars().keys()
-            nw_kwargs = {k: pars.pop(k) for k in list(pars) if k in default_nw_keys}
-            modules.networks = [sti.StructuredSexual(**nw_kwargs), ss.MaternalNet()]
-            if has_pregnancy:
-                modules.networks.append(ss.BreastfeedingNet())
+        # Backward-compat: hiv_pars kwarg → merge into the 'hiv' keyed dict
+        # so sti.Sim's separate_pars picks it up.
+        if hiv_pars:
+            pars['hiv'] = sc.mergedicts(pars.get('hiv'), hiv_pars)
 
-        # Handle interventions
-        if not modules.interventions:
-            modules.interventions = [sti.HIVTest(), sti.ART(), sti.VMMC(), sti.Prep()]
-
-        super().__init__(
-            pars          = sim_pars,
-            demographics  = modules.demographics,
-            networks      = modules.networks,
-            diseases      = modules.diseases,
-            interventions = modules.interventions,
-            **pars
-        )
+        super().__init__(pars=sim_pars, demographics=demographics, **pars)
         return
 
 
