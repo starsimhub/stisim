@@ -166,17 +166,6 @@ class StructuredSexual(ss.SexualNetwork):
         self.define_pars(**default_pars)
         self.update_pars(pars, **kwargs)
 
-        # Coerce scalar / list shortcuts for debut_f / debut_m into lognorm_ex.
-        # Users can pass `debut_f=18` or `debut_f=[18, 2]` and get the same
-        # result as `debut_f=ss.lognorm_ex(18, 2)`. Dists and callables are
-        # passed through unchanged.
-        for key, default_std in [('debut_f', 3), ('debut_m', 3)]:
-            val = self.pars[key]
-            if isinstance(val, (int, float)):
-                self.pars[key] = ss.lognorm_ex(val, default_std)
-            elif isinstance(val, (list, tuple)) and len(val) == 2:
-                self.pars[key] = ss.lognorm_ex(*val)
-
         # Set condom use
         if self.pars.condom_data is not None:
             self.pars.condom_data = self.process_condom_data(self.pars.condom_data)
