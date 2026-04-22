@@ -669,14 +669,14 @@ def test_par_ranges(n_agents=1000):
     return
 
 
-def test_rel_beta_m2f_by_age(n_agents=3000):
+def test_rel_sus_age(n_agents=3000):
     """
-    Higher rel_beta_m2f_by_age multiplier for young women should produce more
-    infections in that age group relative to a sim with uniform susceptibility.
+    Higher rel_sus_age multiplier for young women should produce more infections
+    in that group relative to a sim with uniform susceptibility.
     """
     import numpy as np
     hiv_age = sti.HIV(
-        rel_beta_m2f_by_age=[(15, 25, 3.0), (25, np.inf, 1.0)],
+        rel_sus_age=[(15, 25, 'f', 3.0), (25, np.inf, 'f', 1.0)],
         init_prev=0.1,
     )
     sim_age = sti.Sim(diseases=hiv_age, n_agents=n_agents, dur=10, rand_seed=1, verbose=0)
@@ -691,8 +691,8 @@ def test_rel_beta_m2f_by_age(n_agents=3000):
     yf_age = young_female_infections(sim_age)
     yf_uni = young_female_infections(sim_uni)
     assert yf_age > yf_uni, (
-        f'Higher rel_beta_m2f_by_age for young women should produce more young female '
-        f'infections; age-dep={yf_age}, uniform={yf_uni}'
+        f'rel_sus_age multiplier for young women should increase their infections; '
+        f'age-dep={yf_age}, uniform={yf_uni}'
     )
     return sim_age, sim_uni
 
