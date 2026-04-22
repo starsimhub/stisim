@@ -669,7 +669,7 @@ def test_par_ranges(n_agents=1000):
     return
 
 
-def test_prevalence_by_sex(n_agents=1000):
+def test_prevalence_by_sex(n_agents=3000):
     """
     Under default parameters, female HIV prevalence should exceed male prevalence.
 
