@@ -47,10 +47,14 @@ class Sim(sti.Sim):
         if not modules.demographics:
             modules.demographics = [ss.Pregnancy(), ss.Deaths()]
 
-        # Handle networks — include BreastfeedingNet only when Pregnancy is present
+        # Handle networks — include BreastfeedingNet only when Pregnancy is present.
+        # Pull any StructuredSexual parameters out of kwargs so they reach the
+        # default network (e.g. `debut_f=17`, `fsw_shares=0.03`).
         has_pregnancy = any(isinstance(m, ss.Pregnancy) for m in modules.demographics)
         if not modules.networks:
-            modules.networks = [sti.StructuredSexual(), ss.MaternalNet()]
+            default_nw_keys = sti.NetworkPars().keys()
+            nw_kwargs = {k: pars.pop(k) for k in list(pars) if k in default_nw_keys}
+            modules.networks = [sti.StructuredSexual(**nw_kwargs), ss.MaternalNet()]
             if has_pregnancy:
                 modules.networks.append(ss.BreastfeedingNet())
 

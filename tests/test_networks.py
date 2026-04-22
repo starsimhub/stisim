@@ -166,7 +166,7 @@ def test_debut_age():
     # Create a structured sexual network with default parameters
     network = sti.StructuredSexual()
 
-    late_debut_network = sti.StructuredSexual(pars={'debut_f': ss.lognorm_ex(25, 3), 'debut_m': ss.lognorm_ex(26, 3)})
+    late_debut_network = sti.StructuredSexual(debut_f=25, debut_m=26)
     analyzer = sti.DebutAge()
 
     s1 = sti.Sim(networks=[network], analyzers=[analyzer])
