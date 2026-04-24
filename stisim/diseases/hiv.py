@@ -73,7 +73,7 @@ class HIV(BaseSTI):
         self.init_prev_data = init_prev_data
 
         # States
-        self.define_states(
+        states = [
             # Natural history
             ss.FloatArr('ti_exposed'),
             ss.FloatArr('ti_acute'),
@@ -105,13 +105,30 @@ class HIV(BaseSTI):
 
             # Knowledge of HIV status
             ss.BoolState('diagnosed'),
-            ss.FloatArr('ti_diagnosed'),
-        )
+            ss.FloatArr('ti_diagnosed')
+        ]
 
-        return
+        # PrEP related
+        states += [
+            ss.IntArr('prep_source'),
+            ss.IntArr('ti_prep_drop'),
+            ss.IntArr('ti_prep_end'),
+            ss.IntArr('prep_n_reuptake'),
+            ss.BoolState('on_prep'),
+            ss.IntArr('prep_product'),
+            ss.IntArr('ti_prep_start'),
+            ss.FloatArr('prep_eff')
+        ]
+
+        self.define_states(*states)
 
     @property
     def include_mtct(self): return 'pregnancy' in self.sim.demographics
+
+    @property
+    def include_prep(self):
+        from stisim.interventions.prep_manager import PrepManager
+        return any([isinstance(intervention, PrepManager) for intervention in self.sim.interventions.values()])
 
     def init_results(self):
         """

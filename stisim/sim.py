@@ -84,6 +84,12 @@ class Sim(ss.Sim):
                  interventions=None, analyzers=None, connectors=None, custom=None,
                  datafolder=None, data=None, **kwargs):
 
+        # Add a PrepManager if prep is being modeled
+        from stisim.interventions.prep_manager import PrepManager
+        from stisim.interventions.prep import SuppliedPrep
+        if any([isinstance(intervention, SuppliedPrep) for intervention in interventions]):
+            interventions = [PrepManager()] + interventions
+
         # Inputs and defaults
         self.nw_pars = None     # Parameters for the networks - processed later
         self.sti_pars = None    # Parameters for the STIs - processed later
@@ -102,6 +108,7 @@ class Sim(ss.Sim):
         sim_kwargs = {key: val for key, val in sim_kwargs.items() if val is not None}
         updated_pars = self.separate_pars(pars, sim_pars, sti_pars, nw_pars, dem_pars, sim_kwargs, **kwargs)
         self.pars.update(updated_pars)
+
         return
     
     def get_valid_pars(self):

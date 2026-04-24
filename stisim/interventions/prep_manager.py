@@ -1,27 +1,14 @@
 import starsim as ss
 
-"""
-utilizes these attributes on hiv module:
-
-
-on_prep: bool, actively on effective prep?
-prep_source: str, the intervention name that delivered prep most recently
-prep_product: str, the product name most recently used
-ti_prep_start: int, ti of most recent prep start.
-ti_prep_end: int, ti when most recent prep is no longer active. Also ti for potential reuptake/start new product.
-eff_prep: float, current effectiveness of prep
-prep_reuptake: bool, whether an agent will try to reuptake prep at ti_prep_end
-ti_prep_drop: int, ti of most recent prep dropout
-
-rel_trans: (float) prep modifies this by its effectiveness rating
-healthcare_engagement: (float) likelihood to follow-through with a recommended healthcare step
-"""
 
 class PrepManager(ss.Intervention):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.interventions = []
-
+    """
+    Helper class that primarily acts to kick agents off of PrEP before any other PrEP-related intervention runs step().
+    This ensures that agents can switch (if eligible, care seeking, ...) between PrEP products and/or product sources
+    with no coverage time gap. The same assurance applies for agents simply re-seeking the same product/source at the
+    end of their prior product durability time. Related, common PrEP functionality related to uptake/efficacy updates
+    are contained in here for centralization.
+    """
 
     def step(self):
         pass
@@ -35,15 +22,16 @@ class PrepManager(ss.Intervention):
         sim = self.sim
         hiv = self.sim.diseases.hiv
 
-        # For all agents on prep, determine who is at the end of their current regimen and handle dropouts
-        # may_reup = hiv.prep_reuptake & (hiv.ti_prep_end == ti)
-        to_drop = (~hiv.prep_reuptake) & (hiv.ti_prep_end == ti)
+        # For all agents on ANY prep, determine who is at the end of their current regimen and handle dropouts
+        to_drop = (hiv.prep_n_reuptake < 1) & (hiv.ti_prep_end == ti)
 
         # these agents definitely drop out now
-        self.dropout(sim=sim, to_drop=to_drop)
+        n_to_drop = len(to_drop.uids)
+        if n_to_drop > 0:
+            self.dropout(sim=sim, to_drop=to_drop)
 
     @staticmethod
-    def uptake(sim, to_uptake, prep_intervention, product, allow_reuptake, use_supplies=False):
+    def uptake(sim, to_uptake, prep_intervention, product, allow_reuptake=False, use_supplies=False):
         """
         agents defined by to_uptake will start the intervention, use a supply . use_supplies=False ignores supply usage
         and constraints. Agents will also decide if they will reup at durability end, if reuptake is allowed.
@@ -52,24 +40,60 @@ class PrepManager(ss.Intervention):
         hiv = sim.diseases.hiv
 
         hiv.on_prep[to_uptake] = True
-        hiv.prep_source[to_uptake] = prep_intervention.name
+        hiv.prep_source[to_uptake] = prep_intervention._name_to_index
+        hiv.prep_product[to_uptake] = product.id
         hiv.ti_prep_start[to_uptake] = ti
-        hiv.ti_prep_end[to_uptake] = product.max_durability
+        hiv.ti_prep_end[to_uptake] = ti + product.max_durability
         eff_prep = product.efficacy_at_ti(ti=0)
-        hiv.rel_trans[to_uptake] = hiv.rel_trans[to_uptake] * (1 - eff_prep)
-        hiv.eff_prep[to_uptake] = eff_prep
+        hiv.rel_sus[to_uptake] = hiv.rel_sus[to_uptake] * (1 - eff_prep)
+        hiv.prep_eff[to_uptake] = eff_prep
 
-        # determine per-agent if they will try to reuptake/reenroll/refill
-        n_uptake = len(to_uptake.uids)
-        if allow_reuptake:
-            # TODO: are reuptakers more likely to return than new agents are to go the first time?
-            dist = ss.bernoulli(p=hiv.care_seeking[to_uptake])
-            hiv.prep_reuptake[to_uptake] = dist.rvs(n=n_uptake)  # one draw per to_uptake
+        n_uptake = len(to_uptake)
+
+        # Disabled pending further clarification/research request
+        # if allow_reuptake:
+        #     # Determine the max number of times an agent will return to refill/reenroll/reuptake from the same
+        #     # intervention/supply
+        #     # dist = ss.Dist(p=hiv.care_seeking[to_uptake])
+        #     # dist.init(force=True)
+        #     # hiv.prep_n_reuptake[to_uptake] = int(dist.rvs(n=n_uptake) * 10)  # one draw per to_uptake
+        #
+        #     hiv.prep_n_reuptake[to_uptake] = 3  # TODO: stand-in, only
+        # else:
+        hiv.prep_n_reuptake[to_uptake] = 0
 
         # update product supply
-        # supply.use(quantity=n_uptake)  # reduces supply, records reduction at this ti
         if use_supplies:
-            prep_intervention.use(product_name=product.name, quantity=n_uptake)
+            prep_intervention.use(prod_name=product.name, quantity=n_uptake)
+
+    # Disabled pending further clarification/research request
+    # @staticmethod
+    # def reuptake(sim, to_uptake, prep_intervention, product, use_supplies=False):
+    #     """
+    #     agents defined by to_uptake will start the intervention, use a supply . use_supplies=False ignores supply usage
+    #     and constraints. Agents will also decide if they will reup at durability end, if reuptake is allowed.
+    #     """
+    #     ti = sim.ti
+    #     hiv = sim.diseases.hiv
+    #
+    #     hiv.on_prep[to_uptake] = True
+    #     hiv.prep_source[to_uptake] = prep_intervention._name_to_index
+    #     hiv.prep_product[to_uptake] = product.id
+    #     hiv.ti_prep_start[to_uptake] = ti
+    #     hiv.ti_prep_end[to_uptake] = ti + product.max_durability
+    #     eff_prep = product.efficacy_at_ti(ti=0)
+    #     # current_eff = hiv.prep_eff[to_uptake]
+    #     hiv.rel_sus[to_uptake] = hiv.rel_sus[to_uptake] * (1 - eff_prep)
+    #     hiv.prep_eff[to_uptake] = eff_prep
+    #
+    #     # use up a reuptake
+    #     n_uptake = len(to_uptake)
+    #     hiv.prep_n_reuptake[to_uptake] = hiv.prep_n_reuptake[to_uptake] - 1
+    #
+    #     # update product supply
+    #     # supply.use(quantity=n_uptake)  # reduces supply, records reduction at this ti
+    #     if use_supplies:
+    #         prep_intervention.use(prod_name=product.name, quantity=n_uptake)
 
     @staticmethod
     def dropout(sim, to_drop):
@@ -78,23 +102,29 @@ class PrepManager(ss.Intervention):
         hiv = sim.diseases.hiv
 
         hiv.on_prep[to_drop] = False
-        hiv.rel_trans[to_drop] = hiv.rel_trans[to_drop] / (1 - hiv.eff_prep[to_drop])
-        hiv.eff_prep[to_drop] = None
+        # hiv.rel_sus[to_drop] = hiv.rel_sus[to_drop] / (1 - hiv.prep_eff[to_drop])  # TODO: verify this is not needed during dropout due to supply constraints.
+        hiv.prep_eff[to_drop] = None
         hiv.ti_prep_drop[to_drop] = ti
+        hiv.prep_n_reuptake[to_drop] = 0
 
     @staticmethod
     def update_eff(sim, to_update, product):
-        """ updates the efficacy of PrEP for all specified agents to the time-dependent efficacy of the given product"""
+        """
+        updates the efficacy of PrEP for all specified agents to the time-index--dependent efficacy of the given
+        product
+        """
         ti = sim.ti
         hiv = sim.diseases.hiv
+        to_update_uids = to_update.uids
 
-        tis_on_prep = ti - hiv.ti_prep_start[to_update]
-        for ti_on_prep in range(1, product.max_durability-1):   # TODO: measured in ti
-            cohort = tis_on_prep == ti_on_prep
+        tis_on_prep = ti - hiv.ti_prep_start
+        for ti_on_prep in range(product.max_durability):
+            cohort = (tis_on_prep == ti_on_prep).uids & to_update_uids
 
-            new_eff = product.efficacy_at_ti(ti=ti_on_prep)  # TODO: update efficacy_at_ti to be 0 at-and-beyond max_durability?
-            old_eff = product.efficacy_at_ti(ti=ti_on_prep-1)
+            new_eff = product.efficacy_at_ti(ti=ti_on_prep)
+            # old_eff = product.efficacy_at_ti(ti=ti_on_prep-1)
 
-            # rescale rel_trans based on altered efficacy
-            hiv.rel_trans[cohort] = hiv.rel_trans[cohort] / (1 - old_eff) * (1 - new_eff)
-            hiv.eff_prep[cohort] = new_eff  # informational
+            # rescale rel_sus based on new efficacy
+            hiv.rel_sus[cohort] = hiv.rel_sus[cohort] * (1-new_eff)
+            hiv.prep_eff[cohort] = new_eff
+        return
