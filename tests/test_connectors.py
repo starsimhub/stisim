@@ -1,9 +1,10 @@
 """
-Test impact of including the HIV-Syphilis connector
+Multi-disease interaction validation: verify that connectors modify
+transmission and disease progression as expected.
 
 One simulation is run with HIV and syphilis, but no connector. A second simulation
 is run with the addition of the connector. Adding the connector should increase
-transmission of HIV overall due to syphilis coinfection. The prevalance should
+transmission of HIV overall due to syphilis coinfection. The prevalence should
 therefore be higher when the connector is included.
 """
 
@@ -28,12 +29,12 @@ def test_hiv_syph():
         return hiv, syphilis, coinfection_analyzer
 
     hiv, syphilis, coinfection_analyzer = make_args()
-    pars = dict(analyzers=coinfection_analyzer, diseases=[hiv, syphilis])
+    pars = dict(analyzers=coinfection_analyzer, diseases=[hiv, syphilis], n_agents=500, dur=10)
     s0 = sti.Sim(pars)
 
     pars['connectors'] = sti.hiv_syph(hiv, syphilis, rel_sus_hiv_syph=20, rel_trans_hiv_syph=20)
     hiv, syphilis, coinfection_analyzer = make_args()
-    pars = dict(analyzers=coinfection_analyzer, diseases=[hiv, syphilis])
+    pars = dict(analyzers=coinfection_analyzer, diseases=[hiv, syphilis], n_agents=500, dur=10)
     s1 = sti.Sim(pars)
 
     ss.parallel(s0, s1, debug=debug)

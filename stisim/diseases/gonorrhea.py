@@ -9,6 +9,12 @@ __all__ = ['Gonorrhea', 'NGPars']
 
 
 class NGPars(STIPars):
+    """
+    Parameters for the gonorrhea disease module.
+
+    Extends ``STIPars`` with gonorrhea-specific symptom probabilities,
+    care-seeking rates, clearance durations, and PID progression values.
+    """
     def __init__(self, **kwargs):
         super().__init__()
         self.dur_exp = ss.constant(0)  # How long after exposure before you can infect others
@@ -49,6 +55,19 @@ class NGPars(STIPars):
 
 
 class Gonorrhea(SEIS):
+    """
+    Neisseria gonorrhoeae disease module.
+
+    Models gonorrhea as an SEIS infection with sex-stratified symptom probabilities,
+    care-seeking behavior, PID complications, natural clearance, and optional
+    drug resistance tracking via the ``ng_tx`` intervention.
+
+    Args:
+        name (str): Module name used for results and parameter routing. Default: ``'ng'``.
+        pars (dict): Override default parameters from ``NGPars``.
+        init_prev_data: Optional initial prevalence data by age/sex.
+        **kwargs: Additional parameters passed to ``update_pars``.
+    """
 
     def __init__(self, name='ng', pars=None, init_prev_data=None, **kwargs):
         super().__init__(name=name, init_prev_data=init_prev_data)

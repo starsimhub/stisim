@@ -13,14 +13,36 @@ __all__ = ["SyphDx", "SyphTx", "NewbornTreatment", "SyphTest", "ANCSyphTest", "N
 
 
 class SyphDx(STIDx):
+    """Syphilis diagnostic product.
+
+    Wraps :class:`STIDx` with the disease key set to ``'syph'``. Used as the
+    default product for syphilis testing interventions.
+
+    Args:
+        df: Diagnostic performance data (sensitivity/specificity by stage).
+        *args: Positional arguments forwarded to :class:`STIDx`.
+        **kwargs: Keyword arguments forwarded to :class:`STIDx`.
+    """
     def __init__(self, df, *args, **kwargs):
         super().__init__(df, 'syph', *args, **kwargs)
         return
 
 
 class SyphTx(STITreatment):
-    """
-    Treat a fixed number of people each timestep.
+    """Syphilis treatment intervention.
+
+    Treats diagnosed syphilis cases each timestep, clearing all disease
+    stages (primary, secondary, latent, tertiary) on successful treatment.
+    Also treats fetuses of pregnant mothers, with reduced efficacy in the
+    last trimester.
+
+    Args:
+        pars (dict): Parameter overrides (e.g. ``treat_eff``, ``fetus_treat_eff``).
+        max_capacity (int): Maximum number of treatments per timestep.
+        years (list): Calendar years during which the intervention is active.
+        eligibility (func): Function returning eligible UIDs.
+        name (str): Intervention name.
+        **kwargs: Additional parameter overrides.
     """
 
     def __init__(self, pars=None, max_capacity=None, years=None, eligibility=None, name=None, **kwargs):
@@ -119,6 +141,20 @@ class SyphTx(STITreatment):
 
 
 class NewbornTreatment(SyphTx):
+    """Treatment for congenital syphilis in newborns.
+
+    Extends :class:`SyphTx` to treat newborns diagnosed with congenital
+    syphilis. Successful treatment clears the congenital state and resets
+    the birth outcome to normal.
+
+    Args:
+        pars (dict): Parameter overrides.
+        eligibility (func): Function returning eligible newborn UIDs.
+        max_capacity (int): Maximum treatments per timestep.
+        years (list): Calendar years during which the intervention is active.
+        name (str): Intervention name.
+        **kwargs: Additional parameter overrides.
+    """
 
     def __init__(self, pars=None, eligibility=None, max_capacity=None, years=None, name=None, *args, **kwargs):
         super().__init__(name=name, eligibility=eligibility, max_capacity=max_capacity, years=years, *args)
@@ -161,7 +197,28 @@ class NewbornTreatment(SyphTx):
 
 
 class SyphTest(STITest):
-    """ Base class for syphilis tests """
+    """Base class for syphilis screening and testing interventions.
+
+    Provides shared logic for processing test probability data (which can
+    be stratified by risk group, sex, and sex-work status) and scheduling
+    tests. Subclasses like :class:`ANCSyphTest` and :class:`NewbornSyphTest`
+    customize eligibility and scheduling.
+
+    Args:
+        test_prob_data: Testing probability; scalar, array, TimeSeries, or
+            DataFrame stratified by risk group/sex/sex-work status.
+        years (list): Calendar years corresponding to ``test_prob_data`` values.
+        start (float): Calendar year when testing begins.
+        stop (float): Calendar year when testing ends.
+        pars (dict): Parameter overrides.
+        product: Diagnostic product (default: ``SyphDx``).
+        eligibility (func): Function returning eligible UIDs.
+        name (str): Intervention name.
+        label (str): Label for plotting.
+        newborn_test: Optional :class:`NewbornSyphTest` to schedule for
+            positive mothers.
+        **kwargs: Additional parameter overrides.
+    """
     def __init__(self, test_prob_data=None, years=None, start=None, stop=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
         super().__init__(test_prob_data=test_prob_data, years=years, start=start, stop=stop, eligibility=eligibility, product=product, name=name, label=label)
         self.define_pars(
@@ -278,9 +335,25 @@ class SyphTest(STITest):
 
 
 class ANCSyphTest(SyphTest):
-    """
-    Test given to pregnant women
-    Need to adjust timing using Trivedi (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7138526/)
+    """Antenatal care syphilis screening for pregnant women.
+
+    Schedules a syphilis test at a random gestational timepoint for each
+    newly pregnant woman. Unlike the base :class:`SyphTest`, testing
+    probability is not dt-scaled since tests are scheduled once per
+    pregnancy rather than applied each timestep.
+
+    Args:
+        test_prob_data: Testing probability (see :class:`SyphTest`).
+        years (list): Calendar years for ``test_prob_data``.
+        start (float): Calendar year when ANC testing begins.
+        stop (float): Calendar year when ANC testing ends.
+        pars (dict): Parameter overrides.
+        product: Diagnostic product.
+        eligibility (func): Override default (pregnant women).
+        name (str): Intervention name.
+        label (str): Label for plotting.
+        newborn_test: Optional :class:`NewbornSyphTest` for positive mothers.
+        **kwargs: Additional parameter overrides.
     """
     def __init__(self, test_prob_data=None, years=None, start=None, stop=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
         super().__init__(test_prob_data=test_prob_data, years=years, start=start, stop=stop, eligibility=eligibility, product=product, name=name, label=label, newborn_test=newborn_test, **kwargs)
@@ -313,8 +386,11 @@ class ANCSyphTest(SyphTest):
 
 
 class NewbornSyphTest(SyphTest):
-    """
-    Test given to newborns if the mother was confirmed to have syphilis at any stage of the pregnancy
+    """Syphilis test for newborns of mothers diagnosed during pregnancy.
+
+    Administers scheduled tests to newborns whose mothers tested positive
+    for syphilis at any point during pregnancy. Tests are only given at the
+    scheduled timestep, filtered by acceptance probability.
     """
 
     def get_testers(self, sim):

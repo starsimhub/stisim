@@ -91,8 +91,8 @@ def make_sim(**kwargs):
     # Create modules
     hiv = sti.HIV(init_prev_data=init_prev, **sti_pars)
     network = sti.StructuredSexual(condom_data=condom_data, **nw_pars)
-    art = sti.ART(coverage_data=art_data)
-    vmmc = sti.VMMC(coverage_data=vmmc_data)
+    art = sti.ART(coverage=art_data)
+    vmmc = sti.VMMC(coverage=vmmc_data)
 
     # Combine interventions: testing + ART/VMMC + any user additions
     intvs = make_interventions() + [art, vmmc]

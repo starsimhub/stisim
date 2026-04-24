@@ -2,9 +2,68 @@
 
 All notable changes to the codebase are documented in this file.
 
-## Version 1.5.2 (TBC)
+## Version 1.5.4 (TBC)
 
 *Coming soon*
+
+## Version 1.5.3 (2026-04-17)
+
+### Interventions
+- Extract shared coverage-targeting logic into `interventions/utils.py`: `parse_coverage`, `age_sex_mask`, `compute_coverage_target` (#328)
+- Replace `_parse_age_bin` with starsim's `ss.parse_age_range` and `ss.apply_age_range` (#326)
+- Expose `smoothness` parameter for coverage interpolation (default 0 = linear) (#327)
+- Support mixed n/p coverage format: historical absolute numbers transitioning to projected proportions within a single DataFrame or dict (#383)
+- Remove deprecated `coverage_data` and `future_coverage` parameters; use `coverage` instead (#383)
+- Refactor PrEP to use `parse_coverage` (#327)
+- Add `pmtct_efficacy` parameter to ART (default 0.96), replacing hardcoded `rel_sus=0` for prenatal MTCT protection (#404)
+- Extend PMTCT protection to breastfed infants via BreastfeedingNet (#407)
+- Add ANC HIV testing pattern using `HIVTest` with pregnancy eligibility (#322)
+
+### HIV / MTCT
+- Add `new_infections_mtct`, `new_infections_sex`, `new_infections_prenatal`, `new_infections_postnatal` results to BaseSTI (#325)
+- Implement breastfeeding HIV transmission via BreastfeedingNet with `beta_breastfeed` parameter (#323)
+- Add `p_diagnosed_pregnant` result tracking ANC testing coverage (#322)
+- Include BreastfeedingNet in `hivsim.Sim` defaults (conditional on Pregnancy module)
+
+### Bug fixes
+- Fix chlamydia `eff_condom` default: updated to 0.4 based on linked citation (#391)
+- Fix `hivsim.Sim`: conditionally add BreastfeedingNet only when Pregnancy is present (#413)
+- Fix disease count assertion in `test_sim_creation` (#413)
+
+### Documentation
+- Add examples gallery with first entry: Modeling ART interruptions (#394)
+- Add PMTCT section to HIV user guide (ANC testing, prenatal/postnatal protection)
+- Document HIV transmission route results (MTCT, prenatal, postnatal)
+- Add docstrings across interventions, diseases, networks, and analyzers (#409)
+
+### Tests
+- Add `test_pmtct`: 8-sim combinatorial test for ANC testing, PMTCT efficacy, and breastfeeding duration
+- Add `test_mtct`: prenatal + postnatal MTCT consistency checks
+
+## Version 1.5.2 (2026-04-06)
+
+### Bug fixes
+- Fix `default_build_fn` to apply `rand_seed` when `reseed=True`, so each calibration trial uses its own seed
+- Fix timepar handling in data loaders (remove unnecessary `TimePar` catch)
+- Fix stray plot appearing when running pytest (`test_zimbabwe` called `hivsim.demo` with `plot=True`)
+
+### Improvements
+- Add `HIV.plot()` with curated 6-panel view (new infections, deaths, prevalence, prevalence 15-49, diagnoses, proportion on ART)
+- Pin `starsim>=3.3.1` and `sciris>=3.2.9`
+
+### Tests
+- Add baseline regression test and benchmark test using Zimbabwe HIV example
+- Refactor test suite with clear file responsibilities: `test_sim.py` (constructor/routing), `test_hiv.py` (HIV scientific validation), `test_stis.py` (non-HIV STI validation), `test_networks.py` (network dynamics)
+- Add `hivsim.Sim` constructor tests (defaults, parameter routing, custom modules)
+- Add HIV sensitivity tests: `test_par_ranges` checks `beta_m2f`, `init_prev`, `dur_falling`, and `art_efficacy` against both `cum_infections` and `cum_deaths`
+- Add `test_prevalence_by_sex` verifying female > male HIV prevalence under defaults
+- Add MSM network test
+- Rename `test_diseases.py` to `test_stis.py`, `test_hiv_natural_history_verification.py` to `test_hiv.py`
+- Merge `test_examples.py` into `test_sim.py`
+
+### Documentation
+- Fix calibration tutorial to use disease instances instead of strings
+- Add note about `scikit-learn` requirement for `plot_param_importances`
 
 ## Version 1.5.1 (2026-03-27)
 

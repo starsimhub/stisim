@@ -188,7 +188,7 @@ class SexualTransmissionCountTracker(ss.Analyzer):
 class MTCTransmissionCountTracker(ss.Analyzer):
     """
     Records the number of mother-to-child HIV transmissions per timestep, results obtainable by analyzer key
-    'hiv.n_mtc_transmissions' .
+    'hiv.n_mtc_transmissions'. Uses the built-in new_infections_mtct result from BaseSTI.
     """
 
     result_name = 'hiv.n_mtc_transmissions'
@@ -201,14 +201,7 @@ class MTCTransmissionCountTracker(ss.Analyzer):
         self.define_results(ss.Result(self.result_name, dtype=list, scale=False))
 
     def update_results(self):
-        hiv = self.sim.diseases.hiv
-        transmitting_mothers = hiv.ti_transmitted_mtc == self.ti
-
-        # now back-out mtc transmissions by removing any potential sexual transmissions
-        # TODO: Update how mtc transmissions are counted once this issue is fixed:
-        #  https://github.com/starsimhub/stisim/issues/325
-        transmissions =  sum(hiv.new_transmissions[transmitting_mothers] - hiv.new_transmissions_sex[transmitting_mothers])
-        self.results[self.result_name][self.ti] = transmissions
+        self.results[self.result_name][self.ti] = self.sim.diseases.hiv.results['new_infections_mtct'][self.ti]
 
 
 class PrepCoverageAnalyzer(ss.Analyzer):

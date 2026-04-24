@@ -11,7 +11,18 @@ __all__ = ['Placeholder', 'GUDPlaceholder', 'VDPlaceholder', 'GUD']
 
 
 class Placeholder(ss.Disease):
-    # A simple placeholder module to use when testing connectors
+    """
+    Simple placeholder disease module for testing connectors.
+
+    Maintains a target prevalence by probabilistically adding or removing
+    symptomatic agents each timestep. Useful for testing disease interaction
+    connectors without a full transmission model.
+
+    Args:
+        pars (dict): Override default parameters (prevalence, care_seeking).
+        name (str): Module name.
+        **kwargs: Additional parameters passed to ``update_pars``.
+    """
 
     def __init__(self, pars=None, name=None, **kwargs):
         super().__init__(name=name)
@@ -70,20 +81,32 @@ class Placeholder(ss.Disease):
 
 
 class VDPlaceholder(Placeholder):
-    # Background prevalence of vaginal discharge
+    """Placeholder for background prevalence of vaginal discharge."""
     def __init__(self, pars=None, name='vd', **kwargs):
         super().__init__(pars=pars, name=name, **kwargs)
         return
 
 
 class GUDPlaceholder(Placeholder):
-    # Background prevalence of genital ulcerative disease
+    """Placeholder for background prevalence of genital ulcerative disease."""
     def __init__(self, pars=None, name='gud', **kwargs):
         super().__init__(pars=pars, name=name, **kwargs)
         return
 
 
 class GUD(ss.Infection):
+    """
+    Genital ulcer disease (GUD) module.
+
+    Models GUD as a simple SIS infection with a lognormal duration of
+    infectiousness and spontaneous recovery. Typically used alongside a
+    syphilis connector that drives GUD prevalence from active syphilis cases.
+
+    Args:
+        pars (dict): Override default parameters (dur_inf, beta, init_prev).
+        init_prev_data: Optional initial prevalence data by age/sex/risk group.
+        **kwargs: Additional parameters passed to ``update_pars``.
+    """
 
     def __init__(self, pars=None, init_prev_data=None, **kwargs):
         super().__init__()

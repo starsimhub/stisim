@@ -1,7 +1,9 @@
 """
-HIV natural history verification tests
+HIV scientific validation: CD4 decline, transmission ratios, ART effects,
+VMMC, diagnosis timing, and natural history progression.
 
-Tests to ensure appropriate behavior of HIV as a disease absent any treatment.
+All HIV-specific biological/clinical validation lives here. Intervention
+mechanics (coverage formats, stratification) live in test_hiv_interventions.py.
 """
 
 import matplotlib.pyplot as plt
@@ -15,6 +17,7 @@ from statistics import mean
 
 import starsim as ss
 import stisim as sti
+import hivsim
 
 from stisim import ART, HIVTest, VMMC
 
@@ -67,7 +70,7 @@ def test_time_from_infection_to_aids_untreated():
     sc.heading("Regression: Ensuring mean time from infection to AIDS (to falling state) is reasonable.")
 
     result_tolerance = 0.03  # fraction of the expected value
-    sim = build_testing_sim(analyzers=[TimeToAIDSTracker()], n_agents=2000, duration=5)
+    sim = build_testing_sim(analyzers=[TimeToAIDSTracker()], n_agents=500, duration=5)
     sim.run()
     results = sim.results
     times_to_aids = list(chain(*results.timetoaidstracker['hiv.ti_to_aids']))
@@ -158,30 +161,34 @@ def _run_beta_test(baseline_m2f, baseline_m2c, mode: str, multiplier=2, result_t
 
     pregnancy = ss.Pregnancy(fertility_rate=fertility)
 
-    # run baseline sim
+    # Build baseline and test sims
     baseline_hiv = sti.HIV(beta_m2f=baseline_m2f, beta_m2c=baseline_m2c, init_prev=init_prev)
-    sim = build_testing_sim(diseases=[baseline_hiv], pregnancy=pregnancy,
+    sim_baseline = build_testing_sim(diseases=[baseline_hiv], pregnancy=pregnancy,
                             analyzers=[analyzer],
                             n_agents=n_agents, duration=duration)
-    sim.pars['rand_seed'] = rand_seed
-    sim.run()
+    sim_baseline.pars['rand_seed'] = rand_seed
+    sim_baseline.label = 'baseline'
 
-    hiv_transmissions_baseline = sum(sim.results[analyzer.name][analyzer.result_name])
+    if mode == 'sexual':
+        analyzer_test = SexualTransmissionCountTracker()
+    else:
+        analyzer_test = MTCTransmissionCountTracker()
 
-    # ensure at least one such transmission occurs
+    test_hiv = sti.HIV(beta_m2f=multiplier * baseline_m2f, beta_m2c=multiplier * baseline_m2c, init_prev=init_prev)
+    sim_test = build_testing_sim(diseases=[test_hiv], pregnancy=ss.Pregnancy(fertility_rate=fertility),
+                            analyzers=[analyzer_test],
+                            n_agents=n_agents, duration=duration)
+    sim_test.pars['rand_seed'] = rand_seed
+    sim_test.label = 'test'
+
+    # Run in parallel
+    msim = ss.parallel([sim_baseline, sim_test])
+    sim_baseline, sim_test = msim.sims
+
+    hiv_transmissions_baseline = sum(sim_baseline.results[analyzer.name][analyzer.result_name])
     assert hiv_transmissions_baseline > 0, f"Cannot assess effect of beta, no {mode} HIV transmissions occurred in baseline."
 
-    # Now multiply betas as selected and run test
-    test_hiv = sti.HIV(beta_m2f=multiplier * baseline_m2f, beta_m2c=multiplier * baseline_m2c, init_prev=init_prev)
-    sim = build_testing_sim(diseases=[test_hiv], pregnancy=pregnancy,
-                            analyzers=[analyzer],
-                            n_agents=n_agents, duration=duration)
-    sim.pars['rand_seed'] = rand_seed
-    sim.run()
-
-    hiv_transmissions_test = sum(sim.results[analyzer.name][analyzer.result_name])
-
-    # ensure at least one such transmission occurs
+    hiv_transmissions_test = sum(sim_test.results[analyzer_test.name][analyzer_test.result_name])
     assert hiv_transmissions_test > 0, f"Cannot assess effect of beta, no {mode} HIV transmissions occurred in test."
 
     # check transmission ratio, expected to be approximately increased by "multiplier" if base beta is low enough
@@ -202,36 +209,119 @@ def _run_beta_test(baseline_m2f, baseline_m2c, mode: str, multiplier=2, result_t
 def test_doubling_hiv_maternal_beta_doubles_transmissions():
     sc.heading("Checking that doubling mtc beta roughly doubles mtc transmissions.")
 
-    # setting baseline beta low, fertility HIGH, prevalence HIGH to generate enough births/transmissions quickly
+    # High fertility + prevalence to generate enough births/transmissions with fewer agents
     _run_beta_test(baseline_m2f=0, baseline_m2c=0.0025, mode='mtc', multiplier=2, fertility=1000,
-                   duration=5, n_agents=40000, init_prev=1.0)
+                   duration=10, n_agents=1000, init_prev=1.0, result_tolerance=0.25)
 
 
 @sc.timer()
 def test_doubling_hiv_sexual_beta_doubles_transmissions():
     sc.heading("Checking that doubling sexual beta roughly doubles sexual transmissions at low infectivity.")
 
-    # doubling both beta for m2f (implicitly f2m) (sexual transmission only, no mother-to-child transmission)
-    # This happens to be a realistic baseline m2f beta
-    _run_beta_test(baseline_m2f=0.001, baseline_m2c=0, mode='sexual', multiplier=2, duration=1, n_agents=100000)
+    # Low beta keeps transmission in the linear regime where doubling beta ≈ doubles transmissions
+    _run_beta_test(baseline_m2f=0.001, baseline_m2c=0, mode='sexual', multiplier=2,
+                   duration=1, n_agents=1000, init_prev=0.5, result_tolerance=0.3)
 
 
 @sc.timer()
-def test_mtc_transmission_occurs():
-    sc.heading("Ensuring that pre-term mother-to-child transmission occurs.")
+def test_mtct(do_plot=do_plot):
+    """ Check prenatal and postnatal MTCT: both occur, results are consistent """
+    sc.heading('Testing MTCT (prenatal + postnatal)...')
 
-    # setting fertility rate super high to enable shrinking the test agent/timewise
-    analyzer = MTCTransmissionCountTracker()
-    sim = build_testing_sim(analyzers=[analyzer], n_agents=500, duration=1, pregnancy=ss.Pregnancy(fertility_rate=1000))
+    # High fertility + high breastfeeding beta to ensure both transmission routes
+    sim = hivsim.demo('simple', run=False, plot=False, n_agents=1_000, dur=10,
+                      beta_breastfeed=ss.permonth(0.1), init_prev=0.3)
     sim.run()
 
-    mtc_tranmissions = sim.results[analyzer.name][analyzer.result_name]
-    total_mtc_tranmissions = sum(mtc_tranmissions)
+    total = sim.results.hiv.new_infections.sum()
+    sex = sim.results.hiv.new_infections_sex.sum()
+    mtct = sim.results.hiv.new_infections_mtct.sum()
+    prenatal = sim.results.hiv.new_infections_prenatal.sum()
+    postnatal = sim.results.hiv.new_infections_postnatal.sum()
 
     if verbose:
-        print(f"{total_mtc_tranmissions} mother-to-child transmissions were recorded")
-    assert total_mtc_tranmissions > 0, f"Expected MTC transmissions to occur, but none were recorded."
+        print(f'Total: {total}, Sexual: {sex}, MTCT: {mtct} (prenatal: {prenatal}, postnatal: {postnatal})')
+
+    # Both routes should produce infections
+    assert prenatal > 0, f'Expected prenatal MTCT infections, got {prenatal}'
+    assert postnatal > 0, f'Expected postnatal MTCT infections with BreastfeedingNet, got {postnatal}'
+
+    # Consistency checks
+    assert sex + mtct == total, f'Expected sex ({sex}) + mtct ({mtct}) == total ({total})'
+    assert prenatal + postnatal == mtct, f'Expected prenatal ({prenatal}) + postnatal ({postnatal}) == mtct ({mtct})'
+
+    if do_plot:
+        fig, ax = plt.subplots()
+        ax.plot(sim.t.yearvec, sim.results.hiv.new_infections_prenatal, label='Prenatal')
+        ax.plot(sim.t.yearvec, sim.results.hiv.new_infections_postnatal, label='Postnatal')
+        ax.set_ylabel('New MTCT infections')
+        ax.set_xlabel('Year')
+        ax.legend()
+        ax.set_title('Prenatal vs postnatal MTCT')
+
     return sim
+
+
+@sc.timer()
+def test_pmtct():
+    """
+    Test PMTCT by varying one parameter at a time (6 sims: hi/lo for each of
+    ANC testing, PMTCT efficacy, breastfeeding duration).
+    """
+    sc.heading('Testing PMTCT...')
+
+    n_agents = 500
+    dur = 10
+    anc_eligibility = lambda sim: sim.demographics.pregnancy.tri1_uids[
+        ~sim.diseases.hiv.diagnosed[sim.demographics.pregnancy.tri1_uids]
+    ]
+
+    def make_sim(label, anc_prob=0, pmtct_eff=0.96, dur_bf=ss.years(0.75)):
+        pregnancy = ss.Pregnancy(dur_breastfeed=dur_bf)
+        intvs = [sti.HIVTest(), sti.ART(pmtct_efficacy=pmtct_eff), sti.VMMC(), sti.Prep()]
+        if anc_prob > 0:
+            intvs.insert(1, sti.HIVTest(
+                test_prob_data=anc_prob, dt_scale=False, name='anc_test', eligibility=anc_eligibility,
+            ))
+        sim = hivsim.Sim(
+            n_agents=n_agents, dur=dur, init_prev=0.3,
+            demographics=[pregnancy, ss.Deaths()],
+            interventions=intvs,
+        )
+        sim.label = label
+        return sim
+
+    # One pair per axis, holding others at defaults
+    sims = [
+        make_sim('anc_hi', anc_prob=0.9),
+        make_sim('anc_lo', anc_prob=0.0),
+        make_sim('eff_hi', pmtct_eff=0.96),
+        make_sim('eff_lo', pmtct_eff=0.3),
+        make_sim('bf_long', dur_bf=ss.years(2.0)),
+        make_sim('bf_short', dur_bf=ss.years(0.25)),
+    ]
+
+    msim = ss.MultiSim(sims)
+    msim.run()
+
+    r = {sim.label: sc.objdict(
+        mtct     = sim.results.hiv.new_infections_mtct.sum(),
+        postnatal= sim.results.hiv.new_infections_postnatal.sum(),
+        art_preg = sim.results.hiv.n_on_art_pregnant.sum(),
+    ) for sim in msim.sims}
+
+    if verbose:
+        for name, vals in r.items():
+            print(f'{name:10s}  mtct={vals.mtct:5.0f}  post={vals.postnatal:5.0f}  art_preg={vals.art_preg:5.0f}')
+
+    assert r['anc_hi'].art_preg >= r['anc_lo'].art_preg, \
+        f'High ANC should increase pregnant women on ART ({r["anc_hi"].art_preg:.0f} vs {r["anc_lo"].art_preg:.0f})'
+    assert r['eff_hi'].mtct <= r['eff_lo'].mtct, \
+        f'High PMTCT efficacy should reduce MTCT ({r["eff_hi"].mtct:.0f} vs {r["eff_lo"].mtct:.0f})'
+    assert r['bf_long'].postnatal > r['bf_short'].postnatal, \
+        f'Longer breastfeeding should increase postnatal MTCT ({r["bf_long"].postnatal:.0f} vs {r["bf_short"].postnatal:.0f})'
+
+    return msim
 
 
 @sc.timer()
@@ -540,11 +630,71 @@ def test_vmmc_targeting():
 #     tis_falling = sim.results['birthtracker']['hiv.tis_falling']
 
 
+def test_par_ranges(n_agents=1000):
+    """
+    Test that HIV parameters affect dynamics in the expected direction.
+
+    Each entry maps a parameter name to [lo, hi, result_key]. Higher parameter
+    values should produce higher result values. For init_prev we compare at t=1
+    (before dynamics wash it out); for everything else we compare at t=-1.
+    """
+    sc.heading('Test HIV parameter ranges')
+
+    # [lo, hi, result_key, dur] — higher par values should produce higher result values
+    par_effects = dict(
+        beta_m2f     = [0.01,  0.2,  'cum_infections', 10],
+        init_prev    = [0.01,  0.1,  'cum_infections', 10],
+        art_efficacy = [0.96,  0.5,  'cum_deaths',     10],
+    )
+
+    # Build all sims and run in one parallel call
+    sims = []
+    for par, (lo, hi, _, dur) in par_effects.items():
+        sims.append(hivsim.Sim(n_agents=n_agents, dur=dur, verbose=0, label=f'{par}={lo}', **{par: lo}))
+        sims.append(hivsim.Sim(n_agents=n_agents, dur=dur, verbose=0, label=f'{par}={hi}', **{par: hi}))
+
+    ss.parallel(*sims)
+
+    # Check results pairwise
+    for i, (par, (lo, hi, result_key, _)) in enumerate(par_effects.items()):
+        s0, s1 = sims[2*i], sims[2*i+1]
+        ind = 1 if par == 'init_prev' else -1
+        v0 = s0.results.hiv[result_key][ind]
+        v1 = s1.results.hiv[result_key][ind]
+
+        print(f'Checking {result_key:18s} with varying {par:15s} ... ', end='')
+        assert v0 <= v1, f'Expected {result_key} to be lower with {par}={lo} than {hi}, but {v0} > {v1}'
+        print(f'✓ ({v0:.1f} vs {v1:.1f})')
+
+    return
+
+
+def test_prevalence_by_sex(n_agents=1000):
+    """
+    Under default parameters, female HIV prevalence should exceed male prevalence.
+
+    This is a basic sanity check: biological susceptibility (rel_beta_f2m < 1 means
+    women are more easily infected) and network structure should produce higher
+    female prevalence. If this fails, something fundamental has changed.
+    """
+    sim = sti.Sim(diseases='hiv', n_agents=n_agents, dur=10, beta_m2f=0.05, init_prev=0.05)
+    sim.run(verbose=0)
+
+    prev_f = sim.results.hiv.prevalence_f[-1]
+    prev_m = sim.results.hiv.prevalence_m[-1]
+
+    print(f'Prevalence — F: {prev_f:.3f}, M: {prev_m:.3f}')
+    assert prev_f > prev_m, f'Expected female prevalence ({prev_f:.3f}) > male ({prev_m:.3f})'
+    return sim
+
+
 if __name__ == '__main__':
     do_plot = True
     sc.options(interactive=do_plot)
     timer = sc.timer()
 
+    test_par_ranges()
+    test_prevalence_by_sex()
     test_cd4_counts_decline_untreated()
     test_time_from_infection_to_aids_untreated()
     test_latent_transmission_ratio_is_1()
@@ -553,7 +703,8 @@ if __name__ == '__main__':
     test_no_sexual_transmission_without_network()
     test_doubling_hiv_maternal_beta_doubles_transmissions()
     test_doubling_hiv_sexual_beta_doubles_transmissions()
-    test_mtc_transmission_occurs()
+    test_mtct()
+    test_pmtct()
     test_cd4_rises_on_ART()
     test_art_increases_longevity()
     test_no_hiv_with_no_outbreaks()

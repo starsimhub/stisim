@@ -37,16 +37,20 @@ def test_art_specs(do_plot=do_plot):
         df_n   = sti.ART(coverage=pd.DataFrame(index=years, data={'n_art': p_vals * 1e6})),
     )
 
-    results = dict()
+    sims = []
     for label, art in specs.items():
-        sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents)
+        sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=5)
         sim.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), art]
-        sim.run()
-        n_art = sim.results.hiv.n_on_art[-1]
-        results[label] = n_art
+        sim.label = label
+        sims.append(sim)
 
-    for label, n_art in results.items():
-        assert n_art > 0, f'Expected people on ART with {label} format, got {n_art}'
+    msim = ss.parallel(sims)
+
+    results = dict()
+    for sim in msim.sims:
+        n_art = sim.results.hiv.n_on_art[-1]
+        results[sim.label] = n_art
+        assert n_art > 0, f'Expected people on ART with {sim.label} format, got {n_art}'
 
     if do_plot:
         fig, ax = pl.subplots()
@@ -58,38 +62,38 @@ def test_art_specs(do_plot=do_plot):
 
 
 @sc.timer()
-def test_art_legacy_compat(do_plot=do_plot):
-    """ Check that deprecated coverage_data and future_coverage still work """
-    sc.heading('Testing ART legacy backward compatibility...')
+def test_art_mixed_coverage(do_plot=do_plot):
+    """ Check that mixed n/p coverage format works (dual-column DF and dict with format list) """
+    sc.heading('Testing mixed n/p coverage format...')
 
-    years = np.arange(2000, 2011)
-    p_vals = np.linspace(0, 0.9, len(years))
+    # Dual-column DataFrame: n_art for early years, p_art for later
+    years = np.arange(2000, 2021)
+    df = pd.DataFrame(index=years)
+    df['n_art'] = np.nan
+    df['p_art'] = np.nan
+    df.loc[2000:2010, 'n_art'] = np.linspace(0, 5000, 11)
+    df.loc[2011:2020, 'p_art'] = np.linspace(0.5, 0.9, 10)
 
-    # Legacy coverage_data
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        art1 = sti.ART(coverage_data=pd.DataFrame(index=years, data={'p_art': p_vals}))
-        n_deprecation = sum(1 for x in w if issubclass(x.category, FutureWarning))
-    assert n_deprecation >= 1, f'Expected FutureWarning for coverage_data, got {n_deprecation} warnings'
+    art1 = sti.ART(coverage=df)
+    sim1 = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=5)
+    sim1.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), art1]
+    sim1.label = 'dual_column_df'
 
-    # Legacy coverage_data + future_coverage
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        art2 = sti.ART(
-            coverage_data=pd.DataFrame(index=years, data={'p_art': p_vals}),
-            future_coverage={'year': 2008, 'prop': 0.85},
-        )
-        n_deprecation = sum(1 for x in w if issubclass(x.category, FutureWarning))
-    assert n_deprecation >= 2, f'Expected 2+ FutureWarnings for coverage_data+future_coverage, got {n_deprecation}'
+    # Dict with per-entry format list
+    art2 = sti.ART(coverage={
+        'year':   [2000, 2010, 2015, 2020],
+        'value':  [0,    5000, 0.5,  0.9],
+        'format': ['n',  'n',  'p',  'p'],
+    })
+    sim2 = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=5)
+    sim2.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), art2]
+    sim2.label = 'mixed_format_dict'
 
-    # Run both legacy sims to verify they work
-    for art in [art1, art2]:
-        sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents)
-        sim.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), art]
-        sim.run()
-        assert sim.results.hiv.n_on_art[-1] > 0, 'Expected people on ART with legacy format'
+    msim = ss.parallel([sim1, sim2])
+    for sim in msim.sims:
+        assert sim.results.hiv.n_on_art[-1] > 0, f'Expected people on ART with {sim.label}'
 
-    return
+    return msim
 
 
 @sc.timer()
@@ -103,16 +107,20 @@ def test_vmmc_specs(do_plot=do_plot):
         df_p   = sti.VMMC(coverage=pd.DataFrame(index=np.arange(2000, 2021), data={'p_vmmc': np.linspace(0, 0.3, 21)})),
     )
 
-    results = dict()
+    sims = []
     for label, vmmc in specs.items():
-        sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents)
+        sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=5)
         sim.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.1), vmmc]
-        sim.run()
-        n_circ = sim.results.vmmc.n_circumcised[-1]
-        results[label] = n_circ
+        sim.label = label
+        sims.append(sim)
 
-    for label, n_circ in results.items():
-        assert n_circ > 0, f'Expected circumcisions with {label} format, got {n_circ}'
+    msim = ss.parallel(sims)
+
+    results = dict()
+    for sim in msim.sims:
+        n_circ = sim.results.vmmc.n_circumcised[-1]
+        results[sim.label] = n_circ
+        assert n_circ > 0, f'Expected circumcisions with {sim.label} format, got {n_circ}'
 
     return results
 
@@ -131,7 +139,7 @@ def test_art_stratified_coverage(do_plot=do_plot):
                 rows.append(dict(Year=year, Gender=gender, AgeBin=age_bin, NationalARTPrevalence=min(p, 1.0)))
     strat_df = pd.DataFrame(rows)
 
-    sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents)
+    sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=5)
     sim.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), sti.ART(coverage=strat_df)]
     sim.run()
     assert sim.results.hiv.n_on_art[-1] > 0, 'Expected people on ART with stratified coverage (canonical names)'
@@ -144,7 +152,7 @@ def test_art_stratified_coverage(do_plot=do_plot):
                 p = 0.4 if year == 2005 else 0.8
                 rows_lc.append(dict(year=year, sex=sex, agebin=age_bin, coverage=min(p, 1.0)))
 
-    sim2 = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents)
+    sim2 = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=5)
     sim2.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), sti.ART(coverage=pd.DataFrame(rows_lc))]
     sim2.run()
     assert sim2.results.hiv.n_on_art[-1] > 0, 'Expected people on ART with stratified coverage (string sex values)'
@@ -159,7 +167,7 @@ def test_art_effects(do_plot=do_plot):
     sc.heading('Testing ART functional effects...')
 
     # With testing → people on ART
-    sim_with = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents)
+    sim_with = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=5)
     sim_with.run()
     n_art = sim_with.results.hiv.n_on_art[-1]
     assert n_art > 0, f'Expected people on ART with the default demo, got {n_art}'
@@ -172,7 +180,7 @@ def test_art_effects(do_plot=do_plot):
             networks=sti.StructuredSexual(),
             demographics=[ss.Pregnancy(fertility_rate=10), ss.Deaths(death_rate=10)],
             interventions=[sti.ART(coverage=0.9)],
-            n_agents=n_agents, dur=20, verbose=-1,
+            n_agents=n_agents, dur=5, verbose=-1,
         )
         sim_without.run()
         warn_texts = [str(x.message) for x in w]
@@ -222,7 +230,7 @@ def test_art_coverage_matching(do_plot=do_plot):
 
     # Simple constant proportion coverage
     target_p = 0.7
-    sim = hivsim.demo('simple', run=False, plot=False, n_agents=5_000)
+    sim = hivsim.demo('simple', run=False, plot=False, n_agents=1_000, dur=5)
     sim.pars.interventions = [
         sti.HIVTest(name='hiv_test', test_prob_data=0.5),
         sti.ART(coverage=target_p),
@@ -232,7 +240,7 @@ def test_art_coverage_matching(do_plot=do_plot):
 
     ac = sim.results.art_coverage
     # Check coverage in the last few years (after ramp-up)
-    rtol = 0.2  # Generous tolerance for stochastic model with 5K agents
+    rtol = 0.3  # Generous tolerance for stochastic model with 1K agents
     final_p = np.mean(ac.p_art[-24:])  # Last 2 years of monthly data
     assert np.isclose(final_p, target_p, rtol=rtol), \
         f'Expected ART coverage ~{target_p}, got {final_p:.2f} (rtol={rtol})'
@@ -273,7 +281,7 @@ def test_art_stratified_coverage_matching(do_plot=do_plot):
                     targets[(ab, gender)] = p
 
     strat_df = pd.DataFrame(rows)
-    sim = hivsim.demo('simple', run=False, plot=False, n_agents=5_000)
+    sim = hivsim.demo('simple', run=False, plot=False, n_agents=1_000, dur=5)
     sim.pars.interventions = [
         sti.HIVTest(name='hiv_test', test_prob_data=0.5),
         sti.ART(coverage=strat_df),
@@ -290,9 +298,9 @@ def test_art_stratified_coverage_matching(do_plot=do_plot):
     # Print per-stratum coverage for inspection (not asserted — current implementation
     # computes a global target from stratified data, not per-stratum force-fitting)
     for (ab, gender), target_p in targets.items():
-        lo, hi = ab.strip('[]()').split(',')
+        lo, hi = ss.parse_age_range(ab)
         sex = 'f' if gender == 0 else 'm'
-        key = f'p_art_{sex}_{lo}_{hi}'
+        key = f'p_art_{sex}_{int(lo)}_{int(hi)}'
         measured_p = np.mean(ac[key][-24:])
         print(f'  {key}: target={target_p:.2f}, measured={measured_p:.2f}')
 
@@ -318,17 +326,20 @@ def test_art_reduces_mortality(do_plot=do_plot):
     sc.heading('Testing ART reduces mortality...')
 
     # Without ART
-    sim_no_art = hivsim.demo('simple', run=False, plot=False, n_agents=2_000)
+    sim_no_art = hivsim.demo('simple', run=False, plot=False, n_agents=1_000, dur=5)
     sim_no_art.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3)]
-    sim_no_art.run()
+    sim_no_art.label = 'no_art'
 
     # With ART
-    sim_art = hivsim.demo('simple', run=False, plot=False, n_agents=2_000)
+    sim_art = hivsim.demo('simple', run=False, plot=False, n_agents=1_000, dur=5)
     sim_art.pars.interventions = [
         sti.HIVTest(name='hiv_test', test_prob_data=0.3),
         sti.ART(coverage=0.8),
     ]
-    sim_art.run()
+    sim_art.label = 'with_art'
+
+    msim = ss.parallel([sim_no_art, sim_art])
+    sim_no_art, sim_art = msim.sims
 
     deaths_no_art = sim_no_art.results.hiv.new_deaths.sum()
     deaths_art    = sim_art.results.hiv.new_deaths.sum()
@@ -352,34 +363,34 @@ def test_art_parameter_sensitivity(do_plot=do_plot):
     """ Check that ART coverage and initiation parameters affect outcomes as expected """
     sc.heading('Testing ART parameter sensitivity...')
 
-    # TODO: implement
-    # Vary art_initiation probability (low vs high)
-    # Vary coverage level (low vs high)
-    # Assert: higher coverage → more people on ART
-    # Assert: higher initiation → faster ART uptake
-
     par_effects = dict(
         coverage       = [0.2, 0.9],
         art_initiation = [0.3, 0.95],
     )
 
     results = dict()
+    sims = []
     for par, (lo, hi) in par_effects.items():
         for val in [lo, hi]:
             if par == 'coverage':
                 art = sti.ART(coverage=val)
             else:
                 art = sti.ART(coverage=0.5, art_initiation=ss.bernoulli(p=val))
-            sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents)
+            sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=10)
             sim.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), art]
-            sim.run()
-            results[(par, val)] = float(sim.results.hiv.n_on_art[-1])
+            sim.label = (par, val)
+            sims.append(sim)
+    
+    msim = ss.parallel(sims)
 
-    # TODO: uncomment once validated with larger populations
-    # for par, (lo, hi) in par_effects.items():
-    #     v_lo = results[(par, lo)]
-    #     v_hi = results[(par, hi)]
-    #     assert v_lo <= v_hi, f'Expected higher {par} to increase ART uptake, but {par}={lo} gave {v_lo} vs {par}={hi} gave {v_hi}'
+    for sim in msim.sims:
+        n_on_art = sim.results.hiv.n_on_art[-1]
+        results[sim.label] = n_on_art
+
+    for par, (lo, hi) in par_effects.items():
+        v_lo = results[(par, lo)]
+        v_hi = results[(par, hi)]
+        assert v_lo <= v_hi, f'Expected higher {par} to increase ART uptake, but {par}={lo} gave {v_lo} vs {par}={hi} gave {v_hi}'
 
     return results
 
@@ -441,7 +452,7 @@ if __name__ == '__main__':
     T = sc.timer()
 
     r1  = test_art_specs(do_plot=do_plot)
-    r2  = test_art_legacy_compat(do_plot=do_plot)
+    r2  = test_art_mixed_coverage(do_plot=do_plot)
     r3  = test_vmmc_specs(do_plot=do_plot)
     r4  = test_art_stratified_coverage(do_plot=do_plot)
     r5  = test_art_effects(do_plot=do_plot)

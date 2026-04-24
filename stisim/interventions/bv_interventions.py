@@ -13,8 +13,20 @@ __all__ = ["treat_BV"]
 
 
 class treat_BV(ss.Intervention):
-    """
-    Treat BV
+    """Treatment intervention for bacterial vaginosis (BV).
+
+    Symptomatic agents seek care after a delay, receive a multi-dose
+    antibiotic course, and may experience a durable shift in vaginal
+    community state type (CST). Treatment effectiveness varies by the
+    agent's stable CST, and risk factors like douching reduce the
+    probability of a lasting CST-1 transition.
+
+    Args:
+        pars (dict): Parameter overrides (e.g. ``tx_doses``,
+            ``tx_effectiveness``, ``p_seek_care``).
+        eligibility (func): Function returning eligible UIDs; defaults to
+            newly symptomatic agents.
+        **kwargs: Additional parameter overrides.
     """
 
     def __init__(self, *args, pars=None, eligibility=None, **kwargs):
