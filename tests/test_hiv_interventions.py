@@ -376,7 +376,7 @@ def test_art_parameter_sensitivity(do_plot=do_plot):
                 art = sti.ART(coverage=val)
             else:
                 art = sti.ART(coverage=0.5, art_initiation=ss.bernoulli(p=val))
-            sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=10)
+            sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=10, rand_seed=0)
             sim.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), art]
             sim.label = (par, val)
             sims.append(sim)
