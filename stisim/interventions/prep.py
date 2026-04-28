@@ -94,70 +94,44 @@ class SuppliedPrep(SuppliedIntervention):
         # determine current prep coverage levels. Assuming ANY prep counts here (not just this intervention).
         cur_coverages = [len((hiv.on_prep & eligible).uids) / len(eligible.uids) for eligible in eligibilities]
 
-        # determine the maximum PrEP distribution based on coverage targets of eligible populations
-        # (absent supply constraints or care seeking)
-        n_to_reach_coverage = [int((self.coverages[i] - cur_coverages[i]) * len(eligible.uids))
-                       for i, eligible in enumerate(eligibilities)]
-        n_to_reach_coverages = sum(n_to_reach_coverage)
-
         # determine which eligible agents are seeking care
         care_seeking = [self.determine_care_seeking(eligible=eligible) for eligible in eligibilities]
 
         # agents who can be offered to are those who are:
         # seeking care AND not on PrEP of any kind
         # ... OR are looking to reuptake this intervention
-        offer_pools = [(seeking & (~hiv.on_prep).uids) |
-                       (eligibilities[i].uids & self.will_reuptake.uids)
+        offer_pools = [(seeking & (~hiv.on_prep).uids)
+                       # | (eligibilities[i].uids & self.will_reuptake.uids)
                        for i, seeking in enumerate(care_seeking)]
         offer_pool_size = [len(pool) for pool in offer_pools]
-        n_seeking = sum(offer_pool_size)
 
-        # The number of agents who go on PrEP will be the minimum constrained by: coverage, seeking behavior, supply
-        n_offer = min(n_to_reach_coverages, n_seeking, supply.quantity)
-        # determine the supply rationing ratio (to be applied proportionally to target coverages), if supply limited
-        if n_offer > 0:
-            # figure how who to give PrEP to
-            if n_offer <= supply.quantity:
-                coverages = self.coverages # no supply limits. Select agents for PrEP based on seeking & coverages, only
-            else:
-                # apply supply limits proportional to specified group coverages.
-                # Computing the curtailed-coverage that is achievable based on supply (short of target coverage)
-                supply_fraction = supply.quantity / n_offer
-                coverages = [(coverage - cur_coverages[i]) * supply_fraction + cur_coverages[i]
-                            for i, coverage in enumerate(self.coverages)]
+        coverage_gaps = [(coverage - cur_coverages[i]) for i, coverage in enumerate(self.coverages)]
+        cov_gap_proportion = [cov_gap / sum(coverage_gaps) for cov_gap in coverage_gaps]
+        n_gaps = [cov_gap * len(eligibilities[i].uids) for i, cov_gap in enumerate(coverage_gaps)]
 
-            # recompute n_to_reach_coverage(s), since coverages MAY now be lower (due to supply)
-            n_to_reach_coverage = [int((coverages[i] - cur_coverages[i]) * len(eligible.uids))
-                                   for i, eligible in enumerate(eligibilities)]
-            # if coverage has overshot (for any valid reason), do not put more agents on
-            n_to_reach_coverage = [max(0, n) for n in n_to_reach_coverage]
+        # This is the maximum *number* of distributions per group that can occur, taking into account:
+        # - count gap to target coverage
+        # - offer pool size
+        # - coverage gap -based proportionality of the remaining supply
+        max_supply_dist = [int(min(n_gap, offer_pool_size[i], cov_gap_proportion[i] * supply.quantity))
+                           for i, n_gap in enumerate(n_gaps)]
 
-            # Now determine if we are coverage or seeking limited -- PER POOL
-            n_offer_to_pool = []
-            for i, pool in enumerate(offer_pools):
-                if n_to_reach_coverage[i] >= offer_pool_size[i]:
-                    # seeking limited, all seekers go onto PrEP
-                    n_offer_to_pool.append(offer_pool_size[i])
-                else:
-                    # coverage limited, we will have to select agents to go onto PrEP
-                    n_offer_to_pool.append(n_to_reach_coverage[i])
+        # Now select agents to get PrEP from the offer pools up to computed seeking/coverage/supply limit
+        for i, offer_pool in enumerate(offer_pools):
+            n = max_supply_dist[i]
+            selected = random.sample(population=list(offer_pool), k=n)
+            selected = ss.arrays.uids(selected)
 
-            # Now select agents to get PrEP from the offer pools up to computed seeking/coverage/supply limit
-            for i, offer_pool in enumerate(offer_pools):
-                n = n_offer_to_pool[i]
-                selected = random.sample(population=list(offer_pool), k=n)
-                selected = ss.arrays.uids(selected)
+            # classify the agents going onto PrEP
+            # reuptakers = selected & self.will_reuptake.uids
+            uptakers = selected  #  - reuptakers
 
-                # classify the agents going onto PrEP
-                reuptakers = selected & self.will_reuptake.uids
-                uptakers = selected - reuptakers
-
-                if len(uptakers) > 0:
-                    PrepManager.uptake(sim=sim, to_uptake=uptakers, prep_intervention=self, product=product,
-                                       allow_reuptake=self.allow_reuptake, use_supplies=True)
-                if len(reuptakers) > 0:
-                    PrepManager.reuptake(sim=sim, to_uptake=reuptakers, prep_intervention=self, product=product,
-                                         use_supplies=True)
+            if len(uptakers) > 0:
+                PrepManager.uptake(sim=sim, to_uptake=uptakers, prep_intervention=self, product=product,
+                                   allow_reuptake=self.allow_reuptake, use_supplies=True)
+            # if len(reuptakers) > 0:
+            #     PrepManager.reuptake(sim=sim, to_uptake=reuptakers, prep_intervention=self, product=product,
+            #                          use_supplies=True)
 
     @property
     def _name_to_index(self):

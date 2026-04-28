@@ -23,7 +23,8 @@ from stisim.interventions.supply import Supply
 tests_directory = Path(__file__).resolve().parent
 sys.path.append(str(tests_directory))
 
-from hiv_natural_history_analyzers import PrepCoverageAnalyzer, PrepEfficacyAnalyzer, PrepDurationAnalyzer
+from hiv_natural_history_analyzers import PrepCoverageAnalyzer, PrepEfficacyAnalyzer, PrepDurationAnalyzer, \
+    PrepCountsAnalyzer
 
 from testlib import build_testing_sim
 
@@ -40,9 +41,10 @@ multi_eligibility_groups
 each_eligibility_group_has_coverage
 single_group_coverage_targets_reached_but_not_exceeded_with_infinite_supply
 multi_group_coverage_targets_reached_but_not_exceeded_with_infinite_supply
+prep_eff_updates_correctly
+prep_under_supply_limits
 
 # Next
-prep_eff_updates_correctly
 prep_eff_updates_correctly_with_reuptake  # later, not "promoting" reuptake for now
 prep_eff_is_0_after_drop
 
@@ -57,7 +59,10 @@ shot_1y_perfect = Product(name='test-shot', type='prep', delivery_mode='shot', c
 shot_1y_imperfect = Product(name='test-shot', type='prep', delivery_mode='shot', cost=10, eff_by_ti=[0.95, 0.9, 0.85, 0.75, 0.7, 0.65, 0.6, 0.55, 0.5, 0.4, 0.3, 0.2])
 
 def infinite_prep(product):
-    return Supplies(supplies=[Supply(product=product, quantity=1000000)])
+    return limited_prep(product=product, quantity=1000000)
+
+def limited_prep(product, quantity):
+    return Supplies(supplies=[Supply(product=product, quantity=quantity)])
 
 @sc.timer()
 def test_default_eligibility_and_coverage():
@@ -246,6 +251,70 @@ def test_prep_eff_updates_correctly():
 
     return sim
 
+@sc.timer()
+def test_supply_limited_prep():
+    duration = 3 # years
+    n_supply = 100
+    supplies = limited_prep(product=shot_1y_perfect, quantity=n_supply)
+    intervention = SuppliedPrep(name='this-is-a-test', supplies=supplies)
+    target_coverage = intervention.coverages[0]  # should be 100%
+    eligibilities = {'fsw': intervention.default_eligibilities[0]}  # there is only one
+    count_analyzer = PrepCountsAnalyzer(eligibilities=eligibilities, consider_new_infections=True)
+    coverage_analyzer = PrepCoverageAnalyzer(eligibilities=eligibilities, consider_new_infections=True)
+    sim = build_testing_sim(analyzers=[count_analyzer, coverage_analyzer], interventions=[intervention],
+                            n_agents=5000, duration=duration)
+    sim.run()
+
+    analyzer_results = sim.results[count_analyzer.name][count_analyzer.result_name]
+
+    # Trimming off final reporting ti as starsim always (currently) runs +1 ti more than requested.
+    analyzer_results = {group_name: coverage[:-1] for group_name, coverage in analyzer_results.items()}
+    for group_name, n_prep in analyzer_results.items():
+        assert len(n_prep) == (duration * 12)
+
+    if verbose:
+        for group_name, n_prep in analyzer_results.items():
+            print(f"group: {group_name} n_on_prep: {n_prep}")
+
+    # Count checks
+    # There should be agents on prep with at all timesteps (given sim/product timescale) (for when supplies are available, which is first 2 years in this setup)
+    for group_name, n_prep in analyzer_results.items():
+        for i in range(2*12):  # 2 years
+            assert n_prep[i] > 0, f"group: {group_name} No agents found on PrEP at ti: {i}. Agents should be on PrEP for all timesteps for years 1-2."
+            assert n_prep[i] < n_supply,  f"group: {group_name} too many agents on prep at ti: {i}. Exceeded supply limit."
+        for i in range (2*12+1, duration*12):
+            # The final year(s) of should have 0 agents on PrEP because it ran out
+            assert n_prep[i] == 0, f"group: {group_name} no agents shoud be on PrEP for the final year (3), but {n_prep[i]} agents were at ti: {i}"
+
+    # coverage checks, ensure that coverages are not exceeded and drop after a certain point (reaching 0 in year 3)
+    analyzer_results = sim.results[coverage_analyzer.name][coverage_analyzer.result_name]
+    if verbose:
+        for group_name, coverage in analyzer_results.items():
+            print(f"group: {group_name} coverage: {coverage}")
+
+    # year 1: near full coverage (100%)
+    # year 2: about 50 +/- 8% coverage
+    # year 3: 0 coverage
+    for group_name, coverage in analyzer_results.items():
+        target = target_coverage
+        tolerance = 0.05
+        for i in range(9, 1*12):
+            # coverage should approach the target by the late part of year1
+            assert coverage[i] == pytest.approx(expected=target, abs=tolerance), f"Group: {group_name} Expected coverage at ti: {i} == {target} +/- {tolerance}, was {coverage[i]}"
+
+        target = 0.6
+        tolerance = 0.1
+        for i in range(1*12+9, 2*12):
+            # coverage should approach the target by the late part of year2  -- reduced due to supply constraint
+            assert coverage[i] == pytest.approx(expected=target, abs=tolerance), f"Group: {group_name} Expected coverage at ti: {i} == {target} +/- {tolerance}, was {coverage[i]}"
+
+        for i in range(2*12, len(coverage)):
+            assert coverage[i] == 0, f"Year 3 coverages should be 0, but ti: {i} coverage is: {coverage[i]}"
+
+    return sim
+
+
+
 
 if __name__ == '__main__':
     do_plot = True
@@ -256,6 +325,7 @@ if __name__ == '__main__':
     test_default_eligibility_and_modified_coverage()
     test_custom_eligibilities_and_coverages()
     test_prep_eff_updates_correctly()
+    test_supply_limited_prep()
 
     sc.heading("Total:")
     timer.toc()

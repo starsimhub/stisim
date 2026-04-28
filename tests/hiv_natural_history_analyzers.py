@@ -251,6 +251,54 @@ class PrepCoverageAnalyzer(ss.Analyzer):
         agents = hiv.on_prep & (hiv.ti_infected == sim.ti)
         return agents
 
+
+class PrepCountsAnalyzer(ss.Analyzer):
+    """
+    Records the n_agents on PrEP per 1+ eligibiliity groups/functions per timestep, results obtainable by analyzer key
+    'hiv.n_prep' . consider_new_infections=True yields results equivalent to "end of intervention time" instead
+    of "end of model timestep time".
+    """
+
+    result_name = 'hiv.n_prep'
+
+    def __init__(self, eligibilities: Dict[str, Callable], consider_new_infections=False, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.eligibilities = eligibilities
+        self.consider_new_infections = consider_new_infections
+
+    def step(self):
+        pass
+
+    def init_results(self):
+        super().init_results()
+        self.results[self.result_name] = {group_name: [] for group_name, _ in self.eligibilities.items()}
+
+    def update_results(self):
+        sim = self.sim
+        hiv = sim.diseases.hiv
+
+        for group_name, eligibility in self.eligibilities.items():
+            # The reason for "OR on prep + infected this ti" is because the model infection step occurs between:
+            # - when the intervention uses the eligibility functions used here
+            # - when analyzer update_results() is called
+            # Including this additional OR clause allows for checking PrEP counts at the time of the intervention (as
+            # opposed to AFTER intervention + infection) which is useful for test code. Ignoring the additional clause
+            # yields "end of timestep" results.
+            if self.consider_new_infections:
+                eligible_uids =  (eligibility(sim) | self.infected_this_ti_on_prep(sim)).uids
+            else:
+                eligible_uids = eligibility(sim).uids
+            n_on_prep = len(hiv.on_prep.uids & eligible_uids)
+            self.results[self.result_name][group_name].append(n_on_prep)
+
+    @staticmethod
+    def infected_this_ti_on_prep(sim):
+        hiv = sim.diseases.hiv
+        agents = hiv.on_prep & (hiv.ti_infected == sim.ti)
+        return agents
+
+
+
 class PrepEfficacyAnalyzer(ss.Analyzer):
     """
     Records the PrEP efficacy of agents on PrEP, per agent uid.
