@@ -4,11 +4,17 @@ Unit tests for Product class
 Tests to ensure appropriate behavior of Product, including initialization and
 efficacy lookup at valid and out-of-range time indices.
 """
-
+import matplotlib.pyplot as plt
 import pytest
 import sciris as sc
+import sys
+
+from pathlib import Path
 
 from stisim.interventions.product import Product
+
+tests_directory = Path(__file__).resolve().parent
+sys.path.append(str(tests_directory))
 
 
 @sc.timer()
@@ -72,7 +78,8 @@ def test_efficacy_at_ti_out_of_range_index():
 
 
 if __name__ == '__main__':
-    sc.heading("Total:")
+    do_plot = True
+    sc.options(interactive=do_plot)
     timer = sc.timer()
 
     test_product_attributes_stored()
@@ -81,4 +88,8 @@ if __name__ == '__main__':
     test_efficacy_at_ti_contained_index()
     test_efficacy_at_ti_out_of_range_index()
 
+    sc.heading("Total:")
     timer.toc()
+
+    if do_plot:
+        plt.show()
