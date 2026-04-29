@@ -321,7 +321,7 @@ class Sim(ss.Sim):
                 # Check that the necessary data files are available
                 indicators = ['age', 'deaths']
                 if self.pars['use_pregnancy']: indicators.append('asfr')
-                else: indicators.append('births')
+                else: indicators.append('cbr')
                 if self.pars['use_migration']: indicators.append('migration')
                 start_year = ss.date(self.pars['start']).year
                 ok, missing = stidl.check_downloaded(location, indicators, year=start_year)
@@ -341,9 +341,9 @@ class Sim(ss.Sim):
                 pregnancy = ss.Pregnancy(fertility_rate=fertility_rates, pars=preg_pars, metadata=metadata)
                 demographics += pregnancy
             else:
-                birth_rates = stidata.get_rates(location, 'births', self.datafolder)
+                birth_rates = stidata.get_rates(location, 'birth', self.datafolder)
                 birth_pars = {k: v for k, v in self.dem_pars.items() if k in ss.Births().pars.keys()}
-                metadata = dict(data_cols=dict(year='year', value='cbr'))
+                metadata = dict(data_cols=dict(year='Time', value='Value'))
                 births = ss.Births(birth_rate=birth_rates, pars=birth_pars, metadata=metadata)
                 demographics += births
 
