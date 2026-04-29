@@ -63,7 +63,7 @@ def test_sim_creation():
         stop=stop,
     )
 
-    nw_pars = dict(debut=ss.lognorm_ex(20, 5))
+    nw_pars = dict(debut_f=ss.lognorm_ex(20, 5), debut_m=ss.lognorm_ex(21, 5))
     sti_pars = dict(ng=dict(eff_condom=0.6))
 
     # Test 1: default networks with custom pars, demographics from location string, and diseases from disease names with custom pars
