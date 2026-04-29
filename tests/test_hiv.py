@@ -111,7 +111,7 @@ def test_latent_transmission_ratio_is_1():
 def test_acute_transmission_higher_than_latent():
     sc.heading("Checking HIV transmission ratio acute > latent.")
 
-    sim = build_testing_sim(analyzers=[RelativeInfectivityTracker(states=['acute'])], n_agents=500, duration=1)
+    sim = build_testing_sim(analyzers=[RelativeInfectivityTracker(states=['acute'])], n_agents=1000, duration=3)
     sim.run()
     acute_ratios = sim.results['relativeinfectivitytracker']['hiv.acute_rel_trans']
     acute_ratios = list(set(chain(*acute_ratios)))
