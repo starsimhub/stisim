@@ -39,6 +39,11 @@ class HIVPars(BaseSTIPars):
         self.beta_breastfeed = ss.permonth(0.005)  # Postnatal MTCT via breastfeeding (~14% over 12 months without ART)
         self.rel_trans_acute = ss.normal(loc=5.3, scale=0.5)  # Increase transmissibility during acute HIV infection (Bellan 2015: RH=5.3, EHM≈7.3)
         self.rel_trans_falling = ss.normal(loc=8, scale=0.5)  # Increase transmissibility during late HIV infection
+        self.rel_sus_age = None  # Age/sex-stratified rel_sus multipliers.
+        # List of (age_lo, age_hi, sex, multiplier) tuples; sex is 'f', 'm', or None for both.
+        # Multiplied into rel_sus each timestep alongside other contributors (PrEP, connectors, etc.),
+        # so values are ceteris-paribus differences, not absolute susceptibilities.
+        # Example: [(15, 25, 'f', 1.7), (25, 50, 'f', 1.0), (15, 50, 'm', 1.0)]
         self.eff_condom = 0.9
 
         # Initialization
@@ -460,6 +465,17 @@ class HIV(BaseSTI):
         # Reset susceptibility and infectiousness
         self.rel_sus[:] = 1
         self.rel_trans[:] = 1
+
+        # Age/sex-stratified susceptibility. Multiplied in alongside other contributors
+        # (PrEP, connectors, etc.) so values are ceteris-paribus, not absolute.
+        if self.pars.rel_sus_age is not None:
+            ppl = self.sim.people
+            for age_lo, age_hi, sex, mult in self.pars.rel_sus_age:
+                if sex == 'f':   sex_mask = ppl.female
+                elif sex == 'm': sex_mask = ppl.male
+                else:            sex_mask = ppl.alive
+                in_bin = sex_mask & (ppl.age >= age_lo) & (ppl.age < age_hi)
+                self.rel_sus[in_bin] *= mult
 
         # Update rel_trans to account for acute and late-stage infection
         self.rel_trans[self.acute] *= self.pars.rel_trans_acute.rvs(self.acute.uids)
