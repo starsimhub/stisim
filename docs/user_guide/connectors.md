@@ -17,21 +17,25 @@ Each effect is implemented as a connector class so that users can mix and match.
 
 | Class | Diseases | Effect |
 |-------|----------|--------|
-| `sti.hiv_syph` | HIV ↔ syphilis | Syphilis raises HIV `rel_sus` (default 2.67×) and `rel_trans` (1.2×); HIV/AIDS can modify syphilis acquisition and transmission |
-| `sti.hiv_tv` | HIV ↔ trichomoniasis | Symmetric coinfection multipliers |
-| `sti.hiv_ng` | HIV ↔ gonorrhea | Symmetric coinfection multipliers |
-| `sti.hiv_ct` | HIV ↔ chlamydia | Symmetric coinfection multipliers |
-| `sti.hiv_bv` | HIV ↔ bacterial vaginosis | BV state modifies HIV susceptibility |
-| `sti.gud_syph` | GUD ↔ syphilis | Syphilis stage drives GUD prevalence |
+| `sti.hiv_syph` | HIV ↔ syphilis | Bidirectional. Syphilis raises HIV `rel_sus` (default 2.67×) and `rel_trans` (1.2×); HIV/AIDS state can modify syphilis `rel_sus` / `rel_trans` |
+| `sti.hiv_tv` | trichomoniasis → HIV | Trichomoniasis infection raises HIV `rel_sus` (default 1.5×) |
+| `sti.hiv_ng` | gonorrhea → HIV | Gonorrhea infection raises HIV `rel_sus` (default 1.2×) and `rel_trans` (1.2×) |
+| `sti.hiv_ct` | chlamydia → HIV | Chlamydia infection raises HIV `rel_sus` (default 1× — placeholder) |
+| `sti.hiv_bv` | BV → HIV | CST-IV state raises HIV `rel_sus` (default 2×) and `rel_trans` (2×) |
+| `sti.gud_syph` | syphilis → GUD | Syphilis stage drives GUD prevalence |
 
-## Default connectors
+Most connectors are unidirectional (the STI affects HIV but not vice versa); `hiv_syph` is the exception.
 
-If you pass `connectors=True` (or omit it) when creating an `sti.Sim`, the appropriate connectors are added automatically based on which diseases are in the simulation. To suppress this behavior, pass `connectors=False` or supply your own list:
+## Adding connectors
+
+Connectors are passed explicitly when constructing an `sti.Sim`. STIsim does not currently auto-wire connectors based on the disease list — passing `connectors=True` raises `NotImplementedError`. Provide a list of instantiated connectors instead:
 
 ```python
+hiv = sti.HIV()
+syph = sti.Syphilis()
 sim = sti.Sim(
-    diseases=['hiv', 'syphilis'],
-    connectors=[sti.hiv_syph(hiv_module=..., syphilis_module=..., rel_sus_hiv_syph=3.0)],
+    diseases=[hiv, syph],
+    connectors=[sti.hiv_syph(hiv_module=hiv, syphilis_module=syph, rel_sus_hiv_syph=3.0)],
 )
 ```
 

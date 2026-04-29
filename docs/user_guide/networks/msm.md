@@ -5,7 +5,7 @@ STIsim provides two networks for modeling sexual contact between men. Both exten
 | Class | Matching strategy | When to use |
 |-------|------------------|-------------|
 | `sti.AgeMatchedMSM` | Sort eligible males by age and pair sequentially | Lightweight; partners always have similar ages |
-| `sti.AgeApproxMSM` | Sample preferred partner age from a distribution and match approximately | More flexible age mixing; closer to the heterosexual `StructuredSexual` matching |
+| `sti.AgeApproxMSM` | Reuses `StructuredSexual` age-difference preferences to match split groups of eligible males | More flexible age mixing |
 
 ## Participation
 
