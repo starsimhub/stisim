@@ -108,18 +108,18 @@ def make_df(sim, df_res_list=None):
     """
     Build a year-resampled DataFrame of selected results from a sim or MultiSim.
 
-    Used by :func:`eval_fn` to align modeled output with observed data on a
+    Used by `eval_fn` to align modeled output with observed data on a
     common yearly time axis before computing goodness of fit.
 
     Args:
         sim (Sim or MultiSim): Completed simulation(s) to extract results from.
         df_res_list (list[str]): Result keys to include, either at the top level
-            (``'hiv.prevalence'``) or as ``'<module>.<result>'`` paths into a
-            nested ``Results`` container.
+            (`'hiv.prevalence'`) or as `'<module>.<result>'` paths into a
+            nested `Results` container.
 
     Returns:
-        pandas.DataFrame: One column per requested result plus a ``'time'``
-        column (year). Rows are stacked across sims when ``sim`` is a MultiSim.
+        pandas.DataFrame: One column per requested result plus a `'time'`
+        column (year). Rows are stacked across sims when `sim` is a MultiSim.
     """
     dfs = sc.autolist()
 
@@ -156,19 +156,19 @@ def eval_fn(sim, data=None, sim_result_list=None, weights=None, df_res_list=None
     Default evaluation function for STIsim calibration.
 
     For each requested result, merges modeled output with observed data on
-    ``time`` (year), computes per-point goodness-of-fit via
-    :func:`compute_gof`, applies an optional weight, and sums the result.
+    `time` (year), computes per-point goodness-of-fit via
+    `compute_gof`, applies an optional weight, and sums the result.
 
     Args:
         sim (Sim): Completed simulation. The intermediate DataFrame is also
-            stored as ``sim.df_res`` for inspection.
+            stored as `sim.df_res` for inspection.
         data (dict): Mapping of result key → DataFrame indexed by year, with
             an observed-value column matching the result key.
         sim_result_list (list[str]): Result keys to evaluate (e.g.
-            ``['hiv.prevalence', 'hiv.n_on_art']``).
+            `['hiv.prevalence', 'hiv.n_on_art']`).
         weights (dict): Optional per-result weight; defaults to 1.0.
-        df_res_list (list[str]): Result keys to extract via :func:`make_df`;
-            defaults to ``sim_result_list``.
+        df_res_list (list[str]): Result keys to extract via `make_df`;
+            defaults to `sim_result_list`.
 
     Returns:
         float: Total weighted mismatch (lower is better).
