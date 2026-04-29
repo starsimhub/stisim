@@ -132,9 +132,11 @@ class Sim(ss.Sim):
         if pars and kwargs:
             overlap = set(pars) & set(kwargs)
             if overlap:
+                detail = '; '.join(
+                    f'{k}: pars={pars[k]!r} kwargs={kwargs[k]!r}' for k in sorted(overlap)
+                )
                 raise ValueError(
-                    f'Keys appear in both `pars` and kwargs: {sorted(overlap)}. '
-                    f'Specify each parameter in exactly one place.'
+                    f'Keys appear in both `pars` and kwargs — specify each in exactly one place:\n  {detail}'
                 )
 
         # Merge in pars and kwargs
@@ -287,7 +289,7 @@ class Sim(ss.Sim):
         Process the network parameters to create network module.
         If networks are provided, they will be used; otherwise, use default networks (usual case)
         """
-        if len(self.pars['networks']):
+        if len(self.pars['networks']) > 0:
             # XOR: user provided network instances AND network pars — refuse to guess.
             if self._user_nw_pars:
                 raise ValueError(

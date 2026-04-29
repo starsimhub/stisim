@@ -56,9 +56,11 @@ class Sim(sti.Sim):
         if pars is not None:
             overlap = set(pars) & set(kwargs)
             if overlap:
+                detail = '; '.join(
+                    f'{k}: pars={pars[k]!r} kwargs={kwargs[k]!r}' for k in sorted(overlap)
+                )
                 raise ValueError(
-                    f'Keys appear in both `pars` and kwargs: {sorted(overlap)}. '
-                    f'Specify each parameter in exactly one place.'
+                    f'Keys appear in both `pars` and kwargs — specify each in exactly one place:\n  {detail}'
                 )
 
         pars = sc.mergedicts(pars, kwargs)
