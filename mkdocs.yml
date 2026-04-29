@@ -60,8 +60,12 @@ nav:
       - Genital ulcer disease: user_guide/diseases/gud.md
     - Networks:
       - Structured sexual: user_guide/networks/structured_sexual.md
+      - MSM networks: user_guide/networks/msm.md
     - Interventions:
       - user_guide/interventions/interventions.md
+    - Connectors: user_guide/connectors.md
+    - Calibration: user_guide/calibration.md
+    - HIVsim: user_guide/hivsim.md
   - Examples:
     - examples/index.md
     - Modeling ART interruptions: examples/art_interruptions.ipynb
@@ -95,7 +99,7 @@ plugins:
   - include-markdown # include other files, such as READMEs
   - mkdocs-jupyter: # enables Jupyter notebooks to be rendered
       execute: true
-      allow_errors: true
+      allow_errors: false
       include_source: true
       kernel_name: python3
   - mkdocstrings: # process docstrings to generate API reference
