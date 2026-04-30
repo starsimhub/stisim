@@ -1,49 +1,59 @@
 """
 PrEP API vignettes — design sandboxing for issue #431 / v1.6 milestone.
 
-Each vignette represents a distinct level of complexity and a concrete use case.
-V1 runs today. V2–V5 are aspirational API sketches; functions are marked
-NOTIMPLEMENTED where stisim doesn't yet support the interface.
+Guiding principle: "common things should be simple" (Starsim philosophy).
+Eligibility is always explicit — there is no default target population, because
+any implicit default (e.g. FSW) is not self-explanatory and will surprise users.
 
-The Kenya vignette (V5) is the primary research-question anchor:
-"Estimate the price threshold at which Kenya would pay for lenacapavir."
-Target groups under consideration: FSW, AGYW, PBFW, MSM.
+Design decisions captured here:
+  - on_prep lives on the HIV disease object (not on each intervention), so that
+    multiple concurrent PrEP interventions can coordinate without a manager class.
+    Only one shared BoolArr needed: hiv.on_prep. Per-product state (cost, timing)
+    stays on the intervention.
+  - groups= API (V2b+) allows a single Prep instance to manage multiple target
+    populations with separate coverage levels and shared supply awareness.
+  - product= (V3+) bundles efficacy + cost; cost tracking enables CE analysis.
+  - supply= (V4+) enforces a dose budget; allocation is gap-proportional.
 
-Clark's PR #432 approach is shown alongside proposed alternatives in V3–V4.
+Status per vignette:
+  V1, V2a  — run today against rc1.5.4 (Prep class as-is, with explicit eligibility)
+  V2b–V5   — API sketches; commented-out or pass-bodied; marked NOTIMPLEMENTED
+
+Clark's PR #432 approach is shown in V3b as an alternative for comparison.
 """
 
-import numpy as np
 import sciris as sc
 import starsim as ss
 import stisim as sti
 
 
 # =============================================================================
-# V1 — Simple FSW PrEP (runs today against rc1.5.4)
+# V1 — Simple single-group PrEP
+# Runs today. Explicit eligibility required.
 # =============================================================================
 
-def v1_simple():
-    """
-    Simplest possible case. Should work with the current Prep class.
-    One group (FSW), one coverage level, default oral efficacy.
-    """
+def v1_fsw():
+    """Single group, constant coverage, default oral efficacy (80%)."""
     hiv = sti.HIV()
     net = sti.StructuredSexual()
-    prep = sti.Prep(coverage=0.5)   # default: targets FSW, eff_prep=0.8
+    prep = sti.Prep(
+        coverage=0.5,
+        eligibility=lambda sim: sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected,
+    )
     sim = ss.Sim(n_agents=500, diseases=hiv, networks=net, interventions=prep, dt=1/12)
     sim.run()
-    print('V1: infections =', sim.results.hiv.new_infections[:].sum())
     return sim
 
 
-def v1b_simple_with_eligibility():
-    """V1 variant: override default FSW targeting with an explicit lambda."""
+def v1b_agyw():
+    """Single group, time-varying coverage ramp, explicit AGYW eligibility."""
     hiv = sti.HIV()
     net = sti.StructuredSexual()
-    # Any HIV-negative female under 30 — not just FSW
     prep = sti.Prep(
-        coverage=0.4,
-        eligibility=lambda sim: sim.people.female & ~sim.diseases.hiv.infected & (sim.people.age < 30),
+        coverage={'year': [2015, 2020], 'value': [0, 0.4]},
+        eligibility=lambda sim: (
+            sim.people.female & ~sim.diseases.hiv.infected & (sim.people.age < 25)
+        ),
     )
     sim = ss.Sim(n_agents=500, diseases=hiv, networks=net, interventions=prep, dt=1/12)
     sim.run()
@@ -51,21 +61,19 @@ def v1b_simple_with_eligibility():
 
 
 # =============================================================================
-# V2 — Multi-group targeting (NOTIMPLEMENTED)
+# V2 — Multi-group targeting
 #
-# Key requirement: different coverage levels per group; coverage gap tracked
-# per group separately. Supply (if constrained) allocated proportionally.
+# V2a: multiple Prep instances (works today; name= required to avoid collision).
+#   Limitation: if supply is shared across groups, allocation is uncoordinated.
 #
-# Design options:
-#   A) groups= list of dicts  →  cleanest user-facing API
-#   B) multiple Prep() instances  →  works today, but coverage gap logic is
-#      independent per instance (no cross-group supply coordination)
+# V2b: groups= API on a single Prep instance (NOTIMPLEMENTED).
+#   Single instance sees all groups; can enforce shared supply constraints.
 # =============================================================================
 
-def v2a_multigroup_multiple_instances():
+def v2a_multigroup_instances():
     """
-    V2 workaround: one Prep per group. No shared supply, but works today.
-    Limitation: if supply is fixed across groups, allocation isn't coordinated.
+    Multiple Prep instances, one per group. Runs today.
+    Each manages its own coverage independently — no cross-group supply awareness.
     """
     hiv = sti.HIV()
     net = sti.StructuredSexual()
@@ -77,7 +85,9 @@ def v2a_multigroup_multiple_instances():
     prep_agyw = sti.Prep(
         name='prep_agyw',
         coverage=0.3,
-        eligibility=lambda sim: sim.people.female & ~sim.diseases.hiv.infected & (sim.people.age < 25),
+        eligibility=lambda sim: (
+            sim.people.female & ~sim.diseases.hiv.infected & (sim.people.age < 25)
+        ),
     )
     sim = ss.Sim(n_agents=2000, diseases=hiv, networks=net,
                  interventions=[prep_fsw, prep_agyw], dt=1/12)
@@ -87,243 +97,210 @@ def v2a_multigroup_multiple_instances():
 
 def v2b_multigroup_groups_api():
     """
-    groups= API: single Prep instance manages multiple groups with per-group coverage.
+    NOTIMPLEMENTED — groups= API: one Prep instance, multiple target groups.
+
+    Design intent: each group dict has label/eligibility/coverage; the Prep class
+    tracks per-group coverage and (when supply= is set) allocates doses gap-proportionally.
+    Avoids the need for multiple instances + manual name management.
     """
-    hiv = sti.HIV()
-    net = sti.StructuredSexual()
-    prep = sti.Prep(
-        groups=[
-            dict(
-                label='fsw',
-                eligibility=lambda sim: sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected,
-                coverage=0.6,
-            ),
-            dict(
-                label='agyw',
-                eligibility=lambda sim: sim.people.female & ~sim.diseases.hiv.infected & (sim.people.age < 25),
-                coverage=0.3,
-            ),
-        ],
-    )
-    sim = ss.Sim(n_agents=2000, diseases=hiv, networks=net, interventions=prep, dt=1/12)
-    sim.run()
-    return sim
+    # NOTIMPLEMENTED: groups= kwarg on Prep
+    #
+    # prep = sti.Prep(
+    #     groups=[
+    #         dict(label='fsw',
+    #              eligibility=lambda sim: sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected,
+    #              coverage=0.6),
+    #         dict(label='agyw',
+    #              eligibility=lambda sim: sim.people.female & ~sim.diseases.hiv.infected & (sim.people.age < 25),
+    #              coverage=0.3),
+    #         dict(label='pbfw',
+    #              eligibility=lambda sim: sim.demographics.pregnancy.pregnant & ~sim.diseases.hiv.infected,
+    #              coverage=0.5),
+    #     ],
+    # )
+    # sim = ss.Sim(..., interventions=prep); sim.run()
+    pass
 
 
 # =============================================================================
 # V3 — Product-aware PrEP (NOTIMPLEMENTED)
 #
-# Key use cases:
-#   - oral TDF/FTC: daily, ~80% efficacy, ~$50/person-year, on/off at any time
-#   - CAB-LA (cabotegravir): injection every 2 months, ~90% efficacy, ~$200/year
-#   - lenacapavir: injection every 6 months, ~99.9% efficacy, up to $40k/year
+# Product bundles: name, efficacy, cost (per dose or per person-year), duration.
+# Duration is relevant for injectables (lenacapavir: 6-month injection).
+# Cost is required for CE analysis.
 #
-# Product matters for:
-#   1. Cost tracking (CE analysis)
-#   2. Duration/re-enrollment (injection ≠ daily pill — can't just drop any time)
-#   3. Efficacy profile (lenacapavir: near-complete protection)
-#
-# Two sub-vignettes showing alternative API designs:
-#   V3a: simple product= dict/dataclass on existing Prep
-#   V3b: Clark's Product/Supply/Supplies objects (PR #432)
+# V3a: product= as a simple dict on Prep (proposed minimal API).
+# V3b: Clark's Product/Supply/Supplies class objects (PR #432 API).
 # =============================================================================
 
-def v3a_product_simple_api():
+def v3a_product_dict_api():
     """
-    Simple product= interface: each product is a dict with {name, efficacy, cost}.
-    Product efficacy overrides eff_prep parameter.
+    NOTIMPLEMENTED — product= dict on Prep.
+
+    Efficacy from product= overrides eff_prep. Cost tracked in sim.results.
+    Duration is optional; if omitted, treated as continuous (oral PrEP behaviour).
+
+    Note on on_prep coordination: with two Prep instances both writing to
+    hiv.rel_sus, they must not double-apply. If on_prep is on the HIV object
+    (hiv.on_prep), each instance can check ~hiv.on_prep before uptake —
+    no PrepManager needed.
     """
-    hiv = sti.HIV()
-    net = sti.StructuredSexual()
-
-    # Inline product specifications
-    prep_oral = sti.Prep(
-        coverage=0.5,
-        product=dict(name='oral', efficacy=0.8, cost=50),
-        name='prep_oral'
-    )
-    
-    prep_lnc = sti.Prep(
-        coverage=0.2,
-        product=dict(name='lenacapavir', efficacy=0.999, cost=40_000),
-        name='prep_lnc'
-    )
-
-    results = []
-    for prep in [prep_oral, prep_lnc]:
-        sim = ss.Sim(n_agents=500, diseases=hiv, networks=net, interventions=prep, dt=1/12)
-        sim.run()
-        prep_results = getattr(sim.results, prep.name, None)
-        total_cost = prep_results.total_cost[-1] if prep_results and 'total_cost' in prep_results else 0.0
-        results.append(dict(
-            product=prep._product.get('name', 'unknown'),
-            total_cost=total_cost,
-            infections=sim.results.hiv.new_infections[:].sum(),
-        ))
-
-    return results
+    # NOTIMPLEMENTED: product= on Prep
+    #
+    # oral = sti.Prep(
+    #     name='oral',
+    #     coverage=0.5,
+    #     eligibility=lambda sim: sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected,
+    #     product=dict(name='oral_tfv_ftc', efficacy=0.80, cost_per_year=50),
+    # )
+    # lnc = sti.Prep(
+    #     name='lnc',
+    #     coverage=0.5,
+    #     eligibility=lambda sim: sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected,
+    #     product=dict(name='lenacapavir', efficacy=0.999, cost_per_year=40_000,
+    #                  duration=ss.dur(6, 'months')),  # injection cycle
+    # )
+    # sim = ss.Sim(..., interventions=[oral, lnc]); sim.run()
+    # print(sim.results.oral.total_cost[-1])
+    # print(sim.results.lnc.total_cost[-1])
+    pass
 
 
 def v3b_product_clark_api():
     """
     NOTIMPLEMENTED — Clark's Product/Supply/Supplies API from PR #432.
-    Requires: stisim.interventions.{product,supply,supplies,prep,prep_manager}
+
+    Requires stisim.interventions.{product,supply,supplies,prep,prep_manager}.
+    Shown here for design comparison; these modules are on branch '330' only.
+
+    Open questions with this approach:
+      1. PrepManager must be added as a separate intervention — easy to forget,
+         silently wrong if omitted (agents never drop off PrEP).
+      2. PrEP states (on_prep, ti_prep_end, prep_source, …) live on hiv.py —
+         couples the disease model to intervention internals.
+      3. random.sample used for agent selection — breaks CRN (use ss.bernoulli).
+      4. Reuptake logic fully disabled (commented out, pending design decision).
+      5. base_care_seeking_rate = 0.8 is hardcoded / arbitrary.
     """
-    # These imports work only on Clark's branch (PR #432):
     # from stisim.interventions.product import Product
     # from stisim.interventions.supply import Supply
     # from stisim.interventions.supplies import Supplies
     # from stisim.interventions.prep import SuppliedPrep
     # from stisim.interventions.prep_manager import PrepManager
-
-    hiv = sti.HIV()
-    net = sti.StructuredSexual()
-
-    # Clark's interface:
-    #   product = Product(name='lenacapavir', type='prep', delivery_mode='injectable',
-    #                     cost=40_000, eff_by_ti=[0.999])
-    #   supply  = Supply(quantity=np.inf, product=product)   # unconstrained
-    #   supplies = Supplies(supplies=[supply])
     #
-    #   prep_manager = PrepManager()   # must be added as its own intervention
-    #   prep = SuppliedPrep(
-    #       name='lnc_fsw',
-    #       eligibilities=[lambda sim: sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected],
-    #       coverages=[0.6],
-    #       supplies=supplies,
-    #   )
-    #   sim = ss.Sim(n_agents=500, diseases=hiv, networks=net,
-    #                interventions=[prep_manager, prep], dt=1/12)
-    #   sim.run()
-
-    # Questions raised by this API:
-    #   - PrepManager is a hidden dependency; easy to forget, silently wrong without it
-    #   - PrEP states (on_prep, ti_prep_end, etc.) live on hiv.py — couples disease to intervention
-    #   - random.sample breaks CRN; should use ss.bernoulli / ss.choice
-    #   - Reuptake is fully disabled (pending design decision)
+    # product  = Product(name='lenacapavir', type='prep', delivery_mode='injectable',
+    #                    cost=40_000, eff_by_ti=[0.999])
+    # supply   = Supply(quantity=np.inf, product=product)
+    # supplies = Supplies(supplies=[supply])
+    #
+    # prep_manager = PrepManager()        # hidden dependency — must not be forgotten
+    # prep = SuppliedPrep(
+    #     name='lnc_fsw',
+    #     eligibilities=[lambda sim: sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected],
+    #     coverages=[0.6],
+    #     supplies=supplies,
+    # )
+    # sim = ss.Sim(..., interventions=[prep_manager, prep]); sim.run()
     pass
 
 
 # =============================================================================
-# V4 — Supply-constrained, multi-group (NOTIMPLEMENTED)
+# V4 — Supply-constrained allocation (NOTIMPLEMENTED)
 #
-# Fixed budget or fixed dose count distributed across groups.
-# Allocation proportional to coverage gap (Clark's approach in SuppliedPrep.step()).
-# Question: should allocation logic live in the Prep class or in Supplies?
+# Fixed annual dose budget distributed across groups proportional to coverage gap.
+# gap_i = (target_coverage_i - actual_coverage_i) * group_size_i
+# doses_to_group_i = total_supply * gap_i / sum(gap_j)
+#
+# This is exactly Clark's allocation logic in SuppliedPrep.step() —
+# the question is whether it belongs in Prep or in a Supplies helper.
 # =============================================================================
 
 def v4_supply_constrained():
     """
-    Supply-constrained allocation: fixed annual supply split gap-proportionally across groups.
-    """
-    hiv = sti.HIV()
-    net = sti.StructuredSexual()
+    NOTIMPLEMENTED — fixed supply of lenacapavir doses split gap-proportionally.
 
-    prep = sti.Prep(
-        groups=[
-            dict(
-                label='fsw',
-                eligibility=lambda sim: sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected,
-                coverage=0.6,
-            ),
-            dict(
-                label='agyw',
-                eligibility=lambda sim: sim.people.female & ~sim.diseases.hiv.infected & (sim.people.age < 25),
-                coverage=0.3,
-            ),
-        ],
-        product=dict(name='lenacapavir', efficacy=0.999, cost=40_000),
-        supply=500,  # doses per year; allocated gap-proportionally
-    )
-    
-    sim = ss.Sim(n_agents=2000, diseases=hiv, networks=net, interventions=prep, dt=1/12)
-    sim.run()
-    return sim
+    With 500 doses/year and two groups at different coverage levels,
+    the scarce supply is directed where the shortfall is largest.
+    """
+    # NOTIMPLEMENTED: supply= and groups= on Prep
+    #
+    # prep = sti.Prep(
+    #     groups=[
+    #         dict(label='fsw',  eligibility=..., coverage=0.6),
+    #         dict(label='agyw', eligibility=..., coverage=0.3),
+    #     ],
+    #     product=dict(name='lenacapavir', efficacy=0.999, cost_per_year=40_000),
+    #     supply=500,   # doses per year; gap-proportional allocation across groups
+    # )
+    # sim = ss.Sim(n_agents=2000, ..., interventions=prep, dt=1/12)
+    # sim.run()
+    # print('doses used:', prep.doses_used)
+    # print('total cost:', prep.total_cost)
+    pass
 
 
 # =============================================================================
-# V5 — Kenya lenacapavir CE: price threshold sweep (aspirational)
+# V5 — Kenya lenacapavir CE: price threshold sweep (NOTIMPLEMENTED)
 #
-# Research question: "At what cost per dose would Kenya be willing to pay
-# for lenacapavir PrEP?" — CEMA collaborator request.
+# Research question (CEMA collaborator): "At what cost per person-year would
+# Kenya be willing to pay for lenacapavir PrEP?"
+# Also: evaluate FSW-first vs. AGYW-first vs. combined targeting.
 #
-# Also: evaluate current rollout targeting (FSW first, then AGYW).
-#
-# Requires (not yet in stisim):
-#   - Product with cost tracking
-#   - Infections-averted analyzer (compared to no-PrEP baseline)
-#   - Total cost accumulator (doses used × cost per dose)
-#   - Kenya-calibrated HIV parameters (via hiv_kenya localization or pars)
+# Requires:
+#   - product= cost tracking (V3)
+#   - infections-averted relative to baseline (analyzer or post-hoc)
+#   - Kenya-calibrated parameters (hiv_kenya localization or manual pars)
 # =============================================================================
 
-def v5_kenya_ce_price_sweep():
+def v5_kenya_price_sweep():
     """
-    Price-threshold analysis: sweep lenacapavir cost per person-year.
-    Compare to oral PrEP baseline.
+    NOTIMPLEMENTED — sweep lenacapavir cost per person-year, compute ICER vs. oral PrEP.
+    Kenya WTP threshold: ~$1,000–2,000/DALY averted (rough estimate).
     """
-    hiv = sti.HIV()
-    net = sti.StructuredSexual()
-    
-    # Baseline: oral PrEP only
-    prep_oral = sti.Prep(
-        coverage=0.3,
-        product=dict(name='oral', efficacy=0.8, cost=50),
-        name='prep_oral'
-    )
-    baseline_sim = ss.Sim(n_agents=2000, diseases=hiv, networks=net,
-                          interventions=prep_oral, dt=1/12)
-    baseline_sim.run()
-    baseline_infections = baseline_sim.results.hiv.new_infections[:].sum()
-    baseline_results = getattr(baseline_sim.results, 'prep_oral', None)
-    baseline_cost = baseline_results.total_cost[-1] if baseline_results and 'total_cost' in baseline_results else 0.0
-    
-    # Price sweep: lenacapavir at different cost points
-    cost_range = [50, 200, 1_000, 5_000, 40_000]
-    results = []
-    
-    for cost in cost_range:
-        hiv2 = sti.HIV()
-        net2 = sti.StructuredSexual()
-        prep_lnc = sti.Prep(
-            coverage=0.3,
-            product=dict(name='lenacapavir', efficacy=0.999, cost=cost),
-            name='prep_lnc'
-        )
-        sim = ss.Sim(n_agents=2000, diseases=hiv2, networks=net2,
-                     interventions=prep_lnc, dt=1/12)
-        sim.run()
-        
-        infections = sim.results.hiv.new_infections[:].sum()
-        averted = baseline_infections - infections
-        lnc_results = getattr(sim.results, 'prep_lnc', None)
-        total_cost = lnc_results.total_cost[-1] if lnc_results and 'total_cost' in lnc_results else 0.0
-        cost_per_infection_averted = total_cost / averted if averted > 0 else np.inf
-        
-        results.append({
-            'cost_per_dose': cost,
-            'infections_averted': averted,
-            'total_prep_cost': total_cost,
-            'cost_per_averted': cost_per_infection_averted,
-        })
-    
-    return results
+    # costs_per_year = [50, 200, 500, 1_000, 5_000, 10_000, 40_000]
+    #
+    # # Baseline: oral PrEP at current coverage
+    # baseline = make_kenya_sim(interventions=[
+    #     sti.Prep(name='oral', coverage=0.3,
+    #              eligibility=..., product=dict(name='oral', efficacy=0.80, cost_per_year=50)),
+    # ])
+    # baseline.run()
+    #
+    # results = []
+    # for cost in costs_per_year:
+    #     sim = make_kenya_sim(interventions=[
+    #         sti.Prep(name='lnc', coverage=0.3,
+    #                  eligibility=...,
+    #                  product=dict(name='lenacapavir', efficacy=0.999, cost_per_year=cost)),
+    #     ])
+    #     sim.run()
+    #     averted = baseline.results.hiv.new_infections[:].sum() - sim.results.hiv.new_infections[:].sum()
+    #     incremental_cost = sim.results.lnc.total_cost[-1] - baseline.results.oral.total_cost[-1]
+    #     results.append(dict(cost=cost, averted=averted, icer=incremental_cost/averted))
+    #
+    # # Plot: ICER vs. cost/year; horizontal line at Kenya WTP threshold
+    pass
 
 
 def v5b_kenya_targeting_comparison():
     """
-    NOTIMPLEMENTED — compare targeting strategies for a fixed lenacapavir supply.
-    Same total doses; allocated to FSW-only vs. AGYW-only vs. FSW+AGYW vs. PBFW-only.
+    NOTIMPLEMENTED — fixed lenacapavir supply; compare targeting strategies.
+    Same total doses: FSW-only vs. AGYW-only vs. FSW+AGYW vs. PBFW-only.
     """
-    # target_strategies = {
-    #     'fsw_only':   [dict(label='fsw',  eligibility=fsw_elig,  coverage=0.8)],
-    #     'agyw_only':  [dict(label='agyw', eligibility=agyw_elig, coverage=0.4)],
-    #     'fsw_agyw':   [dict(label='fsw',  eligibility=fsw_elig,  coverage=0.5),
-    #                    dict(label='agyw', eligibility=agyw_elig, coverage=0.3)],
-    #     'pbfw_only':  [dict(label='pbfw', eligibility=pbfw_elig, coverage=0.6)],
+    # fsw_elig  = lambda sim: sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected
+    # agyw_elig = lambda sim: sim.people.female & ~sim.diseases.hiv.infected & (sim.people.age < 25)
+    # pbfw_elig = lambda sim: sim.demographics.pregnancy.pregnant & ~sim.diseases.hiv.infected
+    #
+    # strategies = {
+    #     'fsw_only':  [dict(label='fsw',  eligibility=fsw_elig,  coverage=0.8)],
+    #     'agyw_only': [dict(label='agyw', eligibility=agyw_elig, coverage=0.4)],
+    #     'fsw_agyw':  [dict(label='fsw',  eligibility=fsw_elig,  coverage=0.5),
+    #                   dict(label='agyw', eligibility=agyw_elig, coverage=0.3)],
+    #     'pbfw_only': [dict(label='pbfw', eligibility=pbfw_elig, coverage=0.6)],
     # }
-    # for label, groups in target_strategies.items():
-    #     prep = sti.Prep(groups=groups, product='lenacapavir', supply=10_000)
-    #     sim = make_kenya_sim(interventions=[art, vmmc, prep])
+    # for label, groups in strategies.items():
+    #     prep = sti.Prep(groups=groups, product='lenacapavir', supply=500)
+    #     sim  = make_kenya_sim(interventions=[prep])
     #     sim.run()
     pass
 
@@ -334,28 +311,10 @@ def v5b_kenya_targeting_comparison():
 
 if __name__ == '__main__':
     sc.heading('V1: simple FSW PrEP (runs today)')
-    v1_simple()
-    v1b_simple_with_eligibility()
+    v1_fsw()
+    v1b_agyw()
 
-    sc.heading('V2a: multi-group via multiple Prep instances (runs today)')
-    v2a_multigroup_multiple_instances()
+    sc.heading('V2a: multi-group via multiple instances (runs today)')
+    v2a_multigroup_instances()
 
-    sc.heading('V2b: multi-group via groups= API (runs today)')
-    v2b_multigroup_groups_api()
-
-    sc.heading('V3: Product-aware PrEP (simple API)')
-    v3a_product_simple_api()
-
-    sc.heading('V4: Supply-constrained multi-group allocation')
-    v4_supply_constrained()
-
-    sc.heading('V5: Kenya CE price-threshold analysis')
-    v5_results = v5_kenya_ce_price_sweep()
-    
-    sc.heading('V5 Results: Lenacapavir price sweep')
-    for r in v5_results:
-        print(f"  Cost/dose: ${r['cost_per_dose']:,} → averted {r['infections_averted']:.0f} infections, "
-              f"${r['cost_per_averted']:.0f}/averted")
-
-    sc.heading('V5b: Targeting comparison — not yet implemented')
-    # v5b_kenya_targeting_comparison()
+    sc.heading('V2b–V5: API sketches (NOTIMPLEMENTED — see comments)')
