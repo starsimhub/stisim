@@ -153,9 +153,11 @@ def v3a_product_simple_api():
     for prep in [prep_oral, prep_lnc]:
         sim = ss.Sim(n_agents=500, diseases=hiv, networks=net, interventions=prep, dt=1/12)
         sim.run()
+        prep_results = getattr(sim.results, prep.name, None)
+        total_cost = prep_results.total_cost[-1] if prep_results and 'total_cost' in prep_results else 0.0
         results.append(dict(
             product=prep._product.get('name', 'unknown'),
-            total_cost=prep._total_cost,
+            total_cost=total_cost,
             infections=sim.results.hiv.new_infections[:].sum(),
         ))
 
@@ -212,32 +214,31 @@ def v3b_product_clark_api():
 
 def v4_supply_constrained():
     """
-    NOTIMPLEMENTED — fixed annual supply of lenacapavir doses, split across FSW + AGYW.
-    Annual supply of 10,000 doses; allocated proportional to per-group coverage gap.
+    Supply-constrained allocation: fixed annual supply split gap-proportionally across groups.
     """
     hiv = sti.HIV()
     net = sti.StructuredSexual()
 
-    # Desired API (option A — groups= + supply= on Prep):
-    #   prep = sti.Prep(
-    #       groups=[
-    #           dict(label='fsw',  eligibility=..., coverage=0.6),
-    #           dict(label='agyw', eligibility=..., coverage=0.3),
-    #       ],
-    #       product=dict(name='lenacapavir', efficacy=0.999, cost=40_000),
-    #       supply=10_000,   # doses per year; allocated gap-proportionally
-    #   )
-
-    # Clark's API (option B — Supplies object):
-    #   supply  = Supply(quantity=10_000, product=product)
-    #   supplies = Supplies(supplies=[supply])
-    #   prep = SuppliedPrep(
-    #       name='lnc_combined',
-    #       eligibilities=[fsw_elig, agyw_elig],
-    #       coverages=[0.6, 0.3],
-    #       supplies=supplies,
-    #   )
-    pass
+    prep = sti.Prep(
+        groups=[
+            dict(
+                label='fsw',
+                eligibility=lambda sim: sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected,
+                coverage=0.6,
+            ),
+            dict(
+                label='agyw',
+                eligibility=lambda sim: sim.people.female & ~sim.diseases.hiv.infected & (sim.people.age < 25),
+                coverage=0.3,
+            ),
+        ],
+        product=dict(name='lenacapavir', efficacy=0.999, cost=40_000),
+        supply=500,  # doses per year; allocated gap-proportionally
+    )
+    
+    sim = ss.Sim(n_agents=2000, diseases=hiv, networks=net, interventions=prep, dt=1/12)
+    sim.run()
+    return sim
 
 
 # =============================================================================
@@ -257,34 +258,54 @@ def v4_supply_constrained():
 
 def v5_kenya_ce_price_sweep():
     """
-    NOTIMPLEMENTED — price threshold analysis for lenacapavir in Kenya.
-    Sweep cost per person-year; compute ICER against oral PrEP baseline.
+    Price-threshold analysis: sweep lenacapavir cost per person-year.
+    Compare to oral PrEP baseline.
     """
-    # Kenya WTP threshold: ~$1,000–2,000/DALY (rough estimate)
-    costs_per_year = [50, 200, 500, 1_000, 5_000, 10_000, 40_000]
-
-    # Baseline: no PrEP (or oral PrEP at current coverage)
-    # baseline_sim = make_kenya_sim(interventions=[art, vmmc])
-
+    hiv = sti.HIV()
+    net = sti.StructuredSexual()
+    
+    # Baseline: oral PrEP only
+    prep_oral = sti.Prep(
+        coverage=0.3,
+        product=dict(name='oral', efficacy=0.8, cost=50),
+        name='prep_oral'
+    )
+    baseline_sim = ss.Sim(n_agents=2000, diseases=hiv, networks=net,
+                          interventions=prep_oral, dt=1/12)
+    baseline_sim.run()
+    baseline_infections = baseline_sim.results.hiv.new_infections[:].sum()
+    baseline_results = getattr(baseline_sim.results, 'prep_oral', None)
+    baseline_cost = baseline_results.total_cost[-1] if baseline_results and 'total_cost' in baseline_results else 0.0
+    
+    # Price sweep: lenacapavir at different cost points
+    cost_range = [50, 200, 1_000, 5_000, 40_000]
     results = []
-    for cost in costs_per_year:
-        # prep = sti.Prep(
-        #     coverage=0.5,
-        #     product=dict(name='lenacapavir', efficacy=0.999, cost=cost),
-        #     eligibility=lambda sim: sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected,
-        # )
-        # sim = make_kenya_sim(interventions=[art, vmmc, prep])
-        # sim.run()
-        # results.append(sc.objdict(
-        #     cost=cost,
-        #     infections_averted=baseline_infections - sim.results.hiv.new_infections[:].sum(),
-        #     total_cost=prep.total_cost,   # NOTIMPLEMENTED: cost accumulator
-        #     icer=...,
-        # ))
-        pass
-
-    # Plot: ICER vs. cost per year; mark Kenya WTP threshold
-    # sc.plot(...)
+    
+    for cost in cost_range:
+        hiv2 = sti.HIV()
+        net2 = sti.StructuredSexual()
+        prep_lnc = sti.Prep(
+            coverage=0.3,
+            product=dict(name='lenacapavir', efficacy=0.999, cost=cost),
+            name='prep_lnc'
+        )
+        sim = ss.Sim(n_agents=2000, diseases=hiv2, networks=net2,
+                     interventions=prep_lnc, dt=1/12)
+        sim.run()
+        
+        infections = sim.results.hiv.new_infections[:].sum()
+        averted = baseline_infections - infections
+        lnc_results = getattr(sim.results, 'prep_lnc', None)
+        total_cost = lnc_results.total_cost[-1] if lnc_results and 'total_cost' in lnc_results else 0.0
+        cost_per_infection_averted = total_cost / averted if averted > 0 else np.inf
+        
+        results.append({
+            'cost_per_dose': cost,
+            'infections_averted': averted,
+            'total_prep_cost': total_cost,
+            'cost_per_averted': cost_per_infection_averted,
+        })
+    
     return results
 
 
@@ -325,8 +346,16 @@ if __name__ == '__main__':
     sc.heading('V3: Product-aware PrEP (simple API)')
     v3a_product_simple_api()
 
-    sc.heading('V4–V5: API sketches — not yet implemented')
-    # v3b_product_clark_api()
-    # v4_supply_constrained()
-    # v5_kenya_ce_price_sweep()
+    sc.heading('V4: Supply-constrained multi-group allocation')
+    v4_supply_constrained()
+
+    sc.heading('V5: Kenya CE price-threshold analysis')
+    v5_results = v5_kenya_ce_price_sweep()
+    
+    sc.heading('V5 Results: Lenacapavir price sweep')
+    for r in v5_results:
+        print(f"  Cost/dose: ${r['cost_per_dose']:,} → averted {r['infections_averted']:.0f} infections, "
+              f"${r['cost_per_averted']:.0f}/averted")
+
+    sc.heading('V5b: Targeting comparison — not yet implemented')
     # v5b_kenya_targeting_comparison()
