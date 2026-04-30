@@ -1,10 +1,10 @@
-Based on the context and your memory, I can see three active projects competing for priority. You've marked **anc_sti_screening** as "current focus" in your memory and the syph_dx_zim v22 calibration is still running on VMs.
+Perfect. The previous session left a clear question waiting for your direction on which project to prioritize. Let me confirm your choice so I can update the context and begin work.
 
-**What's your priority call?** I need your direction to orient the session properly:
+**Which project should we focus on?**
 
-1. **PROMISE VoI (anc_sti_screening)** — Continue the Zimbabwe trial work
-2. **PrEP vignettes closure (stisim)** — Wrap up documentation and prepare for merge
-3. **Syphilis manuscript (syph_dx_zim)** — Wait for v22 calibration, then revisions
+1. **PrEP vignettes (stisim)** — Finalize documentation and prepare for merge
+2. **PROMISE VoI (anc_sti_screening)** — Zimbabwe trial calibration work
+3. **Syphilis manuscript (syph_dx_zim)** — Revisions or calibration support
 4. **Something else**
 
-Once you decide, I'll update CLAUDE.md, commit, and focus there.
+Once you tell me, I'll update CLAUDE.md and start.
