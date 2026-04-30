@@ -1,3 +1,3 @@
-The previous session ended cleanly with no new insights to add to CLAUDE.md. Memory is current and well-organized.
+SKIP
 
-**SKIP**
+The memory files document the active state clearly. The session ending context shows the stisim `feat/431-prep-vignettes` branch is complete (v1–v5 all working), and priority has shifted to anc_sti_screening (PROMISE VoI). No new gotchas, patterns, or blockers to record.
