@@ -1,3 +1,3 @@
-The session notes confirm that the stisim work is complete and well-documented. The memory files already capture the key patterns, gotchas, and architectural insights. No new learnings emerged that need to be added to CLAUDE.md.
+The current CLAUDE.md is asking what to work on. Since there are uncommitted changes and the file says "SKIP" at the end, it seems the previous session ended without learning new gotchas or patterns that needed documenting.
 
 **SKIP**
