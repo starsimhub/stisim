@@ -450,20 +450,22 @@ class Prep(ss.Intervention):
         eff_prep:    efficacy (default 0.8 = 80% reduction in acquisition)
         smoothness:  interpolation smoothness (0=linear, default)
         eligibility: function to override default FSW targeting
+        name:        unique identifier for this intervention (optional)
 
     Examples::
 
         prep = sti.Prep(coverage={'year': [2020, 2025], 'value': [0, 0.5]})
         prep = sti.Prep(coverage=0.3)
+        prep_fsw = sti.Prep(coverage=0.6, name='prep_fsw')
+        prep_agyw = sti.Prep(coverage=0.3, name='prep_agyw')
     """
     def __init__(self, pars=None, coverage=None, eligibility=None, smoothness=0, **kwargs):
-        super().__init__()
+        super().__init__(eligibility=eligibility, **kwargs)
         self.define_pars(
             coverage_dist=ss.bernoulli(p=0),
             eff_prep=0.8,
         )
         self.update_pars(pars, **kwargs)
-        self.eligibility = eligibility
         self._smoothness = smoothness
         self._coverage_arr = None  # Set in init_pre
 
@@ -492,9 +494,14 @@ class Prep(ss.Intervention):
         cov_val = self._coverage_arr[self.ti]
         if cov_val > 0:
             self.pars.coverage_dist.set(p=cov_val)
-            el_fsw = sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected & ~self.on_prep
-            fsw_on_prep = self.pars.coverage_dist.filter(el_fsw)
-            sim.diseases.hiv.rel_sus[fsw_on_prep] *= 1 - self.pars.eff_prep
+            # Use eligibility function if set; otherwise default to FSW
+            if self.eligibility is not None:
+                eligible = self.eligibility(sim) & ~self.on_prep
+            else:
+                eligible = sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected & ~self.on_prep
+            prep_uids = self.pars.coverage_dist.filter(eligible)
+            sim.diseases.hiv.rel_sus[prep_uids] *= 1 - self.pars.eff_prep
+            self.on_prep[prep_uids] = True
 
         return
 
