@@ -1,0 +1,250 @@
+project:
+  type: website
+  pre-render: python quarto_utils.py pre
+  post-render: python quarto_utils.py post
+  output-dir: _site
+  title: "STIsim"
+  execute-dir: file
+  resources:
+    - objects.json
+    - objects.inv
+
+website:
+  title: "STIsim"
+  image: /assets/starsim-logo.png
+  favicon: /assets/favicon.ico
+  google-analytics: "GTM-NK4K647"
+
+  repo-url: https://github.com/starsimhub/stisim
+  repo-actions: [issue]
+  page-navigation: true
+  search:
+    type: overlay
+
+  page-footer:
+    center: "Docs built for STIsim v{{< var version >}} ({{< var versiondate >}}).<br>© 2024–2026, Gates Foundation. All rights reserved. [Privacy and Cookies Notice](https://www.gatesfoundation.org/Privacy-and-Cookies-Notice) | [Terms of Use](https://www.gatesfoundation.org/Terms-of-Use)"
+    right:
+      - icon: github
+        href: https://github.com/starsimhub/stisim
+        aria-label: GitHub
+      - icon: envelope-at-fill
+        href: mailto:info@starsim.org
+      - icon: slack
+        href: https://starsim-idm.slack.com
+      - icon: globe
+        href: https://starsim.org/
+
+  navbar:
+    logo: /assets/starsim-logo.png
+    title: false
+    collapse-below: lg
+
+    tools:
+      - icon: github
+        href: https://github.com/starsimhub/stisim
+      - icon: envelope-at-fill
+        href: mailto:info@starsim.org
+      - icon: slack
+        href: https://starsim-idm.slack.com
+      - icon: globe
+        href: https://starsim.org
+
+    left:
+      - href: index.md
+        text: Home
+      - href: whatsnew.md
+        text: What's new
+      - href: tutorials/index.md
+        text: Tutorials
+      - href: user_guide/index.md
+        text: User guide
+      - href: examples/index.md
+        text: Examples
+      - href: code_of_conduct.md
+        text: Code of conduct
+      - href: contributing.md
+        text: Contributing
+      - href: api/index.qmd
+        text: API reference
+
+  sidebar:
+    - id: main
+      collapse-level: 3
+      contents:
+        - href: index.md
+          text: "**Home**"
+        - href: whatsnew.md
+          text: "**What's new**"
+        - href: api/index.qmd
+          text: "**API reference**"
+        - section: "**Tutorials**"
+          contents:
+            - href: tutorials/index.md
+              text: "Overview"
+            - tutorials/tut_intro.ipynb
+            - tutorials/tut_cotransmission.ipynb
+            - tutorials/tut_results.ipynb
+            - tutorials/tut_interventions.ipynb
+            - tutorials/tut_calibration.ipynb
+        - section: "**User guide**"
+          contents:
+            - href: user_guide/index.md
+              text: "Overview"
+            - section: "Diseases"
+              contents:
+                - href: user_guide/diseases/index.md
+                  text: "Overview"
+                - user_guide/diseases/hiv.md
+                - user_guide/diseases/syphilis.md
+                - user_guide/diseases/chlamydia.md
+                - user_guide/diseases/gonorrhea.md
+                - user_guide/diseases/trichomoniasis.md
+                - user_guide/diseases/bv.md
+                - user_guide/diseases/gud.md
+            - section: "Networks"
+              contents:
+                - user_guide/networks/structured_sexual.md
+                - user_guide/networks/msm.md
+            - section: "Interventions"
+              contents:
+                - user_guide/interventions/interventions.md
+            - user_guide/connectors.md
+            - user_guide/calibration.md
+            - user_guide/hivsim.md
+        - section: "**Examples**"
+          contents:
+            - href: examples/index.md
+              text: "Overview"
+            - examples/art_interruptions.ipynb
+        - href: code_of_conduct.md
+          text: "**Code of conduct**"
+        - href: contributing.md
+          text: "**Contributing**"
+    - id: api
+      collapse-level: 2
+      contents:
+        - href: index.md
+          text: "**Home**"
+        - href: api/index.qmd
+          text: "**API reference**"
+        - section: "**Core**"
+          contents:
+            - api/sim.qmd
+            - api/parameters.qmd
+            - api/networks.qmd
+            - api/demographics.qmd
+            - api/analyzers.qmd
+            - api/calibration.qmd
+            - api/care_seeking.qmd
+            - api/utils.qmd
+        - section: "**Diseases**"
+          contents:
+            - api/diseases.sti.qmd
+            - api/diseases.hiv.qmd
+            - api/diseases.syphilis.qmd
+            - api/diseases.chlamydia.qmd
+            - api/diseases.gonorrhea.qmd
+            - api/diseases.trichomoniasis.qmd
+            - api/diseases.bv.qmd
+            - api/diseases.gud.qmd
+        - section: "**Interventions**"
+          contents:
+            - api/interventions.base_interventions.qmd
+            - api/interventions.bv_interventions.qmd
+            - api/interventions.gonorrhea_interventions.qmd
+            - api/interventions.hiv_interventions.qmd
+            - api/interventions.syphilis_interventions.qmd
+        - section: "**Connectors**"
+          contents:
+            - api/connectors.hiv_sti.qmd
+            - api/connectors.gud_syph.qmd
+
+format:
+  html:
+    theme:
+      light: [cosmo, ./assets/styles-light.scss]
+      dark: [cosmo, ./assets/styles-dark.scss]
+    css: ./assets/styles.css
+    toc: true
+    toc-depth: 3
+    highlight-style: github
+
+filters:
+  - interlinks
+
+interlinks:
+  fast: false
+  sources:
+    python:
+      url: https://docs.python.org/3/
+    numpy:
+      url: https://numpy.org/doc/stable/
+    pandas:
+      url: https://pandas.pydata.org/pandas-docs/stable/
+    scipy:
+      url: https://docs.scipy.org/doc/scipy/
+    matplotlib:
+      url: https://matplotlib.org/stable/
+    sciris:
+      url: https://docs.sciris.org/en/latest/
+    starsim:
+      url: https://docs.starsim.org/
+  autolink: true
+  aliases:
+    numpy: [np]
+    pandas: [pd]
+    matplotlib: [plt]
+    sciris: [sc]
+    starsim: [ss]
+    stisim: [sti]
+
+quartodoc:
+  package: stisim
+  title: API reference
+  style: pkgdown
+  dir: api
+  parser: google
+  render_interlinks: true
+  sections:
+    - title: Core
+      desc: Core simulation classes and utilities.
+      contents:
+        - sim
+        - parameters
+        - networks
+        - demographics
+        - analyzers
+        - calibration
+        - care_seeking
+        - utils
+    - title: Diseases
+      desc: STI disease modules.
+      contents:
+        - diseases.sti
+        - diseases.hiv
+        - diseases.syphilis
+        - diseases.chlamydia
+        - diseases.gonorrhea
+        - diseases.trichomoniasis
+        - diseases.bv
+        - diseases.gud
+    - title: Interventions
+      desc: Testing, treatment, and prevention.
+      contents:
+        - interventions.base_interventions
+        - interventions.bv_interventions
+        - interventions.gonorrhea_interventions
+        - interventions.hiv_interventions
+        - interventions.syphilis_interventions
+    - title: Connectors
+      desc: Coinfection interactions.
+      contents:
+        - connectors.hiv_sti
+        - connectors.gud_syph
+
+execute:
+  freeze: auto
+  cache: true
+  error: false
+  echo: true
+  warning: true
