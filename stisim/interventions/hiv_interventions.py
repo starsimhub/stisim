@@ -459,7 +459,7 @@ class Prep(ss.Intervention):
         prep_fsw = sti.Prep(coverage=0.6, name='prep_fsw')
         prep_agyw = sti.Prep(coverage=0.3, name='prep_agyw')
     """
-    def __init__(self, pars=None, coverage=None, eligibility=None, groups=None, smoothness=0, **kwargs):
+    def __init__(self, pars=None, coverage=None, eligibility=None, groups=None, product=None, smoothness=0, **kwargs):
         super().__init__(eligibility=eligibility, **kwargs)
         self.define_pars(
             coverage_dist=ss.bernoulli(p=0),
@@ -470,6 +470,14 @@ class Prep(ss.Intervention):
         self._coverage_arr = None  # Set in init_pre
         self._groups = groups or []  # List of dicts with {label, eligibility, coverage}
         self._coverage_arrs = {}  # Per-group coverage arrays, set in init_pre
+        
+        # Product support: dict with {name, efficacy, cost, ...}
+        self._product = product or {}
+        if self._product:
+            # Override eff_prep with product efficacy if specified
+            if 'efficacy' in self._product:
+                self.pars.eff_prep = self._product['efficacy']
+        self._total_cost = 0.0  # Accumulate cost over simulation
 
         # If groups= is provided, use multi-group mode; otherwise single-group
         if self._groups:
@@ -508,6 +516,14 @@ class Prep(ss.Intervention):
             )
         return
 
+    def init_results(self):
+        super().init_results()
+        self.define_results(
+            ss.Result('n_on_prep', dtype=int, label='Number on PrEP', auto_plot=True),
+            ss.Result('total_cost', dtype=float, label='Total PrEP cost', auto_plot=False),
+        )
+        return
+
     def step(self):
         sim = self.sim
         
@@ -540,7 +556,17 @@ class Prep(ss.Intervention):
                 prep_uids = self.pars.coverage_dist.filter(eligible)
                 sim.diseases.hiv.rel_sus[prep_uids] *= 1 - self.pars.eff_prep
                 self.on_prep[prep_uids] = True
+                
+                # Track cost if product is specified
+                if self._product and 'cost' in self._product:
+                    cost_per_person = self._product['cost']
+                    self._total_cost += len(prep_uids) * cost_per_person
 
+        # Record results
+        if hasattr(self, 'results'):
+            self.results['n_on_prep'][self.ti] = np.sum(self.on_prep)
+            self.results['total_cost'][self.ti] = self._total_cost
+        
         return
 
 
