@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/robynstuart/gf/maternal_infant_dyad/**)",
+      "Read(//tmp/starsim_ai_pr23/plugins/starsim/skills/starsim-dev-demographics/**)",
+      "Read(//private/tmp/starsim_ai_pr23/plugins/starsim/skills/starsim-dev-demographics/**)",
+      "Read(//tmp/starsim_ai_pr23/plugins/starsim/skills/starsim-dev-sim/**)",
+      "Read(//private/tmp/starsim_ai_pr23/plugins/starsim/skills/starsim-dev-sim/**)",
+      "Read(//tmp/starsim_ai_pr23/plugins/starsim/skills/starsim-style-tests/**)",
+      "Read(//private/tmp/starsim_ai_pr23/plugins/starsim/skills/starsim-style-tests/**)",
+      "Read(//Users/robynstuart/gf/hpv_faster_kenya/**)",
+      "Read(//Users/robynstuart/.claude/plugins/marketplaces/starsim-marketplace/**)",
+      "Read(//Users/robynstuart/gf/starsim_ai/internal/**)",
+      "Read(//Users/robynstuart/gf/starsim_ai/docs/**)",
+      "Read(//Users/robynstuart/.claude/plugins/cache/**)"
+    ],
+    "additionalDirectories": [
+      "/Users/robynstuart/gf/anc_sti_screening",
+      "/Users/robynstuart/gf/maternal_infant_dyad/tests",
+      "/tmp/starsim_ai_pr23/plugins/starsim/skills/starsim-dev-sim",
+      "/private/tmp/starsim_ai_pr23/plugins/starsim/skills/starsim-dev-sim",
+      "/tmp/starsim_ai_pr23/plugins/starsim/skills/starsim-style-tests",
+      "/private/tmp/starsim_ai_pr23/plugins/starsim/skills/starsim-style-tests",
+      "/tmp/starsim_ai_pr23/plugins/starsim/skills/starsim-dev-indexing",
+      "/private/tmp/starsim_ai_pr23/plugins/starsim/skills/starsim-dev-indexing"
+    ]
+  }
+}

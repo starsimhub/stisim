@@ -1,0 +1,79 @@
+Project,Priority,Lead,Deliver By,Pathogens,Feature Category,Module,Status,Notes
+P1.1 Syph Dx Zimbabwe,1,Robyn Stuart,COMPLETED Q1 2026,HIV+Syphilis,Diseases,HIV,CORE,
+P1.1 Syph Dx Zimbabwe,1,Robyn Stuart,COMPLETED Q1 2026,HIV+Syphilis,Diseases,Syphilis (multi-stage),CORE,
+P1.1 Syph Dx Zimbabwe,1,Robyn Stuart,COMPLETED Q1 2026,HIV+Syphilis,Diseases,GUD placeholder,CORE,
+P1.1 Syph Dx Zimbabwe,1,Robyn Stuart,COMPLETED Q1 2026,HIV+Syphilis,Networks,StructuredSexual,CORE,
+P1.1 Syph Dx Zimbabwe,1,Robyn Stuart,COMPLETED Q1 2026,HIV+Syphilis,Networks,MaternalNet,STARSIM,
+P1.1 Syph Dx Zimbabwe,1,Robyn Stuart,COMPLETED Q1 2026,HIV+Syphilis,Connectors,hiv_syph,CORE,
+P1.1 Syph Dx Zimbabwe,1,Robyn Stuart,COMPLETED Q1 2026,HIV+Syphilis,Interventions,ART,CORE,
+P1.1 Syph Dx Zimbabwe,1,Robyn Stuart,COMPLETED Q1 2026,HIV+Syphilis,Interventions,VMMC,CORE,
+P1.1 Syph Dx Zimbabwe,1,Robyn Stuart,COMPLETED Q1 2026,HIV+Syphilis,Interventions,PrEP (basic),CORE,
+P1.1 Syph Dx Zimbabwe,1,Robyn Stuart,COMPLETED Q1 2026,HIV+Syphilis,Interventions,HIVTest (FSW + general + low-CD4),CORE,
+P1.1 Syph Dx Zimbabwe,1,Robyn Stuart,COMPLETED Q1 2026,HIV+Syphilis,Interventions,"SyphTest, SyphDx, ProductMix, ANCSyphTest",CORE,
+P1.1 Syph Dx Zimbabwe,1,Robyn Stuart,COMPLETED Q1 2026,HIV+Syphilis,Analyzers,"coinfection_stats, sw_stats, partner_age_diff",CORE,
+P1.1 Syph Dx Zimbabwe,1,Robyn Stuart,COMPLETED Q1 2026,HIV+Syphilis,Calibration,Optuna (weighted likelihoods + survival filtering),CORE,
+P1.1 Syph Dx Zimbabwe,1,Robyn Stuart,COMPLETED Q1 2026,HIV+Syphilis,Custom,DALY analyzers (incidence + hybrid),PROJECT,Candidate for upstream
+P1.1 Syph Dx Zimbabwe,1,Robyn Stuart,COMPLETED Q1 2026,HIV+Syphilis,Custom,Treatment pathway attribution,PROJECT,
+P1.1 Syph Dx Zimbabwe,1,Robyn Stuart,COMPLETED Q1 2026,HIV+Syphilis,Custom,Transmission-by-stage accounting,PROJECT,
+P1.1 Syph Dx Zimbabwe,1,Robyn Stuart,COMPLETED Q1 2026,HIV+Syphilis,Custom,DualTest (HIV/syphilis cascade),PROJECT,
+P1.1 Syph Dx Zimbabwe,1,Robyn Stuart,COMPLETED Q1 2026,HIV+Syphilis,Custom,Pregnancy risk reduction,PROJECT,
+P1.2 POC Diagnostics/GBV,1,Robyn Stuart + LSHTM,End Q2 2026,NG+CT+TV+Syphilis,Diseases,HIV,CORE,
+P1.2 POC Diagnostics/GBV,1,Robyn Stuart + LSHTM,End Q2 2026,NG+CT+TV+Syphilis,Diseases,Gonorrhea (NG),CORE,
+P1.2 POC Diagnostics/GBV,1,Robyn Stuart + LSHTM,End Q2 2026,NG+CT+TV+Syphilis,Diseases,Chlamydia (CT),CORE,
+P1.2 POC Diagnostics/GBV,1,Robyn Stuart + LSHTM,End Q2 2026,NG+CT+TV+Syphilis,Diseases,Trichomoniasis (TV),CORE,
+P1.2 POC Diagnostics/GBV,1,Robyn Stuart + LSHTM,End Q2 2026,NG+CT+TV+Syphilis,Diseases,SimpleBV,CORE,
+P1.2 POC Diagnostics/GBV,1,Robyn Stuart + LSHTM,End Q2 2026,NG+CT+TV+Syphilis,Networks,StructuredSexual,CORE,
+P1.2 POC Diagnostics/GBV,1,Robyn Stuart + LSHTM,End Q2 2026,NG+CT+TV+Syphilis,Networks,MaternalNet,STARSIM,
+P1.2 POC Diagnostics/GBV,1,Robyn Stuart + LSHTM,End Q2 2026,NG+CT+TV+Syphilis,Connectors,"hiv_ng, hiv_ct, hiv_tv",CORE,
+P1.2 POC Diagnostics/GBV,1,Robyn Stuart + LSHTM,End Q2 2026,NG+CT+TV+Syphilis,Interventions,"HIVTest, ART, VMMC, PrEP",CORE,
+P1.2 POC Diagnostics/GBV,1,Robyn Stuart + LSHTM,End Q2 2026,NG+CT+TV+Syphilis,Interventions,SymptomaticTesting (POC),CORE,
+P1.2 POC Diagnostics/GBV,1,Robyn Stuart + LSHTM,End Q2 2026,NG+CT+TV+Syphilis,Interventions,"GonorrheaTreatment, STITreatment",CORE,
+P1.2 POC Diagnostics/GBV,1,Robyn Stuart + LSHTM,End Q2 2026,NG+CT+TV+Syphilis,Interventions,PartnerNotification,CORE,
+P1.2 POC Diagnostics/GBV,1,Robyn Stuart + LSHTM,End Q2 2026,NG+CT+TV+Syphilis,Interventions,SyndromicMgmt,PROJECT,Needs upstream (#345)
+P1.2 POC Diagnostics/GBV,1,Robyn Stuart + LSHTM,End Q2 2026,NG+CT+TV+Syphilis,Analyzers,"sw_stats, NetworkDegree, RelationshipDurations, DebutAge, partner_age_diff",CORE,
+P1.2 POC Diagnostics/GBV,1,Robyn Stuart + LSHTM,End Q2 2026,NG+CT+TV+Syphilis,Calibration,Optuna,CORE,
+P1.2 POC Diagnostics/GBV,1,Robyn Stuart + LSHTM,End Q2 2026,NG+CT+TV+Syphilis,NEW NEEDED,GBV linkage modeling,MISSING,Unnecessary PN -> GBV risk
+P1.3 Uganda HIV Prevention,1,Adam Akullian,Q3 2026 (intermediary),HIV+STIs,Diseases,"HIV, Syphilis, NG, CT, TV (subset TBD)",CORE,
+P1.3 Uganda HIV Prevention,1,Adam Akullian,Q3 2026 (intermediary),HIV+STIs,Networks,StructuredSexual,CORE,
+P1.3 Uganda HIV Prevention,1,Adam Akullian,Q3 2026 (intermediary),HIV+STIs,Networks,PriorPartners (contact tracing),CORE,
+P1.3 Uganda HIV Prevention,1,Adam Akullian,Q3 2026 (intermediary),HIV+STIs,Networks,MaternalNet,STARSIM,
+P1.3 Uganda HIV Prevention,1,Adam Akullian,Q3 2026 (intermediary),HIV+STIs,Connectors,"hiv_syph, hiv_ng, hiv_ct, hiv_tv",CORE,
+P1.3 Uganda HIV Prevention,1,Adam Akullian,Q3 2026 (intermediary),HIV+STIs,Interventions,"HIVTest, ART, VMMC",CORE,
+P1.3 Uganda HIV Prevention,1,Adam Akullian,Q3 2026 (intermediary),HIV+STIs,Interventions,"STITest, SymptomaticTesting, STITreatment",CORE,
+P1.3 Uganda HIV Prevention,1,Adam Akullian,Q3 2026 (intermediary),HIV+STIs,Interventions,PartnerNotification,CORE,
+P1.3 Uganda HIV Prevention,1,Adam Akullian,Q3 2026 (intermediary),HIV+STIs,Interventions,PrEP (flexible targeting + cascade + adherence),NEEDS WORK,#329-#331
+P1.3 Uganda HIV Prevention,1,Adam Akullian,Q3 2026 (intermediary),HIV+STIs,Interventions,Cross-intervention referral (STI+ -> HIV test -> PrEP),EXISTS,Via eligibility patterns
+P1.3 Uganda HIV Prevention,1,Adam Akullian,Q3 2026 (intermediary),HIV+STIs,Analyzers,"sw_stats, coinfection_stats",CORE,
+P1.3 Uganda HIV Prevention,1,Adam Akullian,Q3 2026 (intermediary),HIV+STIs,MTCT,"ANC HIV testing, breastfeeding Tx, PMTCT",NEEDS WORK,Milestone 18
+P1.3 Uganda HIV Prevention,1,Adam Akullian,Q3 2026 (intermediary),HIV+STIs,Calibration,Optuna,CORE,
+P1.4 ANC STI Screening/VOI,1,Robyn Stuart,Q3 2026,NG+CT+TV+BV+HIV,Diseases,"HIV, NG, CT, TV, BV",CORE,
+P1.4 ANC STI Screening/VOI,1,Robyn Stuart,Q3 2026,NG+CT+TV+BV+HIV,Networks,"StructuredSexual, MaternalNet",CORE/STARSIM,
+P1.4 ANC STI Screening/VOI,1,Robyn Stuart,Q3 2026,NG+CT+TV+BV+HIV,Connectors,"hiv_ng, hiv_ct, hiv_tv, hiv_simplebv",CORE,
+P1.4 ANC STI Screening/VOI,1,Robyn Stuart,Q3 2026,NG+CT+TV+BV+HIV,Interventions,"HIVTest, ART",CORE,
+P1.4 ANC STI Screening/VOI,1,Robyn Stuart,Q3 2026,NG+CT+TV+BV+HIV,Interventions,SyndromicMgmt,PROJECT,Needs upstream (#345)
+P1.4 ANC STI Screening/VOI,1,Robyn Stuart,Q3 2026,NG+CT+TV+BV+HIV,Interventions,ANCScreen (GA-windowed),PROJECT,Needs upstream
+P1.4 ANC STI Screening/VOI,1,Robyn Stuart,Q3 2026,NG+CT+TV+BV+HIV,Interventions,STIPartnerNotification (ANC-linked),PROJECT,Needs upstream
+P1.4 ANC STI Screening/VOI,1,Robyn Stuart,Q3 2026,NG+CT+TV+BV+HIV,Interventions,"GonorrheaTreatment, STITreatment",CORE,
+P1.4 ANC STI Screening/VOI,1,Robyn Stuart,Q3 2026,NG+CT+TV+BV+HIV,Connectors,sti_fetal (disease -> fetal health),PROJECT,Needs upstream
+P1.4 ANC STI Screening/VOI,1,Robyn Stuart,Q3 2026,NG+CT+TV+BV+HIV,Analyzers,"birth_outcome_dalys, intervention_costs",PROJECT,Needs upstream
+P1.4 ANC STI Screening/VOI,1,Robyn Stuart,Q3 2026,NG+CT+TV+BV+HIV,VOI Pipeline,"Paired CRN sims, NMB, EVPI/EVPPI",PROJECT,Needs upstream
+P1.4 ANC STI Screening/VOI,1,Robyn Stuart,Q3 2026,NG+CT+TV+BV+HIV,Calibration,Optuna (15 epi params),CORE,
+P1.5 HIVsim Eswatini,1,Daniel Citron,Q1 2027,HIV,Diseases,HIV (CD4 + ART states),CORE,
+P1.5 HIVsim Eswatini,1,Daniel Citron,Q1 2027,HIV,Networks,"StructuredSexual, MaternalNet",CORE/STARSIM,
+P1.5 HIVsim Eswatini,1,Daniel Citron,Q1 2027,HIV,Interventions,"HIVTest (FSW + general + low-CD4), ART, VMMC",CORE,
+P1.5 HIVsim Eswatini,1,Daniel Citron,Q1 2027,HIV,Interventions,PrEP (flexible targeting + LAI + cascade),NEEDS WORK,#329-#334
+P1.5 HIVsim Eswatini,1,Daniel Citron,Q1 2027,HIV,Analyzers,hiv_epi (UNAIDS/PHIA binning),PROJECT,
+P1.5 HIVsim Eswatini,1,Daniel Citron,Q1 2027,HIV,Analyzers,NetworkSnapshot,PROJECT,
+P1.5 HIVsim Eswatini,1,Daniel Citron,Q1 2027,HIV,Analyzers,sw_stats,CORE,
+P1.5 HIVsim Eswatini,1,Daniel Citron,Q1 2027,HIV,MTCT,"Breastfeeding Tx, ANC HIV testing, PMTCT",NEEDS WORK,Milestone 18
+P1.5 HIVsim Eswatini,1,Daniel Citron,Q1 2027,HIV,Location,Sim(location='eswatini'),PARTIAL,#150
+P1.5 HIVsim Eswatini,1,Daniel Citron,Q1 2027,HIV,Calibration,Optuna (6 params),CORE,
+P1.5 HIVsim Eswatini,1,Daniel Citron,Q1 2027,HIV,Demographics,"Eswatini age dist, ASFR, deaths, migration",CORE,
+P1.6 DoxyPEP,1,Emilia,Q4 2026,"NG+CT+Syphilis+HIV",Diseases,"NG, CT, Syphilis, HIV",CORE,
+P1.6 DoxyPEP,1,Emilia,Q4 2026,"NG+CT+Syphilis+HIV",Networks,StructuredSexual,CORE,
+P1.6 DoxyPEP,1,Emilia,Q4 2026,"NG+CT+Syphilis+HIV",Connectors,"hiv_ng, hiv_ct, hiv_syph",CORE,
+P1.6 DoxyPEP,1,Emilia,Q4 2026,"NG+CT+Syphilis+HIV",Interventions,DoxyPEP (post-exposure doxycycline),MISSING,New class needed
+P1.6 DoxyPEP,1,Emilia,Q4 2026,"NG+CT+Syphilis+HIV",Interventions,GonorrheaTreatment (AMR tracking),CORE,
+P1.6 DoxyPEP,1,Emilia,Q4 2026,"NG+CT+Syphilis+HIV",Interventions,"STITreatment, STITest",CORE,
+P1.6 DoxyPEP,1,Emilia,Q4 2026,"NG+CT+Syphilis+HIV",AMR,Generalized AMR framework,NEEDS WORK,Currently NG-only
+P1.6 DoxyPEP,1,Emilia,Q4 2026,"NG+CT+Syphilis+HIV",Calibration,Optuna,CORE,
