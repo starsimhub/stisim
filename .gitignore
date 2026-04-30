@@ -1,13 +1,16 @@
 # Quarto
 _site/
 .quarto/
-_freeze/
-docs/api/*.qmd
-!docs/api/index.qmd
+docs/_extensions/
+docs/_freeze/
+docs/_inv/
+docs/_site/
+docs/api/
 docs/objects.json
 docs/objects.inv
 
-supervisord.log
+# Claude
+.claude/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
