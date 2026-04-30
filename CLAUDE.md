@@ -1,8 +1,12 @@
-Got it. The CLAUDE.md file contains placeholder text left from the previous session asking "what's next?" — no actual updates to apply. Memory is current and comprehensive.
+I see the CLAUDE.md is asking for **your priority decision**. Based on your memory and the context:
 
-**Current state:**
-- On `feat/431-prep-vignettes` with PrEP vignettes work complete (V1–V5)
-- Three active projects: **anc_sti_screening** (current focus), syph_dx_zim, stisim
-- Uncommitted CLAUDE.md changes are just the placeholder; no substance to commit
+**Three active projects are pending:**
 
-**What would you like to do next?**
+1. **anc_sti_screening** — PROMISE trial VoI (Zimbabwe, marked "current focus" in your memory)
+2. **stisim PrEP vignettes** — Documentation closure for V1–V5
+3. **syph_dx_zim** — Manuscript revisions, v22 calibration
+
+Which should be the priority now? Once you decide, I'll:
+- Update CLAUDE.md with the decision
+- Commit the clarification
+- Orient to that project
