@@ -42,6 +42,9 @@ I used the current default-based setup because I was asked to.
    sim.results so it can be plotted, exported, and fed into a CE analysis without
    post-hoc arithmetic on internal state.
 
+Clark response: Sure, as noted below, I would be happy to discuss regarding what default outputs would be available
+and where..
+
 
 Research context — why this matters now
 ----------------------------------------
