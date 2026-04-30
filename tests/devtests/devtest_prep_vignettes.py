@@ -31,6 +31,9 @@ Guiding principles
    universal coverage is desired, the eligibility lambda makes that visible:
        eligibility=lambda sim: ~sim.diseases.hiv.infected
 
+Clark response: My preference is no defaults and users must provide eligibility and coverage data to use. However,
+I used the current default-based setup because I was asked to.
+
 3. Self-documenting code.  A vignette should read like a description of the
    intervention, not a configuration puzzle. Labels, group names, and product
    names should appear in results so figures are interpretable without the source.
