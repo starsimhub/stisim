@@ -542,51 +542,122 @@ class Prep(ss.Intervention):
 
     def step(self):
         sim = self.sim
-        
+
         if self._groups:
-            # Multi-group mode: apply coverage per group
-            for group in self._groups:
-                cov_val = self._coverage_arrs[group['label']][self.ti]
-                if cov_val > 0:
-                    self.pars.coverage_dist.set(p=cov_val)
-                    # Get eligibility for this group
+            # Multi-group mode: apply coverage per group with supply constraints if needed
+            if self._supply is None:
+                # Unconstrained: apply per-group coverage independently
+                for group in self._groups:
+                    cov_val = self._coverage_arrs[group['label']][self.ti]
+                    if cov_val > 0:
+                        self.pars.coverage_dist.set(p=cov_val)
+                        # Get eligibility for this group
+                        group_elig = group.get('eligibility')
+                        if group_elig is not None:
+                            eligible = group_elig(sim) & ~self.on_prep
+                        else:
+                            # Fallback to default FSW
+                            eligible = sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected & ~self.on_prep
+                        prep_uids = self.pars.coverage_dist.filter(eligible)
+                        sim.diseases.hiv.rel_sus[prep_uids] *= 1 - self.pars.eff_prep
+                        self.on_prep[prep_uids] = True
+
+                        # Track cost if product is specified
+                        if self._product and 'cost' in self._product:
+                            self._total_cost += len(prep_uids) * self._product['cost']
+            else:
+                # Supply-constrained: allocate proportional to coverage gap
+                # Calculate doses needed and gaps per group
+                group_info = []
+                total_gap = 0.0
+                for group in self._groups:
                     group_elig = group.get('eligibility')
                     if group_elig is not None:
                         eligible = group_elig(sim) & ~self.on_prep
                     else:
-                        # Fallback to default FSW
                         eligible = sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected & ~self.on_prep
+
+                    n_eligible = len(eligible.uids) if hasattr(eligible, 'uids') else np.sum(eligible)
+                    cov_val = self._coverage_arrs[group['label']][self.ti]
+                    n_target = int(np.round(n_eligible * cov_val))
+                    n_on = np.sum(self.on_prep[eligible.uids if hasattr(eligible, 'uids') else eligible])
+                    gap = max(0, n_target - n_on)
+
+                    group_info.append({
+                        'label': group['label'],
+                        'group': group,
+                        'eligible': eligible,
+                        'n_eligible': n_eligible,
+                        'cov_val': cov_val,
+                        'gap': gap,
+                    })
+                    total_gap += gap
+
+                # Allocate doses proportional to gaps
+                if total_gap > 0:
+                    doses_per_year = self._supply
+                    for ginfo in group_info:
+                        # Proportional allocation
+                        gap_fraction = ginfo['gap'] / total_gap
+                        doses_this_group = int(np.round(doses_per_year * gap_fraction))
+
+                        if doses_this_group > 0:
+                            # Sample from eligible pool (limited by available doses)
+                            eligible_uids = ginfo['eligible'].uids if hasattr(ginfo['eligible'], 'uids') else np.where(ginfo['eligible'])[0]
+                            n_to_add = min(doses_this_group, len(eligible_uids))
+
+                            if n_to_add > 0 and len(eligible_uids) > 0:
+                                # Randomly select n_to_add from eligible_uids
+                                if n_to_add < len(eligible_uids):
+                                    idx = np.random.choice(len(eligible_uids), n_to_add, replace=False)
+                                    prep_uids = eligible_uids[idx]
+                                else:
+                                    prep_uids = eligible_uids
+
+                                sim.diseases.hiv.rel_sus[prep_uids] *= 1 - self.pars.eff_prep
+                                self.on_prep[prep_uids] = True
+
+                                # Track cost
+                                if self._product and 'cost' in self._product:
+                                    self._total_cost += len(prep_uids) * self._product['cost']
+        else:
+            # Single-group mode with optional supply constraint
+            cov_val = self._coverage_arr[self.ti]
+            if cov_val > 0:
+                # Use eligibility function if set; otherwise default to FSW
+                if self.eligibility is not None:
+                    eligible = self.eligibility(sim) & ~self.on_prep
+                else:
+                    eligible = sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected & ~self.on_prep
+
+                n_eligible = len(eligible.uids) if hasattr(eligible, 'uids') else np.sum(eligible)
+                n_target = int(np.round(n_eligible * cov_val))
+
+                # Apply supply constraint if specified
+                if self._supply is not None and n_target > self._supply:
+                    # Use actual coverage based on supply
+                    n_to_enroll = int(self._supply)
+                else:
+                    n_to_enroll = n_target
+
+                if n_to_enroll > 0:
+                    # Enroll via probability-based sampling
+                    actual_cov = n_to_enroll / n_eligible if n_eligible > 0 else 0
+                    self.pars.coverage_dist.set(p=actual_cov)
                     prep_uids = self.pars.coverage_dist.filter(eligible)
                     sim.diseases.hiv.rel_sus[prep_uids] *= 1 - self.pars.eff_prep
                     self.on_prep[prep_uids] = True
 
                     # Track cost if product is specified
                     if self._product and 'cost' in self._product:
-                        self._total_cost += len(prep_uids) * self._product['cost']
-        else:
-            # Single-group mode
-            cov_val = self._coverage_arr[self.ti]
-            if cov_val > 0:
-                self.pars.coverage_dist.set(p=cov_val)
-                # Use eligibility function if set; otherwise default to FSW
-                if self.eligibility is not None:
-                    eligible = self.eligibility(sim) & ~self.on_prep
-                else:
-                    eligible = sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected & ~self.on_prep
-                prep_uids = self.pars.coverage_dist.filter(eligible)
-                sim.diseases.hiv.rel_sus[prep_uids] *= 1 - self.pars.eff_prep
-                self.on_prep[prep_uids] = True
-                
-                # Track cost if product is specified
-                if self._product and 'cost' in self._product:
-                    cost_per_person = self._product['cost']
-                    self._total_cost += len(prep_uids) * cost_per_person
+                        cost_per_person = self._product['cost']
+                        self._total_cost += len(prep_uids) * cost_per_person
 
         # Record results
         if hasattr(self, 'results'):
             self.results['n_on_prep'][self.ti] = np.sum(self.on_prep)
             self.results['total_cost'][self.ti] = self._total_cost
-        
+
         return
 
 
