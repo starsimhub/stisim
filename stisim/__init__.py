@@ -11,6 +11,7 @@ from .utils         import *
 from .analyzers     import *
 from .parameters    import *
 from .sim           import *
+from . import hivsim # Do not import subfunctions
 
 # Assign the root folder
 import sciris as sc

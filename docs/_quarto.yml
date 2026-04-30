@@ -90,6 +90,8 @@ website:
           contents:
             - href: user_guide/index.md
               text: "Overview"
+            - href: user_guide/hivsim.md
+              text: "HIVsim"
             - section: "Diseases"
               contents:
                 - href: user_guide/diseases/index.md
@@ -110,7 +112,6 @@ website:
                 - user_guide/interventions/interventions.md
             - user_guide/connectors.md
             - user_guide/calibration.md
-            - user_guide/hivsim.md
         - section: "**Examples**"
           contents:
             - href: examples/index.md
@@ -166,7 +167,8 @@ format:
       dark: [cosmo, ./assets/styles-dark.scss]
     css: ./assets/styles.css
     toc: true
-    toc-depth: 3
+    toc-expand: true
+    toc-depth: 5
     highlight-style: github
 
 filters:
@@ -241,6 +243,10 @@ quartodoc:
       contents:
         - connectors.hiv_sti
         - connectors.gud_syph
+    - title: HIVsim
+      desc: HIV simulation manager
+      contents:
+        - hivsim
 
 execute:
   freeze: auto
