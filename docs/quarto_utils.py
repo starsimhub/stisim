@@ -41,7 +41,9 @@ def update_version(pkg=sti):
 @sc.timer('Build API docs')
 def build_api_docs():
     sc.heading('Building API documentation...')
-    return run('python -m quartodoc build')
+    run('python -m quartodoc build --config _quartodoc_hivsim.yml')
+    run('python -m quartodoc build --config _quarto.yml')
+    return 
 
 
 @sc.timer('Customize aliases')
