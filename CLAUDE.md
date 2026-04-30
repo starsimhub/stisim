@@ -1,17 +1,8 @@
-Reviewing the diff and session context:
+The previous session left a decision point in CLAUDE.md—no new patterns or gotchas to document. The uncommitted change is a placeholder for the next session to determine direction.
 
-The CLAUDE.md change is minor formatting. Given the current status of the feat/431-prep-vignettes branch (all vignettes V1–V5 complete, cost tracking integrated), the natural next step is to decide whether to merge this feature branch into main or continue with downstream projects.
+**Next steps:** I need to know your priority. Are you:
+- **A.** Ready to merge feat/431-prep-vignettes and shift focus to PROMISE VoI (anc_sti_screening) or manuscript work (syph_dx_zim)?
+- **B.** Continuing work in stisim (remaining vignettes or other tasks)?
+- **C.** Starting elsewhere?
 
-Since the previous session didn't surface new architecture patterns, gotchas, or workflows beyond what's already documented in memory, there are no new lessons to add to CLAUDE.md.
-
-**SKIP**
-
-For your next task, I'd suggest:
-
-1. **Commit the CLAUDE.md tweak** — it's sitting staged
-2. **Pick your priority**: 
-   - Merge feat/431-prep-vignettes if ready for main
-   - Jump into anc_sti_screening (PROMISE VoI) — your current focus
-   - Or advance syph_dx_zim calibration work
-
-What's the priority?
+Which direction?
