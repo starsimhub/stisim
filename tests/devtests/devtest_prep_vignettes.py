@@ -130,27 +130,36 @@ def v2b_multigroup_groups_api():
 
 def v3a_product_simple_api():
     """
-    NOTIMPLEMENTED — simple product= interface on existing Prep class.
-    No supply constraint; product is just an efficacy + cost bundle.
+    Simple product= interface: each product is a dict with {name, efficacy, cost}.
+    Product efficacy overrides eff_prep parameter.
     """
     hiv = sti.HIV()
     net = sti.StructuredSexual()
 
-    # Option A: named preset
-    prep_oral = sti.Prep(coverage=0.5, product='oral')              # NOTIMPLEMENTED
-    prep_lnc  = sti.Prep(coverage=0.5, product='lenacapavir')       # NOTIMPLEMENTED
-
-    # Option B: inline product spec
-    prep_lnc2 = sti.Prep(  # NOTIMPLEMENTED
+    # Inline product specifications
+    prep_oral = sti.Prep(
         coverage=0.5,
-        product=dict(name='lenacapavir', efficacy=0.999, cost=40_000, duration=ss.dur(6, 'months')),
+        product=dict(name='oral', efficacy=0.8, cost=50),
+        name='prep_oral'
+    )
+    
+    prep_lnc = sti.Prep(
+        coverage=0.2,
+        product=dict(name='lenacapavir', efficacy=0.999, cost=40_000),
+        name='prep_lnc'
     )
 
-    for prep in [prep_oral, prep_lnc, prep_lnc2]:
+    results = []
+    for prep in [prep_oral, prep_lnc]:
         sim = ss.Sim(n_agents=500, diseases=hiv, networks=net, interventions=prep, dt=1/12)
         sim.run()
+        results.append(dict(
+            product=prep._product.get('name', 'unknown'),
+            total_cost=prep._total_cost,
+            infections=sim.results.hiv.new_infections[:].sum(),
+        ))
 
-    return sim
+    return results
 
 
 def v3b_product_clark_api():
@@ -313,8 +322,10 @@ if __name__ == '__main__':
     sc.heading('V2b: multi-group via groups= API (runs today)')
     v2b_multigroup_groups_api()
 
-    sc.heading('V3–V5: API sketches — not yet implemented')
-    # v3a_product_simple_api()
+    sc.heading('V3: Product-aware PrEP (simple API)')
+    v3a_product_simple_api()
+
+    sc.heading('V4–V5: API sketches — not yet implemented')
     # v3b_product_clark_api()
     # v4_supply_constrained()
     # v5_kenya_ce_price_sweep()
