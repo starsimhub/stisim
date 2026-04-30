@@ -1,10 +1,16 @@
-Perfect. The previous session left a clear question waiting for your direction on which project to prioritize. Let me confirm your choice so I can update the context and begin work.
+Looking at the context:
 
-**Which project should we focus on?**
+- The stisim session ended with **uncommitted CLAUDE.md edits** asking for priority clarification
+- Memory confirms **anc_sti_screening** (PROMISE VoI) is marked as current focus
+- The PrEP vignettes are feature-complete; syph_dx_zim is running on VMs
 
-1. **PrEP vignettes (stisim)** — Finalize documentation and prepare for merge
-2. **PROMISE VoI (anc_sti_screening)** — Zimbabwe trial calibration work
-3. **Syphilis manuscript (syph_dx_zim)** — Revisions or calibration support
-4. **Something else**
+Since you're starting fresh and the previous session left this decision point open, I need your direction:
 
-Once you tell me, I'll update CLAUDE.md and start.
+**Which should be the priority for this session?**
+
+1. **anc_sti_screening** — Continue PROMISE VoI calibration/FetalHealth work (current memory focus)
+2. **stisim** — Finish PrEP vignette documentation and merge to main
+3. **syph_dx_zim** — Check/monitor manuscript calibration status on VMs
+4. Something else
+
+Once you tell me, I'll commit the CLAUDE.md changes and begin work.
