@@ -1,6 +1,10 @@
-Good. The project state is clear:
-- **anc_sti_screening** is the priority (PROMISE VoI, Zimbabwe)
-- **stisim** has the PrEP API work complete on `feat/431-prep-vignettes`
-- Memory captures the key gotchas (connector pars need `sc.objdict`, zero-averted at n=2000 is stochastic artifact)
+Looking at the context:
 
-What would you like to work on?
+- Last session in `/Users/robynstuart/gf/stisim` ended with uncommitted changes to `CLAUDE.md`
+- The priority has been confirmed as `anc_sti_screening` (PROMISE VoI analysis)
+- No new gotchas, patterns, or project-specific context were documented
+- The memory index already captures the active repos and projects
+
+The uncommitted `CLAUDE.md` changes appear to be session cleanup, not new insights that need to persist.
+
+SKIP
