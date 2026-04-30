@@ -1,3 +1,3 @@
-SKIP
+The session notes confirm that the stisim work is complete and well-documented. The memory files already capture the key patterns, gotchas, and architectural insights. No new learnings emerged that need to be added to CLAUDE.md.
 
-The memory files document the active state clearly. The session ending context shows the stisim `feat/431-prep-vignettes` branch is complete (v1–v5 all working), and priority has shifted to anc_sti_screening (PROMISE VoI). No new gotchas, patterns, or blockers to record.
+**SKIP**
