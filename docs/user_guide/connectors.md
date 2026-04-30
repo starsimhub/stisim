@@ -60,4 +60,3 @@ class my_connector(ss.Connector):
 
 Connectors run after disease `step()` and before transmission, so changes to `rel_sus` / `rel_trans` take effect on the same timestep.
 
-See [the source](https://github.com/starsimhub/stisim/tree/main/stisim/connectors) for full implementations of the built-in connectors.
