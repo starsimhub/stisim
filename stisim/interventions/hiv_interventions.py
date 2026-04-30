@@ -450,6 +450,10 @@ class Prep(ss.Intervention):
         eff_prep:    efficacy (default 0.8 = 80% reduction in acquisition)
         smoothness:  interpolation smoothness (0=linear, default)
         eligibility: function to override default FSW targeting
+        groups:      list of dicts for multi-group targeting; each dict has
+                     {label, eligibility, coverage, [product]}
+        product:     product dict for single-group mode with {name, efficacy, cost, ...}
+        supply:      annual supply constraint (doses per year, multi-group mode)
         name:        unique identifier for this intervention (optional)
 
     Examples::
@@ -458,8 +462,16 @@ class Prep(ss.Intervention):
         prep = sti.Prep(coverage=0.3)
         prep_fsw = sti.Prep(coverage=0.6, name='prep_fsw')
         prep_agyw = sti.Prep(coverage=0.3, name='prep_agyw')
+
+        # Multi-group with per-group products
+        prep = sti.Prep(groups=[
+            dict(label='fsw', eligibility=..., coverage=0.6,
+                 product={'name': 'oral', 'efficacy': 0.8, 'cost': 50}),
+            dict(label='agyw', eligibility=..., coverage=0.3,
+                 product={'name': 'lenacapavir', 'efficacy': 0.999, 'cost': 1000}),
+        ])
     """
-    def __init__(self, pars=None, coverage=None, eligibility=None, groups=None, product=None, smoothness=0, **kwargs):
+    def __init__(self, pars=None, coverage=None, eligibility=None, groups=None, product=None, supply=None, smoothness=0, **kwargs):
         super().__init__(eligibility=eligibility, **kwargs)
         self.define_pars(
             coverage_dist=ss.bernoulli(p=0),
@@ -478,6 +490,10 @@ class Prep(ss.Intervention):
             if 'efficacy' in self._product:
                 self.pars.eff_prep = self._product['efficacy']
         self._total_cost = 0.0  # Accumulate cost over simulation
+
+        # Supply constraint: doses per year (None = unconstrained)
+        self._supply = supply
+        self._doses_used_this_year = 0.0
 
         # If groups= is provided, use multi-group mode; otherwise single-group
         if self._groups:
@@ -543,6 +559,10 @@ class Prep(ss.Intervention):
                     prep_uids = self.pars.coverage_dist.filter(eligible)
                     sim.diseases.hiv.rel_sus[prep_uids] *= 1 - self.pars.eff_prep
                     self.on_prep[prep_uids] = True
+
+                    # Track cost if product is specified
+                    if self._product and 'cost' in self._product:
+                        self._total_cost += len(prep_uids) * self._product['cost']
         else:
             # Single-group mode
             cov_val = self._coverage_arr[self.ti]
