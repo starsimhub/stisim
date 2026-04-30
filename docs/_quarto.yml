@@ -58,7 +58,7 @@ website:
         text: Tutorials
       - href: user_guide/index.md
         text: User guide
-      - href: examples/index.md
+      - href: examples/index.qmd
         text: Examples
       - href: code_of_conduct.md
         text: Code of conduct
@@ -81,11 +81,11 @@ website:
           contents:
             - href: tutorials/index.md
               text: "Overview"
-            - tutorials/tut_intro.ipynb
-            - tutorials/tut_cotransmission.ipynb
-            - tutorials/tut_results.ipynb
-            - tutorials/tut_interventions.ipynb
-            - tutorials/tut_calibration.ipynb
+            - tutorials/tut_intro.qmd
+            - tutorials/tut_cotransmission.qmd
+            - tutorials/tut_results.qmd
+            - tutorials/tut_interventions.qmd
+            - tutorials/tut_calibration.qmd
         - section: "**User guide**"
           contents:
             - href: user_guide/index.md
@@ -114,9 +114,9 @@ website:
             - user_guide/calibration.md
         - section: "**Examples**"
           contents:
-            - href: examples/index.md
+            - href: examples/index.qmd
               text: "Overview"
-            - examples/art_interruptions.ipynb
+            - examples/art_interruptions.qmd
         - href: code_of_conduct.md
           text: "**Code of conduct**"
         - href: contributing.md
@@ -140,21 +140,34 @@ website:
             - api/utils.qmd
         - section: "**Diseases**"
           contents:
-            - api/diseases.sti.qmd
-            - api/diseases.hiv.qmd
-            - api/diseases.syphilis.qmd
-            - api/diseases.chlamydia.qmd
-            - api/diseases.gonorrhea.qmd
-            - api/diseases.trichomoniasis.qmd
-            - api/diseases.bv.qmd
-            - api/diseases.gud.qmd
+            - text: sti
+              href: api/diseases.sti.qmd
+            - text: hiv
+              href: api/diseases.hiv.qmd
+            - text: syphilis
+              href: api/diseases.syphilis.qmd
+            - text: chlamydia
+              href: api/diseases.chlamydia.qmd
+            - text: gonorrhea
+              href: api/diseases.gonorrhea.qmd
+            - text: trichomoniasis
+              href: api/diseases.trichomoniasis.qmd
+            - text: bv
+              href: api/diseases.bv.qmd
+            - text: gud
+              href: api/diseases.gud.qmd
         - section: "**Interventions**"
           contents:
-            - api/interventions.base_interventions.qmd
-            - api/interventions.bv_interventions.qmd
-            - api/interventions.gonorrhea_interventions.qmd
-            - api/interventions.hiv_interventions.qmd
-            - api/interventions.syphilis_interventions.qmd
+            - text: base_interventions
+              href: api/interventions.base_interventions.qmd
+            - text: bv_interventions
+              href: api/interventions.bv_interventions.qmd
+            - text: gonorrhea_interventions
+              href: api/interventions.gonorrhea_interventions.qmd
+            - text: hiv_interventions
+              href: api/interventions.hiv_interventions.qmd
+            - text: syphilis_interventions
+              href: api/interventions.syphilis_interventions.qmd
         - section: "**Connectors**"
           contents:
             - api/connectors.hiv_sti.qmd

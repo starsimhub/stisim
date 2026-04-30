@@ -1,0 +1,175 @@
+---
+title: Modeling ART interruptions
+jupyter: python3
+---
+
+
+*New in v1.5.3*
+
+This example shows how to model **exogenous shocks to ART coverage** — for instance,
+supply chain disruptions, conflict, or policy changes that temporarily reduce
+ART availability.
+
+We'll:
+
+1. Set up a baseline HIV sim with historical ART coverage data
+2. Build scenario-specific coverage DataFrames that introduce interruptions
+3. Run and compare counterfactual scenarios
+
+**Key concepts**: mixed-format coverage (n/p), coverage DataFrames, scenario comparison.
+
+
+## Setup
+
+We'll use a simplified model with 2,000 agents running from 2000 to 2035. In a real analysis
+you'd use more agents and location-specific demographic data.
+
+```{python}
+import numpy as np
+import pandas as pd
+import sciris as sc
+import starsim as ss
+import stisim as sti
+import hivsim
+import matplotlib.pyplot as plt
+```
+
+## Building baseline coverage
+
+First, let's create a realistic ART scale-up trajectory. In practice you'd
+load this from a CSV, but we'll build it programmatically here.
+
+```{python}
+# Historical ART numbers (absolute counts) representing scale-up in a
+# population of ~2,000 with ~15% HIV prevalence (~300 PLHIV).
+# By 2023, ~650 on ART (accounting for population growth over 23 years).
+years_hist = np.arange(2000, 2023)
+n_art_hist = [0, 1, 4, 10, 20, 40, 70, 110, 155, 210, 265, 315,
+              365, 405, 440, 475, 510, 540, 565, 590, 610, 630, 650]
+
+# Build a dual-column DataFrame: n_art for historical, p_art for projected
+baseline_df = pd.DataFrame(index=years_hist)
+baseline_df['n_art'] = n_art_hist
+
+# From 2023 onward, switch to proportion-based targets
+for year in range(2023, 2036):
+    baseline_df.loc[year, 'p_art'] = 0.90
+
+print(baseline_df.tail(10))
+```
+
+When you pass a DataFrame with both `n_art` and `p_art` columns, STIsim
+automatically uses `n_art` where available and falls back to `p_art` for
+years where `n_art` is NaN. This is controlled by the `format_priority`
+parameter (default: `'n'`).
+
+## Defining interruption scenarios
+
+Now let's define a helper that modifies the coverage DataFrame to simulate
+a temporary ART interruption — a period where ART coverage drops by some
+fraction.
+
+```{python}
+def make_interruption(base_df, shock_year, reduction, duration):
+    """
+    Create a coverage DataFrame with an ART interruption.
+    
+    Args:
+        base_df:     baseline coverage DataFrame
+        shock_year:  year the interruption begins
+        reduction:   fractional reduction (e.g. 0.3 = 30% drop)
+        duration:    number of years the interruption lasts
+    
+    Returns:
+        Modified DataFrame with reduced coverage during the shock period.
+    """
+    df = base_df.copy()
+    for year in range(shock_year, shock_year + duration):
+        if year in df.index:
+            # Reduce whichever column is active
+            if pd.notna(df.loc[year, 'n_art']):
+                df.loc[year, 'n_art'] *= (1 - reduction)
+            elif pd.notna(df.loc[year, 'p_art']):
+                df.loc[year, 'p_art'] *= (1 - reduction)
+    return df
+```
+
+```{python}
+# Define scenarios: baseline + three interruption severities
+scenarios = {
+    'Baseline':          baseline_df,
+    '20% drop, 2 years': make_interruption(baseline_df, 2025, 0.2, 2),
+    '50% drop, 2 years': make_interruption(baseline_df, 2025, 0.5, 2),
+    '50% drop, 5 years': make_interruption(baseline_df, 2025, 0.5, 5),
+}
+```
+
+## Running the scenarios
+
+We run each scenario using `hivsim.demo` with the same random seed so
+differences are due to the intervention, not stochastic variation.
+
+```{python}
+results = {}
+seed = 42
+
+for label, cov_df in scenarios.items():
+    sim = hivsim.demo('simple', run=False, plot=False, n_agents=2_000, stop=2035,
+                       verbose=-1, rand_seed=seed)
+    
+    # Replace the default ART with our scenario-specific coverage
+    sim.pars.interventions = [
+        sti.HIVTest(name='hiv_test', test_prob_data=0.3),
+        sti.ART(coverage=cov_df),
+    ]
+    sim.run()
+    results[label] = sim
+    print(f'{label}: {sim.results.hiv.n_on_art[-1]:.0f} on ART at end')
+```
+
+## Comparing outcomes
+
+Let's visualize the impact of ART interruptions on treatment numbers
+and new infections.
+
+```{python}
+colors = sc.gridcolors(4)
+
+with sc.options.with_style('fancy'):
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+    # Left panel: ART coverage over time
+    for (label, sim), color in zip(results.items(), colors):
+        axes[0].plot(sim.t.yearvec, sim.results.hiv.n_on_art, label=label, color=color, lw=2)
+    axes[0].axvspan(2025, 2030, alpha=0.1, color='red', zorder=0)
+    axes[0].set_xlabel('Year')
+    axes[0].set_ylabel('People on ART')
+    axes[0].set_title('ART coverage')
+    axes[0].legend(fontsize=9)
+
+    # Right panel: total new infections during 2025–2030
+    labels, totals, bar_colors = [], [], []
+    for (label, sim), color in zip(results.items(), colors):
+        mask = (sim.t.yearvec >= 2025) & (sim.t.yearvec < 2030)
+        totals.append(float(sim.results.hiv.new_infections[mask].sum()))
+        labels.append(label)
+        bar_colors.append(color)
+    axes[1].bar(labels, totals, color=bar_colors, edgecolor='white', linewidth=0.5)
+    axes[1].set_ylabel('Total new HIV infections')
+    axes[1].set_title('New infections during 2025–2030')
+    axes[1].tick_params(axis='x', rotation=20)
+
+    sc.figlayout()
+    plt.show()
+```
+
+## Key takeaways
+
+- **Mixed-format coverage** lets you combine historical data (absolute numbers)
+  with projected targets (proportions) in a single DataFrame
+- **Scenario analysis** is straightforward: modify the coverage DataFrame and re-run
+- The `format_priority` parameter controls which column takes precedence when
+  both `n_art` and `p_art` are present for the same year
+- For smoother transitions between data points, use the `smoothness` parameter:
+  `sti.ART(coverage=df, smoothness=5)`
+

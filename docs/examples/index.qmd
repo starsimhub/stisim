@@ -1,0 +1,25 @@
+# Examples
+
+Worked examples illustrating STIsim features. Each example is a runnable Jupyter notebook — download and adapt to your own use case.
+
+::: {.cards}
+
+::: {.card .example-card}
+::: {.card-body}
+
+#### 💊 Modeling ART interruptions {.card-title}
+
+---
+
+![](art_interruptions_thumb.png){width=280px}
+
+Simulate exogenous shocks to ART coverage using mixed-format DataFrames. Build scenario-specific coverage, run counterfactuals, and compare outcomes.
+
+[→ Open example](art_interruptions.qmd)
+
+<span class="card-meta">🏷️ *New in v1.5.3* · 🕘 *~30s*</span>
+
+:::
+:::
+
+:::

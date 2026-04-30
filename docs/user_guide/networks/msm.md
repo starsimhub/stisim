@@ -33,5 +33,3 @@ Each network maintains its own edges and partnership classification. Disease mod
 - `sti.AgeMatchedMSM` — exact-age matching; cheap and deterministic given inputs.
 - `sti.AgeApproxMSM` — distribution-based matching; reuses age preference machinery from `StructuredSexual`.
 - `sti.PriorPartners` — companion network that records ended partnerships for partner notification interventions; not MSM-specific but commonly paired with these networks.
-
-See the [API reference](../../api.md) for full parameter listings.

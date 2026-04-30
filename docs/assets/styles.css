@@ -36,3 +36,52 @@ p:has(+ ul) {
 table td:first-child a {
   white-space: nowrap;
 }
+
+/* Cards -- adapted from Material for MkDocs */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.example-card {
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+  background: var(--bs-body-bg);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.example-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.12);
+}
+
+.example-card .card-body {
+  padding: 1.25rem;
+}
+
+.example-card .card-title {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.example-card hr {
+  margin: 0 0 1.25rem 0;
+}
+
+.example-card img {
+  display: block;
+  margin: 0 auto 1.5rem auto;
+}
+
+.example-card p {
+  margin-bottom: 1rem;
+}
+
+.example-card .card-meta {
+  display: block;
+  margin-top: 1rem;
+  color: var(--bs-secondary-color);
+}
