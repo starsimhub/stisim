@@ -103,16 +103,37 @@ The concerns are in the integration layer:
     logic, not the HIV natural history. The exception — see below — is a single
     shared coordination flag (on_prep).
 
+Clark response: The reason for the new states, which are only added if a PrEP intervention has been added to the
+simulation, is that they are required for inter-PrEP communication and coordination. These are "global" values, not
+specific to any one PrEP intervention, because there can be > 1 PrEP-related intervention in a simulation and they
+can be active at the same time.
+
   CONCERN 2 — PrepManager as a required singleton.
     PrepManager must be added to sim.interventions alongside every SuppliedPrep;
     if omitted, agents never leave PrEP (the dropout step is never called). This
     is a hidden dependency that will catch users out. The ordering dependency
     (PrepManager.start_step must fire before SuppliedPrep.step) is also fragile.
 
+Clark response: False, PrepManager is not added "alongside every SuppliedPrep". It is auto-added at most once for a
+simulation, if at least one PrEP intervention has been detected. A user does not need to know about its existence
+unless they wish to subclass it for different behavior. This "not need to know" functionality will need the
+prep uptake() staticmethod is moved elsewhere. Perhaps an input to the SuppliedIntervention __init__, but this is
+open for discussion. Also, "The ordering dependency ... is also fragile" is False. The class is ONLY auto-added, and
+always added at the *front* of the intervention list, which *guarantees* the PrepManager.start_step will run before all
+functions of all prep interventions. The primary, and potentially only, purpose of PrepManager is to force agents off
+of prep at the end of their current enrollments, to allow them to subsequently, with no temporal delay, choose to
+enroll in any prep intervention, regardless of intervention order, if they are eligible and care seeking. Unless a user
+specifically sabotages their own auto-generated sim object, it is impossible for ordering to be wrong. At that point,
+it is their active fault, not the fault of the model/intervention.
+
   CONCERN 3 — random.sample breaks CRN.
     SuppliedPrep.step() uses Python's random.sample for agent selection. This
     bypasses Starsim's Common Random Numbers system. All agent selection should
     go through ss.bernoulli or ss.choice.
+
+Clark response: Easy enough to fix if there is a direct slot-in using ss functionality. For a draft PR, I simply knew
+about random.sample, but if ss.choice does the same thing, happy to fix.
+
 
   CONCERN 4 — Reuptake is fully disabled.
     The re-enrollment logic (~70 lines) is commented out with a "TODO: pending
@@ -120,14 +141,38 @@ The concerns are in the integration layer:
     cycle never re-enrol, which is epidemiologically wrong for any realistic
     PrEP program.
 
+Clark response: Reuptake can easily be re-enabled. It was disabled due to what I interpreted as uncertainty whether
+it was needed or provided value given that we may or may not have data to set it properly. It is currently disabled
+to reduce complexity until if/when we need it. The assertion that agents "completing a lenavapavir injection cycle"
+cannot re-enroll is False. They simply have to: be eligible and care seeking to reuptake an intervention at the end
+of their previous enrollment. Any agent can switch PrEP interventions or reenroll in the same one with no temporal
+gaps in the current design.
+
   CONCERN 5 — Hardcoded care-seeking rate.
     base_care_seeking_rate = 0.8 is labelled "TODO, arbitrary" in the source.
     The care-seeking mechanism itself (agents have a scalar care-seeking draw
     that modulates uptake probability) may be worth keeping, but the value needs
     a defensible basis or a parameter.
 
+Clark response: Happy to adjust, 0.8 is, as noted, "completely arbitrary" (but necessary for creating functioning code)
+and awaiting more information from Adam. The full care seeking calculation is awaiting details of how it should be
+calculated, hence a draft PR and notation in my presentations as needing research input to finalize.
+
 These concerns are fixable; the question is whether it's easier to fix them
 within Clark's architecture or to redesign with his utility classes as a foundation.
+
+Clark response, Here is what needs to be done to address any of the above:
+- Care seeking does need research input to define it exactly, which is already known and has previously been communicated.
+- Slight refactoring to move (non-critical) functionality currently in PrepManager is probably necessary to enable
+users to 1) not worry about instantiating or ordering PrepManager properly, and 2) enable them to subclass it to
+provide alternate drop() functionality, if needed. But this is a simple update.
+- random sampling should be simple to update, provided existing ss functionality to probabilistically select N items from
+a list of M items (N <= M, each with a unique weight for selection). If not, then new ss functionality to do the
+equivalent is necessary, but happy to have it use ss code here.
+- new prep states on hiv module are required, due to the potential, and possible desirability, of > 1 prep intervention
+that can be active at any given time. Minimum requirement (I think): on_prep, prep_source. The others can be discussed
+case-by-case, but we should always keep in mind that there can be > 1 prep intervervention and if interventionA might
+need to know "global" prep state (information from other interventions).
 
 
 Proposed design for the new Prep class
@@ -183,17 +228,50 @@ Comments / votes welcome — add your initials next to any position you support.
                 architecture but requires iterating sim.interventions each step.
       Option C: Clark's approach — 8 states on hiv.py, fully centralised.
 
+Clark response: See above for the need for centralizing at least some of this data. Some of the data is potentially
+up for discussion, again, see above.
+
   Q2. Should the product= interface accept a plain dict, or a typed dataclass/class?
       A plain dict is the Starsim way (cf. how pars are passed). A class (like
       Clark's Product) provides tab-completion and validation, but adds a new
       public type for users to learn. Possible middle ground: Product is an
       internal implementation detail that Prep constructs from a dict internally.
 
+Clark response: I would suggest that it is not necessarily the "starsim way" to only pass dicts of things. For example,
+HIVPars objects can be passed as parameter sets instead of kwargs (effective dict) during instantiation. This creates
+a "new interface" for a user to use if they wish. The current pattern of Supplies follows this and allows for an
+extensible object (a Supplies object) that can contain additional future behavior (or be subclassed for specific
+additional features). A simple dict of Supply objects does not allow for this naturally.
+
   Q3. Is gap-proportional allocation the right supply-constrained default?
       Clark's implementation allocates remaining doses proportional to the coverage
       gap in each group. This is reasonable but privileges groups with higher
       targets. Alternatives: proportional to group size, priority ordering, equal
       split. Should the allocation rule be user-configurable?
+
+Clark response:
+It is reasonable to ask if this is a reasonable implementation. One important item to note here is that in the limit
+where available supply goes from 0 to "no restriction this step", all group targets are *simultaneously* hit when there
+are exactly enough doses to cover enough agents to hit the targets.
+
+"privileges groups with higher targets": False
+The current proposed implementation does not privilege "groups with higher targets". It privileges
+groups with a larger gap from their current target. Example, assuming supply limitation is hit this step:
+groupA: target: 80%, current: 60%, gap: 80 - 60 = 20%
+groupB: target: 50%, current: 10%, gap: 50 - 10 = 40%
+
+Proportionality of limited supply distribution:
+groupA: 20 / (20 + 40) = 33.33%
+groupB: 40 / (20 + 40) = 66.67%
+
+In this case, as supplies are (conceptually) increased from "not enough" to "enough" for this step, groupA and groupB
+will hit their targets (80% and 50%, respectively, at exactly the same moment (when supplies are "just enough"). This
+means that the current algorithm is prioritizing the groups exactly as needed to keep supply shortages from impacting any
+one group in a way to disadvantage it "unfairly" from reaching its target coverage.
+
+Note, the "lower target group" gets prioritized (proportionally by %) in this case, because it farther from its coverage
+target in coverage/% units.
+
 
   Q4. How should dose duration / re-enrolment be modelled?
       For lenacapavir (6-month injection), an agent who starts a dose at time t
@@ -203,16 +281,29 @@ Comments / votes welcome — add your initials next to any position you support.
       per-agent re-enrolment probability, or is a population-level dropout rate
       sufficient?
 
+Clark response: Again, as noted above, I disabled auto-reenroll due to it being unclear that such additional more
+complicated logic was necessary or desired. It would be easy enough to restore auto-reenroll if desired.
+
   Q5. How do we handle PrEP + ART interaction?
       An agent who seroconverts while on PrEP should come off PrEP and (ideally)
       be prioritised for ART. The current Prep.step() doesn't explicitly handle
       this; agents who seroconvert remain in the BoolArr until the next step. Is
       that acceptable, or do we need an explicit seroconversion handler?
 
+Clark response: It is a feature of the current implementation that agents stay "on_prep" until PrEP durability end after
+seroconverting. This explicitly allows for detecting agents who are on a type of PrEP AND HIV+ (after receiving
+PrEP),  which can be a source for drug resistance. Agents should never change their behavior until they have been
+*diagnosed*, and even then, a lenacapavir-injected seroconverter cannot have the drug removed from their system until
+it "wears off" naturally. Additionally, there will be cases where an agent is *diagnosed* while still on_prep (especially
+injectable), and a healthcare provider will need to determine if they can be given ART (now, or later). The current
+design allows for these cases to be captured.
+
   Q6. What results should Prep expose?
       Minimum for CE analysis: total_cost (cumulative), n_on_prep (timeseries),
       n_new_initiations (timeseries). Per-group breakdowns are needed for V5b.
       Should these be in sim.results.<prep_name> or sim.results.hiv?
+
+Clark response: Happy to record all kinds of things like this on whatever the appropriate result object is
 
   Q7. AGYW and PBFW are not pre-defined convenience properties.
       Currently, sim.networks.structuredsexual exposes fsw and client as boolean
@@ -220,11 +311,20 @@ Comments / votes welcome — add your initials next to any position you support.
       require lambda expressions (see vignettes). Should we add convenience
       properties, and if so, where? (network? demographics? a new targeting module?)
 
+Clark response: Um, this is prep intervention feedback? I guess I'm missing the point.
+
   Q8. Should care-seeking be part of the PrEP uptake model?
       Clark's SuppliedPrep modulates uptake probability by hiv.care_seeking, a
       per-agent continuous trait drawn from N(1, 0.5). This captures heterogeneity
       in health-seeking behaviour and is epidemiologically defensible. It adds
       complexity. Is it in scope for v1.6, or a v2.0 feature?
+
+Clark response: If no care seeking calculation is performed, then *all* agents eligible will *immediately* jump on
+the intervention in one giant step-jump of on_prep. Also, I believe we *do* want to capture heterogenerity in whether
+agents do something, rather than just bulk-putting-agents-on-prep. That approach may work for some questions and use
+cases, but very likely not all. Moreover, the default care seeking rate and calculation does need scientific input
+from Adam. We could very easily set the default to be "all are seeking" as well.
+
 """
 
 import sciris as sc
