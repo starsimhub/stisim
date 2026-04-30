@@ -1,14 +1,3 @@
-# Quarto
-_site/
-.quarto/
-docs/_extensions/
-docs/_freeze/
-docs/_inv/
-docs/_site/
-docs/api/
-docs/objects.json
-docs/objects.inv
-
 # Claude
 .claude/
 

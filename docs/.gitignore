@@ -1,1 +1,12 @@
-/.quarto/
+# Quarto
+.jupyter_cache/
+.quarto/
+.virtual_documents/
+_extensions/
+_freeze/
+_inv/
+_site/
+_site/
+api/
+objects.inv
+objects.json
