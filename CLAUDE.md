@@ -1,16 +1,5 @@
-Looking at the context:
+SKIP
 
-- The stisim session ended with **uncommitted CLAUDE.md edits** asking for priority clarification
-- Memory confirms **anc_sti_screening** (PROMISE VoI) is marked as current focus
-- The PrEP vignettes are feature-complete; syph_dx_zim is running on VMs
+The previous session was focused on priority documentation and context capture for the PROMISE VoI work (anc_sti_screening), which is already well-documented in the memory files. No new technical patterns, gotchas, or commands emerged that warrant CLAUDE.md updates beyond the cleanup already staged.
 
-Since you're starting fresh and the previous session left this decision point open, I need your direction:
-
-**Which should be the priority for this session?**
-
-1. **anc_sti_screening** — Continue PROMISE VoI calibration/FetalHealth work (current memory focus)
-2. **stisim** — Finish PrEP vignette documentation and merge to main
-3. **syph_dx_zim** — Check/monitor manuscript calibration status on VMs
-4. Something else
-
-Once you tell me, I'll commit the CLAUDE.md changes and begin work.
+What would you like to work on?
