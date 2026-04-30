@@ -459,7 +459,7 @@ class Prep(ss.Intervention):
         prep_fsw = sti.Prep(coverage=0.6, name='prep_fsw')
         prep_agyw = sti.Prep(coverage=0.3, name='prep_agyw')
     """
-    def __init__(self, pars=None, coverage=None, eligibility=None, smoothness=0, **kwargs):
+    def __init__(self, pars=None, coverage=None, eligibility=None, groups=None, smoothness=0, **kwargs):
         super().__init__(eligibility=eligibility, **kwargs)
         self.define_pars(
             coverage_dist=ss.bernoulli(p=0),
@@ -468,13 +468,21 @@ class Prep(ss.Intervention):
         self.update_pars(pars, **kwargs)
         self._smoothness = smoothness
         self._coverage_arr = None  # Set in init_pre
+        self._groups = groups or []  # List of dicts with {label, eligibility, coverage}
+        self._coverage_arrs = {}  # Per-group coverage arrays, set in init_pre
 
-        # Support legacy (years, coverage) pars by converting to dict format
-        if coverage is None and 'years' in self.pars and 'coverage' in self.pars:
-            coverage = {'year': self.pars.years, 'value': self.pars.coverage}
-        elif coverage is None:
-            coverage = {'year': [2004, 2005, 2015, 2025], 'value': [0, 0.01, 0.5, 0.8]}
-        self._raw_coverage = coverage
+        # If groups= is provided, use multi-group mode; otherwise single-group
+        if self._groups:
+            # Multi-group mode: ignore single coverage/eligibility, use per-group instead
+            self._raw_coverage = None
+            self._group_coverage_data = [g.get('coverage', 0) for g in self._groups]
+        else:
+            # Single-group mode: support legacy (years, coverage) pars by converting to dict format
+            if coverage is None and 'years' in self.pars and 'coverage' in self.pars:
+                coverage = {'year': self.pars.years, 'value': self.pars.coverage}
+            elif coverage is None:
+                coverage = {'year': [2004, 2005, 2015, 2025], 'value': [0, 0.01, 0.5, 0.8]}
+            self._raw_coverage = coverage
 
         self.define_states(
             ss.BoolArr('on_prep', label='On PrEP'),
@@ -483,25 +491,55 @@ class Prep(ss.Intervention):
 
     def init_pre(self, sim):
         super().init_pre(sim)
-        self._coverage_arr, _, _, _ = parse_coverage(
-            self._raw_coverage, valid_names=['p_prep'], yearvec=self.t.yearvec,
-            smoothness=self._smoothness,
-        )
+        if self._groups:
+            # Multi-group mode: parse coverage for each group
+            for group in self._groups:
+                coverage_data = group.get('coverage', 0)
+                arr, _, _, _ = parse_coverage(
+                    coverage_data, valid_names=['p_prep'], yearvec=self.t.yearvec,
+                    smoothness=self._smoothness,
+                )
+                self._coverage_arrs[group['label']] = arr
+        else:
+            # Single-group mode: parse overall coverage
+            self._coverage_arr, _, _, _ = parse_coverage(
+                self._raw_coverage, valid_names=['p_prep'], yearvec=self.t.yearvec,
+                smoothness=self._smoothness,
+            )
         return
 
     def step(self):
         sim = self.sim
-        cov_val = self._coverage_arr[self.ti]
-        if cov_val > 0:
-            self.pars.coverage_dist.set(p=cov_val)
-            # Use eligibility function if set; otherwise default to FSW
-            if self.eligibility is not None:
-                eligible = self.eligibility(sim) & ~self.on_prep
-            else:
-                eligible = sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected & ~self.on_prep
-            prep_uids = self.pars.coverage_dist.filter(eligible)
-            sim.diseases.hiv.rel_sus[prep_uids] *= 1 - self.pars.eff_prep
-            self.on_prep[prep_uids] = True
+        
+        if self._groups:
+            # Multi-group mode: apply coverage per group
+            for group in self._groups:
+                cov_val = self._coverage_arrs[group['label']][self.ti]
+                if cov_val > 0:
+                    self.pars.coverage_dist.set(p=cov_val)
+                    # Get eligibility for this group
+                    group_elig = group.get('eligibility')
+                    if group_elig is not None:
+                        eligible = group_elig(sim) & ~self.on_prep
+                    else:
+                        # Fallback to default FSW
+                        eligible = sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected & ~self.on_prep
+                    prep_uids = self.pars.coverage_dist.filter(eligible)
+                    sim.diseases.hiv.rel_sus[prep_uids] *= 1 - self.pars.eff_prep
+                    self.on_prep[prep_uids] = True
+        else:
+            # Single-group mode
+            cov_val = self._coverage_arr[self.ti]
+            if cov_val > 0:
+                self.pars.coverage_dist.set(p=cov_val)
+                # Use eligibility function if set; otherwise default to FSW
+                if self.eligibility is not None:
+                    eligible = self.eligibility(sim) & ~self.on_prep
+                else:
+                    eligible = sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected & ~self.on_prep
+                prep_uids = self.pars.coverage_dist.filter(eligible)
+                sim.diseases.hiv.rel_sus[prep_uids] *= 1 - self.pars.eff_prep
+                self.on_prep[prep_uids] = True
 
         return
 
