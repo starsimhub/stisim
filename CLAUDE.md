@@ -1,12 +1,14 @@
-I see the CLAUDE.md is asking for **your priority decision**. Based on your memory and the context:
+Looking at the context:
 
-**Three active projects are pending:**
+- Previous session ended with the PrEP vignettes branch (`feat/431-prep-vignettes`) in good shape — all vignettes (V1–V5) implemented, V5b deferred
+- CLAUDE.md is asking for priority direction with 4 options
+- There are uncommitted changes to CLAUDE.md (minor edits)
 
-1. **anc_sti_screening** — PROMISE trial VoI (Zimbabwe, marked "current focus" in your memory)
-2. **stisim PrEP vignettes** — Documentation closure for V1–V5
-3. **syph_dx_zim** — Manuscript revisions, v22 calibration
+Before I proceed, I need to know: **What's your priority for this session?** Should I:
 
-Which should be the priority now? Once you decide, I'll:
-- Update CLAUDE.md with the decision
-- Commit the clarification
-- Orient to that project
+1. **Close out PrEP vignettes** — finalize documentation and prep for merge to main?
+2. **Move to PROMISE VoI (anc_sti_screening)** — continue FetalHealth / calibration work?
+3. **Work on syphilis manuscript (syph_dx_zim)** — revisions or v22 calibration?
+4. **Something else entirely?**
+
+Once you decide, I'll start a fresh todo list and get moving.
