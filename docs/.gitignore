@@ -10,3 +10,4 @@ _site/
 api/
 objects.inv
 objects.json
+/.quarto/

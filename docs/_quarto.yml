@@ -117,6 +117,7 @@ website:
             - href: examples/index.qmd
               text: "Overview"
             - examples/art_interruptions.qmd
+            - examples/dynamic_debut.qmd
         - href: code_of_conduct.md
           text: "**Code of conduct**"
         - href: contributing.md
