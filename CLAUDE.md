@@ -1,3 +1,3 @@
-The CLAUDE.md file contains only "SKIP" — it's a placeholder. The test_sim.py file is clean code with no issues. The uncommitted changes are minor (CLAUDE.md placeholder and a blank line in test_sim.py).
+Got it. I'm resuming work on the PROMISE trial ANC STI screening VoI project. The previous session completed ANCTest / InfantHIVTest interventions and fixed analyzer count fields and connector parameters.
 
-SKIP
+What would you like to focus on next?
