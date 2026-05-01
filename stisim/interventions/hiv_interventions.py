@@ -476,15 +476,16 @@ class Prep(ss.Intervention):
             coverage_dist=ss.bernoulli(p=0),
             eff_prep=0.8,
         )
+        # Pop legacy years= before update_pars rejects it as an unrecognised par
+        years = kwargs.pop('years', None)
+        if years is not None and coverage is not None:
+            coverage = {'year': years, 'value': coverage}
         self.update_pars(pars, **kwargs)
         self.eligibility = eligibility if eligibility is not None else self._default_eligibility
         self._smoothness = smoothness
         self._coverage_arr = None  # Set in init_pre
 
-        # Support legacy (years, coverage) pars by converting to dict format
-        if coverage is None and 'years' in self.pars and 'coverage' in self.pars:
-            coverage = {'year': self.pars.years, 'value': self.pars.coverage}
-        elif coverage is None:
+        if coverage is None:
             coverage = {'year': [2004, 2005, 2015, 2025], 'value': [0, 0.01, 0.5, 0.8]}
         self._raw_coverage = coverage
 

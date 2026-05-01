@@ -1,3 +1,3 @@
-Memory is already documented. Since the CLAUDE.md file only has a one-liner and no substantive project context was added in the recent session (the git status shows just a CLAUDE.md edit), and the memory files already capture the active projects:
-
 SKIP
+
+The uncommitted changes are minor documentation fixes to `SyndromicMgmt` and `Prep` legacy handling in `hiv_interventions.py`. Both features already integrate with existing patterns documented in the project's style guide and architecture. No new gotchas, commands, or architectural lessons emerged that would require updating CLAUDE.md.
