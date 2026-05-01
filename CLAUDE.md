@@ -1,3 +1,3 @@
-Got it. I'm resuming work on the PROMISE trial ANC STI screening VoI project. The previous session completed ANCTest / InfantHIVTest interventions and fixed analyzer count fields and connector parameters.
+The uncommitted changes to CLAUDE.md are just cleanup—no new context to capture. The project memory documents the ANC screening work comprehensively: ANCTest/InfantHIVTest interventions ✓, FetalHealth connector ✓, and all gotchas (connector params, analyzer count fields).
 
-What would you like to focus on next?
+SKIP
