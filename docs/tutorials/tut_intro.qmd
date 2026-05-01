@@ -21,7 +21,7 @@ sim.run(verbose=0)
 sim.plot(key=['ng.new_infections', 'ng.prevalence'])
 ```
 
-Here we provided specific keys to plot (`ng.new_infections` and `ng.prevalence`). You can also call `sim.plot('ng')` to see all the high-level gonorrhea results, or just `sim.plot()` to see everything. For more on working with results, see the [Results and plotting](tut_results.ipynb) tutorial.
+Here we provided specific keys to plot (`ng.new_infections` and `ng.prevalence`). You can also call `sim.plot('ng')` to see all the high-level gonorrhea results, or just `sim.plot()` to see everything. For more on working with results, see the [Results and plotting](tut_results.qmd) tutorial.
 
 Three lines of code: create, run, plot. But a lot just happened behind the scenes. Let's unpack what's in the box.
 

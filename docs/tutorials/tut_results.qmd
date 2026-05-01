@@ -145,7 +145,7 @@ fig
 
 STIsim's built-in results cover the most common quantities (prevalence, incidence, counts by sex and age group). But you'll often need something specific to your analysis -- coinfection prevalence in a subgroup, treatment coverage by pathway, network contact rates, etc.
 
-Any module can define custom results: **analyzers**, **interventions**, **networks**, **connectors**, and **diseases** all use the same `define_results` pattern. The result then automatically appears in `sim.results`, `sim.to_df()`, and `sim.plot()` -- and can be used as a [calibration target](tut_calibration.ipynb).
+Any module can define custom results: **analyzers**, **interventions**, **networks**, **connectors**, and **diseases** all use the same `define_results` pattern. The result then automatically appears in `sim.results`, `sim.to_df()`, and `sim.plot()` -- and can be used as a [calibration target](tut_calibration.qmd).
 
 Here's a minimal example using an analyzer that tracks gonorrhea prevalence among people aged 15-24:
 
@@ -180,7 +180,7 @@ How it works:
 
 2. **`step`** is called every timestep. Access the sim via `self.sim`, compute your quantity, and store it in `self.results[name][self.ti]` where `self.ti` is the current timestep index.
 
-3. After `sim.run()`, the result is available everywhere: `sim.results`, `sim.to_df()`, `sim.plot()`, and as a calibration target (see [Calibration tutorial](tut_calibration.ipynb)).
+3. After `sim.run()`, the result is available everywhere: `sim.results`, `sim.to_df()`, `sim.plot()`, and as a calibration target (see [Calibration tutorial](tut_calibration.qmd)).
 
 This same pattern works in **any** module -- interventions, connectors, networks, etc. Anywhere you can write `define_results` in `init_pre` and `self.results[name][self.ti] = value` in `step`, you get a tracked result.
 

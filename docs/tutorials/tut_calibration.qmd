@@ -246,7 +246,7 @@ print(f'Loaded calibration with {len(loaded.df)} parameter sets')
 
 The key idea behind STIsim's calibration is simple: **any result that appears in `sim.to_df()` can be a calibration target**. You just need to include a column with the same name in your data file.
 
-Built-in disease results (prevalence, incidence, etc.) are always available. But what if you need something custom -- say, HIV-syphilis coinfection prevalence among adolescent girls? Any module (analyzers, interventions, connectors, etc.) can define custom results using `define_results` -- see [Custom results](tut_results.ipynb#custom-results) for the full explanation. Add the result to your sim, add a matching column to your data, and the calibration fits to it automatically.
+Built-in disease results (prevalence, incidence, etc.) are always available. But what if you need something custom -- say, HIV-syphilis coinfection prevalence among adolescent girls? Any module (analyzers, interventions, connectors, etc.) can define custom results using `define_results` -- see [Custom results](tut_results.qmd#custom-results) for the full explanation. Add the result to your sim, add a matching column to your data, and the calibration fits to it automatically.
 
 Here's an example using an analyzer:
 
