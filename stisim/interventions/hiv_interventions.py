@@ -436,26 +436,40 @@ class Prep(ss.Intervention):
     """
     Pre-exposure prophylaxis (PrEP).
 
-    By default targets HIV-negative FSWs who are not already on PrEP.
-    Reduces HIV susceptibility by eff_prep (default 80%). Coverage ramps up
-    over time via ``parse_coverage`` (same flexible inputs as ART/VMMC).
-    Use the eligibility parameter to target a different population.
+    Reduces HIV susceptibility by ``eff_prep`` (default 80%) among eligible agents.
+    Coverage ramps up over time via ``parse_coverage`` (same flexible inputs as
+    ART/VMMC). Uses a per-agent probability model (coverage = probability of being
+    on PrEP each step) rather than a target-count model like ART/VMMC.
 
-    Note: PrEP uses a per-agent probability model (coverage = probability of
-    being on PrEP) rather than a target-count model like ART/VMMC.
+    The ``eligibility`` callable defines the target population. It receives the
+    ``Sim`` object and should return a boolean array over all agents. HIV-negative
+    and not-already-on-PrEP filters are always applied on top, so eligibility only
+    needs to express *who to target*, not the clinical preconditions.
 
     Args:
-        coverage:    coverage data in any format accepted by parse_coverage;
-                     also accepts legacy (years, coverage) list pairs via pars
+        coverage:    coverage level(s); any format accepted by parse_coverage,
+                     or legacy (years, coverage) list pairs via pars
         eff_prep:    efficacy (default 0.8 = 80% reduction in acquisition)
         smoothness:  interpolation smoothness (0=linear, default)
-        eligibility: function to override default FSW targeting
+        eligibility: callable ``(sim) -> BoolArr`` defining the target population;
+                     defaults to FSW (``sim.networks.structuredsexual.fsw``)
 
     Examples::
 
+        # Default: FSW at time-varying coverage
         prep = sti.Prep(coverage={'year': [2020, 2025], 'value': [0, 0.5]})
-        prep = sti.Prep(coverage=0.3)
+
+        # AGYW targeting
+        prep = sti.Prep(
+            coverage=0.4,
+            eligibility=lambda sim: sim.people.female & (sim.people.age < 25),
+        )
     """
+
+    @staticmethod
+    def _default_eligibility(sim):
+        return sim.networks.structuredsexual.fsw
+
     def __init__(self, pars=None, coverage=None, eligibility=None, smoothness=0, **kwargs):
         super().__init__()
         self.define_pars(
@@ -463,7 +477,7 @@ class Prep(ss.Intervention):
             eff_prep=0.8,
         )
         self.update_pars(pars, **kwargs)
-        self.eligibility = eligibility
+        self.eligibility = eligibility if eligibility is not None else self._default_eligibility
         self._smoothness = smoothness
         self._coverage_arr = None  # Set in init_pre
 
@@ -492,10 +506,9 @@ class Prep(ss.Intervention):
         cov_val = self._coverage_arr[self.ti]
         if cov_val > 0:
             self.pars.coverage_dist.set(p=cov_val)
-            el_fsw = sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.infected & ~self.on_prep
-            fsw_on_prep = self.pars.coverage_dist.filter(el_fsw)
-            sim.diseases.hiv.rel_sus[fsw_on_prep] *= 1 - self.pars.eff_prep
-
+            eligible = self.eligibility(sim) & ~sim.diseases.hiv.infected & ~self.on_prep
+            new_on_prep = self.pars.coverage_dist.filter(eligible)
+            sim.diseases.hiv.rel_sus[new_on_prep] *= 1 - self.pars.eff_prep
         return
 
 

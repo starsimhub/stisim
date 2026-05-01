@@ -111,7 +111,7 @@ def test_latent_transmission_ratio_is_1():
 def test_acute_transmission_higher_than_latent():
     sc.heading("Checking HIV transmission ratio acute > latent.")
 
-    sim = build_testing_sim(analyzers=[RelativeInfectivityTracker(states=['acute'])], n_agents=500, duration=1)
+    sim = build_testing_sim(analyzers=[RelativeInfectivityTracker(states=['acute'])], n_agents=1000, duration=3)
     sim.run()
     acute_ratios = sim.results['relativeinfectivitytracker']['hiv.acute_rel_trans']
     acute_ratios = list(set(chain(*acute_ratios)))
@@ -669,7 +669,35 @@ def test_par_ranges(n_agents=1000):
     return
 
 
-def test_prevalence_by_sex(n_agents=1000):
+def test_rel_sus_age(n_agents=3000):
+    """
+    Higher rel_sus_age multiplier for young women should produce more infections
+    in that group relative to a sim with uniform susceptibility.
+    """
+    import numpy as np
+    hiv_age = sti.HIV(
+        rel_sus_age=[(15, 25, 'f', 3.0), (25, np.inf, 'f', 1.0)],
+        init_prev=0.1,
+    )
+    sim_age = sti.Sim(diseases=hiv_age, n_agents=n_agents, dur=10, rand_seed=1, verbose=0)
+    sim_uni = sti.Sim(diseases='hiv', n_agents=n_agents, dur=10, rand_seed=1, verbose=0)
+    ss.parallel(sim_age, sim_uni)
+
+    def young_female_infections(sim):
+        ppl = sim.people
+        ti_inf = sim.diseases.hiv.ti_infected.values
+        return ((ppl.age.values >= 15) & (ppl.age.values < 25) & ppl.female.values & (ti_inf >= 0)).sum()
+
+    yf_age = young_female_infections(sim_age)
+    yf_uni = young_female_infections(sim_uni)
+    assert yf_age > yf_uni, (
+        f'rel_sus_age multiplier for young women should increase their infections; '
+        f'age-dep={yf_age}, uniform={yf_uni}'
+    )
+    return sim_age, sim_uni
+
+
+def test_prevalence_by_sex(n_agents=3000):
     """
     Under default parameters, female HIV prevalence should exceed male prevalence.
 

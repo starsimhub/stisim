@@ -56,9 +56,8 @@ class NetworkPars(ss.Pars):
         )
 
         # Age of sexual debut
-        self.debut = ss.lognorm_ex(20, 3)
-        self.debut_pars_f = [20, 3]
-        self.debut_pars_m = [21, 3]
+        self.debut_f = ss.lognorm_ex(20, 3)
+        self.debut_m = ss.lognorm_ex(21, 3)
 
         # Risk groups
         self.p_lo_risk = ss.bernoulli(p=0)
@@ -334,14 +333,11 @@ class StructuredSexual(ss.SexualNetwork):
 
     def set_debut(self, upper_age=None):
         uids = self._get_uids(upper_age=upper_age, by_sex=False)
-        par1 = np.full(len(uids), fill_value=np.nan, dtype=ss_float_)
-        par2 = np.full(len(uids), fill_value=np.nan, dtype=ss_float_)
-        par1[self.sim.people.female[uids]] = self.pars.debut_pars_f[0]
-        par2[self.sim.people.female[uids]] = self.pars.debut_pars_f[1]
-        par1[self.sim.people.male[uids]] = self.pars.debut_pars_m[0]
-        par2[self.sim.people.male[uids]] = self.pars.debut_pars_m[1]
-        self.pars.debut.set(mean=par1, std=par2)
-        self.debut[uids] = self.pars.debut.rvs(uids)
+        female = self.sim.people.female[uids]
+        f_uids = uids[female]
+        m_uids = uids[~female]
+        self.debut[f_uids] = self.pars.debut_f.rvs(f_uids)
+        self.debut[m_uids] = self.pars.debut_m.rvs(m_uids)
         return
 
     def match_pairs(self):

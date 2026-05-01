@@ -1,21 +1,9 @@
 # Examples Gallery
 
-Worked examples illustrating STIsim features. Each example is a runnable
-Jupyter notebook — download and adapt to your own use case.
+Worked examples illustrating STIsim features. Click any tile to open the
+runnable notebook.
 
-<div class="grid cards" markdown>
-
--   :material-pill:{ .lg .middle } **Modeling ART interruptions**
-
-    ---
-
-    ![ART interruptions](art_interruptions_thumb.png){ width="280" }
-
-    Simulate exogenous shocks to ART coverage using mixed-format DataFrames.
-    Build scenario-specific coverage, run counterfactuals, and compare outcomes.
-
-    [:octicons-arrow-right-24: Open example](art_interruptions.ipynb)
-
-    :material-tag-outline: *New in v1.5.3* · :material-clock-outline: *~30s*
-
+<div class="sti-gallery">
+  <a href="art_interruptions.ipynb"><figure><img src="art_interruptions_thumb.png" alt="ART supply interruption"><figcaption>What happens if ART supply is temporarily cut off?</figcaption></figure></a>
+  <a href="dynamic_debut.ipynb"><figure><img src="dynamic_debut_thumb.png" alt="Declining age at first sex"><figcaption>What happens when age at first sex declines over time?</figcaption></figure></a>
 </div>
