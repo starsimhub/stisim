@@ -6,10 +6,10 @@ Connectors model interactions between co-circulating diseases. They run each tim
 
 A multi-STI simulation is not just a sum of independent diseases — biological evidence supports several coinfection effects:
 
-- **HIV ↔ ulcerative STIs (syphilis, GUD)**: ulcers increase HIV acquisition and transmission risk.
-- **HIV ↔ non-ulcerative STIs (gonorrhea, chlamydia, trichomoniasis)**: inflammation increases HIV transmissibility; HIV-induced immunosuppression can prolong STI infection.
-- **HIV ↔ BV**: dysbiosis is associated with elevated HIV acquisition risk.
-- **GUD ↔ syphilis**: syphilitic chancres are a primary cause of GUD; the connector links syphilis stage to GUD prevalence.
+- **HIV ↔ ulcerative STIs (syphilis, GUD)**: Ulcers increase HIV acquisition and transmission risk.
+- **HIV ↔ non-ulcerative STIs (gonorrhea, chlamydia, trichomoniasis)**: Inflammation increases HIV transmissibility; HIV-induced immunosuppression can prolong STI infection.
+- **HIV ↔ BV**: Dysbiosis is associated with elevated HIV acquisition risk.
+- **GUD ↔ syphilis**: Syphilitic chancres are a primary cause of GUD; the connector links syphilis stage to GUD prevalence.
 
 Each effect is implemented as a connector class so that users can mix and match.
 

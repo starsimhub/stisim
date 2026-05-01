@@ -1,46 +1,45 @@
+# Note: this only runs manually or on pushes to tagged versions.
+
 name: Publish STIsim docs
 
 on:
-  workflow_dispatch:
   push:
-    branches: [ main ]
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
+    tags:
+      - 'v*'
+  workflow_dispatch:
 
 jobs:
-  build:
+  publish:
+    name: Quarto
+    timeout-minutes: 30
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.13"
 
-      - uses: actions/cache@v4
-        with:
-          key: mkdocs-material-${{ runner.os }}-${{ hashFiles('**/requirements.txt', '**/pyproject.toml', '**/mkdocs.yml') }}
-          path: ~/.cache/pip
+      - name: Install STIsim
+        run: pip install -e .[dev]
 
-      - run: pip install -e .[dev]
-      - run: python -c "import stisim"  # Pre-build font cache so it doesn't appear in notebook output
-      - run: mkdocs build
+      - name: Pre-build font cache
+        run: python -c "import stisim"
 
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
+      - name: Set up Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-    steps:
-      - uses: actions/deploy-pages@v4
+      - name: Install Quarto interlinks extension
+        working-directory: ./docs
+        run: quarto add machow/quartodoc --no-prompt
+
+      - name: Custom Quarto publish
+        working-directory: ./docs
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@users.noreply.github.com"
+          ./publish

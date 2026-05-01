@@ -44,11 +44,10 @@ dev = [
     "pytest-env", 
     "pytest-xdist",
     "jupyter",
-    "mkdocs",
-    "mkdocs-material",
-    "mkdocstrings[python]",
-    "mkdocs-include-markdown-plugin",
-    "mkdocs-jupyter"
+    "jupyter-cache",
+    "jupytext",
+    "quartodoc",
+    "sphobjinv",
 ]
 
 [project.urls]

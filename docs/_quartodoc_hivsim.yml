@@ -1,0 +1,12 @@
+quartodoc:
+  package: hivsim
+  title: HIVsim API
+  style: pkgdown
+  dir: api/hivsim
+  parser: google
+  render_interlinks: true
+  sections:
+    - title: Sim
+      desc: Core simulation classes and utilities.
+      contents:
+        - sim
