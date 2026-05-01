@@ -13,7 +13,7 @@ from stisim.utils import count
 
 
 # %% HIV classes
-__all__ = ["HIVDx", "HIVTest", "ART", "VMMC", "Prep"]
+__all__ = ["HIVDx", "HIVTest", "InfantHIVTest", "ART", "VMMC", "Prep"]
 
 
 class HIVDx(ss.Product):
@@ -87,11 +87,14 @@ class HIVTest(STITest):
             ],
         )
     """
-    def __init__(self, product=None, pars=None, test_prob_data=None, years=None, start=None, eligibility=None, name=None, label=None, **kwargs):
+    def __init__(self, product=None, pars=None, test_prob_data=None, years=None, start=None,
+                 eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
         if product is None: product = HIVDx(name=f'HIVDx_{name}')
-        super().__init__(product=product, pars=pars, test_prob_data=test_prob_data, years=years, start=start, eligibility=eligibility, name=name, label=label, **kwargs)
+        super().__init__(product=product, pars=pars, test_prob_data=test_prob_data, years=years,
+                         start=start, eligibility=eligibility, name=name, label=label, **kwargs)
         if self.eligibility is None:
             self.eligibility = lambda sim: ~sim.diseases.hiv.diagnosed
+        self.newborn_test = newborn_test
 
     def step(self, uids=None):
         sim = self.sim
@@ -99,7 +102,41 @@ class HIVTest(STITest):
         pos_uids = outcomes['positive']
         sim.diseases.hiv.diagnosed[pos_uids] = True
         sim.diseases.hiv.ti_diagnosed[pos_uids] = self.ti
+
+        # Schedule infant HIV test for unborn children of newly diagnosed mothers
+        if self.newborn_test is not None and len(pos_uids):
+            if hasattr(sim.networks, 'maternalnet') and hasattr(sim.demographics, 'pregnancy'):
+                mn = sim.networks.maternalnet
+                pos_mask  = np.isin(mn.p1, pos_uids)
+                unborn    = mn.p2[pos_mask]
+                ti_births = sim.demographics.pregnancy.ti_delivery[mn.p1[pos_mask]]
+                valid     = ~np.isnan(ti_births)
+                if valid.any():
+                    self.newborn_test.schedule(unborn[valid], ti_births[valid].astype(int))
         return outcomes
+
+
+class InfantHIVTest(HIVTest):
+    """
+    HIV test for infants born to mothers diagnosed during pregnancy.
+
+    Scheduled by :class:`HIVTest` (via ``newborn_test=``) or :class:`ANCTest`
+    when the mother tests positive. Fires only at the scheduled timestep.
+    A positive result sets ``hiv.diagnosed`` on the infant, enabling ART linkage.
+
+    Args:
+        test_prob (float): probability of the infant receiving the test once
+                           scheduled (default 1.0 — if scheduled, it happens)
+        name, label:       standard
+    """
+    def __init__(self, test_prob=1.0, name=None, label=None, **kwargs):
+        super().__init__(name=name, label=label, **kwargs)
+        self._test_prob_dist = ss.bernoulli(p=test_prob)
+
+    def check_eligibility(self):
+        # Only test infants at their scheduled timestep
+        scheduled_now = (self.ti_scheduled == self.ti).uids
+        return self._test_prob_dist.filter(scheduled_now)
 
 
 class ART(ss.Intervention):

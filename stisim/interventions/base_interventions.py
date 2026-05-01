@@ -11,7 +11,7 @@ from stisim.utils import count
 
 
 # %% Base classes
-__all__ = ["STIDx", "STITest", "SymptomaticTesting", "SyndromicMgmt", "ANCScreen", "STITreatment", "PartnerNotification", "ProductMix"]
+__all__ = ["STIDx", "STITest", "SymptomaticTesting", "SyndromicMgmt", "ANCTest", "STITreatment", "PartnerNotification", "ProductMix"]
 
 
 class STIDx(ss.Product):
@@ -641,180 +641,180 @@ class SyndromicMgmt(STITest):
         return
 
 
-class ANCScreen(STITest):
+class ANCTest(ss.Intervention):
     """
-    ANC-based screening for asymptomatic STIs during pregnancy.
+    Multi-disease ANC visit testing, scheduled once per pregnancy.
 
-    Screens pregnant women for one or more STIs within an optional gestational
-    age window. Multiple instances can model timed screens (e.g. enrollment
-    ≤24 weeks + third-trimester 32–34 weeks). Each instance maintains its own
-    ``ti_tested`` so a woman can be screened once per visit type per pregnancy.
+    When a woman becomes pregnant, schedules one ANC visit at a random
+    gestational timepoint (months 1–7). At that visit she is tested for all
+    supported diseases found in the sim. ``visit_prob`` reflects ANC attendance
+    rather than test acceptance — once she attends, all active disease tests are
+    applied.
 
-    Test sensitivity is per-disease; specificity is assumed perfect (no false
-    positives). Detected cases are routed to treatment via ``disease_treatment_map``.
+    Auto-detected diseases (registry, Option A):
+        hiv      — sets ``hiv.diagnosed`` / ``hiv.ti_diagnosed``; optionally schedules
+                   ``InfantHIVTest`` on the unborn via ``maternalnet``
+        syphilis — routes positives to ``disease_treatment_map['syphilis']``; optionally
+                   schedules ``NewbornSyphTest`` on the unborn via ``maternalnet``
+    Additional diseases in ``disease_names`` are tested and routed via
+    ``disease_treatment_map`` with configurable sensitivity.
+
+    Newborn/infant tests must be added to ``sim.interventions`` by the caller and
+    passed via ``newborn_tests`` so they go through normal Starsim initialisation.
+    ``ANCTest`` only handles scheduling them (sets their ``ti_scheduled`` state).
 
     Args:
-        diseases (list):              disease modules to screen for
-        treatments (list):            treatment modules (used to build default map)
-        disease_treatment_map (dict): maps disease name → treatment module;
-                                      auto-constructed from ``treatments`` if omitted
-        test_sensitivity (dict):      per-disease sensitivity (default: 1.0 for all)
-        screen_prob (float):          baseline probability of being screened (default 0.5)
-        screen_prob_data (array):     time-varying screening probability
-        ga_min (float):               minimum gestational age in weeks for eligibility
-        ga_max (float):               maximum gestational age in weeks for eligibility
-        years, start, stop, name, label: passed to STITest
+        visit_prob (float):           probability of attending ANC (default 0.85)
+        disease_names (list):         diseases to test for; default: auto-detect
+                                      'hiv' and 'syphilis' from sim
+        test_sensitivity (dict):      per-disease sensitivity, e.g. ``{'hiv': 0.99}``;
+                                      default 1.0 for all
+        disease_treatment_map (dict): maps disease name → treatment intervention;
+                                      required for syphilis and any non-HIV disease
+        newborn_tests (dict):         maps disease name → newborn/infant test
+                                      intervention already in ``sim.interventions``,
+                                      e.g. ``{'hiv': infant_hiv, 'syphilis': newborn_syph}``
+        start, stop, name, label:     standard
 
     Examples::
 
-        anc_enroll = sti.ANCScreen(
-            name='anc_enroll',
-            diseases=[ng, ct, tv],
-            treatments=[ng_tx, ct_tx, metronidazole],
-            disease_treatment_map={'ng': ng_tx, 'ct': ct_tx, 'tv': metronidazole},
-            screen_prob=0.5,
-            test_sensitivity={'ng': 0.95, 'ct': 0.95, 'tv': 0.90},
-            ga_max=24,
-            start=2027,
+        # Minimal: HIV + syphilis auto-detected, no newborn tests
+        anc = sti.ANCTest(
+            visit_prob=0.85,
+            disease_treatment_map={'syphilis': syph_tx},
         )
+
+        # With newborn/infant tests
+        infant_hiv  = sti.InfantHIVTest(name='infant_hiv')
+        newborn_syph = sti.NewbornSyphTest(name='newborn_syph', ...)
+        anc = sti.ANCTest(
+            visit_prob=0.85,
+            disease_treatment_map={'syphilis': syph_tx},
+            newborn_tests={'hiv': infant_hiv, 'syphilis': newborn_syph},
+        )
+        sim = ss.Sim(..., interventions=[anc, art, syph_tx, infant_hiv, newborn_syph])
     """
 
-    def __init__(self, pars=None, diseases=None, treatments=None,
-                 disease_treatment_map=None, test_sensitivity=None,
-                 screen_prob=None, screen_prob_data=None,
-                 ga_min=None, ga_max=None,
-                 years=None, start=None, stop=None,
-                 name=None, label=None, **kwargs):
-        super().__init__(years=years, start=start, stop=stop, name=name, label=label)
-        self.define_pars(
-            screen_prob=ss.bernoulli(p=screen_prob if screen_prob is not None else 0.5),
-            dt_scale=False,
-        )
-        self.update_pars(pars, **kwargs)
+    # Registry: disease names → (needs_diagnosed_flag, has_newborn_test)
+    # HIV is handled via diagnosed state; syphilis via treatment map.
+    # Lazy imports for the actual classes live in _schedule_newborn().
+    _registry = {
+        'hiv':      dict(use_diagnosed=True),
+        'syphilis': dict(use_diagnosed=False),
+    }
 
-        self.diseases = sc.tolist(diseases)
-        self.treatments = sc.tolist(treatments)
-        if disease_treatment_map is None:
-            disease_treatment_map = {}
-        self.disease_treatment_map = disease_treatment_map
-
-        if test_sensitivity is None:
-            test_sensitivity = {d.name: 1.0 for d in self.diseases}
-        self.test_sensitivity = test_sensitivity
-
-        self.ga_min = ga_min
-        self.ga_max = ga_max
-
-        self._sens_dist = ss.bernoulli(p=0.5)
-        self.screen_prob_data = screen_prob_data
-        self._screen_prob_interp = None
+    def __init__(self, visit_prob=0.85, disease_names=None, test_sensitivity=None,
+                 disease_treatment_map=None, newborn_tests=None,
+                 start=None, stop=None, name=None, label=None, **kwargs):
+        super().__init__(name=name, label=label, **kwargs)
+        self._visit_prob_val  = visit_prob
+        self._disease_names   = disease_names          # None → auto-detect from registry
+        self._test_sensitivity = test_sensitivity or {}
+        self._disease_tx_map  = disease_treatment_map or {}
+        self._newborn_tests   = newborn_tests or {}
+        self._active_diseases = []   # resolved in init_pre
+        self._visit_prob_dist = ss.bernoulli(p=visit_prob)
+        self._sens_dist       = ss.bernoulli(p=0.5)
+        self._visit_timing    = ss.randint(low=1, high=9)   # months into pregnancy
+        self.start = start
+        self.stop  = stop
+        self.define_states(ss.FloatArr('ti_visit', label='Scheduled ANC visit'))
         return
 
     def init_pre(self, sim):
         super().init_pre(sim)
-        if self.screen_prob_data is not None and self.pars.years is not None:
-            self._screen_prob_interp = sc.smoothinterp(
-                sim.t.yearvec, self.pars.years, self.screen_prob_data, smoothness=0,
-            )
+        if self.start is None:
+            self.start = sim.t.yearvec[0]
+        if self.stop is None:
+            self.stop = sim.t.yearvec[-1]
+
+        if self._disease_names is not None:
+            self._active_diseases = list(self._disease_names)
+        else:
+            # Auto-detect: include any registered disease present in the sim
+            self._active_diseases = [d for d in self._registry if d in sim.diseases]
         return
 
     def init_results(self):
         super().init_results()
         results = sc.autolist()
-        results += ss.Result('n_screened',  dtype=int, label='Women screened')
-        results += ss.Result('n_positive',  dtype=int, label='Women testing positive')
-        for d in self.diseases:
-            results += ss.Result(f'n_{d.name}_detected',  dtype=int, label=f'{d.name.upper()} detected')
-            results += ss.Result(f'n_{d.name}_true_pos',  dtype=int, label=f'{d.name.upper()} true positive')
-            results += ss.Result(f'n_{d.name}_false_pos', dtype=int, label=f'{d.name.upper()} false positive')
-            results += ss.Result(f'n_{d.name}_false_neg', dtype=int, label=f'{d.name.upper()} false negative')
+        results += ss.Result('n_attended', dtype=int, label='ANC attendees')
+        for dname in self._active_diseases:
+            results += ss.Result(f'n_{dname}_positive', dtype=int,
+                                 label=f'{dname.upper()} positive at ANC')
         self.define_results(*results)
         return
 
     def step(self):
         sim = self.sim
-        ppl = sim.people
         ti  = self.ti
 
         if sim.now < self.start or sim.now >= self.stop:
             return
 
-        # Pregnant women not yet screened this pregnancy by this instance
-        pregnant = ppl.pregnancy.pregnant
-        never_tested = np.isnan(self.ti_tested.values)
-        tested_before_this_pregnancy = self.ti_tested < ppl.pregnancy.ti_pregnant
-        eligible = pregnant & ppl.female & (never_tested | tested_before_this_pregnancy)
+        # Schedule a visit for each newly pregnant woman
+        if hasattr(sim.demographics, 'pregnancy'):
+            newly_preg = (sim.demographics.pregnancy.ti_pregnant == ti).uids
+            attendees  = self._visit_prob_dist.filter(newly_preg)
+            months_dt  = ss.dur(1, 'month') / sim.t.dt   # timesteps per month
+            offsets    = np.round(self._visit_timing.rvs(attendees) * months_dt).astype(int)
+            self.ti_visit[attendees] = ti + offsets
 
-        if not eligible.any():
+        visit_uids = (self.ti_visit == ti).uids
+        if not len(visit_uids):
             return
 
-        eligible_uids = eligible.uids
+        self.results['n_attended'][ti] = len(visit_uids)
 
-        # Optional gestational-age window (weeks)
-        if self.ga_min is not None or self.ga_max is not None:
-            ga_weeks = np.asarray(ppl.pregnancy.gestation[eligible_uids], dtype=float)
-            in_window = np.ones(len(eligible_uids), dtype=bool)
-            if self.ga_min is not None:
-                in_window &= ga_weeks >= self.ga_min
-            if self.ga_max is not None:
-                in_window &= ga_weeks <= self.ga_max
-            eligible_uids = eligible_uids[in_window]
+        for dname in self._active_diseases:
+            if dname not in sim.diseases:
+                continue
+            disease  = sim.diseases[dname]
+            sens     = self._test_sensitivity.get(dname, 1.0)
 
-        if len(eligible_uids) == 0:
-            return
-
-        if self._screen_prob_interp is not None:
-            self.pars.screen_prob.set(p=self._screen_prob_interp[ti])
-
-        screened_uids = eligible_uids[self.pars.screen_prob.rvs(eligible_uids)]
-
-        if len(screened_uids) == 0:
-            return
-
-        self.ti_tested[screened_uids] = ti
-        self.results['n_screened'][ti] = len(screened_uids)
-
-        any_positive = ss.uids()
-        for disease in self.diseases:
-            dname = disease.name
-            sensitivity = self.test_sensitivity.get(dname, 1.0)
-
-            infected_uids   = screened_uids[disease.infected[screened_uids]]
-            uninfected_uids = screened_uids[~disease.infected[screened_uids]]
-
-            if len(infected_uids) and sensitivity < 1.0:
-                self._sens_dist.set(p=sensitivity)
-                detected       = self._sens_dist.rvs(infected_uids)
-                true_pos_uids  = infected_uids[detected]
-                false_neg_uids = infected_uids[~detected]
+            # Apply sensitivity to infected attendees
+            infected = visit_uids[disease.infected[visit_uids]]
+            if len(infected) and sens < 1.0:
+                self._sens_dist.set(p=sens)
+                pos_uids = infected[self._sens_dist.rvs(infected)]
             else:
-                true_pos_uids  = infected_uids
-                false_neg_uids = ss.uids()
+                pos_uids = infected
 
-            false_pos_uids = ss.uids()   # perfect specificity assumed
-            detected_uids  = true_pos_uids | false_pos_uids
+            if not len(pos_uids):
+                continue
 
-            self.results[f'n_{dname}_detected'][ti]  = len(detected_uids)
-            self.results[f'n_{dname}_true_pos'][ti]  = len(true_pos_uids)
-            self.results[f'n_{dname}_false_pos'][ti] = len(false_pos_uids)
-            self.results[f'n_{dname}_false_neg'][ti] = len(false_neg_uids)
+            self.results[f'n_{dname}_positive'][ti] += len(pos_uids)
+            cfg = self._registry.get(dname, {})
 
-            if hasattr(disease, 'sex_keys'):
-                for pkey, pattr in disease.sex_keys.items():
-                    skk = '' if pkey == '' else f'_{pkey}'
-                    disease.results[f'new_true_pos{skk}'][ti]  += len(true_pos_uids  & ppl[pattr])
-                    disease.results[f'new_false_pos{skk}'][ti] += len(false_pos_uids & ppl[pattr])
-                    disease.results[f'new_false_neg{skk}'][ti] += len(false_neg_uids & ppl[pattr])
-                    disease.results[f'new_true_neg{skk}'][ti]  += len(uninfected_uids & ppl[pattr])
-
-            if dname in self.disease_treatment_map and len(detected_uids):
-                self.disease_treatment_map[dname].eligibility = (
-                    self.disease_treatment_map[dname].eligibility | detected_uids
+            if cfg.get('use_diagnosed'):
+                # HIV-style: set diagnosed flag so ART picks up automatically
+                disease.diagnosed[pos_uids]    = True
+                disease.ti_diagnosed[pos_uids] = ti
+            elif dname in self._disease_tx_map:
+                self._disease_tx_map[dname].eligibility = (
+                    self._disease_tx_map[dname].eligibility | pos_uids
                 )
 
-            any_positive = any_positive | detected_uids
+            # Schedule newborn/infant test if provided and maternalnet exists
+            if dname in self._newborn_tests:
+                self._schedule_newborn(sim, pos_uids, self._newborn_tests[dname])
+        return
 
-        self.results['n_positive'][ti] = len(any_positive)
+    @staticmethod
+    def _schedule_newborn(sim, pos_mother_uids, newborn_test):
+        """Schedule a newborn/infant test for unborn children of positive mothers."""
+        if not (hasattr(sim.networks, 'maternalnet') and
+                hasattr(sim.demographics, 'pregnancy')):
+            return
+        mn = sim.networks.maternalnet
+        pos_mask = np.isin(mn.p1, pos_mother_uids)
+        unborn   = mn.p2[pos_mask]
+        ti_births = sim.demographics.pregnancy.ti_delivery[
+            mn.p1[pos_mask]
+        ]
+        valid = ~np.isnan(ti_births)
+        if valid.any():
+            newborn_test.schedule(unborn[valid], ti_births[valid].astype(int))
         return
 
 

@@ -1,3 +1,3 @@
 SKIP
 
-The uncommitted changes are minor documentation fixes to `SyndromicMgmt` and `Prep` legacy handling in `hiv_interventions.py`. Both features already integrate with existing patterns documented in the project's style guide and architecture. No new gotchas, commands, or architectural lessons emerged that would require updating CLAUDE.md.
+The CLAUDE.md accurately documents the ANCTest refactoring work completed in the previous session. All changes are staged and ready to commit with a direct message. No new context, gotchas, or patterns emerged that warrant updating the project instructions.
