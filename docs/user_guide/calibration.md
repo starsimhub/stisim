@@ -1,6 +1,6 @@
 # Calibration
 
-STIsim ships a thin wrapper around [Optuna](https://optuna.org/) for fitting model parameters to data. The [calibration tutorial](../tutorials/tut_calibration.ipynb) walks through a complete example end-to-end; this page documents the public surface.
+STIsim ships a thin wrapper around [Optuna](https://optuna.org/) for fitting model parameters to data. The [calibration tutorial](../tutorials/tut_calibration.qmd) walks through a complete example end-to-end; this page documents the public surface.
 
 ## Overview
 
