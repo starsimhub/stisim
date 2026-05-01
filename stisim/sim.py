@@ -302,11 +302,10 @@ class Sim(ss.Sim):
 
         else:
             # If no networks are provided, create them based on the network parameters
-            nets = [sti.StructuredSexual(pars=self.nw_pars), ss.MaternalNet()]
-            # Add BreastfeedingNet when location-based demographics will include Pregnancy
-            if self.pars['use_pregnancy'] and sc.checktype(self.pars.get('demographics'), str):
-                nets.append(ss.BreastfeedingNet())
-            networks = ss.ndict(*nets)
+            networks = ss.ndict(
+                sti.StructuredSexual(pars=self.nw_pars),
+                ss.MaternalNet(),
+            )
         return networks
 
     def process_demographics(self):
