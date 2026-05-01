@@ -11,7 +11,7 @@ from stisim.utils import count
 
 
 # %% Base classes
-__all__ = ["STIDx", "STITest", "SymptomaticTesting", "SyndromicMgmt", "STITreatment", "PartnerNotification", "ProductMix"]
+__all__ = ["STIDx", "STITest", "SymptomaticTesting", "SyndromicMgmt", "ANCScreen", "STITreatment", "PartnerNotification", "ProductMix"]
 
 
 class STIDx(ss.Product):
@@ -638,6 +638,183 @@ class SyndromicMgmt(STITest):
                 self.results['new_tx1' + skk][ti] += count(ppl[sl][self.treated_by_uid['mtnz']])
                 self.results['new_tx2' + skk][ti] += count(ppl[sl][self.treated_by_uid['ngct']])
                 self.results['new_tx3' + skk][ti] += count(ppl[sl][self.treated_by_uid['all3']])
+        return
+
+
+class ANCScreen(STITest):
+    """
+    ANC-based screening for asymptomatic STIs during pregnancy.
+
+    Screens pregnant women for one or more STIs within an optional gestational
+    age window. Multiple instances can model timed screens (e.g. enrollment
+    ≤24 weeks + third-trimester 32–34 weeks). Each instance maintains its own
+    ``ti_tested`` so a woman can be screened once per visit type per pregnancy.
+
+    Test sensitivity is per-disease; specificity is assumed perfect (no false
+    positives). Detected cases are routed to treatment via ``disease_treatment_map``.
+
+    Args:
+        diseases (list):              disease modules to screen for
+        treatments (list):            treatment modules (used to build default map)
+        disease_treatment_map (dict): maps disease name → treatment module;
+                                      auto-constructed from ``treatments`` if omitted
+        test_sensitivity (dict):      per-disease sensitivity (default: 1.0 for all)
+        screen_prob (float):          baseline probability of being screened (default 0.5)
+        screen_prob_data (array):     time-varying screening probability
+        ga_min (float):               minimum gestational age in weeks for eligibility
+        ga_max (float):               maximum gestational age in weeks for eligibility
+        years, start, stop, name, label: passed to STITest
+
+    Examples::
+
+        anc_enroll = sti.ANCScreen(
+            name='anc_enroll',
+            diseases=[ng, ct, tv],
+            treatments=[ng_tx, ct_tx, metronidazole],
+            disease_treatment_map={'ng': ng_tx, 'ct': ct_tx, 'tv': metronidazole},
+            screen_prob=0.5,
+            test_sensitivity={'ng': 0.95, 'ct': 0.95, 'tv': 0.90},
+            ga_max=24,
+            start=2027,
+        )
+    """
+
+    def __init__(self, pars=None, diseases=None, treatments=None,
+                 disease_treatment_map=None, test_sensitivity=None,
+                 screen_prob=None, screen_prob_data=None,
+                 ga_min=None, ga_max=None,
+                 years=None, start=None, stop=None,
+                 name=None, label=None, **kwargs):
+        super().__init__(years=years, start=start, stop=stop, name=name, label=label)
+        self.define_pars(
+            screen_prob=ss.bernoulli(p=screen_prob if screen_prob is not None else 0.5),
+            dt_scale=False,
+        )
+        self.update_pars(pars, **kwargs)
+
+        self.diseases = sc.tolist(diseases)
+        self.treatments = sc.tolist(treatments)
+        if disease_treatment_map is None:
+            disease_treatment_map = {}
+        self.disease_treatment_map = disease_treatment_map
+
+        if test_sensitivity is None:
+            test_sensitivity = {d.name: 1.0 for d in self.diseases}
+        self.test_sensitivity = test_sensitivity
+
+        self.ga_min = ga_min
+        self.ga_max = ga_max
+
+        self._sens_dist = ss.bernoulli(p=0.5)
+        self.screen_prob_data = screen_prob_data
+        self._screen_prob_interp = None
+        return
+
+    def init_pre(self, sim):
+        super().init_pre(sim)
+        if self.screen_prob_data is not None and self.pars.years is not None:
+            self._screen_prob_interp = sc.smoothinterp(
+                sim.t.yearvec, self.pars.years, self.screen_prob_data, smoothness=0,
+            )
+        return
+
+    def init_results(self):
+        super().init_results()
+        results = sc.autolist()
+        results += ss.Result('n_screened',  dtype=int, label='Women screened')
+        results += ss.Result('n_positive',  dtype=int, label='Women testing positive')
+        for d in self.diseases:
+            results += ss.Result(f'n_{d.name}_detected',  dtype=int, label=f'{d.name.upper()} detected')
+            results += ss.Result(f'n_{d.name}_true_pos',  dtype=int, label=f'{d.name.upper()} true positive')
+            results += ss.Result(f'n_{d.name}_false_pos', dtype=int, label=f'{d.name.upper()} false positive')
+            results += ss.Result(f'n_{d.name}_false_neg', dtype=int, label=f'{d.name.upper()} false negative')
+        self.define_results(*results)
+        return
+
+    def step(self):
+        sim = self.sim
+        ppl = sim.people
+        ti  = self.ti
+
+        if sim.now < self.start or sim.now >= self.stop:
+            return
+
+        # Pregnant women not yet screened this pregnancy by this instance
+        pregnant = ppl.pregnancy.pregnant
+        never_tested = np.isnan(self.ti_tested.values)
+        tested_before_this_pregnancy = self.ti_tested < ppl.pregnancy.ti_pregnant
+        eligible = pregnant & ppl.female & (never_tested | tested_before_this_pregnancy)
+
+        if not eligible.any():
+            return
+
+        eligible_uids = eligible.uids
+
+        # Optional gestational-age window (weeks)
+        if self.ga_min is not None or self.ga_max is not None:
+            ga_weeks = np.asarray(ppl.pregnancy.gestation[eligible_uids], dtype=float)
+            in_window = np.ones(len(eligible_uids), dtype=bool)
+            if self.ga_min is not None:
+                in_window &= ga_weeks >= self.ga_min
+            if self.ga_max is not None:
+                in_window &= ga_weeks <= self.ga_max
+            eligible_uids = eligible_uids[in_window]
+
+        if len(eligible_uids) == 0:
+            return
+
+        if self._screen_prob_interp is not None:
+            self.pars.screen_prob.set(p=self._screen_prob_interp[ti])
+
+        screened_uids = eligible_uids[self.pars.screen_prob.rvs(eligible_uids)]
+
+        if len(screened_uids) == 0:
+            return
+
+        self.ti_tested[screened_uids] = ti
+        self.results['n_screened'][ti] = len(screened_uids)
+
+        any_positive = ss.uids()
+        for disease in self.diseases:
+            dname = disease.name
+            sensitivity = self.test_sensitivity.get(dname, 1.0)
+
+            infected_uids   = screened_uids[disease.infected[screened_uids]]
+            uninfected_uids = screened_uids[~disease.infected[screened_uids]]
+
+            if len(infected_uids) and sensitivity < 1.0:
+                self._sens_dist.set(p=sensitivity)
+                detected       = self._sens_dist.rvs(infected_uids)
+                true_pos_uids  = infected_uids[detected]
+                false_neg_uids = infected_uids[~detected]
+            else:
+                true_pos_uids  = infected_uids
+                false_neg_uids = ss.uids()
+
+            false_pos_uids = ss.uids()   # perfect specificity assumed
+            detected_uids  = true_pos_uids | false_pos_uids
+
+            self.results[f'n_{dname}_detected'][ti]  = len(detected_uids)
+            self.results[f'n_{dname}_true_pos'][ti]  = len(true_pos_uids)
+            self.results[f'n_{dname}_false_pos'][ti] = len(false_pos_uids)
+            self.results[f'n_{dname}_false_neg'][ti] = len(false_neg_uids)
+
+            if hasattr(disease, 'sex_keys'):
+                for pkey, pattr in disease.sex_keys.items():
+                    skk = '' if pkey == '' else f'_{pkey}'
+                    disease.results[f'new_true_pos{skk}'][ti]  += len(true_pos_uids  & ppl[pattr])
+                    disease.results[f'new_false_pos{skk}'][ti] += len(false_pos_uids & ppl[pattr])
+                    disease.results[f'new_false_neg{skk}'][ti] += len(false_neg_uids & ppl[pattr])
+                    disease.results[f'new_true_neg{skk}'][ti]  += len(uninfected_uids & ppl[pattr])
+
+            if dname in self.disease_treatment_map and len(detected_uids):
+                self.disease_treatment_map[dname].eligibility = (
+                    self.disease_treatment_map[dname].eligibility | detected_uids
+                )
+
+            any_positive = any_positive | detected_uids
+
+        self.results['n_positive'][ti] = len(any_positive)
         return
 
 
