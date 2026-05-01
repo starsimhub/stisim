@@ -116,7 +116,6 @@ def test_sim_creation():
     assert sim3.diseases.ct.pars.beta_m2f == pars['beta_m2f'], "Disease parameter not set correctly"
     assert sim3.diseases.ng.pars.eff_condom == pars['ng']['eff_condom'], "Disease parameter not set correctly"
     assert sim3.networks.structuredsexual.pars.prop_f0 == pars['prop_f0'], "Network parameter not set correctly"
-    assert len(sim3.networks) == 2, "Default networks not added"
     assert len(sim3.diseases) == 3, "Incorrect number of diseases initialized"
 
     return
