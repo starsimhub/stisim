@@ -28,7 +28,7 @@ Most connectors are unidirectional (the STI affects HIV but not vice versa); `hi
 
 ## Adding connectors
 
-Connectors are passed explicitly when constructing an `sti.Sim`. STIsim does not currently auto-wire connectors based on the disease list — passing `connectors=True` raises `NotImplementedError`. Provide a list of instantiated connectors instead:
+Connectors are passed explicitly when constructing an `sti.Sim`. By default, STIsim automatically wires connectors if `connectors=True` (the default). Alternatively, provide an explicit list of connectors instead:
 
 ```python
 hiv = sti.HIV()

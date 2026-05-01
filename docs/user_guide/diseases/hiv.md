@@ -192,3 +192,39 @@ art = sti.ART(pmtct_efficacy=0.98)
 # Complete protection (previous default behavior)
 art = sti.ART(pmtct_efficacy=1.0)
 ```
+
+## hivsim.Sim parameter routing
+
+`hivsim.Sim` is a thin wrapper around `sti.Sim` that supplies HIV-appropriate defaults. It accepts parameters in several forms, all routed by `sti.Sim.separate_pars`:
+
+| Kwarg | What it contains | Example |
+|---|---|---|
+| `pars` | Any flat parameter dict — entries are routed to the right module automatically | `pars=dict(n_agents=500, beta_m2f=0.03)` |
+| `sim_pars` | Parameters specifically for the base `sti.Sim` (start/stop/n_agents/dt/…) | `sim_pars=dict(start=2000, n_agents=500)` |
+| `hiv_pars` | Explicit HIV module pars (legacy; prefer flat kwargs or `hiv=dict(...)`) | `hiv_pars=dict(beta_m2f=0.03)` |
+| flat kwargs | Any recognised par name, routed automatically | `hivsim.Sim(beta_m2f=0.03, debut_f=18)` |
+| `hiv=dict(...)` | Disease-keyed dict — applies only to the HIV module | `hiv=dict(rel_trans_acute=10)` |
+
+In most cases you only need flat kwargs:
+
+```python
+import hivsim
+
+# Override HIV pars
+sim = hivsim.Sim(beta_m2f=0.03, rel_trans_acute=10)
+
+# Override network pars
+sim = hivsim.Sim(debut_f=18, fsw_shares=0.03)
+
+# Mix
+sim = hivsim.Sim(beta_m2f=0.03, n_agents=5000, start=1990)
+```
+
+The same patterns work via `hivsim.demo`:
+
+```python
+sim = hivsim.demo('simple', run=False, beta_m2f=0.03)
+sim = hivsim.demo('zimbabwe', run=False, hiv=dict(rel_trans_acute=10))
+```
+
+**Rule**: pass a module instance (e.g. `diseases=sti.HIV(...)`) **or** pars for the default — not both. `sti.Sim` raises an error if you do both for the same module slot.

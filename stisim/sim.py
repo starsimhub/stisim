@@ -127,16 +127,37 @@ class Sim(ss.Sim):
             - If any key appears in both pars and *_pars, the value from *_pars will be used.
             - If any key appears in both pars and kwargs, the value from kwargs will be used.
         """
+        # Fail loudly on overlapping keys between `pars` and `**kwargs` — rather
+        # than silently taking one, force the caller to pick one.
+        if pars and kwargs:
+            overlap = set(pars) & set(kwargs)
+            if overlap:
+                detail = '; '.join(
+                    f'{k}: pars={pars[k]!r} kwargs={kwargs[k]!r}' for k in sorted(overlap)
+                )
+                raise ValueError(
+                    f'Keys appear in both `pars` and kwargs — specify each in exactly one place:\n  {detail}'
+                )
+
         # Merge in pars and kwargs
         all_pars = sc.mergedicts(pars, sim_pars, sti_pars, nw_pars, dem_pars, sim_kwargs, kwargs)
         all_pars = self.remap_pars(all_pars)  # Remap any parameter names
         vp, duplicates = self.get_valid_pars()
 
-        # Check if any parameter in all_pars is in duplicates
+        # Check if any parameter in all_pars is in duplicates. Duplicates are
+        # names that exist in multiple par categories (e.g. `dt` in both
+        # SimPars and STIPars). When the user passes such a key without
+        # disambiguating, we warn — the routing below will pick the first
+        # category that matches.
         ambiguous = set(all_pars.keys()) & set(duplicates)
-        if ambiguous: # Warn if and only if this parameter is specified
-            warnmsg = f'Ambiguous parameter(s) found: {ambiguous}'
-            # warnmsg += 'To avoid this warning, use explicit keyword arguments (e.g. sim_pars, sti_pars, nw_pars, dem_pars) to disambiguate.' # TODO: this doesn't actually work since parameter lists are flattened first
+        if ambiguous:
+            categories = {k: [cat for cat, d in vp.items() if k in d] for k in ambiguous}
+            detail = '; '.join(f'"{k}" appears in {cats}' for k, cats in categories.items())
+            warnmsg = (
+                f'Ambiguous parameter(s) found: {sorted(ambiguous)}. {detail}. '
+                f'To disambiguate, pass via the explicit category kwarg '
+                f'(e.g. sim_pars=dict(dt=...), sti_pars=dict(dt=...)).'
+            )
             ss.warn(warnmsg)
 
         # Deal with sim pars
@@ -185,6 +206,13 @@ class Sim(ss.Sim):
         self.sti_pars = sti_pars    # Parameters for the STI modules
         self.nw_pars = nw_pars      # Parameters for the networks
         self.dem_pars = dem_pars
+
+        # Track just the user-provided contributions (separate from defaults)
+        # so process_* methods can raise XOR errors when the user supplies both
+        # a module instance and pars for the same slot.
+        self._user_sti_pars = dict(user_sti_pars)
+        self._user_nw_pars = dict(user_nw_pars)
+        self._user_dem_pars = dict(user_dem_pars)
 
         return sim_pars
 
@@ -261,8 +289,15 @@ class Sim(ss.Sim):
         Process the network parameters to create network module.
         If networks are provided, they will be used; otherwise, use default networks (usual case)
         """
-        if len(self.pars['networks']):
-            # If networks are provided, use them directly
+        if len(self.pars['networks']) > 0:
+            # XOR: user provided network instances AND network pars — refuse to guess.
+            if self._user_nw_pars:
+                raise ValueError(
+                    f'Networks were provided as modules and network pars were also '
+                    f'given ({sorted(self._user_nw_pars)}). Customize the module '
+                    f'directly (e.g. `networks=[sti.StructuredSexual(debut_f=17)]`) '
+                    f'OR pass pars and let sti.Sim build the default — not both.'
+                )
             networks = self.pars['networks']
 
         else:
@@ -286,7 +321,7 @@ class Sim(ss.Sim):
                 # Check that the necessary data files are available
                 indicators = ['age', 'deaths']
                 if self.pars['use_pregnancy']: indicators.append('asfr')
-                else: indicators.append('births')
+                else: indicators.append('cbr')
                 if self.pars['use_migration']: indicators.append('migration')
                 start_year = ss.date(self.pars['start']).year
                 ok, missing = stidl.check_downloaded(location, indicators, year=start_year)
@@ -306,9 +341,9 @@ class Sim(ss.Sim):
                 pregnancy = ss.Pregnancy(fertility_rate=fertility_rates, pars=preg_pars, metadata=metadata)
                 demographics += pregnancy
             else:
-                birth_rates = stidata.get_rates(location, 'births', self.datafolder)
+                birth_rates = stidata.get_rates(location, 'birth', self.datafolder)
                 birth_pars = {k: v for k, v in self.dem_pars.items() if k in ss.Births().pars.keys()}
-                metadata = dict(data_cols=dict(year='year', value='cbr'))
+                metadata = dict(data_cols=dict(year='Time', value='Value'))
                 births = ss.Births(birth_rate=birth_rates, pars=birth_pars, metadata=metadata)
                 demographics += births
 
@@ -336,6 +371,14 @@ class Sim(ss.Sim):
             people = ss.People(self.pars.n_agents, age_data=age_data)
 
         else:
+            # XOR: demographics passed as modules AND demographic pars also given.
+            if self._user_dem_pars:
+                raise ValueError(
+                    f'Demographics were provided as modules and demographic pars '
+                    f'were also given ({sorted(self._user_dem_pars)}). Customize '
+                    f'the modules directly OR pass a location string and let '
+                    f'sti.Sim build the defaults — not both.'
+                )
             demographics = self.pars['demographics']
             people = self.pars['people']
             total_pop = self.pars['total_pop']
@@ -385,6 +428,19 @@ class Sim(ss.Sim):
                 stis += sti.make_sti(stidis, pars=final_pars)
 
             elif isinstance(stidis, ss.Disease):
+                # XOR: disease passed as an instance AND pars provided that would
+                # have targeted it (flat sti pars, or a disease-keyed dict like
+                # `hiv=dict(...)`). Refuse to guess which the user meant.
+                disease_name = getattr(stidis, 'name', None)
+                keyed_pars = sti_pars.get(disease_name, {}) if disease_name else {}
+                if sti_main_pars or keyed_pars:
+                    raise ValueError(
+                        f'Disease "{disease_name}" was passed as an instance, but '
+                        f'sti_pars were also provided ({sorted(set(sti_main_pars) | set(keyed_pars))}). '
+                        f'Customize the module directly (e.g. `sti.HIV(rel_trans_acute=26)`) '
+                        f'OR use the string form (`diseases="hiv"`) and let sti.Sim '
+                        f'apply pars — not both.'
+                    )
                 stis += stidis
             else:
                 raise ValueError(f"Invalid STI type: {type(stidis)}. Must be str or sti.BaseSTI.")

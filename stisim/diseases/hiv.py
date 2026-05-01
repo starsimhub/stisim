@@ -25,7 +25,7 @@ class HIVPars(BaseSTIPars):
         # Natural history without treatment
         self.cd4_start = ss.normal(loc=800, scale=50)
         self.cd4_latent = ss.normal(loc=500, scale=50)
-        self.dur_acute = ss.lognorm_ex(ss.months(3), ss.months(1))  # Duration of acute HIV infection
+        self.dur_acute = ss.lognorm_ex(ss.months(1.7), ss.months(1))  # Duration of acute HIV infection (Bellan 2015: central estimate 1.7 mo)
         self.dur_latent = ss.lognorm_ex(ss.years(10), ss.years(3))  # Duration of latent, untreated HIV infection
         self.dur_falling = ss.lognorm_ex(ss.years(3), ss.years(1))  # Duration of late-stage HIV when CD4 counts fall
         self.p_hiv_death = ss.bernoulli(p=0)  # Death from HIV-related complications; set by make_p_hiv_death()
@@ -37,8 +37,13 @@ class HIVPars(BaseSTIPars):
         self.rel_beta_f2m = 0.5
         self.beta_m2c = ss.permonth(0.025)  # Prenatal MTCT: ~20% over pregnancy
         self.beta_breastfeed = ss.permonth(0.005)  # Postnatal MTCT via breastfeeding (~14% over 12 months without ART)
-        self.rel_trans_acute = ss.normal(loc=6, scale=0.5)  # Increase transmissibility during acute HIV infection
+        self.rel_trans_acute = ss.normal(loc=5.3, scale=0.5)  # Increase transmissibility during acute HIV infection (Bellan 2015: RH=5.3, EHM≈7.3)
         self.rel_trans_falling = ss.normal(loc=8, scale=0.5)  # Increase transmissibility during late HIV infection
+        self.rel_sus_age = None  # Age/sex-stratified rel_sus multipliers.
+        # List of (age_lo, age_hi, sex, multiplier) tuples; sex is 'f', 'm', or None for both.
+        # Multiplied into rel_sus each timestep alongside other contributors (PrEP, connectors, etc.),
+        # so values are ceteris-paribus differences, not absolute susceptibilities.
+        # Example: [(15, 25, 'f', 1.7), (25, 50, 'f', 1.0), (15, 50, 'm', 1.0)]
         self.eff_condom = 0.9
 
         # Initialization
@@ -460,6 +465,17 @@ class HIV(BaseSTI):
         # Reset susceptibility and infectiousness
         self.rel_sus[:] = 1
         self.rel_trans[:] = 1
+
+        # Age/sex-stratified susceptibility. Multiplied in alongside other contributors
+        # (PrEP, connectors, etc.) so values are ceteris-paribus, not absolute.
+        if self.pars.rel_sus_age is not None:
+            ppl = self.sim.people
+            for age_lo, age_hi, sex, mult in self.pars.rel_sus_age:
+                if sex == 'f':   sex_mask = ppl.female
+                elif sex == 'm': sex_mask = ppl.male
+                else:            sex_mask = ppl.alive
+                in_bin = sex_mask & (ppl.age >= age_lo) & (ppl.age < age_hi)
+                self.rel_sus[in_bin] *= mult
 
         # Update rel_trans to account for acute and late-stage infection
         self.rel_trans[self.acute] *= self.pars.rel_trans_acute.rvs(self.acute.uids)
