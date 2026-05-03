@@ -11,7 +11,7 @@ from stisim.utils import count
 
 
 # %% Base classes
-__all__ = ["STIDx", "STITest", "SymptomaticTesting", "STITreatment", "PartnerNotification", "ProductMix"]
+__all__ = ["STIDx", "STITest", "SymptomaticTesting", "SyndromicManagement", "STITreatment", "PartnerNotification", "ProductMix"]
 
 
 class STIDx(ss.Product):
@@ -421,6 +421,220 @@ class SymptomaticTesting(STITest):
         self.results['new_tx2'][ti] += count(self.n_treatments == 2)
         self.results['new_tx3'][ti] += count(self.n_treatments == 3)
 
+        return
+
+
+class SyndromicManagement(STITest):
+    """
+    Syndromic management of vaginal/urethral discharge syndromes.
+
+    When a symptomatic patient presents, they are probabilistically assigned
+    one of four treatment outcomes based on whether they have a cervical
+    infection (by default NG/CT) and their sex:
+
+        all3  — treated for cervical pathogens + TV/BV
+        ngct  — treated for cervical pathogens only
+        mtnz  — treated with metronidazole only (TV/BV)
+        none  — dismissed without treatment
+
+    Treatment probabilities for each outcome are given separately for
+    females with cervical infection (``tx_mix_cerv``), females without
+    (``tx_mix_noncerv``), and males (cervical column of ``tx_mix_cerv``
+    is reused for UDS).  Each dict maps outcome name → [female_prob, male_prob].
+
+    The ``outcome_tx_map`` links each outcome to the treatment module(s)
+    that should be triggered.  Diagnostic accuracy (TP/FP/FN/TN) is recorded
+    on any disease module that exposes those result keys.
+
+    Args:
+        treatments (list):        treatment module instances
+        diseases (list):          disease modules to track accuracy for
+        cervical_diseases (list): disease modules whose symptomatic flag
+                                  indicates cervical infection; defaults to
+                                  any disease named 'ng' or 'ct' in ``diseases``
+        outcome_tx_map (dict):    maps outcome name → list of treatment modules;
+                                  auto-constructed from ``treatments`` if omitted
+        treat_prob_data:          unused; reserved for future time-varying tx prob
+        years, start, stop, eligibility, name, label: passed to STITest
+
+    Examples::
+
+        syndromic = sti.SyndromicManagement(
+            diseases=[ng, ct, tv, bv],
+            treatments=[ng_tx, ct_tx, metronidazole],
+            eligibility=seeking_care_vds,
+        )
+    """
+
+    def __init__(self, pars=None, treatments=None, diseases=None,
+                 cervical_diseases=None, outcome_tx_map=None,
+                 treat_prob_data=None, years=None, start=None, stop=None,
+                 eligibility=None, name=None, label=None, **kwargs):
+        super().__init__(years=years, start=start, stop=stop, eligibility=eligibility,
+                         name=name, label=label)
+        self.define_pars(
+            tx_mix_cerv=dict(
+                all3=[0.50, 0.05],
+                ngct=[0.20, 0.80],
+                mtnz=[0.20, 0.00],
+                none=[0.10, 0.15],
+            ),
+            tx_mix_noncerv=dict(
+                all3=[0.40, 0.05],
+                ngct=[0.10, 0.80],
+                mtnz=[0.20, 0.00],
+                none=[0.30, 0.15],
+            ),
+            tx_cerv_f=ss.choice(a=4),
+            tx_cerv_m=ss.choice(a=4),
+            tx_noncerv_f=ss.choice(a=4),
+            tx_noncerv_m=ss.choice(a=4),
+            dt_scale=False,
+        )
+        self.update_pars(pars, **kwargs)
+        self.fvals_cerv    = [v[0] for v in self.pars.tx_mix_cerv.values()]
+        self.mvals_cerv    = [v[1] for v in self.pars.tx_mix_cerv.values()]
+        self.fvals_noncerv = [v[0] for v in self.pars.tx_mix_noncerv.values()]
+        self.mvals_noncerv = [v[1] for v in self.pars.tx_mix_noncerv.values()]
+
+        self.treatments = sc.tolist(treatments)
+        self.diseases = sc.tolist(diseases)
+        self._cervical_diseases = sc.tolist(cervical_diseases)  # resolved in init_pre
+
+        if outcome_tx_map is None:
+            outcome_tx_map = dict(
+                all3=self.treatments,
+                ngct=[self.treatments[0], self.treatments[1]],
+                mtnz=[self.treatments[1]],
+                none=[],
+            )
+        self.outcome_tx_map = outcome_tx_map
+
+        self.define_states(
+            ss.FloatArr('ti_referred'),
+            ss.FloatArr('ti_dismissed'),
+        )
+        self.treat_prob_data = treat_prob_data
+        self.treated_by_uid = None
+        return
+
+    def init_pre(self, sim):
+        super().init_pre(sim)
+        self.pars.tx_cerv_f.set(p=self.fvals_cerv)
+        self.pars.tx_cerv_m.set(p=self.mvals_cerv)
+        self.pars.tx_noncerv_f.set(p=self.fvals_noncerv)
+        self.pars.tx_noncerv_m.set(p=self.mvals_noncerv)
+        # Resolve cervical diseases: use explicit list, else find 'ng'/'ct' in diseases
+        if not self._cervical_diseases:
+            self._cervical_diseases = [d for d in self.diseases if d.name in ('ng', 'ct')]
+        return
+
+    def init_results(self):
+        super().init_results()
+        results = []
+        for sk in ['', 'f', 'm']:
+            skk = '' if sk == '' else f'_{sk}'
+            skl = '' if sk == '' else f' - {sk.upper()}'
+            results += [
+                ss.Result('new_care_seekers' + skk, dtype=int, label='Care seekers' + skl),
+                ss.Result('new_tx0' + skk, dtype=int, label='No treatment' + skl),
+                ss.Result('new_tx1' + skk, dtype=int, label='1 treatment' + skl),
+                ss.Result('new_tx2' + skk, dtype=int, label='2 treatments' + skl),
+                ss.Result('new_tx3' + skk, dtype=int, label='3 treatments' + skl),
+            ]
+        self.define_results(*results)
+        return
+
+    def step(self, uids=None):
+        sim = self.sim
+        ppl = sim.people
+        self.treated_by_uid = None
+
+        if sim.now >= self.stop:
+            for treatment in self.treatments:
+                treatment.eligibility = ss.uids()
+            return
+
+        if sim.now >= self.start:
+            if uids is None:
+                uids = self.check_eligibility()
+                self.ti_tested[uids] = self.ti
+
+            if len(uids):
+                f_uids = uids[ppl.female[uids]]
+                m_uids = uids[ppl.male[uids]]
+
+                # Cervical symptomatic flag: OR over user-specified cervical disease modules
+                has_cerv_symp = ss.BoolArr('has_cerv_symp')
+                has_cerv_symp.initialize(sim.people)
+                for d in self._cervical_diseases:
+                    has_cerv_symp = has_cerv_symp | d.symptomatic
+
+                f_cerv_uids    = f_uids[has_cerv_symp[f_uids]]
+                f_noncerv_uids = f_uids[~has_cerv_symp[f_uids]]
+
+                ofc  = self.pars.tx_cerv_f.rvs(f_cerv_uids)
+                ofnc = self.pars.tx_noncerv_f.rvs(f_noncerv_uids)
+                om   = self.pars.tx_cerv_m.rvs(m_uids)
+
+                outcomes = dict(
+                    all3=f_cerv_uids[ofc == 0] | f_noncerv_uids[ofnc == 0] | m_uids[om == 0],
+                    ngct=f_cerv_uids[ofc == 1] | f_noncerv_uids[ofnc == 1] | m_uids[om == 1],
+                    mtnz=f_cerv_uids[ofc == 2] | f_noncerv_uids[ofnc == 2] | m_uids[om == 2],
+                    none=f_cerv_uids[ofc == 3] | f_noncerv_uids[ofnc == 3] | m_uids[om == 3],
+                )
+
+                # Diagnostic accuracy: record TP/FP/FN/TN on each disease module
+                # all3 and ngct both treat cervical diseases; mtnz treats the rest
+                for disease in self.diseases:
+                    if not hasattr(disease, 'sex_keys'):
+                        continue
+                    in_all3_or_ngct = outcomes['all3'] | outcomes['ngct']
+                    in_mtnz         = outcomes['mtnz']
+                    is_cerv_disease = disease in self._cervical_diseases
+                    treat_outcomes  = in_all3_or_ngct if is_cerv_disease else in_mtnz
+                    miss_outcomes   = in_mtnz         if is_cerv_disease else in_all3_or_ngct
+                    for pkey, pattr in disease.sex_keys.items():
+                        skk = '' if pkey == '' else f'_{pkey}'
+                        disease.results[f'new_true_pos{skk}'][self.ti]  += len(outcomes['all3'] & disease.treatable & ppl[pattr])
+                        disease.results[f'new_false_pos{skk}'][self.ti] += len(outcomes['all3'] & disease.susceptible & ppl[pattr])
+                        disease.results[f'new_true_neg{skk}'][self.ti]  += len(outcomes['none'] & disease.susceptible & ppl[pattr])
+                        disease.results[f'new_false_neg{skk}'][self.ti] += len(outcomes['none'] & disease.treatable & ppl[pattr])
+                        disease.results[f'new_true_pos{skk}'][self.ti]  += len(treat_outcomes & disease.treatable & ppl[pattr])
+                        disease.results[f'new_false_pos{skk}'][self.ti] += len(treat_outcomes & disease.susceptible & ppl[pattr])
+                        disease.results[f'new_false_neg{skk}'][self.ti] += len(miss_outcomes & disease.treatable & ppl[pattr])
+                        disease.results[f'new_true_neg{skk}'][self.ti]  += len(miss_outcomes & disease.susceptible & ppl[pattr])
+
+                # Route to treatments
+                for outcome, txs in self.outcome_tx_map.items():
+                    for tx in txs:
+                        tx.eligibility = tx.eligibility | outcomes[outcome]
+
+                referred_uids  = outcomes['all3'] | outcomes['ngct'] | outcomes['mtnz']
+                dismissed_uids = outcomes['none']
+                self.ti_referred[referred_uids]  = self.ti
+                self.ti_dismissed[dismissed_uids] = self.ti
+                self.treated_by_uid = outcomes
+
+            self.store_results()
+        return
+
+    def store_results(self):
+        ti  = self.ti
+        ppl = self.sim.people
+        just_tested = self.ti_tested == ti
+        self.results['new_care_seekers'][ti]   += count(just_tested)
+        self.results['new_care_seekers_f'][ti] += count(just_tested & ppl.female)
+        self.results['new_care_seekers_m'][ti] += count(just_tested & ppl.male)
+
+        sexdict = {'': 'alive', 'f': 'female', 'm': 'male'}
+        if self.treated_by_uid is not None:
+            for sk, sl in sexdict.items():
+                skk = '' if sk == '' else f'_{sk}'
+                self.results['new_tx0' + skk][ti] += count(ppl[sl][self.treated_by_uid['none']])
+                self.results['new_tx1' + skk][ti] += count(ppl[sl][self.treated_by_uid['mtnz']])
+                self.results['new_tx2' + skk][ti] += count(ppl[sl][self.treated_by_uid['ngct']])
+                self.results['new_tx3' + skk][ti] += count(ppl[sl][self.treated_by_uid['all3']])
         return
 
 
