@@ -1,3 +1,3 @@
-Memory is already documented. Since the CLAUDE.md file only has a one-liner and no substantive project context was added in the recent session (the git status shows just a CLAUDE.md edit), and the memory files already capture the active projects:
+The uncommitted changes to CLAUDE.md are just cleanup—no new context to capture. The project memory documents the ANC screening work comprehensively: ANCTest/InfantHIVTest interventions ✓, FetalHealth connector ✓, and all gotchas (connector params, analyzer count fields).
 
 SKIP

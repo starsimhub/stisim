@@ -707,6 +707,48 @@ def test_prevalence_by_sex(n_agents=3000):
     return sim
 
 
+def test_mtct_rates_in_range():
+    """
+    Verify default HIV parameters imply MTCT rates within published ranges.
+
+    Published benchmarks:
+    - Without ART: 15–45% cumulative MTCT (in utero + intrapartum + breastfeeding)
+    - With full PMTCT / ART: < 5%
+
+    Uses analytical calculation from beta values, not simulation, to avoid
+    stochastic noise while still validating the parameterisation.
+    """
+    import numpy as np
+
+    pars = sti.HIVPars()
+    beta_prenatal  = pars.beta_m2c.value        # rate per month (ss.permonth object)
+    beta_postnatal = pars.beta_breastfeed.value  # rate per month
+
+    dur_preg_mo = 9   # standard gestation
+    dur_bf_mo   = 9   # ss.Pregnancy default: lognorm mean=0.75 yr = 9 mo
+    pmtct_eff   = 0.96  # sti.ART default pmtct_efficacy
+
+    # Without intervention
+    p_pre  = 1 - np.exp(-beta_prenatal  * dur_preg_mo)
+    p_post = 1 - np.exp(-beta_postnatal * dur_bf_mo)
+    p_no_art = 1 - (1 - p_pre) * (1 - p_post)
+
+    assert 0.15 <= p_no_art <= 0.45, (
+        f'Default params imply MTCT rate {p_no_art:.1%} — outside published range 15–45%'
+    )
+
+    # With full PMTCT (rel_sus reduced by pmtct_eff each timestep → effective rate scaled)
+    p_pre_pmtct  = 1 - np.exp(-beta_prenatal  * (1 - pmtct_eff) * dur_preg_mo)
+    p_post_pmtct = 1 - np.exp(-beta_postnatal * (1 - pmtct_eff) * dur_bf_mo)
+    p_pmtct = 1 - (1 - p_pre_pmtct) * (1 - p_post_pmtct)
+
+    assert p_pmtct < 0.05, (
+        f'Full PMTCT MTCT rate {p_pmtct:.1%} — should be <5%'
+    )
+
+    return dict(p_no_art=p_no_art, p_pmtct=p_pmtct)
+
+
 if __name__ == '__main__':
     do_plot = True
     sc.options(interactive=do_plot)
@@ -723,6 +765,7 @@ if __name__ == '__main__':
     test_doubling_hiv_maternal_beta_doubles_transmissions()
     test_mtct()
     test_pmtct()
+    test_mtct_rates_in_range()
     test_cd4_rises_on_ART()
     test_art_increases_longevity()
     test_no_hiv_with_no_outbreaks()
