@@ -13,7 +13,7 @@ from stisim.utils import count
 
 
 # %% HIV classes
-__all__ = ["HIVDx", "HIVTest", "ART", "VMMC", "Prep"]
+__all__ = ["HIVDx", "HIVTest", "InfantHIVTest", "ART", "VMMC", "Prep"]
 
 
 class HIVDx(ss.Product):
@@ -87,11 +87,14 @@ class HIVTest(STITest):
             ],
         )
     """
-    def __init__(self, product=None, pars=None, test_prob_data=None, years=None, start=None, eligibility=None, name=None, label=None, **kwargs):
+    def __init__(self, product=None, pars=None, test_prob_data=None, years=None, start=None,
+                 eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
         if product is None: product = HIVDx(name=f'HIVDx_{name}')
-        super().__init__(product=product, pars=pars, test_prob_data=test_prob_data, years=years, start=start, eligibility=eligibility, name=name, label=label, **kwargs)
+        super().__init__(product=product, pars=pars, test_prob_data=test_prob_data, years=years,
+                         start=start, eligibility=eligibility, name=name, label=label, **kwargs)
         if self.eligibility is None:
             self.eligibility = lambda sim: ~sim.diseases.hiv.diagnosed
+        self.newborn_test = newborn_test
 
     def step(self, uids=None):
         sim = self.sim
@@ -99,7 +102,46 @@ class HIVTest(STITest):
         pos_uids = outcomes['positive']
         sim.diseases.hiv.diagnosed[pos_uids] = True
         sim.diseases.hiv.ti_diagnosed[pos_uids] = self.ti
+
+        # Schedule infant HIV test for unborn children of newly diagnosed mothers
+        if self.newborn_test is not None and len(pos_uids):
+            mn        = sim.get_module(ss.MaternalNet, die=False)
+            pregnancy = sim.get_module(ss.Pregnancy, die=False)
+            if mn is None or pregnancy is None:
+                raise RuntimeError(
+                    'HIVTest: cannot schedule newborn_test without ss.MaternalNet '
+                    'and ss.Pregnancy in the sim'
+                )
+            pos_mask  = np.isin(mn.p1, pos_uids)
+            unborn    = mn.p2[pos_mask]
+            ti_births = pregnancy.ti_delivery[mn.p1[pos_mask]]
+            valid     = ~np.isnan(ti_births)
+            if valid.any():
+                self.newborn_test.schedule(unborn[valid], ti_births[valid].astype(int))
         return outcomes
+
+
+class InfantHIVTest(HIVTest):
+    """
+    HIV test for infants born to mothers diagnosed during pregnancy.
+
+    Scheduled by :class:`HIVTest` (via ``newborn_test=``) or :class:`ANCTest`
+    when the mother tests positive. Fires only at the scheduled timestep.
+    A positive result sets ``hiv.diagnosed`` on the infant, enabling ART linkage.
+
+    Args:
+        test_prob (float): probability of the infant receiving the test once
+                           scheduled (default 1.0 — if scheduled, it happens)
+        name, label:       standard
+    """
+    def __init__(self, test_prob=1.0, name=None, label=None, **kwargs):
+        super().__init__(name=name, label=label, **kwargs)
+        self.test_prob_dist = ss.bernoulli(p=test_prob)
+
+    def check_eligibility(self):
+        # Only test infants at their scheduled timestep
+        scheduled_now = (self.ti_scheduled == self.ti).uids
+        return self.test_prob_dist.filter(scheduled_now)
 
 
 class ART(ss.Intervention):
@@ -476,15 +518,16 @@ class Prep(ss.Intervention):
             coverage_dist=ss.bernoulli(p=0),
             eff_prep=0.8,
         )
+        # Pop legacy years= before update_pars rejects it as an unrecognised par
+        years = kwargs.pop('years', None)
+        if years is not None and coverage is not None:
+            coverage = {'year': years, 'value': coverage}
         self.update_pars(pars, **kwargs)
         self.eligibility = eligibility if eligibility is not None else self._default_eligibility
         self._smoothness = smoothness
         self._coverage_arr = None  # Set in init_pre
 
-        # Support legacy (years, coverage) pars by converting to dict format
-        if coverage is None and 'years' in self.pars and 'coverage' in self.pars:
-            coverage = {'year': self.pars.years, 'value': self.pars.coverage}
-        elif coverage is None:
+        if coverage is None:
             coverage = {'year': [2004, 2005, 2015, 2025], 'value': [0, 0.01, 0.5, 0.8]}
         self._raw_coverage = coverage
 
