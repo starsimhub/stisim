@@ -182,10 +182,10 @@ class SWPars(ss.Pars):
         self.sw_intensity = ss.random()                # FSW may work with varying intensity each step
 
         # Per-agent age window — placeholders; tune to context
-        self.age_sw_start_dist = ss.normal(loc=20, scale=3)
-        self.dur_sw_dist = ss.lognorm_ex(mean=5, std=3)
-        self.age_client_start_dist = ss.normal(loc=25, scale=5)
-        self.dur_client_dist = ss.lognorm_ex(mean=10, std=5)
+        self.age_sw_start = ss.normal(loc=20, scale=3)
+        self.dur_sw = ss.lognorm_ex(mean=5, std=3)
+        self.age_client_start = ss.normal(loc=25, scale=5)
+        self.dur_client = ss.lognorm_ex(mean=10, std=5)
 
         self.update(kwargs)
         return
@@ -717,26 +717,26 @@ class SWNetwork(BaseNetwork):
 
         fsw_uids = f_uids[new_fsw]
         if len(fsw_uids):
-            if self.pars.age_sw_start_dist is not None:
-                drawn = self.pars.age_sw_start_dist.rvs(fsw_uids)
+            if self.pars.age_sw_start is not None:
+                drawn = self.pars.age_sw_start.rvs(fsw_uids)
                 # Clamp entry age to debut — can't be SW before sexual debut
                 self.age_sw_start[fsw_uids] = np.maximum(drawn, self.debut[fsw_uids])
             else:
                 self.age_sw_start[fsw_uids] = self.debut[fsw_uids]
-            if self.pars.dur_sw_dist is not None:
-                self.dur_sw[fsw_uids] = self.pars.dur_sw_dist.rvs(fsw_uids)
+            if self.pars.dur_sw is not None:
+                self.dur_sw[fsw_uids] = self.pars.dur_sw.rvs(fsw_uids)
             else:
                 self.dur_sw[fsw_uids] = np.inf
 
         client_uids = m_uids[new_client]
         if len(client_uids):
-            if self.pars.age_client_start_dist is not None:
-                drawn = self.pars.age_client_start_dist.rvs(client_uids)
+            if self.pars.age_client_start is not None:
+                drawn = self.pars.age_client_start.rvs(client_uids)
                 self.age_client_start[client_uids] = np.maximum(drawn, self.debut[client_uids])
             else:
                 self.age_client_start[client_uids] = self.debut[client_uids]
-            if self.pars.dur_client_dist is not None:
-                self.dur_client[client_uids] = self.pars.dur_client_dist.rvs(client_uids)
+            if self.pars.dur_client is not None:
+                self.dur_client[client_uids] = self.pars.dur_client.rvs(client_uids)
             else:
                 self.dur_client[client_uids] = np.inf
         return
