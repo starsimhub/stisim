@@ -11,7 +11,7 @@ from stisim.utils import count
 
 
 # %% Base classes
-__all__ = ["STIDx", "STITest", "SymptomaticTesting", "SyndromicMgmt", "STITreatment", "PartnerNotification", "ProductMix"]
+__all__ = ["STIDx", "STITest", "SymptomaticTesting", "SyndromicManagement", "STITreatment", "PartnerNotification", "ProductMix"]
 
 
 class STIDx(ss.Product):
@@ -424,7 +424,7 @@ class SymptomaticTesting(STITest):
         return
 
 
-class SyndromicMgmt(STITest):
+class SyndromicManagement(STITest):
     """
     Syndromic management of vaginal/urethral discharge syndromes.
 
@@ -442,24 +442,24 @@ class SyndromicMgmt(STITest):
     (``tx_mix_noncerv``), and males (cervical column of ``tx_mix_cerv``
     is reused for UDS).  Each dict maps outcome name → [female_prob, male_prob].
 
-    The ``outcome_treatment_map`` links each outcome to the treatment
-    module(s) that should be triggered.  Diagnostic accuracy (TP/FP/FN/TN)
-    is recorded on any disease module that exposes those result keys.
+    The ``outcome_tx_map`` links each outcome to the treatment module(s)
+    that should be triggered.  Diagnostic accuracy (TP/FP/FN/TN) is recorded
+    on any disease module that exposes those result keys.
 
     Args:
-        treatments (list):           treatment module instances
-        diseases (list):             disease modules to track accuracy for
-        cervical_diseases (list):    disease modules whose symptomatic flag
-                                     indicates cervical infection; defaults to
-                                     any disease named 'ng' or 'ct' in ``diseases``
-        outcome_treatment_map (dict): maps outcome name → list of treatment modules;
-                                     auto-constructed from ``treatments`` if omitted
-        treat_prob_data:             unused; reserved for future time-varying tx prob
+        treatments (list):        treatment module instances
+        diseases (list):          disease modules to track accuracy for
+        cervical_diseases (list): disease modules whose symptomatic flag
+                                  indicates cervical infection; defaults to
+                                  any disease named 'ng' or 'ct' in ``diseases``
+        outcome_tx_map (dict):    maps outcome name → list of treatment modules;
+                                  auto-constructed from ``treatments`` if omitted
+        treat_prob_data:          unused; reserved for future time-varying tx prob
         years, start, stop, eligibility, name, label: passed to STITest
 
     Examples::
 
-        syndromic = sti.SyndromicMgmt(
+        syndromic = sti.SyndromicManagement(
             diseases=[ng, ct, tv, bv],
             treatments=[ng_tx, ct_tx, metronidazole],
             eligibility=seeking_care_vds,
@@ -467,7 +467,7 @@ class SyndromicMgmt(STITest):
     """
 
     def __init__(self, pars=None, treatments=None, diseases=None,
-                 cervical_diseases=None, outcome_treatment_map=None,
+                 cervical_diseases=None, outcome_tx_map=None,
                  treat_prob_data=None, years=None, start=None, stop=None,
                  eligibility=None, name=None, label=None, **kwargs):
         super().__init__(years=years, start=start, stop=stop, eligibility=eligibility,
@@ -501,14 +501,14 @@ class SyndromicMgmt(STITest):
         self.diseases = sc.tolist(diseases)
         self._cervical_diseases = sc.tolist(cervical_diseases)  # resolved in init_pre
 
-        if outcome_treatment_map is None:
-            outcome_treatment_map = dict(
+        if outcome_tx_map is None:
+            outcome_tx_map = dict(
                 all3=self.treatments,
                 ngct=[self.treatments[0], self.treatments[1]],
                 mtnz=[self.treatments[1]],
                 none=[],
             )
-        self.outcome_treatment_map = outcome_treatment_map
+        self.outcome_tx_map = outcome_tx_map
 
         self.define_states(
             ss.FloatArr('ti_referred'),
@@ -531,7 +531,7 @@ class SyndromicMgmt(STITest):
 
     def init_results(self):
         super().init_results()
-        results = sc.autolist()
+        results = []
         for sk in ['', 'f', 'm']:
             skk = '' if sk == '' else f'_{sk}'
             skl = '' if sk == '' else f' - {sk.upper()}'
@@ -564,17 +564,14 @@ class SyndromicMgmt(STITest):
                 f_uids = uids[ppl.female[uids]]
                 m_uids = uids[ppl.male[uids]]
 
-                # Cervical infection: symptomatic in any cervical disease
-                if self._cervical_diseases:
-                    is_cerv = self._cervical_diseases[0].symptomatic.copy()
-                    for d in self._cervical_diseases[1:]:
-                        is_cerv = is_cerv | d.symptomatic
-                else:
-                    is_cerv = ss.BoolArr('is_cerv')
-                    is_cerv.initialize(sim.people)
+                # Cervical symptomatic flag: OR over user-specified cervical disease modules
+                has_cerv_symp = ss.BoolArr('has_cerv_symp')
+                has_cerv_symp.initialize(sim.people)
+                for d in self._cervical_diseases:
+                    has_cerv_symp = has_cerv_symp | d.symptomatic
 
-                f_cerv_uids    = f_uids[is_cerv[f_uids]]
-                f_noncerv_uids = f_uids[~is_cerv[f_uids]]
+                f_cerv_uids    = f_uids[has_cerv_symp[f_uids]]
+                f_noncerv_uids = f_uids[~has_cerv_symp[f_uids]]
 
                 ofc  = self.pars.tx_cerv_f.rvs(f_cerv_uids)
                 ofnc = self.pars.tx_noncerv_f.rvs(f_noncerv_uids)
@@ -609,7 +606,7 @@ class SyndromicMgmt(STITest):
                         disease.results[f'new_true_neg{skk}'][self.ti]  += len(miss_outcomes & disease.susceptible & ppl[pattr])
 
                 # Route to treatments
-                for outcome, txs in self.outcome_treatment_map.items():
+                for outcome, txs in self.outcome_tx_map.items():
                     for tx in txs:
                         tx.eligibility = tx.eligibility | outcomes[outcome]
 
