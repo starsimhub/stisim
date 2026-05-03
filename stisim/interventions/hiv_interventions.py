@@ -105,14 +105,19 @@ class HIVTest(STITest):
 
         # Schedule infant HIV test for unborn children of newly diagnosed mothers
         if self.newborn_test is not None and len(pos_uids):
-            if hasattr(sim.networks, 'maternalnet') and hasattr(sim.demographics, 'pregnancy'):
-                mn = sim.networks.maternalnet
-                pos_mask  = np.isin(mn.p1, pos_uids)
-                unborn    = mn.p2[pos_mask]
-                ti_births = sim.demographics.pregnancy.ti_delivery[mn.p1[pos_mask]]
-                valid     = ~np.isnan(ti_births)
-                if valid.any():
-                    self.newborn_test.schedule(unborn[valid], ti_births[valid].astype(int))
+            mn        = sim.get_module(ss.MaternalNet, die=False)
+            pregnancy = sim.get_module(ss.Pregnancy, die=False)
+            if mn is None or pregnancy is None:
+                raise RuntimeError(
+                    'HIVTest: cannot schedule newborn_test without ss.MaternalNet '
+                    'and ss.Pregnancy in the sim'
+                )
+            pos_mask  = np.isin(mn.p1, pos_uids)
+            unborn    = mn.p2[pos_mask]
+            ti_births = pregnancy.ti_delivery[mn.p1[pos_mask]]
+            valid     = ~np.isnan(ti_births)
+            if valid.any():
+                self.newborn_test.schedule(unborn[valid], ti_births[valid].astype(int))
         return outcomes
 
 
@@ -131,12 +136,12 @@ class InfantHIVTest(HIVTest):
     """
     def __init__(self, test_prob=1.0, name=None, label=None, **kwargs):
         super().__init__(name=name, label=label, **kwargs)
-        self._test_prob_dist = ss.bernoulli(p=test_prob)
+        self.test_prob_dist = ss.bernoulli(p=test_prob)
 
     def check_eligibility(self):
         # Only test infants at their scheduled timestep
         scheduled_now = (self.ti_scheduled == self.ti).uids
-        return self._test_prob_dist.filter(scheduled_now)
+        return self.test_prob_dist.filter(scheduled_now)
 
 
 class ART(ss.Intervention):

@@ -643,33 +643,27 @@ class ANCTest(ss.Intervention):
     Multi-disease ANC visit testing, scheduled once per pregnancy.
 
     When a woman becomes pregnant, schedules one ANC visit at a random
-    gestational timepoint (months 1–7). At that visit she is tested for all
-    supported diseases found in the sim. ``visit_prob`` reflects ANC attendance
-    rather than test acceptance — once she attends, all active disease tests are
-    applied.
+    gestational timepoint (months 1–7). At that visit she is tested for HIV
+    and syphilis (auto-detected if present in the sim) plus any extra diseases
+    listed in ``disease_names``. ``visit_prob`` reflects ANC attendance:
+    once she attends, all active disease tests are applied.
 
-    Auto-detected diseases (registry, Option A):
-        hiv      — sets ``hiv.diagnosed`` / ``hiv.ti_diagnosed``; optionally schedules
-                   ``InfantHIVTest`` on the unborn via ``maternalnet``
-        syphilis — routes positives to ``disease_treatment_map['syphilis']``; optionally
-                   schedules ``NewbornSyphTest`` on the unborn via ``maternalnet``
-    Additional diseases in ``disease_names`` are tested and routed via
-    ``disease_treatment_map`` with configurable sensitivity.
-
-    Newborn/infant tests must be added to ``sim.interventions`` by the caller and
-    passed via ``newborn_tests`` so they go through normal Starsim initialisation.
-    ``ANCTest`` only handles scheduling them (sets their ``ti_scheduled`` state).
+    HIV positives have ``diagnosed`` / ``ti_diagnosed`` set, so ART links up
+    automatically. Other diseases route positives to ``disease_treatment_map``.
+    Newborn/infant tests, if provided in ``newborn_tests``, are scheduled on
+    the unborn via the maternal network (sim must include ``ss.MaternalNet``
+    and ``ss.Pregnancy``).
 
     Args:
         visit_prob (float):           probability of attending ANC (default 0.85)
-        disease_names (list):         diseases to test for; default: auto-detect
-                                      'hiv' and 'syphilis' from sim
+        disease_names (list):         extra diseases to test for; HIV and syphilis
+                                      are auto-detected if present in the sim
         test_sensitivity (dict):      per-disease sensitivity, e.g. ``{'hiv': 0.99}``;
                                       default 1.0 for all
         disease_treatment_map (dict): maps disease name → treatment intervention;
                                       required for syphilis and any non-HIV disease
         newborn_tests (dict):         maps disease name → newborn/infant test
-                                      intervention already in ``sim.interventions``,
+                                      intervention (also added to ``sim.interventions``),
                                       e.g. ``{'hiv': infant_hiv, 'syphilis': newborn_syph}``
         start, stop, name, label:     standard
 
@@ -692,27 +686,22 @@ class ANCTest(ss.Intervention):
         sim = ss.Sim(..., interventions=[anc, art, syph_tx, infant_hiv, newborn_syph])
     """
 
-    # Registry: disease names → (needs_diagnosed_flag, has_newborn_test)
-    # HIV is handled via diagnosed state; syphilis via treatment map.
-    # Lazy imports for the actual classes live in _schedule_newborn().
-    _registry = {
-        'hiv':      dict(use_diagnosed=True),
-        'syphilis': dict(use_diagnosed=False),
-    }
+    # HIV uses a diagnosed flag for ART linkage; other diseases route through
+    # disease_treatment_map. Auto-detect targets when disease_names not supplied.
+    auto_detect = ['hiv', 'syphilis']
 
     def __init__(self, visit_prob=0.85, disease_names=None, test_sensitivity=None,
                  disease_treatment_map=None, newborn_tests=None,
                  start=None, stop=None, name=None, label=None, **kwargs):
         super().__init__(name=name, label=label, **kwargs)
-        self._visit_prob_val  = visit_prob
-        self._disease_names   = disease_names          # None → auto-detect from registry
-        self._test_sensitivity = test_sensitivity or {}
-        self._disease_tx_map  = disease_treatment_map or {}
-        self._newborn_tests   = newborn_tests or {}
-        self._active_diseases = []   # resolved in init_pre
-        self._visit_prob_dist = ss.bernoulli(p=visit_prob)
-        self._sens_dist       = ss.bernoulli(p=0.5)
-        self._visit_timing    = ss.randint(low=1, high=9)   # months into pregnancy
+        self.disease_names         = disease_names           # None → auto-detect
+        self.test_sensitivity      = test_sensitivity or {}
+        self.disease_treatment_map = disease_treatment_map or {}
+        self.newborn_tests         = newborn_tests or {}
+        self.active_diseases       = []   # resolved in init_pre
+        self.visit_prob_dist       = ss.bernoulli(p=visit_prob)
+        self.sens_dist             = ss.bernoulli(p=0.5)
+        self.visit_timing          = ss.randint(low=1, high=9)   # months into pregnancy
         self.start = start
         self.stop  = stop
         self.define_states(ss.FloatArr('ti_visit', label='Scheduled ANC visit'))
@@ -725,20 +714,22 @@ class ANCTest(ss.Intervention):
         if self.stop is None:
             self.stop = sim.t.yearvec[-1]
 
-        if self._disease_names is not None:
-            self._active_diseases = list(self._disease_names)
+        if self.disease_names is not None:
+            unknown = [d for d in self.disease_names if d not in sim.diseases]
+            if unknown:
+                valid = list(sim.diseases.keys())
+                raise KeyError(f'ANCTest: unknown disease(s) {unknown}. Valid names: {valid}')
+            self.active_diseases = list(self.disease_names)
         else:
-            # Auto-detect: include any registered disease present in the sim
-            self._active_diseases = [d for d in self._registry if d in sim.diseases]
+            self.active_diseases = [d for d in self.auto_detect if d in sim.diseases]
         return
 
     def init_results(self):
         super().init_results()
-        results = sc.autolist()
-        results += ss.Result('n_attended', dtype=int, label='ANC attendees')
-        for dname in self._active_diseases:
-            results += ss.Result(f'n_{dname}_positive', dtype=int,
-                                 label=f'{dname.upper()} positive at ANC')
+        results = [ss.Result('n_attended', dtype=int, label='ANC attendees')]
+        for dname in self.active_diseases:
+            results.append(ss.Result(f'n_{dname}_positive', dtype=int,
+                                     label=f'{dname.upper()} positive at ANC'))
         self.define_results(*results)
         return
 
@@ -750,11 +741,12 @@ class ANCTest(ss.Intervention):
             return
 
         # Schedule a visit for each newly pregnant woman
-        if hasattr(sim.demographics, 'pregnancy'):
-            newly_preg = (sim.demographics.pregnancy.ti_pregnant == ti).uids
-            attendees  = self._visit_prob_dist.filter(newly_preg)
+        pregnancy = sim.get_module(ss.Pregnancy, die=False)
+        if pregnancy is not None:
+            newly_preg = (pregnancy.ti_pregnant == ti).uids
+            attendees  = self.visit_prob_dist.filter(newly_preg)
             months_dt  = ss.dur(1, 'month') / sim.t.dt   # timesteps per month
-            offsets    = np.round(self._visit_timing.rvs(attendees) * months_dt).astype(int)
+            offsets    = self.visit_timing.randround(self.visit_timing.rvs(attendees) * months_dt)
             self.ti_visit[attendees] = ti + offsets
 
         visit_uids = (self.ti_visit == ti).uids
@@ -763,17 +755,15 @@ class ANCTest(ss.Intervention):
 
         self.results['n_attended'][ti] = len(visit_uids)
 
-        for dname in self._active_diseases:
-            if dname not in sim.diseases:
-                continue
-            disease  = sim.diseases[dname]
-            sens     = self._test_sensitivity.get(dname, 1.0)
+        for dname in self.active_diseases:
+            disease = sim.diseases[dname]
+            sens    = self.test_sensitivity.get(dname, 1.0)
 
             # Apply sensitivity to infected attendees
             infected = visit_uids[disease.infected[visit_uids]]
             if len(infected) and sens < 1.0:
-                self._sens_dist.set(p=sens)
-                pos_uids = infected[self._sens_dist.rvs(infected)]
+                self.sens_dist.set(p=sens)
+                pos_uids = infected[self.sens_dist.rvs(infected)]
             else:
                 pos_uids = infected
 
@@ -781,35 +771,34 @@ class ANCTest(ss.Intervention):
                 continue
 
             self.results[f'n_{dname}_positive'][ti] += len(pos_uids)
-            cfg = self._registry.get(dname, {})
 
-            if cfg.get('use_diagnosed'):
-                # HIV-style: set diagnosed flag so ART picks up automatically
+            if dname == 'hiv':
+                # Set diagnosed flag so ART picks up automatically
                 disease.diagnosed[pos_uids]    = True
                 disease.ti_diagnosed[pos_uids] = ti
-            elif dname in self._disease_tx_map:
-                self._disease_tx_map[dname].eligibility = (
-                    self._disease_tx_map[dname].eligibility | pos_uids
-                )
+            elif dname in self.disease_treatment_map:
+                tx = self.disease_treatment_map[dname]
+                tx.eligibility = tx.eligibility | pos_uids
 
-            # Schedule newborn/infant test if provided and maternalnet exists
-            if dname in self._newborn_tests:
-                self._schedule_newborn(sim, pos_uids, self._newborn_tests[dname])
+            # Schedule newborn/infant test if provided
+            if dname in self.newborn_tests:
+                self._schedule_newborn(sim, pos_uids, self.newborn_tests[dname])
         return
 
     @staticmethod
     def _schedule_newborn(sim, pos_mother_uids, newborn_test):
         """Schedule a newborn/infant test for unborn children of positive mothers."""
-        if not (hasattr(sim.networks, 'maternalnet') and
-                hasattr(sim.demographics, 'pregnancy')):
-            return
-        mn = sim.networks.maternalnet
-        pos_mask = np.isin(mn.p1, pos_mother_uids)
-        unborn   = mn.p2[pos_mask]
-        ti_births = sim.demographics.pregnancy.ti_delivery[
-            mn.p1[pos_mask]
-        ]
-        valid = ~np.isnan(ti_births)
+        mn        = sim.get_module(ss.MaternalNet, die=False)
+        pregnancy = sim.get_module(ss.Pregnancy, die=False)
+        if mn is None or pregnancy is None:
+            raise RuntimeError(
+                'ANCTest: cannot schedule newborn tests without ss.MaternalNet '
+                'and ss.Pregnancy in the sim'
+            )
+        pos_mask  = np.isin(mn.p1, pos_mother_uids)
+        unborn    = mn.p2[pos_mask]
+        ti_births = pregnancy.ti_delivery[mn.p1[pos_mask]]
+        valid     = ~np.isnan(ti_births)
         if valid.any():
             newborn_test.schedule(unborn[valid], ti_births[valid].astype(int))
         return
