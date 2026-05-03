@@ -181,7 +181,7 @@ def test_debut_age():
     assert np.all(s1.analyzers.debutage.prop_active_m[0] >= s2.analyzers.debutage.prop_active_m[0]), "Proportion of males active should be higher in default network than in late debut network at any given age"
 
 
-def test_shorter_sw_window_reduces_transmissions():
+def test_shorter_sw():
     """ Shorter SW participation window → fewer HIV transmissions attributable to FSW """
     kw = dict(n_agents=2000, stop=2010, rand_seed=1, run=False, plot=False, verbose=0,
               analyzers=[sti.sw_stats(diseases=['hiv'])])
@@ -203,4 +203,4 @@ if __name__ == '__main__':
     test_relationship_duration()
     test_partner_seeking_rates()
     test_debut_age()
-    test_shorter_sw_window_reduces_transmissions()
+    test_shorter_sw()
