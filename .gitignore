@@ -1,8 +1,5 @@
-# MkDocs
-_site/
-docs/api.md
-
-supervisord.log
+# Claude
+.claude/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -67,11 +64,6 @@ instance/
 # Scrapy stuff:
 .scrapy
 
-# Sphinx documentation
-docs/_build/
-docs/api/
-docs/modules.rst
-docs/stisim.*.rst
 
 # PyBuilder
 target/
@@ -103,8 +95,6 @@ ENV/
 # Rope project settings
 .ropeproject
 
-# mkdocs documentation
-/site
 
 # mypy
 .mypy_cache/

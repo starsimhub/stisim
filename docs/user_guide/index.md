@@ -5,5 +5,8 @@ STIsim is built on top of [Starsim](https://docs.starsim.org). For understanding
 This user guide documents what STIsim adds on top of Starsim:
 
 - **[Diseases](diseases/index.md)** -- State diagrams and parameter tables for each STI module (HIV, syphilis, chlamydia, gonorrhea, trichomoniasis, BV, GUD).
-- **[Networks](networks/structured_sexual.md)** -- The structured sexual network: risk groups, partnership types, age mixing, sex work, and condom use.
+- **[Networks](networks/structured_sexual.md)** -- The structured sexual network: risk groups, partnership types, age mixing, sex work, and condom use. See also [MSM networks](networks/msm.md).
 - **[Interventions](interventions/interventions.md)** -- Testing, treatment, and HIV-specific interventions (ART, VMMC, PrEP).
+- **[Connectors](connectors.md)** -- Coinfection interactions between co-circulating diseases.
+- **[Calibration](calibration.md)** -- Fitting model parameters to data with Optuna.
+- **[HIVsim](hivsim.md)** -- The HIV-focused convenience wrapper around `sti.Sim`.

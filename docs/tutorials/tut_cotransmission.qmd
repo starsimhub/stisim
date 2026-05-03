@@ -1,0 +1,155 @@
+---
+title: Co-transmitting STIs
+jupyter: python3
+---
+
+
+STIsim is designed for modeling multiple STIs circulating on the same sexual network. This tutorial shows how to:
+
+1. Run multiple bacterial STIs together
+2. Add HIV with coinfection connectors
+3. Compare results with and without coinfection interactions
+
+
+## Multiple STIs on a shared network
+
+When you pass multiple diseases to a sim, they all transmit on the same `StructuredSexual` network. Each disease has its own transmission probability, natural history, and clearance dynamics -- but the partnerships are shared.
+
+```{python}
+import stisim as sti
+
+sim = sti.Sim(
+    diseases=['ng', 'ct', 'tv'],
+    n_agents=2000,
+    start=2010,
+    stop=2030,
+)
+sim.run(verbose=0)
+sim.plot(key=['ng.prevalence', 'ct.prevalence', 'tv.prevalence'])
+```
+
+Each disease reaches its own endemic equilibrium determined by its transmission rate, duration of infection, and clearance dynamics. Trichomoniasis typically has the highest prevalence because of its long duration of infection in women.
+
+## Customizing disease parameters
+
+Use `sti_pars` to override defaults for each disease:
+
+```{python}
+sim = sti.Sim(
+    diseases=['ng', 'ct', 'tv'],
+    sti_pars=dict(
+        ng=dict(beta_m2f=0.08, init_prev=0.03),
+        ct=dict(beta_m2f=0.08, init_prev=0.05),
+        tv=dict(beta_m2f=0.12, init_prev=0.08),
+    ),
+    n_agents=2000,
+    start=2010,
+    stop=2030,
+)
+sim.run(verbose=0)
+sim.plot(key=['ng.prevalence', 'ct.prevalence', 'tv.prevalence'])
+```
+
+## Adding HIV with connectors
+
+When diseases interact biologically -- for example, having an STI increases susceptibility to HIV -- you model this with **connectors**. STIsim provides connectors for HIV-STI coinfection interactions.
+
+Connectors modify `rel_sus` (relative susceptibility) and `rel_trans` (relative transmissibility) for coinfected agents at each timestep. For example, `hiv_ng` increases HIV susceptibility for agents who have gonorrhea.
+
+```{python}
+# Create disease modules
+hiv = sti.HIV(init_prev=0.10)
+ng = sti.Gonorrhea(init_prev=0.03)
+ct = sti.Chlamydia(init_prev=0.05)
+tv = sti.Trichomoniasis(init_prev=0.08)
+
+# Create connectors for HIV-STI interactions
+connectors = [
+    sti.hiv_ng(hiv, ng),   # NG increases HIV susceptibility (default: 1.2x)
+    sti.hiv_ct(hiv, ct),   # CT increases HIV susceptibility (default: 1.0x)
+    sti.hiv_tv(hiv, tv),   # TV increases HIV susceptibility (default: 1.5x)
+]
+
+sim = sti.Sim(
+    diseases=[hiv, ng, ct, tv],
+    connectors=connectors,
+    n_agents=2000,
+    start=2010,
+    stop=2030,
+)
+sim.run(verbose=0)
+sim.plot(key=['hiv.prevalence', 'ng.prevalence', 'ct.prevalence', 'tv.prevalence'])
+```
+
+**Note:** The HIV dynamics in this tutorial are not realistic -- we have not added ART or HIV testing, which are crucial drivers of the HIV epidemic. Without treatment, HIV prevalence here is governed entirely by natural history and AIDS mortality. For realistic HIV modeling, see the [hiv_kenya](https://github.com/starsimhub/hiv_kenya) example, which includes testing, ART, and PrEP interventions.
+
+## Comparing with and without connectors
+
+To see the effect of coinfection interactions, we compare HIV and syphilis co-transmission with and without an `hiv_syph` connector.
+
+In reality, syphilis epidemics are sustained by cycles of treatment and reinfection -- people with symptomatic (active) syphilis seek treatment, clearing the infection but leaving them susceptible to reinfection. Without treatment, most cases quickly progress to the latent stage, where they are far less infectious and the connector has little effect.
+
+To make the connector's impact visible without adding treatment interventions, we artificially extend the primary stage duration. This keeps more agents in the active (primary + secondary) stages where the connector amplifies HIV susceptibility.
+
+```{python}
+import matplotlib.pyplot as plt
+import starsim as ss
+
+def make_diseases():
+    """ Helper to create fresh disease modules """
+    hiv = sti.HIV(init_prev=0.02, beta_m2f=0.03)
+    syph = sti.Syphilis(
+        init_prev=0.10, beta_m2f=0.25,
+        rel_trans_primary=5, rel_trans_latent=0.1,
+        eff_condom=0.5,
+        dur_primary=ss.constant(v=ss.years(2)),  # Extended for illustration
+    )
+    return hiv, syph
+
+# Without connectors
+hiv, syph = make_diseases()
+s0 = sti.Sim(diseases=[hiv, syph], n_agents=5000, start=2000, stop=2020)
+s0.run(verbose=0)
+
+# With connectors -- syphilis increases HIV susceptibility 2.67x (default)
+hiv, syph = make_diseases()
+s1 = sti.Sim(
+    diseases=[hiv, syph],
+    connectors=sti.hiv_syph(hiv, syph),
+    n_agents=5000, start=2000, stop=2020,
+)
+s1.run(verbose=0)
+
+# Compare cumulative HIV infections
+fig, ax = plt.subplots()
+ax.plot(s0.timevec, s0.results.hiv.cum_infections, label='Without connector')
+ax.plot(s1.timevec, s1.results.hiv.cum_infections, label='With hiv_syph connector')
+ax.set_xlabel('Year')
+ax.set_ylabel('Cumulative HIV infections')
+ax.set_title('Effect of syphilis coinfection on HIV acquisition')
+ax.legend()
+fig
+```
+
+## Available connectors
+
+| Connector | Interaction | Default effect |
+|-----------|------------|----------------|
+| `sti.hiv_syph` | HIV-Syphilis | Syphilis increases HIV susceptibility 2.67x and transmissibility 1.2x |
+| `sti.hiv_ng` | HIV-Gonorrhea | NG increases HIV susceptibility 1.2x and transmissibility 1.2x |
+| `sti.hiv_ct` | HIV-Chlamydia | CT increases HIV susceptibility 1.0x (placeholder) |
+| `sti.hiv_tv` | HIV-Trichomonas | TV increases HIV susceptibility 1.5x |
+| `sti.hiv_bv` | HIV-BV | BV (CST4) increases HIV susceptibility and transmissibility 2x |
+| `sti.gud_syph` | GUD-Syphilis | Bidirectional: each increases susceptibility and transmissibility 2x |
+
+All connector parameters can be overridden at creation time, e.g.:
+```python
+sti.hiv_ng(hiv, ng, rel_sus_hiv_ng=2.0, rel_trans_hiv_ng=2.0)
+```
+
+## Exercises
+
+1. Add syphilis to the model with an `hiv_syph` connector. How does it change HIV prevalence compared to the bacterial STIs?
+2. Try increasing the `rel_sus_hiv_tv` parameter to 3.0. What happens to HIV prevalence?
+3. Add demographics (`demographics='zimbabwe'`) and observe how population turnover affects the co-transmission dynamics.
+
