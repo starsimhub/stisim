@@ -2,6 +2,10 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.5.5 (TBC)
+
+*Coming soon*
+
 ## Version 1.5.4 (2026-05-04)
 
 ### Networks
