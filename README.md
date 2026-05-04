@@ -67,7 +67,9 @@ Publications using STIsim include:
 
 1. **Reduction in overtreatment of gonorrhoea and chlamydia through point-of-care testing compared with syndromic management for vaginal discharge: a modelling study for Zimbabwe** (2026). Stuart RM, Newman LM, Manguro G, Dziva Chikwari C, Marks M, Peters RPH, Klein D, Snyder L, Kerr C, Rao DW. *Sex Transm Infect* https://doi.org/10.1136/sextrans-2025-056646. Preprint: https://doi.org/10.21203/rs.3.rs-8843262/v1 
 
-2. **Point-of-care testing to strengthen sexually transmitted infection case management in resource-constrained settings** (2026). Peters RPH, Manguro G, Ong'wen PA, Mdingi MM, Applegate TL, Stuart R, Harding-Esch EM, Manabe YC, Ndowa F, Van Der Pol B. *Sex Transm Infect*, https://doi.org/10.1136/sextrans-2025-056833. 
+2. **Point-of-care testing to strengthen sexually transmitted infection case management in resource-constrained settings** (2026). Peters RPH, Manguro G, Ong'wen PA, Mdingi MM, Applegate TL, Stuart R, Harding-Esch EM, Manabe YC, Ndowa F, Van Der Pol B. *Sex Transm Infect*, https://doi.org/10.1136/sextrans-2025-056833.
+
+3. **Estimating the value of novel tests for active syphilis in Zimbabwe: how much overtreatment can be avoided?** (2026). Stuart RM, Marks M, Dziva Chikwari C, Muellenmeister AM, Abeysuriya RG, Manguro G, Peters RPH, Rao DW, Newman LM. Forthcoming in *STD* (accepted May 3, 2026). Preprint: https://doi.org/10.21203/rs.3.rs-9559421/v1
 
 
 ## Examples

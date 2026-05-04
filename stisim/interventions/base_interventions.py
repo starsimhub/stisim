@@ -11,7 +11,7 @@ from stisim.utils import count
 
 
 # %% Base classes
-__all__ = ["STIDx", "STITest", "SymptomaticTesting", "STITreatment", "PartnerNotification", "ProductMix"]
+__all__ = ["STIDx", "STITest", "SymptomaticTesting", "SyndromicManagement", "ANCTest", "STITreatment", "PartnerNotification", "ProductMix"]
 
 
 class STIDx(ss.Product):
@@ -421,6 +421,386 @@ class SymptomaticTesting(STITest):
         self.results['new_tx2'][ti] += count(self.n_treatments == 2)
         self.results['new_tx3'][ti] += count(self.n_treatments == 3)
 
+        return
+
+
+class SyndromicManagement(STITest):
+    """
+    Syndromic management of vaginal/urethral discharge syndromes.
+
+    When a symptomatic patient presents, they are probabilistically assigned
+    one of four treatment outcomes based on whether they have a cervical
+    infection (by default NG/CT) and their sex:
+
+        all3  — treated for cervical pathogens + TV/BV
+        ngct  — treated for cervical pathogens only
+        mtnz  — treated with metronidazole only (TV/BV)
+        none  — dismissed without treatment
+
+    Treatment probabilities for each outcome are given separately for
+    females with cervical infection (``tx_mix_cerv``), females without
+    (``tx_mix_noncerv``), and males (cervical column of ``tx_mix_cerv``
+    is reused for UDS).  Each dict maps outcome name → [female_prob, male_prob].
+
+    The ``outcome_tx_map`` links each outcome to the treatment module(s)
+    that should be triggered.  Diagnostic accuracy (TP/FP/FN/TN) is recorded
+    on any disease module that exposes those result keys.
+
+    Args:
+        treatments (list):        treatment module instances
+        diseases (list):          disease modules to track accuracy for
+        cervical_diseases (list): disease modules whose symptomatic flag
+                                  indicates cervical infection; defaults to
+                                  any disease named 'ng' or 'ct' in ``diseases``
+        outcome_tx_map (dict):    maps outcome name → list of treatment modules;
+                                  auto-constructed from ``treatments`` if omitted
+        treat_prob_data:          unused; reserved for future time-varying tx prob
+        years, start, stop, eligibility, name, label: passed to STITest
+
+    Examples::
+
+        syndromic = sti.SyndromicManagement(
+            diseases=[ng, ct, tv, bv],
+            treatments=[ng_tx, ct_tx, metronidazole],
+            eligibility=seeking_care_vds,
+        )
+    """
+
+    def __init__(self, pars=None, treatments=None, diseases=None,
+                 cervical_diseases=None, outcome_tx_map=None,
+                 treat_prob_data=None, years=None, start=None, stop=None,
+                 eligibility=None, name=None, label=None, **kwargs):
+        super().__init__(years=years, start=start, stop=stop, eligibility=eligibility,
+                         name=name, label=label)
+        self.define_pars(
+            tx_mix_cerv=dict(
+                all3=[0.50, 0.05],
+                ngct=[0.20, 0.80],
+                mtnz=[0.20, 0.00],
+                none=[0.10, 0.15],
+            ),
+            tx_mix_noncerv=dict(
+                all3=[0.40, 0.05],
+                ngct=[0.10, 0.80],
+                mtnz=[0.20, 0.00],
+                none=[0.30, 0.15],
+            ),
+            tx_cerv_f=ss.choice(a=4),
+            tx_cerv_m=ss.choice(a=4),
+            tx_noncerv_f=ss.choice(a=4),
+            tx_noncerv_m=ss.choice(a=4),
+            dt_scale=False,
+        )
+        self.update_pars(pars, **kwargs)
+        self.fvals_cerv    = [v[0] for v in self.pars.tx_mix_cerv.values()]
+        self.mvals_cerv    = [v[1] for v in self.pars.tx_mix_cerv.values()]
+        self.fvals_noncerv = [v[0] for v in self.pars.tx_mix_noncerv.values()]
+        self.mvals_noncerv = [v[1] for v in self.pars.tx_mix_noncerv.values()]
+
+        self.treatments = sc.tolist(treatments)
+        self.diseases = sc.tolist(diseases)
+        self._cervical_diseases = sc.tolist(cervical_diseases)  # resolved in init_pre
+
+        if outcome_tx_map is None:
+            outcome_tx_map = dict(
+                all3=self.treatments,
+                ngct=[self.treatments[0], self.treatments[1]],
+                mtnz=[self.treatments[1]],
+                none=[],
+            )
+        self.outcome_tx_map = outcome_tx_map
+
+        self.define_states(
+            ss.FloatArr('ti_referred'),
+            ss.FloatArr('ti_dismissed'),
+        )
+        self.treat_prob_data = treat_prob_data
+        self.treated_by_uid = None
+        return
+
+    def init_pre(self, sim):
+        super().init_pre(sim)
+        self.pars.tx_cerv_f.set(p=self.fvals_cerv)
+        self.pars.tx_cerv_m.set(p=self.mvals_cerv)
+        self.pars.tx_noncerv_f.set(p=self.fvals_noncerv)
+        self.pars.tx_noncerv_m.set(p=self.mvals_noncerv)
+        # Resolve cervical diseases: use explicit list, else find 'ng'/'ct' in diseases
+        if not self._cervical_diseases:
+            self._cervical_diseases = [d for d in self.diseases if d.name in ('ng', 'ct')]
+        return
+
+    def init_results(self):
+        super().init_results()
+        results = []
+        for sk in ['', 'f', 'm']:
+            skk = '' if sk == '' else f'_{sk}'
+            skl = '' if sk == '' else f' - {sk.upper()}'
+            results += [
+                ss.Result('new_care_seekers' + skk, dtype=int, label='Care seekers' + skl),
+                ss.Result('new_tx0' + skk, dtype=int, label='No treatment' + skl),
+                ss.Result('new_tx1' + skk, dtype=int, label='1 treatment' + skl),
+                ss.Result('new_tx2' + skk, dtype=int, label='2 treatments' + skl),
+                ss.Result('new_tx3' + skk, dtype=int, label='3 treatments' + skl),
+            ]
+        self.define_results(*results)
+        return
+
+    def step(self, uids=None):
+        sim = self.sim
+        ppl = sim.people
+        self.treated_by_uid = None
+
+        if sim.now >= self.stop:
+            for treatment in self.treatments:
+                treatment.eligibility = ss.uids()
+            return
+
+        if sim.now >= self.start:
+            if uids is None:
+                uids = self.check_eligibility()
+                self.ti_tested[uids] = self.ti
+
+            if len(uids):
+                f_uids = uids[ppl.female[uids]]
+                m_uids = uids[ppl.male[uids]]
+
+                # Cervical symptomatic flag: OR over user-specified cervical disease modules
+                has_cerv_symp = ss.BoolArr('has_cerv_symp')
+                has_cerv_symp.initialize(sim.people)
+                for d in self._cervical_diseases:
+                    has_cerv_symp = has_cerv_symp | d.symptomatic
+
+                f_cerv_uids    = f_uids[has_cerv_symp[f_uids]]
+                f_noncerv_uids = f_uids[~has_cerv_symp[f_uids]]
+
+                ofc  = self.pars.tx_cerv_f.rvs(f_cerv_uids)
+                ofnc = self.pars.tx_noncerv_f.rvs(f_noncerv_uids)
+                om   = self.pars.tx_cerv_m.rvs(m_uids)
+
+                outcomes = dict(
+                    all3=f_cerv_uids[ofc == 0] | f_noncerv_uids[ofnc == 0] | m_uids[om == 0],
+                    ngct=f_cerv_uids[ofc == 1] | f_noncerv_uids[ofnc == 1] | m_uids[om == 1],
+                    mtnz=f_cerv_uids[ofc == 2] | f_noncerv_uids[ofnc == 2] | m_uids[om == 2],
+                    none=f_cerv_uids[ofc == 3] | f_noncerv_uids[ofnc == 3] | m_uids[om == 3],
+                )
+
+                # Diagnostic accuracy: record TP/FP/FN/TN on each disease module
+                # all3 and ngct both treat cervical diseases; mtnz treats the rest
+                for disease in self.diseases:
+                    if not hasattr(disease, 'sex_keys'):
+                        continue
+                    in_all3_or_ngct = outcomes['all3'] | outcomes['ngct']
+                    in_mtnz         = outcomes['mtnz']
+                    is_cerv_disease = disease in self._cervical_diseases
+                    treat_outcomes  = in_all3_or_ngct if is_cerv_disease else in_mtnz
+                    miss_outcomes   = in_mtnz         if is_cerv_disease else in_all3_or_ngct
+                    for pkey, pattr in disease.sex_keys.items():
+                        skk = '' if pkey == '' else f'_{pkey}'
+                        disease.results[f'new_true_pos{skk}'][self.ti]  += len(outcomes['all3'] & disease.treatable & ppl[pattr])
+                        disease.results[f'new_false_pos{skk}'][self.ti] += len(outcomes['all3'] & disease.susceptible & ppl[pattr])
+                        disease.results[f'new_true_neg{skk}'][self.ti]  += len(outcomes['none'] & disease.susceptible & ppl[pattr])
+                        disease.results[f'new_false_neg{skk}'][self.ti] += len(outcomes['none'] & disease.treatable & ppl[pattr])
+                        disease.results[f'new_true_pos{skk}'][self.ti]  += len(treat_outcomes & disease.treatable & ppl[pattr])
+                        disease.results[f'new_false_pos{skk}'][self.ti] += len(treat_outcomes & disease.susceptible & ppl[pattr])
+                        disease.results[f'new_false_neg{skk}'][self.ti] += len(miss_outcomes & disease.treatable & ppl[pattr])
+                        disease.results[f'new_true_neg{skk}'][self.ti]  += len(miss_outcomes & disease.susceptible & ppl[pattr])
+
+                # Route to treatments
+                for outcome, txs in self.outcome_tx_map.items():
+                    for tx in txs:
+                        tx.eligibility = tx.eligibility | outcomes[outcome]
+
+                referred_uids  = outcomes['all3'] | outcomes['ngct'] | outcomes['mtnz']
+                dismissed_uids = outcomes['none']
+                self.ti_referred[referred_uids]  = self.ti
+                self.ti_dismissed[dismissed_uids] = self.ti
+                self.treated_by_uid = outcomes
+
+            self.store_results()
+        return
+
+    def store_results(self):
+        ti  = self.ti
+        ppl = self.sim.people
+        just_tested = self.ti_tested == ti
+        self.results['new_care_seekers'][ti]   += count(just_tested)
+        self.results['new_care_seekers_f'][ti] += count(just_tested & ppl.female)
+        self.results['new_care_seekers_m'][ti] += count(just_tested & ppl.male)
+
+        sexdict = {'': 'alive', 'f': 'female', 'm': 'male'}
+        if self.treated_by_uid is not None:
+            for sk, sl in sexdict.items():
+                skk = '' if sk == '' else f'_{sk}'
+                self.results['new_tx0' + skk][ti] += count(ppl[sl][self.treated_by_uid['none']])
+                self.results['new_tx1' + skk][ti] += count(ppl[sl][self.treated_by_uid['mtnz']])
+                self.results['new_tx2' + skk][ti] += count(ppl[sl][self.treated_by_uid['ngct']])
+                self.results['new_tx3' + skk][ti] += count(ppl[sl][self.treated_by_uid['all3']])
+        return
+
+
+class ANCTest(ss.Intervention):
+    """
+    Multi-disease ANC visit testing, scheduled once per pregnancy.
+
+    When a woman becomes pregnant, schedules one ANC visit at a random
+    gestational timepoint (months 1–7). At that visit she is tested for HIV
+    and syphilis (auto-detected if present in the sim) plus any extra diseases
+    listed in ``disease_names``. ``visit_prob`` reflects ANC attendance:
+    once she attends, all active disease tests are applied.
+
+    HIV positives have ``diagnosed`` / ``ti_diagnosed`` set, so ART links up
+    automatically. Other diseases route positives to ``disease_treatment_map``.
+    Newborn/infant tests, if provided in ``newborn_tests``, are scheduled on
+    the unborn via the maternal network (sim must include ``ss.MaternalNet``
+    and ``ss.Pregnancy``).
+
+    Args:
+        visit_prob (float):           probability of attending ANC (default 0.85)
+        disease_names (list):         extra diseases to test for; HIV and syphilis
+                                      are auto-detected if present in the sim
+        test_sensitivity (dict):      per-disease sensitivity, e.g. ``{'hiv': 0.99}``;
+                                      default 1.0 for all
+        disease_treatment_map (dict): maps disease name → treatment intervention;
+                                      required for syphilis and any non-HIV disease
+        newborn_tests (dict):         maps disease name → newborn/infant test
+                                      intervention (also added to ``sim.interventions``),
+                                      e.g. ``{'hiv': infant_hiv, 'syphilis': newborn_syph}``
+        start, stop, name, label:     standard
+
+    Examples::
+
+        # Minimal: HIV + syphilis auto-detected, no newborn tests
+        anc = sti.ANCTest(
+            visit_prob=0.85,
+            disease_treatment_map={'syphilis': syph_tx},
+        )
+
+        # With newborn/infant tests
+        infant_hiv  = sti.InfantHIVTest(name='infant_hiv')
+        newborn_syph = sti.NewbornSyphTest(name='newborn_syph', ...)
+        anc = sti.ANCTest(
+            visit_prob=0.85,
+            disease_treatment_map={'syphilis': syph_tx},
+            newborn_tests={'hiv': infant_hiv, 'syphilis': newborn_syph},
+        )
+        sim = ss.Sim(..., interventions=[anc, art, syph_tx, infant_hiv, newborn_syph])
+    """
+
+    # HIV uses a diagnosed flag for ART linkage; other diseases route through
+    # disease_treatment_map. Auto-detect targets when disease_names not supplied.
+    auto_detect = ['hiv', 'syphilis']
+
+    def __init__(self, visit_prob=0.85, disease_names=None, test_sensitivity=None,
+                 disease_treatment_map=None, newborn_tests=None,
+                 start=None, stop=None, name=None, label=None, **kwargs):
+        super().__init__(name=name, label=label, **kwargs)
+        self.disease_names         = disease_names           # None → auto-detect
+        self.test_sensitivity      = test_sensitivity or {}
+        self.disease_treatment_map = disease_treatment_map or {}
+        self.newborn_tests         = newborn_tests or {}
+        self.active_diseases       = []   # resolved in init_pre
+        self.visit_prob_dist       = ss.bernoulli(p=visit_prob)
+        self.sens_dist             = ss.bernoulli(p=0.5)
+        self.visit_timing          = ss.randint(low=1, high=9)   # months into pregnancy
+        self.start = start
+        self.stop  = stop
+        self.define_states(ss.FloatArr('ti_visit', label='Scheduled ANC visit'))
+        return
+
+    def init_pre(self, sim):
+        super().init_pre(sim)
+        if self.start is None:
+            self.start = sim.t.yearvec[0]
+        if self.stop is None:
+            self.stop = sim.t.yearvec[-1]
+
+        if self.disease_names is not None:
+            unknown = [d for d in self.disease_names if d not in sim.diseases]
+            if unknown:
+                valid = list(sim.diseases.keys())
+                raise KeyError(f'ANCTest: unknown disease(s) {unknown}. Valid names: {valid}')
+            self.active_diseases = list(self.disease_names)
+        else:
+            self.active_diseases = [d for d in self.auto_detect if d in sim.diseases]
+        return
+
+    def init_results(self):
+        super().init_results()
+        results = [ss.Result('n_attended', dtype=int, label='ANC attendees')]
+        for dname in self.active_diseases:
+            results.append(ss.Result(f'n_{dname}_positive', dtype=int,
+                                     label=f'{dname.upper()} positive at ANC'))
+        self.define_results(*results)
+        return
+
+    def step(self):
+        sim = self.sim
+        ti  = self.ti
+
+        if sim.now < self.start or sim.now >= self.stop:
+            return
+
+        # Schedule a visit for each newly pregnant woman
+        pregnancy = sim.get_module(ss.Pregnancy, die=False)
+        if pregnancy is not None:
+            newly_preg = (pregnancy.ti_pregnant == ti).uids
+            attendees  = self.visit_prob_dist.filter(newly_preg)
+            months_dt  = ss.dur(1, 'month') / sim.t.dt   # timesteps per month
+            offsets    = self.visit_timing.randround(self.visit_timing.rvs(attendees) * months_dt)
+            self.ti_visit[attendees] = ti + offsets
+
+        visit_uids = (self.ti_visit == ti).uids
+        if not len(visit_uids):
+            return
+
+        self.results['n_attended'][ti] = len(visit_uids)
+
+        for dname in self.active_diseases:
+            disease = sim.diseases[dname]
+            sens    = self.test_sensitivity.get(dname, 1.0)
+
+            # Apply sensitivity to infected attendees
+            infected = visit_uids[disease.infected[visit_uids]]
+            if len(infected) and sens < 1.0:
+                self.sens_dist.set(p=sens)
+                pos_uids = infected[self.sens_dist.rvs(infected)]
+            else:
+                pos_uids = infected
+
+            if not len(pos_uids):
+                continue
+
+            self.results[f'n_{dname}_positive'][ti] += len(pos_uids)
+
+            if dname == 'hiv':
+                # Set diagnosed flag so ART picks up automatically
+                disease.diagnosed[pos_uids]    = True
+                disease.ti_diagnosed[pos_uids] = ti
+            elif dname in self.disease_treatment_map:
+                tx = self.disease_treatment_map[dname]
+                tx.eligibility = tx.eligibility | pos_uids
+
+            # Schedule newborn/infant test if provided
+            if dname in self.newborn_tests:
+                self._schedule_newborn(sim, pos_uids, self.newborn_tests[dname])
+        return
+
+    @staticmethod
+    def _schedule_newborn(sim, pos_mother_uids, newborn_test):
+        """Schedule a newborn/infant test for unborn children of positive mothers."""
+        mn        = sim.get_module(ss.MaternalNet, die=False)
+        pregnancy = sim.get_module(ss.Pregnancy, die=False)
+        if mn is None or pregnancy is None:
+            raise RuntimeError(
+                'ANCTest: cannot schedule newborn tests without ss.MaternalNet '
+                'and ss.Pregnancy in the sim'
+            )
+        pos_mask  = np.isin(mn.p1, pos_mother_uids)
+        unborn    = mn.p2[pos_mask]
+        ti_births = pregnancy.ti_delivery[mn.p1[pos_mask]]
+        valid     = ~np.isnan(ti_births)
+        if valid.any():
+            newborn_test.schedule(unborn[valid], ti_births[valid].astype(int))
         return
 
 

@@ -6,6 +6,7 @@ import stisim as sti
 import starsim as ss
 import numpy as np
 import sciris as sc
+import hivsim
 
 
 def test_msm_network(n_agents=500):
@@ -166,7 +167,7 @@ def test_debut_age():
     # Create a structured sexual network with default parameters
     network = sti.StructuredSexual()
 
-    late_debut_network = sti.StructuredSexual(pars={'debut_pars_f': [25, 3], 'debut_pars_m': [26, 3]})
+    late_debut_network = sti.StructuredSexual(debut_f=25, debut_m=26)
     analyzer = sti.DebutAge()
 
     s1 = sti.Sim(networks=[network], analyzers=[analyzer])
@@ -180,6 +181,21 @@ def test_debut_age():
     assert np.all(s1.analyzers.debutage.prop_active_m[0] >= s2.analyzers.debutage.prop_active_m[0]), "Proportion of males active should be higher in default network than in late debut network at any given age"
 
 
+def test_shorter_sw():
+    """ Shorter SW participation window → fewer HIV transmissions attributable to FSW """
+    kw = dict(n_agents=2000, stop=2010, rand_seed=1, run=False, plot=False, verbose=0,
+              analyzers=[sti.sw_stats(diseases=['hiv'])])
+
+    long_win  = hivsim.demo('zimbabwe', dur_sw=10, **kw)
+    short_win = hivsim.demo('zimbabwe', dur_sw=2,  **kw)
+    ss.parallel(long_win, short_win)
+
+    long_trans  = long_win.results.sw_stats.new_transmissions_fsw_hiv.sum()
+    short_trans = short_win.results.sw_stats.new_transmissions_fsw_hiv.sum()
+    assert short_trans < long_trans, \
+        f'Expected fewer FSW-attributable transmissions with shorter window: short={short_trans}, long={long_trans}'
+
+
 if __name__ == '__main__':
     test_msm_network()
     test_network_degrees()
@@ -187,3 +203,4 @@ if __name__ == '__main__':
     test_relationship_duration()
     test_partner_seeking_rates()
     test_debut_age()
+    test_shorter_sw()

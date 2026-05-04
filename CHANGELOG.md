@@ -2,6 +2,48 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.5.4 (2026-05-04)
+
+### Networks
+- Split `StructuredSexual` into reusable `MFNetwork` (heterosexual) and `SWNetwork` (sex-work) networks built on a new `BaseNetwork`. `StructuredSexual` is preserved as the combined default. (#307, #445)
+- Window sex-work participation by per-agent `age_sw_start` + `dur_sw` instead of lifetime; `fsw` / `client` / `age_sw_stop` are now derived properties. (#307, #445)
+- Add `condom_smoothness` parameter forwarded to `sc.smoothinterp` for time-varying condom data. (#445)
+- Replace shared `debut` / `debut_pars_f` / `debut_pars_m` with per-sex `debut_f` / `debut_m` distributions; supports scalar shortcuts, full `ss.Dist` instances, and callables. (#397, #420, #423)
+
+### Interventions
+- Add `SyndromicManagement` to core stisim, consolidating duplicated implementations from `anc_sti_screening` and `stisim_vddx_zim`. `cervical_diseases` parameter generalises the cervical-symptom check. (#369, #443)
+- Add `ANCTest` for single-visit ANC screening (auto-detects HIV + syphilis; per-disease sensitivity; routes to treatment maps). Raises if disease names are mistyped. (#370, #444)
+- Add `InfantHIVTest` for newborn/infant testing scheduled by `ANCTest` or by `HIVTest` via the maternal network. (#370, #444)
+- Decouple `Prep` eligibility from clinical filters: user-supplied `eligibility=` callables now express targeting only; `~hiv.infected` and `~on_prep` are applied unconditionally. (#330, #441)
+- Refactor `Prep` legacy `years=` handling: pop from kwargs before `update_pars` instead of reading back from `self.pars`. (#444)
+
+### HIV
+- Update acute HIV defaults to Bellan 2015 central estimates: `rel_trans_acute=N(5.3, 0.5)`, `dur_acute=LogNorm(1.7 mo, 1 mo)`. EHM drops from 15 to ~7.3. (#396, #426)
+- Add `rel_sus_age`: list of `(age_lo, age_hi, sex, multiplier)` tuples for age/sex-stratified susceptibility. Default `None` preserves existing behaviour. (#395, #427)
+- Remove `BaseSTI.infect()` override; inherits parent `ss.Infection.infect()` for free mixing-pool compatibility. (#412, #421, #422)
+
+### Sim / parameter routing
+- `process_networks` / `process_stis` / `process_demographics` now raise on collisions instead of silently winning; `separate_pars` raises on `pars ∩ kwargs` collisions in both `sti.Sim` and `hivsim.Sim`. (#423)
+- Improve "ambiguous parameter" error messages to name the offending par. (#423)
+- `hivsim.Sim` pulls network-level kwargs from user input into the default `StructuredSexual` instance. (#423)
+- Remove `BreastfeedingNet` from `sti.Sim` default networks; only relevant for diseases with postnatal transmission (HIV, syphilis). (#406, #444)
+
+### Bug fixes
+- Fix birth data key mismatches in `process_demographics` when `use_pregnancy=False`: `'births'` → `'cbr'`/`'birth'` keys, file path, and metadata columns. (#411, #428)
+
+### Documentation
+- Switch docs build from MkDocs to Quarto; convert tutorials from `.ipynb` to `.qmd`. (#439)
+- Documentation audit and uplift via IDM standards plugin (folder READMEs, API reference, navigation polish). (#435)
+- Add new publication entry: Stuart et al., "Estimating the value of novel tests for active syphilis in Zimbabwe…" forthcoming in *STD*. (#447, #448)
+
+### Tests
+- Add `tests/devtests/devtest_sw_networks.py` with 10 integration tests covering MF only, SW only, MF+SW modular, `StructuredSexual`, implicit-SW thresholds, windowed entry/exit, and all `sti.Sim` / `hivsim.Sim` / `hivsim.demo` creation patterns. (#445)
+- Add `test_shorter_sw`: shorter SW participation window → fewer FSW-attributable transmissions. (#445)
+- Remove fragile `len(sim.diseases/networks/interventions)` count assertions in `test_sim`. (#444)
+- Remove fragile `test_doubling_hiv_sexual_beta`. (#445)
+- Regenerate `baseline.yaml` to reflect default behaviour changes (windowed SW, BreastfeedingNet removal, Bellan acute pars). (#426, #444, #445)
+
+
 ## Version 1.5.3 (2026-04-17)
 
 ### Interventions

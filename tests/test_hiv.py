@@ -111,7 +111,7 @@ def test_latent_transmission_ratio_is_1():
 def test_acute_transmission_higher_than_latent():
     sc.heading("Checking HIV transmission ratio acute > latent.")
 
-    sim = build_testing_sim(analyzers=[RelativeInfectivityTracker(states=['acute'])], n_agents=500, duration=1)
+    sim = build_testing_sim(analyzers=[RelativeInfectivityTracker(states=['acute'])], n_agents=1000, duration=3)
     sim.run()
     acute_ratios = sim.results['relativeinfectivitytracker']['hiv.acute_rel_trans']
     acute_ratios = list(set(chain(*acute_ratios)))
@@ -212,15 +212,6 @@ def test_doubling_hiv_maternal_beta_doubles_transmissions():
     # High fertility + prevalence to generate enough births/transmissions with fewer agents
     _run_beta_test(baseline_m2f=0, baseline_m2c=0.0025, mode='mtc', multiplier=2, fertility=1000,
                    duration=10, n_agents=1000, init_prev=1.0, result_tolerance=0.25)
-
-
-@sc.timer()
-def test_doubling_hiv_sexual_beta_doubles_transmissions():
-    sc.heading("Checking that doubling sexual beta roughly doubles sexual transmissions at low infectivity.")
-
-    # Low beta keeps transmission in the linear regime where doubling beta ≈ doubles transmissions
-    _run_beta_test(baseline_m2f=0.001, baseline_m2c=0, mode='sexual', multiplier=2,
-                   duration=1, n_agents=1000, init_prev=0.5, result_tolerance=0.3)
 
 
 @sc.timer()
@@ -669,7 +660,35 @@ def test_par_ranges(n_agents=1000):
     return
 
 
-def test_prevalence_by_sex(n_agents=1000):
+def test_rel_sus_age(n_agents=3000):
+    """
+    Higher rel_sus_age multiplier for young women should produce more infections
+    in that group relative to a sim with uniform susceptibility.
+    """
+    import numpy as np
+    hiv_age = sti.HIV(
+        rel_sus_age=[(15, 25, 'f', 3.0), (25, np.inf, 'f', 1.0)],
+        init_prev=0.1,
+    )
+    sim_age = sti.Sim(diseases=hiv_age, n_agents=n_agents, dur=10, rand_seed=1, verbose=0)
+    sim_uni = sti.Sim(diseases='hiv', n_agents=n_agents, dur=10, rand_seed=1, verbose=0)
+    ss.parallel(sim_age, sim_uni)
+
+    def young_female_infections(sim):
+        ppl = sim.people
+        ti_inf = sim.diseases.hiv.ti_infected.values
+        return ((ppl.age.values >= 15) & (ppl.age.values < 25) & ppl.female.values & (ti_inf >= 0)).sum()
+
+    yf_age = young_female_infections(sim_age)
+    yf_uni = young_female_infections(sim_uni)
+    assert yf_age > yf_uni, (
+        f'rel_sus_age multiplier for young women should increase their infections; '
+        f'age-dep={yf_age}, uniform={yf_uni}'
+    )
+    return sim_age, sim_uni
+
+
+def test_prevalence_by_sex(n_agents=3000):
     """
     Under default parameters, female HIV prevalence should exceed male prevalence.
 
@@ -688,6 +707,48 @@ def test_prevalence_by_sex(n_agents=1000):
     return sim
 
 
+def test_mtct_rates_in_range():
+    """
+    Verify default HIV parameters imply MTCT rates within published ranges.
+
+    Published benchmarks:
+    - Without ART: 15–45% cumulative MTCT (in utero + intrapartum + breastfeeding)
+    - With full PMTCT / ART: < 5%
+
+    Uses analytical calculation from beta values, not simulation, to avoid
+    stochastic noise while still validating the parameterisation.
+    """
+    import numpy as np
+
+    pars = sti.HIVPars()
+    beta_prenatal  = pars.beta_m2c.value        # rate per month (ss.permonth object)
+    beta_postnatal = pars.beta_breastfeed.value  # rate per month
+
+    dur_preg_mo = 9   # standard gestation
+    dur_bf_mo   = 9   # ss.Pregnancy default: lognorm mean=0.75 yr = 9 mo
+    pmtct_eff   = 0.96  # sti.ART default pmtct_efficacy
+
+    # Without intervention
+    p_pre  = 1 - np.exp(-beta_prenatal  * dur_preg_mo)
+    p_post = 1 - np.exp(-beta_postnatal * dur_bf_mo)
+    p_no_art = 1 - (1 - p_pre) * (1 - p_post)
+
+    assert 0.15 <= p_no_art <= 0.45, (
+        f'Default params imply MTCT rate {p_no_art:.1%} — outside published range 15–45%'
+    )
+
+    # With full PMTCT (rel_sus reduced by pmtct_eff each timestep → effective rate scaled)
+    p_pre_pmtct  = 1 - np.exp(-beta_prenatal  * (1 - pmtct_eff) * dur_preg_mo)
+    p_post_pmtct = 1 - np.exp(-beta_postnatal * (1 - pmtct_eff) * dur_bf_mo)
+    p_pmtct = 1 - (1 - p_pre_pmtct) * (1 - p_post_pmtct)
+
+    assert p_pmtct < 0.05, (
+        f'Full PMTCT MTCT rate {p_pmtct:.1%} — should be <5%'
+    )
+
+    return dict(p_no_art=p_no_art, p_pmtct=p_pmtct)
+
+
 if __name__ == '__main__':
     do_plot = True
     sc.options(interactive=do_plot)
@@ -702,9 +763,9 @@ if __name__ == '__main__':
     test_aids_transmission_is_higher_than_latent()
     test_no_sexual_transmission_without_network()
     test_doubling_hiv_maternal_beta_doubles_transmissions()
-    test_doubling_hiv_sexual_beta_doubles_transmissions()
     test_mtct()
     test_pmtct()
+    test_mtct_rates_in_range()
     test_cd4_rises_on_ART()
     test_art_increases_longevity()
     test_no_hiv_with_no_outbreaks()

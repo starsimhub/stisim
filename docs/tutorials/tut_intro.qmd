@@ -1,0 +1,157 @@
+---
+title: Getting started with STIsim
+jupyter: python3
+---
+
+
+STIsim is an agent-based modeling framework for sexually transmitted infections, built on top of [Starsim](https://docs.starsim.org). It provides disease models (HIV, syphilis, chlamydia, gonorrhea, trichomonas, BV), structured sexual networks with risk groups, demographics, and interventions.
+
+STIsim follows the Starsim philosophy: **common tasks should be simple**. Creating and running a simulation takes just a few lines of code.
+
+
+## Hello world
+
+The simplest way to create an STIsim simulation is to pass a disease name as a string. Here we'll simulate gonorrhea:
+
+```{python}
+import stisim as sti
+
+sim = sti.Sim(diseases='ng')
+sim.run(verbose=0)
+sim.plot(key=['ng.new_infections', 'ng.prevalence'])
+```
+
+Here we provided specific keys to plot (`ng.new_infections` and `ng.prevalence`). You can also call `sim.plot('ng')` to see all the high-level gonorrhea results, or just `sim.plot()` to see everything. For more on working with results, see the [Results and plotting](tut_results.qmd) tutorial.
+
+Three lines of code: create, run, plot. But a lot just happened behind the scenes. Let's unpack what's in the box.
+
+## What's in the box
+
+When you call `sti.Sim(diseases='ng')`, STIsim creates a complete simulation with sensible defaults. Here's what gets set up automatically:
+
+### Simulation parameters
+
+The simulation runs from **2000 to 2030** with **monthly timesteps** and **1,000 agents** by default. You can inspect these:
+
+```{python}
+sim = sti.Sim(diseases='ng')
+sim.init()
+
+print(f'Start:    {sim.pars.start}')
+print(f'Stop:     {sim.pars.stop}')
+print(f'Timestep: {sim.pars.dt} years ({sim.pars.dt*12:.0f} month)')
+print(f'Agents:   {sim.pars.n_agents}')
+```
+
+### Networks
+
+Two networks are created automatically:
+
+- **StructuredSexual**: The main sexual contact network. Agents are assigned to risk groups (low, medium, high), form partnerships of different types (stable, casual, one-time, sex work), and have age-based partner preferences. See the [Networks](../user_guide/networks/structured_sexual.md) documentation for details.
+- **MaternalNet**: A mother-to-child transmission network (from Starsim).
+
+```{python}
+for name, nw in sim.networks.items():
+    print(f'{name}: {type(nw).__name__}')
+```
+
+### Disease
+
+The string `'ng'` was looked up and converted into an `sti.Gonorrhea` module with default parameters (transmission rate, initial prevalence, symptom probabilities, clearance durations, etc.). See the [Diseases](../user_guide/diseases/) documentation for the full parameter tables.
+
+```{python}
+ng = sim.diseases.ng
+print(f'Disease: {type(ng).__name__}')
+print(f'Transmission (M to F): {ng.pars.beta_m2f}')
+print(f'Initial prevalence: {ng.pars.init_prev}')
+print(f'Condom efficacy: {ng.pars.eff_condom}')
+```
+
+### Demographics
+
+By default (without a location string), **no demographic modules** are created -- there are no births, deaths, or migration. This keeps the default sim fast and simple. To add demographics, either pass modules directly or provide a location string:
+
+```{python}
+print(f'Demographics: {dict(sim.demographics)}')
+print(f'(Empty by default -- pass demographics="zimbabwe" to auto-load demographic data)')
+```
+
+## Customizing the simulation
+
+There are multiple ways to configure a sim, depending on how much control you need.
+
+### Passing parameters inline
+
+The simplest way -- pass keyword arguments directly:
+
+```{python}
+sim = sti.Sim(
+    diseases='ng',
+    n_agents=2000,
+    start=2010,
+    stop=2025,
+)
+sim.run(verbose=0)
+```
+
+### Passing disease-specific parameters
+
+Use `sti_pars` to override disease defaults without creating the disease object yourself:
+
+```{python}
+sim = sti.Sim(
+    diseases=['ng', 'ct'],
+    sti_pars=dict(
+        ng=dict(init_prev=0.05),
+        ct=dict(init_prev=0.08),
+    ),
+)
+sim.run(verbose=0)
+```
+
+### Using module instances
+
+For full control, create the module objects directly. This is the standard Starsim pattern and gives you access to every parameter:
+
+```{python}
+import starsim as ss
+
+ng = sti.Gonorrhea(beta_m2f=0.08, init_prev=0.03)
+nw = sti.StructuredSexual()
+pregnancy = ss.Pregnancy(fertility_rate=20)
+deaths = ss.Deaths(death_rate=10)
+
+sim = sti.Sim(
+    diseases=ng,
+    networks=nw,
+    demographics=[pregnancy, deaths],
+    n_agents=2000,
+    start=2010,
+    stop=2030,
+)
+sim.run(verbose=0)
+sim.plot(key=['ng.new_infections', 'ng.prevalence'])
+```
+
+## Available diseases
+
+STIsim includes the following disease modules, which can be passed by name or as instances:
+
+| Name | Class | String alias | Type |
+|------|-------|-------------|------|
+| HIV | `sti.HIV` | `'hiv'` | CD4-based progression |
+| Syphilis | `sti.Syphilis` | `'syphilis'` / `'syph'` | Staged (primary/secondary/latent/tertiary) |
+| Chlamydia | `sti.Chlamydia` | `'ct'` | SEIS |
+| Gonorrhea | `sti.Gonorrhea` | `'ng'` | SEIS |
+| Trichomoniasis | `sti.Trichomoniasis` | `'tv'` | SEIS with persistence |
+| Bacterial vaginosis | `sti.BV` | `'bv'` | CST-based |
+| Genital ulcer disease | `sti.GUD` | `'gud'` | Simple SIS |
+
+See the [Diseases](../user_guide/diseases/) documentation for state diagrams and parameter tables for each disease.
+
+## Exercises
+
+1. Create a sim with both gonorrhea and chlamydia. Run it and plot the results.
+2. Try changing the gonorrhea transmission rate (`beta_m2f`) from 0.06 to 0.15 and observe how it affects prevalence.
+3. Add demographics by passing `demographics='zimbabwe'` and compare the results to the default (no demographics) sim.
+

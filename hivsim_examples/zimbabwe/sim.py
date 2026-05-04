@@ -88,9 +88,21 @@ def make_sim(**kwargs):
     vmmc_data = pd.read_csv(datadir / 'vmmc_coverage.csv').set_index('year')
     hiv_data = pd.read_csv(datadir / 'zimbabwe_hiv_data.csv')
 
-    # Create modules
-    hiv = sti.HIV(init_prev_data=init_prev, **sti_pars)
-    network = sti.StructuredSexual(condom_data=condom_data, **nw_pars)
+    # Pull user overrides for HIV / network out of kwargs so they reach module
+    # construction. Supports both disease-keyed dicts (`hiv=dict(...)`,
+    # `structuredsexual=dict(...)`) and flat kwargs. Matches sti.Sim test 3.
+    hiv_overrides = dict(kwargs.pop('hiv', None) or {})
+    for k in list(kwargs):
+        if k in sti.HIVPars().keys():
+            hiv_overrides[k] = kwargs.pop(k)
+    nw_overrides = dict(kwargs.pop('structuredsexual', None) or {})
+    for k in list(kwargs):
+        if k in sti.NetworkPars().keys():
+            nw_overrides[k] = kwargs.pop(k)
+
+    # Create modules (user overrides take precedence over calibrated defaults)
+    hiv = sti.HIV(init_prev_data=init_prev, **sc.mergedicts(sti_pars, hiv_overrides))
+    network = sti.StructuredSexual(condom_data=condom_data, **sc.mergedicts(nw_pars, nw_overrides))
     art = sti.ART(coverage=art_data)
     vmmc = sti.VMMC(coverage=vmmc_data)
 
@@ -106,7 +118,7 @@ def make_sim(**kwargs):
         demographics='zimbabwe',
         datafolder=datadir,
         diseases=[hiv],
-        networks=[network, ss.MaternalNet()],
+        networks=[network, ss.MaternalNet(), ss.BreastfeedingNet()],
         interventions=intvs + user_intvs,
         sim_pars=merged_sim_pars,
         data=hiv_data,

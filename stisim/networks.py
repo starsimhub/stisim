@@ -19,11 +19,13 @@ import pandas as pd
 from collections import defaultdict
 from bisect import bisect_left
 
-ss_float_ = ss.dtypes.float
-ss_int_ = ss.dtypes.int
+ss_float = ss.dtypes.float
+ss_int = ss.dtypes.int
 
 # Specify all externally visible functions this file defines; see also more definitions below
-__all__ = ['NetworkPars', 'StructuredSexual', 'PriorPartners', 'AgeMatchedMSM', 'AgeApproxMSM']
+__all__ = ['NetworkPars', 'BasePars', 'MFPars', 'SWPars',
+           'StructuredSexual', 'BaseNetwork', 'MFNetwork', 'SWNetwork',
+           'PriorPartners', 'AgeMatchedMSM', 'AgeApproxMSM']
 
 
 class NoPartnersFound(Exception):
@@ -31,36 +33,73 @@ class NoPartnersFound(Exception):
     pass
 
 
-class NetworkPars(ss.Pars):
-    """Default parameters for the structured sexual network.
+# %% State helpers — lists of agent-level states fed to ``define_states``
 
-    Holds configuration for sexual debut ages, risk group proportions,
-    age-difference preferences, concurrency limits, relationship durations,
-    coital act frequency, condom use, and sex work. These defaults are used
-    by :class:`StructuredSexual` and its subclasses unless overridden.
+def _mf_states():
+    """States specific to the heterosexual (MF) network (excludes shared)."""
+    return [
+        ss.FloatArr('risk_group'),
+        ss.FloatArr('concurrency'),
+        ss.FloatArr('partners', default=0),
+        ss.FloatArr('partners_12', default=0),
+        ss.FloatArr('lifetime_partners', default=0),
+        ss.FloatArr('casual_partners', default=0),
+        ss.FloatArr('stable_partners', default=0),
+        ss.FloatArr('onetime_partners', default=0),
+        ss.FloatArr('lifetime_casual_partners', default=0),
+        ss.FloatArr('lifetime_stable_partners', default=0),
+        ss.FloatArr('lifetime_onetime_partners', default=0),
+    ]
 
-    Args:
-        **kwargs: Any parameter name-value pairs to override defaults.
-    """
+
+def _sw_states():
+    """States specific to the sex-work (SW) network (excludes shared)."""
+    return [
+        ss.BoolArr('ever_fsw'),                # Lifetime SW fate (female)
+        ss.BoolArr('ever_client'),             # Lifetime SW fate (male)
+        ss.FloatArr('age_sw_start'),           # Age of SW entry (NaN unless ever_fsw)
+        ss.FloatArr('dur_sw'),                 # SW duration in years (NaN unless ever_fsw)
+        ss.FloatArr('age_client_start'),
+        ss.FloatArr('dur_client'),
+        ss.FloatArr('sw_intensity'),
+        ss.FloatArr('sw_partners', default=0),
+        ss.FloatArr('lifetime_sw_partners', default=0),
+    ]
+
+
+# %% Parameter classes
+#
+# ``BasePars`` defaults are layered into ``BaseNetwork`` via ``define_pars``.
+# ``MFPars``/``SWPars`` are layered on top by their respective subclasses.
+# ``NetworkPars`` is the union — used by ``sti.Sim`` to route user kwargs
+# into the right network module.
+
+class BasePars(ss.Pars):
+    """Defaults shared by every sexual network (debut, acts, condom data, recall_prior)."""
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.recall_prior = False
+        self.debut_f = ss.lognorm_ex(20, 3)
+        self.debut_m = ss.lognorm_ex(21, 3)
+        self.acts = ss.lognorm_ex(ss.freqperyear(80), ss.freqperyear(30))
+        self.condom_data = None
+        self.condom_smoothness = None  # Smoothness for sc.smoothinterp on time-varying condom_data
+        self.update(kwargs)
+        return
+
+
+class MFPars(ss.Pars):
+    """MF-specific parameters: risk groups, concurrency, age-diff preferences, durations."""
     def __init__(self, **kwargs):
         super().__init__()
 
-        # Settings
-        self.recall_prior = False  # Whether to recall prior partners
-        self.n_risk_groups = 3  # Number of risk groups
-
-        self.f_age_group_bins = dict(  # For separating women into age groups: teens, young women, adult women
+        # Risk groups
+        self.n_risk_groups = 3
+        self.f_age_group_bins = dict(
             teens=(0, 20),
             young=(20, 25),
             adult=(25, np.inf),
         )
-
-        # Age of sexual debut
-        self.debut = ss.lognorm_ex(20, 3)
-        self.debut_pars_f = [20, 3]
-        self.debut_pars_m = [21, 3]
-
-        # Risk groups
         self.p_lo_risk = ss.bernoulli(p=0)
         self.p_hi_risk = ss.bernoulli(p=0)
         self.prop_f0 = 0.85
@@ -70,12 +109,12 @@ class NetworkPars(ss.Pars):
 
         # Age difference preferences
         self.age_diff_pars = dict(
-            teens=[(7, 3), (6, 3), (5, 1)],  # (mu,stdev) for levels 0, 1, 2
+            teens=[(7, 3), (6, 3), (5, 1)],
             young=[(8, 3), (7, 3), (5, 2)],
             adult=[(8, 3), (7, 3), (5, 2)],
         )
 
-        # Concurrency preferences
+        # Concurrency
         self.concurrency_dist = ss.poisson(lam=1)
         self.f0_conc = 0.0001
         self.f1_conc = 0.01
@@ -85,28 +124,27 @@ class NetworkPars(ss.Pars):
         self.m2_conc = 0.5
 
         # Relationship initiation, stability, and duration
-        self.p_pair_form = ss.bernoulli(p=0.5)  # Probability of a (stable) pair forming between two matched people
-        self.match_dist = ss.bernoulli(p=0)  # Placeholder value replaced by risk-group stratified values below
-        self.p_matched_stable = [0.9, 0.5, 0]  # Probability of a stable pair forming between matched people (otherwise casual)
-        self.p_mismatched_casual = [0.5, 0.5, 0.5]  # Probability of a casual pair forming between mismatched people (otherwise instantanous)
+        self.p_pair_form = ss.bernoulli(p=0.5)              # Probability of a (stable) pair forming between two matched people
+        self.match_dist = ss.bernoulli(p=0)                 # Placeholder value replaced by risk-group stratified values below
+        self.p_matched_stable = [0.9, 0.5, 0]               # Probability of a stable pair forming between matched people (otherwise casual)
+        self.p_mismatched_casual = [0.5, 0.5, 0.5]          # Probability of a casual pair forming between mismatched people (otherwise instantaneous)
 
         # Durations of stable and casual relationships
         self.stable_dur_pars = dict(
             teens=[
-                # (mu,stdev) for levels 0, 1, 2
-                [ss.years(100),  ss.years(1)],
-                [ss.years(8),  ss.years(2)],
-                [ss.months(1e-4), ss.months(1e-4)]
+                [ss.years(100), ss.years(1)],
+                [ss.years(8),   ss.years(2)],
+                [ss.months(1e-4), ss.months(1e-4)],
             ],
             young=[
-                [ss.years(100),  ss.years(1)],
+                [ss.years(100), ss.years(1)],
                 [ss.years(10),  ss.years(3)],
-                [ss.months(1e-4), ss.months(1e-4)]
+                [ss.months(1e-4), ss.months(1e-4)],
             ],
             adult=[
-                [ss.years(100),  ss.years(1)],
+                [ss.years(100), ss.years(1)],
                 [ss.years(12),  ss.years(3)],
-                [ss.months(1e-4), ss.months(1e-4)]
+                [ss.months(1e-4), ss.months(1e-4)],
             ],
         )
         self.casual_dur_pars = dict(
@@ -115,96 +153,99 @@ class NetworkPars(ss.Pars):
             adult=[[ss.years(1), ss.years(3)]]*3,
         )
 
-        # Acts
-        self.acts = ss.lognorm_ex(ss.freqperyear(80), ss.freqperyear(30))  # Coital acts/year
-
-        # Condoms
-        self.condom_data = None
-
-        # Sex work parameters
-        self.fsw_shares = ss.bernoulli(p=0.05)
-        self.client_shares = ss.bernoulli(p=0.12)
-        self.sw_seeking_rate = ss.probpermonth(1.0)  # Monthly rate at which clients seek FSWs (1 new SW partner / month)
-        self.sw_seeking_dist = ss.bernoulli(p=0.5)  # Placeholder value replaced by dt-adjusted sw_seeking_rate
-        self.sw_beta = 1
-        self.sw_intensity = ss.random()  # At each time step, FSW may work with varying intensity
-
-        # Distributions derived from parameters above - don't adjust
+        # Distributions populated by other methods at runtime
         self.age_diffs = ss.normal()
         self.dur_dist = ss.lognorm_ex()
+
         self.update(kwargs)
         return
 
 
-class StructuredSexual(ss.SexualNetwork):
-    """Structured heterosexual network with risk groups, concurrency, and sex work.
+class SWPars(ss.Pars):
+    """SW-specific parameters: shares, seeking rates, intensity, age-window distributions.
 
-    Agents are assigned to one of three risk groups (low, medium, high) that
-    govern partnership formation, concurrency, and relationship duration. A
-    subset of agents participate in sex work. Partnerships are formed each
-    timestep by matching under-partnered agents using age preferences.
+    The ``fsw``/``client`` properties are derived from the ``ever_*`` flag
+    plus a per-agent age window. For each agent flagged ``ever_*``,
+    ``set_sex_work`` draws ``age_*_start`` and ``dur_*`` from these
+    distributions; the agent counts as currently SW iff
+    ``age_*_start <= age < age_*_start + dur_*``. Setting any ``*_dist`` to
+    ``None`` makes ``set_sex_work`` fall back to ``debut`` (for missing
+    entry-age) or ``inf`` (for missing duration).
+
+    Distribution defaults are placeholders — tune to the modeling context.
+    """
+    def __init__(self, **kwargs):
+        super().__init__()
+
+        self.fsw_shares = ss.bernoulli(p=0.05)         # Lifetime proportion of females ever FSW
+        self.client_shares = ss.bernoulli(p=0.12)      # Lifetime proportion of males ever client
+        self.sw_seeking_rate = ss.probpermonth(1.0)    # Monthly rate at which clients seek FSWs
+        self.sw_seeking_dist = ss.bernoulli(p=0.5)     # Placeholder; replaced by dt-adjusted sw_seeking_rate
+        self.sw_beta = 1
+        self.sw_intensity = ss.random()                # FSW may work with varying intensity each step
+
+        # Per-agent age window — placeholders; tune to context
+        self.age_sw_start = ss.normal(loc=20, scale=3)
+        self.dur_sw = ss.lognorm_ex(mean=5, std=3)
+        self.age_client_start = ss.normal(loc=25, scale=5)
+        self.dur_client = ss.lognorm_ex(mean=10, std=5)
+
+        self.update(kwargs)
+        return
+
+
+class NetworkPars(ss.Pars):
+    """Combined defaults — union of base + MF + SW pars.
+
+    Used by :class:`sti.Sim` to filter network kwargs into the right bucket.
 
     Args:
-        pars (dict): Parameter overrides (see :class:`NetworkPars` for defaults).
-        condom_data: Optional condom-use data (DataFrame or dict).
-        name (str): Network name (default: auto-assigned).
-        **kwargs: Additional parameter overrides forwarded to ``update_pars``.
+        **kwargs: Any parameter name-value pairs to override defaults.
+    """
+    def __init__(self, **kwargs):
+        super().__init__()
+        for src in (BasePars(), MFPars(), SWPars()):
+            self.update(dict(src), create=True)
+        self.update(kwargs)
+        return
+
+
+# %% Network base class
+#
+# ``BaseNetwork`` provides edge-meta layout, shared pars/states (debut,
+# participant), condom-data processing, end-of-step accounting, and the
+# ``step`` orchestrator. Concrete networks (``MFNetwork``, ``SWNetwork``)
+# extend it. ``StructuredSexual`` layers SW state on top of ``MFNetwork``.
+
+class BaseNetwork(ss.SexualNetwork):
+    """Shared infrastructure for the heterosexual and sex-work networks.
+
+    Provides the common edge meta layout, condom-data processing, debut
+    setting, end-of-step edge accounting, and the orchestrating ``step``
+    method. Subclasses (``MFNetwork``, ``SWNetwork``) define their own
+    parameters, states, edge types, ``set_network_states``, ``add_pairs``,
+    and ``set_condom_use``. The MSM subclasses inherit this via
+    ``MFNetwork``.
     """
 
-    def __init__(self, pars=None, condom_data=None, name=None, **kwargs):
-
+    def __init__(self, name=None, **kwargs):
         super().__init__(name=name)
-
-        # Set edge attributes
-        self.meta.sw = bool
-        self.meta.condoms = ss_float_
-        self.meta.age_p1 = ss_float_
-        self.meta.age_p2 = ss_float_
-        self.meta.edge_type = ss_float_  # edge type tracks stable/casual/onetime
-
-        # Set parameters
-        default_pars = NetworkPars()
-        self.define_pars(**default_pars)
-        self.update_pars(pars, **kwargs)
-
-        # Set condom use
-        if self.pars.condom_data is not None:
-            self.pars.condom_data = self.process_condom_data(self.pars.condom_data)
-
-        self.edge_types = {'stable': 0, 'casual': 1, 'onetime': 2, 'sw': 3}
-
-        # Add states
+        self.meta.condoms = ss_float
+        self.meta.age_p1 = ss_float
+        self.meta.age_p2 = ss_float
+        self.meta.edge_type = ss_float
+        self.define_pars(**BasePars())
         self.define_states(
             ss.BoolArr('participant', default=True),
             ss.FloatArr('debut', default=0),
-            ss.FloatArr('risk_group'),  # Which risk group an agent belongs to
-            ss.BoolArr('fsw'),  # Whether an agent is a female sex worker
-            ss.BoolArr('client'),  # Whether an agent is a client of sex workers
-            ss.FloatArr('concurrency'),  # Preferred number of concurrent partners
-            ss.FloatArr('partners', default=0),  # Actual number of concurrent partners
-            ss.FloatArr('partners_12', default=0),  # Number of partners over the past 12m
-            ss.FloatArr('lifetime_partners', default=0),  # Lifetime total number of partners
-            ss.FloatArr('casual_partners', default=0),
-            ss.FloatArr('stable_partners', default=0),
-            ss.FloatArr('onetime_partners', default=0),
-            ss.FloatArr('sw_partners', default=0),
-            ss.FloatArr('lifetime_casual_partners', default=0),
-            ss.FloatArr('lifetime_stable_partners', default=0),
-            ss.FloatArr('lifetime_onetime_partners', default=0),
-            ss.FloatArr('lifetime_sw_partners', default=0),
-            ss.FloatArr('sw_intensity'),  # Intensity of sex work
-            reset = True, # To allow redefining participant
+            reset=True,
         )
-
-        self.relationship_durs = defaultdict(list)
-
-        return
 
     @staticmethod
     def process_condom_data(condom_data):
-        if sc.isnumber(condom_data):
+        if sc.isnumber(condom_data) or isinstance(condom_data, dict):
             return condom_data
-        elif isinstance(condom_data, pd.DataFrame):
+        if isinstance(condom_data, pd.DataFrame):
             df = condom_data.melt(id_vars=['partnership'])
             dd = dict()
             for pcombo in df.partnership.unique():
@@ -213,7 +254,154 @@ class StructuredSexual(ss.SexualNetwork):
                 dd[key] = dict()
                 dd[key]['year'] = thisdf.variable.values.astype(int)
                 dd[key]['val'] = thisdf.value.values
-        return dd
+            return dd
+        raise Exception(f"Unknown condom data input type: {type(condom_data)}")
+
+    def init_pre(self, sim):
+        super().init_pre(sim)
+        if self.pars.recall_prior:
+            isprior = [isinstance(nw, PriorPartners) for nw in self.sim.networks.values()]
+            if not any(isprior):
+                raise ValueError('PriorPartners network is required if recall_prior is True.')
+        # Convert any DataFrame condom_data to dict; smooth-interp time-varying values
+        cd = self.pars.condom_data
+        if cd is not None and not sc.isnumber(cd):
+            cd = self.process_condom_data(cd)
+            self.pars.condom_data = cd
+            for rgtuple, valdict in cd.items():
+                valdict['simvals'] = sc.smoothinterp(self.t.yearvec, valdict['year'], valdict['val'],
+                                                     smoothness=self.pars.condom_smoothness)
+        return
+
+    def init_post(self):
+        super().init_post(add_pairs=False)
+        self.set_network_states()
+        return
+
+    def set_network_states(self, upper_age=None):
+        """Default: only set debut. Subclasses extend with risk groups, sex work, etc."""
+        self.set_debut(upper_age=upper_age)
+
+    @property
+    def over_debut(self):
+        return self.sim.people.age > self.debut
+
+    def _get_uids(self, upper_age=None, by_sex=True):
+        people = self.sim.people
+        if upper_age is None: upper_age = 1000
+        within_age = people.age <= upper_age
+        if by_sex:
+            f_uids = (within_age & people.female).uids
+            m_uids = (within_age & people.male).uids
+            return f_uids, m_uids
+        return within_age.uids
+
+    def set_debut(self, upper_age=None):
+        uids = self._get_uids(upper_age=upper_age, by_sex=False)
+        female = self.sim.people.female[uids]
+        f_uids = uids[female]
+        m_uids = uids[~female]
+        self.debut[f_uids] = self.pars.debut_f.rvs(f_uids)
+        self.debut[m_uids] = self.pars.debut_m.rvs(m_uids)
+        return
+
+    def net_beta(self, disease_beta=None, uids=None, disease=None):
+        if uids is None: uids = Ellipsis
+        p_condom = self.edges.condoms[uids]
+        eff_condom = disease.pars.eff_condom
+        p_trans_condom = (1 - disease_beta*(1-eff_condom))**(self.edges.acts[uids]*p_condom)
+        p_trans_no_condom = (1 - disease_beta)**(self.edges.acts[uids]*(1-p_condom))
+        return (1 - p_trans_condom * p_trans_no_condom) * self.edges.beta[uids]
+
+    def step(self):
+        self.end_pairs()
+        self.set_network_states(upper_age=self.t.dt_year)
+        self.add_pairs()
+        self.set_condom_use()
+        return
+
+    def add_pairs(self):
+        """Subclasses override."""
+        pass
+
+    def set_condom_use(self):
+        """Apply ``self.pars.condom_data`` to per-edge condom values.
+
+        ``condom_data`` may be:
+        - ``None``: no-op.
+        - A scalar: applied uniformly to all edges.
+        - A dict, with keys interpreted by what the network exposes:
+          - ``(rgm, rgf)`` (ints, MF risk-group pair) — applied to edges
+            where ``risk_group[p1]==rgm`` and ``risk_group[p2]==rgf``.
+            Skipped on networks without a ``risk_group`` state.
+          - ``('fsw', 'client')`` — applied to all SW edges. Skipped on
+            networks that don't define a ``'sw'`` edge type.
+        """
+        cd = self.pars.condom_data
+        if cd is None:
+            return
+        if sc.isnumber(cd):
+            self.edges.condoms[:] = cd
+            return
+        if not isinstance(cd, dict):
+            raise Exception("Unknown condom data input type")
+
+        for key, valdict in cd.items():
+            val = valdict['simvals'][self.ti]
+            if key == ('fsw', 'client'):
+                if 'sw' in self.edge_types:
+                    sw_mask = self.edges.edge_type == self.edge_types['sw']
+                    self.edges.condoms[sw_mask] = val
+            elif hasattr(self, 'risk_group'):
+                rgm, rgf = key
+                pair_mask = (self.risk_group[self.p1] == rgm) & (self.risk_group[self.p2] == rgf)
+                self.edges.condoms[pair_mask] = val
+        return
+
+    def end_pairs(self):
+        people = self.sim.people
+        self.edges.dur = self.edges.dur - 1
+        alive = people.alive[ss.uids(self.edges.p1)] & people.alive[ss.uids(self.edges.p2)]
+        active = (self.edges.dur > 0) & alive
+        self._on_edge_dissolution(active)
+        # Drop expired edges
+        for k in self.meta_keys():
+            self.edges[k] = self.edges[k][active]
+        return
+
+    def _on_edge_dissolution(self, active):
+        """Subclass hook — runs after the active mask is computed and before
+        expired edges are removed. Default is a no-op."""
+        pass
+
+
+# %% Network classes — concrete subclasses of BaseNetwork
+
+class MFNetwork(BaseNetwork):
+    """Heterosexual contact network with risk groups, concurrency, and age preferences.
+
+    Agents are assigned to one of three risk groups (low, medium, high) that
+    govern partnership formation, concurrency, and relationship duration.
+    Partnerships are formed each timestep by matching under-partnered agents
+    using age preferences. Edges are typed as ``stable``, ``casual``, or
+    ``onetime``. Does not model sex work — combine with :class:`SWNetwork`
+    or use :class:`StructuredSexual` for an MF + SW bundle.
+
+    Args:
+        pars (dict): Parameter overrides (see :class:`MFPars` for defaults).
+        condom_data: Optional condom-use data (DataFrame or dict).
+        name (str): Network name (default: auto-assigned).
+        **kwargs: Additional parameter overrides forwarded to ``update_pars``.
+    """
+
+    def __init__(self, pars=None, condom_data=None, name=None, **kwargs):
+        super().__init__(name=name)
+        self.define_pars(**MFPars())
+        self.update_pars(pars, **kwargs)
+        self.edge_types = {'stable': 0, 'casual': 1, 'onetime': 2}
+        self.define_states(*_mf_states())
+        self.relationship_durs = defaultdict(list)
+        return
 
     def get_age_risk_pars(self, uids, par):
         loc = np.full(uids.shape, fill_value=np.nan)
@@ -235,64 +423,24 @@ class StructuredSexual(ss.SexualNetwork):
             raise ValueError(errormsg)
         return loc, scale
 
-    def init_pre(self, sim):
-        super().init_pre(sim)
-
-        # Checks
-        if self.pars.recall_prior:
-            isprior = [isinstance(nw, PriorPartners) for nw in self.sim.networks.values()]
-            if not any(isprior):
-                errormsg = 'PriorPartners network is required if recall_prior is True.'
-                raise ValueError(errormsg)
-
-        # Process condom data
-        if self.pars.condom_data is not None:
-            if isinstance(self.pars.condom_data, dict):
-                for rgtuple, valdict in self.pars.condom_data.items():
-                    yearvec = self.t.yearvec
-                    self.pars.condom_data[rgtuple]['simvals'] = sc.smoothinterp(yearvec, valdict['year'], valdict['val'])
-        return
-
-    def init_post(self):
-        super().init_post(add_pairs=False)
-        self.set_network_states()
-        return
-
     def set_network_states(self, upper_age=None):
+        super().set_network_states(upper_age=upper_age)  # set_debut
         self.set_risk_groups(upper_age=upper_age)
         self.set_concurrency(upper_age=upper_age)
-        self.set_sex_work(upper_age=upper_age)
-        self.set_debut(upper_age=upper_age)
         return
-
-    @property
-    def over_debut(self):
-        return self.sim.people.age > self.debut
-
-    def _get_uids(self, upper_age=None, by_sex=True):
-        people = self.sim.people
-        if upper_age is None: upper_age = 1000
-        within_age = people.age <= upper_age
-        if by_sex:
-            f_uids = (within_age & people.female).uids
-            m_uids = (within_age & people.male).uids
-            return f_uids, m_uids
-        else:
-            uids = within_age.uids
-            return uids
 
     def set_risk_groups(self, upper_age=None):
         """ Assign each person to a risk group """
         ppl = self.sim.people
         uids = self._get_uids(upper_age=upper_age, by_sex=False)
 
-        p_lo = np.full(len(uids), fill_value=np.nan, dtype=ss_float_)
+        p_lo = np.full(len(uids), fill_value=np.nan, dtype=ss_float)
         p_lo[ppl.female[uids]] = self.pars.prop_f0
         p_lo[ppl.male[uids]] = self.pars.prop_m0
         self.pars.p_lo_risk.set(p=p_lo)
         lo_risk, hi_med_risk = self.pars.p_lo_risk.split(uids)
 
-        p_hi = np.full(len(hi_med_risk), fill_value=np.nan, dtype=ss_float_)
+        p_hi = np.full(len(hi_med_risk), fill_value=np.nan, dtype=ss_float)
         p_hi[ppl.female[hi_med_risk]] = self.pars.prop_f2/(1-self.pars.prop_f0)
         p_hi[ppl.male[hi_med_risk]] = self.pars.prop_m2/(1-self.pars.prop_m0)
         self.pars.p_hi_risk.set(p=p_hi)
@@ -310,7 +458,7 @@ class StructuredSexual(ss.SexualNetwork):
         in_age_lim = (people.age < upper_age)
         uids = in_age_lim.uids
 
-        lam = np.full(uids.shape, fill_value=np.nan, dtype=ss_float_)
+        lam = np.full(uids.shape, fill_value=np.nan, dtype=ss_float)
         for rg in range(self.pars.n_risk_groups):
             f_conc = self.pars[f'f{rg}_conc']
             m_conc = self.pars[f'm{rg}_conc']
@@ -324,24 +472,6 @@ class StructuredSexual(ss.SexualNetwork):
         self.pars.concurrency_dist.set(lam=lam)
         self.concurrency[uids] = self.pars.concurrency_dist.rvs(uids) + 1
 
-        return
-
-    def set_sex_work(self, upper_age=None):
-        f_uids, m_uids = self._get_uids(upper_age=upper_age)
-        self.fsw[f_uids] = self.pars.fsw_shares.rvs(f_uids)
-        self.client[m_uids] = self.pars.client_shares.rvs(m_uids)
-        return
-
-    def set_debut(self, upper_age=None):
-        uids = self._get_uids(upper_age=upper_age, by_sex=False)
-        par1 = np.full(len(uids), fill_value=np.nan, dtype=ss_float_)
-        par2 = np.full(len(uids), fill_value=np.nan, dtype=ss_float_)
-        par1[self.sim.people.female[uids]] = self.pars.debut_pars_f[0]
-        par2[self.sim.people.female[uids]] = self.pars.debut_pars_f[1]
-        par1[self.sim.people.male[uids]] = self.pars.debut_pars_m[0]
-        par2[self.sim.people.male[uids]] = self.pars.debut_pars_m[1]
-        self.pars.debut.set(mean=par1, std=par2)
-        self.debut[uids] = self.pars.debut.rvs(uids)
         return
 
     def match_pairs(self):
@@ -421,37 +551,8 @@ class StructuredSexual(ss.SexualNetwork):
 
         return p1, p2
 
-    def add_pairs_sw(self):
-        """ Match and add sex worker partnerships for this timestep. Each partnership has duration=1 timestep. Updates lifetime_sw_partners counts. """
-        ppl = self.sim.people
-
-        try:
-            p1, p2 = self.match_sex_workers()
-        except NoPartnersFound:
-            return
-
-        match_count = len(p1)
-        beta = np.ones(match_count, dtype=ss_float_)
-        condoms = np.zeros(match_count, dtype=ss_float_)
-        acts = (self.pars.acts.rvs(p2)).astype(int)
-        dur = np.full(match_count, fill_value=1)  # Measured in timesteps
-        age_p1 = ppl.age[p1]
-        age_p2 = ppl.age[p2]
-        edge_types = np.full(match_count, dtype=ss_float_, fill_value=self.edge_types['sw'])
-
-        self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, sw=[True]*match_count, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types)
-
-        p1_edges, p1_counts = np.unique(p1, return_counts=True)
-        p2_edges, p2_counts = np.unique(p2, return_counts=True)
-
-        # update partner counts
-        self.lifetime_sw_partners[p1_edges] += p1_counts
-        self.lifetime_sw_partners[p2_edges] += p2_counts
-
-        return
-
-    def add_pairs_nonsw(self):
-        """ Match and add non-sex-worker partnerships (stable, casual, one-time) for this timestep. Assigns relationship type, duration, and acts based on risk group and age, and updates partner counts. """
+    def add_pairs(self):
+        """ Match and add stable/casual/onetime partnerships for this timestep. Assigns relationship type, duration, and acts based on risk group and age, and updates partner counts. """
         ppl = self.sim.people
 
         try:
@@ -463,7 +564,7 @@ class StructuredSexual(ss.SexualNetwork):
         mismatched_risk = (self.risk_group[p1] != self.risk_group[p2])
 
         # Set the probability of forming a partnership
-        p_match = np.full(len(p1), fill_value=np.nan, dtype=ss_float_)
+        p_match = np.full(len(p1), fill_value=np.nan, dtype=ss_float)
         for rg in range(self.pars.n_risk_groups):
             p_match[matched_risk & (self.risk_group[p1] == rg)] = self.pars.p_matched_stable[rg]
             p_match[mismatched_risk & (self.risk_group[p2] == rg)] = self.pars.p_mismatched_casual[rg]
@@ -476,19 +577,19 @@ class StructuredSexual(ss.SexualNetwork):
 
         match_count = len(p1)
 
-        beta = np.ones(match_count, dtype=ss_float_)
-        condoms = np.zeros(match_count, dtype=ss_float_)
+        beta = np.ones(match_count, dtype=ss_float)
+        condoms = np.zeros(match_count, dtype=ss_float)
         acts = (self.pars.acts.rvs(p2)).astype(int)
         dur = np.full(match_count, fill_value=1)  # Measured in timesteps
         age_p1 = ppl.age[p1]
         age_p2 = ppl.age[p2]
-        edge_types = np.full(match_count, dtype=ss_float_, fill_value=np.nan)
+        edge_types = np.full(match_count, dtype=ss_float, fill_value=np.nan)
         edge_types[stable] = self.edge_types['stable']
         edge_types[casual] = self.edge_types['casual']
 
         # Set duration
-        dur_mean = np.full(match_count, fill_value=np.nan, dtype=ss_float_)
-        dur_std = np.full(match_count, fill_value=np.nan, dtype=ss_float_)
+        dur_mean = np.full(match_count, fill_value=np.nan, dtype=ss_float)
+        dur_std = np.full(match_count, fill_value=np.nan, dtype=ss_float)
         for which, bools in {'stable': stable, 'casual': casual}.items():
             if bools.any():
                 uids = p2[bools]
@@ -509,7 +610,7 @@ class StructuredSexual(ss.SexualNetwork):
             pair = (min(a,b), max(a,b))
             self.relationship_durs[pair].append({'start': self.ti, 'dur': reldur, 'edge_type': int(etype)}) # set dur to intended duration. When the relationship actually ends, this will be updated
 
-        self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, sw=[False]*match_count, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types)
+        self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types)
 
         # Checks
         if (self.sim.people.female[p1].any() or self.sim.people.male[p2].any()) and (self.name == 'structuredsexual'):
@@ -534,36 +635,156 @@ class StructuredSexual(ss.SexualNetwork):
 
         return
 
-    def add_pairs(self):
-        self.add_pairs_nonsw()
-        self.add_pairs_sw()
+    def _on_edge_dissolution(self, active):
+        """Record dissolved partnerships and decrement partner counts."""
+        self._record_prior_partners(active)
+        self._decrement_partners(active)
+
+    def _record_prior_partners(self, active):
+        """If ``recall_prior``, push dissolved partnerships into the PriorPartners network."""
+        if not self.pars.recall_prior:
+            return
+        prior_network = self.sim.networks.get('priorpartners')
+        if prior_network is None:
+            return
+        ended_p1 = self.edges.p1[~active]
+        ended_p2 = self.edges.p2[~active]
+        durs = np.zeros_like(ended_p1, dtype=ss_float)
+        betas = np.zeros_like(ended_p1, dtype=ss_float)
+        prior_network.append(p1=ended_p1, p2=ended_p2, dur=durs, beta=betas)
+
+    def _decrement_partners(self, active):
+        """Decrement partner counters for expired non-SW edges.
+
+        SW edges (when present) are skipped because ``add_pairs`` doesn't
+        increment ``partners`` for them — only ``lifetime_sw_partners``.
+        """
+        inactive = ~active
+        if 'sw' in self.edge_types:
+            inactive = inactive & (self.edges.edge_type != self.edge_types['sw'])
+        p1e = self.edges.p1[inactive]
+        p2e = self.edges.p2[inactive]
+        edge_types = self.edges.edge_type[inactive]
+        self.partners[p1e] -= 1
+        self.partners[p2e] -= 1
+        for key in ('stable', 'casual', 'onetime'):
+            if key not in self.edge_types:
+                continue
+            mask = edge_types == self.edge_types[key]
+            if not mask.any():
+                continue
+            getattr(self, f'{key}_partners')[p1e[mask]] -= 1
+            getattr(self, f'{key}_partners')[p2e[mask]] -= 1
+
+
+class SWNetwork(BaseNetwork):
+    """Standalone sex-work contact network (FSW–client edges only).
+
+    Tracks female sex workers (``fsw``) and clients of sex workers (``client``)
+    with one-timestep partnerships weighted by ``sw_intensity``. Can be used on
+    its own or alongside :class:`MFNetwork`. For backward-compatible MF + SW
+    bundling on a single network, see :class:`StructuredSexual`.
+
+    Args:
+        pars (dict): Parameter overrides (see :class:`SWPars` for defaults).
+        condom_data: Optional condom-use data (DataFrame, dict, or scalar).
+        name (str): Network name (default: auto-assigned).
+        **kwargs: Additional parameter overrides forwarded to ``update_pars``.
+    """
+
+    def __init__(self, pars=None, condom_data=None, name=None, **kwargs):
+        super().__init__(name=name)
+        self.define_pars(**SWPars())
+        self.update_pars(pars, **kwargs)
+        self.edge_types = {'sw': 0}
+        self.define_states(*_sw_states())
         return
 
-    def match_sex_workers(self):
-        """ Match sex workers to clients """
+    def set_network_states(self, upper_age=None):
+        super().set_network_states(upper_age=upper_age)  # set_debut
+        self.set_sex_work(upper_age=upper_age)
+        return
 
-        # Find people eligible for a relationship
+    def set_sex_work(self, upper_age=None):
+        """Draw lifetime SW fate and per-agent age window for new agents.
+
+        Falls back to ``debut`` for ``age_*_start`` and to ``inf`` for ``dur_*``
+        when the corresponding distribution is ``None``, so the ``fsw``/``client``
+        properties always see valid window bounds. ``debut`` must be set before
+        this method runs.
+        """
+        f_uids, m_uids = self._get_uids(upper_age=upper_age)
+        new_fsw = self.pars.fsw_shares.rvs(f_uids)
+        new_client = self.pars.client_shares.rvs(m_uids)
+        self.ever_fsw[f_uids] = new_fsw
+        self.ever_client[m_uids] = new_client
+
+        fsw_uids = f_uids[new_fsw]
+        if len(fsw_uids):
+            if self.pars.age_sw_start is not None:
+                drawn = self.pars.age_sw_start.rvs(fsw_uids)
+                # Clamp entry age to debut — can't be SW before sexual debut
+                self.age_sw_start[fsw_uids] = np.maximum(drawn, self.debut[fsw_uids])
+            else:
+                self.age_sw_start[fsw_uids] = self.debut[fsw_uids]
+            if self.pars.dur_sw is not None:
+                self.dur_sw[fsw_uids] = self.pars.dur_sw.rvs(fsw_uids)
+            else:
+                self.dur_sw[fsw_uids] = np.inf
+
+        client_uids = m_uids[new_client]
+        if len(client_uids):
+            if self.pars.age_client_start is not None:
+                drawn = self.pars.age_client_start.rvs(client_uids)
+                self.age_client_start[client_uids] = np.maximum(drawn, self.debut[client_uids])
+            else:
+                self.age_client_start[client_uids] = self.debut[client_uids]
+            if self.pars.dur_client is not None:
+                self.dur_client[client_uids] = self.pars.dur_client.rvs(client_uids)
+            else:
+                self.dur_client[client_uids] = np.inf
+        return
+
+    @property
+    def age_sw_stop(self):
+        return self.age_sw_start + self.dur_sw
+
+    @property
+    def age_client_stop(self):
+        return self.age_client_start + self.dur_client
+
+    @property
+    def fsw(self):
+        """Currently a female sex worker."""
+        age = self.sim.people.age
+        return (age >= self.age_sw_start) & (age < self.age_sw_stop) & self.ever_fsw
+
+    @property
+    def client(self):
+        """Currently a client of sex workers."""
+        age = self.sim.people.age
+        return (age >= self.age_client_start) & (age < self.age_client_stop) & self.ever_client
+
+    def match_pairs(self):
+        """ Match sex workers to clients """
         active = self.over_debut
         active_fsw = active & self.fsw
         active_clients = active & self.client
         self.sw_intensity[active_fsw.uids] = self.pars.sw_intensity.rvs(active_fsw.uids)
 
-        # Find clients who will seek FSW
         self.pars.sw_seeking_dist.pars.p = self.pars.sw_seeking_rate.to_prob()
         m_looking = self.pars.sw_seeking_dist.filter(active_clients.uids)
 
         if len(m_looking) == 0 or len(active_fsw.uids) == 0:
             raise NoPartnersFound()
 
-        # Attempt to assign a sex worker to every client by repeat sampling the sex workers.
-        # FSW with higher work intensity will be sampled more frequently
+        # Repeat-sample FSW weighted by intensity to assign each client a partner
         if len(m_looking) > len(active_fsw.uids):
             n_repeats = (self.sw_intensity[active_fsw]*10).astype(int)+1
             fsw_repeats = np.repeat(active_fsw.uids, n_repeats)
             if len(fsw_repeats) < len(m_looking):
-                fsw_repeats = np.repeat(fsw_repeats, 10)  # 10x the number of clients each sex worker can have
+                fsw_repeats = np.repeat(fsw_repeats, 10)
 
-            # Might still not have enough FSW, so form as many pairs as possible
             n_pairs = min(len(fsw_repeats), len(m_looking))
             if len(fsw_repeats) < len(m_looking):
                 p1 = m_looking[:n_pairs]
@@ -575,7 +796,6 @@ class StructuredSexual(ss.SexualNetwork):
                 choices = np.argsort(-weights)[:n_pairs]
                 p2 = fsw_repeats[choices]
                 p1 = m_looking
-
         else:
             n_pairs = len(m_looking)
             weights = self.sw_intensity[active_fsw]
@@ -585,103 +805,95 @@ class StructuredSexual(ss.SexualNetwork):
 
         return p1, p2
 
-    def end_pairs(self):
-        people = self.sim.people
+    def add_pairs(self):
+        """ Match and add sex worker partnerships for this timestep.
 
-        self.edges.dur = self.edges.dur - 1  # Decrement the duration of each partnership, noting that dur is timesteps
+        Each partnership has duration = 1 timestep. Updates ``lifetime_sw_partners``.
+        Uses an explicit ``SWNetwork.match_pairs`` reference so subclasses that
+        also inherit ``MFNetwork.match_pairs`` (e.g. :class:`StructuredSexual`)
+        still pick the SW matcher here.
+        """
+        ppl = self.sim.people
 
-        # Non-alive agents are removed
-        alive_bools = people.alive[ss.uids(self.edges.p1)] & people.alive[ss.uids(self.edges.p2)]
-        active = (self.edges.dur > 0) & alive_bools
+        try:
+            p1, p2 = SWNetwork.match_pairs(self)
+        except NoPartnersFound:
+            return
 
-        # If there's a prior partner network, add the newly dissolved partnerships to the prior partners
-        if self.pars.recall_prior:
-            prior_network = self.sim.networks.get('priorpartners')
-            if prior_network is not None:
-                # Get the uids of the partners that just ended
-                ended_p1 = self.edges.p1[~active]
-                ended_p2 = self.edges.p2[~active]
-                durs = np.zeros_like(ended_p1, dtype=ss_float_)
-                betas = np.zeros_like(ended_p1, dtype=ss_float_)
+        match_count = len(p1)
+        beta = np.ones(match_count, dtype=ss_float)
+        condoms = np.zeros(match_count, dtype=ss_float)
+        acts = (self.pars.acts.rvs(p2)).astype(int)
+        dur = np.full(match_count, fill_value=1)
+        age_p1 = ppl.age[p1]
+        age_p2 = ppl.age[p2]
+        edge_types = np.full(match_count, dtype=ss_float, fill_value=self.edge_types['sw'])
 
-                # Add these to the prior partners network
-                prior_network.append(p1=ended_p1, p2=ended_p2, dur=durs, beta=betas)
+        self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types)
 
-        # For gen pop contacts that are due to expire, decrement the partner count
-        inactive_gp = ~active & (~self.edges.sw)
+        p1_edges, p1_counts = np.unique(p1, return_counts=True)
+        p2_edges, p2_counts = np.unique(p2, return_counts=True)
 
-        p1_edges = self.edges.p1[inactive_gp]
-        p2_edges = self.edges.p2[inactive_gp]
-        edge_types = self.edges.edge_type[inactive_gp]
-        onetimes = edge_types == self.edge_types['onetime']
-        casuals  = edge_types == self.edge_types['casual']
-        stables  = edge_types == self.edge_types['stable']
-        sw = edge_types == self.edge_types['sw']
-
-        self.partners[p1_edges] -= 1
-        self.partners[p2_edges] -= 1
-
-        self.onetime_partners[p1_edges[onetimes]] -= 1
-        self.onetime_partners[p2_edges[onetimes]] -= 1
-        self.casual_partners[p1_edges[casuals]] -= 1
-        self.casual_partners[p2_edges[casuals]] -= 1
-        self.stable_partners[p1_edges[stables]] -= 1
-        self.stable_partners[p2_edges[stables]] -= 1
-        self.sw_partners[p1_edges[sw]] -= 1
-        self.sw_partners[p2_edges[sw]] -= 1
-        # for a, b in zip(p1_edges[(casuals + stables)], p2_edges[(casuals + stables)]):
-        #     pair = (min(a,b), max(a,b))
-        #     self.relationship_durs[pair][-1]['dur'] = self.ti - self.relationship_durs[pair][-1]['start']
-
-        # For all contacts that are due to expire, remove them from the contacts list
-        if len(active) > 0:
-            for k in self.meta_keys():
-                self.edges[k] = (self.edges[k][active])
+        self.lifetime_sw_partners[p1_edges] += p1_counts
+        self.lifetime_sw_partners[p2_edges] += p2_counts
 
         return
 
-    def net_beta(self, disease_beta=None, uids=None, disease=None):
-        if uids is None: uids = Ellipsis
-        p_condom = self.edges.condoms[uids]
-        eff_condom = disease.pars.eff_condom
-        p_trans_condom = (1 - disease_beta*(1-eff_condom))**(self.edges.acts[uids]*p_condom)
-        p_trans_no_condom = (1 - disease_beta)**(self.edges.acts[uids]*(1-p_condom))
-        p_trans = 1 - p_trans_condom * p_trans_no_condom
-        result = p_trans * self.edges.beta[uids]
-        return result
 
-    def set_condom_use(self):
-        """ Set condom use """
-        if self.pars.condom_data is not None:
-            if isinstance(self.pars.condom_data, dict):
-                for rgm in range(self.pars.n_risk_groups):
-                    for rgf in range(self.pars.n_risk_groups):
-                        risk_pairing = (self.risk_group[self.p1] == rgm) & (self.risk_group[self.p2] == rgf)
-                        self.edges.condoms[risk_pairing] = self.pars.condom_data[(rgm, rgf)]['simvals'][self.ti]
-                self.edges.condoms[self.edges.sw] = self.pars.condom_data[('fsw','client')]['simvals'][self.ti]
+class StructuredSexual(MFNetwork):
+    """Heterosexual + sex-work network on a single edge list (backward compatible).
 
-            elif sc.isnumber(self.pars.condom_data):
-                self.edges.condoms[:] = self.pars.condom_data
+    Bundles :class:`MFNetwork` (risk groups, concurrency, age preferences) with
+    sex-work edges. Maintains the historical API so existing consumers can read
+    ``fsw``/``client``/``sw_intensity`` directly via ``sim.networks.structuredsexual``.
 
-            else:
-                raise Exception("Unknown condom data input type")
+    For modular use — for example, MF without SW, or SW alone — use
+    :class:`MFNetwork` and :class:`SWNetwork` directly.
 
+    Args:
+        pars (dict): Parameter overrides (see :class:`NetworkPars` for defaults).
+        condom_data: Optional condom-use data (DataFrame or dict).
+        name (str): Network name (default: auto-assigned).
+        **kwargs: Additional parameter overrides forwarded to ``update_pars``.
+    """
+
+    def __init__(self, pars=None, condom_data=None, name=None, **kwargs):
+        # MF layer (defaults only — no user pars/kwargs yet)
+        super().__init__(name=name)
+        # SW layer
+        self.define_pars(**SWPars())
+        self.define_states(*_sw_states())
+        self.edge_types['sw'] = max(self.edge_types.values()) + 1
+        # Apply user pars/kwargs against the full pars dict
+        self.update_pars(pars, **kwargs)
         return
 
-    def count_partners(self):
-        """ Count the number of partners each person has had over the past 3/12 months """
-        self.lifetime_partners
+    # SW behavior aliased from SWNetwork (single source of truth).
+    # Note: ``match_pairs`` is intentionally not aliased — MFNetwork's version
+    # is used for MF matching; SWNetwork.add_pairs calls SWNetwork.match_pairs explicitly.
+    set_sex_work = SWNetwork.set_sex_work
+    fsw = SWNetwork.fsw
+    client = SWNetwork.client
+    age_sw_stop = SWNetwork.age_sw_stop
+    age_client_stop = SWNetwork.age_client_stop
+
+    def set_network_states(self, upper_age=None):
+        super().set_network_states(upper_age=upper_age)
+        self.set_sex_work(upper_age=upper_age)
         return
 
-    def step(self):
-        self.end_pairs()
-        self.set_network_states(upper_age=self.t.dt_year)
-        self.add_pairs()
-        self.set_condom_use()
-        self.count_partners()
-
+    def add_pairs(self):
+        MFNetwork.add_pairs(self)
+        SWNetwork.add_pairs(self)
         return
 
+    # end_pairs and set_condom_use inherited from BaseNetwork. _decrement_partners
+    # (in MFNetwork) skips SW edges via the ``'sw' in self.edge_types`` check;
+    # set_condom_use's per-key dispatch handles ``(rgm, rgf)`` and ``('fsw','client')``
+    # entries automatically.
+
+
+# %% Auxiliary networks — PriorPartners (recall buffer) and MSM variants
 
 class PriorPartners(ss.DynamicNetwork):
     """Lightweight network that tracks prior sexual partners for partner notification.
@@ -718,7 +930,7 @@ class PriorPartners(ss.DynamicNetwork):
         return len(active)
 
 
-class AgeMatchedMSM(StructuredSexual):
+class AgeMatchedMSM(MFNetwork):
     """Men-who-have-sex-with-men network using exact age-sorted matching.
 
     Extends :class:`StructuredSexual` for MSM partnerships. Eligible males
@@ -781,7 +993,7 @@ class AgeMatchedMSM(StructuredSexual):
         return p1, p2
 
 
-class AgeApproxMSM(StructuredSexual):
+class AgeApproxMSM(MFNetwork):
     """Men-who-have-sex-with-men network using approximate age-preference matching.
 
     Extends :class:`StructuredSexual` for MSM partnerships. Unlike
