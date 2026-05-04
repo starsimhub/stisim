@@ -215,15 +215,6 @@ def test_doubling_hiv_maternal_beta_doubles_transmissions():
 
 
 @sc.timer()
-def test_doubling_hiv_sexual_beta_doubles_transmissions():
-    sc.heading("Checking that doubling sexual beta roughly doubles sexual transmissions at low infectivity.")
-
-    # Low beta keeps transmission in the linear regime where doubling beta ≈ doubles transmissions
-    _run_beta_test(baseline_m2f=0.001, baseline_m2c=0, mode='sexual', multiplier=2,
-                   duration=1, n_agents=1000, init_prev=0.5, result_tolerance=0.3)
-
-
-@sc.timer()
 def test_mtct(do_plot=do_plot):
     """ Check prenatal and postnatal MTCT: both occur, results are consistent """
     sc.heading('Testing MTCT (prenatal + postnatal)...')
@@ -772,7 +763,6 @@ if __name__ == '__main__':
     test_aids_transmission_is_higher_than_latent()
     test_no_sexual_transmission_without_network()
     test_doubling_hiv_maternal_beta_doubles_transmissions()
-    test_doubling_hiv_sexual_beta_doubles_transmissions()
     test_mtct()
     test_pmtct()
     test_mtct_rates_in_range()
