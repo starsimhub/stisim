@@ -19,8 +19,8 @@ import pandas as pd
 from collections import defaultdict
 from bisect import bisect_left
 
-ss_float_ = ss.dtypes.float
-ss_int_ = ss.dtypes.int
+ss_float = ss.dtypes.float
+ss_int = ss.dtypes.int
 
 # Specify all externally visible functions this file defines; see also more definitions below
 __all__ = ['NetworkPars', 'BasePars', 'MFPars', 'SWPars',
@@ -83,6 +83,7 @@ class BasePars(ss.Pars):
         self.debut_m = ss.lognorm_ex(21, 3)
         self.acts = ss.lognorm_ex(ss.freqperyear(80), ss.freqperyear(30))
         self.condom_data = None
+        self.condom_smoothness = None  # Smoothness for sc.smoothinterp on time-varying condom_data
         self.update(kwargs)
         return
 
@@ -122,11 +123,13 @@ class MFPars(ss.Pars):
         self.m1_conc = 0.2
         self.m2_conc = 0.5
 
-        # Pair formation and duration
-        self.p_pair_form = ss.bernoulli(p=0.5)
-        self.match_dist = ss.bernoulli(p=0)
-        self.p_matched_stable = [0.9, 0.5, 0]
-        self.p_mismatched_casual = [0.5, 0.5, 0.5]
+        # Relationship initiation, stability, and duration
+        self.p_pair_form = ss.bernoulli(p=0.5)              # Probability of a (stable) pair forming between two matched people
+        self.match_dist = ss.bernoulli(p=0)                 # Placeholder value replaced by risk-group stratified values below
+        self.p_matched_stable = [0.9, 0.5, 0]               # Probability of a stable pair forming between matched people (otherwise casual)
+        self.p_mismatched_casual = [0.5, 0.5, 0.5]          # Probability of a casual pair forming between mismatched people (otherwise instantaneous)
+
+        # Durations of stable and casual relationships
         self.stable_dur_pars = dict(
             teens=[
                 [ss.years(100), ss.years(1)],
@@ -227,10 +230,10 @@ class BaseNetwork(ss.SexualNetwork):
 
     def __init__(self, name=None, **kwargs):
         super().__init__(name=name)
-        self.meta.condoms = ss_float_
-        self.meta.age_p1 = ss_float_
-        self.meta.age_p2 = ss_float_
-        self.meta.edge_type = ss_float_
+        self.meta.condoms = ss_float
+        self.meta.age_p1 = ss_float
+        self.meta.age_p2 = ss_float
+        self.meta.edge_type = ss_float
         self.define_pars(**BasePars())
         self.define_states(
             ss.BoolArr('participant', default=True),
@@ -266,7 +269,8 @@ class BaseNetwork(ss.SexualNetwork):
             cd = self.process_condom_data(cd)
             self.pars.condom_data = cd
             for rgtuple, valdict in cd.items():
-                valdict['simvals'] = sc.smoothinterp(self.t.yearvec, valdict['year'], valdict['val'])
+                valdict['simvals'] = sc.smoothinterp(self.t.yearvec, valdict['year'], valdict['val'],
+                                                     smoothness=self.pars.condom_smoothness)
         return
 
     def init_post(self):
@@ -430,13 +434,13 @@ class MFNetwork(BaseNetwork):
         ppl = self.sim.people
         uids = self._get_uids(upper_age=upper_age, by_sex=False)
 
-        p_lo = np.full(len(uids), fill_value=np.nan, dtype=ss_float_)
+        p_lo = np.full(len(uids), fill_value=np.nan, dtype=ss_float)
         p_lo[ppl.female[uids]] = self.pars.prop_f0
         p_lo[ppl.male[uids]] = self.pars.prop_m0
         self.pars.p_lo_risk.set(p=p_lo)
         lo_risk, hi_med_risk = self.pars.p_lo_risk.split(uids)
 
-        p_hi = np.full(len(hi_med_risk), fill_value=np.nan, dtype=ss_float_)
+        p_hi = np.full(len(hi_med_risk), fill_value=np.nan, dtype=ss_float)
         p_hi[ppl.female[hi_med_risk]] = self.pars.prop_f2/(1-self.pars.prop_f0)
         p_hi[ppl.male[hi_med_risk]] = self.pars.prop_m2/(1-self.pars.prop_m0)
         self.pars.p_hi_risk.set(p=p_hi)
@@ -454,7 +458,7 @@ class MFNetwork(BaseNetwork):
         in_age_lim = (people.age < upper_age)
         uids = in_age_lim.uids
 
-        lam = np.full(uids.shape, fill_value=np.nan, dtype=ss_float_)
+        lam = np.full(uids.shape, fill_value=np.nan, dtype=ss_float)
         for rg in range(self.pars.n_risk_groups):
             f_conc = self.pars[f'f{rg}_conc']
             m_conc = self.pars[f'm{rg}_conc']
@@ -560,7 +564,7 @@ class MFNetwork(BaseNetwork):
         mismatched_risk = (self.risk_group[p1] != self.risk_group[p2])
 
         # Set the probability of forming a partnership
-        p_match = np.full(len(p1), fill_value=np.nan, dtype=ss_float_)
+        p_match = np.full(len(p1), fill_value=np.nan, dtype=ss_float)
         for rg in range(self.pars.n_risk_groups):
             p_match[matched_risk & (self.risk_group[p1] == rg)] = self.pars.p_matched_stable[rg]
             p_match[mismatched_risk & (self.risk_group[p2] == rg)] = self.pars.p_mismatched_casual[rg]
@@ -573,19 +577,19 @@ class MFNetwork(BaseNetwork):
 
         match_count = len(p1)
 
-        beta = np.ones(match_count, dtype=ss_float_)
-        condoms = np.zeros(match_count, dtype=ss_float_)
+        beta = np.ones(match_count, dtype=ss_float)
+        condoms = np.zeros(match_count, dtype=ss_float)
         acts = (self.pars.acts.rvs(p2)).astype(int)
         dur = np.full(match_count, fill_value=1)  # Measured in timesteps
         age_p1 = ppl.age[p1]
         age_p2 = ppl.age[p2]
-        edge_types = np.full(match_count, dtype=ss_float_, fill_value=np.nan)
+        edge_types = np.full(match_count, dtype=ss_float, fill_value=np.nan)
         edge_types[stable] = self.edge_types['stable']
         edge_types[casual] = self.edge_types['casual']
 
         # Set duration
-        dur_mean = np.full(match_count, fill_value=np.nan, dtype=ss_float_)
-        dur_std = np.full(match_count, fill_value=np.nan, dtype=ss_float_)
+        dur_mean = np.full(match_count, fill_value=np.nan, dtype=ss_float)
+        dur_std = np.full(match_count, fill_value=np.nan, dtype=ss_float)
         for which, bools in {'stable': stable, 'casual': casual}.items():
             if bools.any():
                 uids = p2[bools]
@@ -645,8 +649,8 @@ class MFNetwork(BaseNetwork):
             return
         ended_p1 = self.edges.p1[~active]
         ended_p2 = self.edges.p2[~active]
-        durs = np.zeros_like(ended_p1, dtype=ss_float_)
-        betas = np.zeros_like(ended_p1, dtype=ss_float_)
+        durs = np.zeros_like(ended_p1, dtype=ss_float)
+        betas = np.zeros_like(ended_p1, dtype=ss_float)
         prior_network.append(p1=ended_p1, p2=ended_p2, dur=durs, beta=betas)
 
     def _decrement_partners(self, active):
@@ -817,13 +821,13 @@ class SWNetwork(BaseNetwork):
             return
 
         match_count = len(p1)
-        beta = np.ones(match_count, dtype=ss_float_)
-        condoms = np.zeros(match_count, dtype=ss_float_)
+        beta = np.ones(match_count, dtype=ss_float)
+        condoms = np.zeros(match_count, dtype=ss_float)
         acts = (self.pars.acts.rvs(p2)).astype(int)
         dur = np.full(match_count, fill_value=1)
         age_p1 = ppl.age[p1]
         age_p2 = ppl.age[p2]
-        edge_types = np.full(match_count, dtype=ss_float_, fill_value=self.edge_types['sw'])
+        edge_types = np.full(match_count, dtype=ss_float, fill_value=self.edge_types['sw'])
 
         self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types)
 

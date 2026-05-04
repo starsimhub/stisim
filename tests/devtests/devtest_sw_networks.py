@@ -85,7 +85,7 @@ def network_stats(nw, people):
     return out
 
 
-def _summary(label, stats):
+def print_summary(label, stats):
     print(f'\n--- {label} ---')
     for k, v in stats.items():
         if isinstance(v, dict):
@@ -111,7 +111,7 @@ def test_mf_only():
     sim.run()
     nw = sim.networks.mfnetwork
     s = network_stats(nw, sim.people)
-    _summary('MFNetwork only', s)
+    print_summary('MFNetwork only', s)
 
     # Observed values @ N_AGENTS=1000, DUR=10, SEED=1: f_mean≈1.58, m_mean≈1.55,
     # stable≈0.55, casual≈0.37, onetime≈0.65, mean_dur_stable≈1020 months,
@@ -147,7 +147,7 @@ def test_sw_only():
     sim.run()
     nw = sim.networks.swnetwork
     s = network_stats(nw, sim.people)
-    _summary('SWNetwork only', s)
+    print_summary('SWNetwork only', s)
 
     # Observed @ N_AGENTS=1000, DUR=10, SEED=1: ever_fsw≈33, ever_client≈81,
     # current_client≈9, lifetime_sw_partners_mean≈1.9.
@@ -177,8 +177,8 @@ def test_mf_plus_sw_modular():
     mf, sw = sim.networks.mfnetwork, sim.networks.swnetwork
     sm = network_stats(mf, sim.people)
     sn = network_stats(sw, sim.people)
-    _summary('MF (modular)', sm)
-    _summary('SW (modular)', sn)
+    print_summary('MF (modular)', sm)
+    print_summary('SW (modular)', sn)
 
     # Modular MF should match standalone MF closely (same seed, same module);
     # SW similarly. Drift is allowed only from agents added/removed via demog.
@@ -204,7 +204,7 @@ def test_structured_sexual_bundle():
     sim.run()
     nw = sim.networks.structuredsexual
     s = network_stats(nw, sim.people)
-    _summary('StructuredSexual', s)
+    print_summary('StructuredSexual', s)
 
     # Observed @ N_AGENTS=1000, DUR=10, SEED=1: f_mean≈1.47, ever_fsw≈21,
     # ever_client≈58, lifetime_sw_partners_mean≈0.65. Slightly lower than the
@@ -270,7 +270,7 @@ def test_sw_window_dynamics():
     sim.run()
     nw = sim.networks.swnetwork
     s = network_stats(nw, sim.people)
-    _summary('Windowed SW (20-yr run)', s)
+    print_summary('Windowed SW (20-yr run)', s)
 
     # Observed @ N_AGENTS=1000, DUR=20, SEED=1, mean dur_sw=4y:
     # ever_fsw≈35, current_fsw≈0–3 (most have aged out of their ~4y window).
@@ -337,7 +337,7 @@ def test_hivsim_sim_defaults():
     assert 'structuredsexual' in sim.networks
     nw = sim.networks.structuredsexual
     s = network_stats(nw, sim.people)
-    _summary('hivsim.Sim defaults', s)
+    print_summary('hivsim.Sim defaults', s)
     # Observed @ n_agents=500, dur=5, SEED=1: f_mean≈1.27, m_mean≈1.27,
     # ever_fsw≈7, ever_client≈28
     assert 0.5 < s.lifetime_partners_f_mean < 2.5
@@ -356,7 +356,7 @@ def test_hivsim_demo_simple():
     assert 'structuredsexual' not in sim.networks
     nw = sim.networks.mfnetwork
     s = network_stats(nw, sim.people)
-    _summary("hivsim.demo('simple') — MFNetwork", s)
+    print_summary("hivsim.demo('simple') — MFNetwork", s)
     # Observed @ n_agents=500, dur=5, SEED=1: f_mean≈1.29, m_mean≈1.32,
     # mean_dur_stable≈1080, mean_dur_casual≈12.
     assert 0.5 < s.lifetime_partners_f_mean < 2.5
@@ -374,7 +374,7 @@ def test_hivsim_demo_zimbabwe():
     assert 'structuredsexual' in sim.networks, "zimbabwe demo should use StructuredSexual"
     nw = sim.networks.structuredsexual
     s = network_stats(nw, sim.people)
-    _summary("hivsim.demo('zimbabwe') — StructuredSexual", s)
+    print_summary("hivsim.demo('zimbabwe') — StructuredSexual", s)
     # Observed @ n_agents=500, stop=1995, SEED=1: f_mean≈0.91, ever_fsw≈13,
     # ever_client≈32. (lifetime_sw_partners_mean is noisy at small N — skip.)
     assert 0.5 < s.lifetime_partners_f_mean < 2.0
