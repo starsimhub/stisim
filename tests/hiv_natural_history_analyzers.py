@@ -1,3 +1,5 @@
+from typing import Callable, Iterable, Dict
+
 import sciris as sc
 import starsim as ss
 
@@ -201,6 +203,170 @@ class MTCTransmissionCountTracker(ss.Analyzer):
     def update_results(self):
         self.results[self.result_name][self.ti] = self.sim.diseases.hiv.results['new_infections_mtct'][self.ti]
 
+
+class PrepCoverageAnalyzer(ss.Analyzer):
+    """
+    Records the PrEP coverage per 1+ eligibiliity groups/functions per timestep, results obtainable by analyzer key
+    'hiv.prep_coverage' . consider_new_infections=True yields results equivalent to "end of intervention time" instead
+    of "end of model timestep time".
+    """
+
+    result_name = 'hiv.prep_coverage'
+
+    def __init__(self, eligibilities: Dict[str, Callable], consider_new_infections=False, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.eligibilities = eligibilities
+        self.consider_new_infections = consider_new_infections
+
+    def step(self):
+        pass
+
+    def init_results(self):
+        super().init_results()
+        self.results[self.result_name] = {group_name: [] for group_name, _ in self.eligibilities.items()}
+
+    def update_results(self):
+        sim = self.sim
+        hiv = sim.diseases.hiv
+
+        for group_name, eligibility in self.eligibilities.items():
+            # The reason for "OR on prep + infected this ti" is because the model infection step occurs between:
+            # - when the intervention uses the eligibility functions used here
+            # - when analyzer update_results() is called
+            # Including this additional OR clause allows for checking PrEP coverage at the time of the intervention (as
+            # opposed to AFTER intervention + infection) which is useful for test code. Ignoring the additional clause
+            # yields "end of timestep" results.
+            if self.consider_new_infections:
+                eligible_uids =  (eligibility(sim) | self.infected_this_ti_on_prep(sim)).uids
+            else:
+                eligible_uids = eligibility(sim).uids
+            n_eligible = len(eligible_uids)
+            n_on_prep = len(hiv.on_prep.uids & eligible_uids)
+            coverage = n_on_prep / n_eligible
+            self.results[self.result_name][group_name].append(coverage)
+
+    @staticmethod
+    def infected_this_ti_on_prep(sim):
+        hiv = sim.diseases.hiv
+        agents = hiv.on_prep & (hiv.ti_infected == sim.ti)
+        return agents
+
+
+class PrepCountsAnalyzer(ss.Analyzer):
+    """
+    Records the n_agents on PrEP per 1+ eligibiliity groups/functions per timestep, results obtainable by analyzer key
+    'hiv.n_prep' . consider_new_infections=True yields results equivalent to "end of intervention time" instead
+    of "end of model timestep time".
+    """
+
+    result_name = 'hiv.n_prep'
+
+    def __init__(self, eligibilities: Dict[str, Callable], consider_new_infections=False, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.eligibilities = eligibilities
+        self.consider_new_infections = consider_new_infections
+
+    def step(self):
+        pass
+
+    def init_results(self):
+        super().init_results()
+        self.results[self.result_name] = {group_name: [] for group_name, _ in self.eligibilities.items()}
+
+    def update_results(self):
+        sim = self.sim
+        hiv = sim.diseases.hiv
+
+        for group_name, eligibility in self.eligibilities.items():
+            # The reason for "OR on prep + infected this ti" is because the model infection step occurs between:
+            # - when the intervention uses the eligibility functions used here
+            # - when analyzer update_results() is called
+            # Including this additional OR clause allows for checking PrEP counts at the time of the intervention (as
+            # opposed to AFTER intervention + infection) which is useful for test code. Ignoring the additional clause
+            # yields "end of timestep" results.
+            if self.consider_new_infections:
+                eligible_uids =  (eligibility(sim) | self.infected_this_ti_on_prep(sim)).uids
+            else:
+                eligible_uids = eligibility(sim).uids
+            n_on_prep = len(hiv.on_prep.uids & eligible_uids)
+            self.results[self.result_name][group_name].append(n_on_prep)
+
+    @staticmethod
+    def infected_this_ti_on_prep(sim):
+        hiv = sim.diseases.hiv
+        agents = hiv.on_prep & (hiv.ti_infected == sim.ti)
+        return agents
+
+
+
+class PrepEfficacyAnalyzer(ss.Analyzer):
+    """
+    Records the PrEP efficacy of agents on PrEP, per agent uid.
+    """
+
+    result_name = 'hiv.prep_efficacy'
+    ti_name = 'ti'
+
+    def step(self):
+        pass
+
+    def init_results(self):
+        super().init_results()
+        self.results[self.result_name] = {}
+        self.results[self.ti_name] = {}
+
+    def update_results(self):
+        sim = self.sim
+        ti = sim.ti
+        hiv = sim.diseases.hiv
+        result_name = self.result_name
+        ti_name = self.ti_name
+
+        uids = hiv.on_prep.uids
+
+        # record prep efficacy for agents of interest
+        for uid in uids:
+            if uid not in self.results[result_name]:
+                self.results[result_name][uid] = []
+                self.results[ti_name][uid] = []
+            prep_eff = hiv.prep_eff[uid]
+            self.results[result_name][uid].append(prep_eff)
+            self.results[ti_name][uid].append(ti)
+
+
+class PrepDurationAnalyzer(ss.Analyzer):
+    """
+    Records the time on PrEP of agents, per agent uid.
+    """
+
+    result_name = 'hiv.prep_duration'
+    ti_name = 'ti'
+
+    def step(self):
+        pass
+
+    def init_results(self):
+        super().init_results()
+        self.results[self.result_name] = {}
+        self.results[self.ti_name] = {}
+
+    def update_results(self):
+        sim = self.sim
+        ti = sim.ti
+        hiv = sim.diseases.hiv
+        result_name = self.result_name
+        ti_name = self.ti_name
+
+        uids = hiv.on_prep.uids
+
+        # record prep efficacy for agents of interest
+        for uid in uids:
+            if uid not in self.results[result_name]:
+                self.results[result_name][uid] = []
+                self.results[ti_name][uid] = []
+            ti_on_prep = ti - hiv.ti_prep_start[uid]
+            self.results[result_name][uid].append(ti_on_prep)
+            self.results[ti_name][uid].append(ti)
 
 # perinatal infection progression not currently implemented in hivsim, so leaving this untested analyzer out for
 # future work
