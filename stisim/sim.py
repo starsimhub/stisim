@@ -2,6 +2,7 @@
 User API for creating an STI simulation
 """
 
+import itertools
 import starsim as ss
 import stisim as sti
 import sciris as sc
@@ -378,43 +379,24 @@ class Sim(ss.Sim):
 
     def process_connectors(self):
         """
-        Get the default connectors for the diseases in the simulation.
-        Connectors are loaded based on the disease names or modules provided in the format <d1>_<d2>.
+        Auto-add coinfection connectors for disease pairs that have a registered
+        ``sti.<d1>_<d2>`` class (e.g. ``hiv_syph``, ``hiv_ng``). Skipped if the
+        user already supplied any connectors — pass your own list to take full
+        control.
         """
+        if len(self.pars['connectors']) > 0:
+            return []
+
         connectors = []
-        parsed_diseases = []
-        add_connectors = False
-
-        if isinstance(self.pars.connectors, bool) and self.pars.connectors:
-            errormsg = ('STIsim does not currently support automatically adding connectors. This feature'
-                        ' will be added in a future release. For the time being, please add connectors '
-                        'manually, e.g. by passing sti.hiv_syph(hiv, syphilis) to the sim.')
-            raise NotImplementedError(errormsg)
-
-            # TODO: The remaining code will be re-enabled once debugged
-        #     self.pars['connectors'] = ss.ndict()  # Reset
-        #     add_connectors = True
-        #
-        # if add_connectors:
-        #     for disease in self.pars['diseases']:
-        #         if isinstance(disease, str):
-        #             parsed_diseases.append(disease.lower())
-        #         if isinstance(disease, ss.Module):
-        #             parsed_diseases.append(disease.name.lower())
-        #
-        #     # sort the diseases and then get all combinations of their pairs
-        #     disease_pairs = combinations(parsed_diseases, 2)
-        #
-        #     # TODO: this does not quite work as intended because the ordering matters...
-        #     for (d1, d2) in disease_pairs:
-        #         try:
-        #             connector = getattr(sti, f'{d1}_{d2}')
-        #         except:
-        #             try:
-        #                 connector = getattr(sti, f'{d2}_{d1}')
-        #             except:
-        #                 continue
-        #         connectors.append(connector(d1, d2))
+        diseases = [(m.name, m) for m in self.pars['diseases']]
+        for (k1, m1), (k2, m2) in itertools.combinations(diseases, 2):
+            cls = getattr(sti, f'{k1}_{k2}', None)
+            if cls is not None:
+                connectors.append(cls(m1, m2))
+                continue
+            cls = getattr(sti, f'{k2}_{k1}', None)
+            if cls is not None:
+                connectors.append(cls(m2, m1))  # reversed to match class name
         return connectors
 
     def case_insensitive_getattr(self, searchspace, attrname):
