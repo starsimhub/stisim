@@ -69,14 +69,13 @@ class SuppliedIntervention(ss.Intervention):
         self.eligibilities = eligibilities
         self.coverages = self.default_coverages if coverages is None else coverages
 
-        if self.eligibilities.keys() != self.coverages.keys():
-            raise ValueError(f"The number of eligibility types {len(eligibilities.keys())} must equal the number of "
-                             f"provided coverage types: {len(self.coverages.keys())}")
+        # if self.eligibilities.keys() != self.coverages.keys():
+        #     raise ValueError(f"The number of eligibility types {len(eligibilities.keys())} must equal the number of "
+        #                      f"provided coverage types: {len(self.coverages.keys())}")
 
-        for k, v in self.eligibilities.items():
-            if len(v) != len(self.coverages[k]):
-                raise ValueError(f"The number of eligibility groups {len(self.eligibilities)} must equal the number of "
-                                 f"provided coverage targets: {len(self.coverages)}")
+        if len(self.eligibilities) != len(self.coverages):
+            raise ValueError(f"The number of eligibility groups {len(self.eligibilities)} must equal the number of "
+                             f"provided coverage targets: {len(self.coverages)}")
 
         self.accrued_cost = 0  # for supply use, distribution, and anything else a subclass wants to model
         # self.allow_reuptake = False  # disabled for now pending further clarification/research request
@@ -97,7 +96,7 @@ class SuppliedIntervention(ss.Intervention):
 
     @property
     def default_coverages(self):
-        return {k: [1.0 for _ in range(len(v))] for k, v in self.eligibilities.items()}
+        return [1.0 for _ in range(len(self.eligibilities))]
 
     def determine_care_seeking(self, eligible):
         """defaults to all eligible agents. Override if desired to restrict or tailor this."""
@@ -141,9 +140,12 @@ class SuppliedIntervention(ss.Intervention):
                                                      cur_coverages=cur_coverages, target_coverages=target_coverages,
                                                      n_eligibles=n_eligibles, n_supply=n_supply)
 
+        all_selected = ss.arrays.uids()
         for i, offer_pool in enumerate(offer_pools):
             selected = random.sample(population=list(offer_pool), k=supply_dists[i])
             selected = ss.arrays.uids(selected)
 
             if len(selected) > 0:
                 dist_func(uptakers=selected)
+                all_selected = all_selected.union(selected)
+        return all_selected

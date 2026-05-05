@@ -10,12 +10,12 @@ from stisim.interventions.supplies import Supplies
 
 class SuppliedPrep(SuppliedIntervention):
 
-    default_eligibilities = {'prep': [lambda sim: sim.networks.structuredsexual.fsw & (~sim.diseases.hiv.infected)]}
+    default_eligibilities = [lambda sim: sim.networks.structuredsexual.fsw & (~sim.diseases.hiv.infected)]
 
     def __init__(self,
                  name: str,
-                 eligibilities: dict[str, list[Callable]] = None,
-                 coverages: dict[str, list[float]] = None,
+                 eligibilities: list[Callable] = None,
+                 coverages: list[float] = None,
                  supplies: Supplies = None,
                  pars=None, *args, **kwargs):
         """
@@ -75,10 +75,9 @@ class SuppliedPrep(SuppliedIntervention):
 
         self.update_efficacy()
 
-        decision = 'prep'
 
         # identify new uptake
-        eligibilities = self.eligibilities[decision]
+        eligibilities = self.eligibilities
         eligibilities = [self.check_eligibility(eligibility=eligibility, return_uids=False)
                          for eligibility in eligibilities]
         n_eligibles = [len(eligibilities[i].uids) for i in range(len(eligibilities))]
@@ -100,9 +99,10 @@ class SuppliedPrep(SuppliedIntervention):
                                                         product=product, use_supplies=True)
 
         # Now select agents to get PrEP from the offer pools up to computed seeking/coverage/supply limit and distribute
-        target_coverages = self.coverages[decision]
-        self.distribute(offer_pools=offer_pools, cur_coverages=cur_coverages, target_coverages=target_coverages,
-                        n_eligibles=n_eligibles, n_supply=supply.quantity, dist_func=dist_func)
+        target_coverages = self.coverages
+        selected = self.distribute(offer_pools=offer_pools,
+                                   cur_coverages=cur_coverages, target_coverages=target_coverages,
+                                   n_eligibles=n_eligibles, n_supply=supply.quantity, dist_func=dist_func)
 
     @property
     def on_this_prep(self):
