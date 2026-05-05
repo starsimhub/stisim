@@ -6,7 +6,8 @@ import starsim as ss
 import stisim as sti
 
 
-__all__ = ['SimPars', 'sti_aliases', 'sti_register', 'merged_sti_pars', 'make_sti', 'mergepars', 'dem_pars']
+__all__ = ['SimPars', 'sti_aliases', 'sti_register', 'merged_sti_pars', 'make_sti', 'mergepars',
+           'dem_pars', 'connector_register', 'merged_connector_pars']
 
 
 class SimPars(ss.SimPars):
@@ -130,6 +131,28 @@ def mergepars(*args):
     dicts = [dict(sc.dcp(arg)) for arg in args if arg is not None]
     merged_pars = sc.objdict(sc.mergedicts(*dicts))
     return merged_pars
+
+
+def connector_register():
+    """Auto-discoverable connectors keyed by ``<d1>_<d2>``. Only includes
+    connectors that follow the ``(disease1_module, disease2_module, ...)`` constructor
+    convention, so ``sti.Sim`` can build them automatically from a disease list."""
+    from stisim.connectors.hiv_sti import hiv_syph, hiv_tv, hiv_ng, hiv_ct, hiv_bv
+    return sc.objdict(
+        hiv_syph=hiv_syph,
+        hiv_tv=hiv_tv,
+        hiv_ng=hiv_ng,
+        hiv_ct=hiv_ct,
+        hiv_bv=hiv_bv,
+    )
+
+
+def merged_connector_pars():
+    """Merge all parameters from auto-discoverable connectors."""
+    merged = {}
+    for cls in connector_register().values():
+        merged.update(cls(None, None).pars)
+    return merged
 
 
 # Demographic pars

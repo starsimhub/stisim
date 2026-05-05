@@ -143,6 +143,7 @@ class Sim(ss.Sim):
         self._user_sti_pars = {**routed.sti, **nested_sti}
         self._user_nw_pars  = dict(routed.nw)
         self._user_dem_pars = dict(routed.dem)
+        self._user_connector_pars = dict(routed.connector)
 
         return routed.sim
 
@@ -382,36 +383,39 @@ class Sim(ss.Sim):
         Auto-add coinfection connectors for disease pairs that have a registered
         ``sti.<d1>_<d2>`` class (e.g. ``hiv_syph``, ``hiv_ng``). Skipped if the
         user already supplied any connectors — pass your own list to take full
-        control.
+        control. Flat connector pars (e.g. ``rel_sus_hiv_syph=3.5``) are routed
+        to whichever auto-added connector accepts them.
         """
+        user_pars = self._user_connector_pars
+
         if len(self.pars['connectors']) > 0:
+            if user_pars:
+                raise ValueError(
+                    f'Got flat connector pars {sorted(user_pars)} but `connectors=` '
+                    f'was also supplied. Pass pars to the connector constructor directly.'
+                )
             return []
 
         connectors = []
+        consumed = set()
         diseases = [(m.name, m) for m in self.pars['diseases']]
         for (k1, m1), (k2, m2) in itertools.combinations(diseases, 2):
-            cls = getattr(sti, f'{k1}_{k2}', None)
-            if cls is not None:
-                connectors.append(cls(m1, m2))
+            if (cls := getattr(sti, f'{k1}_{k2}', None)) is not None:
+                args = (m1, m2)
+            elif (cls := getattr(sti, f'{k2}_{k1}', None)) is not None:
+                args = (m2, m1)  # reversed to match class name
+            else:
                 continue
-            cls = getattr(sti, f'{k2}_{k1}', None)
-            if cls is not None:
-                connectors.append(cls(m2, m1))  # reversed to match class name
+            accepted = set(cls(None, None).pars.keys())
+            kwargs = {k: v for k, v in user_pars.items() if k in accepted}
+            consumed.update(kwargs)
+            connectors.append(cls(*args, **kwargs))
+
+        if (unused := set(user_pars) - consumed):
+            raise ValueError(
+                f'Unused connector par(s): {sorted(unused)}. The matching '
+                f'connector(s) were not auto-added because the required disease '
+                f'pair is not in the sim.'
+            )
         return connectors
 
-    def case_insensitive_getattr(self, searchspace, attrname):
-        """
-        Find a class in the given package that matches the name, ignoring case.
-
-        Args:
-            searchspace (list): A list of classes or modules to search through.
-            attrname (str): The name of the attribute to find, case-insensitive.
-        """
-        if not isinstance(searchspace, list):
-            searchspace = [searchspace]
-
-        for classname in searchspace:
-            for attr in dir(classname):
-                if attr.lower() == attrname.lower():
-                    return getattr(classname, attr)
-        return None
