@@ -69,8 +69,8 @@ def test_default_eligibility_and_coverage():
     duration = 1 # years
     supplies = infinite_prep(product=shot_1y_perfect)
     intervention = SuppliedPrep(name='this-is-a-test', supplies=supplies)
-    target_coverage = intervention.coverages[0]  # should be 100%
-    eligibilities = {'fsw': intervention.default_eligibilities[0]}  # there is only one
+    target_coverage = intervention.coverages['prep'][0]  # should be 100%
+    eligibilities = {'fsw': intervention.default_eligibilities['prep'][0]}  # there is only one
     analyzer = PrepCoverageAnalyzer(eligibilities=eligibilities, consider_new_infections=True)
     sim = build_testing_sim(analyzers=[analyzer], interventions=[intervention], n_agents=5000, duration=duration) # , death=None, diseases=diseases)
     sim.run()
@@ -104,8 +104,8 @@ def test_default_eligibility_and_modified_coverage():
     duration = 1 # years
     supplies = infinite_prep(product=shot_1y_perfect)
     target_coverage = 0.8
-    intervention = SuppliedPrep(name='this-is-a-test', supplies=supplies, coverages=[target_coverage])
-    eligibilities = {'fsw': intervention.default_eligibilities[0]}  # there is only one
+    intervention = SuppliedPrep(name='this-is-a-test', supplies=supplies, coverages={'prep': [target_coverage]})
+    eligibilities = {'fsw': intervention.default_eligibilities['prep'][0]}  # there is only one
     analyzer = PrepCoverageAnalyzer(eligibilities=eligibilities, consider_new_infections=True)
     diseases = [sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=0.0)]
     sim = build_testing_sim(analyzers=[analyzer], interventions=[intervention], n_agents=5000, duration=duration, diseases=diseases)
@@ -141,20 +141,20 @@ def test_custom_eligibilities_and_coverages():
     duration = 3 # years
 
     # create eligibility & coverage logic
-    elig1 = SuppliedPrep.default_eligibilities[0]
+    elig1 = SuppliedPrep.default_eligibilities['prep'][0]
     elig2 = lambda sim: (sim.people.female == False) & (~sim.diseases.hiv.infected)
     group_names = ['fsw', 'men']
     elig_funcs = [elig1, elig2]
     target_coverages = [0.8, 0.5]
-    eligibilities = dict(zip(group_names, elig_funcs))
-    coverage_by_group = dict(zip(group_names, target_coverages))
+    eligibilities = {'prep': dict(zip(group_names, elig_funcs))}
+    coverage_by_group = {'prep': dict(zip(group_names, target_coverages))}
 
     # create the intervention & supplies
     supplies = infinite_prep(product=shot_1y_perfect)
-    intervention = SuppliedPrep(name='this-is-a-test', supplies=supplies, eligibilities=elig_funcs, coverages=target_coverages)
+    intervention = SuppliedPrep(name='this-is-a-test', supplies=supplies, eligibilities={'prep': elig_funcs}, coverages={'prep': target_coverages})
 
     diseases = [sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=0.0)]
-    analyzer = PrepCoverageAnalyzer(eligibilities=eligibilities, consider_new_infections=True)
+    analyzer = PrepCoverageAnalyzer(eligibilities=eligibilities['prep'], consider_new_infections=True)
     sim = build_testing_sim(analyzers=[analyzer], interventions=[intervention], n_agents=5000, duration=duration, diseases=diseases)
 
     sim.run()
@@ -179,7 +179,7 @@ def test_custom_eligibilities_and_coverages():
         max_decrease = 0.05
         assert min(delta_coverage) >= -1*max_decrease, f"group: {group_name} Coverage decreased more than {max_decrease}% between timesteps at least once."
         # Final set of coverages should be really close (within 5%) to the target
-        target = coverage_by_group[group_name]
+        target = coverage_by_group['prep'][group_name]
         assert abs(target - min(coverage[-3:])) < 0.05, f"group {group_name} At least one late-sim coverage too far off of target coverage: {target}."
     return sim
 
@@ -189,7 +189,7 @@ def test_prep_eff_updates_correctly():
     duration = 2 # years
 
     # create eligibility & coverage logic
-    elig1 = SuppliedPrep.default_eligibilities[0]
+    elig1 = SuppliedPrep.default_eligibilities['prep'][0]
     elig2 = lambda sim: (sim.people.female == False) & (~sim.diseases.hiv.infected)
     group_names = ['fsw', 'men']
     elig_funcs = [elig1, elig2]
@@ -198,7 +198,7 @@ def test_prep_eff_updates_correctly():
     # create the intervention & supplies
     product = shot_1y_imperfect
     supplies = infinite_prep(product=product)
-    intervention = SuppliedPrep(name='this-is-a-test', supplies=supplies, eligibilities=elig_funcs, coverages=target_coverages)
+    intervention = SuppliedPrep(name='this-is-a-test', supplies=supplies, eligibilities={'prep': elig_funcs}, coverages={'prep': target_coverages})
 
     diseases = [sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=0.0)]
     eff_analyzer = PrepEfficacyAnalyzer()
@@ -257,8 +257,8 @@ def test_supply_limited_prep():
     n_supply = 100
     supplies = limited_prep(product=shot_1y_perfect, quantity=n_supply)
     intervention = SuppliedPrep(name='this-is-a-test', supplies=supplies)
-    target_coverage = intervention.coverages[0]  # should be 100%
-    eligibilities = {'fsw': intervention.default_eligibilities[0]}  # there is only one
+    target_coverage = intervention.coverages['prep'][0]  # should be 100%
+    eligibilities = {'fsw': intervention.default_eligibilities['prep'][0]}  # there is only one
     count_analyzer = PrepCountsAnalyzer(eligibilities=eligibilities, consider_new_infections=True)
     coverage_analyzer = PrepCoverageAnalyzer(eligibilities=eligibilities, consider_new_infections=True)
     sim = build_testing_sim(analyzers=[count_analyzer, coverage_analyzer], interventions=[intervention],

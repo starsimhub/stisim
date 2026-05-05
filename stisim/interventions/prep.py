@@ -1,5 +1,5 @@
 import random
-from typing import Iterable, Callable
+from typing import Callable
 
 import starsim as ss
 
@@ -10,12 +10,12 @@ from stisim.interventions.supplies import Supplies
 
 class SuppliedPrep(SuppliedIntervention):
 
-    default_eligibilities = [lambda sim: sim.networks.structuredsexual.fsw & (~sim.diseases.hiv.infected)]
+    default_eligibilities = {'prep': [lambda sim: sim.networks.structuredsexual.fsw & (~sim.diseases.hiv.infected)]}
 
     def __init__(self,
                  name: str,
-                 eligibilities: Iterable[Callable] = None,
-                 coverages: Iterable[float] = None,
+                 eligibilities: dict[str, list[Callable]] = None,
+                 coverages: dict[str, list[float]] = None,
                  supplies: Supplies = None,
                  pars=None, *args, **kwargs):
         """
@@ -46,19 +46,12 @@ class SuppliedPrep(SuppliedIntervention):
                 (be covered) by the intervention. Default: 1.0 per group.
             pars: (dict) intervention/module parameters to set
         """
-        super().__init__(supplies=supplies, *args, **kwargs)
-        self.name = name
+        # setting eligibility default to uninfected FSW @100% coverage
+        eligibilities = self.default_eligibilities if eligibilities is None else eligibilities
+        super().__init__(name=name, supplies=supplies, eligibilities=eligibilities, coverages=coverages, *args, **kwargs)
 
         # This particular Intervention currently expects only one prep supply/product
         self.prep_supply = self.supplies.get_supply(prod_type='prep')[0]  # TODO: use of string 'prep' not very clean
-
-        # setting eligibility default to uninfected FSW @100% coverage
-        self.eligibilities = self.default_eligibilities if eligibilities is None else eligibilities
-        self.coverages =     self.default_coverages     if coverages     is None else coverages
-
-        if len(self.eligibilities) != len(self.coverages):
-            raise ValueError(f"The number of eligibility groups {len(self.eligibilities)} must equal the number of "
-                             f"provided coverage targets: {len(self.coverages)}")
 
         self.update_pars(pars, **kwargs)
 
@@ -67,17 +60,12 @@ class SuppliedPrep(SuppliedIntervention):
         self.care_seeking_dist.init(force=True)
         self.base_care_seeking_rate = 0.8  # TODO, arbitrary, probably a param?
 
-    @property
-    def default_coverages(self):
-        return [1.0 for _ in range(len(self.eligibilities))]
-
     # def start_step(self):
     def update_efficacy(self):
         """identify agents on THIS prep intervention+product combo and update efficacy based on time"""
         sim = self.sim
         product = self.prep_supply.product
         PrepManager.update_eff(sim=sim, to_update=self.on_this_prep, product=product)
-        return
 
     def step(self):
         sim = self.sim
@@ -87,9 +75,13 @@ class SuppliedPrep(SuppliedIntervention):
 
         self.update_efficacy()
 
-        # identify new uptake & reuptake
+        decision = 'prep'
+
+        # identify new uptake
+        eligibilities = self.eligibilities[decision]
         eligibilities = [self.check_eligibility(eligibility=eligibility, return_uids=False)
-                         for eligibility in self.eligibilities]
+                         for eligibility in eligibilities]
+        n_eligibles = [len(eligibilities[i].uids) for i in range(len(eligibilities))]
 
         # determine current prep coverage levels. Assuming ANY prep counts here (not just this intervention).
         cur_coverages = [len((hiv.on_prep & eligible).uids) / len(eligible.uids) for eligible in eligibilities]
@@ -103,61 +95,20 @@ class SuppliedPrep(SuppliedIntervention):
         offer_pools = [(seeking & (~hiv.on_prep).uids)
                        # | (eligibilities[i].uids & self.will_reuptake.uids)
                        for i, seeking in enumerate(care_seeking)]
-        offer_pool_size = [len(pool) for pool in offer_pools]
 
-        coverage_gaps = [(coverage - cur_coverages[i]) for i, coverage in enumerate(self.coverages)]
-        cov_gap_proportion = [cov_gap / sum(coverage_gaps) for cov_gap in coverage_gaps]
-        n_gaps = [cov_gap * len(eligibilities[i].uids) for i, cov_gap in enumerate(coverage_gaps)]
+        dist_func = lambda uptakers: PrepManager.uptake(sim=sim, to_uptake=uptakers, prep_intervention=self,
+                                                        product=product, use_supplies=True)
 
-        # This is the maximum *number* of distributions per group that can occur, taking into account:
-        # - count gap to target coverage
-        # - offer pool size
-        # - coverage gap -based proportionality of the remaining supply
-        max_supply_dist = [int(min(n_gap, offer_pool_size[i], cov_gap_proportion[i] * supply.quantity))
-                           for i, n_gap in enumerate(n_gaps)]
-
-        # Now select agents to get PrEP from the offer pools up to computed seeking/coverage/supply limit
-        for i, offer_pool in enumerate(offer_pools):
-            n = max_supply_dist[i]
-            selected = random.sample(population=list(offer_pool), k=n)
-            selected = ss.arrays.uids(selected)
-
-            # classify the agents going onto PrEP
-            # reuptakers = selected & self.will_reuptake.uids
-            uptakers = selected  #  - reuptakers
-
-            if len(uptakers) > 0:
-                PrepManager.uptake(sim=sim, to_uptake=uptakers, prep_intervention=self, product=product,
-                                   allow_reuptake=self.allow_reuptake, use_supplies=True)
-            # if len(reuptakers) > 0:
-            #     PrepManager.reuptake(sim=sim, to_uptake=reuptakers, prep_intervention=self, product=product,
-            #                          use_supplies=True)
-
-    @property
-    def _name_to_index(self):
-        """the intervention index of this intervention"""
-        return self.sim.interventions.keys().index(self.name)
-
+        # Now select agents to get PrEP from the offer pools up to computed seeking/coverage/supply limit and distribute
+        target_coverages = self.coverages[decision]
+        self.distribute(offer_pools=offer_pools, cur_coverages=cur_coverages, target_coverages=target_coverages,
+                        n_eligibles=n_eligibles, n_supply=supply.quantity, dist_func=dist_func)
 
     @property
     def on_this_prep(self):
         """on the PrEP from THIS intervention or not"""
         hiv = self.sim.diseases.hiv
         return hiv.on_prep & (hiv.prep_source == self._name_to_index)
-
-    @property
-    def dropped_this_prep(self):
-        """whether or not agents have dropped out of THIS intervention's PrEP by choice this ti"""
-        ti = self.ti
-        hiv = self.sim.diseases.hiv
-        return (hiv.prep_source == self._name_to_index) & (hiv.ti_prep_drop == ti)
-
-    @property
-    def will_reuptake(self):
-        """whether or not agents are ready to try for reuptake of this intervention's product this ti"""
-        ti = self.ti
-        hiv = self.sim.diseases.hiv
-        return self.on_this_prep & (hiv.ti_prep_end == ti) & (hiv.prep_n_reuptake > 0)
 
     def determine_care_seeking(self, eligible):
         """determines whether eligible agents seek care for this intervention. Modifies param: eligible for return"""
@@ -170,3 +121,19 @@ class SuppliedPrep(SuppliedIntervention):
         uids_seeking_care = eligible.uids[seeking_draw]
 
         return uids_seeking_care
+
+    # Disabled pending researcher input
+    # @property
+    # def dropped_this_prep(self):
+    #     """whether or not agents have dropped out of THIS intervention's PrEP by choice this ti"""
+    #     ti = self.ti
+    #     hiv = self.sim.diseases.hiv
+    #     return (hiv.prep_source == self._name_to_index) & (hiv.ti_prep_drop == ti)
+
+    # Disabled pending researcher input
+    # @property
+    # def will_reuptake(self):
+    #     """whether or not agents are ready to try for reuptake of this intervention's product this ti"""
+    #     ti = self.ti
+    #     hiv = self.sim.diseases.hiv
+    #     return self.on_this_prep & (hiv.ti_prep_end == ti) & (hiv.prep_n_reuptake > 0)
