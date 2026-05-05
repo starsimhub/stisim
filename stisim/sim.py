@@ -2,6 +2,7 @@
 User API for creating an STI simulation
 """
 
+import itertools
 import starsim as ss
 import stisim as sti
 import sciris as sc
@@ -142,6 +143,7 @@ class Sim(ss.Sim):
         self._user_sti_pars = {**routed.sti, **nested_sti}
         self._user_nw_pars  = dict(routed.nw)
         self._user_dem_pars = dict(routed.dem)
+        self._user_connector_pars = dict(routed.connector)
 
         return routed.sim
 
@@ -378,58 +380,42 @@ class Sim(ss.Sim):
 
     def process_connectors(self):
         """
-        Get the default connectors for the diseases in the simulation.
-        Connectors are loaded based on the disease names or modules provided in the format <d1>_<d2>.
+        Auto-add coinfection connectors for disease pairs that have a registered
+        ``sti.<d1>_<d2>`` class (e.g. ``hiv_syph``, ``hiv_ng``). Skipped if the
+        user already supplied any connectors — pass your own list to take full
+        control. Flat connector pars (e.g. ``rel_sus_hiv_syph=3.5``) are routed
+        to whichever auto-added connector accepts them.
         """
+        user_pars = self._user_connector_pars
+
+        if len(self.pars['connectors']) > 0:
+            if user_pars:
+                raise ValueError(
+                    f'Got flat connector pars {sorted(user_pars)} but `connectors=` '
+                    f'was also supplied. Pass pars to the connector constructor directly.'
+                )
+            return []
+
         connectors = []
-        parsed_diseases = []
-        add_connectors = False
+        consumed = set()
+        diseases = [(m.name, m) for m in self.pars['diseases']]
+        for (k1, m1), (k2, m2) in itertools.combinations(diseases, 2):
+            if (cls := getattr(sti, f'{k1}_{k2}', None)) is not None:
+                args = (m1, m2)
+            elif (cls := getattr(sti, f'{k2}_{k1}', None)) is not None:
+                args = (m2, m1)  # reversed to match class name
+            else:
+                continue
+            accepted = set(cls(None, None).pars.keys())
+            kwargs = {k: v for k, v in user_pars.items() if k in accepted}
+            consumed.update(kwargs)
+            connectors.append(cls(*args, **kwargs))
 
-        if isinstance(self.pars.connectors, bool) and self.pars.connectors:
-            errormsg = ('STIsim does not currently support automatically adding connectors. This feature'
-                        ' will be added in a future release. For the time being, please add connectors '
-                        'manually, e.g. by passing sti.hiv_syph(hiv, syphilis) to the sim.')
-            raise NotImplementedError(errormsg)
-
-            # TODO: The remaining code will be re-enabled once debugged
-        #     self.pars['connectors'] = ss.ndict()  # Reset
-        #     add_connectors = True
-        #
-        # if add_connectors:
-        #     for disease in self.pars['diseases']:
-        #         if isinstance(disease, str):
-        #             parsed_diseases.append(disease.lower())
-        #         if isinstance(disease, ss.Module):
-        #             parsed_diseases.append(disease.name.lower())
-        #
-        #     # sort the diseases and then get all combinations of their pairs
-        #     disease_pairs = combinations(parsed_diseases, 2)
-        #
-        #     # TODO: this does not quite work as intended because the ordering matters...
-        #     for (d1, d2) in disease_pairs:
-        #         try:
-        #             connector = getattr(sti, f'{d1}_{d2}')
-        #         except:
-        #             try:
-        #                 connector = getattr(sti, f'{d2}_{d1}')
-        #             except:
-        #                 continue
-        #         connectors.append(connector(d1, d2))
+        if (unused := set(user_pars) - consumed):
+            raise ValueError(
+                f'Unused connector par(s): {sorted(unused)}. The matching '
+                f'connector(s) were not auto-added because the required disease '
+                f'pair is not in the sim.'
+            )
         return connectors
 
-    def case_insensitive_getattr(self, searchspace, attrname):
-        """
-        Find a class in the given package that matches the name, ignoring case.
-
-        Args:
-            searchspace (list): A list of classes or modules to search through.
-            attrname (str): The name of the attribute to find, case-insensitive.
-        """
-        if not isinstance(searchspace, list):
-            searchspace = [searchspace]
-
-        for classname in searchspace:
-            for attr in dir(classname):
-                if attr.lower() == attrname.lower():
-                    return getattr(classname, attr)
-        return None
