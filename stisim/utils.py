@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import starsim as ss
 
-__all__ = ['count', 'div', 'countdiv', 'cond_prob', 'TimeSeries']
+__all__ = ['count', 'div', 'countdiv', 'cond_prob', 'route_pars', 'TimeSeries']
 
 
 
@@ -14,6 +14,77 @@ def count(arr): return np.count_nonzero(arr)
 def div(a, b): return sc.safedivide(a, b)
 def countdiv(a, b): return sc.safedivide(count(a), count(b))
 def cond_prob(a, b): return sc.safedivide(count(a & b), count(b))
+
+
+def _par_registry():
+    """Registry of category -> set of valid par-names. Built lazily to avoid
+    circular imports at module load time."""
+    import stisim as sti
+    return {
+        'sim': set(sti.SimPars()),
+        'sti': set(sti.merged_sti_pars()),
+        'nw':  set(sti.NetworkPars()),
+        'dem': set(sti.dem_pars()),
+    }
+
+
+def route_pars(pars=None, sim_pars=None, sti_pars=None, nw_pars=None,
+               dem_pars=None, *, strict=False, verbose=True, **kwargs):
+    """
+    Sort mixed user-supplied pars into categories (sim, sti, nw, dem).
+
+    Flat keys (from ``pars`` and ``**kwargs``) are matched against an internal
+    registry of per-category par-classes. A key valid in N categories is
+    broadcast to all N (with a printed note if ``verbose``). Pre-categorized
+    dicts (``sim_pars``, ``sti_pars``, ``nw_pars``, ``dem_pars``) are merged
+    into their bucket as-is.
+
+    Args:
+        pars (dict): Flat pars to route by registry lookup.
+        sim_pars, sti_pars, nw_pars, dem_pars (dict): Pre-categorized pars.
+        strict (bool): If True, raise on flat-pars keys that match no
+            category. If False, unmatched keys appear in ``routed.unmatched``.
+        verbose (bool): If True, print one line per cross-category broadcast.
+        **kwargs: Same routing as ``pars``.
+
+    Returns:
+        sc.objdict with keys ``sim``, ``sti``, ``nw``, ``dem``, ``unmatched``.
+        Each value is a dict.
+    """
+    routed = sc.objdict(
+        sim=sc.dcp(dict(sim_pars or {})),
+        sti=sc.dcp(dict(sti_pars or {})),
+        nw=sc.dcp(dict(nw_pars or {})),
+        dem=sc.dcp(dict(dem_pars or {})),
+        unmatched={},
+    )
+
+    flat = sc.mergedicts(pars, kwargs)
+    if not flat:
+        return routed
+
+    registry = _par_registry()
+    for k, v in flat.items():
+        matches = [cat for cat, valid in registry.items() if k in valid]
+        if not matches:
+            routed.unmatched[k] = sc.dcp(v)
+            continue
+        if len(matches) > 1 and verbose:
+            print(f"route_pars: {k!r} broadcast to {matches}")
+        for cat in matches:
+            routed[cat][k] = sc.dcp(v)
+
+    if strict and routed.unmatched:
+        valid = sorted({k for keys in registry.values() for k in keys})
+        suggestions = '\n'.join(
+            f'  {k!r}: did you mean {sc.suggest(k, valid)!r}?'
+            for k in routed.unmatched
+        )
+        raise ValueError(
+            f'Unrecognized parameter(s): {sorted(routed.unmatched)}\n{suggestions}'
+        )
+
+    return routed
 
 
 
