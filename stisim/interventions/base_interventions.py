@@ -1019,7 +1019,9 @@ class PartnerNotification(ss.Intervention):
     Args:
         eligibility: Callable ``f(sim) -> uids`` returning index cases (e.g.
             agents who just tested positive).
-        test: Test intervention to schedule for attending partners.
+        test: Test intervention to schedule for attending partners. Optional
+            — subclasses overriding :meth:`notify_attendees` may set this to
+            ``None``.
         pars: Optional dict of parameter overrides.
         **kwargs: Forwarded to ``ss.Intervention``.
 
@@ -1045,7 +1047,7 @@ class PartnerNotification(ss.Intervention):
           eligibility per partnership), subclass and override :meth:`step`.
     """
 
-    def __init__(self, eligibility, test, pars=None, **kwargs):
+    def __init__(self, eligibility, test=None, pars=None, **kwargs):
         super().__init__()
         self.define_pars(
             p_notify_current=ss.bernoulli(p=0.5),
@@ -1096,6 +1098,24 @@ class PartnerNotification(ss.Intervention):
         )
         return
 
+    def notify_attendees(self, uids):
+        """
+        Hook called for partners attending follow-up. Default implementation
+        schedules ``self.test`` for the attendees on the next timestep.
+
+        Override in subclasses to customise downstream actions — for instance,
+        to apply syndromic treatment by partner sex, set treatment eligibility
+        on a specific intervention, or send notifications to a registry.
+        """
+        if self.test is None:
+            raise ValueError(
+                'PartnerNotification.notify_attendees: no `test` set and '
+                'no override provided. Either pass test=intervention or '
+                'subclass and override notify_attendees().'
+            )
+        self.test.schedule(uids, self.ti + 1)
+        return
+
     def find_partners(self, nw, index_uids):
         """
         UIDs of partners of `index_uids` on network `nw`, deduplicated and
@@ -1133,7 +1153,7 @@ class PartnerNotification(ss.Intervention):
         all_attending = cur_attending | prev_attending
         if len(all_attending):
             self.ti_notified[all_attending] = self.ti
-            self.test.schedule(all_attending, self.ti + 1)
+            self.notify_attendees(all_attending)
 
         # Record
         ti = self.ti

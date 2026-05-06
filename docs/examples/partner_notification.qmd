@@ -158,4 +158,7 @@ plt.show()
   whenever the prior channel is enabled.
 - For more elaborate downstream actions — for example, applying a specific
   treatment regimen to partners by sex or by network channel — subclass
-  :class:`~stisim.PartnerNotification` and override :meth:`~stisim.PartnerNotification.step`.
+  :class:`~stisim.PartnerNotification` and override
+  :meth:`~stisim.PartnerNotification.notify_attendees`. The default
+  implementation schedules ``self.test`` for attendees; you can replace it
+  with anything (set treatment eligibility, route by sex, send to a registry).
