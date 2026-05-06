@@ -1000,52 +1000,148 @@ class STITreatment(ss.Intervention):
 
 
 class PartnerNotification(ss.Intervention):
+    """
+    Notify and follow up sexual partners of index cases.
 
-    def __init__(self, eligibility, test, test_prob=0.5, **kwargs):
-        """
-        :param disease: The disease module from which to draw the transmission tree used to find contacts
-        :param eligible: A function `f(sim)` that returns the UIDs/BoolArr of people to trace (typically people who just tested positive)
-        :param test: The testing intervention to use when testing identified contacts
-        :param test_prob: The probability of a contact being identified and accepting a test
-        :param kwargs: Other arguments passed to ``ss.Intervention``
-        """
-        super().__init__(**kwargs)
+    Each timestep, eligible index cases (e.g. newly diagnosed agents) have their
+    partners identified across two channels:
+
+    - **Current partners**: edges in the active sexual network.
+    - **Previous partners**: edges in a :class:`stisim.PriorPartners` recall
+      network — dissolved partnerships within the recall window.
+
+    Each contact is offered notification with probability ``p_notify_<scope>``;
+    notified contacts attend follow-up with probability ``p_attends_<scope>``.
+    Attendees are scheduled for the supplied ``test`` intervention on the next
+    timestep. Index cases are not notified about themselves; partners reachable
+    via both channels are not double-notified.
+
+    Args:
+        eligibility: Callable ``f(sim) -> uids`` returning index cases (e.g.
+            agents who just tested positive).
+        test: Test intervention to schedule for attending partners.
+        pars: Optional dict of parameter overrides.
+        **kwargs: Forwarded to ``ss.Intervention``.
+
+    Parameters (override via ``pars=...`` or kwargs):
+        p_notify_current: ``ss.bernoulli`` for notifying current partners
+            (default p=0.5).
+        p_attends_current: ``ss.bernoulli`` for attendance given notification,
+            current partners (default p=0.5).
+        p_notify_previous: ``ss.bernoulli`` for notifying prior partners
+            (default p=0.05). Set p=0 to disable the prior-partner channel.
+        p_attends_previous: ``ss.bernoulli`` for attendance given notification,
+            prior partners (default p=0.01).
+        current_network: Name of the active sexual network (default
+            ``'structuredsexual'``).
+        previous_network: Name of the prior-partner network (default
+            ``'priorpartners'``). Required if the prior channel is enabled.
+
+    Notes:
+        - To use the prior-partner channel, the active sexual network must
+          have ``recall_prior=True`` so dissolved partnerships are pushed to
+          ``PriorPartners``.
+        - For more elaborate downstream actions (e.g. setting treatment
+          eligibility per partnership), subclass and override :meth:`step`.
+    """
+
+    def __init__(self, eligibility, test, pars=None, **kwargs):
+        super().__init__()
+        self.define_pars(
+            p_notify_current=ss.bernoulli(p=0.5),
+            p_attends_current=ss.bernoulli(p=0.5),
+            p_notify_previous=ss.bernoulli(p=0.05),
+            p_attends_previous=ss.bernoulli(p=0.01),
+            current_network='structuredsexual',
+            previous_network='priorpartners',
+        )
+        self.update_pars(pars=pars, **kwargs)
         self.eligibility = eligibility
         self.test = test
-        self.test_prob = ss.bernoulli(test_prob)
 
-    def identify_contacts(self, uids):
-        # Return UIDs of people that have been identified as contacts and should be notified
+        self.define_states(
+            ss.FloatArr('ti_notified'),
+        )
+        self._cur_nw = None
+        self._prev_nw = None
+        self._use_previous = False
+        return
 
-        if len(uids) == 0:
+    def init_pre(self, sim):
+        super().init_pre(sim)
+        self._cur_nw = sim.networks.get(self.pars.current_network)
+        if self._cur_nw is None:
+            raise ValueError(
+                f"PartnerNotification requires network '{self.pars.current_network}' in the sim."
+            )
+        # Enable the prior-partner channel iff it could ever notify someone.
+        # Probe the bernoulli with a zero-length filter to detect p=0 cases.
+        self._use_previous = self.pars.p_notify_previous.pars.p > 0
+        if self._use_previous:
+            self._prev_nw = sim.networks.get(self.pars.previous_network)
+            if self._prev_nw is None:
+                raise ValueError(
+                    f"PartnerNotification with p_notify_previous>0 requires network "
+                    f"'{self.pars.previous_network}' in the sim. Set p_notify_previous=0 to disable."
+                )
+        return
+
+    def init_results(self):
+        super().init_results()
+        self.define_results(
+            ss.Result('new_notified', dtype=int, label='Partners notified'),
+            ss.Result('new_attending', dtype=int, label='Partners attending'),
+            ss.Result('new_notified_current', dtype=int, label='Current partners notified', auto_plot=False),
+            ss.Result('new_notified_previous', dtype=int, label='Prior partners notified', auto_plot=False),
+        )
+        return
+
+    def find_partners(self, nw, index_uids):
+        """
+        UIDs of partners of `index_uids` on network `nw`, deduplicated and
+        excluding any index case from being notified about themselves.
+        """
+        in_p1 = np.isin(nw.p1, index_uids)
+        in_p2 = np.isin(nw.p2, index_uids)
+        partners = np.concatenate([nw.p2[in_p1], nw.p1[in_p2]])
+        if len(partners) == 0:
             return ss.uids()
-
-        # Find current contacts
-        nw = self.sim.networks.structuredsexual
-        contacts = nw.find_contacts(uids, as_array=False)  # Current contacts
-
-        # Find historical contacts
-        log = self.sim.diseases[self.disease].log
-        for source, _, network in log.in_edges(uids, data="network"):
-            if network == 'structuredsexual':
-                contacts.add(source)  # Add the infecting agents
-
-        for _, target, network in log.out_edges(uids, data="network"):
-            if network == 'structuredsexual':
-                contacts.add(target)  # Add infected agents
-
-        # Filter by test_prob and return UIDs
-        return self.test_prob.filter(ss.uids(contacts))
-
-    def notify(self, uids):
-        # Schedule a test for identified contacts at the next timestep (this also ensures that contacts tracing will take place for partners that test positive)
-        # Could include a parameter here for acceptance of testing (if separating out probabilities of notification and testing)
-        return self.test.schedule(uids, self.ti+1)
+        partners = np.unique(partners)
+        partners = partners[~np.isin(partners, index_uids)]
+        return ss.uids(partners)
 
     def step(self):
-        uids = self.eligibility(self.sim)
-        uids = self.identify_contacts(uids)
-        return self.notify(uids)
+        index_uids = self.eligibility(self.sim)
+        if len(index_uids) == 0:
+            return
+
+        # Current-partner channel
+        cur_partners = self.find_partners(self._cur_nw, index_uids)
+        cur_notified = self.pars.p_notify_current.filter(cur_partners)
+        cur_attending = self.pars.p_attends_current.filter(cur_notified)
+
+        # Prior-partner channel (skip partners already notified as current)
+        if self._use_previous:
+            prev_partners = self.find_partners(self._prev_nw, index_uids)
+            prev_partners = ss.uids(prev_partners[~np.isin(prev_partners, cur_partners)])
+            prev_notified = self.pars.p_notify_previous.filter(prev_partners)
+            prev_attending = self.pars.p_attends_previous.filter(prev_notified)
+        else:
+            prev_notified = ss.uids()
+            prev_attending = ss.uids()
+
+        all_attending = cur_attending | prev_attending
+        if len(all_attending):
+            self.ti_notified[all_attending] = self.ti
+            self.test.schedule(all_attending, self.ti + 1)
+
+        # Record
+        ti = self.ti
+        self.results['new_notified_current'][ti] = len(cur_notified)
+        self.results['new_notified_previous'][ti] = len(prev_notified)
+        self.results['new_notified'][ti] = len(cur_notified) + len(prev_notified)
+        self.results['new_attending'][ti] = len(all_attending)
+        return
 
 
 class ProductMix(ss.Product):

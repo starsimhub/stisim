@@ -448,6 +448,50 @@ def test_art_duration(do_plot=do_plot):
     return sim
 
 
+@sc.timer()
+def test_pn():
+    """ PartnerNotification: with PN, more HIV diagnoses occur than without """
+    sc.heading('Testing PartnerNotification...')
+
+    def newly_diagnosed(sim):
+        hiv = sim.diseases.hiv
+        return (hiv.ti_diagnosed == hiv.ti).uids
+
+    def make_sim(use_pn, rand_seed=1):
+        hiv_test = sti.HIVTest(name='hiv_test', test_prob_data=0.3)
+        intvs = [hiv_test]
+        if use_pn:
+            intvs.append(sti.PartnerNotification(
+                eligibility=newly_diagnosed,
+                test=hiv_test,
+                p_notify_current=ss.bernoulli(p=0.7),
+                p_attends_current=ss.bernoulli(p=0.7),
+                p_notify_previous=ss.bernoulli(p=0.3),
+                p_attends_previous=ss.bernoulli(p=0.5),
+                name='pn',
+            ))
+        return hivsim.demo(
+            'simple', run=False, plot=False,
+            n_agents=n_agents, dur=5, rand_seed=rand_seed, verbose=-1,
+            networks=[sti.StructuredSexual(recall_prior=True),
+                      sti.PriorPartners(dur_recall=ss.years(0.5))],
+            interventions=intvs,
+        )
+
+    no_pn   = make_sim(use_pn=False); no_pn.run()
+    with_pn = make_sim(use_pn=True);  with_pn.run()
+
+    n_dx_no_pn   = int(no_pn.results.hiv_test.new_diagnoses.sum())
+    n_dx_with_pn = int(with_pn.results.hiv_test.new_diagnoses.sum())
+    assert n_dx_with_pn > n_dx_no_pn, \
+        f'Expected more diagnoses with PN ({n_dx_with_pn}) than without ({n_dx_no_pn})'
+
+    pn_res = with_pn.results.pn
+    assert int(pn_res.new_attending.sum()) <= int(pn_res.new_notified.sum()), \
+        'Attendance should not exceed notification'
+    return n_dx_no_pn, n_dx_with_pn
+
+
 if __name__ == '__main__':
     do_plot = True
     sc.options(interactive=do_plot)
@@ -464,6 +508,7 @@ if __name__ == '__main__':
     r9  = test_art_reduces_mortality(do_plot=do_plot)
     r10 = test_art_parameter_sensitivity(do_plot=do_plot)
     r11 = test_art_duration(do_plot=do_plot)
+    r12 = test_pn()
 
     T.toc()
 
