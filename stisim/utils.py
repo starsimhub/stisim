@@ -21,10 +21,11 @@ def _par_registry():
     circular imports at module load time."""
     import stisim as sti
     return {
-        'sim': set(sti.SimPars()),
-        'sti': set(sti.merged_sti_pars()),
-        'nw':  set(sti.NetworkPars()),
-        'dem': set(sti.dem_pars()),
+        'sim':       set(sti.SimPars()),
+        'sti':       set(sti.merged_sti_pars()),
+        'nw':        set(sti.NetworkPars()),
+        'dem':       set(sti.dem_pars()),
+        'connector': set(sti.merged_connector_pars()),
     }
 
 
@@ -56,6 +57,7 @@ def route_pars(pars=None, sim_pars=None, sti_pars=None, nw_pars=None,
         sti=sc.dcp(dict(sti_pars or {})),
         nw=sc.dcp(dict(nw_pars or {})),
         dem=sc.dcp(dict(dem_pars or {})),
+        connector={},
         unmatched={},
     )
 
