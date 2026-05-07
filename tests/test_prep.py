@@ -186,6 +186,60 @@ def test_custom_eligibilities_and_coverages():
     return sim
 
 @sc.timer()
+def test_bundle():
+    """HIV infection disabled to prevent over-covering the default population as the non-users contract HIV (denominator drops -> coverage goes up)"""
+    duration = 3 # years
+
+    # create eligibility & coverage logic
+    elig1 = SuppliedPrep.default_eligibilities[0]
+    elig2 = lambda sim: (sim.people.female == False) & (~sim.diseases.hiv.infected)
+    group_names = ['fsw', 'men']
+    elig_funcs = [elig1, elig2]
+    target_coverages = [0.8, 0.5]
+    # eligibilities = {'prep': dict(zip(group_names, elig_funcs))}
+    eligibilities = dict(zip(group_names, elig_funcs))
+    # coverage_by_group = {'prep': dict(zip(group_names, target_coverages))}
+    coverage_by_group = dict(zip(group_names, target_coverages))
+
+    # create the intervention & supplies
+    supplies = infinite_prep(product=shot_1y_perfect)
+    intervention = SuppliedPrep(name='this-is-a-test', supplies=supplies, eligibilities=elig_funcs, coverages=target_coverages)
+
+    from stisim.intervention_bundle import InterventionBundle
+    bundle = InterventionBundle(interventions=[intervention])
+
+    diseases = [sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=0.0)]
+    analyzer = PrepCoverageAnalyzer(eligibilities=eligibilities, consider_new_infections=True)
+    sim = build_testing_sim(analyzers=[analyzer], interventions=[bundle], n_agents=5000, duration=duration, diseases=diseases)
+
+    sim.run()
+    analyzer_results = sim.results[analyzer.name][analyzer.result_name]
+
+    # Trimming off final reporting ti as starsim always (currently) runs +1 ti more than requested.
+    analyzer_results = {group_name: coverage[:-1] for group_name, coverage in analyzer_results.items()}
+    for group_name, coverage in analyzer_results.items():
+        assert len(coverage) == (duration * 12)
+
+    if verbose:
+        for group_name, coverage in analyzer_results.items():
+            print(f"group: {group_name} coverage: {coverage}")
+
+    for group_name, coverage in analyzer_results.items():
+        # There should be agents on prep with at all timesteps (given sim/product timescale)
+        assert min(coverage) > 0, f"group: {group_name} No agents found on PrEP in 1+ timesteps. Agents should be on PrEP for all timesteps."
+
+        # coverage should generally increase and approach the target (80%). However, due to eligibility counts
+        # changing over time, there MAY be temporary, small drops as new FSWs enter/leave the scene or die.
+        delta_coverage = [coverage[i+1] - coverage[i] for i in range(len(coverage)-1)]
+        max_decrease = 0.05
+        assert min(delta_coverage) >= -1*max_decrease, f"group: {group_name} Coverage decreased more than {max_decrease}% between timesteps at least once."
+        # Final set of coverages should be really close (within 5%) to the target
+        target = coverage_by_group[group_name]
+        assert abs(target - min(coverage[-3:])) < 0.05, f"group {group_name} At least one late-sim coverage too far off of target coverage: {target}."
+    return sim
+
+
+@sc.timer()
 def test_prep_eff_updates_correctly():
     """HIV infection disabled to prevent over-covering the default population as the non-users contract HIV (denominator drops -> coverage goes up)"""
     duration = 2 # years

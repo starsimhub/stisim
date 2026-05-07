@@ -90,11 +90,6 @@ class SuppliedIntervention(ss.Intervention):
 
 
     @property
-    def _name_to_index(self):
-        """the intervention index of this intervention"""
-        return self.sim.interventions.keys().index(self.name)
-
-    @property
     def default_coverages(self):
         return [1.0 for _ in range(len(self.eligibilities))]
 
