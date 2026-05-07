@@ -8,12 +8,11 @@ class InterventionBundle(ss.Intervention):
     execution of the interventions.
     """
     def __init__(self, interventions: list, states: list = None, pars=None, *args, **kwargs):
-        # super() not called on purpose
         super().__init__(*args, **kwargs)
         self.interventions = interventions
+        for intv in self.interventions:
+            intv.parent = self
 
-        for intervention in self.interventions:
-            intervention.update_pars(pars, **kwargs)
         self.update_pars(pars, **kwargs)
 
         states = [] if states is None else states
@@ -30,18 +29,12 @@ class InterventionBundle(ss.Intervention):
         for intervention in self.interventions:
             intervention.init_post()
 
-    # def init_results(self):
-    #     super().init_results()
-    #     for intervention in self.interventions:
-    #         intervention.init_results()
-
     def start_step(self):
         super().start_step()
         for intervention in self.interventions:
             intervention.start_step()
 
     def step(self):
-        super().step()
         for intervention in self.interventions:
             intervention.step()
 
@@ -60,7 +53,8 @@ class InterventionBundle(ss.Intervention):
         for intervention in self.interventions:
             intervention.finalize()
 
-    def finalize_results(self):
-        super().finalize_results()
+    def check_method_calls(self):
+        missing = super().check_method_calls()
         for intervention in self.interventions:
-            intervention.finalize_results()
+            missing += intervention.check_method_calls()
+        return missing
