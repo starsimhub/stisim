@@ -104,13 +104,20 @@ class Sim(ss.Sim):
         updated_pars = self.separate_pars(pars, sim_pars, sti_pars, nw_pars, dem_pars, sim_kwargs, **kwargs)
         self.pars.update(updated_pars)
         return
-    
-    def separate_pars(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None, dem_pars=None, sim_kwargs=None, **kwargs):
+
+    def separate_pars(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None, dem_pars=None,
+                      sim_kwargs=None, verbose=True, **kwargs):
         """
-        Sort all incoming pars into per-category dicts. Most of the work is
-        delegated to ``sti.route_pars``; this method handles sti.Sim-specific
-        bits: legacy renames, nested per-module dicts (``hiv=dict(...)``),
-        defaults, and stashing for the two-phase init.
+        Sort all incoming pars into per-category dicts (sim, sti, nw, dem,
+        connector). Most of the work is delegated to ``sti.route_pars``; this
+        method handles sti.Sim-specific bits: legacy renames, nested per-module
+        dicts (``hiv=dict(...)``), defaults, and stashing user-supplied pars
+        (``_user_sti_pars``, ``_user_nw_pars``, ``_user_dem_pars``,
+        ``_user_connector_pars``) for the two-phase init's XOR checks.
+
+        Args:
+            verbose (bool): If True, ``route_pars`` prints one line per
+                cross-category broadcast. See ``sti.route_pars`` for design.
         """
         merged = self.remap_pars(sc.mergedicts(pars, sim_kwargs, kwargs))
 
@@ -128,7 +135,7 @@ class Sim(ss.Sim):
             merged,
             sim_pars=sim_pars, sti_pars=sti_pars, nw_pars=nw_pars,
             dem_pars=dem_pars,
-            strict=True, verbose=True,
+            strict=True, verbose=verbose,
         )
 
         if 'dur' in routed.sim:
@@ -383,8 +390,16 @@ class Sim(ss.Sim):
         Auto-add coinfection connectors for disease pairs that have a registered
         ``sti.<d1>_<d2>`` class (e.g. ``hiv_syph``, ``hiv_ng``). Skipped if the
         user already supplied any connectors — pass your own list to take full
-        control. Flat connector pars (e.g. ``rel_sus_hiv_syph=3.5``) are routed
-        to whichever auto-added connector accepts them.
+        control. Connector module pars (e.g. ``rel_sus_hiv_syph=3.5``) passed
+        as kwargs to ``sti.Sim`` are routed to whichever auto-added connector
+        accepts them.
+
+        Auto-routing of kwargs only resolves against the default connector
+        classes (``sti.merged_connector_pars``). Custom connectors supplied via
+        ``connectors=[...]`` are not introspected — pass their pars to the
+        constructor directly: ``connectors=[MyConn(rel_sus_hiv_syph=3.5)]``.
+        Mixing ``connectors=[...]`` with kwargs that match default-connector
+        pars raises rather than silently dropping them.
         """
         user_pars = self._user_connector_pars
 
