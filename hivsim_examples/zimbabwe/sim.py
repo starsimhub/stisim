@@ -17,15 +17,15 @@ import stisim as sti
 datadir = sc.thispath()
 
 # Sim settings
-sim_pars = dict(start=1990, stop=2025, age_scale=1000)
+default_sim_pars = dict(start=1990, stop=2025, age_scale=1000)
 
 # Calibrated parameters
-sti_pars = dict(
+default_hiv_pars = dict(
     beta_m2f=0.035,
     eff_condom=0.95,
     rel_init_prev=1.0,
 )
-nw_pars = dict(
+default_nw_pars = dict(
     prop_f0=0.79,
     prop_m0=0.83,
     f1_conc=0.16,
@@ -71,57 +71,38 @@ def make_sim(**kwargs):
     """
     Create a Zimbabwe HIV simulation with calibrated parameters.
 
-    Loads demographic, behavioral, and epidemiological data from CSV files
-    in this directory and creates a fully configured simulation.
-
-    Args:
-        **kwargs: Override any parameter passed to sti.Sim (e.g. n_agents, dur).
-            If 'interventions' is provided, they are added to the defaults.
-
-    Returns:
-        sti.Sim: Configured simulation ready to run.
+    Flat ``**kwargs`` are auto-routed via ``sti.route_pars`` — pass any
+    network par (e.g. ``debut_f=18``), HIV par (``beta_m2f=0.04``), or sim
+    par (``n_agents=5000``) directly. User values override the calibrated
+    defaults baked into this builder.
     """
-    # Load data
-    init_prev = pd.read_csv(datadir / 'init_prev_hiv.csv')
+    routed = sti.route_pars(kwargs)
+    nw_pars  = sc.mergedicts(default_nw_pars,  routed.nw)
+    hiv_pars = sc.mergedicts(default_hiv_pars, routed.sti)
+    for k in (*routed.nw, *routed.sti): kwargs.pop(k)  # consumed here
+
+    init_prev   = pd.read_csv(datadir / 'init_prev_hiv.csv')
     condom_data = pd.read_csv(datadir / 'condom_use.csv')
-    art_data = pd.read_csv(datadir / 'art_coverage.csv').set_index('year')
-    vmmc_data = pd.read_csv(datadir / 'vmmc_coverage.csv').set_index('year')
-    hiv_data = pd.read_csv(datadir / 'zimbabwe_hiv_data.csv')
+    art_data    = pd.read_csv(datadir / 'art_coverage.csv').set_index('year')
+    vmmc_data   = pd.read_csv(datadir / 'vmmc_coverage.csv').set_index('year')
+    hiv_data    = pd.read_csv(datadir / 'zimbabwe_hiv_data.csv')
 
-    # Pull user overrides for HIV / network out of kwargs so they reach module
-    # construction. Supports both disease-keyed dicts (`hiv=dict(...)`,
-    # `structuredsexual=dict(...)`) and flat kwargs. Matches sti.Sim test 3.
-    hiv_overrides = dict(kwargs.pop('hiv', None) or {})
-    for k in list(kwargs):
-        if k in sti.HIVPars().keys():
-            hiv_overrides[k] = kwargs.pop(k)
-    nw_overrides = dict(kwargs.pop('structuredsexual', None) or {})
-    for k in list(kwargs):
-        if k in sti.NetworkPars().keys():
-            nw_overrides[k] = kwargs.pop(k)
+    hiv     = sti.HIV(init_prev_data=init_prev, **hiv_pars)
+    network = sti.StructuredSexual(condom_data=condom_data, **nw_pars)
+    art     = sti.ART(coverage=art_data)
+    vmmc    = sti.VMMC(coverage=vmmc_data)
 
-    # Create modules (user overrides take precedence over calibrated defaults)
-    hiv = sti.HIV(init_prev_data=init_prev, **sc.mergedicts(sti_pars, hiv_overrides))
-    network = sti.StructuredSexual(condom_data=condom_data, **sc.mergedicts(nw_pars, nw_overrides))
-    art = sti.ART(coverage=art_data)
-    vmmc = sti.VMMC(coverage=vmmc_data)
-
-    # Combine interventions: testing + ART/VMMC + any user additions
-    intvs = make_interventions() + [art, vmmc]
+    intvs      = make_interventions() + [art, vmmc]
     user_intvs = sc.tolist(kwargs.pop('interventions', []))
+    sim_pars   = sc.mergedicts(default_sim_pars, kwargs.pop('sim_pars', None))
 
-    # Merge user sim_pars with defaults (user overrides take precedence)
-    user_sim_pars = kwargs.pop('sim_pars', {})
-    merged_sim_pars = sc.mergedicts(sim_pars, user_sim_pars)
-
-    sim = sti.Sim(
+    return sti.Sim(
         demographics='zimbabwe',
         datafolder=datadir,
         diseases=[hiv],
         networks=[network, ss.MaternalNet(), ss.BreastfeedingNet()],
         interventions=intvs + user_intvs,
-        sim_pars=merged_sim_pars,
+        sim_pars=sim_pars,
         data=hiv_data,
         **kwargs,
     )
-    return sim

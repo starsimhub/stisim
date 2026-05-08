@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import starsim as ss
 
-__all__ = ['count', 'div', 'countdiv', 'cond_prob', 'TimeSeries']
+__all__ = ['count', 'div', 'countdiv', 'cond_prob', 'route_pars', 'TimeSeries']
 
 
 
@@ -14,6 +14,108 @@ def count(arr): return np.count_nonzero(arr)
 def div(a, b): return sc.safedivide(a, b)
 def countdiv(a, b): return sc.safedivide(count(a), count(b))
 def cond_prob(a, b): return sc.safedivide(count(a & b), count(b))
+
+
+def _par_registry():
+    """Registry of category -> set of valid par-names. Built lazily to avoid
+    circular imports at module load time.
+
+    The registry is built from the default out-of-the-box module classes only.
+    User-supplied modules (custom connectors, networks, etc.) are not
+    introspected — pars for those should be passed to the module constructor
+    directly. See ``sti.Sim.process_connectors`` for the connector case.
+    """
+    import stisim as sti
+    return {
+        'sim':       set(sti.SimPars()),
+        'sti':       set(sti.merged_sti_pars()),
+        'nw':        set(sti.NetworkPars()),
+        'dem':       set(sti.dem_pars()),
+        'connector': set(sti.merged_connector_pars()),
+    }
+
+
+def route_pars(pars=None, sim_pars=None, sti_pars=None, nw_pars=None,
+               dem_pars=None, connector_pars=None, *, strict=False, verbose=True, **kwargs):
+    """
+    Sort mixed user-supplied pars into categories (sim, sti, nw, dem, connector).
+
+    Flat keys (from ``pars`` and ``**kwargs``) are matched against an internal
+    registry of per-category par-classes. A key valid in N categories is
+    broadcast to all N (with a printed note if ``verbose``). Pre-categorized
+    dicts (``sim_pars``, ``sti_pars``, ``nw_pars``, ``dem_pars``,
+    ``connector_pars``) are merged into their bucket as-is.
+
+    Design — when does broadcasting happen?
+
+    STIsim's par-name registry (``stisim/parameters.py``) is intentionally
+    designed so that names *do not collide across categories* — except in two
+    deliberate cases where broadcasting is the desired behavior:
+
+    1. **Universal pars** (e.g. ``dt``). Every module has these, and Starsim
+       already broadcasts them: ``sti.Sim(dt=ss.years(0.5))`` sets ``dt`` on
+       every module. This isn't STIsim doing anything new.
+
+    2. **Multi-disease shared pars** (e.g. ``beta_m2f``, ``init_prev``).
+       Several STI disease modules register the same par name on purpose.
+       ``sti.Sim(diseases=['hiv','syph'], beta_m2f=0.04)`` sets ``beta_m2f``
+       on both — that's the convenience the registry is built for. Override
+       per-disease via ``sti_pars=dict(hiv=dict(beta_m2f=...), syph=...)``
+       or by passing instances: ``diseases=[sti.HIV(beta_m2f=...), ...]``.
+
+    Custom modules supplied by the user can introduce *unintended* name
+    clashes with the built-in registry. In that case ``route_pars`` prints a
+    one-line note (``verbose=True``) listing the categories the key landed
+    in. This is allowed, not an error — the print is the documentation.
+
+    Args:
+        pars (dict): Flat pars to route by registry lookup.
+        sim_pars, sti_pars, nw_pars, dem_pars, connector_pars (dict):
+            Pre-categorized pars; merged into their bucket as-is.
+        strict (bool): If True, raise on flat-pars keys that match no
+            category. If False, unmatched keys appear in ``routed.unmatched``.
+        verbose (bool): If True, print one line per cross-category broadcast.
+        **kwargs: Same routing as ``pars``.
+
+    Returns:
+        sc.objdict with keys ``sim``, ``sti``, ``nw``, ``dem``, ``connector``,
+        ``unmatched``. Each value is a dict.
+    """
+    routed = sc.objdict(
+        sim=sc.dcp(dict(sim_pars or {})),
+        sti=sc.dcp(dict(sti_pars or {})),
+        nw=sc.dcp(dict(nw_pars or {})),
+        dem=sc.dcp(dict(dem_pars or {})),
+        connector=sc.dcp(dict(connector_pars or {})),
+        unmatched={},
+    )
+
+    flat = sc.mergedicts(pars, kwargs)
+    if not flat:
+        return routed
+
+    registry = _par_registry()
+    for k, v in flat.items():
+        matches = [cat for cat, valid in registry.items() if k in valid]
+        if not matches:
+            routed.unmatched[k] = sc.dcp(v)
+            continue
+        if len(matches) > 1 and verbose:
+            print(f"route_pars: {k!r} broadcast to {matches}")
+        for cat in matches:
+            routed[cat][k] = sc.dcp(v)
+
+    if strict and routed.unmatched:
+        valid = sorted({k for keys in registry.values() for k in keys})
+        suggestions = '\n'.join(
+            f'  {k!r}: did you mean {sc.suggest(k, valid)!r}?'
+            for k in routed.unmatched
+        )
+        raise ValueError(
+            f'Unrecognized parameter(s): {sorted(routed.unmatched)}\n{suggestions}'
+        )
+
+    return routed
 
 
 

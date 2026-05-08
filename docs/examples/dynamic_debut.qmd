@@ -102,7 +102,7 @@ msim = ss.parallel(sim_static, sim_dynamic)
 
 def afs_by_cohort(sim, cohort_bin=5):
     ppl = sim.people
-    net = sim.networks.structuredsexual
+    net = sim.networks.mfnetwork
     # .values gives numpy arrays for active agents only
     debut  = net.debut.values
     age    = ppl.age.values
