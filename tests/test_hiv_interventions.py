@@ -291,18 +291,25 @@ def test_art_stratified_coverage_matching(do_plot=do_plot):
 
     ac = sim.results.art_coverage
 
-    # Check aggregate coverage is nonzero (stratified data produces a global target)
+    # Check aggregate coverage is nonzero (stratified data also produces a meaningful total)
     final_p = np.mean(ac.p_art[-24:])
     assert final_p > 0.1, f'Expected meaningful aggregate ART coverage with stratified data, got {final_p:.2f}'
 
-    # Print per-stratum coverage for inspection (not asserted — current implementation
-    # computes a global target from stratified data, not per-stratum force-fitting)
+    # Per-stratum coverage should approximately match the supplied targets — this is the
+    # whole point of stratified input. Tolerance is generous to allow for finite-population
+    # noise (1k agents split across 6 strata) and for diagnosis lag (newly-eligible agents
+    # must first be diagnosed by HIVTest before ART can initiate them).
+    tol = 0.20
     for (ab, gender), target_p in targets.items():
         lo, hi = ss.parse_age_range(ab)
         sex = 'f' if gender == 0 else 'm'
         key = f'p_art_{sex}_{int(lo)}_{int(hi)}'
         measured_p = np.mean(ac[key][-24:])
         print(f'  {key}: target={target_p:.2f}, measured={measured_p:.2f}')
+        assert abs(measured_p - target_p) < tol, (
+            f'Stratum {key}: measured {measured_p:.2f} vs target {target_p:.2f} '
+            f'(tol {tol}). Stratified ART correction is not preserving per-stratum targets.'
+        )
 
     if do_plot:
         fig, axes = pl.subplots(1, 2, figsize=(14, 5))

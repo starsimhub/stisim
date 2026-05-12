@@ -7,7 +7,7 @@ import starsim as ss
 import numpy as np
 from stisim.interventions.base_interventions import STITest
 from stisim.interventions.utils import (
-    parse_coverage, compute_coverage_target,
+    parse_coverage, compute_coverage_target, compute_stratum_targets, age_sex_mask,
 )
 from stisim.utils import count
 
@@ -252,23 +252,41 @@ class ART(ss.Intervention):
         return
 
     def _get_n_to_treat(self, eligible_uids):
-        """Get the target number of people on ART this timestep."""
-        return compute_coverage_target(
+        """
+        Get the target number of people on ART this timestep.
+
+        Returns ``(total, stratum_targets)`` where:
+            - ``total`` is the aggregate target (or ``None`` if no coverage)
+            - ``stratum_targets`` is a dict ``{(age_bin, sex): n}`` for
+              stratified coverage, else ``None``.
+
+        When ``stratum_targets`` is not ``None``, callers should correct
+        coverage *within each stratum* rather than against the aggregate
+        total — otherwise allocation by global CD4 priority will wash out
+        the age/sex differentials in the input data.
+        """
+        total = compute_coverage_target(
             self.coverage, self.coverage_format, self.age_bins, self.sex_keys,
             self.ti, eligible_uids, self.sim,
         )
+        stratum_targets = compute_stratum_targets(
+            self.coverage, self.coverage_format, self.age_bins, self.sex_keys,
+            self.ti, eligible_uids, self.sim,
+        )
+        return total, stratum_targets
 
     def step(self):
         """
         Apply ART at each timestep: stop ART for those scheduled, initiate for newly diagnosed,
-        and correct overall coverage to match targets.
+        and correct coverage to match targets (per-stratum when stratified data is supplied,
+        otherwise against the aggregate total).
         """
         sim = self.sim
         hiv = sim.diseases.hiv
         inf_uids = hiv.infected.uids
 
         # Determine treatment target (None = no capacity constraint)
-        n_to_treat = self._get_n_to_treat(inf_uids)
+        n_to_treat, stratum_targets = self._get_n_to_treat(inf_uids)
 
         # Check who is stopping ART
         if hiv.on_art.any():
@@ -295,9 +313,11 @@ class ART(ss.Intervention):
                 if n_available_spots > 0:
                     self.prioritize_art(sim, n=n_available_spots, awaiting_art_uids=dx_to_treat)
 
-        # Correct coverage to match target (only if target is set)
+        # Correct coverage to match target (only if target is set).
+        # Stratified targets get per-stratum correction; aggregate gets global.
         if n_to_treat is not None:
-            self.art_coverage_correction(sim, target_coverage=n_to_treat)
+            self.art_coverage_correction(sim, target_coverage=n_to_treat,
+                                         stratum_targets=stratum_targets)
 
         # PMTCT: reduce susceptibility of infants whose mothers are on ART.
         # This applies to both prenatal (MaternalNet) and postnatal (BreastfeedingNet)
@@ -347,8 +367,23 @@ class ART(ss.Intervention):
 
         return
 
-    def art_coverage_correction(self, sim, target_coverage=None):
-        """ Adjust ART coverage to match data """
+    def art_coverage_correction(self, sim, target_coverage=None, stratum_targets=None):
+        """
+        Adjust ART coverage to match data.
+
+        If ``stratum_targets`` is supplied, correction is done independently
+        within each ``(age_bin, sex)`` stratum so that age/sex differentials
+        in the input data are preserved. Otherwise, correction is done
+        globally against ``target_coverage``.
+        """
+        if stratum_targets is not None:
+            self._art_coverage_correction_stratified(sim, stratum_targets)
+        else:
+            self._art_coverage_correction_global(sim, target_coverage)
+        return
+
+    def _art_coverage_correction_global(self, sim, target_coverage):
+        """ Adjust ART coverage globally to match an aggregate target """
         hiv = sim.diseases.hiv
         on_art = hiv.on_art
 
@@ -369,6 +404,50 @@ class ART(ss.Intervention):
             n_to_add = target_coverage - len(on_art.uids)
             awaiting_art_uids = (hiv.diagnosed & ~hiv.on_art).uids
             self.prioritize_art(sim, n=n_to_add, awaiting_art_uids=awaiting_art_uids)
+
+        return
+
+    def _art_coverage_correction_stratified(self, sim, stratum_targets):
+        """
+        Adjust ART coverage independently within each (age_bin, sex) stratum.
+
+        This preserves the age/sex differentials in the stratified coverage
+        input — e.g. young men and older women each reach their own target
+        rather than being averaged out by a global CD4-priority allocation.
+        Within a stratum, removals still drop the highest-CD4 agents first
+        and additions still prioritize the lowest-CD4 agents (same priority
+        rule as the global path).
+        """
+        hiv = sim.diseases.hiv
+        ppl = sim.people
+
+        for key, target_n in stratum_targets.items():
+            # key is (age_bin, sex) when sex-stratified, else age_bin only
+            if isinstance(key, tuple):
+                ab, sex = key
+            else:
+                ab, sex = key, None
+
+            in_stratum = age_sex_mask(ab, sex, ppl) & ppl.alive & hiv.infected
+            on_art_in_stratum = (in_stratum & hiv.on_art).uids
+            n_on_art = len(on_art_in_stratum)
+
+            # Too many on treatment in this stratum → remove highest-CD4
+            if n_on_art > target_n:
+                n_to_stop    = n_on_art - target_n
+                cd4_counts   = hiv.cd4[on_art_in_stratum]
+                care_seeking = hiv.care_seeking[on_art_in_stratum]
+                weights      = cd4_counts / care_seeking
+                choices      = np.argsort(-weights)[:n_to_stop]
+                stop_uids    = on_art_in_stratum[choices]
+                hiv.ti_stop_art[stop_uids] = self.ti
+                hiv.stop_art(stop_uids)
+
+            # Not enough in this stratum → add from diagnosed in same stratum
+            elif n_on_art < target_n:
+                n_to_add = target_n - n_on_art
+                awaiting_art_uids = (in_stratum & hiv.diagnosed & ~hiv.on_art).uids
+                self.prioritize_art(sim, n=n_to_add, awaiting_art_uids=awaiting_art_uids)
 
         return
 
