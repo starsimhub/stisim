@@ -19,6 +19,8 @@ import pandas as pd
 from collections import defaultdict
 from bisect import bisect_left
 
+from starsim import uids
+
 ss_float = ss.dtypes.float
 ss_int = ss.dtypes.int
 
@@ -474,7 +476,169 @@ class MFNetwork(BaseNetwork):
 
         return
 
+    # def bin_agents_by_age(self, agents_df, bin_width):
+    #     ppl = self.sim.people
+    #
+    #     min_age = np.floor(ppl.age[agents_df].min())
+    #     max_age = np.ceil(ppl.age[agents_df].max())
+    #     max_age_bin_tolerated = max_age + bin_width/2  # the bin covering the extreme high age potential (likely empty)
+    #     bin_offset = bin_width / 2
+    #
+    #     # bin_centers = [age + bin_offset for age]
+    #     # for bin_age in range(min_age + bin_offset, )
+    #     age_bins = {}
+    #     for age in np.arange(min_age + bin_offset, max_age_bin_tolerated, bin_width):
+    #         age_bins[age] = agents_df & (ppl.age >= age - bin_offset) & (ppl.age < age + bin_offset)
+    #     return age_bins
+
+    def bin_agents_by_age(self, agent_uids, bin_width):
+        """
+        return an {age: uids} keyed dict, where age is the center of bins bin_width years wide and uids is the
+        uids from agent_uids matching the keyed age bin.
+        """
+        ppl = self.sim.people
+
+        min_age = np.floor(ppl.age[agent_uids].min())
+        max_age = np.ceil(ppl.age[agent_uids].max())
+        max_age_bin_tolerated = max_age + bin_width/2  # the bin covering the extreme high age potential (likely empty)
+        bin_offset = bin_width / 2
+
+        age_bins = {}
+        for age in np.arange(min_age + bin_offset, max_age_bin_tolerated, bin_width):
+            age_bins[age] = agent_uids & (ppl.age >= age - bin_offset) & (ppl.age < age + bin_offset)
+        return age_bins
+
+    def bin_female_uids_by_target_age(self, female_uids, target_age_gaps, male_age_bins, bin_width):
+        """female_uids and target_age_gaps are assumed to be co-sorted"""
+        ppl = self.sim.people
+        target_age_bins = {}
+        bin_offset = bin_width / 2
+        target_ages = ppl.age[female_uids] + target_age_gaps
+        all_matched_indicies = []
+        for age in male_age_bins:
+            indicies_matching = np.where( (target_ages >= age - bin_offset) & (target_ages < age + bin_offset) )[0]
+            uids_matching = female_uids[indicies_matching]
+            target_age_bins[age] = uids_matching
+            # print(f"target: {age} uids: {uids_matching} ages: {ppl.age[uids_matching]} gap: {target_age_gaps[indicies_matching]} selected_target: {ppl.age[uids_matching] + target_age_gaps[indicies_matching]}")
+            all_matched_indicies.extend(indicies_matching)
+        return target_age_bins
+
+    # def match_pairs_redesign3(self):
     def match_pairs(self):
+        # TODO: do we need to consider multi-matching in this method? e.g., men who are still underpartnered after calling this method once?
+
+        ppl = self.sim.people
+        # Find people eligible for a relationship
+        active = self.over_debut
+        underpartnered = self.partners < self.concurrency
+        f_eligible = active & ppl.female & underpartnered
+        m_eligible_uids = (active & ppl.male & underpartnered).uids
+        f_looking_uids = self.pars.p_pair_form.filter(f_eligible.uids)  # ss.uids of women looking for partners
+
+        paired_females = []
+        paired_males = []
+        i = 0
+        male_bin_widths = [1, 3, 5]
+        while len(f_looking_uids) > 0 and i < len(male_bin_widths):
+            # on each successive pass, any females left looking for matches will re-select a target age for use
+            # with a wider age binning of remaining males (representing females getting less choosy)
+            loc, scale = self.get_age_risk_pars(f_looking_uids, self.pars.age_diff_pars)
+            self.pars.age_diffs.set(loc=loc, scale=scale)
+            target_age_gaps = self.pars.age_diffs.rvs(f_looking_uids)  # Sample the age differences
+
+            male_bin_width = male_bin_widths[i]
+            # divvy up men into bins
+            male_bins = self.bin_agents_by_age(m_eligible_uids, bin_width=male_bin_width)  # returns a {age: df} dict
+            # create female queues to male bins
+            female_uid_bins = self.bin_female_uids_by_target_age(female_uids=f_looking_uids,
+                                                                 target_age_gaps=target_age_gaps,
+                                                                 male_age_bins=male_bins.keys(),
+                                                                 bin_width=male_bin_width)
+            # assign men to women by male queue. For each age queue, assign pairings until men or women run out.
+            for male_age, male_uids in male_bins.items():
+                female_uids = female_uid_bins[male_age]
+                limit = min(len(male_uids), len(female_uids))
+                # arbitrarily assign; no sorting has been done
+                selected_male_uids = male_uids[:limit]
+                selected_female_uids = female_uids[:limit]
+                if len(selected_male_uids) != len(selected_female_uids):
+                    raise Exception(
+                        f"Uh oh, mismatched m/f uid lengths male age: {male_age} M: {len(selected_male_uids)} F: {len(selected_female_uids)}")
+                paired_males.extend(selected_male_uids)
+                paired_females.extend(selected_female_uids)
+            i += 1
+            # now update the males and females still looking for the next round of pairing.
+            f_looking_uids = f_looking_uids - selected_female_uids
+            m_eligible_uids = m_eligible_uids - selected_male_uids
+
+        m_selected = uids(paired_males)
+        f_selected = uids(paired_females)
+
+        return m_selected, f_selected
+
+    def match_pairs_redesign2(self):
+    # def match_pairs(self):
+
+        ppl = self.sim.people
+        # TODO: do we need to consider multi-matching in this method? e.g., men who are still underpartnered after calling this method once?
+        # Find people eligible for a relationship
+        active = self.over_debut
+        underpartnered = self.partners < self.concurrency
+        f_eligible = active & ppl.female & underpartnered
+        m_eligible = active & ppl.male & underpartnered
+        f_looking = self.pars.p_pair_form.filter(f_eligible.uids)  # ss.uids of women looking for partners
+        f_eligible_and_looking = f_eligible & f_looking
+
+        # Get mean age differences and desired ages
+        # desired_ages = ppl.age[f_looking] + age_gaps    # Desired ages of the male partners
+        # ppl.desired_ages[f_looking] = ppl.age[f_looking] + age_gaps    # Desired ages of the male partners
+
+        male_bin_widths = [1, 3, 5]  # TODO: fix code below to remove paired ppl for following rounds, 3, 5]
+        i = 0
+        paired_females = []
+        paired_males = []
+        while len(f_looking) > 0 and i < len(male_bin_widths):
+            loc, scale = self.get_age_risk_pars(f_looking, self.pars.age_diff_pars)
+            self.pars.age_diffs.set(loc=loc, scale=scale)
+            age_gaps = self.pars.age_diffs.rvs(f_eligible_and_looking)  # Sample the age differences
+
+            male_bin_width = male_bin_widths[i]
+            # divvy up men into bins
+            male_bins = self.bin_agents_by_age(m_eligible, bin_width=male_bin_width)  # returns a {age: df} dict
+            # create female queues to male bins
+            female_uid_bins = self.bin_female_uids_by_target_age(female_uids=f_eligible_and_looking.uids, target_age_gaps=age_gaps,
+                                                             male_age_bins=male_bins.keys(), bin_width=male_bin_width)
+            # assign men to women by male queue. For each queue, assign until men or women run out.
+            for male_age, men in male_bins.items():
+                female_uids = female_uid_bins[male_age]
+                limit = min(len(men.uids), len(female_uids))
+                # arbitrarily assign; no sorting has been done
+                selected_male_uids = men.uids[:limit]
+                selected_female_uids = female_uids[:limit]
+                if len(selected_male_uids) != len(selected_female_uids):
+                    raise Exception(f"Uh oh, mismatched m/f uid lengths male age: {male_age} M: {len(selected_male_uids)} F: {len(selected_female_uids)}")
+                paired_males.extend(selected_male_uids)
+                paired_females.extend(selected_female_uids)
+            i += 1
+            # now update the males and females still looking for the next round of pairing.
+            # remove newly-ineligible males
+            # remove newly-ineligible females
+            f_eligible_and_looking[selected_female_uids] = False
+            f_looking = f_looking - selected_female_uids
+            m_eligible[selected_male_uids] = False
+
+
+        m_selected = uids(paired_males)
+        f_selected = uids(paired_females)  # uids(f_selected)
+
+        p1 = m_selected
+        p2 = f_selected
+        # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+        return p1, p2
+
+
+    def match_pairs_redesign1(self):
         """
         Match pairs by age, using sorting rather than the linear sum assignment
         """
@@ -499,55 +663,54 @@ class MFNetwork(BaseNetwork):
         ind_m = np.argsort(m_ages, stable=True)
         ind_f = np.argsort(desired_ages, stable=True)
 
-        # If there are no agents in either group, return empty arrays
+        # >>>
+        # Attempt 2 sketch
+        """
+        - divvy up men into 1 year age bins, centered on 0.5 ages
+        - queue up the women into queues for the male bins
+        - for bin B in bins:
+        -   distribute men to women until either men or women run out for bin B
+        - if men and women remain, repeat from A with age_bin_width += 1
+        - Do this for age_bin_width <= maximum SD from input pars.age_diffs
+        - Return with selected matched men and women.
+        """
+        # <<<
+
+        # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        # Attempt 1: proof of concept works much better, but horrendous algorithm
+        from starsim.arrays import uids
+        m_selected = []
+        f_selected = []
+        m_ages_list = list(m_ages[ind_m])
+        for i in range(len(desired_ages)):
+            done = False
+            delta = 0
+            while not done:
+                index = bisect_left(m_ages_list, desired_ages[i]) + delta
+                try:
+                    if m_eligible.uids[ind_m][index] not in m_selected:
+                        done = True
+                except IndexError as e:
+                    done = True
+                delta += 1
+            try:
+                selected = m_eligible.uids[ind_m][index]
+                m_selected.append(selected)
+                f_selected.append(f_looking[i])
+                # m_ages_list.pop(selected)
+                # print(f"Looking for age: {desired_ages[i]} found age: {ppl.age[selected]} len(m_ages_list): {len(m_ages_list)}")
+            except IndexError as e:
+                pass  # female could not find a male of target age
+        # if any men are competed over, drop duplicates
+        m_selected = uids(m_selected)
+        f_selected = uids(f_selected)  # uids(f_selected)
+
+        p1 = m_selected
+        p2 = f_selected
+        # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
         if len(ind_m) == 0 or len(ind_f) == 0:
             raise NoPartnersFound()
-
-        # drop all males that are younger than one standard deviation below the lowest desired age.
-        youngest_preferred_male_age = desired_ages[ind_f[0]]
-        youngest_male_age = m_ages[ind_m[0]]
-
-        if youngest_male_age < youngest_preferred_male_age:
-            # remove the youngest males until the youngest is at least as old as the youngest preferred
-            cutoff_index = bisect_left(m_ages[ind_m], youngest_preferred_male_age)
-            ind_m = ind_m[cutoff_index:]
-
-        elif youngest_preferred_male_age < youngest_male_age:
-            # remove the youngest females until the youngest preferred is at least as old as the youngest male
-            cutoff_index = bisect_left(desired_ages[ind_f], youngest_male_age)
-            ind_f = ind_f[cutoff_index:]
-
-        # Check again for empty arrays after filtering
-        if len(ind_m) == 0 or len(ind_f) == 0:
-            raise NoPartnersFound()
-
-        # Check the upper limit of the age spectrum
-        oldest_preferred_male_age = desired_ages[ind_f[-1]]
-        oldest_male_age = m_ages[ind_m[-1]]
-
-        if oldest_male_age > oldest_preferred_male_age:
-            cutoff_index = bisect_left(m_ages[ind_m], oldest_preferred_male_age)
-            ind_m = ind_m[:cutoff_index]
-
-        elif oldest_preferred_male_age > oldest_male_age:
-            cutoff_index = bisect_left(desired_ages[ind_f], oldest_male_age)
-            ind_f = ind_f[:cutoff_index]
-
-        # draw n samples from the larger of the two groups, where n is the number of samples in the smaller group
-        if len(ind_m) < len(ind_f):
-            ind_f_subset = np.random.choice(len(ind_f), size=len(ind_m), replace=False)
-            ind_f_subset.sort()
-            ind_f = ind_f[ind_f_subset]
-        elif len(ind_f) < len(ind_m):
-            ind_m_subset = np.random.choice(len(ind_m), size=len(ind_f), replace=False)
-            ind_m_subset.sort()
-            ind_m = ind_m[ind_m_subset]
-
-        if len(ind_m) == 0 or len(ind_f) == 0:
-            raise NoPartnersFound()
-
-        p1 = m_eligible.uids[ind_m]
-        p2 = f_looking[ind_f]
 
         return p1, p2
 
