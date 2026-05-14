@@ -49,8 +49,9 @@ class HIVTest(STITest):
 
         1. HIVTest tests eligible agents each timestep (annual probability, converted via ss.probperyear)
         2. Positive results set hiv.diagnosed=True and hiv.ti_diagnosed
-        3. ART checks for newly diagnosed agents (ti_diagnosed == current ti)
-        4. Newly diagnosed agents initiate ART with probability art_initiation
+        3. HIVTest samples dur_dx2tx and sets hiv.ti_art = ti + delay (scheduled start)
+        4. ART picks up agents whose ti_art == current ti (and not yet on_art),
+           filters by art_initiation, and puts them on ART
         5. If coverage data is provided, ART corrects to match targets
 
     Args:
@@ -61,6 +62,9 @@ class HIVTest(STITest):
         start (float): calendar year when testing begins
         dt_scale (bool): if True (default), test_prob_data is an annual probability.
             Set to False for per-timestep probability.
+        dur_dx2tx: delay from diagnosis to ART start, as a distribution
+            (default: ``ss.constant(0)``, no delay).
+            Example: ``ss.constant(ss.years(0.5))`` for a 6-month delay.
 
     Example::
 
@@ -88,20 +92,28 @@ class HIVTest(STITest):
         )
     """
     def __init__(self, product=None, pars=None, test_prob_data=None, years=None, start=None,
-                 eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
+                 eligibility=None, name=None, label=None, newborn_test=None, dur_dx2tx=None, **kwargs):
         if product is None: product = HIVDx(name=f'HIVDx_{name}')
         super().__init__(product=product, pars=pars, test_prob_data=test_prob_data, years=years,
                          start=start, eligibility=eligibility, name=name, label=label, **kwargs)
         if self.eligibility is None:
             self.eligibility = lambda sim: ~sim.diseases.hiv.diagnosed
         self.newborn_test = newborn_test
+        # Per-pathway delay from diagnosis to scheduled ART start
+        self.dur_dx2tx = dur_dx2tx if dur_dx2tx is not None else ss.constant(0)
 
     def step(self, uids=None):
         sim = self.sim
         outcomes = super().step(uids=uids)
         pos_uids = outcomes['positive']
-        sim.diseases.hiv.diagnosed[pos_uids] = True
-        sim.diseases.hiv.ti_diagnosed[pos_uids] = self.ti
+        hiv = sim.diseases.hiv
+        hiv.diagnosed[pos_uids] = True
+        hiv.ti_diagnosed[pos_uids] = self.ti
+        # Schedule ART start for those not already on ART
+        to_schedule = pos_uids[~hiv.on_art[pos_uids]]
+        if len(to_schedule):
+            delay = np.asarray(self.dur_dx2tx.rvs(to_schedule)).astype(int)
+            hiv.ti_art[to_schedule] = self.ti + delay
 
         # Schedule infant HIV test for unborn children of newly diagnosed mothers
         if self.newborn_test is not None and len(pos_uids):
@@ -154,14 +166,18 @@ class ART(ss.Intervention):
 
     Processing flow each timestep:
         1. Agents scheduled to stop ART are removed
-        2. Newly diagnosed agents (ti_diagnosed == this timestep) are filtered
-           by art_initiation probability
+        2. Agents whose scheduled ART start has arrived (ti_art == this timestep
+           and not on_art) are filtered by art_initiation probability
         3. If coverage is specified: agents are added/removed to match the target
            number, prioritized by CD4 count and care-seeking propensity
-        4. If no coverage is specified: all newly diagnosed who pass art_initiation
-           go directly on ART (no capacity constraint)
+        4. If no coverage is specified: all who pass art_initiation go on ART
+           (no capacity constraint)
         5. Mothers on ART reduce infant susceptibility (prenatal via MaternalNet,
            postnatal via BreastfeedingNet) by pmtct_efficacy
+
+    The scheduling (setting ti_art) is owned by the testing intervention that
+    diagnoses the agent (HIVTest, ANCTest). ART here is passive: it picks up
+    whoever is ready to start.
 
     Coverage is parsed by :func:`parse_coverage` and accepts:
         - ``None``: no coverage target; treat all who initiate (default)
@@ -280,10 +296,10 @@ class ART(ss.Intervention):
                     errormsg = f'Error stopping ART for {stopping.uids}'
                     raise ValueError(errormsg)
 
-        # Initiate ART for newly diagnosed
-        diagnosed = hiv.ti_diagnosed == self.ti
-        if len(diagnosed.uids):
-            dx_to_treat = self.pars.art_initiation.filter(diagnosed.uids)
+        # Initiate ART for agents whose scheduled start time has arrived
+        ready = ((hiv.ti_art == self.ti) & ~hiv.on_art).uids
+        if len(ready):
+            dx_to_treat = self.pars.art_initiation.filter(ready)
 
             if n_to_treat is None:
                 # No coverage target — treat all who initiate
@@ -329,7 +345,8 @@ class ART(ss.Intervention):
         """ Prioritize ART to n agents among those awaiting treatment """
         hiv = sim.diseases.hiv
         if awaiting_art_uids is None:
-            awaiting_art_uids = (hiv.diagnosed & ~hiv.on_art).uids
+            # Agents whose scheduled ART start has arrived but who aren't on ART yet
+            awaiting_art_uids = ((hiv.ti_art <= self.ti) & ~hiv.on_art).uids
 
         # Enough spots for everyone
         if n > len(awaiting_art_uids):
@@ -364,10 +381,10 @@ class ART(ss.Intervention):
             hiv.ti_stop_art[stop_uids] = self.ti
             hiv.stop_art(stop_uids)
 
-        # Not enough on treatment → add
+        # Not enough on treatment → add (only those whose scheduled start has arrived)
         elif len(on_art.uids) < target_coverage:
             n_to_add = target_coverage - len(on_art.uids)
-            awaiting_art_uids = (hiv.diagnosed & ~hiv.on_art).uids
+            awaiting_art_uids = ((hiv.ti_art <= self.ti) & ~hiv.on_art).uids
             self.prioritize_art(sim, n=n_to_add, awaiting_art_uids=awaiting_art_uids)
 
         return

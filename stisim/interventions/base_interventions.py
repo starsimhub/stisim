@@ -773,9 +773,12 @@ class ANCTest(ss.Intervention):
             self.results[f'n_{dname}_positive'][ti] += len(pos_uids)
 
             if dname == 'hiv':
-                # Set diagnosed flag so ART picks up automatically
+                # Set diagnosed flag and schedule ART start (no delay by default)
+                # so an ART intervention picks them up automatically
                 disease.diagnosed[pos_uids]    = True
                 disease.ti_diagnosed[pos_uids] = ti
+                to_schedule = pos_uids[~disease.on_art[pos_uids]]
+                disease.ti_art[to_schedule] = ti
             elif dname in self.disease_treatment_map:
                 tx = self.disease_treatment_map[dname]
                 tx.eligibility = tx.eligibility | pos_uids
