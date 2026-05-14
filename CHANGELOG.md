@@ -4,7 +4,8 @@ All notable changes to the codebase are documented in this file.
 
 ## Version 1.5.5 (TBC)
 
-*Coming soon*
+### Interventions
+- Replace `PartnerNotification` with a `PriorPartners`-based implementation. Two channels (current sexual network, optional prior-partner recall network) each with separate notification × attendance probabilities. Tracks notifications and attendance per-channel. The previous transmission-graph-based version is removed. New gallery example `docs/examples/partner_notification.qmd`.
 
 ## Version 1.5.4 (2026-05-04)
 
