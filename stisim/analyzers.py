@@ -1,0 +1,753 @@
+"""
+Common analyzers for STI analyses
+"""
+
+# %% Imports and settings
+import numpy as np
+import sciris as sc
+import starsim as ss
+import pandas as pd
+
+import stisim as sti
+import pylab as pl
+from collections import defaultdict
+
+__all__ = ["result_grouper", "coinfection_stats", "sw_stats", "RelationshipDurations", "NetworkDegree", "DebutAge", "partner_age_diff", "TimeBetweenRelationships", "art_coverage"]
+
+class result_grouper(ss.Analyzer):
+    """Base analyzer providing conditional probability utilities for grouped results.
+
+    Provides a ``cond_prob`` static method that computes the proportion of a
+    numerator group within a denominator group. Intended as a base class for
+    analyzers that compute stratified prevalence or infection statistics.
+    """
+
+    @staticmethod
+    def cond_prob(numerator, denominator):
+        numer = len((denominator & numerator).uids)
+        denom = len(denominator.uids)
+        out = sc.safedivide(numer, denom)
+        return out
+
+
+class coinfection_stats(result_grouper):
+    """
+    Generates stats for the coinfection of two diseases.
+    This is useful for looking at the coinfection of HIV and syphilis, for example.
+
+    Args:
+        disease1 (str | ss.Disease): name of the first disease
+        disease2 (str | ss.Disease): name of the second disease
+        disease1_infected_state_name (str): name of the infected state for disease1 (default: 'infected')
+        disease2_infected_state_name (str): name of the infected state for disease2 (default: 'infected')
+        age_limits (list): list of two integers that define the age limits for the denominator.
+        denom (function): function that returns a boolean array of the denominator, usually the relevant population.
+            default: lambda self: (self.sim.people.age >= 15) & (self.sim.people.age < 50)
+        *args, **kwargs : optional, passed to ss.Analyzer constructor
+    """
+    def __init__(self, disease1, disease2, disease1_infected_state_name='infected', disease2_infected_state_name='infected',
+                 age_limits=None, denom=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if disease1 is None or disease2 is None:
+            raise ValueError('Coinfection stats requires exactly 2 diseases')
+
+        self.disease1 = disease1
+        self.disease2 = disease2
+
+        # if the diseases are objects, get their names and store them instead of the objects
+        if isinstance(self.disease1, ss.Disease):
+            self.disease1 = self.disease1.name
+        if isinstance(self.disease2, ss.Disease):
+            self.disease2 = self.disease2.name
+
+        self.disease1_infected_state_name = disease1_infected_state_name
+        self.disease2_infected_state_name = disease2_infected_state_name
+        self.age_limits = age_limits or [15, 50]
+        default_denom = lambda self: (self.sim.people.age >= self.age_limits[0]) & (self.sim.people.age < self.age_limits[1])
+        self.denom = denom or default_denom
+
+        return
+
+    def init_results(self):
+        super().init_results()
+        results = [
+            ss.Result(f'{self.disease1}_prev_no_{self.disease2}', dtype=float, scale=False),
+            ss.Result(f'{self.disease1}_prev_has_{self.disease2}', dtype=float, scale=False),
+            ss.Result(f'{self.disease1}_prev_no_{self.disease2}_f', dtype=float, scale=False),
+            ss.Result(f'{self.disease1}_prev_has_{self.disease2}_f', dtype=float, scale=False),
+            ss.Result(f'{self.disease1}_prev_no_{self.disease2}_m', dtype=float, scale=False),
+            ss.Result(f'{self.disease1}_prev_has_{self.disease2}_m', dtype=float, scale=False),
+        ]
+        self.define_results(*results)
+        return
+
+    def step(self):
+        sim = self.sim
+        ti = self.ti
+        disease1name = self.disease1
+        disease2name = self.disease2
+        disease1obj = getattr(self.sim.diseases, self.disease1)
+        disease2obj = getattr(self.sim.diseases, self.disease2)
+
+        ppl = sim.people
+
+        denom = self.denom(self)
+        has_disease2 = getattr(disease2obj, self.disease2_infected_state_name)  # Adults with HIV
+        has_disease1 = getattr(disease1obj, self.disease1_infected_state_name)  # Adults with syphilis
+
+        has_disease1_f = denom & has_disease1 & ppl.female  # Women with dis1
+        has_disease1_m = denom & has_disease1 & ppl.male  # Men with dis1
+        has_disease2_f = denom & has_disease2 & ppl.female  # Women with dis2
+        has_disease2_m = denom & has_disease2 & ppl.male  # Men with dis2
+        no_disease2    = denom & (~has_disease2)  # Adults without dis2
+        no_disease2_f  = no_disease2 & ppl.female  # Women without dis2
+        no_disease2_m  = no_disease2 & ppl.male  # Men without dis2
+
+        self.results[f'{disease1name}_prev_no_{disease2name}'][ti] = self.cond_prob(has_disease1, no_disease2)
+        self.results[f'{disease1name}_prev_has_{disease2name}'][ti] = self.cond_prob(has_disease1, has_disease2)
+        self.results[f'{disease1name}_prev_no_{disease2name}_f'][ti] = self.cond_prob(has_disease1_f, no_disease2_f)
+        self.results[f'{disease1name}_prev_has_{disease2name}_f'][ti] = self.cond_prob(has_disease1_f, has_disease2_f)
+        self.results[f'{disease1name}_prev_no_{disease2name}_m'][ti] = self.cond_prob(has_disease1_m, no_disease2_m)
+        self.results[f'{disease1name}_prev_has_{disease2name}_m'][ti] = self.cond_prob(has_disease1_m, has_disease2_m)
+
+        return
+
+
+class sw_stats(result_grouper):
+    """Track new infections and transmissions among sex workers and their clients.
+
+    At each timestep, records the number and share of new infections and
+    transmissions attributable to female sex workers (FSW), clients, and
+    non-sex-worker populations, disaggregated by disease.
+
+    Args:
+        diseases (list): List of disease names (str) to track, e.g. ``['hiv', 'syphilis']``.
+    """
+
+    def __init__(self, diseases=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.name = 'sw_stats'
+        self.diseases = diseases
+        return
+
+    def init_results(self):
+        super().init_results()
+        results = sc.autolist()
+        for d in self.diseases:
+            results += [
+                ss.Result('share_new_infections_fsw_'+d, scale=False, summarize_by='mean', auto_plot=False),
+                ss.Result('share_new_infections_client_'+d,scale=False, summarize_by='mean', auto_plot=False),
+                ss.Result('new_infections_fsw_'+d, dtype=int, auto_plot=False),
+                ss.Result('new_infections_client_'+d, dtype=int, auto_plot=False),
+                ss.Result('new_infections_non_fsw_'+d, dtype=int, auto_plot=False),
+                ss.Result('new_infections_non_client_'+d, dtype=int, auto_plot=False),
+                ss.Result('new_transmissions_fsw_'+d, dtype=int, auto_plot=False),
+                ss.Result('new_transmissions_client_'+d, dtype=int, auto_plot=False),
+                ss.Result('new_transmissions_non_fsw_'+d, dtype=int, auto_plot=False),
+                ss.Result('new_transmissions_non_client_'+d, dtype=int, auto_plot=False),
+            ]
+        self.define_results(*results)
+        return
+
+    def step(self):
+        sim = self.sim
+        ti = self.ti
+
+        if ti > 0:
+
+            for d in self.diseases:
+                dis = sim.diseases[d]
+                nw = sim.networks.structuredsexual
+                adult = sim.people.age > 0
+                fsw = nw.fsw & adult
+                client = nw.client & adult
+                non_fsw = sim.people.female & ~nw.fsw & adult
+                non_client = sim.people.male & ~nw.client & adult
+                newly_infected = (dis.ti_exposed == ti) & adult
+                new_trans = dis.ti_transmitted_sex == ti
+                total_acq = len(newly_infected.uids)
+
+                newly_transmitting_fsw = (dis.ti_transmitted_sex == ti) & fsw
+                newly_transmitting_clients = (dis.ti_transmitted_sex == ti) & client
+                newly_transmitting_non_fsw = (dis.ti_transmitted_sex == ti) & non_fsw
+                newly_transmitting_non_client = (dis.ti_transmitted_sex == ti) & non_client
+
+                new_transmissions_fsw = dis.new_transmissions_sex[newly_transmitting_fsw]
+                new_transmissions_client = dis.new_transmissions_sex[newly_transmitting_clients]
+                new_transmissions_non_fsw = dis.new_transmissions_sex[newly_transmitting_non_fsw]
+                new_transmissions_non_client = dis.new_transmissions_sex[newly_transmitting_non_client]
+
+                self.results['share_new_infections_fsw_'+d][ti] = self.cond_prob(fsw, newly_infected)
+                self.results['share_new_infections_client_'+d][ti] = self.cond_prob(client, newly_infected)
+
+                self.results['new_infections_fsw_'+d][ti] = len((fsw & newly_infected).uids)
+                self.results['new_infections_client_'+d][ti] = len((client & newly_infected).uids)
+                self.results['new_infections_non_fsw_'+d][ti] = len((non_fsw & newly_infected).uids)
+                self.results['new_infections_non_client_'+d][ti] = len((non_client & newly_infected).uids)
+
+                self.results['new_transmissions_fsw_'+d][ti] = sum(new_transmissions_fsw)
+                self.results['new_transmissions_client_'+d][ti] = sum(new_transmissions_client)
+                self.results['new_transmissions_non_fsw_'+d][ti] = sum(new_transmissions_non_fsw)
+                self.results['new_transmissions_non_client_'+d][ti] = sum(new_transmissions_non_client)
+
+                # Note: total_trans only counts sexual transmission, not MTC (congenital).
+                # So we don't validate against newly_infected which includes MTC.
+
+        return
+
+
+class RelationshipDurations(ss.Analyzer):
+    """Analyze relationship durations in a StructuredSexual network.
+
+    Records the mean and median duration of all relationships (stable, casual,
+    etc.) at each timestep, disaggregated by sex. Durations are extracted from
+    the network's ``relationship_durs`` tracking dict.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        return
+
+    def init_results(self):
+        super().init_results()
+        self.define_results(
+            ss.Result('mean_duration', dtype=float, scale=False, auto_plot=False),
+            ss.Result('median_duration', dtype=float, scale=False, auto_plot=False),
+        )
+        return
+
+    def step(self):
+        pass
+
+    def update_results(self):
+        sim = self.sim
+        ti = self.ti
+        nw = sim.networks.structuredsexual
+        rel_durations = self.get_relationship_durations()
+        self.results['mean_duration'][ti] = np.mean(rel_durations)
+        self.results['median_duration'][ti] = np.median(rel_durations)
+        return
+
+    def plot(self):
+        sim = self.sim
+        ti = self.ti
+        female_relationship_durs, male_relationship_durs = self.get_relationship_durations()
+        all_durations = female_relationship_durs + male_relationship_durs
+        pl.figure(1)
+        pl.hist(all_durations, bins=(max(all_durations) - min(all_durations)))
+        pl.xlabel('Relationship Duration')
+        pl.ylabel('Frequency')
+        pl.title('Distribution of Relationship Durations')
+
+        pl.figure(2)
+        pl.hist(female_relationship_durs, bins=(max(all_durations) - min(all_durations)))
+        pl.xlabel('Female Relationship Duration')
+        pl.ylabel('Frequency')
+        pl.title('Distribution of Female Relationship Durations')
+
+        pl.figure(3)
+        pl.hist(male_relationship_durs, bins=(max(all_durations) - min(all_durations)))
+        pl.xlabel('Male Relationship Duration')
+        pl.ylabel('Frequency')
+        pl.title('Distribution of Male Relationship Durations')
+        pl.show()
+
+
+    def get_relationship_durations(self):
+        """
+        Returns the durations of all relationships, separated by sex.
+
+        If include_current is False, return the duration of only relationships that have ended
+
+        returns:
+            female_durations: list of durations of relationships
+            male_durations: list of durations of relationships
+        """
+
+        # Get the current duration of all relationships
+        male_durations = []
+        female_durations = []
+        for pair, relationships in self.sim.networks.structuredsexual.relationship_durs.items():
+            durs = [relationship['dur'] for relationship in relationships]
+
+            # assign the durations to male and female lists
+            for uid in pair:
+                if self.sim.people.female[uid]:
+                    female_durations.extend(durs)
+                else:
+                    male_durations.extend(durs)
+
+        return female_durations, male_durations
+
+
+class NetworkDegree(ss.Analyzer):
+    """Analyze lifetime partner count distributions in a StructuredSexual network.
+
+    At a specified year, records the number of lifetime partners per agent,
+    disaggregated by sex and relationship type (stable, casual, one-time, sex
+    work). Results are binned into a histogram for plotting and comparison
+    with survey data.
+
+    Args:
+        year (float): Calendar year at which to record partner counts. Defaults
+            to the last year of the simulation.
+        bins (array): Bin edges for the partner count histogram. Defaults to
+            ``[0, 1, ..., 20, 100]``.
+        relationship_types (list): Relationship types to track, e.g.
+            ``['stable', 'casual']``. Use ``'partners'`` for combined
+            stable + casual counts.
+    """
+
+    def __init__(self, year=None, bins=None, relationship_types=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.year = year
+
+        if bins is None:
+            bins = np.concatenate([np.arange(21),[100]])
+        self.bins = bins
+
+        if relationship_types is None:
+            relationship_types = ['stable', 'casual'] # Other options are 'partners' (stable+casual), 'onetime', 'sw'
+
+        self.relationship_types = []
+        if 'partners' in relationship_types:
+            relationship_types.remove('partners')
+            self.relationship_types.append('lifetime_partners')
+        [self.relationship_types.append(f'lifetime_{relationship_type}_partners') for relationship_type in relationship_types]
+
+        for relationship_type in self.relationship_types:
+            setattr(self, f'{relationship_type}_f', [])
+            setattr(self, f'{relationship_type}_m', [])
+
+        return
+
+    def init_results(self):
+        """
+        Add results for `n_rships`, separated for males and females
+        Optionally disaggregate for risk level / age?
+        """
+        super().init_results()
+        for relationship_type in self.relationship_types:
+            self.results += [
+                ss.Result(f'{relationship_type}_f', dtype=int, scale=False, shape=len(self.bins), auto_plot=False),
+                ss.Result(f'{relationship_type}_m', dtype=int, scale=False, shape=len(self.bins), auto_plot=False),
+            ]
+        return
+
+    def init_pre(self, sim, **kwargs):
+        """
+        Initialize the analyzer
+        """
+        super().init_pre(sim, **kwargs)
+        self.year = sim.t.yearvec[-1]
+        return
+
+
+    def step(self):
+        """
+        record lifetime_partners for the user-specified year
+        """
+        if self.sim.t.yearvec[self.ti] == self.year:
+            for relationship_type in self.relationship_types:
+                # Get the number of partners, disaggregated by sex. We can't use a Result object for this because we
+                # don't know how many agents there will be at any given time step. We can use Results for the binned
+                # counts.
+
+                female_partners = getattr(self.sim.networks.structuredsexual, relationship_type)[self.sim.people.female]
+                male_partners = getattr(self.sim.networks.structuredsexual, relationship_type)[self.sim.people.male]
+
+                getattr(self, f'{relationship_type}_f').extend(female_partners)
+                getattr(self, f'{relationship_type}_m').extend(male_partners)
+
+                # bin the data by number of partners
+                female_counts, female_bins = np.histogram(female_partners, bins=self.bins)
+                male_counts, male_bins = np.histogram(male_partners, bins=self.bins)
+
+                for i, female_count, male_count in zip(range(len(self.bins)), female_counts, male_counts):
+                    self.results[f'{relationship_type}_f'][i] = female_count
+                    self.results[f'{relationship_type}_m'][i] = male_count
+        return
+
+    def plot(self):
+        """
+        Plot histograms and stats by sex and relationship type
+        """
+
+        for relationship_type in self.relationship_types:
+            fig, axes = pl.subplots(1, 2, figsize=(9, 5), layout="tight")
+            axes = axes.flatten()
+            for ai, sex in enumerate(['f', 'm']):
+                counts = self.results[f'{relationship_type}_{sex}'].values
+                bins=self.bins
+
+                total = sum(counts)
+                counts = counts / total
+                counts[-2] = counts[-2:].sum()
+                counts = counts[:-1]
+
+                axes[ai].bar(bins[:-1], counts)
+                axes[ai].set_xlabel(f'Number of {relationship_type}')
+                axes[ai].set_title(f'Distribution of partners, {sex}')
+                axes[ai].set_ylim([0, 1])
+
+                sex_counts = np.array(getattr(self, f'{relationship_type}_{sex}'))
+                stats = f"Mean: {np.mean(sex_counts):.1f}\n"
+                stats += f"Median: {np.median(sex_counts):.1f}\n"
+                stats += f"Std: {np.std(sex_counts):.1f}\n"
+                stats += f"%>20: {np.count_nonzero(sex_counts >= 20) / total * 100:.2f}\n"
+                axes[ai].text(15, 0.5, stats)
+
+            pl.show()
+
+        return
+
+class TimeBetweenRelationships(ss.Analyzer):
+    """
+    Analyzes the time between relationships in a structuredsexual network.
+    Each timestep, for each debuted agent, check if they are in a relationship of the provided type.
+    If not, increment the counter
+    Otherwise, reset the counter to 0 and append the counter to the list of times between relationships for that agent.
+    """
+    def __init__(self, relationship_type='stable', *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.relationship_type = relationship_type
+        self.results['times_between_relationships'] = defaultdict(self.zero_list)
+        return
+
+    @staticmethod
+    def zero_list():
+        return [0]  # Initialize the list with a single zero
+
+
+    def step(self):
+        """
+        For each debuted agent, check if they are in a relationship.
+        If they are not, increment the time since last relationship by 1.
+        If they are and time since last relationship is greater than 0, append the time to the list of times between relationships.
+        """
+
+        sim = self.sim
+        ti = self.ti
+        nw = sim.networks.structuredsexual
+
+        debuted = (nw.debut <= sim.people.age).uids
+        stable_relationships = nw.edges.edge_type == nw.edge_types[self.relationship_type]  # Get stable relationships
+        p1_stable = nw.edges.p1[stable_relationships]  # Get p1s in stable relationships
+        p2_stable = nw.edges.p2[stable_relationships]  # Get p2s in stable relationships
+
+        stable_relationship_uids = set(np.concatenate([p1_stable, p2_stable]))  # Combine p1 and p2 uids in stable relationships
+        not_stable_relationship_uids = set(debuted) - stable_relationship_uids  # Get uids not in stable relationships
+
+        for uid in not_stable_relationship_uids:
+            self.results['times_between_relationships'][uid][-1] += 1  # Increment time since last relationship for those not in stable relationships
+
+        for uid in stable_relationship_uids:
+            if self.results['times_between_relationships'][uid][-1] > 0:
+                # If the agent is in a stable relationship, reset the time since last relationship and append to the list
+                self.results['times_between_relationships'][uid].append(0)
+
+        return
+
+      
+class partner_age_diff(ss.Analyzer):
+    """Analyze age differences between sexual partners.
+
+    Records the mean, median, and standard deviation of male-female age
+    differences (male age minus female age) at each timestep. At a specified
+    year, stores full age-difference distributions disaggregated by female
+    age group for detailed plotting.
+
+    Args:
+        year (float): Calendar year at which to store detailed age-difference
+            distributions. Defaults to 2000.
+        age_bins (list): Female age group names matching the network's
+            ``f_age_group_bins`` keys. Defaults to ``['teens', 'young', 'adult']``.
+        network (str): Name of the network to analyze. Defaults to
+            ``'structuredsexual'``.
+    """
+
+    def __init__(self, year=2000, age_bins=['teens', 'young', 'adult'], network='structuredsexual', *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.year = year
+        self.network = network
+        self.age_diffs = {}
+        self.age_bins = age_bins
+        return
+
+    def init_results(self):
+        """
+        Initialize the results for the age differences.
+        """
+        super().init_results()
+        self.define_results(
+            ss.Result('age_diff_mean', dtype=float, scale=False, auto_plot=False),
+            ss.Result('age_diff_median', dtype=float, scale=False, auto_plot=False),
+            ss.Result('age_diff_std', dtype=float, scale=False, auto_plot=False),
+        )
+        return
+
+    def step(self):
+        """
+        Record the age differences between partners in the specified year.
+        """
+
+        net = self.sim.networks[self.network]
+        relationships = net.edges.dur > 1
+        p1 = net.p1[relationships]
+        p2 = net.p2[relationships]
+
+        age_diffs = (self.sim.people.age[p1] - self.sim.people.age[p2])
+
+        f_ages = self.sim.people.age[p2]
+
+        # bin the female ages by the bins used in the structured sexual network
+        # age_bins = sorted([bin[0] for bin in self.sim.networks.structuredsexual.pars.f_age_group_bins.values()])
+        age_bin_limits = [net.pars.f_age_group_bins[bin][0] for bin in self.age_bins]
+        age_bin_indices = np.digitize(f_ages, age_bin_limits) - 1
+
+        self.results['age_diff_mean'][self.ti] = np.mean(age_diffs)
+        self.results['age_diff_median'][self.ti] = np.median(age_diffs)
+        self.results['age_diff_std'][self.ti] = np.std(age_diffs)
+
+        if self.sim.t.yearvec[self.ti] == self.year:
+            for bin in self.age_bins:
+                self.age_diffs[bin] = age_diffs[age_bin_indices == self.age_bins.index(bin)]
+
+    def plot(self):
+        """
+        Plot histograms of the age differences between partners.
+        """
+        if len(self.age_diffs) > 0:
+            pl.figure(figsize=(8, 5))
+            pl.hist(list(self.age_diffs.values()), label=list(self.age_diffs.keys()), bins=30, edgecolor='black', alpha=0.7)
+            pl.legend()
+            pl.xlabel('Age Difference (years)')
+            pl.ylabel('Frequency')
+            pl.title(f'Age Differences Between Partners in {self.year} (Male Age - Female Age)')
+            pl.grid(True)
+            pl.show()
+        else:
+            print("No age differences recorded for the specified year.")
+
+        return
+
+
+class DebutAge(ss.Analyzer):
+    """Analyze the proportion of agents who have sexually debuted by age.
+
+    Tracks the share of agents who are sexually active (past their debut age)
+    at each single-year age bin, disaggregated by sex and birth cohort. Useful
+    for validating debut age distributions against survey data such as DHS.
+
+    Args:
+        bins (array): Age bins to evaluate, e.g. ``np.arange(12, 31)``.
+            Defaults to ages 12-30.
+        cohort_starts (array): Birth-year cohort start years. Defaults to all
+            cohorts that fit within the simulation timespan.
+    """
+    def __init__(self, bins=None, cohort_starts=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.bins = bins or np.arange(12, 31, 1)
+        self.binspan = self.bins[-1] - self.bins[0]
+        self.cohort_starts = cohort_starts
+
+        return
+
+    def init_pre(self, sim, force=False):
+        if self.cohort_starts is None:
+            first_cohort = sim.t.start.years
+            last_cohort = sim.t.stop.years - self.binspan
+            self.cohort_starts = sc.inclusiverange(first_cohort, last_cohort)
+            self.cohort_ends = self.cohort_starts + self.binspan
+            self.n_cohorts = len(self.cohort_starts)
+            self.cohort_years = np.array([sc.inclusiverange(i, i + self.binspan) for i in self.cohort_starts])
+
+        self.prop_active_f = np.zeros((self.n_cohorts, self.binspan + 1))
+        self.prop_active_m = np.zeros((self.n_cohorts, self.binspan + 1))
+        super().init_pre(sim, force=force)
+        return
+
+    def init_results(self):
+        super().init_results()
+        self.define_results(
+            ss.Result('prop_active_f', dtype=float, scale=False, shape=len(self.cohort_starts), auto_plot=False),
+            ss.Result('prop_active_m', dtype=float, scale=False, shape=len(self.cohort_starts), auto_plot=False),
+        )
+        return
+
+    def step(self):
+
+        sim = self.sim
+        ppl = sim.people
+        if sim.t.yearvec[sim.ti] in self.cohort_years:
+            cohort_inds, bin_inds = sc.findinds(self.cohort_years, sim.t.yearvec[sim.ti])
+            for ci, cohort_ind in enumerate(cohort_inds):
+                bin_ind = bin_inds[ci]
+                bin = self.bins[bin_ind]
+
+                # all females cohort:
+                conditions_f = ppl.female * ppl.alive * (ppl.age >= (bin - 1)) * (
+                        ppl.age < bin)
+                cohort_f_count = sum(conditions_f)
+                # all active females in cohort:
+                num_conditions_f = conditions_f * sim.networks.structuredsexual.over_debut
+                debut_f_count = sum(num_conditions_f)
+
+                self.prop_active_f[cohort_ind, bin_ind] = (debut_f_count) / (cohort_f_count) if cohort_f_count > 0 else 0
+
+                # all males cohort:
+                conditions_m = ~sim.people.female * sim.people.alive * (sim.people.age >= (bin - 1)) * (
+                        sim.people.age < bin)
+                cohort_m_count = sum(conditions_m)
+                # all active males in cohort:
+                num_conditions_m = conditions_m * sim.networks.structuredsexual.over_debut
+                debut_m_count = sum(num_conditions_m)
+                self.prop_active_m[cohort_ind, bin_ind] = (debut_m_count) / (cohort_m_count) if cohort_m_count > 0 else 0
+        return
+
+    def plot(self):
+        """
+        Plot the proportion of active agents by cohort and debut age
+        """
+        pl.figure(1)
+        for row in self.prop_active_f:
+            pl.plot(self.bins, row)
+        pl.xlabel('Age')
+        pl.ylabel('Share')
+        pl.title('Proportion of females who are sexually active')
+        pl.show()
+
+        pl.figure(2)
+        for row in self.prop_active_m:
+            pl.plot(self.bins, row)
+        pl.xlabel('Age')
+        pl.ylabel('Share')
+        pl.title('Proportion of males who are sexually active')
+        pl.show()
+
+
+class art_coverage(ss.Analyzer):
+    """
+    Track ART coverage (number and proportion) by sex and age bin.
+
+    Results are stored as time series per stratum, accessible via:
+        analyzer.results['n_art_f_15_25']    # Women 15-25 on ART (count)
+        analyzer.results['p_art_m_25_35']    # Men 25-35 on ART (proportion of infected)
+
+    Args:
+        age_bins (list): age bin edges, e.g. [15, 25, 35, 45, 65]. Default: [15, 25, 35, 45, 65].
+            Bins are half-open intervals: [lo, hi), i.e. lo <= age < hi.
+    """
+
+    def __init__(self, age_bins=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.name = 'art_coverage'
+        self.age_bins = age_bins or [15, 25, 35, 45, 65]
+        return
+
+    def init_results(self):
+        super().init_results()
+        results = []
+
+        # Aggregate results
+        results.append(ss.Result('n_art',   dtype=int,   label='Total on ART'))
+        results.append(ss.Result('p_art',   scale=False, label='ART coverage (proportion of infected)'))
+        results.append(ss.Result('n_art_f', dtype=int,   label='Women on ART'))
+        results.append(ss.Result('n_art_m', dtype=int,   label='Men on ART'))
+        results.append(ss.Result('p_art_f', scale=False, label='ART coverage (women)'))
+        results.append(ss.Result('p_art_m', scale=False, label='ART coverage (men)'))
+
+        # Per age bin × sex
+        for i in range(len(self.age_bins) - 1):
+            lo, hi = self.age_bins[i], self.age_bins[i + 1]
+            for sex in ['f', 'm']:
+                results.append(ss.Result(f'n_art_{sex}_{lo}_{hi}', dtype=int, label=f'On ART {sex.upper()} {lo}-{hi}'))
+                results.append(ss.Result(f'p_art_{sex}_{lo}_{hi}', scale=False, label=f'ART coverage {sex.upper()} {lo}-{hi}'))
+
+        self.define_results(*results)
+        return
+
+    def step(self):
+        sim = self.sim
+        ti  = self.ti
+        ppl = sim.people
+        hiv = sim.diseases.hiv
+
+        on_art   = hiv.on_art
+        infected = hiv.infected
+        female   = ppl.female
+        male     = ppl.male
+        age      = ppl.age
+
+        # Aggregate
+        n_art = len(on_art.uids)
+        n_inf = len(infected.uids)
+        self.results['n_art'][ti]   = n_art
+        self.results['p_art'][ti]   = sc.safedivide(n_art, n_inf)
+        self.results['n_art_f'][ti] = len((on_art & female).uids)
+        self.results['n_art_m'][ti] = len((on_art & male).uids)
+        self.results['p_art_f'][ti] = sc.safedivide(len((on_art & female).uids), len((infected & female).uids))
+        self.results['p_art_m'][ti] = sc.safedivide(len((on_art & male).uids), len((infected & male).uids))
+
+        # Per age bin × sex
+        for i in range(len(self.age_bins) - 1):
+            lo, hi = self.age_bins[i], self.age_bins[i + 1]
+            age_mask = (age >= lo) & (age < hi)
+            for sex, sex_mask in [('f', female), ('m', male)]:
+                stratum     = age_mask & sex_mask
+                n_on        = len((on_art & stratum).uids)
+                n_inf_strat = len((infected & stratum).uids)
+                self.results[f'n_art_{sex}_{lo}_{hi}'][ti] = n_on
+                self.results[f'p_art_{sex}_{lo}_{hi}'][ti] = sc.safedivide(n_on, n_inf_strat)
+
+        return
+
+    def plot(self, by_age=True):
+        """
+        Plot ART coverage over time.
+
+        Creates a 2-panel figure: aggregate coverage (left) and by age/sex (right).
+        If by_age=False, only plots aggregate.
+
+        Example::
+
+            sim.run()
+            sim.analyzers.art_coverage.plot()
+        """
+        yearvec = self.sim.t.yearvec
+        sex_colors = {'f': '#d46e9c', 'm': '#4a90d9'}
+        sex_labels = {'f': 'Women', 'm': 'Men'}
+
+        if by_age and len(self.age_bins) > 2:
+            fig, axes = pl.subplots(1, 3, figsize=(16, 5))
+        else:
+            fig, axes = pl.subplots(1, 1, figsize=(6, 5))
+            axes = [axes]
+
+        # Panel 1: aggregate
+        ax = axes[0]
+        ax.plot(yearvec, self.results['p_art'],   color='k',              linewidth=2, label='Overall')
+        ax.plot(yearvec, self.results['p_art_f'], color=sex_colors['f'], linewidth=1.5, label='Women')
+        ax.plot(yearvec, self.results['p_art_m'], color=sex_colors['m'], linewidth=1.5, label='Men')
+        ax.set_xlabel('Year')
+        ax.set_ylabel('ART coverage (proportion of infected)')
+        ax.set_title('ART coverage')
+        ax.set_ylim(0, 1)
+        ax.legend(frameon=False)
+
+        # Panels 2-3: by age (women, men)
+        if by_age and len(self.age_bins) > 2 and len(axes) > 1:
+            for sex, ax in zip(['f', 'm'], axes[1:]):
+                for i in range(len(self.age_bins) - 1):
+                    lo, hi = self.age_bins[i], self.age_bins[i + 1]
+                    key = f'p_art_{sex}_{lo}_{hi}'
+                    ax.plot(yearvec, self.results[key], label=f'{lo}-{hi}')
+                ax.set_xlabel('Year')
+                ax.set_ylabel('ART coverage')
+                ax.set_title(f'{sex_labels[sex]} by age')
+                ax.set_ylim(0, 1)
+                ax.legend(frameon=False, fontsize=9)
+
+        pl.tight_layout()
+        return fig
+
