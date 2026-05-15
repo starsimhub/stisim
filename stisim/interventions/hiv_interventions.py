@@ -92,15 +92,25 @@ class HIVTest(STITest):
         )
     """
     def __init__(self, product=None, pars=None, test_prob_data=None, years=None, start=None,
-                 eligibility=None, name=None, label=None, newborn_test=None, dur_dx2tx=None, **kwargs):
+                 eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
         if product is None: product = HIVDx(name=f'HIVDx_{name}')
-        super().__init__(product=product, pars=pars, test_prob_data=test_prob_data, years=years,
-                         start=start, eligibility=eligibility, name=name, label=label, **kwargs)
+
+        # Super init
+        super().__init__(product=product, test_prob_data=test_prob_data, years=years,
+                         start=start, eligibility=eligibility, name=name, label=label)
+
+        # Deal with eligibility - default is undiagnosed people
         if self.eligibility is None:
             self.eligibility = lambda sim: ~sim.diseases.hiv.diagnosed
+
+        # Newborn test
         self.newborn_test = newborn_test
-        # Per-pathway delay from diagnosis to scheduled ART start
-        self.dur_dx2tx = dur_dx2tx if dur_dx2tx is not None else ss.constant(0)
+        
+        # Deal with pars
+        self.define_pars(
+            dur_dx2tx=ss.constant(0),
+        )
+        self.update_pars(pars, **kwargs)
 
     def step(self, uids=None):
         sim = self.sim
@@ -112,7 +122,7 @@ class HIVTest(STITest):
         # Schedule ART start for those not already on ART
         to_schedule = pos_uids[~hiv.on_art[pos_uids]]
         if len(to_schedule):
-            delay = np.asarray(self.dur_dx2tx.rvs(to_schedule)).astype(int)
+            delay = self.pars.dur_dx2tx.rvs(to_schedule, round=True)
             hiv.ti_art[to_schedule] = self.ti + delay
 
         # Schedule infant HIV test for unborn children of newly diagnosed mothers
