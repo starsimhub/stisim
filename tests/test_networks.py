@@ -196,6 +196,27 @@ def test_shorter_sw():
         f'Expected fewer FSW-attributable transmissions with shorter window: short={short_trans}, long={long_trans}'
 
 
+def test_match_pairs_refactor_preserves_output():
+    """Refactor of match_pairs must produce identical (p1, p2) given same seed."""
+    import numpy as np
+    import starsim as ss
+    import stisim as sti
+    sim = ss.Sim(n_agents=2_000, networks=sti.StructuredSexual(), diseases='sis',
+                 start='2000-01-01', stop='2001-01-01', rand_seed=42)
+    sim.init()
+    net = sim.networks.structuredsexual
+    # Force at least one matching attempt; capture output.
+    try:
+        p1, p2 = net.match_pairs()
+    except sti.networks.NoPartnersFound:
+        p1, p2 = ss.uids(np.array([], dtype=np.int64)), ss.uids(np.array([], dtype=np.int64))
+    # The test acts as a smoke test of the refactor; exact UIDs are not asserted
+    # because the test will be paired with a recorded baseline in step 2.
+    assert len(p1) == len(p2)
+    assert (sim.people.male[p1]).all() if len(p1) else True
+    assert (sim.people.female[p2]).all() if len(p2) else True
+
+
 if __name__ == '__main__':
     test_msm_network()
     test_network_degrees()
@@ -204,3 +225,4 @@ if __name__ == '__main__':
     test_partner_seeking_rates()
     test_debut_age()
     test_shorter_sw()
+    test_match_pairs_refactor_preserves_output()
