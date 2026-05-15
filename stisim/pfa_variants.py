@@ -11,6 +11,16 @@ import scipy.spatial as spsp
 import starsim as ss
 from .networks import MFNetwork, NoPartnersFound
 
+__all__ = [
+    'MFNetwork_LSA',
+    'MFNetwork_SortPair',
+    'MFNetwork_DesiredAgeBucket',
+    'MFNetwork_SortBisect',
+    'MFNetwork_GreedyOldEnough',
+    'MFNetwork_KDTreeNN',
+    'MFNetwork_BandMatch',
+]
+
 
 class MFNetwork_LSA(MFNetwork):
     """Linear sum assignment on the full age-distance matrix. O(n^3)."""
