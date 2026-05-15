@@ -511,8 +511,7 @@ class HIV(BaseSTI):
         self.results['cum_deaths'][ti] = np.sum(self.results['new_deaths'][:ti + 1])
         self.results['new_diagnoses'][ti] = np.count_nonzero(self.ti_diagnosed == ti)
         self.results['cum_diagnoses'][ti] = np.sum(self.results['new_diagnoses'][:ti + 1])
-        # ti_art may also hold a scheduled future start; gate on on_art for actual starts
-        self.results['new_agents_on_art'][ti] = sum((self.ti_art == ti) & self.on_art)
+        self.results['new_agents_on_art'][ti] = sum((self.ti_art == ti) & self.on_art)  # gate on on_art; ti_art may also hold a scheduled future start
         if self.include_mtct:
             pregnant = self.sim.people.pregnancy.pregnant
             self.results['n_on_art_pregnant'][ti] = np.count_nonzero(self.on_art & pregnant)

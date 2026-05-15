@@ -55,16 +55,24 @@ class HIVTest(STITest):
         5. If coverage data is provided, ART corrects to match targets
 
     Args:
-        test_prob_data: annual testing probability (if dt_scale=True, the default).
+        product: diagnostic product (default: :class:`HIVDx`).
+        pars (dict): override default pars (``rel_test``, ``dt_scale``, ``dur_dx2tx``).
+        test_prob_data: annual testing probability (if ``dt_scale=True``, the default).
             A value of 0.1 means ~10% of eligible agents tested per year. To
-            specify a per-timestep probability instead, set dt_scale=False.
+            specify a per-timestep probability instead, set ``dt_scale=False``.
+        years (array): years over which testing is active (mutually exclusive with ``start``).
+        start (float): calendar year when testing begins.
         eligibility (func): who can be tested. Default: undiagnosed agents.
-        start (float): calendar year when testing begins
-        dt_scale (bool): if True (default), test_prob_data is an annual probability.
-            Set to False for per-timestep probability.
-        dur_dx2tx: delay from diagnosis to ART start, as a distribution
-            (default: ``ss.constant(0)``, no delay).
-            Example: ``ss.constant(ss.years(0.5))`` for a 6-month delay.
+        name, label: standard module identifiers.
+        newborn_test (:class:`InfantHIVTest`): if supplied, schedules an infant
+            HIV test at delivery for unborn children of mothers who test
+            positive (requires ``ss.MaternalNet`` and ``ss.Pregnancy`` in the sim).
+        dur_dx2tx (ss.Dist): delay from diagnosis to scheduled ART start
+            (default: ``ss.constant(0)``, no delay). May be passed directly
+            or via the ``pars`` dict. Example: ``ss.constant(ss.years(0.5))``
+            for a 6-month delay.
+        dt_scale (bool): if ``True`` (default), ``test_prob_data`` is an annual probability.
+            Set to ``False`` for per-timestep probability.
 
     Example::
 
@@ -93,7 +101,9 @@ class HIVTest(STITest):
     """
     def __init__(self, product=None, pars=None, test_prob_data=None, years=None, start=None,
                  eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
-        if product is None: product = HIVDx(name=f'HIVDx_{name}')
+        if product is None:
+            suffix = f'_{name}' if name else ''
+            product = HIVDx(name=f'HIVDx{suffix}')
 
         # Super init
         super().__init__(product=product, test_prob_data=test_prob_data, years=years,
