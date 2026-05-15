@@ -2,10 +2,23 @@
 
 All notable changes to the codebase are documented in this file.
 
-## Version 1.5.5 (TBC)
+## Version 1.5.5 (2026-05-15)
+
+### Sim / parameter routing
+- Add `sti.route_pars` utility (in `stisim/utils.py`) that auto-discovers par categories (sim, sti, nw, dem) from the par-class registry and routes flat kwargs accordingly. Cross-category clashes broadcast to all matches with a printed note; unknown keys raise when `strict=True`. `sti.Sim.separate_pars` now delegates to it and shrinks from ~95 to ~30 lines. (#451, #452)
+- Auto-add coinfection connectors when `diseases=[...]` is supplied without an explicit `connectors=`. Lookup tries `sti.<d1>_<d2>` then `sti.<d2>_<d1>`; pairs with no registered class are silently skipped. Replaces the previous `NotImplementedError` stub. (#442, #453)
+- Route flat connector pars (e.g. `rel_sus_hiv_syph=3.5`) through to the matching connector instance. (#442, #453)
 
 ### Interventions
-- Replace `PartnerNotification` with a `PriorPartners`-based implementation. Two channels (current sexual network, optional prior-partner recall network) each with separate notification × attendance probabilities. Tracks notifications and attendance per-channel. The previous transmission-graph-based version is removed. New gallery example `docs/examples/partner_notification.qmd`.
+- Replace `PartnerNotification` with a `PriorPartners`-based implementation. Two channels (current sexual network, optional prior-partner recall network) each with separate notification × attendance probabilities. Tracks notifications and attendance per-channel. The previous transmission-graph-based version is removed. New gallery example `docs/examples/partner_notification.qmd`. (#457)
+- Add `dur_dx2tx` parameter to `HIVTest` (default `ss.constant(0)`) for the delay between HIV diagnosis and ART start. `HIVTest` now schedules `hiv.ti_art = ti + delay` on positive results; `ART` becomes passive and starts agents whose `ti_art == ti & ~on_art`. `ANCTest` and initially-diagnosed cases schedule with no delay (backward compatible). (#398, #464)
+- Fix `ART` stratified coverage to allocate per-(age, sex) stratum independently. Previously, stratified coverage data was parsed correctly but then collapsed to a single aggregate target before correction, washing out the age/sex differentials in the input. New `compute_stratum_targets` helper in `interventions/utils.py`. (#463)
+
+### HIV
+- `new_agents_on_art` result now gates on `on_art` (since `ti_art` may also hold a scheduled future start). (#464)
+
+### Documentation
+- New gallery example `docs/examples/vmmc_costing.qmd`: attach unit costs to `sim.results`, discount, and compute an ICER for VMMC vs no-VMMC, framed as a quick STIsim analog of Bansi-Matharu et al., [Lancet Global Health 2023;11(2):e244–e255](https://www.thelancet.com/journals/langlo/article/PIIS2214-109X(22)00515-0/fulltext). (#455, #465)
 
 ## Version 1.5.4 (2026-05-04)
 
