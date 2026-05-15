@@ -37,7 +37,7 @@ LSA_MAX_N = 5_000
 
 
 def run_generic(n_agents_list, n_reps, sim_years):
-    """Generic benchmark on ss.Sim with bare MFNetwork variants (no diseases)."""
+    """Generic benchmark on ss.Sim + MFNetwork variant + HIV."""
     results = sc.objdict()
     for n in n_agents_list:
         for name, cls in VARIANTS:
@@ -52,7 +52,7 @@ def run_generic(n_agents_list, n_reps, sim_years):
                     start='2000-01-01',
                     stop=f'{2000+sim_years}-01-01',
                     networks=cls(),
-                    diseases=[],   # network-only benchmark (avoids eff_condom dependency)
+                    diseases=sti.HIV(),
                     analyzers=[PartnersLastYearAnalyzer(), PairAgeHeatmapAnalyzer()],
                     rand_seed=rep,
                     verbose=0,
