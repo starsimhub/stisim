@@ -164,6 +164,39 @@ if rt_prev:
 if not rt_inc and not rt_prev:
     print('No SW edges in this run (generic block uses bare MFNetwork variants).')"""))
 
+cells.append(nbf.v4.new_markdown_cell("""\
+## Figure 4: Zimbabwe age mixing (calibrated context)
+
+The generic block runs with bare `MFNetwork_*` variants. Zimbabwe uses the
+full `StructuredSexual` (MF + SW) and a calibrated HIV module. The same
+incidence vs prevalence pattern should appear but is more pronounced because
+the calibrated sim runs longer and has more pairs to draw on."""))
+
+cells.append(nbf.v4.new_code_cell("""\
+if not hasattr(results, 'zimbabwe') or not results.zimbabwe:
+    print('No Zimbabwe results in this file.')
+else:
+    def _collect_zim(field, rt_filter):
+        all_methods = sorted({k[0] for k in results.zimbabwe.keys()})
+        by = {(m, rt): [] for m in all_methods for rt in rt_filter}
+        for (m, _, rep), v in results.zimbabwe.items():
+            for r in v[field]:
+                key = (m, r['rel_type'])
+                if key in by:
+                    by[key].append((r['age_male'], r['age_female']))
+        methods = [m for m in all_methods if any(by[(m, rt)] for rt in rt_filter)]
+        rel_types = [rt for rt in rt_filter
+                     if sum(len(by[(m, rt)]) for m in methods) >= 50]
+        return by, methods, rel_types
+
+    by, methods, rts = _collect_zim('pair_formation_ages', MF_RT)
+    _heatmap_grid(by, methods, rts, 'Zimbabwe MF incidence (pair formation)')
+    by, methods, rts = _collect_zim('pair_prevalence', MF_RT)
+    _heatmap_grid(by, methods, rts, 'Zimbabwe MF prevalence (active at sim end)')
+    by, methods, rts = _collect_zim('pair_formation_ages', ('sw',))
+    if rts:
+        _heatmap_grid(by, methods, rts, 'Zimbabwe SW incidence (pair formation)')"""))
+
 cells.append(nbf.v4.new_markdown_cell("## Figure 4: lifetime partner distribution"))
 
 cells.append(nbf.v4.new_code_cell("""\
