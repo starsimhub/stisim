@@ -87,27 +87,27 @@ def test_sortbisect_variant_runs():
 def test_greedy_old_enough_runs():
     net = MFNetwork_GreedyOldEnough()
     sim, p1, p2 = _match_once(net, n_agents=500)
+    assert len(p1) > 0
     _assert_valid_pairs(p1, p2, sim)
-    if len(p1):
-        # No replacement: each man appears at most once in p1.
-        assert len(np.unique(p1)) == len(p1)
-        assert len(np.unique(p2)) == len(p2)
+    # No replacement: each man appears at most once in p1.
+    assert len(np.unique(p1)) == len(p1)
+    assert len(np.unique(p2)) == len(p2)
 
 
 def test_kdtree_nn_runs():
     net = MFNetwork_KDTreeNN()
     sim, p1, p2 = _match_once(net, n_agents=500)
+    assert len(p1) > 0
     _assert_valid_pairs(p1, p2, sim)
-    if len(p1):
-        # Each male assigned at most once after collision resolution.
-        assert len(np.unique(p1)) == len(p1)
+    # Each male assigned at most once after collision resolution.
+    assert len(np.unique(p1)) == len(p1)
 
 
 def test_band_match_runs():
     net = MFNetwork_BandMatch()
     sim, p1, p2 = _match_once(net, n_agents=500)
+    assert len(p1) > 0
     _assert_valid_pairs(p1, p2, sim)
-    if len(p1):
-        # No replacement: each man and woman appears at most once.
-        assert len(np.unique(p1)) == len(p1)
-        assert len(np.unique(p2)) == len(p2)
+    # No replacement: each man and woman appears at most once.
+    assert len(np.unique(p1)) == len(p1)
+    assert len(np.unique(p2)) == len(p2)
