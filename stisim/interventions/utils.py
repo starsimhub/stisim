@@ -436,3 +436,37 @@ def compute_coverage_target(coverage, coverage_format, age_bins, sex_keys,
     n_eligible = len(eligible_uids)
     return coverage_to_number(cov_val, fmt,
                               pop_scale=sim.pars.pop_scale, n_eligible=n_eligible)
+
+
+def compute_stratum_targets(coverage, coverage_format, age_bins, sex_keys,
+                            ti, eligible_uids, sim):
+    """
+    Compute per-(age_bin, sex) target counts for stratified coverage.
+
+    Returns a dict keyed by ``(age_bin, sex)`` (or ``age_bin`` if there is no
+    sex stratification) mapping to the integer target count for that stratum.
+    Returns ``None`` if coverage is absent or not stratified — in that case
+    callers should fall back to the aggregate target from
+    :func:`compute_coverage_target`.
+
+    The sum of the values matches the total returned by
+    :func:`compute_coverage_target` for the same inputs, but keeping the
+    per-stratum granularity lets callers allocate within each stratum
+    independently (preserving the age/sex differentials in the input data).
+    """
+    if coverage is None or not isinstance(coverage, dict):
+        return None
+
+    fmt = coverage_format[ti] if isinstance(coverage_format, np.ndarray) else coverage_format
+
+    targets = {}
+    for ab in age_bins:
+        for sex in (sex_keys or [None]):
+            key = (ab, sex) if sex is not None else ab
+            cov = coverage.get(key, np.zeros(1))
+            cov_val = cov[ti] if len(cov) > ti else cov[-1]
+
+            n = (age_sex_mask(ab, sex, sim.people) & eligible_uids).count()
+            targets[key] = coverage_to_number(cov_val, fmt,
+                                              pop_scale=sim.pars.pop_scale, n_eligible=n)
+    return targets

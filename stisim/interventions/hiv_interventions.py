@@ -7,7 +7,7 @@ import starsim as ss
 import numpy as np
 from stisim.interventions.base_interventions import STITest
 from stisim.interventions.utils import (
-    parse_coverage, compute_coverage_target,
+    parse_coverage, compute_coverage_target, compute_stratum_targets, age_sex_mask,
 )
 from stisim.utils import count
 
@@ -49,18 +49,30 @@ class HIVTest(STITest):
 
         1. HIVTest tests eligible agents each timestep (annual probability, converted via ss.probperyear)
         2. Positive results set hiv.diagnosed=True and hiv.ti_diagnosed
-        3. ART checks for newly diagnosed agents (ti_diagnosed == current ti)
-        4. Newly diagnosed agents initiate ART with probability art_initiation
+        3. HIVTest samples dur_dx2tx and sets hiv.ti_art = ti + delay (scheduled start)
+        4. ART picks up agents whose ti_art == current ti (and not yet on_art),
+           filters by art_initiation, and puts them on ART
         5. If coverage data is provided, ART corrects to match targets
 
     Args:
-        test_prob_data: annual testing probability (if dt_scale=True, the default).
+        product: diagnostic product (default: :class:`HIVDx`).
+        pars (dict): override default pars (``rel_test``, ``dt_scale``, ``dur_dx2tx``).
+        test_prob_data: annual testing probability (if ``dt_scale=True``, the default).
             A value of 0.1 means ~10% of eligible agents tested per year. To
-            specify a per-timestep probability instead, set dt_scale=False.
+            specify a per-timestep probability instead, set ``dt_scale=False``.
+        years (array): years over which testing is active (mutually exclusive with ``start``).
+        start (float): calendar year when testing begins.
         eligibility (func): who can be tested. Default: undiagnosed agents.
-        start (float): calendar year when testing begins
-        dt_scale (bool): if True (default), test_prob_data is an annual probability.
-            Set to False for per-timestep probability.
+        name, label: standard module identifiers.
+        newborn_test (:class:`InfantHIVTest`): if supplied, schedules an infant
+            HIV test at delivery for unborn children of mothers who test
+            positive (requires ``ss.MaternalNet`` and ``ss.Pregnancy`` in the sim).
+        dur_dx2tx (ss.Dist): delay from diagnosis to scheduled ART start
+            (default: ``ss.constant(0)``, no delay). May be passed directly
+            or via the ``pars`` dict. Example: ``ss.constant(ss.years(0.5))``
+            for a 6-month delay.
+        dt_scale (bool): if ``True`` (default), ``test_prob_data`` is an annual probability.
+            Set to ``False`` for per-timestep probability.
 
     Example::
 
@@ -89,19 +101,39 @@ class HIVTest(STITest):
     """
     def __init__(self, product=None, pars=None, test_prob_data=None, years=None, start=None,
                  eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
-        if product is None: product = HIVDx(name=f'HIVDx_{name}')
-        super().__init__(product=product, pars=pars, test_prob_data=test_prob_data, years=years,
-                         start=start, eligibility=eligibility, name=name, label=label, **kwargs)
+        if product is None:
+            suffix = f'_{name}' if name else ''
+            product = HIVDx(name=f'HIVDx{suffix}')
+
+        # Super init
+        super().__init__(product=product, test_prob_data=test_prob_data, years=years,
+                         start=start, eligibility=eligibility, name=name, label=label)
+
+        # Deal with eligibility - default is undiagnosed people
         if self.eligibility is None:
             self.eligibility = lambda sim: ~sim.diseases.hiv.diagnosed
+
+        # Newborn test
         self.newborn_test = newborn_test
+        
+        # Deal with pars
+        self.define_pars(
+            dur_dx2tx=ss.constant(0),
+        )
+        self.update_pars(pars, **kwargs)
 
     def step(self, uids=None):
         sim = self.sim
         outcomes = super().step(uids=uids)
         pos_uids = outcomes['positive']
-        sim.diseases.hiv.diagnosed[pos_uids] = True
-        sim.diseases.hiv.ti_diagnosed[pos_uids] = self.ti
+        hiv = sim.diseases.hiv
+        hiv.diagnosed[pos_uids] = True
+        hiv.ti_diagnosed[pos_uids] = self.ti
+        # Schedule ART start for those not already on ART
+        to_schedule = pos_uids[~hiv.on_art[pos_uids]]
+        if len(to_schedule):
+            delay = self.pars.dur_dx2tx.rvs(to_schedule, round=True)
+            hiv.ti_art[to_schedule] = self.ti + delay
 
         # Schedule infant HIV test for unborn children of newly diagnosed mothers
         if self.newborn_test is not None and len(pos_uids):
@@ -154,14 +186,18 @@ class ART(ss.Intervention):
 
     Processing flow each timestep:
         1. Agents scheduled to stop ART are removed
-        2. Newly diagnosed agents (ti_diagnosed == this timestep) are filtered
-           by art_initiation probability
+        2. Agents whose scheduled ART start has arrived (ti_art == this timestep
+           and not on_art) are filtered by art_initiation probability
         3. If coverage is specified: agents are added/removed to match the target
            number, prioritized by CD4 count and care-seeking propensity
-        4. If no coverage is specified: all newly diagnosed who pass art_initiation
-           go directly on ART (no capacity constraint)
+        4. If no coverage is specified: all who pass art_initiation go on ART
+           (no capacity constraint)
         5. Mothers on ART reduce infant susceptibility (prenatal via MaternalNet,
            postnatal via BreastfeedingNet) by pmtct_efficacy
+
+    The scheduling (setting ti_art) is owned by the testing intervention that
+    diagnoses the agent (HIVTest, ANCTest). ART here is passive: it picks up
+    whoever is ready to start.
 
     Coverage is parsed by :func:`parse_coverage` and accepts:
         - ``None``: no coverage target; treat all who initiate (default)
@@ -252,23 +288,41 @@ class ART(ss.Intervention):
         return
 
     def _get_n_to_treat(self, eligible_uids):
-        """Get the target number of people on ART this timestep."""
-        return compute_coverage_target(
+        """
+        Get the target number of people on ART this timestep.
+
+        Returns ``(total, stratum_targets)`` where:
+            - ``total`` is the aggregate target (or ``None`` if no coverage)
+            - ``stratum_targets`` is a dict ``{(age_bin, sex): n}`` for
+              stratified coverage, else ``None``.
+
+        When ``stratum_targets`` is not ``None``, callers should correct
+        coverage *within each stratum* rather than against the aggregate
+        total — otherwise allocation by global CD4 priority will wash out
+        the age/sex differentials in the input data.
+        """
+        total = compute_coverage_target(
             self.coverage, self.coverage_format, self.age_bins, self.sex_keys,
             self.ti, eligible_uids, self.sim,
         )
+        stratum_targets = compute_stratum_targets(
+            self.coverage, self.coverage_format, self.age_bins, self.sex_keys,
+            self.ti, eligible_uids, self.sim,
+        )
+        return total, stratum_targets
 
     def step(self):
         """
         Apply ART at each timestep: stop ART for those scheduled, initiate for newly diagnosed,
-        and correct overall coverage to match targets.
+        and correct coverage to match targets (per-stratum when stratified data is supplied,
+        otherwise against the aggregate total).
         """
         sim = self.sim
         hiv = sim.diseases.hiv
         inf_uids = hiv.infected.uids
 
         # Determine treatment target (None = no capacity constraint)
-        n_to_treat = self._get_n_to_treat(inf_uids)
+        n_to_treat, stratum_targets = self._get_n_to_treat(inf_uids)
 
         # Check who is stopping ART
         if hiv.on_art.any():
@@ -280,10 +334,10 @@ class ART(ss.Intervention):
                     errormsg = f'Error stopping ART for {stopping.uids}'
                     raise ValueError(errormsg)
 
-        # Initiate ART for newly diagnosed
-        diagnosed = hiv.ti_diagnosed == self.ti
-        if len(diagnosed.uids):
-            dx_to_treat = self.pars.art_initiation.filter(diagnosed.uids)
+        # Initiate ART for agents whose scheduled start time has arrived
+        ready = ((hiv.ti_art == self.ti) & ~hiv.on_art).uids
+        if len(ready):
+            dx_to_treat = self.pars.art_initiation.filter(ready)
 
             if n_to_treat is None:
                 # No coverage target — treat all who initiate
@@ -295,9 +349,11 @@ class ART(ss.Intervention):
                 if n_available_spots > 0:
                     self.prioritize_art(sim, n=n_available_spots, awaiting_art_uids=dx_to_treat)
 
-        # Correct coverage to match target (only if target is set)
+        # Correct coverage to match target (only if target is set).
+        # Stratified targets get per-stratum correction; aggregate gets global.
         if n_to_treat is not None:
-            self.art_coverage_correction(sim, target_coverage=n_to_treat)
+            self.art_coverage_correction(sim, target_coverage=n_to_treat,
+                                         stratum_targets=stratum_targets)
 
         # PMTCT: reduce susceptibility of infants whose mothers are on ART.
         # This applies to both prenatal (MaternalNet) and postnatal (BreastfeedingNet)
@@ -329,7 +385,8 @@ class ART(ss.Intervention):
         """ Prioritize ART to n agents among those awaiting treatment """
         hiv = sim.diseases.hiv
         if awaiting_art_uids is None:
-            awaiting_art_uids = (hiv.diagnosed & ~hiv.on_art).uids
+            # Agents whose scheduled ART start has arrived but who aren't on ART yet
+            awaiting_art_uids = ((hiv.ti_art <= self.ti) & ~hiv.on_art).uids
 
         # Enough spots for everyone
         if n > len(awaiting_art_uids):
@@ -347,8 +404,23 @@ class ART(ss.Intervention):
 
         return
 
-    def art_coverage_correction(self, sim, target_coverage=None):
-        """ Adjust ART coverage to match data """
+    def art_coverage_correction(self, sim, target_coverage=None, stratum_targets=None):
+        """
+        Adjust ART coverage to match data.
+
+        If ``stratum_targets`` is supplied, correction is done independently
+        within each ``(age_bin, sex)`` stratum so that age/sex differentials
+        in the input data are preserved. Otherwise, correction is done
+        globally against ``target_coverage``.
+        """
+        if stratum_targets is not None:
+            self._art_coverage_correction_stratified(sim, stratum_targets)
+        else:
+            self._art_coverage_correction_global(sim, target_coverage)
+        return
+
+    def _art_coverage_correction_global(self, sim, target_coverage):
+        """ Adjust ART coverage globally to match an aggregate target """
         hiv = sim.diseases.hiv
         on_art = hiv.on_art
 
@@ -364,11 +436,55 @@ class ART(ss.Intervention):
             hiv.ti_stop_art[stop_uids] = self.ti
             hiv.stop_art(stop_uids)
 
-        # Not enough on treatment → add
+        # Not enough on treatment → add (only those whose scheduled start has arrived)
         elif len(on_art.uids) < target_coverage:
             n_to_add = target_coverage - len(on_art.uids)
-            awaiting_art_uids = (hiv.diagnosed & ~hiv.on_art).uids
+            awaiting_art_uids = ((hiv.ti_art <= self.ti) & ~hiv.on_art).uids
             self.prioritize_art(sim, n=n_to_add, awaiting_art_uids=awaiting_art_uids)
+
+        return
+
+    def _art_coverage_correction_stratified(self, sim, stratum_targets):
+        """
+        Adjust ART coverage independently within each (age_bin, sex) stratum.
+
+        This preserves the age/sex differentials in the stratified coverage
+        input — e.g. young men and older women each reach their own target
+        rather than being averaged out by a global CD4-priority allocation.
+        Within a stratum, removals still drop the highest-CD4 agents first
+        and additions still prioritize the lowest-CD4 agents (same priority
+        rule as the global path).
+        """
+        hiv = sim.diseases.hiv
+        ppl = sim.people
+
+        for key, target_n in stratum_targets.items():
+            # key is (age_bin, sex) when sex-stratified, else age_bin only
+            if isinstance(key, tuple):
+                ab, sex = key
+            else:
+                ab, sex = key, None
+
+            in_stratum = age_sex_mask(ab, sex, ppl) & ppl.alive & hiv.infected
+            on_art_in_stratum = (in_stratum & hiv.on_art).uids
+            n_on_art = len(on_art_in_stratum)
+
+            # Too many on treatment in this stratum → remove highest-CD4
+            if n_on_art > target_n:
+                n_to_stop    = n_on_art - target_n
+                cd4_counts   = hiv.cd4[on_art_in_stratum]
+                care_seeking = hiv.care_seeking[on_art_in_stratum]
+                weights      = cd4_counts / care_seeking
+                choices      = np.argsort(-weights)[:n_to_stop]
+                stop_uids    = on_art_in_stratum[choices]
+                hiv.ti_stop_art[stop_uids] = self.ti
+                hiv.stop_art(stop_uids)
+
+            # Not enough in this stratum → add from diagnosed in same stratum
+            elif n_on_art < target_n:
+                n_to_add = target_n - n_on_art
+                awaiting_art_uids = (in_stratum & hiv.diagnosed & ~hiv.on_art).uids
+                self.prioritize_art(sim, n=n_to_add, awaiting_art_uids=awaiting_art_uids)
 
         return
 
