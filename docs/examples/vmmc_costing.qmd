@@ -73,10 +73,11 @@ def make_sim(use_vmmc, rand_seed=1):
             coverage={'year': [2010, 2025], 'value': [0, 0.6]},
             name='vmmc',
         ))
-    return hivsim.demo('simple', run=False, plot=False,
-                       interventions=interventions,
-                       label='With VMMC' if use_vmmc else 'No VMMC',
-                       **{**sim_kwargs, 'rand_seed': rand_seed})
+    sim = hivsim.demo('simple', run=False, plot=False,
+                      interventions=interventions,
+                      label='With VMMC' if use_vmmc else 'No VMMC',
+                      **{**sim_kwargs, 'rand_seed': rand_seed})
+    return sim
 ```
 
 ## Running scenarios
@@ -97,9 +98,9 @@ yearvec  = vmmc_sim.t.yearvec
 new_circ = vmmc_sim.results.vmmc.new_circumcisions
 new_inf  = {label: sim.results.hiv.new_infections for label, sim in results.items()}
 
-print(f'Total VMMCs:                    {int(new_circ.sum()):>6,d}')
-print(f'New HIV infections, No VMMC:    {int(new_inf["No VMMC"].sum()):>6,d}')
-print(f'New HIV infections, With VMMC:  {int(new_inf["With VMMC"].sum()):>6,d}')
+print(f'Total VMMCs:                    {int(new_circ.sum()):n}')
+print(f'New HIV infections, No VMMC:    {int(new_inf["No VMMC"].sum()):n}')
+print(f'New HIV infections, With VMMC:  {int(new_inf["With VMMC"].sum()):n}')
 ```
 
 ## Discounting
@@ -123,8 +124,8 @@ infections_no_vmmc   = float(np.sum(new_inf['No VMMC']   * discount))
 infections_with_vmmc = float(np.sum(new_inf['With VMMC'] * discount))
 infections_averted   = infections_no_vmmc - infections_with_vmmc
 
-print(f'Discounted VMMC cost:           ${cost_vmmc_programme:>10,.0f}')
-print(f'Discounted infections averted:  {infections_averted:>10,.1f}')
+print(f'Discounted VMMC cost:           ${int(cost_vmmc_programme):n}')
+print(f'Discounted infections averted:  {infections_averted:.1f}')
 ```
 
 ## ICER
@@ -137,36 +138,36 @@ $$\text{ICER} = \frac{\Delta\text{Cost}}{\Delta\text{Infections averted}}$$
 ```{python}
 if infections_averted > 0:
     icer = cost_vmmc_programme / infections_averted
-    print(f'ICER: ${icer:,.0f} per HIV infection averted')
+    print(f'ICER: ${int(icer):n} per HIV infection averted')
 else:
     print('No infections averted in this run — increase n_agents, duration, or coverage.')
 ```
 
-## Visualising the cascade
+## Visualizing the cascade
 
 ```{python}
-fig, axes = plt.subplots(1, 3, figsize=(13, 4))
+fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(13, 4))
 
 # Left: cumulative VMMCs
-axes[0].plot(yearvec, np.cumsum(new_circ), lw=2, color='tab:blue')
-axes[0].set_xlabel('Year')
-axes[0].set_ylabel('Cumulative VMMCs')
-axes[0].set_title('VMMC uptake')
+ax0.plot(yearvec, np.cumsum(new_circ), lw=2, color='tab:blue')
+ax0.set_xlabel('Year')
+ax0.set_ylabel('Cumulative VMMCs')
+ax0.set_title('VMMC uptake')
 
 # Middle: cumulative HIV infections (both scenarios)
 for label, infs in new_inf.items():
-    axes[1].plot(yearvec, np.cumsum(infs), label=label, lw=2)
-axes[1].set_xlabel('Year')
-axes[1].set_ylabel('Cumulative HIV infections')
-axes[1].set_title('HIV infections')
-axes[1].legend()
+    ax1.plot(yearvec, np.cumsum(infs), label=label, lw=2)
+ax1.set_xlabel('Year')
+ax1.set_ylabel('Cumulative HIV infections')
+ax1.set_title('HIV infections')
+ax1.legend()
 
 # Right: cumulative discounted cost
-axes[2].plot(yearvec, np.cumsum(new_circ * unit_cost_vmmc * discount),
-             lw=2, color='tab:red')
-axes[2].set_xlabel('Year')
-axes[2].set_ylabel('Cumulative discounted cost (USD)')
-axes[2].set_title('VMMC programme cost')
+ax2.plot(yearvec, np.cumsum(new_circ * unit_cost_vmmc * discount),
+         lw=2, color='tab:red')
+ax2.set_xlabel('Year')
+ax2.set_ylabel('Cumulative discounted cost (USD)')
+ax2.set_title('VMMC programme cost')
 
 sc.figlayout()
 plt.show()
@@ -174,32 +175,42 @@ plt.show()
 
 ## Comparison to Bansi-Matharu et al.
 
-The paper reports VMMC as **cost-saving** in South Africa and Malawi
-across all five models, and cost-effective in 68% of all sub-Saharan
-African settings at a $500/DALY threshold. With ~20–30 DALYs averted
-per HIV infection prevented (varying with age at infection, ART access,
-and life expectancy), an ICER of a few thousand dollars per infection
-averted maps to roughly $100–$200 per DALY — comfortably below their
-threshold. Our toy run lands in that ballpark, consistent with the
-paper's qualitative conclusion that VMMC continues to be a high-value
-intervention even with ART scale-up.
+Our run gives an ICER of roughly **$3,000 per HIV infection averted**.
+Using a typical conversion of ~25 DALYs averted per adult HIV infection
+prevented in sub-Saharan Africa (a function of age at infection and ART
+access), this maps to **~$120 per DALY averted** — well below the
+$500/DALY threshold used in the paper.
 
-A real CEA would tighten this up considerably:
+What matches: VMMC is cost-effective at the paper's threshold.
 
-- **DALYs, not infections**, as the primary effect measure (with QALYs
-  for high-income comparators).
-- **Longer time horizon** — the paper uses 50 years to capture
-  downstream transmission and ART costs averted.
-- **Multiple seeds and full probabilistic sensitivity analysis** on all
-  unit costs and the discount rate, rather than a single point estimate.
-- **Setting-specific demographic, network, and coverage data** (the
-  paper draws on UNAIDS estimates for each country).
-- **Multiple models** — the strength of Bansi-Matharu et al. is
-  cross-model agreement; one model is never enough for a policy claim.
+What does not: the paper finds VMMC fully **cost-saving** (negative
+ICER) in South Africa and Malawi, meaning cumulative averted ART and
+treatment costs exceed VMMC programme costs. We do not reproduce that
+result here because our cost side only counts VMMC procedures and does
+not subtract the lifetime ART/care costs averted by preventing each
+infection. Adding those (typically several thousand USD per infection
+prevented in SSA) would shift the ICER substantially negative and
+recover the cost-saving result.
 
-The point of this example is not to replicate any of that. It's to
-show how cheaply you can wire `sim.results` into a costing pipeline
-and start asking the right questions.
+Other differences from a full CEA along the lines of the paper:
+
+- The paper uses DALYs (with age-at-infection-aware weights) as the
+  primary effect measure. We use infections averted as a proxy because
+  STIsim does not compute DALYs out of the box.
+- The paper uses a 50-year time horizon; we use 20. A longer horizon
+  captures more downstream transmission and more averted ART costs.
+- The paper runs probabilistic sensitivity analysis on unit costs and
+  the discount rate; we use a single deterministic point estimate.
+- The paper draws on UNAIDS country-specific demographic, network, and
+  coverage data; we use a generic SSA-like sim.
+- The paper combines results from five independent models, which is
+  what makes its conclusion robust. A single-model estimate is more
+  uncertain — useful for an order-of-magnitude answer, not for a
+  policy recommendation on its own.
+
+This example shows how to combine the per-timestep results in
+`sim.results` with unit costs and discounting to compute an ICER — not
+how to do a full cost-effectiveness analysis.
 
 ## Key takeaways
 
