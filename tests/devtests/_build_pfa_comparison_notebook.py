@@ -76,56 +76,93 @@ plt.tight_layout()
 plt.show()"""))
 
 cells.append(nbf.v4.new_markdown_cell("""\
-## Figure 3: male vs female age heatmaps per rel_type
+## Figure 3a: incidence — pair age at formation (MF rel_types only)
 
-Hexbin density of (male age, female age) for pairs formed in the last year. Red dashed
-line = age equality. Drops 'onetime' because at the tested scales it has too few records
-to plot meaningfully. Aggregates across reps to get smoother density."""))
+Hexbin density of (male age, female age) for **every pair formed over the full
+sim**. Each cell shows pair formation density for one method × rel_type. SW
+relationships are excluded — they have different age dynamics and are shown
+separately in fig 3c. Red dashed line = age equality; expected pattern is a
+ridge **above** the diagonal (males ~7-8 yrs older than females per
+`age_diff_pars`)."""))
 
 cells.append(nbf.v4.new_code_cell("""\
-all_methods = sorted({k[0] for k in results.generic.keys()})
-n_max = max({k[1] for k in results.generic.keys()})
+MF_RT = ('stable', 'casual', 'onetime')
 
-# Aggregate (age_p1, age_p2) per (method, rel_type) at n_max.
-records_by = {(m, rt): [] for m in all_methods for rt in ('stable', 'casual', 'onetime')}
-for (m, n, rep), v in results.generic.items():
-    if n != n_max:
-        continue
-    for r in v.pair_age_heatmap:
-        key = (m, r['rel_type'])
-        if key in records_by:
-            records_by[key].append((r['age_p1'], r['age_p2']))
-
-# Drop methods with no records at n_max (e.g. LSA, which is capped at n<n_max).
-methods = [m for m in all_methods if any(records_by[(m, rt)] for rt in ('stable', 'casual', 'onetime'))]
-rel_types = [rt for rt in ('stable', 'casual', 'onetime')
-             if sum(len(records_by[(m, rt)]) for m in methods) >= 50]
-
-# Layout: rel_type rows × method columns -- landscape.
-fig, axes = plt.subplots(len(rel_types), len(methods),
-                         figsize=(2.5*len(methods), 2.8*len(rel_types)),
-                         sharex=True, sharey=True, squeeze=False)
-for i, rt in enumerate(rel_types):
-    for j, method in enumerate(methods):
-        ax = axes[i, j]
-        ages = records_by[(method, rt)]
-        if not ages:
-            ax.text(0.5, 0.5, '(no records)', ha='center', va='center', transform=ax.transAxes)
+def _collect(records_field, rt_filter):
+    all_methods = sorted({k[0] for k in results.generic.keys()})
+    n_max = max({k[1] for k in results.generic.keys()})
+    by = {(m, rt): [] for m in all_methods for rt in rt_filter}
+    for (m, n, rep), v in results.generic.items():
+        if n != n_max:
             continue
-        a1 = np.array([a[0] for a in ages])
-        a2 = np.array([a[1] for a in ages])
-        ax.hexbin(a1, a2, gridsize=25, cmap='viridis', mincnt=1)
-        ax.plot([15, 80], [15, 80], 'r--', alpha=0.5, lw=1)
-        ax.set_xlim(15, 80)
-        ax.set_ylim(15, 80)
-        if i == 0:
-            ax.set_title(method, fontsize=9)
-        if j == 0:
-            ax.set_ylabel(f'{rt}\\nfemale age')
-        if i == len(rel_types)-1:
-            ax.set_xlabel('male age')
-plt.tight_layout()
-plt.show()"""))
+        for r in v[records_field]:
+            key = (m, r['rel_type'])
+            if key in by:
+                by[key].append((r['age_male'], r['age_female']))
+    methods = [m for m in all_methods if any(by[(m, rt)] for rt in rt_filter)]
+    rel_types = [rt for rt in rt_filter
+                 if sum(len(by[(m, rt)]) for m in methods) >= 50]
+    return by, methods, rel_types, n_max
+
+def _heatmap_grid(by, methods, rel_types, title):
+    fig, axes = plt.subplots(len(rel_types), len(methods),
+                             figsize=(2.5*len(methods), 2.8*len(rel_types)),
+                             sharex=True, sharey=True, squeeze=False)
+    for i, rt in enumerate(rel_types):
+        for j, method in enumerate(methods):
+            ax = axes[i, j]
+            ages = by[(method, rt)]
+            if not ages:
+                ax.text(0.5, 0.5, '(no records)', ha='center', va='center', transform=ax.transAxes)
+                continue
+            a1 = np.array([a[0] for a in ages])  # male
+            a2 = np.array([a[1] for a in ages])  # female
+            ax.hexbin(a1, a2, gridsize=25, cmap='viridis', mincnt=1)
+            ax.plot([15, 80], [15, 80], 'r--', alpha=0.5, lw=1)
+            ax.set_xlim(15, 80); ax.set_ylim(15, 80)
+            if i == 0: ax.set_title(method, fontsize=9)
+            if j == 0: ax.set_ylabel(f'{rt}\\nfemale age')
+            if i == len(rel_types)-1: ax.set_xlabel('male age')
+    fig.suptitle(title, y=1.02)
+    plt.tight_layout()
+    plt.show()
+
+by, methods, rel_types, n_max = _collect('pair_formation_ages', MF_RT)
+print(f'n_agents={n_max}, MF rel_types kept:', rel_types)
+print('Records per (method, rel_type):',
+      {k: len(v) for k, v in by.items() if v})
+_heatmap_grid(by, methods, rel_types, f'Incidence: pair formation ages, MF only, n={n_max}')"""))
+
+cells.append(nbf.v4.new_markdown_cell("""\
+## Figure 3b: prevalence — currently active pairs at sim end (MF only)
+
+Same hexbin grid but using a *snapshot* of pairs active at the final sim
+timestep, with the agents' **current** ages. Long-lived pairs are over-
+represented here relative to the incidence view, so age skew may attenuate."""))
+
+cells.append(nbf.v4.new_code_cell("""\
+by, methods, rel_types, n_max = _collect('pair_prevalence', MF_RT)
+print('Records per (method, rel_type):',
+      {k: len(v) for k, v in by.items() if v})
+_heatmap_grid(by, methods, rel_types, f'Prevalence: active pairs at sim end, MF only, n={n_max}')"""))
+
+cells.append(nbf.v4.new_markdown_cell("""\
+## Figure 3c: sex-work network age mixing (shown only if SW records exist)
+
+The generic block uses bare `MFNetwork_*` variants which have no SW layer, so
+this figure is empty for the generic results. For Zimbabwe / Eswatini blocks
+the SW network is active and you'd see different (client × FSW) age dynamics
+here."""))
+
+cells.append(nbf.v4.new_code_cell("""\
+by_inc, methods_inc, rt_inc, _ = _collect('pair_formation_ages', ('sw',))
+by_prev, methods_prev, rt_prev, _ = _collect('pair_prevalence', ('sw',))
+if rt_inc:
+    _heatmap_grid(by_inc, methods_inc, rt_inc, 'SW incidence (formation)')
+if rt_prev:
+    _heatmap_grid(by_prev, methods_prev, rt_prev, 'SW prevalence (at sim end)')
+if not rt_inc and not rt_prev:
+    print('No SW edges in this run (generic block uses bare MFNetwork variants).')"""))
 
 cells.append(nbf.v4.new_markdown_cell("## Figure 4: lifetime partner distribution"))
 

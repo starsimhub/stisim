@@ -20,7 +20,11 @@ import starsim as ss
 import stisim as sti
 
 sys.path.insert(0, str(Path(__file__).parent))
-from pfa_diagnostics import PartnersLastYearAnalyzer, PairAgeHeatmapAnalyzer  # noqa: E402
+from pfa_diagnostics import (  # noqa: E402
+    PartnersLastYearAnalyzer,
+    PairFormationAgesAnalyzer,
+    PairPrevalenceAnalyzer,
+)
 
 
 VARIANTS = [
@@ -53,7 +57,11 @@ def run_generic(n_agents_list, n_reps, sim_years):
                     stop=f'{2000+sim_years}-01-01',
                     networks=cls(),
                     diseases=sti.HIV(),
-                    analyzers=[PartnersLastYearAnalyzer(), PairAgeHeatmapAnalyzer()],
+                    analyzers=[
+                        PartnersLastYearAnalyzer(),
+                        PairFormationAgesAnalyzer(),
+                        PairPrevalenceAnalyzer(),
+                    ],
                     rand_seed=rep,
                     verbose=0,
                 )
@@ -63,7 +71,8 @@ def run_generic(n_agents_list, n_reps, sim_years):
                 results[key] = sc.objdict(
                     wall_time=t.elapsed,
                     partners_last_year=sim.analyzers.partnerslastyearanalyzer.records,
-                    pair_age_heatmap=sim.analyzers.pairageheatmapanalyzer.records,
+                    pair_formation_ages=sim.analyzers.pairformationagesanalyzer.records,
+                    pair_prevalence=sim.analyzers.pairprevalenceanalyzer.records,
                     lifetime_partners=mf_net.lifetime_partners.values.copy(),
                 )
                 print(f'    wall_time={t.elapsed:.2f}s')
@@ -117,7 +126,8 @@ def run_zimbabwe(n_reps, n_agents=10_000, checkpoint=None):
             sim.pars['rand_seed'] = rep
             sim.pars['analyzers'] = list(sim.pars.get('analyzers') or []) + [
                 PartnersLastYearAnalyzer(),
-                PairAgeHeatmapAnalyzer(),
+                PairFormationAgesAnalyzer(),
+                PairPrevalenceAnalyzer(),
             ]
             with sc.timer() as t:
                 sim.run()
@@ -125,7 +135,8 @@ def run_zimbabwe(n_reps, n_agents=10_000, checkpoint=None):
                 wall_time=t.elapsed,
                 hiv_prevalence=sim.results.hiv.prevalence.values.copy(),
                 partners_last_year=sim.analyzers.partnerslastyearanalyzer.records,
-                pair_age_heatmap=sim.analyzers.pairageheatmapanalyzer.records,
+                pair_formation_ages=sim.analyzers.pairformationagesanalyzer.records,
+                pair_prevalence=sim.analyzers.pairprevalenceanalyzer.records,
             )
             print(f'    wall_time={t.elapsed:.2f}s')
             if checkpoint is not None:
