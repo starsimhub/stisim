@@ -460,6 +460,59 @@ def test_art_duration(do_plot=do_plot):
 
 
 @sc.timer()
+def test_art_dx2tx_delay(do_plot=do_plot):
+    """ Check dur_dx2tx on HIVTest enforces a delay between diagnosis and ART start """
+    sc.heading('Testing dur_dx2tx (diagnosis → treatment) delay...')
+
+    # Build two sims that only differ in the dx→tx delay
+    delay_years = 2
+    sim_kwargs = dict(n_agents=200, dur=delay_years + 2, start=1990, verbose=-1)
+    hiv_pars = dict(init_prev=1.0, dur_on_art=ss.constant(v=ss.years(10)))
+
+    def make_sim(delay):
+        return hivsim.demo(
+            'simple', plot=False,
+            demographics=[ss.Deaths(death_rate=0)],
+            interventions=[
+                sti.HIVTest(test_prob_data=1.0, dt_scale=False,
+                            dur_dx2tx=ss.constant(ss.years(delay))),
+                sti.ART(art_initiation=1.0),
+            ],
+            **hiv_pars, **sim_kwargs,
+        )
+
+    # With delay: agents diagnosed at ti=0 should start ART at ti = delay_ti
+    sim = make_sim(delay_years)
+    hiv = sim.diseases.hiv
+    dx_uids = hiv.diagnosed.uids
+    n_alive = len(sim.people.alive.uids)
+    assert len(dx_uids) == n_alive, 'Expected all living agents diagnosed'
+
+    delay_ti = int(round(delay_years / float(sim.pars.dt)))
+    expected = hiv.ti_diagnosed[dx_uids] + delay_ti
+    on_art_uids = hiv.on_art.uids
+    assert np.allclose(hiv.ti_art[on_art_uids], expected[np.isin(dx_uids, on_art_uids)]), \
+        f'Expected ti_art == ti_diagnosed + {delay_ti} for on-ART agents'
+
+    # No-one should be on ART before the delay elapses
+    # The sim runs (delay_years + 2) years; check n_on_art ramp
+    n_on_art = sim.results.hiv.n_on_art
+    early_ti = max(0, delay_ti - 1)
+    assert n_on_art[early_ti] == 0, f'No agents should be on ART before ti={delay_ti}, got {n_on_art[early_ti]}'
+    assert n_on_art[delay_ti] > 0, f'Agents should be on ART by ti={delay_ti}'
+
+    # Default (no delay): agents diagnosed at ti=0 should be on ART at ti=0
+    sim2 = make_sim(0)
+    hiv2 = sim2.diseases.hiv
+    dx2 = hiv2.diagnosed.uids
+    assert np.allclose(hiv2.ti_art[dx2], hiv2.ti_diagnosed[dx2]), \
+        'Default dur_dx2tx=0 should leave ti_art == ti_diagnosed'
+    assert sim2.results.hiv.n_on_art[0] > 0, 'With no delay, agents should be on ART from ti=0'
+
+    return sim, sim2
+
+
+@sc.timer()
 def test_pn():
     """ PartnerNotification: with PN, more HIV diagnoses occur than without """
     sc.heading('Testing PartnerNotification...')
