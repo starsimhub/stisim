@@ -167,3 +167,39 @@ class MFNetwork_GreedyOldEnough(MFNetwork):
         p1 = ss.uids(np.array(p1_list, dtype=np.int64))
         p2 = ss.uids(np.array(p2_list, dtype=np.int64))
         return p1, p2
+
+
+class MFNetwork_KDTreeNN(MFNetwork):
+    """Build KDTree on male ages; each woman queries k=1; resolve collisions
+    by giving each contested man to the closest-by-age woman.
+    """
+
+    def match_pairs(self):
+        ppl = self.sim.people
+        f_looking, m_eligible = self._get_eligible()
+        desired_ages = self._sample_desired_ages(f_looking)
+        m_ages = ppl.age[m_eligible]
+        m_uids = m_eligible.uids
+        f_uids = f_looking
+
+        tree = spsp.KDTree(m_ages[:, np.newaxis])
+        dists, idxs = tree.query(desired_ages[:, np.newaxis], k=1)
+        dists = dists.ravel()
+        idxs = idxs.ravel()
+
+        order = np.argsort(dists)
+        taken_m = set()
+        keep = np.zeros(len(f_uids), dtype=bool)
+        for ranked in order:
+            mi = int(idxs[ranked])
+            if mi in taken_m:
+                continue
+            taken_m.add(mi)
+            keep[ranked] = True
+
+        if not keep.any():
+            raise NoPartnersFound()
+
+        p1 = m_uids[idxs[keep]]
+        p2 = f_uids[keep]
+        return p1, p2

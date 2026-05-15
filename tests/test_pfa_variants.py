@@ -8,6 +8,7 @@ from stisim.pfa_variants import (
     MFNetwork_DesiredAgeBucket,
     MFNetwork_SortBisect,
     MFNetwork_GreedyOldEnough,
+    MFNetwork_KDTreeNN,
 )
 
 
@@ -90,3 +91,12 @@ def test_greedy_old_enough_runs():
         # No replacement: each man appears at most once in p1.
         assert len(np.unique(p1)) == len(p1)
         assert len(np.unique(p2)) == len(p2)
+
+
+def test_kdtree_nn_runs():
+    net = MFNetwork_KDTreeNN()
+    sim, p1, p2 = _match_once(net, n_agents=500)
+    _assert_valid_pairs(p1, p2, sim)
+    if len(p1):
+        # Each male assigned at most once after collision resolution.
+        assert len(np.unique(p1)) == len(p1)
