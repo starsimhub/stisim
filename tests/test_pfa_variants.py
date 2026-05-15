@@ -15,7 +15,7 @@ from stisim.pfa_variants import (
 
 def _match_once(net, n_agents=1_000, seed=0):
     """Init a sim and call match_pairs() directly. Returns (sim, p1, p2)."""
-    sim = ss.Sim(n_agents=n_agents, networks=net, diseases='sis',
+    sim = ss.Sim(n_agents=n_agents, networks=net, diseases=sti.HIV(),
                  start='2000-01-01', stop='2001-01-01', rand_seed=seed)
     sim.init()
     net = sim.networks[0]  # sim deep-copies networks
