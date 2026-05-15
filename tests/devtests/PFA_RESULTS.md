@@ -113,11 +113,47 @@ real age skew. Fixed by:
 - Notebook filters `sw` out of the MF age-mixing panels and renders SW
   pairs separately when present (Zimbabwe / Eswatini).
 
+## Lifetime partner distribution by sex
+
+Means are equal across sexes by construction (each MF edge increments
+`lifetime_partners` for one M and one F, populations are balanced). The
+differentiation across algorithms shows in the **tails**:
+
+**Generic n=10k, 20 yrs (max lifetime partners by method × sex):**
+
+| Variant            | M mean | M max | F mean | F max |
+|--------------------|--------|-------|--------|-------|
+| SortBisect (prod)  | 1.11   |  11   | 1.13   |  13   |
+| SortPair           | 1.43   |  21   | 1.45   |  15   |
+| BandMatch          | 1.10   |  19   | 1.12   |  13   |
+| DesiredAgeBucket   | 0.86   |  13   | 0.88   |  10   |
+| GreedyOldEnough    | 1.07   |  18   | 1.08   |  12   |
+| KDTreeNN           | 1.01   |  16   | 1.03   |  14   |
+
+Observations:
+
+- **DesiredAgeBucket has the tightest tail despite sampling men with
+  replacement.** The post-filter on male `concurrency` is binding — duplicate
+  draws of the same man get dropped before the match is recorded.
+- **SortPair has the heaviest tail on both sexes** (no trim, no replacement,
+  but the same low-quantile man gets re-paired across timesteps).
+- **All algorithms except DesiredAgeBucket show heavier male tails than
+  female.** This is the cross-timestep effect: certain men in the dense
+  middle of the age distribution get matched repeatedly while a long tail of
+  women with desired ages outside the easy-match band stay unmatched.
+- **SortBisect (production) has the shortest male tail** of the algorithms
+  that don't post-filter. The bisect trim at each step throws out the
+  extremes of the male age distribution, suppressing the "popular middle-aged
+  man" effect.
+
+Zimbabwe (with SW) shows max counts in the 100-150 range for both sexes — sex
+work dominates the upper tail there.
+
 ## Files
 
 - Generic + Zimbabwe results: [pfa_comparison_results.obj](pfa_comparison_results.obj)
 - Eswatini results: `/Users/robynstuart/gf/hivsim_eswatini/results/pfa_comparison.obj`
-- Notebook: [pfa_comparison.ipynb](pfa_comparison.ipynb) — 8 figures (timing, concurrency, incidence MF, prevalence MF, lifetime, Zimbabwe MF incidence, Zimbabwe MF prevalence, Zimbabwe SW)
+- Notebook: [pfa_comparison.ipynb](pfa_comparison.ipynb) — 8 figures: timing, concurrency, generic-MF incidence + prevalence, Zimbabwe-MF incidence + prevalence, Zimbabwe-SW incidence, lifetime partners by sex (log scale).
 
 ## Next steps
 
