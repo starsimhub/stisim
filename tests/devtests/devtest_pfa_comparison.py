@@ -71,21 +71,23 @@ def run_generic(n_agents_list, n_reps, sim_years):
 
 
 def make_variant_class(variant_cls):
-    """Build a StructuredSexual subclass that uses ``variant_cls.match_pairs``.
+    """Build a StructuredSexual subclass that adopts ``variant_cls``'s match_pairs
+    plus any non-dunder class-level attributes (e.g. ``BandMatch.band_width``).
 
     The Zimbabwe HIV module hard-codes ``sim.networks.structuredsexual`` lookups
     (see stisim/diseases/sti.py make_init_prev), so we can't swap in a bare
     MFNetwork_* — we need a StructuredSexual subclass that keeps the
     ``structuredsexual`` name and the SW/risk-group plumbing.
     """
+    attrs = {k: v for k, v in vars(variant_cls).items() if not k.startswith('__')}
     return type(
         f'StructuredSexual_{variant_cls.__name__}',
         (sti.StructuredSexual,),
-        {'match_pairs': variant_cls.match_pairs},
+        attrs,
     )
 
 
-def run_zimbabwe(n_reps, n_agents=10_000):
+def run_zimbabwe(n_reps, n_agents=10_000, checkpoint=None):
     """Calibrated benchmark on hivsim.demo('zimbabwe')."""
     import hivsim  # noqa: F401  (used to register hivsim_examples.zimbabwe with sc.importbyname)
     results = sc.objdict()
@@ -126,6 +128,8 @@ def run_zimbabwe(n_reps, n_agents=10_000):
                 pair_age_heatmap=sim.analyzers.pairageheatmapanalyzer.records,
             )
             print(f'    wall_time={t.elapsed:.2f}s')
+            if checkpoint is not None:
+                checkpoint(results)
     return results
 
 
@@ -146,10 +150,15 @@ def main():
 
     out = Path(__file__).parent / 'pfa_comparison_results.obj'
     all_results = sc.objdict()
+
+    def save_zimbabwe(partial):
+        all_results.zimbabwe = partial
+        sc.save(out, all_results)
+
     all_results.generic = run_generic(n_agents_list, n_reps, sim_years)
     sc.save(out, all_results)  # save generic results before attempting Zimbabwe
     if not args.quick and not args.skip_zimbabwe:
-        all_results.zimbabwe = run_zimbabwe(n_reps)
+        all_results.zimbabwe = run_zimbabwe(n_reps, checkpoint=save_zimbabwe)
         sc.save(out, all_results)
     print(f'Saved {out}')
 
