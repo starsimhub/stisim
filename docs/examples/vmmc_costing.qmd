@@ -1,0 +1,222 @@
+---
+title: Costing VMMC and computing an ICER
+jupyter: python3
+---
+
+
+*New in v1.5.5*
+
+Bansi-Matharu et al. ([Lancet Global Health
+2022](https://www.thelancet.com/journals/langlo/article/PIIS2214-109X(22)00515-0/fulltext))
+used **five independent HIV transmission models** to ask whether
+continuing voluntary medical male circumcision (VMMC) for another five
+years in sub-Saharan Africa remained cost-effective in the era of ART
+scale-up. The headline result: VMMC was cost-effective in 68% of
+modelled settings (95% in high-incidence ones), and **cost-saving** for
+South Africa and Malawi across all five models. They used a unit cost
+of **US$90 per VMMC**, a 50-year time horizon, a 3% discount rate, and
+a **US$500 per DALY averted** cost-effectiveness threshold.
+
+This example shows how to run a much-simplified version of that kind of
+analysis in STIsim: build with-/without-VMMC scenarios, attach unit
+costs, discount, and compute an incremental cost-effectiveness ratio
+(ICER). We then compare our ballpark to the published range. The same
+recipe works for any STIsim intervention.
+
+
+## Setup
+
+```{python}
+import numpy as np
+import sciris as sc
+import starsim as ss
+import stisim as sti
+import hivsim
+import matplotlib.pyplot as plt
+
+sc.options(dpi=110)
+```
+
+## Costing assumptions
+
+Matched to Bansi-Matharu et al. where possible. The lifetime HIV cost
+is a stand-in for the DALY-weighted health and treatment burden of an
+infection and is used only as a back-of-envelope cost-saving benchmark.
+
+```{python}
+unit_cost_vmmc      = 90     # USD per procedure (Bansi-Matharu et al. 2022)
+unit_cost_infection = 3_000  # USD per averted HIV infection (illustrative)
+discount_rate       = 0.03   # 3% per year (standard)
+```
+
+## Building the sims
+
+We use the `hivsim` simple demo with `StructuredSexual` (heterosexual
+network with FSW/clients) so HIV transmission is sustained. The paper
+compares "continue VMMC for 5 more years" against "no further VMMC"
+starting from existing coverage; we approximate this by scaling VMMC
+from 0 to 60% coverage over the simulation window in the intervention
+scenario, and zero coverage in the comparator.
+
+```{python}
+sim_kwargs = dict(
+    n_agents=5_000, dur=20, start=2005, verbose=-1,
+    init_prev=0.05, beta_m2f=0.05,
+    networks=[sti.StructuredSexual(), ss.MaternalNet(), ss.BreastfeedingNet()],
+)
+
+def make_sim(use_vmmc, rand_seed=1):
+    interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3),
+                     sti.ART(coverage=0.6)]
+    if use_vmmc:
+        interventions.append(sti.VMMC(
+            coverage={'year': [2010, 2025], 'value': [0, 0.6]},
+            name='vmmc',
+        ))
+    return hivsim.demo('simple', run=False, plot=False,
+                       interventions=interventions,
+                       label='With VMMC' if use_vmmc else 'No VMMC',
+                       **{**sim_kwargs, 'rand_seed': rand_seed})
+```
+
+## Running scenarios
+
+```{python}
+sims = ss.parallel([make_sim(use_vmmc=False), make_sim(use_vmmc=True)]).sims
+results = {sim.label: sim for sim in sims}
+```
+
+## Per-timestep counts
+
+VMMC publishes `new_circumcisions` each timestep; HIV publishes
+`new_infections`. Those are the only quantities we need.
+
+```{python}
+vmmc_sim = results['With VMMC']
+yearvec  = vmmc_sim.t.yearvec
+new_circ = vmmc_sim.results.vmmc.new_circumcisions
+new_inf  = {label: sim.results.hiv.new_infections for label, sim in results.items()}
+
+print(f'Total VMMCs:                    {int(new_circ.sum()):>6,d}')
+print(f'New HIV infections, No VMMC:    {int(new_inf["No VMMC"].sum()):>6,d}')
+print(f'New HIV infections, With VMMC:  {int(new_inf["With VMMC"].sum()):>6,d}')
+```
+
+## Discounting
+
+A 3% annual discount rate gives a per-timestep weight of
+`1 / (1 + r) ** (year - year0)`.
+
+```{python}
+year0 = yearvec[0]
+discount = 1 / (1 + discount_rate) ** (yearvec - year0)
+```
+
+## Costs and effects
+
+```{python}
+# Costs: VMMC procedures only (the HIV cost is captured through the effect side)
+cost_vmmc_programme = float(np.sum(new_circ * unit_cost_vmmc * discount))
+
+# Effects: HIV infections averted (discounted)
+infections_no_vmmc   = float(np.sum(new_inf['No VMMC']   * discount))
+infections_with_vmmc = float(np.sum(new_inf['With VMMC'] * discount))
+infections_averted   = infections_no_vmmc - infections_with_vmmc
+
+print(f'Discounted VMMC cost:           ${cost_vmmc_programme:>10,.0f}')
+print(f'Discounted infections averted:  {infections_averted:>10,.1f}')
+```
+
+## ICER
+
+The incremental cost-effectiveness ratio is the incremental cost
+divided by the incremental effect:
+
+$$\text{ICER} = \frac{\Delta\text{Cost}}{\Delta\text{Infections averted}}$$
+
+```{python}
+if infections_averted > 0:
+    icer = cost_vmmc_programme / infections_averted
+    print(f'ICER: ${icer:,.0f} per HIV infection averted')
+else:
+    print('No infections averted in this run — increase n_agents, duration, or coverage.')
+```
+
+## Visualising the cascade
+
+```{python}
+fig, axes = plt.subplots(1, 3, figsize=(13, 4))
+
+# Left: cumulative VMMCs
+axes[0].plot(yearvec, np.cumsum(new_circ), lw=2, color='tab:blue')
+axes[0].set_xlabel('Year')
+axes[0].set_ylabel('Cumulative VMMCs')
+axes[0].set_title('VMMC uptake')
+
+# Middle: cumulative HIV infections (both scenarios)
+for label, infs in new_inf.items():
+    axes[1].plot(yearvec, np.cumsum(infs), label=label, lw=2)
+axes[1].set_xlabel('Year')
+axes[1].set_ylabel('Cumulative HIV infections')
+axes[1].set_title('HIV infections')
+axes[1].legend()
+
+# Right: cumulative discounted cost
+axes[2].plot(yearvec, np.cumsum(new_circ * unit_cost_vmmc * discount),
+             lw=2, color='tab:red')
+axes[2].set_xlabel('Year')
+axes[2].set_ylabel('Cumulative discounted cost (USD)')
+axes[2].set_title('VMMC programme cost')
+
+sc.figlayout()
+plt.show()
+```
+
+## Comparison to Bansi-Matharu et al.
+
+The paper reports VMMC as **cost-saving** in South Africa and Malawi
+across all five models, and cost-effective in 68% of all sub-Saharan
+African settings at a $500/DALY threshold. With ~20–30 DALYs averted
+per HIV infection prevented (varying with age at infection, ART access,
+and life expectancy), an ICER of a few thousand dollars per infection
+averted maps to roughly $100–$200 per DALY — comfortably below their
+threshold. Our toy run lands in that ballpark, consistent with the
+paper's qualitative conclusion that VMMC continues to be a high-value
+intervention even with ART scale-up.
+
+A real CEA would tighten this up considerably:
+
+- **DALYs, not infections**, as the primary effect measure (with QALYs
+  for high-income comparators).
+- **Longer time horizon** — the paper uses 50 years to capture
+  downstream transmission and ART costs averted.
+- **Multiple seeds and full probabilistic sensitivity analysis** on all
+  unit costs and the discount rate, rather than a single point estimate.
+- **Setting-specific demographic, network, and coverage data** (the
+  paper draws on UNAIDS estimates for each country).
+- **Multiple models** — the strength of Bansi-Matharu et al. is
+  cross-model agreement; one model is never enough for a policy claim.
+
+The point of this example is not to replicate any of that. It's to
+show how cheaply you can wire `sim.results` into a costing pipeline
+and start asking the right questions.
+
+## Key takeaways
+
+- For any STIsim intervention, find the per-timestep "new event" result
+  (`new_circumcisions`, `new_diagnoses`, `new_infections`, etc.) and
+  multiply by a unit cost to get a cost stream.
+- Discount future costs and effects to present value before computing
+  totals.
+- The ICER is `Δ cost / Δ effect`; effects can be infections averted,
+  DALYs, QALYs, or anything else you can extract from `sim.results`.
+- Stochastic noise will dominate ICERs in small sims — for any
+  publishable analysis, run multiple seeds and report a range.
+
+## Reference
+
+Bansi-Matharu L, Mudimu E, Martin-Hughes R, et al. *Cost-effectiveness
+of voluntary medical male circumcision for HIV prevention across
+sub-Saharan Africa: results from five independent models.* Lancet
+Global Health 2023;11(2):e244–e255. doi:
+[10.1016/S2214-109X(22)00515-0](https://doi.org/10.1016/S2214-109X(22)00515-0).
