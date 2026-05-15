@@ -202,25 +202,21 @@ Other differences from a full CEA along the lines of the paper:
 - The paper runs probabilistic sensitivity analysis on unit costs and
   the discount rate; we use a single deterministic point estimate.
 - The paper draws on UNAIDS country-specific demographic, network, and
-  coverage data; we use a generic SSA-like sim.
-- The paper combines results from five independent models, which is
-  what makes its conclusion robust. A single-model estimate is more
-  uncertain — useful for an order-of-magnitude answer, not for a
-  policy recommendation on its own.
+  coverage data; we use a generic sim.
 
 This example shows how to combine the per-timestep results in
-`sim.results` with unit costs and discounting to compute an ICER — not
+`sim.results` with unit costs and discounting to compute an ICER, not
 how to do a full cost-effectiveness analysis.
 
 ## Key takeaways
 
-- For any STIsim intervention, find the per-timestep "new event" result
-  (`new_circumcisions`, `new_diagnoses`, `new_infections`, etc.) and
-  multiply by a unit cost to get a cost stream.
+- The ICER is `Δ cost / Δ effect`. The denominator (effects) can be infections averted,
+  DALYs, QALYs, or anything else you can extract from `sim.results`.
+- Whilst STIsim doesn't compute costs out of the box, many interventions, 
+  keep track of "new event"-type results (`new_circumcisions`, `new_diagnoses`, etc.)
+  You can multiply by a unit cost to get a cost stream.
 - Discount future costs and effects to present value before computing
   totals.
-- The ICER is `Δ cost / Δ effect`; effects can be infections averted,
-  DALYs, QALYs, or anything else you can extract from `sim.results`.
 - Stochastic noise will dominate ICERs in small sims — for any
   publishable analysis, run multiple seeds and report a range.
 
