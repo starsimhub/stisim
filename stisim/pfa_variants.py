@@ -8,7 +8,6 @@ Each class is a thin subclass of stisim.MFNetwork that overrides
 import numpy as np
 import scipy.optimize as spo
 import scipy.spatial as spsp
-import starsim as ss
 from .networks import MFNetwork, NoPartnersFound
 
 

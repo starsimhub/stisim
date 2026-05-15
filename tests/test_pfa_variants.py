@@ -25,8 +25,6 @@ def _assert_valid_pairs(p1, p2, sim):
         return
     assert (sim.people.male[p1]).all(), "p1 must be all male"
     assert (sim.people.female[p2]).all(), "p2 must be all female"
-    assert len(np.unique(p1)) <= len(p1)  # may have duplicates if variant allows replacement
-    assert len(np.unique(p2)) <= len(p2)
 
 
 def test_lsa_variant_runs():
@@ -34,3 +32,6 @@ def test_lsa_variant_runs():
     sim, p1, p2 = _match_once(net, n_agents=500)
     assert len(p1) > 0, "LSA variant should produce some edges"
     _assert_valid_pairs(p1, p2, sim)
+    # LSA produces a strict 1-1 assignment: no duplicates.
+    assert len(np.unique(p1)) == len(p1)
+    assert len(np.unique(p2)) == len(p2)
