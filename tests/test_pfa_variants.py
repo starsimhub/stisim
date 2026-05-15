@@ -2,7 +2,12 @@
 import numpy as np
 import starsim as ss
 import stisim as sti
-from stisim.pfa_variants import MFNetwork_LSA, MFNetwork_SortPair, MFNetwork_DesiredAgeBucket
+from stisim.pfa_variants import (
+    MFNetwork_LSA,
+    MFNetwork_SortPair,
+    MFNetwork_DesiredAgeBucket,
+    MFNetwork_SortBisect,
+)
 
 
 def _match_once(net, n_agents=1_000, seed=0):
@@ -64,3 +69,13 @@ def test_desired_age_bucket_post_filter_wired():
     )
     sim, p1, p2 = _match_once(net, n_agents=500)
     assert len(p1) == 0, "all-zero acceptance should yield no matches"
+
+
+def test_sortbisect_variant_runs():
+    net = MFNetwork_SortBisect()
+    sim, p1, p2 = _match_once(net, n_agents=500)
+    assert len(p1) > 0
+    _assert_valid_pairs(p1, p2, sim)
+    # SortBisect (production) has no replacement.
+    assert len(np.unique(p1)) == len(p1)
+    assert len(np.unique(p2)) == len(p2)

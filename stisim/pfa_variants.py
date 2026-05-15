@@ -122,3 +122,8 @@ class MFNetwork_DesiredAgeBucket(MFNetwork):
             raise NoPartnersFound()
 
         return p1, p2
+
+
+class MFNetwork_SortBisect(MFNetwork):
+    """Current production: argsort + bisect-trim + subsample. Inherits match_pairs unchanged."""
+    pass
