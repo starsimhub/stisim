@@ -6,4 +6,5 @@ Worked examples illustrating STIsim features. Click any tile to open the runnabl
   <a href="art_interruptions.qmd"><figure><img src="art_interruptions_thumb.png" alt="ART supply interruption"><figcaption>What happens if ART supply is temporarily cut off?</figcaption></figure></a>
   <a href="dynamic_debut.qmd"><figure><img src="dynamic_debut_thumb.png" alt="Declining age at first sex"><figcaption>What happens when age at first sex declines over time?</figcaption></figure></a>
   <a href="partner_notification.qmd"><figure><img src="partner_notification_thumb.png" alt="Partner notification"><figcaption>How does partner notification reach contacts of newly diagnosed agents?</figcaption></figure></a>
+  <a href="vmmc_costing.qmd"><figure><img src="vmmc_costing_thumb.png" alt="Costing VMMC"><figcaption>How do you compute an ICER for an intervention like VMMC?</figcaption></figure></a>
 </div>
