@@ -213,26 +213,62 @@ else:
         _heatmap_grid(by, methods, rts, 'Zimbabwe SW incidence (pair formation)',
                       add_aggregate=False)"""))
 
-cells.append(nbf.v4.new_markdown_cell("## Figure 4: lifetime partner distribution"))
+cells.append(nbf.v4.new_markdown_cell("""\
+## Figure 5: lifetime partner distribution by sex
+
+Distribution of `lifetime_partners` (count of partnerships an agent has ever
+formed) at sim end, split by sex. Algorithms that sample men with replacement
+(DesiredAgeBucket) or that route many women to the same nearby man (KDTreeNN)
+should show heavier male tails than female tails. Algorithms with strict 1-1
+matching (SortBisect, SortPair, GreedyOldEnough) should look symmetric across
+sexes. Zeros excluded; log y-scale to make tails visible."""))
 
 cells.append(nbf.v4.new_code_cell("""\
-fig, ax = plt.subplots(figsize=(8, 5))
 n_max = max({k[1] for k in results.generic.keys()})
 all_methods = order_methods(sorted({k[0] for k in results.generic.keys()
                                     if k[1] == n_max}))
-for method in all_methods:
-    vals = []
-    for (m, n, rep), v in results.generic.items():
-        if m == method and n == n_max:
-            vals.extend(v.lifetime_partners[v.lifetime_partners > 0])
-    if vals:
-        ax.hist(vals, bins=np.arange(0, 30), histtype='step', density=True, label=method, lw=2)
-ax.set_xlabel('lifetime partners')
-ax.set_ylabel('density')
-ax.legend()
-ax.set_title(f'Lifetime partner distribution (n={n_max})')
+
+fig, axes = plt.subplots(1, 2, figsize=(13, 5), sharey=True)
+bins = np.arange(0, 31)
+for ax, sex_label, want_male in zip(axes, ['Male', 'Female'], [True, False]):
+    for method in all_methods:
+        vals = []
+        for (m, n, rep), v in results.generic.items():
+            if m == method and n == n_max:
+                if 'sex_male' not in v:
+                    continue
+                lp = np.asarray(v.lifetime_partners)
+                mask = np.asarray(v.sex_male) if want_male else ~np.asarray(v.sex_male)
+                vals.extend(lp[mask][lp[mask] > 0])
+        if vals:
+            ax.hist(vals, bins=bins, histtype='step',
+                    density=True, label=f'{method} (n={len(vals)})', lw=1.8)
+    ax.set_xlabel('lifetime partners')
+    ax.set_title(f'{sex_label} agents')
+    ax.set_yscale('log')
+    if want_male:
+        ax.set_ylabel('density (log scale)')
+        ax.legend(fontsize=8)
+fig.suptitle(f'Lifetime partner distribution by sex (n_agents={n_max})')
 plt.tight_layout()
-plt.show()"""))
+plt.show()
+
+print('\\nMean and 95th percentile of lifetime partners, by method × sex (n=10k):')
+rows = []
+for method in all_methods:
+    for sex_label, want_male in [('M', True), ('F', False)]:
+        vals = []
+        for (m, n, rep), v in results.generic.items():
+            if m == method and n == n_max and 'sex_male' in v:
+                lp = np.asarray(v.lifetime_partners)
+                mask = np.asarray(v.sex_male) if want_male else ~np.asarray(v.sex_male)
+                vals.extend(lp[mask])
+        if vals:
+            arr = np.asarray(vals)
+            rows.append({'method': method, 'sex': sex_label,
+                         'mean': arr.mean(), 'p95': np.percentile(arr, 95),
+                         'pct_with_0': (arr == 0).mean()*100})
+print(pd.DataFrame(rows).round(2).to_string(index=False))"""))
 
 cells.append(nbf.v4.new_markdown_cell("""\
 ## Takeaway

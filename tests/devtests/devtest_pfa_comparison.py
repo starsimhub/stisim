@@ -74,6 +74,8 @@ def run_generic(n_agents_list, n_reps, sim_years):
                     pair_formation_ages=sim.analyzers.pairformationagesanalyzer.records,
                     pair_prevalence=sim.analyzers.pairprevalenceanalyzer.records,
                     lifetime_partners=mf_net.lifetime_partners.values.copy(),
+                    sex_male=sim.people.male.values.copy(),
+                    age=sim.people.age.values.copy(),
                 )
                 print(f'    wall_time={t.elapsed:.2f}s')
     return results
@@ -131,12 +133,16 @@ def run_zimbabwe(n_reps, n_agents=10_000, checkpoint=None):
             ]
             with sc.timer() as t:
                 sim.run()
+            mf_net = next(nw for nw in sim.networks() if isinstance(nw, sti.MFNetwork))
             results[key] = sc.objdict(
                 wall_time=t.elapsed,
                 hiv_prevalence=sim.results.hiv.prevalence.values.copy(),
                 partners_last_year=sim.analyzers.partnerslastyearanalyzer.records,
                 pair_formation_ages=sim.analyzers.pairformationagesanalyzer.records,
                 pair_prevalence=sim.analyzers.pairprevalenceanalyzer.records,
+                lifetime_partners=mf_net.lifetime_partners.values.copy(),
+                sex_male=sim.people.male.values.copy(),
+                age=sim.people.age.values.copy(),
             )
             print(f'    wall_time={t.elapsed:.2f}s')
             if checkpoint is not None:
