@@ -264,20 +264,24 @@ def test_art_stratified_coverage_matching(do_plot=do_plot):
     """ Check that age-stratified ART coverage approximately matches supplied targets """
     sc.heading('Testing stratified ART coverage matching...')
 
-    # Build stratified coverage data: higher coverage for older age groups and women
-    age_bins = [15, 25, 35, 45]
+    # Build stratified coverage data: higher coverage for older age groups and women.
+    # 4 strata (2 age bins × 2 sexes) keeps enough infected agents per stratum at
+    # n_agents=1k for the per-stratum assertion to be meaningful.
+    age_bins = [15, 30, 100]
     targets = {}
     rows = []
-    for year in [2005, 2015]:
+    # Use constant coverage across the sim window (start=2000, dur=5) — this avoids
+    # ramp-up artefacts and lets the assertion compare the final state directly to
+    # the target. Both years carry the same per-stratum target.
+    for year in [2000, 2005]:
         for gender in [0, 1]:
             for lo, hi in zip(age_bins[:-1], age_bins[1:]):
                 ab = f'[{lo},{hi})'
-                base_p = 0.3 if year == 2005 else 0.7
                 age_factor = 1 + (lo - 15) * 0.01  # Slightly higher for older
                 sex_factor = 1.1 if gender == 0 else 1.0  # Higher for women (0=female)
-                p = min(base_p * age_factor * sex_factor, 0.95)
+                p = min(0.7 * age_factor * sex_factor, 0.95)
                 rows.append(dict(Year=year, Gender=gender, AgeBin=ab, coverage=p))
-                if year == 2015:
+                if year == 2005:
                     targets[(ab, gender)] = p
 
     strat_df = pd.DataFrame(rows)
@@ -297,7 +301,7 @@ def test_art_stratified_coverage_matching(do_plot=do_plot):
 
     # Per-stratum coverage should approximately match the supplied targets — this is the
     # whole point of stratified input. Tolerance is generous to allow for finite-population
-    # noise (1k agents split across 6 strata) and for diagnosis lag (newly-eligible agents
+    # noise (1k agents split across 4 strata) and for diagnosis lag (newly-eligible agents
     # must first be diagnosed by HIVTest before ART can initiate them).
     tol = 0.20
     for (ab, gender), target_p in targets.items():
