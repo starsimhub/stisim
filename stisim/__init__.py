@@ -7,6 +7,7 @@ from .diseases      import *
 from .demographics  import *
 from .interventions import *
 from .networks      import *
+from .pfa_variants  import *
 from .utils         import *
 from .analyzers     import *
 from .parameters    import *
