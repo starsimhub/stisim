@@ -8,6 +8,7 @@ Each class is a thin subclass of stisim.MFNetwork that overrides
 import numpy as np
 import scipy.optimize as spo
 import scipy.spatial as spsp
+import starsim as ss
 from .networks import MFNetwork, NoPartnersFound
 
 
@@ -58,7 +59,6 @@ class MFNetwork_DesiredAgeBucket(MFNetwork):
     """
 
     def match_pairs(self):
-        import starsim as ss
         ppl = self.sim.people
         f_looking, m_eligible = self._get_eligible()
         desired_ages = self._sample_desired_ages(f_looking)

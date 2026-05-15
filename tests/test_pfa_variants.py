@@ -54,3 +54,13 @@ def test_desired_age_bucket_variant_runs():
     _assert_valid_pairs(p1, p2, sim)
     # No assertion on uniqueness: with sample-with-replacement, p1 can have duplicates
     # (capped by male concurrency).
+
+
+def test_desired_age_bucket_post_filter_wired():
+    """With all acceptance probabilities zero, the Bernoulli post-filter must drain output."""
+    net = MFNetwork_DesiredAgeBucket(
+        p_matched_stable=[0, 0, 0],
+        p_mismatched_casual=[0, 0, 0],
+    )
+    sim, p1, p2 = _match_once(net, n_agents=500)
+    assert len(p1) == 0, "all-zero acceptance should yield no matches"
