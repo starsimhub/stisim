@@ -1,88 +1,120 @@
 # PFA comparison: run notes
 
-Status: implementation complete on `feat/pfa-comparison`; full benchmark not yet run.
+Full benchmark run: 2026-05-15. Branch `feat/pfa-comparison` (off `rc1.5.6`).
 
-## What's here
+## TL;DR
 
-- Seven `MFNetwork` variants in [stisim/pfa_variants.py](../../stisim/pfa_variants.py):
-  `LSA`, `SortPair`, `DesiredAgeBucket`, `SortBisect` (production), `GreedyOldEnough`, `KDTreeNN`, `BandMatch`.
-- Smoke tests in [tests/test_pfa_variants.py](../test_pfa_variants.py) — 9 passing.
-- Diagnostic analyzers in [tests/devtests/pfa_diagnostics.py](pfa_diagnostics.py).
-- Generic + Zimbabwe benchmark in [devtest_pfa_comparison.py](devtest_pfa_comparison.py)
-  (`--quick`, `--skip-zimbabwe` flags).
-- Notebook builder + notebook in [_build_pfa_comparison_notebook.py](_build_pfa_comparison_notebook.py)
-  and [pfa_comparison.ipynb](pfa_comparison.ipynb).
-- Calibrated Eswatini comparison in
-  `/Users/robynstuart/gf/hivsim_eswatini/run_pfa_comparison.py` (branch `update-coverage`).
+- **All 7 variants are roughly the same wall-clock speed** at the scales tested
+  (n ≤ 10k, 20-year sim). PFA cost is dominated by other per-step overhead. Cost
+  isn't the deciding factor.
+- **Network volume varies by ~70%** between extremes. SortPair (no trim, no
+  replacement) produces ~1.7× more lifetime partnerships than DesiredAgeBucket
+  (strict post-filters).
+- **HIV prevalence shifts noticeably with PFA choice** on calibrated sims:
+  - Zimbabwe (10k agents, 25 yrs): 3.64% (KDTreeNN) → 4.31% (SortPair).
+  - Eswatini (~10k agents, 46 yrs, calibrated interventions): 2.63%
+    (DesiredAgeBucket) → 4.18% (SortPair).
+- **Production default (SortBisect) sits near the high end** of the prevalence
+  range — it's a relatively permissive matcher.
 
-## --quick mode observations (n=1k, 1 rep, 5 years)
+## Results
 
-All seven variants run without error. Wall times are dominated by per-step overhead at
-n=1k so the algorithmic differences aren't yet visible — the full n=10k × 20yr run is
-needed to see real separation.
+### Generic benchmark — wall time (s, mean over 3 reps)
 
-Edge counts at sim end (`lifetime_partners.sum`):
+| Variant            | n=1k   | n=5k   | n=10k  |
+|--------------------|--------|--------|--------|
+| BandMatch          | 0.29   | 0.47   | 0.73   |
+| DesiredAgeBucket   | 0.28   | 0.48   | 0.71   |
+| GreedyOldEnough    | 0.28   | 0.47   | 0.73   |
+| KDTreeNN           | 0.30   | 0.49   | 0.72   |
+| LSA                | 0.30   | 0.62   | n/a*   |
+| SortBisect (prod)  | 0.30   | 0.51   | 0.71   |
+| SortPair           | 0.28   | 0.47   | 0.73   |
 
-| Variant            | total partnerships |
-|--------------------|--------------------|
-| SortPair           | 974                |
-| LSA                | 984                |
-| SortBisect (prod)  | 750                |
-| GreedyOldEnough    | 720                |
-| BandMatch          | 708                |
-| KDTreeNN           | 644                |
-| DesiredAgeBucket   | 533                |
+\*LSA capped at n ≤ 5k (O(n³)). Still cheap at n=5k (~25% slower than the next
+group) but skipped at n=10k by design.
 
-DesiredAgeBucket is markedly lower because its post-filter on relationship-acceptance
-Bernoulli drops a substantial fraction of matches inside `match_pairs`. SortPair and LSA
-are highest because they don't trim either side of the age support.
+### Network volume at n=10k — lifetime partnerships (mean over 3 reps, 20 yrs)
 
-Eswatini smoke run (SortBisect, 1 rep, full timeline): 13 s; 12,562 partner records
-and 146,638 lifetime partnerships across all agents — diagnostics fire correctly under
-demographics.
+| Variant            | Σ lifetime partners |
+|--------------------|---------------------|
+| SortPair           | 13,693              |
+| SortBisect (prod)  | 10,673              |
+| BandMatch          | 10,525              |
+| GreedyOldEnough    | 10,216              |
+| KDTreeNN           |  9,702              |
+| DesiredAgeBucket   |  8,225              |
 
-## To run the full benchmark
+### Calibrated Zimbabwe (hivsim.demo('zimbabwe'), n=10k, 3 reps)
 
-```bash
-cd /Users/robynstuart/gf/stisim/tests/devtests
-python devtest_pfa_comparison.py             # n=1k/5k/10k × 3 reps + Zimbabwe
-# (skip Zimbabwe if you want network-only timings)
-python devtest_pfa_comparison.py --skip-zimbabwe
-```
+| Variant            | Final HIV prev. | Wall time (s) |
+|--------------------|-----------------|---------------|
+| SortPair           | 4.31%           | 8.78          |
+| SortBisect (prod)  | 4.17%           | 8.66          |
+| GreedyOldEnough    | 4.07%           | 8.80          |
+| BandMatch          | 3.80%           | 9.35          |
+| DesiredAgeBucket   | 3.68%           | 8.79          |
+| KDTreeNN           | 3.64%           | 8.88          |
 
-Then:
+### Calibrated Eswatini (hivsim_eswatini, n=10k, 2 reps)
 
-```bash
-jupyter nbconvert --to notebook --execute pfa_comparison.ipynb --output pfa_comparison_executed.ipynb
-```
+| Variant            | Final HIV prev. | Σ lifetime partners | Wall time (s) |
+|--------------------|-----------------|---------------------|---------------|
+| SortPair           | 4.18%           | 142,508             | 14.00         |
+| SortBisect (prod)  | 3.30%           | 140,821             | 13.91         |
+| GreedyOldEnough    | 3.61%           | 117,498             | 14.11         |
+| BandMatch          | 3.41%           | 114,208             | 13.97         |
+| KDTreeNN           | 2.86%           | 105,192             | 14.01         |
+| DesiredAgeBucket   | 2.63%           |  78,604             | 14.18         |
 
-For Eswatini (n=10k calibrated):
+LSA omitted from Zimbabwe and Eswatini blocks (too slow at calibration scale).
 
-```bash
-cd /Users/robynstuart/gf/hivsim_eswatini
-python run_pfa_comparison.py    # ~13s × 6 variants × 2 reps ≈ 3 min
-```
+## What stands out
 
-## Known gotchas
+1. **PFA choice is a real lever on HIV prevalence.** ~18% spread in Zimbabwe,
+   ~59% spread in Eswatini. This is comparable to or larger than the effect of
+   many calibration parameters that we tune individually.
+2. **The ordering is broadly consistent across runs:** SortPair > SortBisect >
+   GreedyOldEnough > BandMatch > KDTreeNN > DesiredAgeBucket. The permissive
+   matchers form more partnerships → more transmission.
+3. **SortBisect (production) is near the top of the spread.** It's a permissive
+   matcher in practice — it trims age supports but doesn't enforce
+   relationship-type compatibility at the matching stage. Moving to a stricter
+   matcher (KDTreeNN or DesiredAgeBucket) would lower modelled HIV by ~15-30%
+   in calibrated sims.
+4. **DesiredAgeBucket is the outlier on the strict side.** Its in-matchmaker
+   relationship-acceptance Bernoulli drops ~30-45% of matches that would
+   otherwise survive — this duplicates `add_pairs` logic but applies it earlier,
+   before partner counts increment.
+5. **Wall-clock cost is negligible** for all variants at the tested scales.
+   Algorithm choice is a structural/scientific decision, not a perf decision.
 
-- `diseases='sis'` doesn't work with `MFNetwork` because `net_beta` reads
-  `disease.pars.eff_condom`, undefined on `ss.SIS`. The generic benchmark uses
-  `diseases=[]`.
-- `PartnersLastYearAnalyzer` and `PairAgeHeatmapAnalyzer` skip UIDs that exceed the
-  current `ppl.age` array (agents who died and were removed in a demographics-enabled
-  sim). Without this filter, Eswatini's birth/death dynamics raise IndexError on
-  finalize.
-- LSA is capped at n ≤ 5,000 in the generic block; omitted entirely for Zimbabwe and
-  Eswatini (O(n³) cost).
-- Eswatini's `run_pfa_comparison.py` swaps in a per-variant subclass of
-  `sti.StructuredSexual` rather than a bare `MFNetwork_*` — preserves SW state, risk
-  groups, condom data, and HIV result paths.
+## Implementation notes (caught during the run)
 
-## Open questions for the full run
+- The Zimbabwe HIV module hard-codes `sim.networks.structuredsexual` (in
+  `make_init_prev`), so the benchmark builds per-variant **subclasses of
+  `sti.StructuredSexual`** (not bare `MFNetwork_*`) via `make_variant_class()`.
+  Eswatini's script does the same.
+- `make_variant_class()` must copy **all non-dunder class attrs** of the variant
+  (not just `match_pairs`) — `MFNetwork_BandMatch.band_width` was the gotcha.
+- Generic and Zimbabwe results checkpoint to disk separately so a partial-run
+  failure doesn't lose hours of work. Zimbabwe also checkpoints inside its loop.
+- `PartnersLastYearAnalyzer` / `PairAgeHeatmapAnalyzer` skip UIDs that exceed
+  the current `ppl.age` array (agents who died and were removed). Without this
+  the calibrated runs raise `IndexError` on finalize.
 
-- Where does each variant cross from "fast enough" to "unusable"?
-- How much do figures 2-3 (partners-last-year, age heatmaps) shift between SortBisect
-  and the more permissive variants (SortPair, LSA)?
-- Does Eswatini's calibrated HIV prevalence move under different PFAs, or do post-
-  pair-formation dynamics (acts, condoms, intervention coverage) wash out the
-  algorithmic differences?
+## Next steps
+
+- Look at the **age-mixing heatmaps** in `pfa_comparison.ipynb` to see whether
+  the prevalence shift is driven by partner count, partner age spread, or both.
+- Decide whether to keep SortBisect as production or move to something stricter.
+  If we move, **KDTreeNN** is the natural candidate — it's close to LSA in
+  spirit (nearest-neighbour by age) without the O(n³) cost.
+- If we change production: recalibrate Zimbabwe and Eswatini against the new
+  PFA before drawing conclusions about anything else.
+
+## Files
+
+- Generic + Zimbabwe results: `tests/devtests/pfa_comparison_results.obj`
+- Eswatini results: `/Users/robynstuart/gf/hivsim_eswatini/results/pfa_comparison.obj`
+- Notebook: `tests/devtests/pfa_comparison.ipynb`
