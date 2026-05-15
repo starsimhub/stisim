@@ -9,6 +9,7 @@ from stisim.pfa_variants import (
     MFNetwork_SortBisect,
     MFNetwork_GreedyOldEnough,
     MFNetwork_KDTreeNN,
+    MFNetwork_BandMatch,
 )
 
 
@@ -100,3 +101,13 @@ def test_kdtree_nn_runs():
     if len(p1):
         # Each male assigned at most once after collision resolution.
         assert len(np.unique(p1)) == len(p1)
+
+
+def test_band_match_runs():
+    net = MFNetwork_BandMatch()
+    sim, p1, p2 = _match_once(net, n_agents=500)
+    _assert_valid_pairs(p1, p2, sim)
+    if len(p1):
+        # No replacement: each man and woman appears at most once.
+        assert len(np.unique(p1)) == len(p1)
+        assert len(np.unique(p2)) == len(p2)
