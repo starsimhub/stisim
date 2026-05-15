@@ -70,32 +70,47 @@ def run_generic(n_agents_list, n_reps, sim_years):
     return results
 
 
+def make_variant_class(variant_cls):
+    """Build a StructuredSexual subclass that uses ``variant_cls.match_pairs``.
+
+    The Zimbabwe HIV module hard-codes ``sim.networks.structuredsexual`` lookups
+    (see stisim/diseases/sti.py make_init_prev), so we can't swap in a bare
+    MFNetwork_* — we need a StructuredSexual subclass that keeps the
+    ``structuredsexual`` name and the SW/risk-group plumbing.
+    """
+    return type(
+        f'StructuredSexual_{variant_cls.__name__}',
+        (sti.StructuredSexual,),
+        {'match_pairs': variant_cls.match_pairs},
+    )
+
+
 def run_zimbabwe(n_reps, n_agents=10_000):
     """Calibrated benchmark on hivsim.demo('zimbabwe')."""
-    import hivsim
+    import hivsim  # noqa: F401  (used to register hivsim_examples.zimbabwe with sc.importbyname)
     results = sc.objdict()
     for name, cls in VARIANTS:
         if name == 'LSA':
             continue  # too slow for full hivsim runs
+        VariantNet = make_variant_class(cls)
         for rep in range(n_reps):
             key = (name, 'zimbabwe', rep)
             print(f'Running {key} ...')
             sim = hivsim.demo('zimbabwe', run=False, plot=False, n_agents=n_agents)
-            # Swap StructuredSexual (subclass of MFNetwork) for the variant.
-            # Preserve condom_data and any other init kwargs from the original network.
             orig_idx = None
             orig_net = None
             for i, net in enumerate(sim.pars['networks']):
-                if isinstance(net, sti.MFNetwork):
+                if isinstance(net, sti.StructuredSexual):
                     orig_idx = i
                     orig_net = net
                     break
             if orig_idx is None:
-                raise RuntimeError('No MFNetwork found in hivsim.demo(zimbabwe) networks')
-            # Build the variant; copy condom_data so transmission stays calibrated.
-            new_net = cls()
-            if hasattr(orig_net, 'condom_data'):
-                new_net.condom_data = orig_net.condom_data
+                raise RuntimeError('No StructuredSexual found in hivsim.demo(zimbabwe) networks')
+            new_net = VariantNet(
+                pars=sc.dcp(dict(orig_net.pars)),
+                condom_data=getattr(orig_net, 'condom_data', None),
+                name='structuredsexual',
+            )
             sim.pars['networks'][orig_idx] = new_net
             sim.pars['rand_seed'] = rep
             sim.pars['analyzers'] = list(sim.pars.get('analyzers') or []) + [
@@ -129,13 +144,13 @@ def main():
         n_reps = 3
         sim_years = 20
 
+    out = Path(__file__).parent / 'pfa_comparison_results.obj'
     all_results = sc.objdict()
     all_results.generic = run_generic(n_agents_list, n_reps, sim_years)
+    sc.save(out, all_results)  # save generic results before attempting Zimbabwe
     if not args.quick and not args.skip_zimbabwe:
         all_results.zimbabwe = run_zimbabwe(n_reps)
-
-    out = Path(__file__).parent / 'pfa_comparison_results.obj'
-    sc.save(out, all_results)
+        sc.save(out, all_results)
     print(f'Saved {out}')
 
 
