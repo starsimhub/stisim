@@ -1,0 +1,1774 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.42">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>interventions.base_interventions – STIsim</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../api/interventions.bv_interventions.html" rel="next">
+<link href="../api/diseases.gud.html" rel="prev">
+<link href="..//assets/favicon.ico" rel="icon">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-de84f8d6bb715db06a919283c2d1e787.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-9a023c9ade86a60361e96e3e3f11bc54.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-59543038ce2dbea0d2434f74fa4d1829.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-7ea877b0c499ea30230d408925a201b3.min.css" rel="prefetch" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=GTM-NK4K647"></script>
+
+<script type="text/javascript">
+
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
+</script>
+
+
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a href="../index.html" class="navbar-brand navbar-brand-logo">
+    <img src="../assets/starsim-logo.png" alt="" class="navbar-logo">
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link active" href="../index.html" aria-current="page"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../whatsnew.html"> 
+<span class="menu-text">What’s new</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../tutorials/index.html"> 
+<span class="menu-text">Tutorials</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../user_guide/index.html"> 
+<span class="menu-text">User guide</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../examples/index.html"> 
+<span class="menu-text">Examples</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../code_of_conduct.html"> 
+<span class="menu-text">Code of conduct</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../contributing.html"> 
+<span class="menu-text">Contributing</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../api/index.html"> 
+<span class="menu-text">API reference</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools tools-wide">
+    <a href="https://github.com/starsimhub/stisim" title="" class="quarto-navigation-tool px-1" aria-label=""><i class="bi bi-github"></i></a>
+    <a href="mailto:info@starsim.org" title="" class="quarto-navigation-tool px-1" aria-label=""><i class="bi bi-envelope-at-fill"></i></a>
+    <a href="https://starsim-idm.slack.com" title="" class="quarto-navigation-tool px-1" aria-label=""><i class="bi bi-slack"></i></a>
+    <a href="https://starsim.org" title="" class="quarto-navigation-tool px-1" aria-label=""><i class="bi bi-globe"></i></a>
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../api/interventions.base_interventions.html"><strong>Interventions</strong></a></li><li class="breadcrumb-item"><a href="../api/interventions.base_interventions.html">base_interventions</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><strong>Home</strong></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><strong>API reference</strong></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text"><strong>Core</strong></span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/sim.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">sim</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/parameters.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">parameters</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/networks.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">networks</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/demographics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">demographics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/analyzers.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">analyzers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/calibration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">calibration</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/care_seeking.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">care_seeking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/utils.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">utils</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text"><strong>Diseases</strong></span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/diseases.sti.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">sti</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/diseases.hiv.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">hiv</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/diseases.syphilis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">syphilis</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/diseases.chlamydia.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">chlamydia</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/diseases.gonorrhea.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">gonorrhea</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/diseases.trichomoniasis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">trichomoniasis</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/diseases.bv.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">bv</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/diseases.gud.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">gud</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text"><strong>Interventions</strong></span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/interventions.base_interventions.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">base_interventions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/interventions.bv_interventions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">bv_interventions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/interventions.gonorrhea_interventions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">gonorrhea_interventions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/interventions.hiv_interventions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">hiv_interventions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/interventions.syphilis_interventions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">syphilis_interventions</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text"><strong>Connectors</strong></span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/connectors.hiv_sti.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">connectors.hiv_sti</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/connectors.gud_syph.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">connectors.gud_syph</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
+ <span class="menu-text"><strong>HIVsim</strong></span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/hivsim/sim.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">sim</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active" data-toc-expanded="99">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#stisim.interventions.base_interventions" id="toc-stisim.interventions.base_interventions" class="nav-link active" data-scroll-target="#stisim.interventions.base_interventions">interventions.base_interventions</a>
+  <ul>
+  <li><a href="#classes" id="toc-classes" class="nav-link" data-scroll-target="#classes">Classes</a>
+  <ul>
+  <li><a href="#stisim.interventions.base_interventions.ANCTest" id="toc-stisim.interventions.base_interventions.ANCTest" class="nav-link" data-scroll-target="#stisim.interventions.base_interventions.ANCTest">ANCTest</a>
+  <ul class="collapse">
+  <li><a href="#parameters" id="toc-parameters" class="nav-link" data-scroll-target="#parameters">Parameters</a></li>
+  </ul></li>
+  <li><a href="#stisim.interventions.base_interventions.PartnerNotification" id="toc-stisim.interventions.base_interventions.PartnerNotification" class="nav-link" data-scroll-target="#stisim.interventions.base_interventions.PartnerNotification">PartnerNotification</a>
+  <ul class="collapse">
+  <li><a href="#parameters-1" id="toc-parameters-1" class="nav-link" data-scroll-target="#parameters-1">Parameters</a></li>
+  <li><a href="#notes" id="toc-notes" class="nav-link" data-scroll-target="#notes">Notes</a></li>
+  <li><a href="#methods" id="toc-methods" class="nav-link" data-scroll-target="#methods">Methods</a>
+  <ul class="collapse">
+  <li><a href="#stisim.interventions.base_interventions.PartnerNotification.find_partners" id="toc-stisim.interventions.base_interventions.PartnerNotification.find_partners" class="nav-link" data-scroll-target="#stisim.interventions.base_interventions.PartnerNotification.find_partners">find_partners</a></li>
+  <li><a href="#stisim.interventions.base_interventions.PartnerNotification.notify_attendees" id="toc-stisim.interventions.base_interventions.PartnerNotification.notify_attendees" class="nav-link" data-scroll-target="#stisim.interventions.base_interventions.PartnerNotification.notify_attendees">notify_attendees</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#stisim.interventions.base_interventions.ProductMix" id="toc-stisim.interventions.base_interventions.ProductMix" class="nav-link" data-scroll-target="#stisim.interventions.base_interventions.ProductMix">ProductMix</a>
+  <ul class="collapse">
+  <li><a href="#methods-1" id="toc-methods-1" class="nav-link" data-scroll-target="#methods-1">Methods</a>
+  <ul class="collapse">
+  <li><a href="#stisim.interventions.base_interventions.ProductMix.administer" id="toc-stisim.interventions.base_interventions.ProductMix.administer" class="nav-link" data-scroll-target="#stisim.interventions.base_interventions.ProductMix.administer">administer</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#stisim.interventions.base_interventions.STIDx" id="toc-stisim.interventions.base_interventions.STIDx" class="nav-link" data-scroll-target="#stisim.interventions.base_interventions.STIDx">STIDx</a>
+  <ul class="collapse">
+  <li><a href="#methods-2" id="toc-methods-2" class="nav-link" data-scroll-target="#methods-2">Methods</a>
+  <ul class="collapse">
+  <li><a href="#stisim.interventions.base_interventions.STIDx.administer" id="toc-stisim.interventions.base_interventions.STIDx.administer" class="nav-link" data-scroll-target="#stisim.interventions.base_interventions.STIDx.administer">administer</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#stisim.interventions.base_interventions.STITest" id="toc-stisim.interventions.base_interventions.STITest" class="nav-link" data-scroll-target="#stisim.interventions.base_interventions.STITest">STITest</a>
+  <ul class="collapse">
+  <li><a href="#parameters-2" id="toc-parameters-2" class="nav-link" data-scroll-target="#parameters-2">Parameters</a></li>
+  <li><a href="#states-set-on-agents" id="toc-states-set-on-agents" class="nav-link" data-scroll-target="#states-set-on-agents">States set on agents</a></li>
+  <li><a href="#attributes" id="toc-attributes" class="nav-link" data-scroll-target="#attributes">Attributes</a></li>
+  <li><a href="#methods-3" id="toc-methods-3" class="nav-link" data-scroll-target="#methods-3">Methods</a>
+  <ul class="collapse">
+  <li><a href="#stisim.interventions.base_interventions.STITest.get_testers" id="toc-stisim.interventions.base_interventions.STITest.get_testers" class="nav-link" data-scroll-target="#stisim.interventions.base_interventions.STITest.get_testers">get_testers</a></li>
+  <li><a href="#stisim.interventions.base_interventions.STITest.make_test_prob_fn" id="toc-stisim.interventions.base_interventions.STITest.make_test_prob_fn" class="nav-link" data-scroll-target="#stisim.interventions.base_interventions.STITest.make_test_prob_fn">make_test_prob_fn</a></li>
+  <li><a href="#stisim.interventions.base_interventions.STITest.step" id="toc-stisim.interventions.base_interventions.STITest.step" class="nav-link" data-scroll-target="#stisim.interventions.base_interventions.STITest.step">step</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#stisim.interventions.base_interventions.STITreatment" id="toc-stisim.interventions.base_interventions.STITreatment" class="nav-link" data-scroll-target="#stisim.interventions.base_interventions.STITreatment">STITreatment</a>
+  <ul class="collapse">
+  <li><a href="#parameters-3" id="toc-parameters-3" class="nav-link" data-scroll-target="#parameters-3">Parameters</a></li>
+  <li><a href="#methods-4" id="toc-methods-4" class="nav-link" data-scroll-target="#methods-4">Methods</a>
+  <ul class="collapse">
+  <li><a href="#stisim.interventions.base_interventions.STITreatment.administer" id="toc-stisim.interventions.base_interventions.STITreatment.administer" class="nav-link" data-scroll-target="#stisim.interventions.base_interventions.STITreatment.administer">administer</a></li>
+  <li><a href="#stisim.interventions.base_interventions.STITreatment.change_states" id="toc-stisim.interventions.base_interventions.STITreatment.change_states" class="nav-link" data-scroll-target="#stisim.interventions.base_interventions.STITreatment.change_states">change_states</a></li>
+  <li><a href="#stisim.interventions.base_interventions.STITreatment.get_candidates" id="toc-stisim.interventions.base_interventions.STITreatment.get_candidates" class="nav-link" data-scroll-target="#stisim.interventions.base_interventions.STITreatment.get_candidates">get_candidates</a></li>
+  <li><a href="#stisim.interventions.base_interventions.STITreatment.set_treat_eff" id="toc-stisim.interventions.base_interventions.STITreatment.set_treat_eff" class="nav-link" data-scroll-target="#stisim.interventions.base_interventions.STITreatment.set_treat_eff">set_treat_eff</a></li>
+  <li><a href="#stisim.interventions.base_interventions.STITreatment.step" id="toc-stisim.interventions.base_interventions.STITreatment.step" class="nav-link" data-scroll-target="#stisim.interventions.base_interventions.STITreatment.step">step</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#stisim.interventions.base_interventions.SymptomaticTesting" id="toc-stisim.interventions.base_interventions.SymptomaticTesting" class="nav-link" data-scroll-target="#stisim.interventions.base_interventions.SymptomaticTesting">SymptomaticTesting</a>
+  <ul class="collapse">
+  <li><a href="#methods-5" id="toc-methods-5" class="nav-link" data-scroll-target="#methods-5">Methods</a>
+  <ul class="collapse">
+  <li><a href="#stisim.interventions.base_interventions.SymptomaticTesting.step" id="toc-stisim.interventions.base_interventions.SymptomaticTesting.step" class="nav-link" data-scroll-target="#stisim.interventions.base_interventions.SymptomaticTesting.step">step</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#stisim.interventions.base_interventions.SyndromicManagement" id="toc-stisim.interventions.base_interventions.SyndromicManagement" class="nav-link" data-scroll-target="#stisim.interventions.base_interventions.SyndromicManagement">SyndromicManagement</a>
+  <ul class="collapse">
+  <li><a href="#parameters-4" id="toc-parameters-4" class="nav-link" data-scroll-target="#parameters-4">Parameters</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../api/interventions.base_interventions.html"><strong>Interventions</strong></a></li><li class="breadcrumb-item"><a href="../api/interventions.base_interventions.html">base_interventions</a></li></ol></nav></header>
+
+
+
+
+<section id="stisim.interventions.base_interventions" class="level1">
+<h1>interventions.base_interventions</h1>
+<p><code>interventions.base_interventions</code></p>
+<p>Define interventions for STIsim</p>
+<section id="classes" class="level2">
+<h2 class="anchored" data-anchor-id="classes">Classes</h2>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#stisim.interventions.base_interventions.ANCTest">ANCTest</a></td>
+<td>Multi-disease ANC visit testing, scheduled once per pregnancy.</td>
+</tr>
+<tr class="even">
+<td><a href="#stisim.interventions.base_interventions.PartnerNotification">PartnerNotification</a></td>
+<td>Notify and follow up sexual partners of index cases.</td>
+</tr>
+<tr class="odd">
+<td><a href="#stisim.interventions.base_interventions.ProductMix">ProductMix</a></td>
+<td>Generic class for algorithms that determine which product a person will receive</td>
+</tr>
+<tr class="even">
+<td><a href="#stisim.interventions.base_interventions.STIDx">STIDx</a></td>
+<td>Generic class for diagnostics with a positive/negative outcome</td>
+</tr>
+<tr class="odd">
+<td><a href="#stisim.interventions.base_interventions.STITest">STITest</a></td>
+<td>Base class for STI testing.</td>
+</tr>
+<tr class="even">
+<td><a href="#stisim.interventions.base_interventions.STITreatment">STITreatment</a></td>
+<td>Base class for treatment of STI infection.</td>
+</tr>
+<tr class="odd">
+<td><a href="#stisim.interventions.base_interventions.SymptomaticTesting">SymptomaticTesting</a></td>
+<td>Base class for symptomatic testing with multiple possible etiologies</td>
+</tr>
+<tr class="even">
+<td><a href="#stisim.interventions.base_interventions.SyndromicManagement">SyndromicManagement</a></td>
+<td>Syndromic management of vaginal/urethral discharge syndromes.</td>
+</tr>
+</tbody>
+</table>
+<section id="stisim.interventions.base_interventions.ANCTest" class="level3">
+<h3 class="anchored" data-anchor-id="stisim.interventions.base_interventions.ANCTest">ANCTest</h3>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>interventions.base_interventions.ANCTest(</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    visit_prob<span class="op">=</span><span class="fl">0.85</span>,</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    disease_names<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    test_sensitivity<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    disease_treatment_map<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    newborn_tests<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    start<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    stop<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    label<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kwargs,</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Multi-disease ANC visit testing, scheduled once per pregnancy.</p>
+<p>When a woman becomes pregnant, schedules one ANC visit at a random gestational timepoint (months 1–7). At that visit she is tested for HIV and syphilis (auto-detected if present in the sim) plus any extra diseases listed in <code>disease_names</code>. <code>visit_prob</code> reflects ANC attendance: once she attends, all active disease tests are applied.</p>
+<p>HIV positives have <code>diagnosed</code> / <code>ti_diagnosed</code> set, so ART links up automatically. Other diseases route positives to <code>disease_treatment_map</code>. Newborn/infant tests, if provided in <code>newborn_tests</code>, are scheduled on the unborn via the maternal network (sim must include <a href="https://docs.starsim.org/api/networks.html#starsim.networks.MaternalNet" title="0"><code>ss.MaternalNet</code></a> and <a href="https://docs.starsim.org/api/demographics.html#starsim.demographics.Pregnancy" title="0"><code>ss.Pregnancy</code></a>).</p>
+<section id="parameters" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters">Parameters</h4>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>visit_prob</td>
+<td><a href="https://docs.python.org/3/library/functions.html#float">float</a></td>
+<td>probability of attending ANC (default 0.85)</td>
+<td><code>0.85</code></td>
+</tr>
+<tr class="even">
+<td>disease_names</td>
+<td><a href="https://docs.python.org/3/library/stdtypes.html#list">list</a></td>
+<td>extra diseases to test for; HIV and syphilis are auto-detected if present in the sim</td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+</tr>
+<tr class="odd">
+<td>test_sensitivity</td>
+<td><a href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></td>
+<td>per-disease sensitivity, e.g.&nbsp;<code>{'hiv': 0.99}</code>; default 1.0 for all</td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+</tr>
+<tr class="even">
+<td>disease_treatment_map</td>
+<td><a href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></td>
+<td>maps disease name → treatment intervention; required for syphilis and any non-HIV disease</td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+</tr>
+<tr class="odd">
+<td>newborn_tests</td>
+<td><a href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></td>
+<td>maps disease name → newborn/infant test intervention (also added to <code>sim.interventions</code>), e.g.&nbsp;<code>{'hiv': infant_hiv, 'syphilis': newborn_syph}</code></td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+</tr>
+<tr class="even">
+<td>start, stop, name, label</td>
+<td></td>
+<td>standard</td>
+<td><em>required</em></td>
+</tr>
+</tbody>
+</table>
+<p>Examples::</p>
+<pre><code># Minimal: HIV + syphilis auto-detected, no newborn tests
+anc = sti.ANCTest(
+    visit_prob=0.85,
+    disease_treatment_map={'syphilis': syph_tx},
+)
+
+# With newborn/infant tests
+infant_hiv  = sti.InfantHIVTest(name='infant_hiv')
+newborn_syph = sti.NewbornSyphTest(name='newborn_syph', ...)
+anc = sti.ANCTest(
+    visit_prob=0.85,
+    disease_treatment_map={'syphilis': syph_tx},
+    newborn_tests={'hiv': infant_hiv, 'syphilis': newborn_syph},
+)
+sim = ss.Sim(..., interventions=[anc, art, syph_tx, infant_hiv, newborn_syph])</code></pre>
+</section>
+</section>
+<section id="stisim.interventions.base_interventions.PartnerNotification" class="level3">
+<h3 class="anchored" data-anchor-id="stisim.interventions.base_interventions.PartnerNotification">PartnerNotification</h3>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>interventions.base_interventions.PartnerNotification(</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    eligibility,</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    test<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    pars<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kwargs,</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Notify and follow up sexual partners of index cases.</p>
+<p>Each timestep, eligible index cases (e.g.&nbsp;newly diagnosed agents) have their partners identified across two channels:</p>
+<ul>
+<li><strong>Current partners</strong>: edges in the active sexual network.</li>
+<li><strong>Previous partners</strong>: edges in a :class:<a href="../api/networks.html#stisim.networks.PriorPartners" title="0"><code>stisim.PriorPartners</code></a> recall network — dissolved partnerships within the recall window.</li>
+</ul>
+<p>Each contact is offered notification with probability <code>p_notify_&lt;scope&gt;</code>; notified contacts attend follow-up with probability <code>p_attends_&lt;scope&gt;</code>. Attendees are scheduled for the supplied <a href="https://docs.python.org/3/library/test.html#module-test" title="1"><code>test</code></a> intervention on the next timestep. Index cases are not notified about themselves; partners reachable via both channels are not double-notified.</p>
+<section id="parameters-1" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-1">Parameters</h4>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>eligibility</td>
+<td></td>
+<td>Callable <code>f(sim) -&gt; uids</code> returning index cases (e.g.&nbsp;agents who just tested positive).</td>
+<td><em>required</em></td>
+</tr>
+<tr class="even">
+<td>test</td>
+<td></td>
+<td>Test intervention to schedule for attending partners. Optional — subclasses overriding :meth:<code>notify_attendees</code> may set this to <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a>.</td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+</tr>
+<tr class="odd">
+<td>pars</td>
+<td></td>
+<td>Optional dict of parameter overrides.</td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+</tr>
+<tr class="even">
+<td>**kwargs</td>
+<td></td>
+<td>Forwarded to <a href="https://docs.starsim.org/api/interventions.html#starsim.interventions.Intervention" title="0"><code>ss.Intervention</code></a>.</td>
+<td><code>{}</code></td>
+</tr>
+</tbody>
+</table>
+<p>Parameters (override via <code>pars=...</code> or kwargs): p_notify_current: <a href="https://docs.starsim.org/api/distributions.html#starsim.distributions.bernoulli" title="0"><code>ss.bernoulli</code></a> for notifying current partners (default p=0.5). p_attends_current: <a href="https://docs.starsim.org/api/distributions.html#starsim.distributions.bernoulli" title="0"><code>ss.bernoulli</code></a> for attendance given notification, current partners (default p=0.5). p_notify_previous: <a href="https://docs.starsim.org/api/distributions.html#starsim.distributions.bernoulli" title="0"><code>ss.bernoulli</code></a> for notifying prior partners (default p=0.05). Set p=0 to disable the prior-partner channel. p_attends_previous: <a href="https://docs.starsim.org/api/distributions.html#starsim.distributions.bernoulli" title="0"><code>ss.bernoulli</code></a> for attendance given notification, prior partners (default p=0.01). current_network: Name of the active sexual network (default <code>'structuredsexual'</code>). previous_network: Name of the prior-partner network (default <code>'priorpartners'</code>). Required if the prior channel is enabled.</p>
+</section>
+<section id="notes" class="level4 doc-section doc-section-notes">
+<h4 class="doc-section doc-section-notes anchored" data-anchor-id="notes">Notes</h4>
+<ul>
+<li>To use the prior-partner channel, the active sexual network must have <code>recall_prior=True</code> so dissolved partnerships are pushed to <code>PriorPartners</code>.</li>
+<li>For more elaborate downstream actions (e.g.&nbsp;setting treatment eligibility per partnership), subclass and override :meth:<code>step</code>.</li>
+</ul>
+</section>
+<section id="methods" class="level4">
+<h4 class="anchored" data-anchor-id="methods">Methods</h4>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#stisim.interventions.base_interventions.PartnerNotification.find_partners">find_partners</a></td>
+<td>UIDs of partners of <code>index_uids</code> on network <code>nw</code>, deduplicated and</td>
+</tr>
+<tr class="even">
+<td><a href="#stisim.interventions.base_interventions.PartnerNotification.notify_attendees">notify_attendees</a></td>
+<td>Hook called for partners attending follow-up. Default implementation</td>
+</tr>
+</tbody>
+</table>
+<section id="stisim.interventions.base_interventions.PartnerNotification.find_partners" class="level5">
+<h5 class="anchored" data-anchor-id="stisim.interventions.base_interventions.PartnerNotification.find_partners">find_partners</h5>
+<div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>interventions.base_interventions.PartnerNotification.find_partners(</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    nw,</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    index_uids,</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>UIDs of partners of <code>index_uids</code> on network <code>nw</code>, deduplicated and excluding any index case from being notified about themselves.</p>
+</section>
+<section id="stisim.interventions.base_interventions.PartnerNotification.notify_attendees" class="level5">
+<h5 class="anchored" data-anchor-id="stisim.interventions.base_interventions.PartnerNotification.notify_attendees">notify_attendees</h5>
+<div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>interventions.base_interventions.PartnerNotification.notify_attendees(uids)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Hook called for partners attending follow-up. Default implementation schedules <code>self.test</code> for the attendees on the next timestep.</p>
+<p>Override in subclasses to customise downstream actions — for instance, to apply syndromic treatment by partner sex, set treatment eligibility on a specific intervention, or send notifications to a registry.</p>
+</section>
+</section>
+</section>
+<section id="stisim.interventions.base_interventions.ProductMix" class="level3">
+<h3 class="anchored" data-anchor-id="stisim.interventions.base_interventions.ProductMix">ProductMix</h3>
+<div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>interventions.base_interventions.ProductMix(df, excl_cols<span class="op">=</span><span class="va">None</span>, <span class="op">*</span>args, <span class="op">**</span>kwargs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Generic class for algorithms that determine which product a person will receive Uses ss.choice() sampling, which is slower than bernoulli, when there are more than two options The test that agents are given does NOT depend on their underlying health state.</p>
+<section id="methods-1" class="level4">
+<h4 class="anchored" data-anchor-id="methods-1">Methods</h4>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#stisim.interventions.base_interventions.ProductMix.administer">administer</a></td>
+<td>Apply a testing algorithm</td>
+</tr>
+</tbody>
+</table>
+<section id="stisim.interventions.base_interventions.ProductMix.administer" class="level5">
+<h5 class="anchored" data-anchor-id="stisim.interventions.base_interventions.ProductMix.administer">administer</h5>
+<div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>interventions.base_interventions.ProductMix.administer(sim, uids)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Apply a testing algorithm</p>
+</section>
+</section>
+</section>
+<section id="stisim.interventions.base_interventions.STIDx" class="level3">
+<h3 class="anchored" data-anchor-id="stisim.interventions.base_interventions.STIDx">STIDx</h3>
+<div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>interventions.base_interventions.STIDx(df, disease, <span class="op">*</span>args, <span class="op">**</span>kwargs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Generic class for diagnostics with a positive/negative outcome Uses bernoulli sampling, so can only be used for tests with binary outcomes Results vary depending on agents’ true underlying health state</p>
+<section id="methods-2" class="level4">
+<h4 class="anchored" data-anchor-id="methods-2">Methods</h4>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#stisim.interventions.base_interventions.STIDx.administer">administer</a></td>
+<td>Administer a testing product.</td>
+</tr>
+</tbody>
+</table>
+<section id="stisim.interventions.base_interventions.STIDx.administer" class="level5">
+<h5 class="anchored" data-anchor-id="stisim.interventions.base_interventions.STIDx.administer">administer</h5>
+<div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>interventions.base_interventions.STIDx.administer(sim, uids)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Administer a testing product.</p>
+</section>
+</section>
+</section>
+<section id="stisim.interventions.base_interventions.STITest" class="level3">
+<h3 class="anchored" data-anchor-id="stisim.interventions.base_interventions.STITest">STITest</h3>
+<div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>interventions.base_interventions.STITest(</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    pars<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    test_prob_data<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    years<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    start<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    stop<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    eligibility<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    product<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    label<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kwargs,</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Base class for STI testing.</p>
+<p>Controls who gets tested, how often, and with what diagnostic product. Each timestep, eligible agents are tested with a probability derived from test_prob_data. By default (dt_scale=True), test_prob_data is interpreted as an <strong>annual testing probability</strong> and converted to a per-timestep probability via <code>ss.probperyear</code>. This correctly recovers the annual probability over a full year of timesteps (e.g.&nbsp;test_prob_data=0.24 with monthly dt gives ~2.26% per month, recovering exactly 24% per year).</p>
+<p>If you need to specify a per-timestep probability directly (not an annual probability), set dt_scale=False: - test_prob_data=0.5, dt_scale=False → 50% chance per timestep</p>
+<section id="parameters-2" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-2">Parameters</h4>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>product</td>
+<td></td>
+<td>diagnostic product (e.g.&nbsp;STIDx, HIVDx) that determines test outcomes (sensitivity, specificity). If None, subclasses supply a default (e.g.&nbsp;HIVTest uses a perfect HIVDx). For STITest, a product is required.</td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+</tr>
+<tr class="even">
+<td>test_prob_data</td>
+<td></td>
+<td>annual testing probability (if dt_scale=True, the default) or per-timestep probability (if dt_scale=False). Accepts a scalar (constant probability), an array (one value per entry in <code>years</code>), or a DataFrame (subclass-specific, e.g.&nbsp;SymptomaticTesting accepts risk-group-stratified DataFrames). Default: 1.0 (test all eligible agents per year).</td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+</tr>
+<tr class="odd">
+<td>years</td>
+<td><a href="https://docs.python.org/3/library/array.html#module-array">array</a></td>
+<td>calendar years corresponding to entries in test_prob_data when test_prob_data is an array. Mutually exclusive with start.</td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+</tr>
+<tr class="even">
+<td>start</td>
+<td><a href="https://docs.python.org/3/library/functions.html#float">float</a></td>
+<td>calendar year when the intervention activates (inclusive). Defaults to the first simulation year.</td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+</tr>
+<tr class="odd">
+<td>stop</td>
+<td><a href="https://docs.python.org/3/library/functions.html#float">float</a></td>
+<td>calendar year when the intervention deactivates (inclusive). Defaults to the last simulation year.</td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+</tr>
+<tr class="even">
+<td>eligibility</td>
+<td></td>
+<td>function <code>f(sim) -&gt; BoolArr</code> or <code>f(sim) -&gt; UIDs</code> defining who can be tested. Can filter on any agent property, e.g.&nbsp;<code>lambda sim: sim.people.female &amp; (sim.people.age &gt; 15)</code>. Default: all agents (subclasses may override, e.g.&nbsp;HIVTest defaults to undiagnosed agents only).</td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+</tr>
+<tr class="odd">
+<td>rel_test</td>
+<td></td>
+<td>relative testing probability multiplier (default 1.0)</td>
+<td><em>required</em></td>
+</tr>
+<tr class="even">
+<td>dt_scale</td>
+<td></td>
+<td>if True (default), interpret test_prob_data as an annual probability. Set to False to interpret test_prob_data as a per-timestep probability.</td>
+<td><em>required</em></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="states-set-on-agents" class="level4 doc-section doc-section-states-set-on-agents">
+<h4 class="doc-section doc-section-states-set-on-agents anchored" data-anchor-id="states-set-on-agents">States set on agents</h4>
+<p>tested (bool): ever tested diagnosed (bool): ever diagnosed positive ti_tested (float): timestep of last test ti_scheduled (float): timestep of next scheduled test ti_positive (float): timestep of last positive result ti_negative (float): timestep of last negative result tests (float): cumulative number of tests received</p>
+</section>
+<section id="attributes" class="level4">
+<h4 class="anchored" data-anchor-id="attributes">Attributes</h4>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#stisim.interventions.base_interventions.STITest.state_list">state_list</a></td>
+<td>Include products in the state list</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="methods-3" class="level4">
+<h4 class="anchored" data-anchor-id="methods-3">Methods</h4>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#stisim.interventions.base_interventions.STITest.get_testers">get_testers</a></td>
+<td>Find who tests by applying eligibility and coverage/uptake</td>
+</tr>
+<tr class="even">
+<td><a href="#stisim.interventions.base_interventions.STITest.make_test_prob_fn">make_test_prob_fn</a></td>
+<td>Testing probabilites over time</td>
+</tr>
+<tr class="odd">
+<td><a href="#stisim.interventions.base_interventions.STITest.step">step</a></td>
+<td>Apply the testing intervention</td>
+</tr>
+</tbody>
+</table>
+<section id="stisim.interventions.base_interventions.STITest.get_testers" class="level5">
+<h5 class="anchored" data-anchor-id="stisim.interventions.base_interventions.STITest.get_testers">get_testers</h5>
+<div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>interventions.base_interventions.STITest.get_testers(sim)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Find who tests by applying eligibility and coverage/uptake</p>
+</section>
+<section id="stisim.interventions.base_interventions.STITest.make_test_prob_fn" class="level5">
+<h5 class="anchored" data-anchor-id="stisim.interventions.base_interventions.STITest.make_test_prob_fn">make_test_prob_fn</h5>
+<div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>interventions.base_interventions.STITest.make_test_prob_fn(sim, uids)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Testing probabilites over time</p>
+</section>
+<section id="stisim.interventions.base_interventions.STITest.step" class="level5">
+<h5 class="anchored" data-anchor-id="stisim.interventions.base_interventions.STITest.step">step</h5>
+<div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>interventions.base_interventions.STITest.step(uids<span class="op">=</span><span class="va">None</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Apply the testing intervention</p>
+</section>
+</section>
+</section>
+<section id="stisim.interventions.base_interventions.STITreatment" class="level3">
+<h3 class="anchored" data-anchor-id="stisim.interventions.base_interventions.STITreatment">STITreatment</h3>
+<div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>interventions.base_interventions.STITreatment(</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    pars<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    diseases<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    eligibility<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    max_capacity<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    years<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">*</span>args,</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kwargs,</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Base class for treatment of STI infection. The majority of STI treatments will clear infection.</p>
+<section id="parameters-3" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-3">Parameters</h4>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>pars</td>
+<td></td>
+<td></td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+</tr>
+<tr class="even">
+<td>disease</td>
+<td><a href="https://docs.python.org/3/library/stdtypes.html#str">str</a></td>
+<td>should match the name of one of the diseases in the simulation</td>
+<td><em>required</em></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="methods-4" class="level4">
+<h4 class="anchored" data-anchor-id="methods-4">Methods</h4>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#stisim.interventions.base_interventions.STITreatment.administer">administer</a></td>
+<td>Administer treatment, keeping track of unnecessarily treated individuals</td>
+</tr>
+<tr class="even">
+<td><a href="#stisim.interventions.base_interventions.STITreatment.change_states">change_states</a></td>
+<td>Change the states of people who are treated</td>
+</tr>
+<tr class="odd">
+<td><a href="#stisim.interventions.base_interventions.STITreatment.get_candidates">get_candidates</a></td>
+<td>Get people who are willing to accept treatment</td>
+</tr>
+<tr class="even">
+<td><a href="#stisim.interventions.base_interventions.STITreatment.set_treat_eff">set_treat_eff</a></td>
+<td>Can be changed by derived classes</td>
+</tr>
+<tr class="odd">
+<td><a href="#stisim.interventions.base_interventions.STITreatment.step">step</a></td>
+<td>Apply treatment. On each timestep, this method will add eligible people who are willing to accept treatment to a</td>
+</tr>
+</tbody>
+</table>
+<section id="stisim.interventions.base_interventions.STITreatment.administer" class="level5">
+<h5 class="anchored" data-anchor-id="stisim.interventions.base_interventions.STITreatment.administer">administer</h5>
+<div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>interventions.base_interventions.STITreatment.administer(</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    sim,</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    uids,</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    disease,</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    return_format<span class="op">=</span><span class="st">'dict'</span>,</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Administer treatment, keeping track of unnecessarily treated individuals</p>
+</section>
+<section id="stisim.interventions.base_interventions.STITreatment.change_states" class="level5">
+<h5 class="anchored" data-anchor-id="stisim.interventions.base_interventions.STITreatment.change_states">change_states</h5>
+<div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>interventions.base_interventions.STITreatment.change_states(disease, treat_succ)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Change the states of people who are treated</p>
+</section>
+<section id="stisim.interventions.base_interventions.STITreatment.get_candidates" class="level5">
+<h5 class="anchored" data-anchor-id="stisim.interventions.base_interventions.STITreatment.get_candidates">get_candidates</h5>
+<div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>interventions.base_interventions.STITreatment.get_candidates(sim)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Get people who are willing to accept treatment</p>
+</section>
+<section id="stisim.interventions.base_interventions.STITreatment.set_treat_eff" class="level5">
+<h5 class="anchored" data-anchor-id="stisim.interventions.base_interventions.STITreatment.set_treat_eff">set_treat_eff</h5>
+<div class="sourceCode" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>interventions.base_interventions.STITreatment.set_treat_eff(uids)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Can be changed by derived classes</p>
+</section>
+<section id="stisim.interventions.base_interventions.STITreatment.step" class="level5">
+<h5 class="anchored" data-anchor-id="stisim.interventions.base_interventions.STITreatment.step">step</h5>
+<div class="sourceCode" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>interventions.base_interventions.STITreatment.step()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Apply treatment. On each timestep, this method will add eligible people who are willing to accept treatment to a queue, and then will treat as many people in the queue as there is capacity for.</p>
+</section>
+</section>
+</section>
+<section id="stisim.interventions.base_interventions.SymptomaticTesting" class="level3">
+<h3 class="anchored" data-anchor-id="stisim.interventions.base_interventions.SymptomaticTesting">SymptomaticTesting</h3>
+<div class="sourceCode" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>interventions.base_interventions.SymptomaticTesting(</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    pars<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    treatments<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    diseases<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    disease_treatment_map<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    negative_treatments<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    treat_prob_data<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    years<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    start<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    stop<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>    eligibility<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>    label<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kwargs,</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Base class for symptomatic testing with multiple possible etiologies Unlike other test classes, this doesn’t return positive/negative outcomes, since syndromic management doesn’t involve reaching a diagnosis. Rather, the testing intervention itself contains a linked treatment intervention.</p>
+<section id="methods-5" class="level4">
+<h4 class="anchored" data-anchor-id="methods-5">Methods</h4>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#stisim.interventions.base_interventions.SymptomaticTesting.step">step</a></td>
+<td>Apply syndromic management</td>
+</tr>
+</tbody>
+</table>
+<section id="stisim.interventions.base_interventions.SymptomaticTesting.step" class="level5">
+<h5 class="anchored" data-anchor-id="stisim.interventions.base_interventions.SymptomaticTesting.step">step</h5>
+<div class="sourceCode" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>interventions.base_interventions.SymptomaticTesting.step(uids<span class="op">=</span><span class="va">None</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Apply syndromic management</p>
+</section>
+</section>
+</section>
+<section id="stisim.interventions.base_interventions.SyndromicManagement" class="level3">
+<h3 class="anchored" data-anchor-id="stisim.interventions.base_interventions.SyndromicManagement">SyndromicManagement</h3>
+<div class="sourceCode" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>interventions.base_interventions.SyndromicManagement(</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>    pars<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    treatments<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    diseases<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    cervical_diseases<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    outcome_tx_map<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    treat_prob_data<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    years<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    start<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    stop<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>    eligibility<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>    label<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kwargs,</span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Syndromic management of vaginal/urethral discharge syndromes.</p>
+<p>When a symptomatic patient presents, they are probabilistically assigned one of four treatment outcomes based on whether they have a cervical infection (by default NG/CT) and their sex:</p>
+<pre><code>all3  — treated for cervical pathogens + TV/BV
+ngct  — treated for cervical pathogens only
+mtnz  — treated with metronidazole only (TV/BV)
+none  — dismissed without treatment</code></pre>
+<p>Treatment probabilities for each outcome are given separately for females with cervical infection (<code>tx_mix_cerv</code>), females without (<code>tx_mix_noncerv</code>), and males (cervical column of <code>tx_mix_cerv</code> is reused for UDS). Each dict maps outcome name → [female_prob, male_prob].</p>
+<p>The <code>outcome_tx_map</code> links each outcome to the treatment module(s) that should be triggered. Diagnostic accuracy (TP/FP/FN/TN) is recorded on any disease module that exposes those result keys.</p>
+<section id="parameters-4" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-4">Parameters</h4>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>treatments</td>
+<td><a href="https://docs.python.org/3/library/stdtypes.html#list">list</a></td>
+<td>treatment module instances</td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+</tr>
+<tr class="even">
+<td>diseases</td>
+<td><a href="https://docs.python.org/3/library/stdtypes.html#list">list</a></td>
+<td>disease modules to track accuracy for</td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+</tr>
+<tr class="odd">
+<td>cervical_diseases</td>
+<td><a href="https://docs.python.org/3/library/stdtypes.html#list">list</a></td>
+<td>disease modules whose symptomatic flag indicates cervical infection; defaults to any disease named ‘ng’ or ‘ct’ in <code>diseases</code></td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+</tr>
+<tr class="even">
+<td>outcome_tx_map</td>
+<td><a href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></td>
+<td>maps outcome name → list of treatment modules; auto-constructed from <code>treatments</code> if omitted</td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+</tr>
+<tr class="odd">
+<td>treat_prob_data</td>
+<td></td>
+<td>unused; reserved for future time-varying tx prob</td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+</tr>
+<tr class="even">
+<td>years, start, stop, eligibility, name, label</td>
+<td></td>
+<td>passed to STITest</td>
+<td><em>required</em></td>
+</tr>
+</tbody>
+</table>
+<p>Examples::</p>
+<pre><code>syndromic = sti.SyndromicManagement(
+    diseases=[ng, ct, tv, bv],
+    treatments=[ng_tx, ct_tx, metronidazole],
+    eligibility=seeking_care_vds,
+)</code></pre>
+
+
+</section>
+</section>
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const disableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'prefetch';
+    }
+  }
+  const enableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'stylesheet';
+    }
+  }
+  const manageTransitions = (selector, allowTransitions) => {
+    const els = window.document.querySelectorAll(selector);
+    for (let i=0; i < els.length; i++) {
+      const el = els[i];
+      if (allowTransitions) {
+        el.classList.remove('notransition');
+      } else {
+        el.classList.add('notransition');
+      }
+    }
+  }
+  const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+    const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+    const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+    let newTheme = '';
+    if(darkModeDefault) {
+      newTheme = isAlternate ? baseTheme : alternateTheme;
+    } else {
+      newTheme = isAlternate ? alternateTheme : baseTheme;
+    }
+    const changeGiscusTheme = () => {
+      // From: https://github.com/giscus/giscus/issues/336
+      const sendMessage = (message) => {
+        const iframe = document.querySelector('iframe.giscus-frame');
+        if (!iframe) return;
+        iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+      }
+      sendMessage({
+        setConfig: {
+          theme: newTheme
+        }
+      });
+    }
+    const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+    if (isGiscussLoaded) {
+      changeGiscusTheme();
+    }
+  }
+  const toggleColorMode = (alternate) => {
+    // Switch the stylesheets
+    const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+    manageTransitions('#quarto-margin-sidebar .nav-link', false);
+    if (alternate) {
+      enableStylesheet(alternateStylesheets);
+      for (const sheetNode of alternateStylesheets) {
+        if (sheetNode.id === "quarto-bootstrap") {
+          toggleBodyColorMode(sheetNode);
+        }
+      }
+    } else {
+      disableStylesheet(alternateStylesheets);
+      toggleBodyColorPrimary();
+    }
+    manageTransitions('#quarto-margin-sidebar .nav-link', true);
+    // Switch the toggles
+    const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+    for (let i=0; i < toggles.length; i++) {
+      const toggle = toggles[i];
+      if (toggle) {
+        if (alternate) {
+          toggle.classList.add("alternate");     
+        } else {
+          toggle.classList.remove("alternate");
+        }
+      }
+    }
+    // Hack to workaround the fact that safari doesn't
+    // properly recolor the scrollbar when toggling (#1455)
+    if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+      manageTransitions("body", false);
+      window.scrollTo(0, 1);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        manageTransitions("body", true);
+      }, 40);  
+    }
+  }
+  const isFileUrl = () => { 
+    return window.location.protocol === 'file:';
+  }
+  const hasAlternateSentinel = () => {  
+    let styleSentinel = getColorSchemeSentinel();
+    if (styleSentinel !== null) {
+      return styleSentinel === "alternate";
+    } else {
+      return false;
+    }
+  }
+  const setStyleSentinel = (alternate) => {
+    const value = alternate ? "alternate" : "default";
+    if (!isFileUrl()) {
+      window.localStorage.setItem("quarto-color-scheme", value);
+    } else {
+      localAlternateSentinel = value;
+    }
+  }
+  const getColorSchemeSentinel = () => {
+    if (!isFileUrl()) {
+      const storageValue = window.localStorage.getItem("quarto-color-scheme");
+      return storageValue != null ? storageValue : localAlternateSentinel;
+    } else {
+      return localAlternateSentinel;
+    }
+  }
+  const darkModeDefault = false;
+  let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+  // Dark / light mode switch
+  window.quartoToggleColorScheme = () => {
+    // Read the current dark / light value 
+    let toAlternate = !hasAlternateSentinel();
+    toggleColorMode(toAlternate);
+    setStyleSentinel(toAlternate);
+    toggleGiscusIfUsed(toAlternate, darkModeDefault);
+  };
+  // Ensure there is a toggle, if there isn't float one in the top right
+  if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+    const a = window.document.createElement('a');
+    a.classList.add('top-right');
+    a.classList.add('quarto-color-scheme-toggle');
+    a.href = "";
+    a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+    const i = window.document.createElement("i");
+    i.classList.add('bi');
+    a.appendChild(i);
+    window.document.body.appendChild(a);
+  }
+  // Switch to dark mode if need be
+  if (hasAlternateSentinel()) {
+    toggleColorMode(true);
+  } else {
+    toggleColorMode(false);
+  }
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../api/diseases.gud.html" class="pagination-link" aria-label="gud">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">gud</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../api/interventions.bv_interventions.html" class="pagination-link" aria-label="bv_interventions">
+        <span class="nav-page-text">bv_interventions</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+      &nbsp;
+    </div>   
+    <div class="nav-footer-center">
+<p>Docs built for STIsim v1.5.5 (2026-05-15).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
+    <div class="nav-footer-right">
+      <ul class="footer-items list-unstyled">
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/starsimhub/stisim">
+      <i class="bi bi-github" role="img" aria-label="GitHub">
+</i> 
+    </a>
+  </li>  
+    <li class="nav-item compact">
+    <a class="nav-link" href="mailto:info@starsim.org">
+      <i class="bi bi-envelope-at-fill" role="img">
+</i> 
+    </a>
+  </li>  
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://starsim-idm.slack.com">
+      <i class="bi bi-slack" role="img">
+</i> 
+    </a>
+  </li>  
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://starsim.org/">
+      <i class="bi bi-globe" role="img">
+</i> 
+    </a>
+  </li>  
+</ul>
+    </div>
+  </div>
+</footer>
+
+
+
+
+</body></html>

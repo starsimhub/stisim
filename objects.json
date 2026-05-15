@@ -1,0 +1,4039 @@
+{
+  "project": "stisim",
+  "version": "0.0.9999",
+  "count": 256,
+  "items": [
+    {
+      "name": "stisim.sim.Sim.init",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/sim.html#stisim.sim.Sim.init",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sim.Sim.plot",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/sim.html#stisim.sim.Sim.plot",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sim.Sim.process_connectors",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/sim.html#stisim.sim.Sim.process_connectors",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sim.Sim.process_demographics",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/sim.html#stisim.sim.Sim.process_demographics",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sim.Sim.process_networks",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/sim.html#stisim.sim.Sim.process_networks",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sim.Sim.process_stis",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/sim.html#stisim.sim.Sim.process_stis",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sim.Sim.remap_pars",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/sim.html#stisim.sim.Sim.remap_pars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sim.Sim.separate_pars",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/sim.html#stisim.sim.Sim.separate_pars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sim.Sim",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/sim.html#stisim.sim.Sim",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sim",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/sim.html#stisim.sim",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.parameters.SimPars",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/parameters.html#stisim.parameters.SimPars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.parameters.connector_register",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/parameters.html#stisim.parameters.connector_register",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.parameters.dem_pars",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/parameters.html#stisim.parameters.dem_pars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.parameters.make_sti",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/parameters.html#stisim.parameters.make_sti",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.parameters.merged_connector_pars",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/parameters.html#stisim.parameters.merged_connector_pars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.parameters.merged_sti_pars",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/parameters.html#stisim.parameters.merged_sti_pars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.parameters.mergepars",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/parameters.html#stisim.parameters.mergepars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.parameters.sti_aliases",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/parameters.html#stisim.parameters.sti_aliases",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.parameters.sti_register",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/parameters.html#stisim.parameters.sti_register",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.parameters",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/parameters.html#stisim.parameters",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks.AgeApproxMSM.match_pairs",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.AgeApproxMSM.match_pairs",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks.AgeApproxMSM",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.AgeApproxMSM",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks.AgeMatchedMSM.match_pairs",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.AgeMatchedMSM.match_pairs",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks.AgeMatchedMSM",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.AgeMatchedMSM",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks.BaseNetwork.add_pairs",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.BaseNetwork.add_pairs",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks.BaseNetwork.set_condom_use",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.BaseNetwork.set_condom_use",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks.BaseNetwork.set_network_states",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.BaseNetwork.set_network_states",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks.BaseNetwork",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.BaseNetwork",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks.BasePars",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.BasePars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks.MFNetwork.add_pairs",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.MFNetwork.add_pairs",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks.MFNetwork.match_pairs",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.MFNetwork.match_pairs",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks.MFNetwork.set_concurrency",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.MFNetwork.set_concurrency",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks.MFNetwork.set_risk_groups",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.MFNetwork.set_risk_groups",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks.MFNetwork",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.MFNetwork",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks.MFPars",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.MFPars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks.NetworkPars",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.NetworkPars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks.PriorPartners",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.PriorPartners",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks.SWNetwork.add_pairs",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.SWNetwork.add_pairs",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks.SWNetwork.client",
+      "domain": "py",
+      "role": "attribute",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.SWNetwork.client",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks.SWNetwork.fsw",
+      "domain": "py",
+      "role": "attribute",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.SWNetwork.fsw",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks.SWNetwork.match_pairs",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.SWNetwork.match_pairs",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks.SWNetwork.set_sex_work",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.SWNetwork.set_sex_work",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks.SWNetwork",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.SWNetwork",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks.SWPars",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.SWPars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks.StructuredSexual",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.StructuredSexual",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.networks",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.demographics.Migration.get_migrants",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/demographics.html#stisim.demographics.Migration.get_migrants",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.demographics.Migration.init_migration_propensity",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/demographics.html#stisim.demographics.Migration.init_migration_propensity",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.demographics.Migration.make_immigrants",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/demographics.html#stisim.demographics.Migration.make_immigrants",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.demographics.Migration.remove_emigrants",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/demographics.html#stisim.demographics.Migration.remove_emigrants",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.demographics.Migration.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/demographics.html#stisim.demographics.Migration.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.demographics.Migration.step_migration",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/demographics.html#stisim.demographics.Migration.step_migration",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.demographics.Migration",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/demographics.html#stisim.demographics.Migration",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.demographics",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/demographics.html#stisim.demographics",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers.DebutAge.plot",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.DebutAge.plot",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers.DebutAge",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.DebutAge",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers.NetworkDegree.init_pre",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.NetworkDegree.init_pre",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers.NetworkDegree.init_results",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.NetworkDegree.init_results",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers.NetworkDegree.plot",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.NetworkDegree.plot",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers.NetworkDegree.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.NetworkDegree.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers.NetworkDegree",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.NetworkDegree",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers.RelationshipDurations.get_relationship_durations",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.RelationshipDurations.get_relationship_durations",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers.RelationshipDurations",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.RelationshipDurations",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers.TimeBetweenRelationships.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.TimeBetweenRelationships.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers.TimeBetweenRelationships",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.TimeBetweenRelationships",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers.art_coverage.plot",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.art_coverage.plot",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers.art_coverage",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.art_coverage",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers.coinfection_stats",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.coinfection_stats",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers.partner_age_diff.init_results",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.partner_age_diff.init_results",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers.partner_age_diff.plot",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.partner_age_diff.plot",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers.partner_age_diff.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.partner_age_diff.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers.partner_age_diff",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.partner_age_diff",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers.result_grouper",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.result_grouper",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers.sw_stats",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.sw_stats",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.calibration.Calibration.calibrate",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.Calibration.calibrate",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.calibration.Calibration.get_pars",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.Calibration.get_pars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.calibration.Calibration.load_results",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.Calibration.load_results",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.calibration.Calibration.parse_study",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.Calibration.parse_study",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.calibration.Calibration.run_trial",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.Calibration.run_trial",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.calibration.Calibration.save",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.Calibration.save",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.calibration.Calibration.shrink",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.Calibration.shrink",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.calibration.Calibration.worker",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.Calibration.worker",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.calibration.Calibration",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.Calibration",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.calibration.compute_gof",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.compute_gof",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.calibration.default_build_fn",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.default_build_fn",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.calibration.flatten_calib_pars",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.flatten_calib_pars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.calibration.make_calib_sims",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.make_calib_sims",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.calibration.set_sim_pars",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.set_sim_pars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.calibration",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.care_seeking.CareSeeking.set_care_seeking_states",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/care_seeking.html#stisim.care_seeking.CareSeeking.set_care_seeking_states",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.care_seeking.CareSeeking.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/care_seeking.html#stisim.care_seeking.CareSeeking.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.care_seeking.CareSeeking",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/care_seeking.html#stisim.care_seeking.CareSeeking",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.care_seeking",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/care_seeking.html#stisim.care_seeking",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.utils.TimeSeries.copy",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries.copy",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.utils.TimeSeries.get",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries.get",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.utils.TimeSeries.get_arrays",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries.get_arrays",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.utils.TimeSeries.has_data",
+      "domain": "py",
+      "role": "attribute",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries.has_data",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.utils.TimeSeries.has_time_data",
+      "domain": "py",
+      "role": "attribute",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries.has_time_data",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.utils.TimeSeries.insert",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries.insert",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.utils.TimeSeries.interpolate",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries.interpolate",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.utils.TimeSeries.remove",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries.remove",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.utils.TimeSeries.remove_after",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries.remove_after",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.utils.TimeSeries.remove_before",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries.remove_before",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.utils.TimeSeries.remove_between",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries.remove_between",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.utils.TimeSeries.sample",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries.sample",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.utils.TimeSeries",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.utils.route_pars",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.route_pars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.utils",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.sti.BaseSTI.agehist",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.BaseSTI.agehist",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.sti.BaseSTI.init_results",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.BaseSTI.init_results",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.sti.BaseSTI.make_init_prev",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.BaseSTI.make_init_prev",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.sti.BaseSTI.set_outcomes",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.BaseSTI.set_outcomes",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.sti.BaseSTI.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.BaseSTI.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.sti.BaseSTI.treatable",
+      "domain": "py",
+      "role": "attribute",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.BaseSTI.treatable",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.sti.BaseSTI.validate_beta",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.BaseSTI.validate_beta",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.sti.BaseSTI",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.BaseSTI",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.sti.BaseSTIPars",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.BaseSTIPars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.sti.SEIS.init_results",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.SEIS.init_results",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.sti.SEIS.set_prognoses",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.SEIS.set_prognoses",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.sti.SEIS.step_state",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.SEIS.step_state",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.sti.SEIS.treatable",
+      "domain": "py",
+      "role": "attribute",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.SEIS.treatable",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.sti.SEIS.wipe_dates",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.SEIS.wipe_dates",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.sti.SEIS",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.SEIS",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.sti.STIPars",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.STIPars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.sti",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.hiv.HIV.acute_decline",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.acute_decline",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.hiv.HIV.cd4_increase",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.cd4_increase",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.hiv.HIV.falling_decline",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.falling_decline",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.hiv.HIV.init_care_seeking",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.init_care_seeking",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.hiv.HIV.init_cd4",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.init_cd4",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.hiv.HIV.init_post",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.init_post",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.hiv.HIV.init_results",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.init_results",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.hiv.HIV.make_p_hiv_death",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.make_p_hiv_death",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.hiv.HIV.plot",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.plot",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.hiv.HIV.post_art_decline",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.post_art_decline",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.hiv.HIV.set_prognoses",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.set_prognoses",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.hiv.HIV.start_art",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.start_art",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.hiv.HIV.step_die",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.step_die",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.hiv.HIV.step_state",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.step_state",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.hiv.HIV.stop_art",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.stop_art",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.hiv.HIV.update_results",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.update_results",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.hiv.HIV.update_transmission",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.update_transmission",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.hiv.HIV",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.hiv.HIVPars",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIVPars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.hiv",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.syphilis",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/diseases.syphilis.html#stisim.diseases.syphilis",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.chlamydia.CTPars",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.chlamydia.html#stisim.diseases.chlamydia.CTPars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.chlamydia.Chlamydia",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.chlamydia.html#stisim.diseases.chlamydia.Chlamydia",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.chlamydia.ChlamydiaBL.set_ct_load",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.chlamydia.html#stisim.diseases.chlamydia.ChlamydiaBL.set_ct_load",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.chlamydia.ChlamydiaBL.set_prognoses",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.chlamydia.html#stisim.diseases.chlamydia.ChlamydiaBL.set_prognoses",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.chlamydia.ChlamydiaBL.update_pre",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.chlamydia.html#stisim.diseases.chlamydia.ChlamydiaBL.update_pre",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.chlamydia.ChlamydiaBL",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.chlamydia.html#stisim.diseases.chlamydia.ChlamydiaBL",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.chlamydia",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/diseases.chlamydia.html#stisim.diseases.chlamydia",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.gonorrhea.Gonorrhea",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.gonorrhea.html#stisim.diseases.gonorrhea.Gonorrhea",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.gonorrhea.NGPars",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.gonorrhea.html#stisim.diseases.gonorrhea.NGPars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.gonorrhea",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/diseases.gonorrhea.html#stisim.diseases.gonorrhea",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.trichomoniasis.Trichomoniasis.set_duration",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.trichomoniasis.html#stisim.diseases.trichomoniasis.Trichomoniasis.set_duration",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.trichomoniasis.Trichomoniasis",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.trichomoniasis.html#stisim.diseases.trichomoniasis.Trichomoniasis",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.trichomoniasis",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/diseases.trichomoniasis.html#stisim.diseases.trichomoniasis",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.bv.BV.clear_infection",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV.clear_infection",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.bv.BV.compute_circumcision_impact",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV.compute_circumcision_impact",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.bv.BV.init_post",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV.init_post",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.bv.BV.init_results",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV.init_results",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.bv.BV.set_circumcision",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV.set_circumcision",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.bv.BV.set_hygiene_states",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV.set_hygiene_states",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.bv.BV.set_male_prognoses",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV.set_male_prognoses",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.bv.BV.set_prognoses",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV.set_prognoses",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.bv.BV.sexual_transmission",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV.sexual_transmission",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.bv.BV.spontaneous",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV.spontaneous",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.bv.BV.step_state",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV.step_state",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.bv.BV.wipe_dates",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV.wipe_dates",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.bv.BV",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.bv.SimpleBV.init_post",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.SimpleBV.init_post",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.bv.SimpleBV.init_results",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.SimpleBV.init_results",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.bv.SimpleBV.set_duration",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.SimpleBV.set_duration",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.bv.SimpleBV.set_hygiene_states",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.SimpleBV.set_hygiene_states",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.bv.SimpleBV.set_prognoses",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.SimpleBV.set_prognoses",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.bv.SimpleBV.spontaneous",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.SimpleBV.spontaneous",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.bv.SimpleBV.step_state",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.SimpleBV.step_state",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.bv.SimpleBV.treatable",
+      "domain": "py",
+      "role": "attribute",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.SimpleBV.treatable",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.bv.SimpleBV.wipe_dates",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.SimpleBV.wipe_dates",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.bv.SimpleBV",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.SimpleBV",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.bv",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.gud.GUD.set_prognoses",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.gud.html#stisim.diseases.gud.GUD.set_prognoses",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.gud.GUD.step_state",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.gud.html#stisim.diseases.gud.GUD.step_state",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.gud.GUD",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.gud.html#stisim.diseases.gud.GUD",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.gud.GUDPlaceholder",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.gud.html#stisim.diseases.gud.GUDPlaceholder",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.gud.Placeholder.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.gud.html#stisim.diseases.gud.Placeholder.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.gud.Placeholder",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.gud.html#stisim.diseases.gud.Placeholder",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.gud.VDPlaceholder",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.gud.html#stisim.diseases.gud.VDPlaceholder",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.gud",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/diseases.gud.html#stisim.diseases.gud",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.base_interventions.ANCTest",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.ANCTest",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.base_interventions.PartnerNotification.find_partners",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.PartnerNotification.find_partners",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.base_interventions.PartnerNotification.notify_attendees",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.PartnerNotification.notify_attendees",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.base_interventions.PartnerNotification",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.PartnerNotification",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.base_interventions.ProductMix.administer",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.ProductMix.administer",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.base_interventions.ProductMix",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.ProductMix",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.base_interventions.STIDx.administer",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STIDx.administer",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.base_interventions.STIDx",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STIDx",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.base_interventions.STITest.get_testers",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STITest.get_testers",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.base_interventions.STITest.make_test_prob_fn",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STITest.make_test_prob_fn",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.base_interventions.STITest.state_list",
+      "domain": "py",
+      "role": "attribute",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STITest.state_list",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.base_interventions.STITest.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STITest.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.base_interventions.STITest",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STITest",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.base_interventions.STITreatment.administer",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STITreatment.administer",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.base_interventions.STITreatment.change_states",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STITreatment.change_states",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.base_interventions.STITreatment.get_candidates",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STITreatment.get_candidates",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.base_interventions.STITreatment.set_treat_eff",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STITreatment.set_treat_eff",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.base_interventions.STITreatment.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STITreatment.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.base_interventions.STITreatment",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STITreatment",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.base_interventions.SymptomaticTesting.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.SymptomaticTesting.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.base_interventions.SymptomaticTesting",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.SymptomaticTesting",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.base_interventions.SyndromicManagement",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.SyndromicManagement",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.base_interventions",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.bv_interventions.treat_BV.tx_cst1_change_duration",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.bv_interventions.html#stisim.interventions.bv_interventions.treat_BV.tx_cst1_change_duration",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.bv_interventions.treat_BV",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.bv_interventions.html#stisim.interventions.bv_interventions.treat_BV",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.bv_interventions",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/interventions.bv_interventions.html#stisim.interventions.bv_interventions",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.gonorrhea_interventions.GonorrheaTreatment.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.gonorrhea_interventions.html#stisim.interventions.gonorrhea_interventions.GonorrheaTreatment.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.gonorrhea_interventions.GonorrheaTreatment",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.gonorrhea_interventions.html#stisim.interventions.gonorrhea_interventions.GonorrheaTreatment",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.gonorrhea_interventions.UpdateDrugs",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.gonorrhea_interventions.html#stisim.interventions.gonorrhea_interventions.UpdateDrugs",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.gonorrhea_interventions",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/interventions.gonorrhea_interventions.html#stisim.interventions.gonorrhea_interventions",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.hiv_interventions.ART.art_coverage_correction",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.ART.art_coverage_correction",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.hiv_interventions.ART.prioritize_art",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.ART.prioritize_art",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.hiv_interventions.ART.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.ART.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.hiv_interventions.ART",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.ART",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.hiv_interventions.HIVDx",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.HIVDx",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.hiv_interventions.HIVTest",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.HIVTest",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.hiv_interventions.InfantHIVTest",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.InfantHIVTest",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.hiv_interventions.Prep",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.Prep",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.hiv_interventions.VMMC",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.VMMC",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.hiv_interventions",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.syphilis_interventions.ANCSyphTest.schedule_tests",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.ANCSyphTest.schedule_tests",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.syphilis_interventions.ANCSyphTest",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.ANCSyphTest",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.syphilis_interventions.NewbornSyphTest",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.NewbornSyphTest",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.syphilis_interventions.NewbornTreatment.administer",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.NewbornTreatment.administer",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.syphilis_interventions.NewbornTreatment.change_states",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.NewbornTreatment.change_states",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.syphilis_interventions.NewbornTreatment",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.NewbornTreatment",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.syphilis_interventions.SyphDx",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.SyphDx",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.syphilis_interventions.SyphTest.make_test_prob_fn",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.SyphTest.make_test_prob_fn",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.syphilis_interventions.SyphTest.process_data",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.SyphTest.process_data",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.syphilis_interventions.SyphTest",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.SyphTest",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.syphilis_interventions.SyphTx.change_states",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.SyphTx.change_states",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.syphilis_interventions.SyphTx.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.SyphTx.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.syphilis_interventions.SyphTx.treat_fetus",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.SyphTx.treat_fetus",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.syphilis_interventions.SyphTx",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.SyphTx",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.syphilis_interventions",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.connectors.hiv_sti.hiv_bv",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/connectors.hiv_sti.html#stisim.connectors.hiv_sti.hiv_bv",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.connectors.hiv_sti.hiv_ct",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/connectors.hiv_sti.html#stisim.connectors.hiv_sti.hiv_ct",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.connectors.hiv_sti.hiv_ng",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/connectors.hiv_sti.html#stisim.connectors.hiv_sti.hiv_ng",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.connectors.hiv_sti.hiv_syph",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/connectors.hiv_sti.html#stisim.connectors.hiv_sti.hiv_syph",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.connectors.hiv_sti.hiv_tv",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/connectors.hiv_sti.html#stisim.connectors.hiv_sti.hiv_tv",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.connectors.hiv_sti",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/connectors.hiv_sti.html#stisim.connectors.hiv_sti",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.connectors.gud_syph.gud_syph.update",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/connectors.gud_syph.html#stisim.connectors.gud_syph.gud_syph.update",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.connectors.gud_syph.gud_syph",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/connectors.gud_syph.html#stisim.connectors.gud_syph.gud_syph",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.connectors.gud_syph",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/connectors.gud_syph.html#stisim.connectors.gud_syph",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.Sim.init",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/sim.html#stisim.sim.Sim.init",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.Sim.plot",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/sim.html#stisim.sim.Sim.plot",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.Sim.process_connectors",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/sim.html#stisim.sim.Sim.process_connectors",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.Sim.process_demographics",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/sim.html#stisim.sim.Sim.process_demographics",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.Sim.process_networks",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/sim.html#stisim.sim.Sim.process_networks",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.Sim.process_stis",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/sim.html#stisim.sim.Sim.process_stis",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.Sim.remap_pars",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/sim.html#stisim.sim.Sim.remap_pars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.Sim.separate_pars",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/sim.html#stisim.sim.Sim.separate_pars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.Sim",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/sim.html#stisim.sim.Sim",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.SimPars",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/parameters.html#stisim.parameters.SimPars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.connector_register",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/parameters.html#stisim.parameters.connector_register",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.dem_pars",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/parameters.html#stisim.parameters.dem_pars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.make_sti",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/parameters.html#stisim.parameters.make_sti",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.merged_connector_pars",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/parameters.html#stisim.parameters.merged_connector_pars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.merged_sti_pars",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/parameters.html#stisim.parameters.merged_sti_pars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.mergepars",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/parameters.html#stisim.parameters.mergepars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sti_aliases",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/parameters.html#stisim.parameters.sti_aliases",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sti_register",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/parameters.html#stisim.parameters.sti_register",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.AgeApproxMSM.match_pairs",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.AgeApproxMSM.match_pairs",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.AgeApproxMSM",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.AgeApproxMSM",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.AgeMatchedMSM.match_pairs",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.AgeMatchedMSM.match_pairs",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.AgeMatchedMSM",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.AgeMatchedMSM",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.BaseNetwork.add_pairs",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.BaseNetwork.add_pairs",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.BaseNetwork.set_condom_use",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.BaseNetwork.set_condom_use",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.BaseNetwork.set_network_states",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.BaseNetwork.set_network_states",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.BaseNetwork",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.BaseNetwork",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.BasePars",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.BasePars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.MFNetwork.add_pairs",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.MFNetwork.add_pairs",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.MFNetwork.match_pairs",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.MFNetwork.match_pairs",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.MFNetwork.set_concurrency",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.MFNetwork.set_concurrency",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.MFNetwork.set_risk_groups",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.MFNetwork.set_risk_groups",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.MFNetwork",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.MFNetwork",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.MFPars",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.MFPars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.NetworkPars",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.NetworkPars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.PriorPartners",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.PriorPartners",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.SWNetwork.add_pairs",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.SWNetwork.add_pairs",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.SWNetwork.client",
+      "domain": "py",
+      "role": "attribute",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.SWNetwork.client",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.SWNetwork.fsw",
+      "domain": "py",
+      "role": "attribute",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.SWNetwork.fsw",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.SWNetwork.match_pairs",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.SWNetwork.match_pairs",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.SWNetwork.set_sex_work",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.SWNetwork.set_sex_work",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.SWNetwork",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.SWNetwork",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.SWPars",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.SWPars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.StructuredSexual",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/networks.html#stisim.networks.StructuredSexual",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.Migration.get_migrants",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/demographics.html#stisim.demographics.Migration.get_migrants",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.Migration.init_migration_propensity",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/demographics.html#stisim.demographics.Migration.init_migration_propensity",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.Migration.make_immigrants",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/demographics.html#stisim.demographics.Migration.make_immigrants",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.Migration.remove_emigrants",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/demographics.html#stisim.demographics.Migration.remove_emigrants",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.Migration.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/demographics.html#stisim.demographics.Migration.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.Migration.step_migration",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/demographics.html#stisim.demographics.Migration.step_migration",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.Migration",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/demographics.html#stisim.demographics.Migration",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.DebutAge.plot",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.DebutAge.plot",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.DebutAge",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.DebutAge",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.NetworkDegree.init_pre",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.NetworkDegree.init_pre",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.NetworkDegree.init_results",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.NetworkDegree.init_results",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.NetworkDegree.plot",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.NetworkDegree.plot",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.NetworkDegree.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.NetworkDegree.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.NetworkDegree",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.NetworkDegree",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.RelationshipDurations.get_relationship_durations",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.RelationshipDurations.get_relationship_durations",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.RelationshipDurations",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.RelationshipDurations",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.TimeBetweenRelationships.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.TimeBetweenRelationships.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.TimeBetweenRelationships",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.TimeBetweenRelationships",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.art_coverage.plot",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.art_coverage.plot",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.art_coverage",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.art_coverage",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.coinfection_stats",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.coinfection_stats",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.partner_age_diff.init_results",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.partner_age_diff.init_results",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.partner_age_diff.plot",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.partner_age_diff.plot",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.partner_age_diff.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.partner_age_diff.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.partner_age_diff",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.partner_age_diff",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.result_grouper",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.result_grouper",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sw_stats",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.sw_stats",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.Calibration.calibrate",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.Calibration.calibrate",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.Calibration.get_pars",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.Calibration.get_pars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.Calibration.load_results",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.Calibration.load_results",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.Calibration.parse_study",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.Calibration.parse_study",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.Calibration.run_trial",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.Calibration.run_trial",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.Calibration.save",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.Calibration.save",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.Calibration.shrink",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.Calibration.shrink",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.Calibration.worker",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.Calibration.worker",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.Calibration",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.Calibration",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.compute_gof",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.compute_gof",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.default_build_fn",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.default_build_fn",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.flatten_calib_pars",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.flatten_calib_pars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.make_calib_sims",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.make_calib_sims",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.set_sim_pars",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/calibration.html#stisim.calibration.set_sim_pars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.CareSeeking.set_care_seeking_states",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/care_seeking.html#stisim.care_seeking.CareSeeking.set_care_seeking_states",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.CareSeeking.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/care_seeking.html#stisim.care_seeking.CareSeeking.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.CareSeeking",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/care_seeking.html#stisim.care_seeking.CareSeeking",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.TimeSeries.copy",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries.copy",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.TimeSeries.get",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries.get",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.TimeSeries.get_arrays",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries.get_arrays",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.TimeSeries.has_data",
+      "domain": "py",
+      "role": "attribute",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries.has_data",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.TimeSeries.has_time_data",
+      "domain": "py",
+      "role": "attribute",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries.has_time_data",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.TimeSeries.insert",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries.insert",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.TimeSeries.interpolate",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries.interpolate",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.TimeSeries.remove",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries.remove",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.TimeSeries.remove_after",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries.remove_after",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.TimeSeries.remove_before",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries.remove_before",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.TimeSeries.remove_between",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries.remove_between",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.TimeSeries.sample",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries.sample",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.TimeSeries",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.TimeSeries",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.route_pars",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/utils.html#stisim.utils.route_pars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sti.BaseSTI.agehist",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.BaseSTI.agehist",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sti.BaseSTI.init_results",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.BaseSTI.init_results",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sti.BaseSTI.make_init_prev",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.BaseSTI.make_init_prev",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sti.BaseSTI.set_outcomes",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.BaseSTI.set_outcomes",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sti.BaseSTI.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.BaseSTI.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sti.BaseSTI.treatable",
+      "domain": "py",
+      "role": "attribute",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.BaseSTI.treatable",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sti.BaseSTI.validate_beta",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.BaseSTI.validate_beta",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sti.BaseSTI",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.BaseSTI",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sti.BaseSTIPars",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.BaseSTIPars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sti.SEIS.init_results",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.SEIS.init_results",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sti.SEIS.set_prognoses",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.SEIS.set_prognoses",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sti.SEIS.step_state",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.SEIS.step_state",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sti.SEIS.treatable",
+      "domain": "py",
+      "role": "attribute",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.SEIS.treatable",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sti.SEIS.wipe_dates",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.SEIS.wipe_dates",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sti.SEIS",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.SEIS",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sti.STIPars",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti.STIPars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.sti",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/diseases.sti.html#stisim.diseases.sti",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv.HIV.acute_decline",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.acute_decline",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv.HIV.cd4_increase",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.cd4_increase",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv.HIV.falling_decline",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.falling_decline",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv.HIV.init_care_seeking",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.init_care_seeking",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv.HIV.init_cd4",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.init_cd4",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv.HIV.init_post",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.init_post",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv.HIV.init_results",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.init_results",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv.HIV.make_p_hiv_death",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.make_p_hiv_death",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv.HIV.plot",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.plot",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv.HIV.post_art_decline",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.post_art_decline",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv.HIV.set_prognoses",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.set_prognoses",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv.HIV.start_art",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.start_art",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv.HIV.step_die",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.step_die",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv.HIV.step_state",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.step_state",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv.HIV.stop_art",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.stop_art",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv.HIV.update_results",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.update_results",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv.HIV.update_transmission",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.update_transmission",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv.HIV",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv.HIVPars",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIVPars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.syphilis",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/diseases.syphilis.html#stisim.diseases.syphilis",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.chlamydia.CTPars",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.chlamydia.html#stisim.diseases.chlamydia.CTPars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.chlamydia.Chlamydia",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.chlamydia.html#stisim.diseases.chlamydia.Chlamydia",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.chlamydia.ChlamydiaBL.set_ct_load",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.chlamydia.html#stisim.diseases.chlamydia.ChlamydiaBL.set_ct_load",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.chlamydia.ChlamydiaBL.set_prognoses",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.chlamydia.html#stisim.diseases.chlamydia.ChlamydiaBL.set_prognoses",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.chlamydia.ChlamydiaBL.update_pre",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.chlamydia.html#stisim.diseases.chlamydia.ChlamydiaBL.update_pre",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.chlamydia.ChlamydiaBL",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.chlamydia.html#stisim.diseases.chlamydia.ChlamydiaBL",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.chlamydia",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/diseases.chlamydia.html#stisim.diseases.chlamydia",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.gonorrhea.Gonorrhea",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.gonorrhea.html#stisim.diseases.gonorrhea.Gonorrhea",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.gonorrhea.NGPars",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.gonorrhea.html#stisim.diseases.gonorrhea.NGPars",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.gonorrhea",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/diseases.gonorrhea.html#stisim.diseases.gonorrhea",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.trichomoniasis.Trichomoniasis.set_duration",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.trichomoniasis.html#stisim.diseases.trichomoniasis.Trichomoniasis.set_duration",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.trichomoniasis.Trichomoniasis",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.trichomoniasis.html#stisim.diseases.trichomoniasis.Trichomoniasis",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.trichomoniasis",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/diseases.trichomoniasis.html#stisim.diseases.trichomoniasis",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv.BV.clear_infection",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV.clear_infection",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv.BV.compute_circumcision_impact",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV.compute_circumcision_impact",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv.BV.init_post",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV.init_post",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv.BV.init_results",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV.init_results",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv.BV.set_circumcision",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV.set_circumcision",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv.BV.set_hygiene_states",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV.set_hygiene_states",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv.BV.set_male_prognoses",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV.set_male_prognoses",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv.BV.set_prognoses",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV.set_prognoses",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv.BV.sexual_transmission",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV.sexual_transmission",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv.BV.spontaneous",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV.spontaneous",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv.BV.step_state",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV.step_state",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv.BV.wipe_dates",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV.wipe_dates",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv.BV",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.BV",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv.SimpleBV.init_post",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.SimpleBV.init_post",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv.SimpleBV.init_results",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.SimpleBV.init_results",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv.SimpleBV.set_duration",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.SimpleBV.set_duration",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv.SimpleBV.set_hygiene_states",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.SimpleBV.set_hygiene_states",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv.SimpleBV.set_prognoses",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.SimpleBV.set_prognoses",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv.SimpleBV.spontaneous",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.SimpleBV.spontaneous",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv.SimpleBV.step_state",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.SimpleBV.step_state",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv.SimpleBV.treatable",
+      "domain": "py",
+      "role": "attribute",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.SimpleBV.treatable",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv.SimpleBV.wipe_dates",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.SimpleBV.wipe_dates",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv.SimpleBV",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv.SimpleBV",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/diseases.bv.html#stisim.diseases.bv",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.gud.GUD.set_prognoses",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.gud.html#stisim.diseases.gud.GUD.set_prognoses",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.gud.GUD.step_state",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.gud.html#stisim.diseases.gud.GUD.step_state",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.gud.GUD",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.gud.html#stisim.diseases.gud.GUD",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.gud.GUDPlaceholder",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.gud.html#stisim.diseases.gud.GUDPlaceholder",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.gud.Placeholder.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.gud.html#stisim.diseases.gud.Placeholder.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.gud.Placeholder",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.gud.html#stisim.diseases.gud.Placeholder",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.gud.VDPlaceholder",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/diseases.gud.html#stisim.diseases.gud.VDPlaceholder",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.gud",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/diseases.gud.html#stisim.diseases.gud",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.base_interventions.ANCTest",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.ANCTest",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.base_interventions.PartnerNotification.find_partners",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.PartnerNotification.find_partners",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.base_interventions.PartnerNotification.notify_attendees",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.PartnerNotification.notify_attendees",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.base_interventions.PartnerNotification",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.PartnerNotification",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.base_interventions.ProductMix.administer",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.ProductMix.administer",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.base_interventions.ProductMix",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.ProductMix",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.base_interventions.STIDx.administer",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STIDx.administer",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.base_interventions.STIDx",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STIDx",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.base_interventions.STITest.get_testers",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STITest.get_testers",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.base_interventions.STITest.make_test_prob_fn",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STITest.make_test_prob_fn",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.base_interventions.STITest.state_list",
+      "domain": "py",
+      "role": "attribute",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STITest.state_list",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.base_interventions.STITest.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STITest.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.base_interventions.STITest",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STITest",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.base_interventions.STITreatment.administer",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STITreatment.administer",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.base_interventions.STITreatment.change_states",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STITreatment.change_states",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.base_interventions.STITreatment.get_candidates",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STITreatment.get_candidates",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.base_interventions.STITreatment.set_treat_eff",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STITreatment.set_treat_eff",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.base_interventions.STITreatment.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STITreatment.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.base_interventions.STITreatment",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.STITreatment",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.base_interventions.SymptomaticTesting.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.SymptomaticTesting.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.base_interventions.SymptomaticTesting",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.SymptomaticTesting",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.base_interventions.SyndromicManagement",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.SyndromicManagement",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.base_interventions",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv_interventions.treat_BV.tx_cst1_change_duration",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.bv_interventions.html#stisim.interventions.bv_interventions.treat_BV.tx_cst1_change_duration",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv_interventions.treat_BV",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.bv_interventions.html#stisim.interventions.bv_interventions.treat_BV",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.bv_interventions",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/interventions.bv_interventions.html#stisim.interventions.bv_interventions",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.gonorrhea_interventions.GonorrheaTreatment.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.gonorrhea_interventions.html#stisim.interventions.gonorrhea_interventions.GonorrheaTreatment.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.gonorrhea_interventions.GonorrheaTreatment",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.gonorrhea_interventions.html#stisim.interventions.gonorrhea_interventions.GonorrheaTreatment",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.gonorrhea_interventions.UpdateDrugs",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.gonorrhea_interventions.html#stisim.interventions.gonorrhea_interventions.UpdateDrugs",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.gonorrhea_interventions",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/interventions.gonorrhea_interventions.html#stisim.interventions.gonorrhea_interventions",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv_interventions.ART.art_coverage_correction",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.ART.art_coverage_correction",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv_interventions.ART.prioritize_art",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.ART.prioritize_art",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv_interventions.ART.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.ART.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv_interventions.ART",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.ART",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv_interventions.HIVDx",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.HIVDx",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv_interventions.HIVTest",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.HIVTest",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv_interventions.InfantHIVTest",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.InfantHIVTest",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv_interventions.Prep",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.Prep",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv_interventions.VMMC",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.VMMC",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv_interventions",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.syphilis_interventions.ANCSyphTest.schedule_tests",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.ANCSyphTest.schedule_tests",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.syphilis_interventions.ANCSyphTest",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.ANCSyphTest",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.syphilis_interventions.NewbornSyphTest",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.NewbornSyphTest",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.syphilis_interventions.NewbornTreatment.administer",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.NewbornTreatment.administer",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.syphilis_interventions.NewbornTreatment.change_states",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.NewbornTreatment.change_states",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.syphilis_interventions.NewbornTreatment",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.NewbornTreatment",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.syphilis_interventions.SyphDx",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.SyphDx",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.syphilis_interventions.SyphTest.make_test_prob_fn",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.SyphTest.make_test_prob_fn",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.syphilis_interventions.SyphTest.process_data",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.SyphTest.process_data",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.syphilis_interventions.SyphTest",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.SyphTest",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.syphilis_interventions.SyphTx.change_states",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.SyphTx.change_states",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.syphilis_interventions.SyphTx.step",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.SyphTx.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.syphilis_interventions.SyphTx.treat_fetus",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.SyphTx.treat_fetus",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.syphilis_interventions.SyphTx",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions.SyphTx",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.syphilis_interventions",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/interventions.syphilis_interventions.html#stisim.interventions.syphilis_interventions",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv_sti.hiv_bv",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/connectors.hiv_sti.html#stisim.connectors.hiv_sti.hiv_bv",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv_sti.hiv_ct",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/connectors.hiv_sti.html#stisim.connectors.hiv_sti.hiv_ct",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv_sti.hiv_ng",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/connectors.hiv_sti.html#stisim.connectors.hiv_sti.hiv_ng",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv_sti.hiv_syph",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/connectors.hiv_sti.html#stisim.connectors.hiv_sti.hiv_syph",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv_sti.hiv_tv",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/connectors.hiv_sti.html#stisim.connectors.hiv_sti.hiv_tv",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv_sti",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/connectors.hiv_sti.html#stisim.connectors.hiv_sti",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.gud_syph.gud_syph.update",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/connectors.gud_syph.html#stisim.connectors.gud_syph.gud_syph.update",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.gud_syph.gud_syph",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/connectors.gud_syph.html#stisim.connectors.gud_syph.gud_syph",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.gud_syph",
+      "domain": "py",
+      "role": "module",
+      "priority": "1",
+      "uri": "api/connectors.gud_syph.html#stisim.connectors.gud_syph",
+      "dispname": "-"
+    }
+  ]
+}
