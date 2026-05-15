@@ -56,7 +56,10 @@ class PartnersLastYearAnalyzer(ss.Analyzer):
                     per_agent.setdefault(int(b), {}).setdefault(rt, set()).add(int(a))
         ages = ppl.age.values
         is_female = ppl.female.values
+        n_alive = len(ages)
         for uid, by_type in per_agent.items():
+            if uid >= n_alive:  # agent died and was removed; skip
+                continue
             for rt, partners in by_type.items():
                 self.records.append(dict(
                     uid=int(uid),
@@ -90,10 +93,13 @@ class PairAgeHeatmapAnalyzer(ss.Analyzer):
         cutoff_ti = end_ti - one_year
         nets = [n for n in sim.networks() if hasattr(n, 'edge_types')]
         ages = sim.people.age.values
+        n_alive = len(ages)
         for net in nets:
             inv_types = {v: k for k, v in net.edge_types.items()}
             rel_durs = getattr(net, 'relationship_durs', {})
             for (a, b), events in rel_durs.items():
+                if a >= n_alive or b >= n_alive:  # one party died; skip
+                    continue
                 for ev in events:
                     if ev['start'] < cutoff_ti:
                         continue
