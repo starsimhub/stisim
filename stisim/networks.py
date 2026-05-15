@@ -474,28 +474,31 @@ class MFNetwork(BaseNetwork):
 
         return
 
-    def match_pairs(self):
-        """
-        Match pairs by age, using sorting rather than the linear sum assignment
-        """
+    def _get_eligible(self):
+        """Return (f_looking, m_eligible) ss.uids. Raises NoPartnersFound if either is empty."""
         ppl = self.sim.people
-
-        # Find people eligible for a relationship
         active = self.over_debut
         underpartnered = self.partners < self.concurrency
         f_eligible = active & ppl.female & underpartnered
         m_eligible = active & ppl.male & underpartnered
-        f_looking = self.pars.p_pair_form.filter(f_eligible.uids)  # ss.uids of women looking for partners
-
+        f_looking = self.pars.p_pair_form.filter(f_eligible.uids)
         if len(f_looking) == 0 or m_eligible.count() == 0:
             raise NoPartnersFound()
+        return f_looking, m_eligible
 
-        # Get mean age differences and desired ages
+    def _sample_desired_ages(self, f_looking):
+        """Sample desired male partner ages for the given f_looking uids."""
         loc, scale = self.get_age_risk_pars(f_looking, self.pars.age_diff_pars)
         self.pars.age_diffs.set(loc=loc, scale=scale)
-        age_gaps = self.pars.age_diffs.rvs(f_looking)   # Sample the age differences
-        desired_ages = ppl.age[f_looking] + age_gaps    # Desired ages of the male partners
-        m_ages = ppl.age[m_eligible]            # Ages of eligible males
+        age_gaps = self.pars.age_diffs.rvs(f_looking)
+        return self.sim.people.age[f_looking] + age_gaps
+
+    def match_pairs(self):
+        """Match pairs by age, using sorting and bisect-trim of the support tails."""
+        ppl = self.sim.people
+        f_looking, m_eligible = self._get_eligible()
+        desired_ages = self._sample_desired_ages(f_looking)
+        m_ages = ppl.age[m_eligible]
         ind_m = np.argsort(m_ages, stable=True)
         ind_f = np.argsort(desired_ages, stable=True)
 
