@@ -1,14 +1,24 @@
 """
-Analyzers for PFA comparison: partners-in-last-year and pair-age heatmap.
+Analyzers for PFA comparison.
 
-These live in devtests, not in stisim.analyzers, because they're for this
-benchmark only. They piggy-back on the edge history kept by MFNetwork.
+These live in devtests, not in stisim.analyzers, because they're for this benchmark
+only. They piggy-back on the edge history kept by MFNetwork.
+
+- PartnersLastYearAnalyzer: count of unique partners per agent over the last year,
+  by sex × rel_type. Used for the concurrency-rate figure.
+- PairFormationAgesAnalyzer: (age_male, age_female) at every pair formation over the
+  full sim. Captures the algorithmic age-mixing imposed by the PFA before any
+  differential survival/dissolution. Reads ``edges.age_p1`` / ``edges.age_p2`` which
+  the network stores at formation (StructuredSexual convention: p1=male, p2=female).
+- PairPrevalenceAnalyzer: snapshot of currently-active edges at sim end with the
+  *current* ages of partnered agents. Captures the age-mixing of surviving
+  long-lived partnerships.
 """
 import starsim as ss
 
 
 def _steps_per_year(sim):
-    """ Steps per year for the sim's timeline (fallback 12 for monthly). """
+    """Steps per year for the sim's timeline (fallback 12 for monthly)."""
     try:
         return int(round(1.0 / sim.t.dt_year))
     except Exception:
@@ -18,9 +28,7 @@ def _steps_per_year(sim):
 class PartnersLastYearAnalyzer(ss.Analyzer):
     """At sim end, count unique partners per agent over the last year, by sex and rel_type.
 
-    Output stored on ``self.records``: list of dicts with keys
-    {'uid', 'age', 'sex', 'rel_type', 'n_partners'} where rel_type is one of
-    'stable', 'casual', 'onetime', 'sw'.
+    Records: list of dicts with keys ``{uid, age, sex, rel_type, n_partners}``.
     """
 
     def __init__(self):
@@ -41,7 +49,7 @@ class PartnersLastYearAnalyzer(ss.Analyzer):
         end_ti = sim.t.ti
         one_year = _steps_per_year(sim)
         cutoff_ti = end_ti - one_year
-        per_agent = {}  # uid -> {rel_type: set(partner_uid)}
+        per_agent = {}
         for net in nets:
             rel_durs = getattr(net, 'relationship_durs', {})
             inv_types = {v: k for k, v in net.edge_types.items()}
@@ -58,7 +66,7 @@ class PartnersLastYearAnalyzer(ss.Analyzer):
         is_female = ppl.female.values
         n_alive = len(ages)
         for uid, by_type in per_agent.items():
-            if uid >= n_alive:  # agent died and was removed; skip
+            if uid >= n_alive:
                 continue
             for rt, partners in by_type.items():
                 self.records.append(dict(
@@ -71,10 +79,58 @@ class PartnersLastYearAnalyzer(ss.Analyzer):
         return
 
 
-class PairAgeHeatmapAnalyzer(ss.Analyzer):
-    """At sim end, collect (age_p1, age_p2, rel_type) tuples from edges formed in the last year.
+class PairFormationAgesAnalyzer(ss.Analyzer):
+    """Records (age_male, age_female, rel_type) at every pair formation throughout the sim.
 
-    Output stored on ``self.records``: list of dicts.
+    Hooks ``step()`` and reads each MFNetwork-derived network's current edges. New
+    edges are identified by fingerprint (p1, p2, edge_type, age_p1, age_p2) so the
+    same pair re-forming after dissolution produces a new record. Uses the edge's
+    stored ``age_p1`` / ``age_p2`` (set at formation in ``add_pairs``), which by
+    convention are male / female ages respectively.
+
+    Records: list of dicts with keys ``{age_male, age_female, rel_type}``.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.records = []
+        self._seen = set()
+        return
+
+    def step(self):
+        for net in self.sim.networks():
+            if not hasattr(net, 'edge_types'):
+                continue
+            inv_types = {v: k for k, v in net.edge_types.items()}
+            edges = net.edges
+            # If edges aren't initialised or empty, skip
+            if not hasattr(edges, 'p1') or len(edges.p1) == 0:
+                continue
+            for i in range(len(edges.p1)):
+                key = (
+                    int(edges.p1[i]),
+                    int(edges.p2[i]),
+                    int(edges.edge_type[i]),
+                    float(edges.age_p1[i]),
+                    float(edges.age_p2[i]),
+                )
+                if key in self._seen:
+                    continue
+                self._seen.add(key)
+                self.records.append(dict(
+                    age_male=float(edges.age_p1[i]),
+                    age_female=float(edges.age_p2[i]),
+                    rel_type=inv_types.get(int(edges.edge_type[i]), 'unknown'),
+                ))
+        return
+
+
+class PairPrevalenceAnalyzer(ss.Analyzer):
+    """At sim end, snapshot of currently-active edges with *current* partner ages.
+
+    Records: list of dicts with keys ``{age_male, age_female, rel_type}``. Uses
+    ``ppl.age[p1]`` / ``ppl.age[p2]`` for current ages; the StructuredSexual
+    convention p1=male, p2=female still applies.
     """
 
     def __init__(self):
@@ -87,26 +143,24 @@ class PairAgeHeatmapAnalyzer(ss.Analyzer):
 
     def finalize_results(self):
         super().finalize_results()
-        sim = self.sim
-        end_ti = sim.t.ti
-        one_year = _steps_per_year(sim)
-        cutoff_ti = end_ti - one_year
-        nets = [n for n in sim.networks() if hasattr(n, 'edge_types')]
-        ages = sim.people.age.values
+        ppl = self.sim.people
+        ages = ppl.age.values
         n_alive = len(ages)
-        for net in nets:
+        for net in self.sim.networks():
+            if not hasattr(net, 'edge_types'):
+                continue
             inv_types = {v: k for k, v in net.edge_types.items()}
-            rel_durs = getattr(net, 'relationship_durs', {})
-            for (a, b), events in rel_durs.items():
-                if a >= n_alive or b >= n_alive:  # one party died; skip
+            edges = net.edges
+            if not hasattr(edges, 'p1') or len(edges.p1) == 0:
+                continue
+            for i in range(len(edges.p1)):
+                p1 = int(edges.p1[i])
+                p2 = int(edges.p2[i])
+                if p1 >= n_alive or p2 >= n_alive:
                     continue
-                for ev in events:
-                    if ev['start'] < cutoff_ti:
-                        continue
-                    rt = inv_types.get(int(ev['edge_type']), 'unknown')
-                    self.records.append(dict(
-                        age_p1=float(ages[int(a)]),
-                        age_p2=float(ages[int(b)]),
-                        rel_type=rt,
-                    ))
+                self.records.append(dict(
+                    age_male=float(ages[p1]),
+                    age_female=float(ages[p2]),
+                    rel_type=inv_types.get(int(edges.edge_type[i]), 'unknown'),
+                ))
         return
