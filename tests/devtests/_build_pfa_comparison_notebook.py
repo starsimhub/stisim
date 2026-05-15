@@ -47,7 +47,12 @@ ax.set_title('Wall time vs n_agents')
 plt.tight_layout()
 plt.show()"""))
 
-cells.append(nbf.v4.new_markdown_cell("## Figure 2: partners in last year by age, sex, rel_type"))
+cells.append(nbf.v4.new_markdown_cell("""\
+## Figure 2: concurrency rate by age, sex, rel_type
+
+For each (method, sex, age_bin, rel_type) cell, fraction of partnered agents with **≥2
+partners** in the last year. Mean is unhelpful here because almost everyone with a
+partner has exactly one — the interesting signal is the tail."""))
 
 cells.append(nbf.v4.new_code_cell("""\
 rows = []
@@ -58,45 +63,66 @@ for (name, n, rep), v in results.generic.items():
     for r in v.partners_last_year:
         rows.append({**r, 'method': name})
 df = pd.DataFrame(rows)
-df['age_bin'] = pd.cut(df['age'], bins=[0, 20, 25, 30, 40, 50, 100], labels=['<20', '20-25', '25-30', '30-40', '40-50', '50+'])
+df['age_bin'] = pd.cut(df['age'], bins=[0, 20, 25, 30, 40, 50, 100],
+                      labels=['<20', '20-25', '25-30', '30-40', '40-50', '50+'])
+df['concurrent'] = (df['n_partners'] >= 2).astype(int)
 
-g = sns.catplot(data=df, x='age_bin', y='n_partners', hue='rel_type',
+g = sns.catplot(data=df, x='age_bin', y='concurrent', hue='rel_type',
                 col='method', row='sex', kind='bar', errorbar='se',
                 height=2.5, aspect=1.3)
-g.set_axis_labels('Age', 'Mean partners (last year)')
+g.set_axis_labels('Age', 'P(≥2 partners last year)')
+g.set(ylim=(0, None))
 plt.tight_layout()
 plt.show()"""))
 
-cells.append(nbf.v4.new_markdown_cell("## Figure 3: male vs female age heatmaps per rel_type"))
+cells.append(nbf.v4.new_markdown_cell("""\
+## Figure 3: male vs female age heatmaps per rel_type
+
+Hexbin density of (male age, female age) for pairs formed in the last year. Red dashed
+line = age equality. Drops 'onetime' because at the tested scales it has too few records
+to plot meaningfully. Aggregates across reps to get smoother density."""))
 
 cells.append(nbf.v4.new_code_cell("""\
-methods = sorted({k[0] for k in results.generic.keys()})
-rel_types = ['stable', 'casual', 'onetime']
+all_methods = sorted({k[0] for k in results.generic.keys()})
 n_max = max({k[1] for k in results.generic.keys()})
 
-fig, axes = plt.subplots(len(methods), len(rel_types),
-                         figsize=(3*len(rel_types), 2.5*len(methods)),
-                         sharex=True, sharey=True)
-for i, method in enumerate(methods):
-    records = []
-    for (m, n, rep), v in results.generic.items():
-        if m == method and n == n_max:
-            records.extend(v.pair_age_heatmap)
-    for j, rt in enumerate(rel_types):
+# Aggregate (age_p1, age_p2) per (method, rel_type) at n_max.
+records_by = {(m, rt): [] for m in all_methods for rt in ('stable', 'casual', 'onetime')}
+for (m, n, rep), v in results.generic.items():
+    if n != n_max:
+        continue
+    for r in v.pair_age_heatmap:
+        key = (m, r['rel_type'])
+        if key in records_by:
+            records_by[key].append((r['age_p1'], r['age_p2']))
+
+# Drop methods with no records at n_max (e.g. LSA, which is capped at n<n_max).
+methods = [m for m in all_methods if any(records_by[(m, rt)] for rt in ('stable', 'casual', 'onetime'))]
+rel_types = [rt for rt in ('stable', 'casual', 'onetime')
+             if sum(len(records_by[(m, rt)]) for m in methods) >= 50]
+
+# Layout: rel_type rows × method columns -- landscape.
+fig, axes = plt.subplots(len(rel_types), len(methods),
+                         figsize=(2.5*len(methods), 2.8*len(rel_types)),
+                         sharex=True, sharey=True, squeeze=False)
+for i, rt in enumerate(rel_types):
+    for j, method in enumerate(methods):
         ax = axes[i, j]
-        ages = [(r['age_p1'], r['age_p2']) for r in records if r['rel_type'] == rt]
+        ages = records_by[(method, rt)]
         if not ages:
-            ax.set_visible(False)
+            ax.text(0.5, 0.5, '(no records)', ha='center', va='center', transform=ax.transAxes)
             continue
         a1 = np.array([a[0] for a in ages])
         a2 = np.array([a[1] for a in ages])
-        ax.hexbin(a1, a2, gridsize=20, cmap='viridis', mincnt=1)
-        ax.plot([15, 80], [15, 80], 'r--', alpha=0.4, lw=0.8)
+        ax.hexbin(a1, a2, gridsize=25, cmap='viridis', mincnt=1)
+        ax.plot([15, 80], [15, 80], 'r--', alpha=0.5, lw=1)
+        ax.set_xlim(15, 80)
+        ax.set_ylim(15, 80)
         if i == 0:
-            ax.set_title(rt)
+            ax.set_title(method, fontsize=9)
         if j == 0:
-            ax.set_ylabel(f'{method}\\nfemale age')
-        if i == len(methods)-1:
+            ax.set_ylabel(f'{rt}\\nfemale age')
+        if i == len(rel_types)-1:
             ax.set_xlabel('male age')
 plt.tight_layout()
 plt.show()"""))
