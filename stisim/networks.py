@@ -396,13 +396,15 @@ class MFNetwork(BaseNetwork):
         **kwargs: Additional parameter overrides forwarded to ``update_pars``.
     """
 
-    def __init__(self, pars=None, condom_data=None, name=None, **kwargs):
+    def __init__(self, pars=None, condom_data=None, name=None, match_pairs_algo: str = None, **kwargs):
         super().__init__(name=name)
         self.define_pars(**MFPars())
         self.update_pars(pars, **kwargs)
         self.edge_types = {'stable': 0, 'casual': 1, 'onetime': 2}
         self.define_states(*_mf_states())
         self.relationship_durs = defaultdict(list)
+        match_pairs_algo = "match_pairs_existing" if match_pairs_algo is None else match_pairs_algo
+        self.match_pairs = getattr(self, match_pairs_algo)
         return
 
     def get_age_risk_pars(self, uids, par):
@@ -523,8 +525,7 @@ class MFNetwork(BaseNetwork):
             all_matched_indicies.extend(indicies_matching)
         return target_age_bins
 
-    # def match_pairs_redesign3(self):
-    def match_pairs(self):
+    def match_pairs_target_age_multipass(self):
         # TODO: do we need to consider multi-matching in this method? e.g., men who are still underpartnered after calling this method once?
 
         ppl = self.sim.people
@@ -538,7 +539,7 @@ class MFNetwork(BaseNetwork):
         paired_females = []
         paired_males = []
         i = 0
-        male_bin_widths = [1, 3, 5]
+        male_bin_widths = [1, 2]
         while len(f_looking_uids) > 0 and i < len(male_bin_widths):
             # on each successive pass, any females left looking for matches will re-select a target age for use
             # with a wider age binning of remaining males (representing females getting less choosy)
@@ -561,84 +562,31 @@ class MFNetwork(BaseNetwork):
                 # arbitrarily assign; no sorting has been done
                 selected_male_uids = male_uids[:limit]
                 selected_female_uids = female_uids[:limit]
+
+                # # Alternate: instead randomize the uids so that we remove potential older-agent bias in selection process
+                # from starsim.distributions import choice
+                # male_dist = choice(male_uids, replace=False).init(force=True)  # TODO: should be a better way to do this ....
+                # female_dist = choice(female_uids, replace=False).init(force=True)
+                # selected_male_uids = male_dist(limit)
+                # selected_female_uids = female_dist(limit)
+
                 if len(selected_male_uids) != len(selected_female_uids):
                     raise Exception(
                         f"Uh oh, mismatched m/f uid lengths male age: {male_age} M: {len(selected_male_uids)} F: {len(selected_female_uids)}")
+                # record pairings
                 paired_males.extend(selected_male_uids)
                 paired_females.extend(selected_female_uids)
+                # now update the males and females still looking for the next round of pairing.
+                f_looking_uids = f_looking_uids - selected_female_uids
+                m_eligible_uids = m_eligible_uids - selected_male_uids
             i += 1
-            # now update the males and females still looking for the next round of pairing.
-            f_looking_uids = f_looking_uids - selected_female_uids
-            m_eligible_uids = m_eligible_uids - selected_male_uids
 
         m_selected = uids(paired_males)
         f_selected = uids(paired_females)
 
         return m_selected, f_selected
 
-    def match_pairs_redesign2(self):
-    # def match_pairs(self):
-
-        ppl = self.sim.people
-        # TODO: do we need to consider multi-matching in this method? e.g., men who are still underpartnered after calling this method once?
-        # Find people eligible for a relationship
-        active = self.over_debut
-        underpartnered = self.partners < self.concurrency
-        f_eligible = active & ppl.female & underpartnered
-        m_eligible = active & ppl.male & underpartnered
-        f_looking = self.pars.p_pair_form.filter(f_eligible.uids)  # ss.uids of women looking for partners
-        f_eligible_and_looking = f_eligible & f_looking
-
-        # Get mean age differences and desired ages
-        # desired_ages = ppl.age[f_looking] + age_gaps    # Desired ages of the male partners
-        # ppl.desired_ages[f_looking] = ppl.age[f_looking] + age_gaps    # Desired ages of the male partners
-
-        male_bin_widths = [1, 3, 5]  # TODO: fix code below to remove paired ppl for following rounds, 3, 5]
-        i = 0
-        paired_females = []
-        paired_males = []
-        while len(f_looking) > 0 and i < len(male_bin_widths):
-            loc, scale = self.get_age_risk_pars(f_looking, self.pars.age_diff_pars)
-            self.pars.age_diffs.set(loc=loc, scale=scale)
-            age_gaps = self.pars.age_diffs.rvs(f_eligible_and_looking)  # Sample the age differences
-
-            male_bin_width = male_bin_widths[i]
-            # divvy up men into bins
-            male_bins = self.bin_agents_by_age(m_eligible, bin_width=male_bin_width)  # returns a {age: df} dict
-            # create female queues to male bins
-            female_uid_bins = self.bin_female_uids_by_target_age(female_uids=f_eligible_and_looking.uids, target_age_gaps=age_gaps,
-                                                             male_age_bins=male_bins.keys(), bin_width=male_bin_width)
-            # assign men to women by male queue. For each queue, assign until men or women run out.
-            for male_age, men in male_bins.items():
-                female_uids = female_uid_bins[male_age]
-                limit = min(len(men.uids), len(female_uids))
-                # arbitrarily assign; no sorting has been done
-                selected_male_uids = men.uids[:limit]
-                selected_female_uids = female_uids[:limit]
-                if len(selected_male_uids) != len(selected_female_uids):
-                    raise Exception(f"Uh oh, mismatched m/f uid lengths male age: {male_age} M: {len(selected_male_uids)} F: {len(selected_female_uids)}")
-                paired_males.extend(selected_male_uids)
-                paired_females.extend(selected_female_uids)
-            i += 1
-            # now update the males and females still looking for the next round of pairing.
-            # remove newly-ineligible males
-            # remove newly-ineligible females
-            f_eligible_and_looking[selected_female_uids] = False
-            f_looking = f_looking - selected_female_uids
-            m_eligible[selected_male_uids] = False
-
-
-        m_selected = uids(paired_males)
-        f_selected = uids(paired_females)  # uids(f_selected)
-
-        p1 = m_selected
-        p2 = f_selected
-        # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-        return p1, p2
-
-
-    def match_pairs_redesign1(self):
+    def match_pairs_existing(self):
         """
         Match pairs by age, using sorting rather than the linear sum assignment
         """
@@ -657,62 +605,320 @@ class MFNetwork(BaseNetwork):
         # Get mean age differences and desired ages
         loc, scale = self.get_age_risk_pars(f_looking, self.pars.age_diff_pars)
         self.pars.age_diffs.set(loc=loc, scale=scale)
-        age_gaps = self.pars.age_diffs.rvs(f_looking)   # Sample the age differences
-        desired_ages = ppl.age[f_looking] + age_gaps    # Desired ages of the male partners
-        m_ages = ppl.age[m_eligible]            # Ages of eligible males
+        age_gaps = self.pars.age_diffs.rvs(f_looking)  # Sample the age differences
+        desired_ages = ppl.age[f_looking] + age_gaps  # Desired ages of the male partners
+        m_ages = ppl.age[m_eligible]  # Ages of eligible males
         ind_m = np.argsort(m_ages, stable=True)
         ind_f = np.argsort(desired_ages, stable=True)
 
-        # >>>
-        # Attempt 2 sketch
-        """
-        - divvy up men into 1 year age bins, centered on 0.5 ages
-        - queue up the women into queues for the male bins
-        - for bin B in bins:
-        -   distribute men to women until either men or women run out for bin B
-        - if men and women remain, repeat from A with age_bin_width += 1
-        - Do this for age_bin_width <= maximum SD from input pars.age_diffs
-        - Return with selected matched men and women.
-        """
-        # <<<
+        # If there are no agents in either group, return empty arrays
+        if len(ind_m) == 0 or len(ind_f) == 0:
+            raise NoPartnersFound()
 
-        # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        # Attempt 1: proof of concept works much better, but horrendous algorithm
-        from starsim.arrays import uids
-        m_selected = []
-        f_selected = []
-        m_ages_list = list(m_ages[ind_m])
-        for i in range(len(desired_ages)):
-            done = False
-            delta = 0
-            while not done:
-                index = bisect_left(m_ages_list, desired_ages[i]) + delta
-                try:
-                    if m_eligible.uids[ind_m][index] not in m_selected:
-                        done = True
-                except IndexError as e:
-                    done = True
-                delta += 1
-            try:
-                selected = m_eligible.uids[ind_m][index]
-                m_selected.append(selected)
-                f_selected.append(f_looking[i])
-                # m_ages_list.pop(selected)
-                # print(f"Looking for age: {desired_ages[i]} found age: {ppl.age[selected]} len(m_ages_list): {len(m_ages_list)}")
-            except IndexError as e:
-                pass  # female could not find a male of target age
-        # if any men are competed over, drop duplicates
-        m_selected = uids(m_selected)
-        f_selected = uids(f_selected)  # uids(f_selected)
+        # drop all males that are younger than one standard deviation below the lowest desired age.
+        youngest_preferred_male_age = desired_ages[ind_f[0]]
+        youngest_male_age = m_ages[ind_m[0]]
 
-        p1 = m_selected
-        p2 = f_selected
-        # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+        if youngest_male_age < youngest_preferred_male_age:
+            # remove the youngest males until the youngest is at least as old as the youngest preferred
+            cutoff_index = bisect_left(m_ages[ind_m], youngest_preferred_male_age)
+            ind_m = ind_m[cutoff_index:]
+
+        elif youngest_preferred_male_age < youngest_male_age:
+            # remove the youngest females until the youngest preferred is at least as old as the youngest male
+            cutoff_index = bisect_left(desired_ages[ind_f], youngest_male_age)
+            ind_f = ind_f[cutoff_index:]
+
+        # Check again for empty arrays after filtering
+        if len(ind_m) == 0 or len(ind_f) == 0:
+            raise NoPartnersFound()
+
+        # Check the upper limit of the age spectrum
+        oldest_preferred_male_age = desired_ages[ind_f[-1]]
+        oldest_male_age = m_ages[ind_m[-1]]
+
+        if oldest_male_age > oldest_preferred_male_age:
+            cutoff_index = bisect_left(m_ages[ind_m], oldest_preferred_male_age)
+            ind_m = ind_m[:cutoff_index]
+
+        elif oldest_preferred_male_age > oldest_male_age:
+            cutoff_index = bisect_left(desired_ages[ind_f], oldest_male_age)
+            ind_f = ind_f[:cutoff_index]
+
+        # draw n samples from the larger of the two groups, where n is the number of samples in the smaller group
+        if len(ind_m) < len(ind_f):
+            ind_f_subset = np.random.choice(len(ind_f), size=len(ind_m), replace=False)
+            ind_f_subset.sort()
+            ind_f = ind_f[ind_f_subset]
+        elif len(ind_f) < len(ind_m):
+            ind_m_subset = np.random.choice(len(ind_m), size=len(ind_f), replace=False)
+            ind_m_subset.sort()
+            ind_m = ind_m[ind_m_subset]
 
         if len(ind_m) == 0 or len(ind_f) == 0:
             raise NoPartnersFound()
 
+        p1 = m_eligible.uids[ind_m]
+        p2 = f_looking[ind_f]
+
         return p1, p2
+
+    @staticmethod
+    def _two_pointer_loop_py(sorted_m_ages, sorted_desired):
+        """Inner loop of :func:`_match_pairs_fast`, extracted as a pure function.
+
+        Returns ``(matched_m_indices, matched_f_indices)`` — indices into the
+        sorted arrays. Used as the reference implementation for the
+        equivalence test against :func:`_two_pointer_vec`.
+        """
+        n_m = len(sorted_m_ages)
+        n_f = len(sorted_desired)
+        if n_f == 0 or n_m == 0:
+            return np.array([], dtype=int), np.array([], dtype=int)
+        j = bisect_left(sorted_m_ages, sorted_desired[0])
+        matched_f, matched_m = [], []
+        for i in range(n_f):
+            d = sorted_desired[i]
+            while j < n_m and sorted_m_ages[j] < d:
+                j += 1
+            if j >= n_m:
+                break
+            matched_f.append(i)
+            matched_m.append(j)
+            j += 1
+        return np.array(matched_m, dtype=int), np.array(matched_f, dtype=int)
+
+    def match_pairs_two_pointer_linear(self):
+        """
+        O(n log n) two-pointer sweep: sort females by desired age and males by
+        actual age, then for each female assign the first male whose age >= her
+        desired age.  The forward-only pointer eliminates the O(n) list-membership
+        check that makes Attempt 1 O(n²).
+        """
+        ppl = self.sim.people
+        active = self.over_debut
+        underpartnered = self.partners < self.concurrency
+        f_eligible = active & ppl.female & underpartnered
+        m_eligible = active & ppl.male & underpartnered
+        f_looking = self.pars.p_pair_form.filter(f_eligible.uids)
+
+        if len(f_looking) == 0 or m_eligible.count() == 0:
+            raise NoPartnersFound()
+
+        loc, scale = self.get_age_risk_pars(f_looking, self.pars.age_diff_pars)
+        self.pars.age_diffs.set(loc=loc, scale=scale)
+        age_gaps = self.pars.age_diffs.rvs(f_looking)
+        desired_ages = ppl.age[f_looking] + age_gaps
+        m_ages = ppl.age[m_eligible]
+
+        ind_m = np.argsort(m_ages, stable=True)
+        ind_f = np.argsort(desired_ages, stable=True)
+        sorted_m_ages = m_ages[ind_m]
+        sorted_desired = desired_ages[ind_f]
+
+        matched_m, matched_f = self._two_pointer_loop_py(sorted_m_ages, sorted_desired)
+
+        if len(matched_f) == 0:
+            raise NoPartnersFound()
+
+        return (m_eligible.uids[ind_m[matched_m]],
+                f_looking[ind_f[matched_f]])
+
+    @staticmethod
+    def _two_pointer_loop_py_closest(sorted_m_ages, sorted_desired, max_deviation=None):
+        """Inner loop of :func:`_match_pairs_fast`, extracted as a pure function.
+
+        Returns ``(matched_m_indices, matched_f_indices)`` — indices into the
+        sorted arrays. Used as the reference implementation for the
+        equivalence test against :func:`_two_pointer_vec`.
+        """
+        n_males = len(sorted_m_ages)
+        n_females = len(sorted_desired)
+        if n_females == 0 or n_males == 0:
+            return np.array([], dtype=int), np.array([], dtype=int)
+        j = bisect_left(sorted_m_ages, sorted_desired[0])
+        last_j_selected = j
+        matched_f, matched_m = [], []
+        for i in range(n_females):
+            # find the index of the first male with age >= target age
+            target_age = sorted_desired[i]
+            j = bisect_left(sorted_m_ages, target_age, lo=j, hi=n_males)
+            if j >= n_males:
+                break
+
+            # pick closest male as current index permits; either index j or j-1
+            if j > last_j_selected:
+                # pick closest male, j or j-1
+                selected_j = j if abs(target_age - sorted_m_ages[j]) < abs(target_age - sorted_m_ages[j-1]) else j-1
+            else:
+                # take the next male, j (cannot pick j-1)
+                selected_j = j
+
+            # verify the proposed pairing is within "reasonable" age gap bounds
+            if max_deviation is not None and (np.abs(target_age - sorted_m_ages[selected_j])) > max_deviation:
+                break  # no reasonable male option for this female
+            matched_m.append(selected_j)
+            last_j_selected = selected_j
+            j = selected_j + 1
+            matched_f.append(i)
+
+        return np.array(matched_m, dtype=int), np.array(matched_f, dtype=int)
+
+    @staticmethod
+    def _searchsorted_loop_closest(sorted_m_ages, sorted_desired, max_deviation=None):
+        """Variant of :func:`_two_pointer_loop_py_closest` that hoists the
+        per-iteration ``bisect_left`` into a single vectorized
+        ``np.searchsorted`` call before the loop.
+
+        Equivalent to ``bisect_left(sorted_m_ages, target_age, lo=j)`` per step
+        because ``max(j, lower_bounds[i])`` yields the same index whenever the
+        unconstrained leftmost (``lower_bounds[i]``) is below the forward-only
+        bound ``j``.
+        """
+        n_males = len(sorted_m_ages)
+        n_females = len(sorted_desired)
+        if n_females == 0 or n_males == 0:
+            return np.array([], dtype=int), np.array([], dtype=int)
+        lower_bounds = np.searchsorted(sorted_m_ages, sorted_desired, side='left')
+        j = lower_bounds[0]
+        last_j_selected = j
+        matched_f, matched_m = [], []
+        for i in range(n_females):
+            target_age = sorted_desired[i]
+            j = max(j, lower_bounds[i])
+            if j >= n_males:
+                break
+
+            # pick closest male as current index permits; either index j or j-1
+            if j > last_j_selected:
+                # pick closest male, j or j-1
+                selected_j = j if abs(target_age - sorted_m_ages[j]) < abs(target_age - sorted_m_ages[j - 1]) else j - 1
+            else:
+                # take the next male, j (cannot pick j-1)
+                selected_j = j
+
+            if max_deviation is not None and (np.abs(target_age - sorted_m_ages[selected_j])) > max_deviation:
+                break  # no reasonable male option for this female
+            matched_m.append(selected_j)
+            last_j_selected = selected_j
+            j = selected_j + 1
+            matched_f.append(i)
+
+        return np.array(matched_m, dtype=int), np.array(matched_f, dtype=int)
+
+
+    def match_pairs_two_pointer_linear_closest(self):
+        """
+        O(n log n) two-pointer sweep: sort females by desired age and males by
+        actual age, then for each female assign the first male whose age >= her
+        desired age.  The forward-only pointer eliminates the O(n) list-membership
+        check that makes Attempt 1 O(n²).
+        """
+        ppl = self.sim.people
+        active = self.over_debut
+        underpartnered = self.partners < self.concurrency
+        f_eligible = active & ppl.female & underpartnered
+        m_eligible = active & ppl.male & underpartnered
+        f_looking = self.pars.p_pair_form.filter(f_eligible.uids)
+
+        if len(f_looking) == 0 or m_eligible.count() == 0:
+            raise NoPartnersFound()
+
+        loc, scale = self.get_age_risk_pars(f_looking, self.pars.age_diff_pars)
+        self.pars.age_diffs.set(loc=loc, scale=scale)
+
+        age_gaps = self.pars.age_diffs.rvs(f_looking)
+        desired_ages = ppl.age[f_looking] + age_gaps
+        m_ages = ppl.age[m_eligible]
+
+        ind_m = np.argsort(m_ages, stable=True)
+        ind_f = np.argsort(desired_ages, stable=True)
+        sorted_m_ages = m_ages[ind_m]
+        sorted_desired = desired_ages[ind_f]
+
+        matched_m, matched_f = self._two_pointer_loop_py_closest(sorted_m_ages, sorted_desired)
+
+        if len(matched_f) == 0:
+            raise NoPartnersFound()
+
+        return (m_eligible.uids[ind_m[matched_m]],
+                f_looking[ind_f[matched_f]])
+
+    def match_pairs_two_pointer_linear_closest_age_bounding(self):
+        """
+        O(n log n) two-pointer sweep: sort females by desired age and males by
+        actual age, then for each female assign the first male whose age >= her
+        desired age.  The forward-only pointer eliminates the O(n) list-membership
+        check that makes Attempt 1 O(n²).
+        """
+        ppl = self.sim.people
+        active = self.over_debut
+        underpartnered = self.partners < self.concurrency
+        f_eligible = active & ppl.female & underpartnered
+        m_eligible = active & ppl.male & underpartnered
+        f_looking = self.pars.p_pair_form.filter(f_eligible.uids)
+
+        if len(f_looking) == 0 or m_eligible.count() == 0:
+            raise NoPartnersFound()
+
+        loc, scale = self.get_age_risk_pars(f_looking, self.pars.age_diff_pars)
+        self.pars.age_diffs.set(loc=loc, scale=scale)
+        max_allowed_deviation = 2 * np.max(scale)  # 2 * max_sd
+
+        age_gaps = self.pars.age_diffs.rvs(f_looking)
+        desired_ages = ppl.age[f_looking] + age_gaps
+        m_ages = ppl.age[m_eligible]
+
+        ind_m = np.argsort(m_ages, stable=True)
+        ind_f = np.argsort(desired_ages, stable=True)
+        sorted_m_ages = m_ages[ind_m]
+        sorted_desired = desired_ages[ind_f]
+
+        matched_m, matched_f = self._two_pointer_loop_py_closest(sorted_m_ages, sorted_desired, max_deviation=max_allowed_deviation)
+
+        if len(matched_f) == 0:
+            raise NoPartnersFound()
+
+        return (m_eligible.uids[ind_m[matched_m]],
+                f_looking[ind_f[matched_f]])
+
+    def match_pairs_two_pointer_linear_closest_age_bounding_binary_search(self):
+        """
+        O(n log n) two-pointer sweep: sort females by desired age and males by
+        actual age, then for each female assign the first male whose age >= her
+        desired age.  The forward-only pointer eliminates the O(n) list-membership
+        check that makes Attempt 1 O(n²).
+        """
+        ppl = self.sim.people
+        active = self.over_debut
+        underpartnered = self.partners < self.concurrency
+        f_eligible = active & ppl.female & underpartnered
+        m_eligible = active & ppl.male & underpartnered
+        f_looking = self.pars.p_pair_form.filter(f_eligible.uids)
+
+        if len(f_looking) == 0 or m_eligible.count() == 0:
+            raise NoPartnersFound()
+
+        loc, scale = self.get_age_risk_pars(f_looking, self.pars.age_diff_pars)
+        self.pars.age_diffs.set(loc=loc, scale=scale)
+        max_allowed_deviation = 2 * np.max(scale)  # 2 * max_sd
+
+        age_gaps = self.pars.age_diffs.rvs(f_looking)
+        desired_ages = ppl.age[f_looking] + age_gaps
+        m_ages = ppl.age[m_eligible]
+
+        ind_m = np.argsort(m_ages, stable=True)
+        ind_f = np.argsort(desired_ages, stable=True)
+        sorted_m_ages = m_ages[ind_m]
+        sorted_desired = desired_ages[ind_f]
+
+        matched_m, matched_f = self._searchsorted_loop_closest(sorted_m_ages, sorted_desired, max_deviation=max_allowed_deviation)
+
+        if len(matched_f) == 0:
+            raise NoPartnersFound()
+
+        return (m_eligible.uids[ind_m[matched_m]],
+                f_looking[ind_f[matched_f]])
 
     def add_pairs(self):
         """ Match and add stable/casual/onetime partnerships for this timestep. Assigns relationship type, duration, and acts based on risk group and age, and updates partner counts. """
