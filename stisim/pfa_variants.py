@@ -127,3 +127,43 @@ class MFNetwork_DesiredAgeBucket(MFNetwork):
 class MFNetwork_SortBisect(MFNetwork):
     """Current production: argsort + bisect-trim + subsample. Inherits match_pairs unchanged."""
     pass
+
+
+class MFNetwork_GreedyOldEnough(MFNetwork):
+    """Sort women by desired age ascending; for each, take youngest available
+    male with age >= desired_age. No replacement.
+    """
+
+    def match_pairs(self):
+        ppl = self.sim.people
+        f_looking, m_eligible = self._get_eligible()
+        desired_ages = self._sample_desired_ages(f_looking)
+        m_ages = ppl.age[m_eligible]
+        m_uids = m_eligible.uids
+        f_uids = f_looking
+
+        order_f = np.argsort(desired_ages)
+        order_m = np.argsort(m_ages)
+        sorted_m_ages = m_ages[order_m]
+        sorted_m_uids = m_uids[order_m]
+        available = np.ones(len(sorted_m_uids), dtype=bool)
+
+        p1_list, p2_list = [], []
+        cursor = 0
+        for fi in order_f:
+            target = desired_ages[fi]
+            while cursor < len(sorted_m_ages) and (not available[cursor] or sorted_m_ages[cursor] < target):
+                cursor += 1
+            if cursor >= len(sorted_m_ages):
+                break
+            p1_list.append(int(sorted_m_uids[cursor]))
+            p2_list.append(int(f_uids[fi]))
+            available[cursor] = False
+            cursor += 1
+
+        if not p1_list:
+            raise NoPartnersFound()
+
+        p1 = ss.uids(np.array(p1_list, dtype=np.int64))
+        p2 = ss.uids(np.array(p2_list, dtype=np.int64))
+        return p1, p2

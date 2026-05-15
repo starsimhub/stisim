@@ -7,6 +7,7 @@ from stisim.pfa_variants import (
     MFNetwork_SortPair,
     MFNetwork_DesiredAgeBucket,
     MFNetwork_SortBisect,
+    MFNetwork_GreedyOldEnough,
 )
 
 
@@ -79,3 +80,13 @@ def test_sortbisect_variant_runs():
     # SortBisect (production) has no replacement.
     assert len(np.unique(p1)) == len(p1)
     assert len(np.unique(p2)) == len(p2)
+
+
+def test_greedy_old_enough_runs():
+    net = MFNetwork_GreedyOldEnough()
+    sim, p1, p2 = _match_once(net, n_agents=500)
+    _assert_valid_pairs(p1, p2, sim)
+    if len(p1):
+        # No replacement: each man appears at most once in p1.
+        assert len(np.unique(p1)) == len(p1)
+        assert len(np.unique(p2)) == len(p2)
