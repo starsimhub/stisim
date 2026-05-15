@@ -22,8 +22,18 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 results = sc.load('pfa_comparison_results.obj')
+
+# Production first, then everything else. Unknown methods (if any) go to the end.
+METHOD_ORDER = ['SortBisect', 'SortPair', 'LSA', 'BandMatch',
+                'DesiredAgeBucket', 'GreedyOldEnough', 'KDTreeNN']
+
+def order_methods(methods):
+    known = [m for m in METHOD_ORDER if m in methods]
+    extra = [m for m in methods if m not in METHOD_ORDER]
+    return known + extra
+
 print('Keys:', list(results.keys()))
-print('Generic variants:', sorted({k[0] for k in results.generic.keys()}))"""))
+print('Generic variants:', order_methods(sorted({k[0] for k in results.generic.keys()})))"""))
 
 cells.append(nbf.v4.new_markdown_cell("## Figure 1: wall-clock vs n_agents"))
 
@@ -35,7 +45,7 @@ df = pd.DataFrame(rows)
 agg = df.groupby(['method', 'n_agents'])['wall_time'].agg(['mean', 'std']).reset_index()
 
 fig, ax = plt.subplots(figsize=(8, 5))
-for method in sorted(agg['method'].unique()):
+for method in order_methods(agg['method'].unique()):
     sub = agg[agg['method'] == method]
     ax.errorbar(sub['n_agents'], sub['mean'], yerr=sub['std'].fillna(0), marker='o', label=method)
 ax.set_xlabel('n_agents')
@@ -68,7 +78,8 @@ df['age_bin'] = pd.cut(df['age'], bins=[0, 20, 25, 30, 40, 50, 100],
 df['concurrent'] = (df['n_partners'] >= 2).astype(int)
 
 g = sns.catplot(data=df, x='age_bin', y='concurrent', hue='rel_type',
-                col='method', row='sex', kind='bar', errorbar='se',
+                col='method', col_order=order_methods(df['method'].unique()),
+                row='sex', kind='bar', errorbar='se',
                 height=2.5, aspect=1.3)
 g.set_axis_labels('Age', 'P(≥2 partners last year)')
 g.set(ylim=(0, None))
@@ -88,30 +99,43 @@ ridge **above** the diagonal (males ~7-8 yrs older than females per
 cells.append(nbf.v4.new_code_cell("""\
 MF_RT = ('stable', 'casual', 'onetime')
 
-def _collect(records_field, rt_filter):
-    all_methods = sorted({k[0] for k in results.generic.keys()})
-    n_max = max({k[1] for k in results.generic.keys()})
-    by = {(m, rt): [] for m in all_methods for rt in rt_filter}
-    for (m, n, rep), v in results.generic.items():
-        if n != n_max:
+def _collect(records_field, rt_filter, source='generic'):
+    src = getattr(results, source)
+    all_methods_sorted = sorted({k[0] for k in src.keys()})
+    if source == 'generic':
+        n_max = max({k[1] for k in src.keys()})
+        keep = lambda k: k[1] == n_max
+    else:
+        n_max = None
+        keep = lambda k: True
+    by = {(m, rt): [] for m in all_methods_sorted for rt in rt_filter}
+    for k, v in src.items():
+        if not keep(k):
             continue
+        m = k[0]
         for r in v[records_field]:
             key = (m, r['rel_type'])
             if key in by:
                 by[key].append((r['age_male'], r['age_female']))
-    methods = [m for m in all_methods if any(by[(m, rt)] for rt in rt_filter)]
+    methods = order_methods([m for m in all_methods_sorted
+                             if any(by[(m, rt)] for rt in rt_filter)])
     rel_types = [rt for rt in rt_filter
                  if sum(len(by[(m, rt)]) for m in methods) >= 50]
     return by, methods, rel_types, n_max
 
-def _heatmap_grid(by, methods, rel_types, title):
-    fig, axes = plt.subplots(len(rel_types), len(methods),
-                             figsize=(2.5*len(methods), 2.8*len(rel_types)),
+def _heatmap_grid(by, methods, rel_types, title, add_aggregate=True):
+    # Optionally append an 'all MF' row that pools across rel_types per method.
+    rows = list(rel_types) + (['all'] if add_aggregate and len(rel_types) > 1 else [])
+    fig, axes = plt.subplots(len(rows), len(methods),
+                             figsize=(2.5*len(methods), 2.8*len(rows)),
                              sharex=True, sharey=True, squeeze=False)
-    for i, rt in enumerate(rel_types):
+    for i, rt in enumerate(rows):
         for j, method in enumerate(methods):
             ax = axes[i, j]
-            ages = by[(method, rt)]
+            if rt == 'all':
+                ages = [pair for r in rel_types for pair in by[(method, r)]]
+            else:
+                ages = by[(method, rt)]
             if not ages:
                 ax.text(0.5, 0.5, '(no records)', ha='center', va='center', transform=ax.transAxes)
                 continue
@@ -119,10 +143,14 @@ def _heatmap_grid(by, methods, rel_types, title):
             a2 = np.array([a[1] for a in ages])  # female
             ax.hexbin(a1, a2, gridsize=25, cmap='viridis', mincnt=1)
             ax.plot([15, 80], [15, 80], 'r--', alpha=0.5, lw=1)
+            mean_diff = float(np.mean(a1 - a2))
+            ax.text(0.03, 0.97, f'Δ={mean_diff:+.1f}', transform=ax.transAxes,
+                    ha='left', va='top', fontsize=8,
+                    bbox=dict(boxstyle='round,pad=0.2', fc='white', alpha=0.7, lw=0))
             ax.set_xlim(15, 80); ax.set_ylim(15, 80)
             if i == 0: ax.set_title(method, fontsize=9)
             if j == 0: ax.set_ylabel(f'{rt}\\nfemale age')
-            if i == len(rel_types)-1: ax.set_xlabel('male age')
+            if i == len(rows)-1: ax.set_xlabel('male age')
     fig.suptitle(title, y=1.02)
     plt.tight_layout()
     plt.show()
@@ -176,33 +204,23 @@ cells.append(nbf.v4.new_code_cell("""\
 if not hasattr(results, 'zimbabwe') or not results.zimbabwe:
     print('No Zimbabwe results in this file.')
 else:
-    def _collect_zim(field, rt_filter):
-        all_methods = sorted({k[0] for k in results.zimbabwe.keys()})
-        by = {(m, rt): [] for m in all_methods for rt in rt_filter}
-        for (m, _, rep), v in results.zimbabwe.items():
-            for r in v[field]:
-                key = (m, r['rel_type'])
-                if key in by:
-                    by[key].append((r['age_male'], r['age_female']))
-        methods = [m for m in all_methods if any(by[(m, rt)] for rt in rt_filter)]
-        rel_types = [rt for rt in rt_filter
-                     if sum(len(by[(m, rt)]) for m in methods) >= 50]
-        return by, methods, rel_types
-
-    by, methods, rts = _collect_zim('pair_formation_ages', MF_RT)
+    by, methods, rts, _ = _collect('pair_formation_ages', MF_RT, source='zimbabwe')
     _heatmap_grid(by, methods, rts, 'Zimbabwe MF incidence (pair formation)')
-    by, methods, rts = _collect_zim('pair_prevalence', MF_RT)
+    by, methods, rts, _ = _collect('pair_prevalence', MF_RT, source='zimbabwe')
     _heatmap_grid(by, methods, rts, 'Zimbabwe MF prevalence (active at sim end)')
-    by, methods, rts = _collect_zim('pair_formation_ages', ('sw',))
+    by, methods, rts, _ = _collect('pair_formation_ages', ('sw',), source='zimbabwe')
     if rts:
-        _heatmap_grid(by, methods, rts, 'Zimbabwe SW incidence (pair formation)')"""))
+        _heatmap_grid(by, methods, rts, 'Zimbabwe SW incidence (pair formation)',
+                      add_aggregate=False)"""))
 
 cells.append(nbf.v4.new_markdown_cell("## Figure 4: lifetime partner distribution"))
 
 cells.append(nbf.v4.new_code_cell("""\
 fig, ax = plt.subplots(figsize=(8, 5))
 n_max = max({k[1] for k in results.generic.keys()})
-for method in methods:
+all_methods = order_methods(sorted({k[0] for k in results.generic.keys()
+                                    if k[1] == n_max}))
+for method in all_methods:
     vals = []
     for (m, n, rep), v in results.generic.items():
         if m == method and n == n_max:
