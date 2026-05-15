@@ -203,3 +203,41 @@ class MFNetwork_KDTreeNN(MFNetwork):
         p1 = m_uids[idxs[keep]]
         p2 = f_uids[keep]
         return p1, p2
+
+
+class MFNetwork_BandMatch(MFNetwork):
+    """Bucket both groups into 5-year age bands; shuffle and zip within band."""
+
+    band_width = 5
+
+    def match_pairs(self):
+        ppl = self.sim.people
+        f_looking, m_eligible = self._get_eligible()
+        desired_ages = self._sample_desired_ages(f_looking)
+        m_ages = ppl.age[m_eligible]
+        m_uids = m_eligible.uids
+        f_uids = f_looking
+
+        f_band = (desired_ages // self.band_width).astype(int)
+        m_band = (m_ages // self.band_width).astype(int)
+
+        rng = np.random.default_rng(self.sim.pars.rand_seed + self.ti)
+        p1_list, p2_list = [], []
+        bands = np.unique(np.concatenate([f_band, m_band]))
+        for b in bands:
+            mi = np.where(m_band == b)[0]
+            fi = np.where(f_band == b)[0]
+            if len(mi) == 0 or len(fi) == 0:
+                continue
+            rng.shuffle(mi)
+            rng.shuffle(fi)
+            k = min(len(mi), len(fi))
+            p1_list.extend(m_uids[mi[:k]].tolist())
+            p2_list.extend(f_uids[fi[:k]].tolist())
+
+        if not p1_list:
+            raise NoPartnersFound()
+
+        p1 = ss.uids(np.array(p1_list, dtype=np.int64))
+        p2 = ss.uids(np.array(p2_list, dtype=np.int64))
+        return p1, p2
