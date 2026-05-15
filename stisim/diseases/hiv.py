@@ -211,6 +211,8 @@ class HIV(BaseSTI):
         initial_cases_diagnosed = self.pars.init_diagnosed.filter(initial_cases)
         self.diagnosed[initial_cases_diagnosed] = True
         self.ti_diagnosed[initial_cases_diagnosed] = 0
+        # Schedule ART start at ti=0 (no delay) so an ART intervention picks them up immediately
+        self.ti_art[initial_cases_diagnosed] = 0
         return
 
     # CD4 functions
@@ -509,7 +511,7 @@ class HIV(BaseSTI):
         self.results['cum_deaths'][ti] = np.sum(self.results['new_deaths'][:ti + 1])
         self.results['new_diagnoses'][ti] = np.count_nonzero(self.ti_diagnosed == ti)
         self.results['cum_diagnoses'][ti] = np.sum(self.results['new_diagnoses'][:ti + 1])
-        self.results['new_agents_on_art'][ti] = np.count_nonzero(self.ti_art == ti)
+        self.results['new_agents_on_art'][ti] = sum((self.ti_art == ti) & self.on_art)  # gate on on_art; ti_art may also hold a scheduled future start
         if self.include_mtct:
             pregnant = self.sim.people.pregnancy.pregnant
             self.results['n_on_art_pregnant'][ti] = np.count_nonzero(self.on_art & pregnant)

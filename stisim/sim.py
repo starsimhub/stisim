@@ -2,6 +2,7 @@
 User API for creating an STI simulation
 """
 
+import itertools
 import starsim as ss
 import stisim as sti
 import sciris as sc
@@ -103,118 +104,55 @@ class Sim(ss.Sim):
         updated_pars = self.separate_pars(pars, sim_pars, sti_pars, nw_pars, dem_pars, sim_kwargs, **kwargs)
         self.pars.update(updated_pars)
         return
-    
-    def get_valid_pars(self):
-        """ Helper function to identify valid parameters """
-        vp = sc.objdict()
-        vp.sim_pars = self.pars # STIsim and Starsim Sim parameters
-        vp.all_sti_pars = sc.objdict(sti.merged_sti_pars())  # All STI parameters, ignoring duplicates
-        vp.default_nw_pars = sti.NetworkPars()
-        vp.default_dem_pars = sti.dem_pars()
-        
-        # Validation
-        all_pars = sorted([key for d in vp.values() for key in d.keys()])
-        duplicates = [key for key in all_pars if all_pars.count(key) > 1]
-        # if duplicates: # TODO: decide if we want to make this an error
-        #     errormsg = f'Duplicate parameters found: {duplicates}'
-        #     raise ValueError(errormsg)
-        return vp, duplicates
 
-    def separate_pars(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None, dem_pars=None, sim_kwargs=None, **kwargs):
+    def separate_pars(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None, dem_pars=None,
+                      sim_kwargs=None, verbose=True, **kwargs):
         """
-        Create a nested dict of parameters that get passed to Sim constructor and the component modules
-        Prioritization:
-            - If any key appears in both pars and *_pars, the value from *_pars will be used.
-            - If any key appears in both pars and kwargs, the value from kwargs will be used.
+        Sort all incoming pars into per-category dicts (sim, sti, nw, dem,
+        connector). Most of the work is delegated to ``sti.route_pars``; this
+        method handles sti.Sim-specific bits: legacy renames, nested per-module
+        dicts (``hiv=dict(...)``), defaults, and stashing user-supplied pars
+        (``_user_sti_pars``, ``_user_nw_pars``, ``_user_dem_pars``,
+        ``_user_connector_pars``) for the two-phase init's XOR checks.
+
+        Args:
+            verbose (bool): If True, ``route_pars`` prints one line per
+                cross-category broadcast. See ``sti.route_pars`` for design.
         """
-        # Fail loudly on overlapping keys between `pars` and `**kwargs` — rather
-        # than silently taking one, force the caller to pick one.
-        if pars and kwargs:
-            overlap = set(pars) & set(kwargs)
-            if overlap:
-                detail = '; '.join(
-                    f'{k}: pars={pars[k]!r} kwargs={kwargs[k]!r}' for k in sorted(overlap)
-                )
-                raise ValueError(
-                    f'Keys appear in both `pars` and kwargs — specify each in exactly one place:\n  {detail}'
-                )
+        merged = self.remap_pars(sc.mergedicts(pars, sim_kwargs, kwargs))
 
-        # Merge in pars and kwargs
-        all_pars = sc.mergedicts(pars, sim_pars, sti_pars, nw_pars, dem_pars, sim_kwargs, kwargs)
-        all_pars = self.remap_pars(all_pars)  # Remap any parameter names
-        vp, duplicates = self.get_valid_pars()
+        # Pull out per-module nested dicts (e.g. hiv=dict(init_prev=0.05))
+        # before flat routing — these aren't valid par-names themselves, but
+        # their values contain sti pars scoped to a single disease module.
+        sti_keys = set(sti.merged_sti_pars())
+        nested_sti = {}
+        for k in list(merged):
+            v = merged[k]
+            if isinstance(v, dict) and any(gk in sti_keys for gk in v):
+                nested_sti[k] = merged.pop(k)
 
-        # Check if any parameter in all_pars is in duplicates. Duplicates are
-        # names that exist in multiple par categories (e.g. `dt` in both
-        # SimPars and STIPars). When the user passes such a key without
-        # disambiguating, we warn — the routing below will pick the first
-        # category that matches.
-        ambiguous = set(all_pars.keys()) & set(duplicates)
-        if ambiguous:
-            categories = {k: [cat for cat, d in vp.items() if k in d] for k in ambiguous}
-            detail = '; '.join(f'"{k}" appears in {cats}' for k, cats in categories.items())
-            warnmsg = (
-                f'Ambiguous parameter(s) found: {sorted(ambiguous)}. {detail}. '
-                f'To disambiguate, pass via the explicit category kwarg '
-                f'(e.g. sim_pars=dict(dt=...), sti_pars=dict(dt=...)).'
-            )
-            ss.warn(warnmsg)
+        routed = sti.route_pars(
+            merged,
+            sim_pars=sim_pars, sti_pars=sti_pars, nw_pars=nw_pars,
+            dem_pars=dem_pars,
+            strict=True, verbose=verbose,
+        )
 
-        # Deal with sim pars
-        if 'dur' in all_pars.keys():
+        if 'dur' in routed.sim:
             self.pars['stop'] = None
-        user_sim_pars = {k: v for k, v in all_pars.items() if k in vp.sim_pars}
-        for k in user_sim_pars: all_pars.pop(k)
-        sim_pars = sc.mergedicts(sim_pars, user_sim_pars, _copy=True)  # kwargs override sim_pars
 
-        # Deal with STI pars
-        user_sti_pars = {}
-        for k, v in all_pars.items():
-            if k in vp.all_sti_pars.keys(): user_sti_pars[k] = v  # Just set
-            if sc.checktype(v, dict):  # See whether it contains STI pars
-                user_sti_pars[k] = {gk: gv for gk, gv in v.items() if gk in vp.all_sti_pars}
-        for k in user_sti_pars: all_pars.pop(k)
-        sti_pars = sc.mergedicts(user_sti_pars, sti_pars, _copy=True)
+        self.sti_pars = sc.mergedicts(routed.sti, nested_sti, _copy=True)
+        self.nw_pars  = sc.mergedicts(sti.NetworkPars(), routed.nw, _copy=True)
+        self.dem_pars = sc.mergedicts(sti.dem_pars(), routed.dem, _copy=True)
 
-        # Deal with network pars
-        user_nw_pars = {k: v for k, v in all_pars.items() if k in vp.default_nw_pars.keys()}
-        for k in user_nw_pars: all_pars.pop(k)
-        nw_pars = sc.mergedicts(vp.default_nw_pars, user_nw_pars, nw_pars, _copy=True)
+        # Track user-supplied contributions (excluding defaults) so process_*
+        # methods can raise XOR errors when both a module and pars are given.
+        self._user_sti_pars = {**routed.sti, **nested_sti}
+        self._user_nw_pars  = dict(routed.nw)
+        self._user_dem_pars = dict(routed.dem)
+        self._user_connector_pars = dict(routed.connector)
 
-        # Deal with demographics parameters
-        user_dem_pars = {k: v for k, v in all_pars.items() if k in vp.default_dem_pars.keys()}
-        for k in user_dem_pars: all_pars.pop(k)
-        dem_pars = sc.mergedicts(vp.default_dem_pars, user_dem_pars, dem_pars, _copy=True)
-
-        # Raise an exception if there are any leftover pars
-        if all_pars:
-            par_options = []
-            errormsg = f'Unrecognized parameters: {all_pars.keys()}. Valid parameters are:\n'
-            for key,subdict in vp.items():
-                errormsg += f'\n  {key}: \n'
-                for subkey in sorted(subdict.keys()):
-                    errormsg += f'    {subkey}\n'
-                    par_options.append(subkey)
-            
-            for key in all_pars.keys():
-                suggest = sc.suggest(key, par_options)
-                errormsg += f'\nDid you mean "{suggest}" instead of "{key}"?'
-            
-            raise ValueError(errormsg)
-
-        # Store the parameters for the modules - thse will be fed into the modules during init
-        self.sti_pars = sti_pars    # Parameters for the STI modules
-        self.nw_pars = nw_pars      # Parameters for the networks
-        self.dem_pars = dem_pars
-
-        # Track just the user-provided contributions (separate from defaults)
-        # so process_* methods can raise XOR errors when the user supplies both
-        # a module instance and pars for the same slot.
-        self._user_sti_pars = dict(user_sti_pars)
-        self._user_nw_pars = dict(user_nw_pars)
-        self._user_dem_pars = dict(user_dem_pars)
-
-        return sim_pars
+        return routed.sim
 
     @staticmethod
     def remap_pars(pars):
@@ -449,58 +387,50 @@ class Sim(ss.Sim):
 
     def process_connectors(self):
         """
-        Get the default connectors for the diseases in the simulation.
-        Connectors are loaded based on the disease names or modules provided in the format <d1>_<d2>.
+        Auto-add coinfection connectors for disease pairs that have a registered
+        ``sti.<d1>_<d2>`` class (e.g. ``hiv_syph``, ``hiv_ng``). Skipped if the
+        user already supplied any connectors — pass your own list to take full
+        control. Connector module pars (e.g. ``rel_sus_hiv_syph=3.5``) passed
+        as kwargs to ``sti.Sim`` are routed to whichever auto-added connector
+        accepts them.
+
+        Auto-routing of kwargs only resolves against the default connector
+        classes (``sti.merged_connector_pars``). Custom connectors supplied via
+        ``connectors=[...]`` are not introspected — pass their pars to the
+        constructor directly: ``connectors=[MyConn(rel_sus_hiv_syph=3.5)]``.
+        Mixing ``connectors=[...]`` with kwargs that match default-connector
+        pars raises rather than silently dropping them.
         """
+        user_pars = self._user_connector_pars
+
+        if len(self.pars['connectors']) > 0:
+            if user_pars:
+                raise ValueError(
+                    f'Got flat connector pars {sorted(user_pars)} but `connectors=` '
+                    f'was also supplied. Pass pars to the connector constructor directly.'
+                )
+            return []
+
         connectors = []
-        parsed_diseases = []
-        add_connectors = False
+        consumed = set()
+        diseases = [(m.name, m) for m in self.pars['diseases']]
+        for (k1, m1), (k2, m2) in itertools.combinations(diseases, 2):
+            if (cls := getattr(sti, f'{k1}_{k2}', None)) is not None:
+                args = (m1, m2)
+            elif (cls := getattr(sti, f'{k2}_{k1}', None)) is not None:
+                args = (m2, m1)  # reversed to match class name
+            else:
+                continue
+            accepted = set(cls(None, None).pars.keys())
+            kwargs = {k: v for k, v in user_pars.items() if k in accepted}
+            consumed.update(kwargs)
+            connectors.append(cls(*args, **kwargs))
 
-        if isinstance(self.pars.connectors, bool) and self.pars.connectors:
-            errormsg = ('STIsim does not currently support automatically adding connectors. This feature'
-                        ' will be added in a future release. For the time being, please add connectors '
-                        'manually, e.g. by passing sti.hiv_syph(hiv, syphilis) to the sim.')
-            raise NotImplementedError(errormsg)
-
-            # TODO: The remaining code will be re-enabled once debugged
-        #     self.pars['connectors'] = ss.ndict()  # Reset
-        #     add_connectors = True
-        #
-        # if add_connectors:
-        #     for disease in self.pars['diseases']:
-        #         if isinstance(disease, str):
-        #             parsed_diseases.append(disease.lower())
-        #         if isinstance(disease, ss.Module):
-        #             parsed_diseases.append(disease.name.lower())
-        #
-        #     # sort the diseases and then get all combinations of their pairs
-        #     disease_pairs = combinations(parsed_diseases, 2)
-        #
-        #     # TODO: this does not quite work as intended because the ordering matters...
-        #     for (d1, d2) in disease_pairs:
-        #         try:
-        #             connector = getattr(sti, f'{d1}_{d2}')
-        #         except:
-        #             try:
-        #                 connector = getattr(sti, f'{d2}_{d1}')
-        #             except:
-        #                 continue
-        #         connectors.append(connector(d1, d2))
+        if (unused := set(user_pars) - consumed):
+            raise ValueError(
+                f'Unused connector par(s): {sorted(unused)}. The matching '
+                f'connector(s) were not auto-added because the required disease '
+                f'pair is not in the sim.'
+            )
         return connectors
 
-    def case_insensitive_getattr(self, searchspace, attrname):
-        """
-        Find a class in the given package that matches the name, ignoring case.
-
-        Args:
-            searchspace (list): A list of classes or modules to search through.
-            attrname (str): The name of the attribute to find, case-insensitive.
-        """
-        if not isinstance(searchspace, list):
-            searchspace = [searchspace]
-
-        for classname in searchspace:
-            for attr in dir(classname):
-                if attr.lower() == attrname.lower():
-                    return getattr(classname, attr)
-        return None
