@@ -2,7 +2,7 @@
 import numpy as np
 import starsim as ss
 import stisim as sti
-from stisim.pfa_variants import MFNetwork_LSA
+from stisim.pfa_variants import MFNetwork_LSA, MFNetwork_SortPair
 
 
 def _match_once(net, n_agents=1_000, seed=0):
@@ -33,5 +33,15 @@ def test_lsa_variant_runs():
     assert len(p1) > 0, "LSA variant should produce some edges"
     _assert_valid_pairs(p1, p2, sim)
     # LSA produces a strict 1-1 assignment: no duplicates.
+    assert len(np.unique(p1)) == len(p1)
+    assert len(np.unique(p2)) == len(p2)
+
+
+def test_sortpair_variant_runs():
+    net = MFNetwork_SortPair()
+    sim, p1, p2 = _match_once(net, n_agents=500)
+    assert len(p1) > 0
+    _assert_valid_pairs(p1, p2, sim)
+    # SortPair has no replacement -- p1 and p2 should be unique.
     assert len(np.unique(p1)) == len(p1)
     assert len(np.unique(p2)) == len(p2)
