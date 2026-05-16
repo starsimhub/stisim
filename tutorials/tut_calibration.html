@@ -681,7 +681,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="setup-generate-synthetic-data" class="level2">
 <h2 class="anchored" data-anchor-id="setup-generate-synthetic-data">Setup: generate synthetic data</h2>
 <p>To demonstrate calibration without external data files, we’ll generate synthetic targets from a simulation with known “true” parameters. In practice, you’d load survey data (e.g., DHS, PHIA) instead.</p>
-<div id="fea14177" class="cell" data-execution_count="1">
+<div id="0e2a566c" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sciris <span class="im">as</span> sc</span>
@@ -765,7 +765,7 @@ Generated 21 data points</code></pre>
 <h2 class="anchored" data-anchor-id="defining-calibration-parameters">Defining calibration parameters</h2>
 <p>STIsim uses <strong>dot notation</strong> to route parameters to the right module: <code>'module_name.par_name'</code>. The module name is whatever <code>sim.get_module()</code> would find – typically the disease name (<code>ng</code>, <code>hiv</code>, <code>syph</code>), network name (<code>structuredsexual</code>), connector name (<code>hiv_syph</code>), or intervention name (<code>art</code>, <code>fsw_testing</code>).</p>
 <p>You can write parameters in two equivalent formats:</p>
-<div id="56eee87c" class="cell" data-execution_count="2">
+<div id="9e0711e7" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Nested format -- group parameters by module (Pythonic, uses keyword syntax)</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>calib_pars <span class="op">=</span> <span class="bu">dict</span>(</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    ng<span class="op">=</span><span class="bu">dict</span>(</span>
@@ -790,7 +790,7 @@ Generated 21 data points</code></pre>
 </div>
 <p>Each parameter spec requires <code>low</code> and <code>high</code> bounds. The optional <code>guess</code> is used as the starting point for the “before” comparison in <code>check_fit()</code>.</p>
 <p>The nested format is particularly convenient when calibrating multiple modules – parameters are visually grouped:</p>
-<div id="a3e307e0" class="cell" data-execution_count="3">
+<div id="0bb86a8d" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Multi-module example (not run here -- just to show the pattern)</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>multi_pars <span class="op">=</span> <span class="bu">dict</span>(</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    hiv<span class="op">=</span><span class="bu">dict</span>(</span>
@@ -814,7 +814,7 @@ Generated 21 data points</code></pre>
 <section id="running-a-calibration" class="level2">
 <h2 class="anchored" data-anchor-id="running-a-calibration">Running a calibration</h2>
 <p>Create a <code>Calibration</code> with the sim, parameters, and data. No custom <code>build_fn</code> is needed – STIsim’s default automatically routes parameters using dot notation.</p>
-<div id="eb0bf8ad" class="cell" data-execution_count="4">
+<div id="11648f5b" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> sti.Sim(diseases<span class="op">=</span>sti.Gonorrhea(), n_agents<span class="op">=</span><span class="dv">500</span>, start<span class="op">=</span><span class="dv">2010</span>, stop<span class="op">=</span><span class="dv">2030</span>, verbose<span class="op">=-</span><span class="dv">1</span>)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>calib <span class="op">=</span> sti.Calibration(</span>
@@ -827,12 +827,12 @@ Generated 21 data points</code></pre>
 <span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>calib.calibrate()</span>
 <span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Best parameters: </span><span class="sc">{</span>calib<span class="sc">.</span>best_pars<span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Removed existing calibration file /tmp/tmpz4de4bwu/starsim_calibration.db
-sqlite:////tmp/tmpz4de4bwu/starsim_calibration.db</code></pre>
+<pre><code>Removed existing calibration file /tmp/tmpqqtlkizk/starsim_calibration.db
+sqlite:////tmp/tmpqqtlkizk/starsim_calibration.db</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <div class="ansi-escaped-output">
-<pre><span class="ansi-green-fg">[I 2026-05-16 00:05:54,440]</span> A new study created in RDB with name: starsim_calibration
+<pre><span class="ansi-green-fg">[I 2026-05-16 00:18:14,340]</span> A new study created in RDB with name: starsim_calibration
 </pre>
 </div>
 </div>
@@ -841,261 +841,313 @@ sqlite:////tmp/tmpz4de4bwu/starsim_calibration.db</code></pre>
 
   Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
 
-  Running 2011.01.01 (12/241) (0.09 s)  •——————————————————— 5%
+  Running 2011.01.01 (12/241) (0.11 s)  •——————————————————— 5%
 
-  Running 2012.01.01 (24/241) (0.18 s)  ••—————————————————— 10%
+  Running 2012.01.01 (24/241) (0.22 s)  ••—————————————————— 10%
 
-  Running 2013.01.01 (36/241) (0.26 s)  •••————————————————— 15%
+  Running 2013.01.01 (36/241) (0.31 s)  •••————————————————— 15%
 
-  Running 2014.01.01 (48/241) (0.35 s)  ••••———————————————— 20%
+  Running 2014.01.01 (48/241) (0.40 s)  ••••———————————————— 20%
 
-  Running 2015.01.01 (60/241) (0.43 s)  •••••——————————————— 25%
+  Running 2015.01.01 (60/241) (0.50 s)  •••••——————————————— 25%
 
-  Running 2016.01.01 (72/241) (0.51 s)  ••••••—————————————— 30%
+  Running 2016.01.01 (72/241) (0.60 s)  ••••••—————————————— 30%
 
-  Running 2017.01.01 (84/241) (0.60 s)  •••••••————————————— 35%
+  Running 2017.01.01 (84/241) (0.69 s)  •••••••————————————— 35%
 
-  Running 2018.01.01 (96/241) (0.68 s)  ••••••••———————————— 40%
+  Running 2018.01.01 (96/241) (0.79 s)  ••••••••———————————— 40%
 
-  Running 2019.01.01 (108/241) (0.77 s)  •••••••••——————————— 45%
+  Running 2019.01.01 (108/241) (0.89 s)  •••••••••——————————— 45%
 
-  Running 2020.01.01 (120/241) (0.85 s)  ••••••••••—————————— 50%
+  Running 2020.01.01 (120/241) (0.98 s)  ••••••••••—————————— 50%
 
-  Running 2021.01.01 (132/241) (0.93 s)  •••••••••••————————— 55%
+  Running 2021.01.01 (132/241) (1.07 s)  •••••••••••————————— 55%
 
-  Running 2022.01.01 (144/241) (1.02 s)  ••••••••••••———————— 60%
+  Running 2022.01.01 (144/241) (1.17 s)  ••••••••••••———————— 60%
 
-  Running 2023.01.01 (156/241) (1.10 s)  •••••••••••••——————— 65%
+  Running 2023.01.01 (156/241) (1.27 s)  •••••••••••••——————— 65%
 
-  Running 2024.01.01 (168/241) (1.19 s)  ••••••••••••••—————— 70%
+  Running 2024.01.01 (168/241) (1.38 s)  ••••••••••••••—————— 70%
 
-  Running 2025.01.01 (180/241) (1.27 s)  •••••••••••••••————— 75%
+  Running 2025.01.01 (180/241) (1.48 s)  •••••••••••••••————— 75%
 
-  Running 2026.01.01 (192/241) (1.35 s)  ••••••••••••••••———— 80%
+  Running 2026.01.01 (192/241) (1.58 s)  ••••••••••••••••———— 80%
 
-  Running 2027.01.01 (204/241) (1.43 s)  •••••••••••••••••——— 85%
+  Running 2027.01.01 (204/241) (1.68 s)  •••••••••••••••••——— 85%
 
-  Running 2028.01.01 (216/241) (1.52 s)  ••••••••••••••••••—— 90%
-
-  Running 2029.01.01 (228/241) (1.60 s)  •••••••••••••••••••— 95%
-
-  Running 2030.01.01 (240/241) (1.68 s)  •••••••••••••••••••• 100%
-</code></pre>
+  Running 2028.01.01 (216/241) (1.78 s)  ••••••••••••••••••—— 90%</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <div class="ansi-escaped-output">
-<pre><span class="ansi-green-fg">[I 2026-05-16 00:05:56,611]</span> Trial 0 finished with value: 1.1682292413769593 and parameters: {'ng.beta_m2f': 0.0679045541801846, 'ng.eff_condom': 0.8509166602376981, 'rand_seed': 487230}. Best is trial 0 with value: 1.1682292413769593.
-</pre>
-</div>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Initializing sim with 500 agents
-
-  Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
-
-  Running 2011.01.01 (12/241) (0.09 s)  •——————————————————— 5%
-
-  Running 2012.01.01 (24/241) (0.18 s)  ••—————————————————— 10%
-
-  Running 2013.01.01 (36/241) (0.28 s)  •••————————————————— 15%
-
-  Running 2014.01.01 (48/241) (0.36 s)  ••••———————————————— 20%
-
-  Running 2015.01.01 (60/241) (0.45 s)  •••••——————————————— 25%
-
-  Running 2016.01.01 (72/241) (0.53 s)  ••••••—————————————— 30%
-
-  Running 2017.01.01 (84/241) (0.62 s)  •••••••————————————— 35%
-
-  Running 2018.01.01 (96/241) (0.71 s)  ••••••••———————————— 40%
-
-  Running 2019.01.01 (108/241) (0.79 s)  •••••••••——————————— 45%
-
-  Running 2020.01.01 (120/241) (0.88 s)  ••••••••••—————————— 50%
-
-  Running 2021.01.01 (132/241) (0.96 s)  •••••••••••————————— 55%
-
-  Running 2022.01.01 (144/241) (1.05 s)  ••••••••••••———————— 60%
-
-  Running 2023.01.01 (156/241) (1.14 s)  •••••••••••••——————— 65%
-
-  Running 2024.01.01 (168/241) (1.22 s)  ••••••••••••••—————— 70%
-
-  Running 2025.01.01 (180/241) (1.30 s)  •••••••••••••••————— 75%
-
-  Running 2026.01.01 (192/241) (1.38 s)  ••••••••••••••••———— 80%
-
-  Running 2027.01.01 (204/241) (1.46 s)  •••••••••••••••••——— 85%
-
-  Running 2028.01.01 (216/241) (1.55 s)  ••••••••••••••••••—— 90%
-
-  Running 2029.01.01 (228/241) (1.64 s)  •••••••••••••••••••— 95%
-
-  Running 2030.01.01 (240/241) (1.72 s)  •••••••••••••••••••• 100%
-</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-green-fg">[I 2026-05-16 00:05:58,922]</span> Trial 1 finished with value: 1.3545327282297688 and parameters: {'ng.beta_m2f': 0.12875604966411858, 'ng.eff_condom': 0.3084447908182938, 'rand_seed': 746026}. Best is trial 0 with value: 1.1682292413769593.
-</pre>
-</div>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Initializing sim with 500 agents
-
-  Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
-
-  Running 2011.01.01 (12/241) (0.09 s)  •——————————————————— 5%
-
-  Running 2012.01.01 (24/241) (0.18 s)  ••—————————————————— 10%
-
-  Running 2013.01.01 (36/241) (0.27 s)  •••————————————————— 15%
-
-  Running 2014.01.01 (48/241) (0.35 s)  ••••———————————————— 20%
-
-  Running 2015.01.01 (60/241) (0.43 s)  •••••——————————————— 25%
-
-  Running 2016.01.01 (72/241) (0.52 s)  ••••••—————————————— 30%
-
-  Running 2017.01.01 (84/241) (0.60 s)  •••••••————————————— 35%
-
-  Running 2018.01.01 (96/241) (0.69 s)  ••••••••———————————— 40%
-
-  Running 2019.01.01 (108/241) (0.78 s)  •••••••••——————————— 45%
-
-  Running 2020.01.01 (120/241) (0.86 s)  ••••••••••—————————— 50%
-
-  Running 2021.01.01 (132/241) (0.95 s)  •••••••••••————————— 55%
-
-  Running 2022.01.01 (144/241) (1.02 s)  ••••••••••••———————— 60%
-
-  Running 2023.01.01 (156/241) (1.11 s)  •••••••••••••——————— 65%
-
-  Running 2024.01.01 (168/241) (1.19 s)  ••••••••••••••—————— 70%
-
-  Running 2025.01.01 (180/241) (1.28 s)  •••••••••••••••————— 75%
-
-  Running 2026.01.01 (192/241) (1.37 s)  ••••••••••••••••———— 80%
-
-  Running 2027.01.01 (204/241) (1.45 s)  •••••••••••••••••——— 85%
-
-  Running 2028.01.01 (216/241) (1.53 s)  ••••••••••••••••••—— 90%
-
-  Running 2029.01.01 (228/241) (1.62 s)  •••••••••••••••••••— 95%
-
-  Running 2030.01.01 (240/241) (1.70 s)  •••••••••••••••••••• 100%
-</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-green-fg">[I 2026-05-16 00:06:01,065]</span> Trial 2 finished with value: 1.8125747013293203 and parameters: {'ng.beta_m2f': 0.1293258878012059, 'ng.eff_condom': 0.3038773285455295, 'rand_seed': 386346}. Best is trial 0 with value: 1.1682292413769593.
-</pre>
-</div>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Initializing sim with 500 agents
-
-  Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
-
-  Running 2011.01.01 (12/241) (0.09 s)  •——————————————————— 5%
-
-  Running 2012.01.01 (24/241) (0.17 s)  ••—————————————————— 10%
-
-  Running 2013.01.01 (36/241) (0.25 s)  •••————————————————— 15%
-
-  Running 2014.01.01 (48/241) (0.34 s)  ••••———————————————— 20%
-
-  Running 2015.01.01 (60/241) (0.42 s)  •••••——————————————— 25%
-
-  Running 2016.01.01 (72/241) (0.50 s)  ••••••—————————————— 30%
-
-  Running 2017.01.01 (84/241) (0.58 s)  •••••••————————————— 35%
-
-  Running 2018.01.01 (96/241) (0.67 s)  ••••••••———————————— 40%
-
-  Running 2019.01.01 (108/241) (0.75 s)  •••••••••——————————— 45%
-
-  Running 2020.01.01 (120/241) (0.83 s)  ••••••••••—————————— 50%
-
-  Running 2021.01.01 (132/241) (0.92 s)  •••••••••••————————— 55%
-
-  Running 2022.01.01 (144/241) (1.00 s)  ••••••••••••———————— 60%
-
-  Running 2023.01.01 (156/241) (1.08 s)  •••••••••••••——————— 65%
-
-  Running 2024.01.01 (168/241) (1.17 s)  ••••••••••••••—————— 70%
-
-  Running 2025.01.01 (180/241) (1.26 s)  •••••••••••••••————— 75%
-
-  Running 2026.01.01 (192/241) (1.34 s)  ••••••••••••••••———— 80%
-
-  Running 2027.01.01 (204/241) (1.43 s)  •••••••••••••••••——— 85%
-
-  Running 2028.01.01 (216/241) (1.51 s)  ••••••••••••••••••—— 90%
-
-  Running 2029.01.01 (228/241) (1.60 s)  •••••••••••••••••••— 95%
-
-  Running 2030.01.01 (240/241) (1.69 s)  •••••••••••••••••••• 100%
-</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-green-fg">[I 2026-05-16 00:06:03,192]</span> Trial 3 finished with value: 1.9061055989118842 and parameters: {'ng.beta_m2f': 0.057004074765795484, 'ng.eff_condom': 0.6915656539037671, 'rand_seed': 949930}. Best is trial 0 with value: 1.1682292413769593.
-</pre>
-</div>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Initializing sim with 500 agents
-
-  Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
-
-  Running 2011.01.01 (12/241) (0.09 s)  •——————————————————— 5%
-
-  Running 2012.01.01 (24/241) (0.17 s)  ••—————————————————— 10%
-
-  Running 2013.01.01 (36/241) (0.25 s)  •••————————————————— 15%
-
-  Running 2014.01.01 (48/241) (0.33 s)  ••••———————————————— 20%
-
-  Running 2015.01.01 (60/241) (0.41 s)  •••••——————————————— 25%
-
-  Running 2016.01.01 (72/241) (0.49 s)  ••••••—————————————— 30%
-
-  Running 2017.01.01 (84/241) (0.58 s)  •••••••————————————— 35%
-
-  Running 2018.01.01 (96/241) (0.66 s)  ••••••••———————————— 40%
-
-  Running 2019.01.01 (108/241) (0.74 s)  •••••••••——————————— 45%
-
-  Running 2020.01.01 (120/241) (0.83 s)  ••••••••••—————————— 50%
-
-  Running 2021.01.01 (132/241) (0.91 s)  •••••••••••————————— 55%
-
-  Running 2022.01.01 (144/241) (1.00 s)  ••••••••••••———————— 60%
-
-  Running 2023.01.01 (156/241) (1.08 s)  •••••••••••••——————— 65%
-
-  Running 2024.01.01 (168/241) (1.17 s)  ••••••••••••••—————— 70%
-
-  Running 2025.01.01 (180/241) (1.24 s)  •••••••••••••••————— 75%
-
-  Running 2026.01.01 (192/241) (1.32 s)  ••••••••••••••••———— 80%
-
-  Running 2027.01.01 (204/241) (1.40 s)  •••••••••••••••••——— 85%</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-green-fg">[I 2026-05-16 00:06:05,266]</span> Trial 4 finished with value: 1.1247790966954443 and parameters: {'ng.beta_m2f': 0.0680882050766963, 'ng.eff_condom': 0.3265201445598671, 'rand_seed': 847401}. Best is trial 4 with value: 1.1247790966954443.
+<pre><span class="ansi-green-fg">[I 2026-05-16 00:18:16,923]</span> Trial 0 finished with value: 2.6266542250381955 and parameters: {'ng.beta_m2f': 0.12748506162902953, 'ng.eff_condom': 0.4460395141969992, 'rand_seed': 883690}. Best is trial 0 with value: 2.6266542250381955.
 </pre>
 </div>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
-  Running 2028.01.01 (216/241) (1.48 s)  ••••••••••••••••••—— 90%
+  Running 2029.01.01 (228/241) (1.89 s)  •••••••••••••••••••— 95%
 
-  Running 2029.01.01 (228/241) (1.56 s)  •••••••••••••••••••— 95%
+  Running 2030.01.01 (240/241) (1.99 s)  •••••••••••••••••••• 100%
 
-  Running 2030.01.01 (240/241) (1.63 s)  •••••••••••••••••••• 100%
+Initializing sim with 500 agents
+
+  Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
+
+  Running 2011.01.01 (12/241) (0.12 s)  •——————————————————— 5%
+
+  Running 2012.01.01 (24/241) (0.25 s)  ••—————————————————— 10%
+
+  Running 2013.01.01 (36/241) (0.35 s)  •••————————————————— 15%
+
+  Running 2014.01.01 (48/241) (0.45 s)  ••••———————————————— 20%
+
+  Running 2015.01.01 (60/241) (0.55 s)  •••••——————————————— 25%
+
+  Running 2016.01.01 (72/241) (0.65 s)  ••••••—————————————— 30%
+
+  Running 2017.01.01 (84/241) (0.75 s)  •••••••————————————— 35%
+
+  Running 2018.01.01 (96/241) (0.86 s)  ••••••••———————————— 40%
+
+  Running 2019.01.01 (108/241) (0.95 s)  •••••••••——————————— 45%
+
+  Running 2020.01.01 (120/241) (1.05 s)  ••••••••••—————————— 50%
+
+  Running 2021.01.01 (132/241) (1.14 s)  •••••••••••————————— 55%
+
+  Running 2022.01.01 (144/241) (1.25 s)  ••••••••••••———————— 60%
+
+  Running 2023.01.01 (156/241) (1.35 s)  •••••••••••••——————— 65%
+
+  Running 2024.01.01 (168/241) (1.45 s)  ••••••••••••••—————— 70%
+
+  Running 2025.01.01 (180/241) (1.55 s)  •••••••••••••••————— 75%
+
+  Running 2026.01.01 (192/241) (1.65 s)  ••••••••••••••••———— 80%
+
+  Running 2027.01.01 (204/241) (1.76 s)  •••••••••••••••••——— 85%
+
+  Running 2028.01.01 (216/241) (1.86 s)  ••••••••••••••••••—— 90%
+
+  Running 2029.01.01 (228/241) (1.96 s)  •••••••••••••••••••— 95%</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<div class="ansi-escaped-output">
+<pre><span class="ansi-green-fg">[I 2026-05-16 00:18:19,682]</span> Trial 1 finished with value: 3.0299148113121603 and parameters: {'ng.beta_m2f': 0.14821987836772604, 'ng.eff_condom': 0.5048603050924129, 'rand_seed': 907653}. Best is trial 0 with value: 2.6266542250381955.
+</pre>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+  Running 2030.01.01 (240/241) (2.05 s)  •••••••••••••••••••• 100%
+
+Initializing sim with 500 agents
+
+  Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
+
+  Running 2011.01.01 (12/241) (0.11 s)  •——————————————————— 5%
+
+  Running 2012.01.01 (24/241) (0.22 s)  ••—————————————————— 10%
+
+  Running 2013.01.01 (36/241) (0.32 s)  •••————————————————— 15%
+
+  Running 2014.01.01 (48/241) (0.42 s)  ••••———————————————— 20%
+
+  Running 2015.01.01 (60/241) (0.54 s)  •••••——————————————— 25%
+
+  Running 2016.01.01 (72/241) (0.65 s)  ••••••—————————————— 30%
+
+  Running 2017.01.01 (84/241) (0.74 s)  •••••••————————————— 35%
+
+  Running 2018.01.01 (96/241) (0.85 s)  ••••••••———————————— 40%
+
+  Running 2019.01.01 (108/241) (0.94 s)  •••••••••——————————— 45%
+
+  Running 2020.01.01 (120/241) (1.04 s)  ••••••••••—————————— 50%
+
+  Running 2021.01.01 (132/241) (1.14 s)  •••••••••••————————— 55%
+
+  Running 2022.01.01 (144/241) (1.23 s)  ••••••••••••———————— 60%
+
+  Running 2023.01.01 (156/241) (1.33 s)  •••••••••••••——————— 65%
+
+  Running 2024.01.01 (168/241) (1.43 s)  ••••••••••••••—————— 70%
+
+  Running 2025.01.01 (180/241) (1.53 s)  •••••••••••••••————— 75%
+
+  Running 2026.01.01 (192/241) (1.63 s)  ••••••••••••••••———— 80%
+
+  Running 2027.01.01 (204/241) (1.73 s)  •••••••••••••••••——— 85%
+
+  Running 2028.01.01 (216/241) (1.83 s)  ••••••••••••••••••—— 90%</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<div class="ansi-escaped-output">
+<pre><span class="ansi-green-fg">[I 2026-05-16 00:18:22,264]</span> Trial 2 finished with value: 1.2027120351766 and parameters: {'ng.beta_m2f': 0.05795923672638795, 'ng.eff_condom': 0.5179343307619164, 'rand_seed': 388644}. Best is trial 2 with value: 1.2027120351766.
+</pre>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+  Running 2029.01.01 (228/241) (1.94 s)  •••••••••••••••••••— 95%
+
+  Running 2030.01.01 (240/241) (2.04 s)  •••••••••••••••••••• 100%
+
+Initializing sim with 500 agents
+
+  Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
+
+  Running 2011.01.01 (12/241) (0.11 s)  •——————————————————— 5%
+
+  Running 2012.01.01 (24/241) (0.22 s)  ••—————————————————— 10%
+
+  Running 2013.01.01 (36/241) (0.32 s)  •••————————————————— 15%
+
+  Running 2014.01.01 (48/241) (0.42 s)  ••••———————————————— 20%
+
+  Running 2015.01.01 (60/241) (0.52 s)  •••••——————————————— 25%
+
+  Running 2016.01.01 (72/241) (0.62 s)  ••••••—————————————— 30%
+
+  Running 2017.01.01 (84/241) (0.72 s)  •••••••————————————— 35%
+
+  Running 2018.01.01 (96/241) (0.82 s)  ••••••••———————————— 40%
+
+  Running 2019.01.01 (108/241) (0.92 s)  •••••••••——————————— 45%
+
+  Running 2020.01.01 (120/241) (1.02 s)  ••••••••••—————————— 50%
+
+  Running 2021.01.01 (132/241) (1.11 s)  •••••••••••————————— 55%
+
+  Running 2022.01.01 (144/241) (1.21 s)  ••••••••••••———————— 60%
+
+  Running 2023.01.01 (156/241) (1.30 s)  •••••••••••••——————— 65%
+
+  Running 2024.01.01 (168/241) (1.39 s)  ••••••••••••••—————— 70%
+
+  Running 2025.01.01 (180/241) (1.49 s)  •••••••••••••••————— 75%
+
+  Running 2026.01.01 (192/241) (1.59 s)  ••••••••••••••••———— 80%
+
+  Running 2027.01.01 (204/241) (1.69 s)  •••••••••••••••••——— 85%
+
+  Running 2028.01.01 (216/241) (1.79 s)  ••••••••••••••••••—— 90%
+
+  Running 2029.01.01 (228/241) (1.89 s)  •••••••••••••••••••— 95%</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<div class="ansi-escaped-output">
+<pre><span class="ansi-green-fg">[I 2026-05-16 00:18:24,799]</span> Trial 3 finished with value: 1.656760314514476 and parameters: {'ng.beta_m2f': 0.10461298673664224, 'ng.eff_condom': 0.8337512495931796, 'rand_seed': 772791}. Best is trial 2 with value: 1.2027120351766.
+</pre>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+  Running 2030.01.01 (240/241) (1.99 s)  •••••••••••••••••••• 100%
+
+Initializing sim with 500 agents
+
+  Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
+
+  Running 2011.01.01 (12/241) (0.12 s)  •——————————————————— 5%
+
+  Running 2012.01.01 (24/241) (0.23 s)  ••—————————————————— 10%
+
+  Running 2013.01.01 (36/241) (0.33 s)  •••————————————————— 15%
+
+  Running 2014.01.01 (48/241) (0.43 s)  ••••———————————————— 20%
+
+  Running 2015.01.01 (60/241) (0.53 s)  •••••——————————————— 25%
+
+  Running 2016.01.01 (72/241) (0.63 s)  ••••••—————————————— 30%
+
+  Running 2017.01.01 (84/241) (0.73 s)  •••••••————————————— 35%
+
+  Running 2018.01.01 (96/241) (0.83 s)  ••••••••———————————— 40%
+
+  Running 2019.01.01 (108/241) (0.93 s)  •••••••••——————————— 45%
+
+  Running 2020.01.01 (120/241) (1.02 s)  ••••••••••—————————— 50%
+
+  Running 2021.01.01 (132/241) (1.13 s)  •••••••••••————————— 55%
+
+  Running 2022.01.01 (144/241) (1.23 s)  ••••••••••••———————— 60%
+
+  Running 2023.01.01 (156/241) (1.33 s)  •••••••••••••——————— 65%
+
+  Running 2024.01.01 (168/241) (1.44 s)  ••••••••••••••—————— 70%
+
+  Running 2025.01.01 (180/241) (1.54 s)  •••••••••••••••————— 75%
+
+  Running 2026.01.01 (192/241) (1.64 s)  ••••••••••••••••———— 80%
+
+  Running 2027.01.01 (204/241) (1.75 s)  •••••••••••••••••——— 85%
+
+  Running 2028.01.01 (216/241) (1.85 s)  ••••••••••••••••••—— 90%</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<div class="ansi-escaped-output">
+<pre><span class="ansi-green-fg">[I 2026-05-16 00:18:27,399]</span> Trial 4 finished with value: 1.6369146636198577 and parameters: {'ng.beta_m2f': 0.04332425025012186, 'ng.eff_condom': 0.4278038352036561, 'rand_seed': 181019}. Best is trial 2 with value: 1.2027120351766.
+</pre>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+  Running 2029.01.01 (228/241) (1.95 s)  •••••••••••••••••••— 95%
+
+  Running 2030.01.01 (240/241) (2.05 s)  •••••••••••••••••••• 100%
+
+Initializing sim with 500 agents
+
+  Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
+
+  Running 2011.01.01 (12/241) (0.12 s)  •——————————————————— 5%
+
+  Running 2012.01.01 (24/241) (0.22 s)  ••—————————————————— 10%
+
+  Running 2013.01.01 (36/241) (0.33 s)  •••————————————————— 15%
+
+  Running 2014.01.01 (48/241) (0.43 s)  ••••———————————————— 20%
+
+  Running 2015.01.01 (60/241) (0.53 s)  •••••——————————————— 25%
+
+  Running 2016.01.01 (72/241) (0.64 s)  ••••••—————————————— 30%
+
+  Running 2017.01.01 (84/241) (0.74 s)  •••••••————————————— 35%
+
+  Running 2018.01.01 (96/241) (0.84 s)  ••••••••———————————— 40%
+
+  Running 2019.01.01 (108/241) (0.93 s)  •••••••••——————————— 45%
+
+  Running 2020.01.01 (120/241) (1.03 s)  ••••••••••—————————— 50%
+
+  Running 2021.01.01 (132/241) (1.12 s)  •••••••••••————————— 55%
+
+  Running 2022.01.01 (144/241) (1.23 s)  ••••••••••••———————— 60%
+
+  Running 2023.01.01 (156/241) (1.33 s)  •••••••••••••——————— 65%
+
+  Running 2024.01.01 (168/241) (1.44 s)  ••••••••••••••—————— 70%
+
+  Running 2025.01.01 (180/241) (1.54 s)  •••••••••••••••————— 75%
+
+  Running 2026.01.01 (192/241) (1.63 s)  ••••••••••••••••———— 80%
+
+  Running 2027.01.01 (204/241) (1.73 s)  •••••••••••••••••——— 85%
+
+  Running 2028.01.01 (216/241) (1.83 s)  ••••••••••••••••••—— 90%
+
+  Running 2029.01.01 (228/241) (1.93 s)  •••••••••••••••••••— 95%</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<div class="ansi-escaped-output">
+<pre><span class="ansi-green-fg">[I 2026-05-16 00:18:30,000]</span> Trial 5 finished with value: 0.9851232780452395 and parameters: {'ng.beta_m2f': 0.07858466994799253, 'ng.eff_condom': 0.4663484354572122, 'rand_seed': 853320}. Best is trial 5 with value: 0.9851232780452395.
+</pre>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+  Running 2030.01.01 (240/241) (2.04 s)  •••••••••••••••••••• 100%
 
 Initializing sim with 500 agents
 
@@ -1107,44 +1159,44 @@ Initializing sim with 500 agents
 
   Running 2013.01.01 (36/241) (0.29 s)  •••————————————————— 15%
 
-  Running 2014.01.01 (48/241) (0.38 s)  ••••———————————————— 20%
+  Running 2014.01.01 (48/241) (0.39 s)  ••••———————————————— 20%
 
-  Running 2015.01.01 (60/241) (0.46 s)  •••••——————————————— 25%
+  Running 2015.01.01 (60/241) (0.48 s)  •••••——————————————— 25%
 
-  Running 2016.01.01 (72/241) (0.54 s)  ••••••—————————————— 30%
+  Running 2016.01.01 (72/241) (0.59 s)  ••••••—————————————— 30%
 
-  Running 2017.01.01 (84/241) (0.62 s)  •••••••————————————— 35%
+  Running 2017.01.01 (84/241) (0.68 s)  •••••••————————————— 35%
 
-  Running 2018.01.01 (96/241) (0.69 s)  ••••••••———————————— 40%
+  Running 2018.01.01 (96/241) (0.78 s)  ••••••••———————————— 40%
 
-  Running 2019.01.01 (108/241) (0.77 s)  •••••••••——————————— 45%
+  Running 2019.01.01 (108/241) (0.88 s)  •••••••••——————————— 45%
 
-  Running 2020.01.01 (120/241) (0.85 s)  ••••••••••—————————— 50%
+  Running 2020.01.01 (120/241) (0.98 s)  ••••••••••—————————— 50%
 
-  Running 2021.01.01 (132/241) (0.94 s)  •••••••••••————————— 55%
+  Running 2021.01.01 (132/241) (1.08 s)  •••••••••••————————— 55%
 
-  Running 2022.01.01 (144/241) (1.02 s)  ••••••••••••———————— 60%
+  Running 2022.01.01 (144/241) (1.18 s)  ••••••••••••———————— 60%
 
-  Running 2023.01.01 (156/241) (1.11 s)  •••••••••••••——————— 65%
+  Running 2023.01.01 (156/241) (1.27 s)  •••••••••••••——————— 65%
 
-  Running 2024.01.01 (168/241) (1.19 s)  ••••••••••••••—————— 70%
+  Running 2024.01.01 (168/241) (1.36 s)  ••••••••••••••—————— 70%
 
-  Running 2025.01.01 (180/241) (1.28 s)  •••••••••••••••————— 75%
+  Running 2025.01.01 (180/241) (1.46 s)  •••••••••••••••————— 75%
 
-  Running 2026.01.01 (192/241) (1.36 s)  ••••••••••••••••———— 80%
+  Running 2026.01.01 (192/241) (1.56 s)  ••••••••••••••••———— 80%
 
-  Running 2027.01.01 (204/241) (1.45 s)  •••••••••••••••••——— 85%
+  Running 2027.01.01 (204/241) (1.65 s)  •••••••••••••••••——— 85%
 
-  Running 2028.01.01 (216/241) (1.53 s)  ••••••••••••••••••—— 90%
+  Running 2028.01.01 (216/241) (1.75 s)  ••••••••••••••••••—— 90%
 
-  Running 2029.01.01 (228/241) (1.62 s)  •••••••••••••••••••— 95%
+  Running 2029.01.01 (228/241) (1.85 s)  •••••••••••••••••••— 95%
 
-  Running 2030.01.01 (240/241) (1.71 s)  •••••••••••••••••••• 100%
+  Running 2030.01.01 (240/241) (1.95 s)  •••••••••••••••••••• 100%
 </code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <div class="ansi-escaped-output">
-<pre><span class="ansi-green-fg">[I 2026-05-16 00:06:07,416]</span> Trial 5 finished with value: 6.1212830822243856 and parameters: {'ng.beta_m2f': 0.10266302577011968, 'ng.eff_condom': 0.3275525443449926, 'rand_seed': 539941}. Best is trial 4 with value: 1.1247790966954443.
+<pre><span class="ansi-green-fg">[I 2026-05-16 00:18:32,492]</span> Trial 6 finished with value: 1.2466405065306483 and parameters: {'ng.beta_m2f': 0.12080244290495105, 'ng.eff_condom': 0.5166548508494712, 'rand_seed': 712008}. Best is trial 5 with value: 0.9851232780452395.
 </pre>
 </div>
 </div>
@@ -1153,226 +1205,174 @@ Initializing sim with 500 agents
 
   Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
 
-  Running 2011.01.01 (12/241) (0.10 s)  •——————————————————— 5%
+  Running 2011.01.01 (12/241) (0.12 s)  •——————————————————— 5%
 
-  Running 2012.01.01 (24/241) (0.19 s)  ••—————————————————— 10%
+  Running 2012.01.01 (24/241) (0.24 s)  ••—————————————————— 10%
 
-  Running 2013.01.01 (36/241) (0.28 s)  •••————————————————— 15%
+  Running 2013.01.01 (36/241) (0.35 s)  •••————————————————— 15%
 
-  Running 2014.01.01 (48/241) (0.37 s)  ••••———————————————— 20%
+  Running 2014.01.01 (48/241) (0.45 s)  ••••———————————————— 20%
 
-  Running 2015.01.01 (60/241) (0.45 s)  •••••——————————————— 25%
+  Running 2015.01.01 (60/241) (0.55 s)  •••••——————————————— 25%
 
-  Running 2016.01.01 (72/241) (0.53 s)  ••••••—————————————— 30%
+  Running 2016.01.01 (72/241) (0.66 s)  ••••••—————————————— 30%
 
-  Running 2017.01.01 (84/241) (0.62 s)  •••••••————————————— 35%
+  Running 2017.01.01 (84/241) (0.76 s)  •••••••————————————— 35%
 
-  Running 2018.01.01 (96/241) (0.70 s)  ••••••••———————————— 40%
+  Running 2018.01.01 (96/241) (0.86 s)  ••••••••———————————— 40%
 
-  Running 2019.01.01 (108/241) (0.78 s)  •••••••••——————————— 45%
+  Running 2019.01.01 (108/241) (0.97 s)  •••••••••——————————— 45%
 
-  Running 2020.01.01 (120/241) (0.87 s)  ••••••••••—————————— 50%
+  Running 2020.01.01 (120/241) (1.07 s)  ••••••••••—————————— 50%
 
-  Running 2021.01.01 (132/241) (0.95 s)  •••••••••••————————— 55%
+  Running 2021.01.01 (132/241) (1.17 s)  •••••••••••————————— 55%
 
-  Running 2022.01.01 (144/241) (1.04 s)  ••••••••••••———————— 60%
+  Running 2022.01.01 (144/241) (1.28 s)  ••••••••••••———————— 60%
 
-  Running 2023.01.01 (156/241) (1.13 s)  •••••••••••••——————— 65%
+  Running 2023.01.01 (156/241) (1.38 s)  •••••••••••••——————— 65%
 
-  Running 2024.01.01 (168/241) (1.21 s)  ••••••••••••••—————— 70%
+  Running 2024.01.01 (168/241) (1.48 s)  ••••••••••••••—————— 70%
 
-  Running 2025.01.01 (180/241) (1.30 s)  •••••••••••••••————— 75%
+  Running 2025.01.01 (180/241) (1.59 s)  •••••••••••••••————— 75%
 
-  Running 2026.01.01 (192/241) (1.38 s)  ••••••••••••••••———— 80%
+  Running 2026.01.01 (192/241) (1.69 s)  ••••••••••••••••———— 80%
 
-  Running 2027.01.01 (204/241) (1.47 s)  •••••••••••••••••——— 85%
+  Running 2027.01.01 (204/241) (1.79 s)  •••••••••••••••••——— 85%
 
-  Running 2028.01.01 (216/241) (1.55 s)  ••••••••••••••••••—— 90%
+  Running 2028.01.01 (216/241) (1.90 s)  ••••••••••••••••••—— 90%
 
-  Running 2029.01.01 (228/241) (1.64 s)  •••••••••••••••••••— 95%
-
-  Running 2030.01.01 (240/241) (1.72 s)  •••••••••••••••••••• 100%
-</code></pre>
+  Running 2029.01.01 (228/241) (2.00 s)  •••••••••••••••••••— 95%</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <div class="ansi-escaped-output">
-<pre><span class="ansi-green-fg">[I 2026-05-16 00:06:09,573]</span> Trial 6 finished with value: 1.6616789098677769 and parameters: {'ng.beta_m2f': 0.035059008517545225, 'ng.eff_condom': 0.5769316350028844, 'rand_seed': 336634}. Best is trial 4 with value: 1.1247790966954443.
+<pre><span class="ansi-green-fg">[I 2026-05-16 00:18:35,137]</span> Trial 7 finished with value: 2.450376490897596 and parameters: {'ng.beta_m2f': 0.07384739312724421, 'ng.eff_condom': 0.4979416454699582, 'rand_seed': 569234}. Best is trial 5 with value: 0.9851232780452395.
 </pre>
 </div>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Initializing sim with 500 agents
+<pre><code>
+  Running 2030.01.01 (240/241) (2.10 s)  •••••••••••••••••••• 100%
+
+Initializing sim with 500 agents
 
   Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
 
   Running 2011.01.01 (12/241) (0.11 s)  •——————————————————— 5%
 
-  Running 2012.01.01 (24/241) (0.21 s)  ••—————————————————— 10%
+  Running 2012.01.01 (24/241) (0.22 s)  ••—————————————————— 10%
 
-  Running 2013.01.01 (36/241) (0.31 s)  •••————————————————— 15%
+  Running 2013.01.01 (36/241) (0.33 s)  •••————————————————— 15%
 
-  Running 2014.01.01 (48/241) (0.40 s)  ••••———————————————— 20%
+  Running 2014.01.01 (48/241) (0.43 s)  ••••———————————————— 20%
 
-  Running 2015.01.01 (60/241) (0.49 s)  •••••——————————————— 25%
+  Running 2015.01.01 (60/241) (0.52 s)  •••••——————————————— 25%
 
-  Running 2016.01.01 (72/241) (0.58 s)  ••••••—————————————— 30%
+  Running 2016.01.01 (72/241) (0.63 s)  ••••••—————————————— 30%
 
-  Running 2017.01.01 (84/241) (0.66 s)  •••••••————————————— 35%
+  Running 2017.01.01 (84/241) (0.74 s)  •••••••————————————— 35%
 
-  Running 2018.01.01 (96/241) (0.76 s)  ••••••••———————————— 40%
+  Running 2018.01.01 (96/241) (0.84 s)  ••••••••———————————— 40%
 
-  Running 2019.01.01 (108/241) (0.85 s)  •••••••••——————————— 45%
+  Running 2019.01.01 (108/241) (0.95 s)  •••••••••——————————— 45%
 
-  Running 2020.01.01 (120/241) (0.94 s)  ••••••••••—————————— 50%
+  Running 2020.01.01 (120/241) (1.05 s)  ••••••••••—————————— 50%
 
-  Running 2021.01.01 (132/241) (1.03 s)  •••••••••••————————— 55%
+  Running 2021.01.01 (132/241) (1.15 s)  •••••••••••————————— 55%
 
-  Running 2022.01.01 (144/241) (1.11 s)  ••••••••••••———————— 60%
+  Running 2022.01.01 (144/241) (1.25 s)  ••••••••••••———————— 60%
 
-  Running 2023.01.01 (156/241) (1.19 s)  •••••••••••••——————— 65%
+  Running 2023.01.01 (156/241) (1.35 s)  •••••••••••••——————— 65%
 
-  Running 2024.01.01 (168/241) (1.28 s)  ••••••••••••••—————— 70%
+  Running 2024.01.01 (168/241) (1.46 s)  ••••••••••••••—————— 70%
 
-  Running 2025.01.01 (180/241) (1.36 s)  •••••••••••••••————— 75%
+  Running 2025.01.01 (180/241) (1.56 s)  •••••••••••••••————— 75%
 
-  Running 2026.01.01 (192/241) (1.45 s)  ••••••••••••••••———— 80%
+  Running 2026.01.01 (192/241) (1.67 s)  ••••••••••••••••———— 80%
 
-  Running 2027.01.01 (204/241) (1.54 s)  •••••••••••••••••——— 85%
+  Running 2027.01.01 (204/241) (1.77 s)  •••••••••••••••••——— 85%
 
-  Running 2028.01.01 (216/241) (1.63 s)  ••••••••••••••••••—— 90%
+  Running 2028.01.01 (216/241) (1.88 s)  ••••••••••••••••••—— 90%
 
-  Running 2029.01.01 (228/241) (1.72 s)  •••••••••••••••••••— 95%</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-green-fg">[I 2026-05-16 00:06:11,825]</span> Trial 7 finished with value: 5.7491286752189525 and parameters: {'ng.beta_m2f': 0.13444165992911367, 'ng.eff_condom': 0.5585964005262471, 'rand_seed': 128457}. Best is trial 4 with value: 1.1247790966954443.
-</pre>
-</div>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-  Running 2030.01.01 (240/241) (1.81 s)  •••••••••••••••••••• 100%
+  Running 2029.01.01 (228/241) (1.98 s)  •••••••••••••••••••— 95%
 
-Initializing sim with 500 agents
-
-  Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
-
-  Running 2011.01.01 (12/241) (0.09 s)  •——————————————————— 5%
-
-  Running 2012.01.01 (24/241) (0.18 s)  ••—————————————————— 10%
-
-  Running 2013.01.01 (36/241) (0.27 s)  •••————————————————— 15%
-
-  Running 2014.01.01 (48/241) (0.36 s)  ••••———————————————— 20%
-
-  Running 2015.01.01 (60/241) (0.44 s)  •••••——————————————— 25%
-
-  Running 2016.01.01 (72/241) (0.53 s)  ••••••—————————————— 30%
-
-  Running 2017.01.01 (84/241) (0.61 s)  •••••••————————————— 35%
-
-  Running 2018.01.01 (96/241) (0.70 s)  ••••••••———————————— 40%
-
-  Running 2019.01.01 (108/241) (0.79 s)  •••••••••——————————— 45%
-
-  Running 2020.01.01 (120/241) (0.88 s)  ••••••••••—————————— 50%
-
-  Running 2021.01.01 (132/241) (0.97 s)  •••••••••••————————— 55%
-
-  Running 2022.01.01 (144/241) (1.06 s)  ••••••••••••———————— 60%
-
-  Running 2023.01.01 (156/241) (1.15 s)  •••••••••••••——————— 65%
-
-  Running 2024.01.01 (168/241) (1.23 s)  ••••••••••••••—————— 70%
-
-  Running 2025.01.01 (180/241) (1.32 s)  •••••••••••••••————— 75%
-
-  Running 2026.01.01 (192/241) (1.41 s)  ••••••••••••••••———— 80%
-
-  Running 2027.01.01 (204/241) (1.50 s)  •••••••••••••••••——— 85%</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-green-fg">[I 2026-05-16 00:06:14,022]</span> Trial 8 finished with value: 1.2169482642734737 and parameters: {'ng.beta_m2f': 0.1384893791828436, 'ng.eff_condom': 0.6253405737664016, 'rand_seed': 626289}. Best is trial 4 with value: 1.1247790966954443.
-</pre>
-</div>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-  Running 2028.01.01 (216/241) (1.59 s)  ••••••••••••••••••—— 90%
-
-  Running 2029.01.01 (228/241) (1.67 s)  •••••••••••••••••••— 95%
-
-  Running 2030.01.01 (240/241) (1.76 s)  •••••••••••••••••••• 100%
-
-Initializing sim with 500 agents
-
-  Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
-
-  Running 2011.01.01 (12/241) (0.10 s)  •——————————————————— 5%
-
-  Running 2012.01.01 (24/241) (0.18 s)  ••—————————————————— 10%
-
-  Running 2013.01.01 (36/241) (0.27 s)  •••————————————————— 15%
-
-  Running 2014.01.01 (48/241) (0.35 s)  ••••———————————————— 20%
-
-  Running 2015.01.01 (60/241) (0.44 s)  •••••——————————————— 25%
-
-  Running 2016.01.01 (72/241) (0.52 s)  ••••••—————————————— 30%
-
-  Running 2017.01.01 (84/241) (0.61 s)  •••••••————————————— 35%
-
-  Running 2018.01.01 (96/241) (0.70 s)  ••••••••———————————— 40%
-
-  Running 2019.01.01 (108/241) (0.79 s)  •••••••••——————————— 45%
-
-  Running 2020.01.01 (120/241) (0.88 s)  ••••••••••—————————— 50%
-
-  Running 2021.01.01 (132/241) (0.97 s)  •••••••••••————————— 55%
-
-  Running 2022.01.01 (144/241) (1.06 s)  ••••••••••••———————— 60%
-
-  Running 2023.01.01 (156/241) (1.15 s)  •••••••••••••——————— 65%
-
-  Running 2024.01.01 (168/241) (1.24 s)  ••••••••••••••—————— 70%
-
-  Running 2025.01.01 (180/241) (1.33 s)  •••••••••••••••————— 75%
-
-  Running 2026.01.01 (192/241) (1.42 s)  ••••••••••••••••———— 80%
-
-  Running 2027.01.01 (204/241) (1.51 s)  •••••••••••••••••——— 85%
-
-  Running 2028.01.01 (216/241) (1.60 s)  ••••••••••••••••••—— 90%
-
-  Running 2029.01.01 (228/241) (1.69 s)  •••••••••••••••••••— 95%
-
-  Running 2030.01.01 (240/241) (1.78 s)  •••••••••••••••••••• 100%
+  Running 2030.01.01 (240/241) (2.08 s)  •••••••••••••••••••• 100%
 </code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
 <div class="ansi-escaped-output">
-<pre><span class="ansi-green-fg">[I 2026-05-16 00:06:16,244]</span> Trial 9 finished with value: 2.3817670893033185 and parameters: {'ng.beta_m2f': 0.060790127212877285, 'ng.eff_condom': 0.7160297325355918, 'rand_seed': 453337}. Best is trial 4 with value: 1.1247790966954443.
+<pre><span class="ansi-green-fg">[I 2026-05-16 00:18:37,758]</span> Trial 8 finished with value: 1.72026357517142 and parameters: {'ng.beta_m2f': 0.1333620941876713, 'ng.eff_condom': 0.6153465385458899, 'rand_seed': 616825}. Best is trial 5 with value: 0.9851232780452395.
 </pre>
 </div>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Making results structure...
+<pre><code>Initializing sim with 500 agents
+
+  Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
+
+  Running 2011.01.01 (12/241) (0.12 s)  •——————————————————— 5%
+
+  Running 2012.01.01 (24/241) (0.23 s)  ••—————————————————— 10%
+
+  Running 2013.01.01 (36/241) (0.33 s)  •••————————————————— 15%
+
+  Running 2014.01.01 (48/241) (0.43 s)  ••••———————————————— 20%
+
+  Running 2015.01.01 (60/241) (0.52 s)  •••••——————————————— 25%
+
+  Running 2016.01.01 (72/241) (0.62 s)  ••••••—————————————— 30%
+
+  Running 2017.01.01 (84/241) (0.72 s)  •••••••————————————— 35%
+
+  Running 2018.01.01 (96/241) (0.82 s)  ••••••••———————————— 40%
+
+  Running 2019.01.01 (108/241) (0.92 s)  •••••••••——————————— 45%
+
+  Running 2020.01.01 (120/241) (1.02 s)  ••••••••••—————————— 50%
+
+  Running 2021.01.01 (132/241) (1.12 s)  •••••••••••————————— 55%
+
+  Running 2022.01.01 (144/241) (1.22 s)  ••••••••••••———————— 60%
+
+  Running 2023.01.01 (156/241) (1.32 s)  •••••••••••••——————— 65%
+
+  Running 2024.01.01 (168/241) (1.42 s)  ••••••••••••••—————— 70%
+
+  Running 2025.01.01 (180/241) (1.53 s)  •••••••••••••••————— 75%
+
+  Running 2026.01.01 (192/241) (1.62 s)  ••••••••••••••••———— 80%
+
+  Running 2027.01.01 (204/241) (1.72 s)  •••••••••••••••••——— 85%
+
+  Running 2028.01.01 (216/241) (1.81 s)  ••••••••••••••••••—— 90%
+
+  Running 2029.01.01 (228/241) (1.91 s)  •••••••••••••••••••— 95%</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<div class="ansi-escaped-output">
+<pre><span class="ansi-green-fg">[I 2026-05-16 00:18:40,307]</span> Trial 9 finished with value: 1.1448340027035382 and parameters: {'ng.beta_m2f': 0.06182128843462772, 'ng.eff_condom': 0.7957051961628443, 'rand_seed': 539953}. Best is trial 5 with value: 0.9851232780452395.
+</pre>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+  Running 2030.01.01 (240/241) (2.00 s)  •••••••••••••••••••• 100%
+
+Making results structure...
 Processed 10 trials; 0 failed
-Best pars: {'ng.beta_m2f': 0.0680882050766963, 'ng.eff_condom': 0.3265201445598671, 'rand_seed': 847401}
-Removed existing calibration file /tmp/tmpz4de4bwu/starsim_calibration.db
-Best parameters: {'ng.beta_m2f': 0.0680882050766963, 'ng.eff_condom': 0.3265201445598671, 'rand_seed': 847401}</code></pre>
+Best pars: {'ng.beta_m2f': 0.07858466994799253, 'ng.eff_condom': 0.4663484354572122, 'rand_seed': 853320}
+Removed existing calibration file /tmp/tmpqqtlkizk/starsim_calibration.db
+Best parameters: {'ng.beta_m2f': 0.07858466994799253, 'ng.eff_condom': 0.4663484354572122, 'rand_seed': 853320}</code></pre>
 </div>
 </div>
 <p>The calibration found parameters that minimize the mismatch between model output and data. Let’s see how they compare to the true values:</p>
-<div id="554d4c91" class="cell" data-execution_count="5">
+<div id="1baeb907" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>true_pars <span class="op">=</span> {<span class="st">'ng.beta_m2f'</span>: true_beta, <span class="st">'ng.eff_condom'</span>: true_condom}</span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> par, true_val <span class="kw">in</span> true_pars.items():</span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    best_val <span class="op">=</span> calib.best_pars[par]</span>
 <span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'</span><span class="sc">{</span>par<span class="sc">}</span><span class="ss">: true=</span><span class="sc">{</span>true_val<span class="sc">:.3f}</span><span class="ss">, calibrated=</span><span class="sc">{</span>best_val<span class="sc">:.3f}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>ng.beta_m2f: true=0.080, calibrated=0.068
-ng.eff_condom: true=0.600, calibrated=0.327</code></pre>
+<pre><code>ng.beta_m2f: true=0.080, calibrated=0.079
+ng.eff_condom: true=0.600, calibrated=0.466</code></pre>
 </div>
 </div>
 </section>
@@ -1385,7 +1385,7 @@ ng.eff_condom: true=0.600, calibrated=0.327</code></pre>
 <li><code>plot_optuna()</code> shows Optuna diagnostic plots (optimization history, parameter importance, etc.)</li>
 </ul>
 <p><strong>Note</strong>: <code>plot_param_importances</code> requires <code>scikit-learn</code> (<code>pip install scikit-learn</code>). If it’s not installed, the plot will be skipped with a warning.</p>
-<div id="483cfdc6" class="cell" data-execution_count="6">
+<div id="57b047a2" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare GOF scores: guess parameters vs best-fit parameters</span></span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>calib.check_fit(do_plot<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -1403,15 +1403,15 @@ Initializing sim with 500 agents
 
 
 
-  Running "Sim 0": 2011.01.01 (12/241) (0.11 s)  •——————————————————— 5%
+  Running "Sim 0": 2011.01.01 (12/241) (0.13 s)  •——————————————————— 5%
 
 
 
-  Running "Sim 0": 2012.01.01 (24/241) (0.21 s)  ••—————————————————— 10%
+  Running "Sim 0": 2012.01.01 (24/241) (0.24 s)  ••—————————————————— 10%
 
 
 
-  Running "Sim 0": 2013.01.01 (36/241) (0.32 s)  •••————————————————— 15%
+  Running "Sim 0": 2013.01.01 (36/241) (0.35 s)  •••————————————————— 15%
 
 
 
@@ -1419,162 +1419,162 @@ Initializing sim with 500 agents
 
 
 
-  Running "Sim 0": 2014.01.01 (48/241) (0.41 s)  ••••———————————————— 20%
+  Running "Sim 0": 2014.01.01 (48/241) (0.46 s)  ••••———————————————— 20%
 
 
 
-  Running "Sim 0": 2011.01.01 (12/241) (0.11 s)  •——————————————————— 5%
+  Running "Sim 0": 2011.01.01 (12/241) (0.14 s)  •——————————————————— 5%
 
 
 
-  Running "Sim 0": 2015.01.01 (60/241) (0.49 s)  •••••——————————————— 25%
+  Running "Sim 0": 2015.01.01 (60/241) (0.56 s)  •••••——————————————— 25%
 
 
 
-  Running "Sim 0": 2012.01.01 (24/241) (0.20 s)  ••—————————————————— 10%
+  Running "Sim 0": 2012.01.01 (24/241) (0.24 s)  ••—————————————————— 10%
 
 
 
-  Running "Sim 0": 2016.01.01 (72/241) (0.58 s)  ••••••—————————————— 30%
+  Running "Sim 0": 2016.01.01 (72/241) (0.66 s)  ••••••—————————————— 30%
 
 
 
-  Running "Sim 0": 2013.01.01 (36/241) (0.29 s)  •••————————————————— 15%
+  Running "Sim 0": 2013.01.01 (36/241) (0.35 s)  •••————————————————— 15%
 
 
 
-  Running "Sim 0": 2017.01.01 (84/241) (0.66 s)  •••••••————————————— 35%
+  Running "Sim 0": 2017.01.01 (84/241) (0.76 s)  •••••••————————————— 35%
 
 
 
-  Running "Sim 0": 2014.01.01 (48/241) (0.38 s)  ••••———————————————— 20%
+  Running "Sim 0": 2014.01.01 (48/241) (0.45 s)  ••••———————————————— 20%
 
 
 
-  Running "Sim 0": 2018.01.01 (96/241) (0.75 s)  ••••••••———————————— 40%
+  Running "Sim 0": 2018.01.01 (96/241) (0.86 s)  ••••••••———————————— 40%
 
 
 
-  Running "Sim 0": 2015.01.01 (60/241) (0.47 s)  •••••——————————————— 25%
+  Running "Sim 0": 2015.01.01 (60/241) (0.55 s)  •••••——————————————— 25%
 
 
 
-  Running "Sim 0": 2019.01.01 (108/241) (0.84 s)  •••••••••——————————— 45%
+  Running "Sim 0": 2019.01.01 (108/241) (0.97 s)  •••••••••——————————— 45%
 
 
 
-  Running "Sim 0": 2016.01.01 (72/241) (0.55 s)  ••••••—————————————— 30%
+  Running "Sim 0": 2016.01.01 (72/241) (0.65 s)  ••••••—————————————— 30%
 
 
 
-  Running "Sim 0": 2020.01.01 (120/241) (0.94 s)  ••••••••••—————————— 50%
+  Running "Sim 0": 2020.01.01 (120/241) (1.08 s)  ••••••••••—————————— 50%
 
 
 
-  Running "Sim 0": 2017.01.01 (84/241) (0.64 s)  •••••••————————————— 35%
+  Running "Sim 0": 2017.01.01 (84/241) (0.75 s)  •••••••————————————— 35%
 
 
 
-  Running "Sim 0": 2021.01.01 (132/241) (1.03 s)  •••••••••••————————— 55%
+  Running "Sim 0": 2021.01.01 (132/241) (1.19 s)  •••••••••••————————— 55%
 
 
 
-  Running "Sim 0": 2018.01.01 (96/241) (0.73 s)  ••••••••———————————— 40%
+  Running "Sim 0": 2018.01.01 (96/241) (0.85 s)  ••••••••———————————— 40%
 
 
 
-  Running "Sim 0": 2022.01.01 (144/241) (1.13 s)  ••••••••••••———————— 60%
+  Running "Sim 0": 2022.01.01 (144/241) (1.30 s)  ••••••••••••———————— 60%
 
 
 
-  Running "Sim 0": 2019.01.01 (108/241) (0.82 s)  •••••••••——————————— 45%
+  Running "Sim 0": 2019.01.01 (108/241) (0.96 s)  •••••••••——————————— 45%
 
 
 
-  Running "Sim 0": 2023.01.01 (156/241) (1.22 s)  •••••••••••••——————— 65%
+  Running "Sim 0": 2023.01.01 (156/241) (1.41 s)  •••••••••••••——————— 65%
 
 
 
-  Running "Sim 0": 2020.01.01 (120/241) (0.91 s)  ••••••••••—————————— 50%
+  Running "Sim 0": 2020.01.01 (120/241) (1.08 s)  ••••••••••—————————— 50%
 
 
 
-  Running "Sim 0": 2024.01.01 (168/241) (1.32 s)  ••••••••••••••—————— 70%
+  Running "Sim 0": 2024.01.01 (168/241) (1.52 s)  ••••••••••••••—————— 70%
 
 
 
-  Running "Sim 0": 2021.01.01 (132/241) (1.02 s)  •••••••••••————————— 55%
+  Running "Sim 0": 2021.01.01 (132/241) (1.19 s)  •••••••••••————————— 55%
 
 
 
-  Running "Sim 0": 2025.01.01 (180/241) (1.42 s)  •••••••••••••••————— 75%
+  Running "Sim 0": 2025.01.01 (180/241) (1.63 s)  •••••••••••••••————— 75%
 
 
 
-  Running "Sim 0": 2022.01.01 (144/241) (1.12 s)  ••••••••••••———————— 60%
+  Running "Sim 0": 2022.01.01 (144/241) (1.30 s)  ••••••••••••———————— 60%
 
 
 
-  Running "Sim 0": 2026.01.01 (192/241) (1.52 s)  ••••••••••••••••———— 80%
+  Running "Sim 0": 2026.01.01 (192/241) (1.74 s)  ••••••••••••••••———— 80%
 
 
 
-  Running "Sim 0": 2023.01.01 (156/241) (1.21 s)  •••••••••••••——————— 65%
+  Running "Sim 0": 2023.01.01 (156/241) (1.41 s)  •••••••••••••——————— 65%
 
 
 
-  Running "Sim 0": 2027.01.01 (204/241) (1.61 s)  •••••••••••••••••——— 85%
+  Running "Sim 0": 2027.01.01 (204/241) (1.86 s)  •••••••••••••••••——— 85%
 
 
 
-  Running "Sim 0": 2024.01.01 (168/241) (1.30 s)  ••••••••••••••—————— 70%
+  Running "Sim 0": 2024.01.01 (168/241) (1.52 s)  ••••••••••••••—————— 70%
 
 
 
-  Running "Sim 0": 2028.01.01 (216/241) (1.70 s)  ••••••••••••••••••—— 90%
+  Running "Sim 0": 2028.01.01 (216/241) (1.97 s)  ••••••••••••••••••—— 90%
 
 
 
-  Running "Sim 0": 2025.01.01 (180/241) (1.40 s)  •••••••••••••••————— 75%
+  Running "Sim 0": 2025.01.01 (180/241) (1.63 s)  •••••••••••••••————— 75%
 
 
 
-  Running "Sim 0": 2029.01.01 (228/241) (1.80 s)  •••••••••••••••••••— 95%
+  Running "Sim 0": 2029.01.01 (228/241) (2.08 s)  •••••••••••••••••••— 95%
 
 
 
-  Running "Sim 0": 2026.01.01 (192/241) (1.49 s)  ••••••••••••••••———— 80%
+  Running "Sim 0": 2026.01.01 (192/241) (1.74 s)  ••••••••••••••••———— 80%
 
 
 
-  Running "Sim 0": 2030.01.01 (240/241) (1.89 s)  •••••••••••••••••••• 100%
+  Running "Sim 0": 2030.01.01 (240/241) (2.18 s)  •••••••••••••••••••• 100%
 
 
 
 
 
-  Running "Sim 0": 2027.01.01 (204/241) (1.59 s)  •••••••••••••••••——— 85%
+  Running "Sim 0": 2027.01.01 (204/241) (1.85 s)  •••••••••••••••••——— 85%
 
 
 
-  Running "Sim 0": 2028.01.01 (216/241) (1.69 s)  ••••••••••••••••••—— 90%
+  Running "Sim 0": 2028.01.01 (216/241) (1.96 s)  ••••••••••••••••••—— 90%
 
 
 
-  Running "Sim 0": 2029.01.01 (228/241) (1.78 s)  •••••••••••••••••••— 95%
+  Running "Sim 0": 2029.01.01 (228/241) (2.07 s)  •••••••••••••••••••— 95%
 
 
 
-  Running "Sim 0": 2030.01.01 (240/241) (1.87 s)  •••••••••••••••••••• 100%
+  Running "Sim 0": 2030.01.01 (240/241) (2.17 s)  •••••••••••••••••••• 100%
 
 
 
 
 Fit with original pars: 1.6568503941291328
 
-Fit with best-fit pars: 1.6690233257942302
+Fit with best-fit pars: 1.6666933694768122
 
-✗ Calibration did not improve fit as the objective got worse (1.6568503941291328 --&gt; 1.6690233257942302), but this sometimes happens stochastically and is not necessarily an error
+✗ Calibration did not improve fit as the objective got worse (1.6568503941291328 --&gt; 1.6666933694768122), but this sometimes happens stochastically and is not necessarily an error
 </pre>
 </div>
 </div>
@@ -1582,7 +1582,7 @@ Fit with best-fit pars: 1.6690233257942302
 <pre><code>False</code></pre>
 </div>
 </div>
-<div id="50e8a7c9" class="cell" data-execution_count="7">
+<div id="04fc08e6" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot the sim with best-fit parameters</span></span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>calib.plot_final()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -1590,45 +1590,45 @@ Fit with best-fit pars: 1.6690233257942302
 
   Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
 
-  Running 2011.01.01 (12/241) (0.10 s)  •——————————————————— 5%
+  Running 2011.01.01 (12/241) (0.12 s)  •——————————————————— 5%
 
-  Running 2012.01.01 (24/241) (0.19 s)  ••—————————————————— 10%
+  Running 2012.01.01 (24/241) (0.22 s)  ••—————————————————— 10%
 
-  Running 2013.01.01 (36/241) (0.27 s)  •••————————————————— 15%
+  Running 2013.01.01 (36/241) (0.33 s)  •••————————————————— 15%
 
-  Running 2014.01.01 (48/241) (0.35 s)  ••••———————————————— 20%
+  Running 2014.01.01 (48/241) (0.43 s)  ••••———————————————— 20%
 
-  Running 2015.01.01 (60/241) (0.43 s)  •••••——————————————— 25%
+  Running 2015.01.01 (60/241) (0.53 s)  •••••——————————————— 25%
 
-  Running 2016.01.01 (72/241) (0.51 s)  ••••••—————————————— 30%
+  Running 2016.01.01 (72/241) (0.64 s)  ••••••—————————————— 30%
 
-  Running 2017.01.01 (84/241) (0.59 s)  •••••••————————————— 35%
+  Running 2017.01.01 (84/241) (0.73 s)  •••••••————————————— 35%
 
-  Running 2018.01.01 (96/241) (0.67 s)  ••••••••———————————— 40%
+  Running 2018.01.01 (96/241) (0.84 s)  ••••••••———————————— 40%
 
-  Running 2019.01.01 (108/241) (0.76 s)  •••••••••——————————— 45%
+  Running 2019.01.01 (108/241) (0.94 s)  •••••••••——————————— 45%
 
-  Running 2020.01.01 (120/241) (0.84 s)  ••••••••••—————————— 50%
+  Running 2020.01.01 (120/241) (1.06 s)  ••••••••••—————————— 50%
 
-  Running 2021.01.01 (132/241) (0.93 s)  •••••••••••————————— 55%
+  Running 2021.01.01 (132/241) (1.17 s)  •••••••••••————————— 55%
 
-  Running 2022.01.01 (144/241) (1.02 s)  ••••••••••••———————— 60%
+  Running 2022.01.01 (144/241) (1.28 s)  ••••••••••••———————— 60%
 
-  Running 2023.01.01 (156/241) (1.11 s)  •••••••••••••——————— 65%
+  Running 2023.01.01 (156/241) (1.38 s)  •••••••••••••——————— 65%
 
-  Running 2024.01.01 (168/241) (1.20 s)  ••••••••••••••—————— 70%
+  Running 2024.01.01 (168/241) (1.49 s)  ••••••••••••••—————— 70%
 
-  Running 2025.01.01 (180/241) (1.28 s)  •••••••••••••••————— 75%
+  Running 2025.01.01 (180/241) (1.60 s)  •••••••••••••••————— 75%
 
-  Running 2026.01.01 (192/241) (1.37 s)  ••••••••••••••••———— 80%
+  Running 2026.01.01 (192/241) (1.71 s)  ••••••••••••••••———— 80%
 
-  Running 2027.01.01 (204/241) (1.46 s)  •••••••••••••••••——— 85%
+  Running 2027.01.01 (204/241) (1.82 s)  •••••••••••••••••——— 85%
 
-  Running 2028.01.01 (216/241) (1.55 s)  ••••••••••••••••••—— 90%
+  Running 2028.01.01 (216/241) (1.93 s)  ••••••••••••••••••—— 90%
 
-  Running 2029.01.01 (228/241) (1.63 s)  •••••••••••••••••••— 95%
+  Running 2029.01.01 (228/241) (2.03 s)  •••••••••••••••••••— 95%
 
-  Running 2030.01.01 (240/241) (1.72 s)  •••••••••••••••••••• 100%
+  Running 2030.01.01 (240/241) (2.14 s)  •••••••••••••••••••• 100%
 </code></pre>
 </div>
 <div class="cell-output cell-output-display">
@@ -1646,7 +1646,7 @@ Fit with best-fit pars: 1.6690233257942302
 </div>
 </div>
 </div>
-<div id="88e4c04a" class="cell" data-execution_count="8">
+<div id="28098abe" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Optuna diagnostics: optimization history and parameter importance</span></span>
 <span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>calib.plot_optuna([<span class="st">'plot_optimization_history'</span>, <span class="st">'plot_param_importances'</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -1671,15 +1671,15 @@ Fit with best-fit pars: 1.6690233257942302
 <section id="extracting-calibrated-parameters" class="level2">
 <h2 class="anchored" data-anchor-id="extracting-calibrated-parameters">Extracting calibrated parameters</h2>
 <p>After calibration, use <code>get_pars()</code> to extract the top parameter sets as flat dicts ready to feed back into a sim:</p>
-<div id="6cf86df0" class="cell" data-execution_count="9">
+<div id="3c12aa9b" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Get top 3 parameter sets (sorted by mismatch)</span></span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>par_sets <span class="op">=</span> calib.get_pars(n<span class="op">=</span><span class="dv">3</span>)</span>
 <span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, pars <span class="kw">in</span> <span class="bu">enumerate</span>(par_sets):</span>
 <span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'Set </span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>pars<span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Set 0: {'ng.beta_m2f': 0.0680882050766963, 'ng.eff_condom': 0.3265201445598671}
-Set 1: {'ng.beta_m2f': 0.0679045541801846, 'ng.eff_condom': 0.8509166602376981}
-Set 2: {'ng.beta_m2f': 0.1384893791828436, 'ng.eff_condom': 0.6253405737664016}</code></pre>
+<pre><code>Set 0: {'ng.beta_m2f': 0.07858466994799253, 'ng.eff_condom': 0.4663484354572122}
+Set 1: {'ng.beta_m2f': 0.06182128843462772, 'ng.eff_condom': 0.7957051961628443}
+Set 2: {'ng.beta_m2f': 0.05795923672638795, 'ng.eff_condom': 0.5179343307619164}</code></pre>
 </div>
 </div>
 <p>You can also access the full results DataFrame via <code>calib.df</code>, which includes all parameters plus the mismatch value for every trial.</p>
@@ -1687,7 +1687,7 @@ Set 2: {'ng.beta_m2f': 0.1384893791828436, 'ng.eff_condom': 0.6253405737664016}<
 <section id="running-calibrated-sims-with-make_calib_sims" class="level2">
 <h2 class="anchored" data-anchor-id="running-calibrated-sims-with-make_calib_sims">Running calibrated sims with <code>make_calib_sims</code></h2>
 <p>The most common post-calibration task is running the top N parameter sets to generate results with uncertainty. <code>make_calib_sims()</code> handles this in one call:</p>
-<div id="c239c29e" class="cell" data-execution_count="10">
+<div id="011ef3c5" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run top 3 parameter sets</span></span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>msim <span class="op">=</span> sti.make_calib_sims(calib<span class="op">=</span>calib, n_parsets<span class="op">=</span><span class="dv">3</span>, verbose<span class="op">=-</span><span class="dv">1</span>)</span>
 <span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Ran </span><span class="sc">{</span><span class="bu">len</span>(msim.sims)<span class="sc">}</span><span class="ss"> simulations'</span>)</span>
@@ -1701,7 +1701,7 @@ Each sim has par_idx: [0, 1, 2]</code></pre>
 </div>
 </div>
 <p>You can also pass calibration parameters directly – useful when loading saved results:</p>
-<div id="774fab2a" class="cell" data-execution_count="11">
+<div id="35a58390" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># From a list of parameter dicts</span></span>
 <span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>msim <span class="op">=</span> sti.make_calib_sims(</span>
 <span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    calib_pars<span class="op">=</span>par_sets,</span>
@@ -1716,18 +1716,18 @@ Each sim has par_idx: [0, 1, 2]</code></pre>
 <span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>    n_parsets<span class="op">=</span><span class="dv">3</span>, verbose<span class="op">=-</span><span class="dv">1</span>,</span>
 <span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Initializing sim "Sim 1" with 500 agents
-Initializing sim "Sim 0" with 500 agents
+<pre><code>Initializing sim "Sim 0" with 500 agents
+Initializing sim "Sim 1" with 500 agents
 Initializing sim "Sim 2" with 500 agents
-Initializing sim "Sim 2" with 500 agents
+Initializing sim "Sim 1" with 500 agents
 Initializing sim "Sim 0" with 500 agents
-Initializing sim "Sim 1" with 500 agents</code></pre>
+Initializing sim "Sim 2" with 500 agents</code></pre>
 </div>
 </div>
 <section id="filtering-with-check_fn" class="level3">
 <h3 class="anchored" data-anchor-id="filtering-with-check_fn">Filtering with <code>check_fn</code></h3>
 <p>Some parameter combinations may produce epidemiologically implausible results (e.g., disease die-out). Pass a <code>check_fn</code> to filter:</p>
-<div id="1ca10845" class="cell" data-execution_count="12">
+<div id="d5342878" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> check_ng_alive(sim):</span>
 <span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Reject sims where gonorrhea died out."""</span></span>
 <span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">float</span>(sim.results.ng.new_infections[<span class="op">-</span><span class="dv">12</span>:].<span class="bu">sum</span>()) <span class="op">&gt;</span> <span class="dv">0</span></span>
@@ -1749,7 +1749,7 @@ Kept 0 sims after filtering</code></pre>
 <section id="multiple-seeds-per-parameter-set" class="level3">
 <h3 class="anchored" data-anchor-id="multiple-seeds-per-parameter-set">Multiple seeds per parameter set</h3>
 <p>For stochastic robustness, run each parameter set with multiple random seeds. When combined with <code>check_fn</code>, only the first surviving seed per parameter set is kept:</p>
-<div id="3c132300" class="cell" data-execution_count="13">
+<div id="1d133ab3" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>msim <span class="op">=</span> sti.make_calib_sims(</span>
 <span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>    calib<span class="op">=</span>calib, n_parsets<span class="op">=</span><span class="dv">3</span>,</span>
 <span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>    seeds_per_par<span class="op">=</span><span class="dv">2</span>,</span>
@@ -1757,8 +1757,8 @@ Kept 0 sims after filtering</code></pre>
 <span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Kept </span><span class="sc">{</span><span class="bu">len</span>(msim.sims)<span class="sc">}</span><span class="ss"> sims (1 per par set, best surviving seed)'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Initializing sim "Sim 0" with 500 agents
-Initializing sim "Sim 1" with 500 agents
+<pre><code>Initializing sim "Sim 1" with 500 agents
+Initializing sim "Sim 0" with 500 agents
 Initializing sim "Sim 2" with 500 agents
 Initializing sim "Sim 3" with 500 agents
 Initializing sim "Sim 4" with 500 agents
@@ -1772,7 +1772,7 @@ Kept 0 sims (1 per par set, best surviving seed)</code></pre>
 <section id="saving-and-loading" class="level2">
 <h2 class="anchored" data-anchor-id="saving-and-loading">Saving and loading</h2>
 <p>After calibration, use <code>calib.save()</code> to save the calibration object and parameter DataFrame. This handles shrinking (keeping only the top results to reduce file size) automatically:</p>
-<div id="dc7d5e3e" class="cell" data-execution_count="14">
+<div id="c7adb06c" class="cell" data-execution_count="14">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Save with shrinking (keeps top 10% by default)</span></span>
 <span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>calib.save(<span class="st">'tutorial_output/my_calib.obj'</span>)</span>
 <span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -1791,7 +1791,7 @@ Loaded calibration with 10 parameter sets</code></pre>
 <p>The key idea behind STIsim’s calibration is simple: <strong>any result that appears in <code>sim.to_df()</code> can be a calibration target</strong>. You just need to include a column with the same name in your data file.</p>
 <p>Built-in disease results (prevalence, incidence, etc.) are always available. But what if you need something custom – say, HIV-syphilis coinfection prevalence among adolescent girls? Any module (analyzers, interventions, connectors, etc.) can define custom results using <code>define_results</code> – see <a href="../tutorials/tut_results.html#custom-results">Custom results</a> for the full explanation. Add the result to your sim, add a matching column to your data, and the calibration fits to it automatically.</p>
 <p>Here’s an example using an analyzer:</p>
-<div id="918ef128" class="cell" data-execution_count="15">
+<div id="761d5bf2" class="cell" data-execution_count="15">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> CoinfectionPrev(ss.Analyzer):</span>
 <span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Measure HIV-syphilis coinfection prevalence among 15-24 year old females."""</span></span>
 <span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -1858,7 +1858,7 @@ Loaded calibration with 10 parameter sets</code></pre>
 </table>
 <p>Missing years are fine – the calibration only compares at timepoints where data exists. To see what result names are available, run <code>sim.to_df().columns</code>.</p>
 <p>Not all targets are equally informative. Use <code>weights</code> to tell the calibration which data points matter most – for example, if you have high-quality survey data for syphilis but only routine program data for HIV:</p>
-<div id="23440b10" class="cell" data-execution_count="16">
+<div id="ec40c366" class="cell" data-execution_count="16">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>weights <span class="op">=</span> {</span>
 <span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">'hiv.prevalence'</span>: <span class="fl">2.0</span>,              <span class="co"># Routine data -- moderate weight</span></span>
 <span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">'syph.active_prevalence'</span>: <span class="fl">10.0</span>,     <span class="co"># PHIA survey -- high weight</span></span>
