@@ -662,7 +662,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="hello-world" class="level2">
 <h2 class="anchored" data-anchor-id="hello-world">Hello world</h2>
 <p>The simplest way to create an STIsim simulation is to pass a disease name as a string. Here we’ll simulate gonorrhea:</p>
-<div id="ae0fd982" class="cell" data-execution_count="1">
+<div id="19455c52" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> stisim <span class="im">as</span> sti</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> sti.Sim(diseases<span class="op">=</span><span class="st">'ng'</span>)</span>
@@ -689,7 +689,7 @@ Figure(768x576)</code></pre>
 <section id="simulation-parameters" class="level3">
 <h3 class="anchored" data-anchor-id="simulation-parameters">Simulation parameters</h3>
 <p>The simulation runs from <strong>2000 to 2030</strong> with <strong>monthly timesteps</strong> and <strong>1,000 agents</strong> by default. You can inspect these:</p>
-<div id="eed81e4e" class="cell" data-execution_count="2">
+<div id="cee3cc78" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> sti.Sim(diseases<span class="op">=</span><span class="st">'ng'</span>)</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>sim.init()</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -713,7 +713,7 @@ Agents:   1000</code></pre>
 <li><strong>StructuredSexual</strong>: The main sexual contact network. Agents are assigned to risk groups (low, medium, high), form partnerships of different types (stable, casual, one-time, sex work), and have age-based partner preferences. See the <a href="../user_guide/networks/structured_sexual.html">Networks</a> documentation for details.</li>
 <li><strong>MaternalNet</strong>: A mother-to-child transmission network (from Starsim).</li>
 </ul>
-<div id="4b558128" class="cell" data-execution_count="3">
+<div id="3f0d4e99" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, nw <span class="kw">in</span> sim.networks.items():</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span><span class="bu">type</span>(nw)<span class="sc">.</span><span class="va">__name__</span><span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -725,7 +725,7 @@ maternalnet: MaternalNet</code></pre>
 <section id="disease" class="level3">
 <h3 class="anchored" data-anchor-id="disease">Disease</h3>
 <p>The string <code>'ng'</code> was looked up and converted into an <code>sti.Gonorrhea</code> module with default parameters (transmission rate, initial prevalence, symptom probabilities, clearance durations, etc.). See the <a href="../user_guide/diseases/">Diseases</a> documentation for the full parameter tables.</p>
-<div id="280c9365" class="cell" data-execution_count="4">
+<div id="c3fc4ae0" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>ng <span class="op">=</span> sim.diseases.ng</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Disease: </span><span class="sc">{</span><span class="bu">type</span>(ng)<span class="sc">.</span><span class="va">__name__</span><span class="sc">}</span><span class="ss">'</span>)</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Transmission (M to F): </span><span class="sc">{</span>ng<span class="sc">.</span>pars<span class="sc">.</span>beta_m2f<span class="sc">}</span><span class="ss">'</span>)</span>
@@ -742,7 +742,7 @@ Condom efficacy: 0.9</code></pre>
 <section id="demographics" class="level3">
 <h3 class="anchored" data-anchor-id="demographics">Demographics</h3>
 <p>By default (without a location string), <strong>no demographic modules</strong> are created – there are no births, deaths, or migration. This keeps the default sim fast and simple. To add demographics, either pass modules directly or provide a location string:</p>
-<div id="2879538a" class="cell" data-execution_count="5">
+<div id="8f1c8fca" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Demographics: </span><span class="sc">{</span><span class="bu">dict</span>(sim.demographics)<span class="sc">}</span><span class="ss">'</span>)</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'(Empty by default -- pass demographics="zimbabwe" to auto-load demographic data)'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -758,7 +758,7 @@ Condom efficacy: 0.9</code></pre>
 <section id="passing-parameters-inline" class="level3">
 <h3 class="anchored" data-anchor-id="passing-parameters-inline">Passing parameters inline</h3>
 <p>The simplest way – pass keyword arguments directly:</p>
-<div id="1622bb17" class="cell" data-execution_count="6">
+<div id="68345bef" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> sti.Sim(</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    diseases<span class="op">=</span><span class="st">'ng'</span>,</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    n_agents<span class="op">=</span><span class="dv">2000</span>,</span>
@@ -777,7 +777,7 @@ Condom efficacy: 0.9</code></pre>
 <section id="passing-disease-specific-parameters" class="level3">
 <h3 class="anchored" data-anchor-id="passing-disease-specific-parameters">Passing disease-specific parameters</h3>
 <p>Use <code>sti_pars</code> to override disease defaults without creating the disease object yourself:</p>
-<div id="6e3ff57e" class="cell" data-execution_count="7">
+<div id="5f94a97a" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> sti.Sim(</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    diseases<span class="op">=</span>[<span class="st">'ng'</span>, <span class="st">'ct'</span>],</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    sti_pars<span class="op">=</span><span class="bu">dict</span>(</span>
@@ -797,7 +797,7 @@ Condom efficacy: 0.9</code></pre>
 <section id="using-module-instances" class="level3">
 <h3 class="anchored" data-anchor-id="using-module-instances">Using module instances</h3>
 <p>For full control, create the module objects directly. This is the standard Starsim pattern and gives you access to every parameter:</p>
-<div id="e8f4ced7" class="cell" data-execution_count="8">
+<div id="5d708902" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> starsim <span class="im">as</span> ss</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>ng <span class="op">=</span> sti.Gonorrhea(beta_m2f<span class="op">=</span><span class="fl">0.08</span>, init_prev<span class="op">=</span><span class="fl">0.03</span>)</span>

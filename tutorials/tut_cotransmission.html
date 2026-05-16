@@ -656,7 +656,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="multiple-stis-on-a-shared-network" class="level2">
 <h2 class="anchored" data-anchor-id="multiple-stis-on-a-shared-network">Multiple STIs on a shared network</h2>
 <p>When you pass multiple diseases to a sim, they all transmit on the same <code>StructuredSexual</code> network. Each disease has its own transmission probability, natural history, and clearance dynamics – but the partnerships are shared.</p>
-<div id="3f73144a" class="cell" data-execution_count="1">
+<div id="516ac2e4" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> stisim <span class="im">as</span> sti</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> sti.Sim(</span>
@@ -684,7 +684,7 @@ Figure(768x576)</code></pre>
 <section id="customizing-disease-parameters" class="level2">
 <h2 class="anchored" data-anchor-id="customizing-disease-parameters">Customizing disease parameters</h2>
 <p>Use <code>sti_pars</code> to override defaults for each disease:</p>
-<div id="a6df0cc4" class="cell" data-execution_count="2">
+<div id="86ccd69f" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> sti.Sim(</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    diseases<span class="op">=</span>[<span class="st">'ng'</span>, <span class="st">'ct'</span>, <span class="st">'tv'</span>],</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    sti_pars<span class="op">=</span><span class="bu">dict</span>(</span>
@@ -715,7 +715,7 @@ Figure(768x576)</code></pre>
 <h2 class="anchored" data-anchor-id="adding-hiv-with-connectors">Adding HIV with connectors</h2>
 <p>When diseases interact biologically – for example, having an STI increases susceptibility to HIV – you model this with <strong>connectors</strong>. STIsim provides connectors for HIV-STI coinfection interactions.</p>
 <p>Connectors modify <code>rel_sus</code> (relative susceptibility) and <code>rel_trans</code> (relative transmissibility) for coinfected agents at each timestep. For example, <code>hiv_ng</code> increases HIV susceptibility for agents who have gonorrhea.</p>
-<div id="57eaa47a" class="cell" data-execution_count="3">
+<div id="c1bf7694" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create disease modules</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>hiv <span class="op">=</span> sti.HIV(init_prev<span class="op">=</span><span class="fl">0.10</span>)</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>ng <span class="op">=</span> sti.Gonorrhea(init_prev<span class="op">=</span><span class="fl">0.03</span>)</span>
@@ -764,7 +764,7 @@ Trying to access non-initialized Arr object; in most cases, Arr objects need to 
 <p>To see the effect of coinfection interactions, we compare HIV and syphilis co-transmission with and without an <code>hiv_syph</code> connector.</p>
 <p>In reality, syphilis epidemics are sustained by cycles of treatment and reinfection – people with symptomatic (active) syphilis seek treatment, clearing the infection but leaving them susceptible to reinfection. Without treatment, most cases quickly progress to the latent stage, where they are far less infectious and the connector has little effect.</p>
 <p>To make the connector’s impact visible without adding treatment interventions, we artificially extend the primary stage duration. This keeps more agents in the active (primary + secondary) stages where the connector amplifies HIV susceptibility.</p>
-<div id="ad5e6f41" class="cell" data-execution_count="4">
+<div id="c5e5e86e" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> starsim <span class="im">as</span> ss</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>

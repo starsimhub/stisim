@@ -653,7 +653,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="setup" class="level2">
 <h2 class="anchored" data-anchor-id="setup">Setup</h2>
 <p>We’ll use a simple HIV sim spanning 1985-2025 with 10,000 agents, and compare two scenarios: a static debut distribution (default) vs a dynamic one whose mean declines linearly from 20 to 17 over the simulation period.</p>
-<div id="66e2b50b" class="cell" data-execution_count="1">
+<div id="e06df019" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sciris <span class="im">as</span> sc</span>
@@ -670,7 +670,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <h2 class="anchored" data-anchor-id="baseline-static-debut">Baseline: static debut</h2>
 <p>In the default <code>StructuredSexual</code> network, <code>debut_f</code> and <code>debut_m</code> are lognormal distributions with a fixed mean (20 for women, 21 for men). Everyone who enters the simulation — at init or via births — draws their age of first sex from the same distribution.</p>
 <p>For simple overrides, you can pass a scalar (e.g.&nbsp;<code>debut_f=18</code>) and the default standard deviation is preserved. For anything more flexible (custom std, a different distribution family, or a callable mean), pass a full <code>ss.lognorm_ex(...)</code> instead — see the next cell.</p>
-<div id="9bdf3428" class="cell" data-execution_count="2">
+<div id="0a452286" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_sim(debut_f, debut_m, label):</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    sim <span class="op">=</span> hivsim.demo(</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>        <span class="st">'simple'</span>, run<span class="op">=</span><span class="va">False</span>,</span>
@@ -688,7 +688,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <h2 class="anchored" data-anchor-id="time-varying-debut">Time-varying debut</h2>
 <p>Now we define a callable that returns the mean age at debut as a function of the current simulation year. The function can take any of <code>sim</code>, <code>self</code> / <code>module</code>, <code>uids</code>, <code>size</code>, <code>pars</code>, <code>states</code> as arguments — Starsim introspects the signature and passes what’s asked for.</p>
 <p>Here we keep it simple: linear decline from 20 in 1985 down to 17 by 2025, floored at 17 for any time outside the window.</p>
-<div id="686ce508" class="cell" data-execution_count="3">
+<div id="bebcea13" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> mean_afs_f(sim):</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Linear decline: 20 in 1985, 17 in 2025, clipped outside</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">float</span>(np.clip(<span class="dv">20</span> <span class="op">-</span> <span class="fl">0.075</span> <span class="op">*</span> (sim.now.years <span class="op">-</span> <span class="dv">1985</span>), <span class="dv">17</span>, <span class="dv">20</span>))</span>
@@ -708,7 +708,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="run-and-compare" class="level2">
 <h2 class="anchored" data-anchor-id="run-and-compare">Run and compare</h2>
 <p>We run both sims in parallel, then compute mean debut age by birth-year cohort. In the static sim, cohorts should look identical. In the dynamic sim, later cohorts should show progressively lower mean AFS.</p>
-<div id="5549f92f" class="cell" data-execution_count="4">
+<div id="5efd5514" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>msim <span class="op">=</span> ss.parallel(sim_static, sim_dynamic)</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> afs_by_cohort(sim, cohort_bin<span class="op">=</span><span class="dv">5</span>):</span>
@@ -749,166 +749,166 @@ Initializing sim "Dynamic" with 10000 agents
 
   Running "Dynamic": 1985.01.01 ( 0/481) (0.00 s)  ———————————————————— 0%
 
-  Running "Static": 1986.01.01 (12/481) (0.66 s)  ———————————————————— 3%
+  Running "Static": 1986.01.01 (12/481) (0.64 s)  ———————————————————— 3%
 
-  Running "Dynamic": 1986.01.01 (12/481) (0.65 s)  ———————————————————— 3%
+  Running "Dynamic": 1986.01.01 (12/481) (0.63 s)  ———————————————————— 3%
 
-  Running "Static": 1987.01.01 (24/481) (1.09 s)  •——————————————————— 5%
+  Running "Static": 1987.01.01 (24/481) (1.05 s)  •——————————————————— 5%
 
-  Running "Dynamic": 1987.01.01 (24/481) (1.09 s)  •——————————————————— 5%
+  Running "Dynamic": 1987.01.01 (24/481) (1.04 s)  •——————————————————— 5%
 
-  Running "Static": 1988.01.01 (36/481) (1.53 s)  •——————————————————— 8%
+  Running "Static": 1988.01.01 (36/481) (1.48 s)  •——————————————————— 8%
 
-  Running "Dynamic": 1988.01.01 (36/481) (1.52 s)  •——————————————————— 8%
+  Running "Dynamic": 1988.01.01 (36/481) (1.47 s)  •——————————————————— 8%
 
-  Running "Static": 1989.01.01 (48/481) (1.97 s)  ••—————————————————— 10%
+  Running "Static": 1989.01.01 (48/481) (1.90 s)  ••—————————————————— 10%
 
-  Running "Dynamic": 1989.01.01 (48/481) (1.98 s)  ••—————————————————— 10%
+  Running "Dynamic": 1989.01.01 (48/481) (1.89 s)  ••—————————————————— 10%
 
-  Running "Static": 1990.01.01 (60/481) (2.41 s)  ••—————————————————— 13%
+  Running "Static": 1990.01.01 (60/481) (2.32 s)  ••—————————————————— 13%
 
-  Running "Dynamic": 1990.01.01 (60/481) (2.41 s)  ••—————————————————— 13%
+  Running "Dynamic": 1990.01.01 (60/481) (2.32 s)  ••—————————————————— 13%
 
-  Running "Static": 1991.01.01 (72/481) (2.86 s)  •••————————————————— 15%
+  Running "Static": 1991.01.01 (72/481) (2.75 s)  •••————————————————— 15%
 
-  Running "Dynamic": 1991.01.01 (72/481) (2.87 s)  •••————————————————— 15%
+  Running "Dynamic": 1991.01.01 (72/481) (2.75 s)  •••————————————————— 15%
 
-  Running "Static": 1992.01.01 (84/481) (3.32 s)  •••————————————————— 18%
+  Running "Static": 1992.01.01 (84/481) (3.19 s)  •••————————————————— 18%
 
-  Running "Dynamic": 1992.01.01 (84/481) (3.33 s)  •••————————————————— 18%
+  Running "Dynamic": 1992.01.01 (84/481) (3.19 s)  •••————————————————— 18%
 
-  Running "Static": 1993.01.01 (96/481) (3.80 s)  ••••———————————————— 20%
+  Running "Static": 1993.01.01 (96/481) (3.65 s)  ••••———————————————— 20%
 
-  Running "Dynamic": 1993.01.01 (96/481) (3.81 s)  ••••———————————————— 20%
+  Running "Dynamic": 1993.01.01 (96/481) (3.65 s)  ••••———————————————— 20%
 
-  Running "Static": 1994.01.01 (108/481) (4.27 s)  ••••———————————————— 23%
+  Running "Static": 1994.01.01 (108/481) (4.10 s)  ••••———————————————— 23%
 
-  Running "Dynamic": 1994.01.01 (108/481) (4.28 s)  ••••———————————————— 23%
+  Running "Dynamic": 1994.01.01 (108/481) (4.11 s)  ••••———————————————— 23%
 
-  Running "Static": 1995.01.01 (120/481) (4.73 s)  •••••——————————————— 25%
+  Running "Static": 1995.01.01 (120/481) (4.55 s)  •••••——————————————— 25%
 
-  Running "Dynamic": 1995.01.01 (120/481) (4.74 s)  •••••——————————————— 25%
+  Running "Dynamic": 1995.01.01 (120/481) (4.55 s)  •••••——————————————— 25%
 
-  Running "Static": 1996.01.01 (132/481) (5.19 s)  •••••——————————————— 28%
+  Running "Static": 1996.01.01 (132/481) (4.98 s)  •••••——————————————— 28%
 
-  Running "Dynamic": 1996.01.01 (132/481) (5.20 s)  •••••——————————————— 28%
+  Running "Dynamic": 1996.01.01 (132/481) (4.98 s)  •••••——————————————— 28%
 
-  Running "Static": 1997.01.01 (144/481) (5.66 s)  ••••••—————————————— 30%
+  Running "Static": 1997.01.01 (144/481) (5.41 s)  ••••••—————————————— 30%
 
-  Running "Dynamic": 1997.01.01 (144/481) (5.67 s)  ••••••—————————————— 30%
+  Running "Dynamic": 1997.01.01 (144/481) (5.40 s)  ••••••—————————————— 30%
 
-  Running "Static": 1998.01.01 (156/481) (6.11 s)  ••••••—————————————— 33%
+  Running "Static": 1998.01.01 (156/481) (5.83 s)  ••••••—————————————— 33%
 
-  Running "Dynamic": 1998.01.01 (156/481) (6.12 s)  ••••••—————————————— 33%
+  Running "Dynamic": 1998.01.01 (156/481) (5.83 s)  ••••••—————————————— 33%
 
-  Running "Static": 1999.01.01 (168/481) (6.54 s)  •••••••————————————— 35%
+  Running "Static": 1999.01.01 (168/481) (6.26 s)  •••••••————————————— 35%
 
-  Running "Dynamic": 1999.01.01 (168/481) (6.55 s)  •••••••————————————— 35%
+  Running "Dynamic": 1999.01.01 (168/481) (6.26 s)  •••••••————————————— 35%
 
-  Running "Static": 2000.01.01 (180/481) (6.98 s)  •••••••————————————— 38%
+  Running "Static": 2000.01.01 (180/481) (6.70 s)  •••••••————————————— 38%
 
-  Running "Dynamic": 2000.01.01 (180/481) (7.00 s)  •••••••————————————— 38%
+  Running "Dynamic": 2000.01.01 (180/481) (6.69 s)  •••••••————————————— 38%
 
-  Running "Static": 2001.01.01 (192/481) (7.44 s)  ••••••••———————————— 40%
+  Running "Static": 2001.01.01 (192/481) (7.13 s)  ••••••••———————————— 40%
 
-  Running "Dynamic": 2001.01.01 (192/481) (7.46 s)  ••••••••———————————— 40%
+  Running "Dynamic": 2001.01.01 (192/481) (7.12 s)  ••••••••———————————— 40%
 
-  Running "Static": 2002.01.01 (204/481) (7.90 s)  ••••••••———————————— 43%
+  Running "Static": 2002.01.01 (204/481) (7.57 s)  ••••••••———————————— 43%
 
-  Running "Dynamic": 2002.01.01 (204/481) (7.93 s)  ••••••••———————————— 43%
+  Running "Dynamic": 2002.01.01 (204/481) (7.57 s)  ••••••••———————————— 43%
 
-  Running "Static": 2003.01.01 (216/481) (8.37 s)  •••••••••——————————— 45%
+  Running "Static": 2003.01.01 (216/481) (8.04 s)  •••••••••——————————— 45%
 
-  Running "Dynamic": 2003.01.01 (216/481) (8.40 s)  •••••••••——————————— 45%
+  Running "Dynamic": 2003.01.01 (216/481) (8.02 s)  •••••••••——————————— 45%
 
-  Running "Static": 2004.01.01 (228/481) (8.84 s)  •••••••••——————————— 48%
+  Running "Static": 2004.01.01 (228/481) (8.51 s)  •••••••••——————————— 48%
 
-  Running "Dynamic": 2004.01.01 (228/481) (8.88 s)  •••••••••——————————— 48%
+  Running "Dynamic": 2004.01.01 (228/481) (8.49 s)  •••••••••——————————— 48%
 
-  Running "Static": 2005.01.01 (240/481) (9.32 s)  ••••••••••—————————— 50%
+  Running "Static": 2005.01.01 (240/481) (8.98 s)  ••••••••••—————————— 50%
 
-  Running "Dynamic": 2005.01.01 (240/481) (9.37 s)  ••••••••••—————————— 50%
+  Running "Dynamic": 2005.01.01 (240/481) (8.96 s)  ••••••••••—————————— 50%
 
-  Running "Static": 2006.01.01 (252/481) (9.80 s)  ••••••••••—————————— 53%
+  Running "Dynamic": 2006.01.01 (252/481) (9.42 s)  ••••••••••—————————— 53%
+  Running "Static": 2006.01.01 (252/481) (9.45 s)  ••••••••••—————————— 53%
 
-  Running "Dynamic": 2006.01.01 (252/481) (9.84 s)  ••••••••••—————————— 53%
 
-  Running "Static": 2007.01.01 (264/481) (10.28 s)  •••••••••••————————— 55%
+  Running "Dynamic": 2007.01.01 (264/481) (9.88 s)  •••••••••••————————— 55%
 
-  Running "Dynamic": 2007.01.01 (264/481) (10.32 s)  •••••••••••————————— 55%
+  Running "Static": 2007.01.01 (264/481) (9.91 s)  •••••••••••————————— 55%
 
-  Running "Static": 2008.01.01 (276/481) (10.77 s)  •••••••••••————————— 58%
+  Running "Static": 2008.01.01 (276/481) (10.39 s)  •••••••••••————————— 58%
 
-  Running "Dynamic": 2008.01.01 (276/481) (10.81 s)  •••••••••••————————— 58%
+  Running "Dynamic": 2008.01.01 (276/481) (10.36 s)  •••••••••••————————— 58%
 
-  Running "Static": 2009.01.01 (288/481) (11.26 s)  ••••••••••••———————— 60%
+  Running "Static": 2009.01.01 (288/481) (10.87 s)  ••••••••••••———————— 60%
+  Running "Dynamic": 2009.01.01 (288/481) (10.84 s)  ••••••••••••———————— 60%
 
-  Running "Dynamic": 2009.01.01 (288/481) (11.29 s)  ••••••••••••———————— 60%
 
-  Running "Static": 2010.01.01 (300/481) (11.73 s)  ••••••••••••———————— 63%
+  Running "Dynamic": 2010.01.01 (300/481) (11.30 s)  ••••••••••••———————— 63%
+  Running "Static": 2010.01.01 (300/481) (11.33 s)  ••••••••••••———————— 63%
 
-  Running "Dynamic": 2010.01.01 (300/481) (11.77 s)  ••••••••••••———————— 63%
 
-  Running "Static": 2011.01.01 (312/481) (12.21 s)  •••••••••••••——————— 65%
+  Running "Dynamic": 2011.01.01 (312/481) (11.77 s)  •••••••••••••——————— 65%
 
-  Running "Dynamic": 2011.01.01 (312/481) (12.24 s)  •••••••••••••——————— 65%
+  Running "Static": 2011.01.01 (312/481) (11.80 s)  •••••••••••••——————— 65%
 
-  Running "Static": 2012.01.01 (324/481) (12.69 s)  •••••••••••••——————— 68%
+  Running "Dynamic": 2012.01.01 (324/481) (12.25 s)  •••••••••••••——————— 68%
 
-  Running "Dynamic": 2012.01.01 (324/481) (12.72 s)  •••••••••••••——————— 68%
+  Running "Static": 2012.01.01 (324/481) (12.28 s)  •••••••••••••——————— 68%
 
-  Running "Static": 2013.01.01 (336/481) (13.17 s)  ••••••••••••••—————— 70%
+  Running "Dynamic": 2013.01.01 (336/481) (12.72 s)  ••••••••••••••—————— 70%
 
-  Running "Dynamic": 2013.01.01 (336/481) (13.20 s)  ••••••••••••••—————— 70%
+  Running "Static": 2013.01.01 (336/481) (12.75 s)  ••••••••••••••—————— 70%
 
-  Running "Static": 2014.01.01 (348/481) (13.66 s)  ••••••••••••••—————— 73%
+  Running "Dynamic": 2014.01.01 (348/481) (13.19 s)  ••••••••••••••—————— 73%
 
-  Running "Dynamic": 2014.01.01 (348/481) (13.69 s)  ••••••••••••••—————— 73%
+  Running "Static": 2014.01.01 (348/481) (13.22 s)  ••••••••••••••—————— 73%
 
-  Running "Static": 2015.01.01 (360/481) (14.14 s)  •••••••••••••••————— 75%
+  Running "Dynamic": 2015.01.01 (360/481) (13.67 s)  •••••••••••••••————— 75%
 
-  Running "Dynamic": 2015.01.01 (360/481) (14.18 s)  •••••••••••••••————— 75%
+  Running "Static": 2015.01.01 (360/481) (13.70 s)  •••••••••••••••————— 75%
 
-  Running "Static": 2016.01.01 (372/481) (14.66 s)  •••••••••••••••————— 78%
+  Running "Dynamic": 2016.01.01 (372/481) (14.15 s)  •••••••••••••••————— 78%
 
-  Running "Dynamic": 2016.01.01 (372/481) (14.69 s)  •••••••••••••••————— 78%
+  Running "Static": 2016.01.01 (372/481) (14.18 s)  •••••••••••••••————— 78%
 
-  Running "Static": 2017.01.01 (384/481) (15.14 s)  ••••••••••••••••———— 80%
+  Running "Static": 2017.01.01 (384/481) (14.65 s)  ••••••••••••••••———— 80%
 
-  Running "Dynamic": 2017.01.01 (384/481) (15.17 s)  ••••••••••••••••———— 80%
+  Running "Dynamic": 2017.01.01 (384/481) (14.63 s)  ••••••••••••••••———— 80%
 
-  Running "Static": 2018.01.01 (396/481) (15.63 s)  ••••••••••••••••———— 83%
+  Running "Static": 2018.01.01 (396/481) (15.13 s)  ••••••••••••••••———— 83%
 
-  Running "Dynamic": 2018.01.01 (396/481) (15.66 s)  ••••••••••••••••———— 83%
+  Running "Dynamic": 2018.01.01 (396/481) (15.11 s)  ••••••••••••••••———— 83%
 
-  Running "Static": 2019.01.01 (408/481) (16.11 s)  •••••••••••••••••——— 85%
+  Running "Static": 2019.01.01 (408/481) (15.61 s)  •••••••••••••••••——— 85%
 
-  Running "Dynamic": 2019.01.01 (408/481) (16.15 s)  •••••••••••••••••——— 85%
+  Running "Dynamic": 2019.01.01 (408/481) (15.59 s)  •••••••••••••••••——— 85%
 
-  Running "Static": 2020.01.01 (420/481) (16.61 s)  •••••••••••••••••——— 88%
+  Running "Static": 2020.01.01 (420/481) (16.10 s)  •••••••••••••••••——— 88%
 
-  Running "Dynamic": 2020.01.01 (420/481) (16.64 s)  •••••••••••••••••——— 88%
+  Running "Dynamic": 2020.01.01 (420/481) (16.08 s)  •••••••••••••••••——— 88%
 
-  Running "Static": 2021.01.01 (432/481) (17.11 s)  ••••••••••••••••••—— 90%
+  Running "Static": 2021.01.01 (432/481) (16.58 s)  ••••••••••••••••••—— 90%
 
-  Running "Dynamic": 2021.01.01 (432/481) (17.13 s)  ••••••••••••••••••—— 90%
+  Running "Dynamic": 2021.01.01 (432/481) (16.57 s)  ••••••••••••••••••—— 90%
 
-  Running "Static": 2022.01.01 (444/481) (17.60 s)  ••••••••••••••••••—— 93%
+  Running "Static": 2022.01.01 (444/481) (17.07 s)  ••••••••••••••••••—— 93%
 
-  Running "Dynamic": 2022.01.01 (444/481) (17.63 s)  ••••••••••••••••••—— 93%
+  Running "Dynamic": 2022.01.01 (444/481) (17.05 s)  ••••••••••••••••••—— 93%
 
-  Running "Static": 2023.01.01 (456/481) (18.09 s)  •••••••••••••••••••— 95%
+  Running "Static": 2023.01.01 (456/481) (17.56 s)  •••••••••••••••••••— 95%
 
-  Running "Dynamic": 2023.01.01 (456/481) (18.12 s)  •••••••••••••••••••— 95%
+  Running "Dynamic": 2023.01.01 (456/481) (17.54 s)  •••••••••••••••••••— 95%
 
-  Running "Static": 2024.01.01 (468/481) (18.59 s)  •••••••••••••••••••— 98%
+  Running "Static": 2024.01.01 (468/481) (18.04 s)  •••••••••••••••••••— 98%
 
-  Running "Dynamic": 2024.01.01 (468/481) (18.61 s)  •••••••••••••••••••— 98%
+  Running "Dynamic": 2024.01.01 (468/481) (18.03 s)  •••••••••••••••••••— 98%
 
-  Running "Static": 2025.01.01 (480/481) (19.08 s)  •••••••••••••••••••• 100%
+  Running "Static": 2025.01.01 (480/481) (18.54 s)  •••••••••••••••••••• 100%
 
 
-  Running "Dynamic": 2025.01.01 (480/481) (19.10 s)  •••••••••••••••••••• 100%
+  Running "Dynamic": 2025.01.01 (480/481) (18.52 s)  •••••••••••••••••••• 100%
 </code></pre>
 </div>
 </div>
@@ -916,7 +916,7 @@ Initializing sim "Dynamic" with 10000 agents
 <section id="visualize" class="level2">
 <h2 class="anchored" data-anchor-id="visualize">Visualize</h2>
 <p>Plot mean AFS by birth-year cohort for both scenarios and both sexes.</p>
-<div id="a60206bc" class="cell" data-execution_count="5">
+<div id="53062b46" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> sc.options.with_style(<span class="st">'fancy'</span>):</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">4</span>), sharey<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    colors <span class="op">=</span> {<span class="st">'Static'</span>: <span class="st">'#888'</span>, <span class="st">'Dynamic'</span>: <span class="st">'#d62728'</span>}</span>
