@@ -140,6 +140,10 @@ def desired_age_bucket(net):
 
     Duplicates the acceptance logic that MFNetwork.add_pairs runs after
     matching — accepted technical debt; see spec.
+
+    Uses its own ``np.random.default_rng`` (seeded from ``rand_seed + ti``)
+    rather than Starsim's CRN — reproducible per ``(rand_seed, ti)`` but not
+    branching-stable.
     """
     ppl = net.sim.people
     f_looking, m_eligible = net._get_eligible()
@@ -241,6 +245,10 @@ def greedy_old_enough(net):
 def band_match(net):
     """Bucket both groups into BAND_MATCH_WIDTH-year age bands;
     shuffle and zip within band.
+
+    Uses its own ``np.random.default_rng`` (seeded from ``rand_seed + ti``)
+    rather than Starsim's CRN — reproducible per ``(rand_seed, ti)`` but not
+    branching-stable.
     """
     ppl = net.sim.people
     f_looking, m_eligible = net._get_eligible()
