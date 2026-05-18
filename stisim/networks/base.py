@@ -40,7 +40,8 @@ class NetworkPars(ss.Pars):
     """
     def __init__(self, **kwargs):
         super().__init__()
-        from ._legacy_full import MFPars, SWPars
+        from .mf import MFPars
+        from .fsw import SWPars
         for src in (BasePars(), MFPars(), SWPars()):
             self.update(dict(src), create=True)
         self.update(kwargs)
@@ -90,7 +91,7 @@ class BaseNetwork(ss.SexualNetwork):
     def init_pre(self, sim):
         super().init_pre(sim)
         if self.pars.recall_prior:
-            from ._legacy_full import PriorPartners
+            from .layered_networks import PriorPartners
             isprior = [isinstance(nw, PriorPartners) for nw in self.sim.networks.values()]
             if not any(isprior):
                 raise ValueError('PriorPartners network is required if recall_prior is True.')
