@@ -11,6 +11,8 @@ from .mf import MFPars, MFNetwork
 from .fsw import SWPars, SWNetwork
 from .msm import AgeMatchedMSM, AgeApproxMSM
 from .layered_networks import StructuredSexual, PriorPartners
+from . import matchers
+from .matchers import MATCHERS
 
 __all__ = [
     'NoPartnersFound', 'BasePars', 'NetworkPars', 'BaseNetwork',
@@ -18,4 +20,5 @@ __all__ = [
     'SWPars', 'SWNetwork',
     'AgeMatchedMSM', 'AgeApproxMSM',
     'StructuredSexual', 'PriorPartners',
+    'MATCHERS',
 ]
