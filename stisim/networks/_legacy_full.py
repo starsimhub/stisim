@@ -25,7 +25,7 @@ ss_int = ss.dtypes.int
 # Specify all externally visible functions this file defines; see also more definitions below
 __all__ = ['NetworkPars', 'BasePars', 'MFPars', 'SWPars',
            'StructuredSexual', 'BaseNetwork', 'MFNetwork', 'SWNetwork',
-           'PriorPartners', 'AgeMatchedMSM', 'AgeApproxMSM']
+           'PriorPartners', 'AgeMatchedMSM', 'AgeApproxMSM', 'NoPartnersFound']
 
 
 class NoPartnersFound(Exception):
