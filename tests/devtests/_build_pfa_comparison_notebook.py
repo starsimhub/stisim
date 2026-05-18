@@ -177,10 +177,9 @@ _heatmap_grid(by, methods, rel_types, f'Prevalence: active pairs at sim end, MF 
 cells.append(nbf.v4.new_markdown_cell("""\
 ## Figure 3c: sex-work network age mixing (shown only if SW records exist)
 
-The generic block uses bare `MFNetwork_*` variants which have no SW layer, so
-this figure is empty for the generic results. For Zimbabwe / Eswatini blocks
-the SW network is active and you'd see different (client × FSW) age dynamics
-here."""))
+The generic block uses bare `MFNetwork` (no SW layer), so this figure is empty
+for the generic results. For Zimbabwe / Eswatini blocks the SW network is
+active and you'd see different (client × FSW) age dynamics here."""))
 
 cells.append(nbf.v4.new_code_cell("""\
 by_inc, methods_inc, rt_inc, _ = _collect('pair_formation_ages', ('sw',))
@@ -190,15 +189,15 @@ if rt_inc:
 if rt_prev:
     _heatmap_grid(by_prev, methods_prev, rt_prev, 'SW prevalence (at sim end)')
 if not rt_inc and not rt_prev:
-    print('No SW edges in this run (generic block uses bare MFNetwork variants).')"""))
+    print('No SW edges in this run (generic block uses bare MFNetwork).')"""))
 
 cells.append(nbf.v4.new_markdown_cell("""\
 ## Figure 4: Zimbabwe age mixing (calibrated context)
 
-The generic block runs with bare `MFNetwork_*` variants. Zimbabwe uses the
-full `StructuredSexual` (MF + SW) and a calibrated HIV module. The same
-incidence vs prevalence pattern should appear but is more pronounced because
-the calibrated sim runs longer and has more pairs to draw on."""))
+The generic block runs with bare `MFNetwork` (one match_method per run).
+Zimbabwe uses the full `StructuredSexual` (MF + SW) and a calibrated HIV
+module. The same incidence vs prevalence pattern should appear but is more
+pronounced because the calibrated sim runs longer and has more pairs to draw on."""))
 
 cells.append(nbf.v4.new_code_cell("""\
 if not hasattr(results, 'zimbabwe') or not results.zimbabwe:
