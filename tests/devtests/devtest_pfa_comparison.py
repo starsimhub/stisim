@@ -27,14 +27,15 @@ from pfa_diagnostics import (  # noqa: E402
 )
 
 
+# (display name, match_method string key into matchers.MATCHERS)
 VARIANTS = [
-    ('SortBisect',       sti.MFNetwork_SortBisect),
-    ('SortPair',         sti.MFNetwork_SortPair),
-    ('LSA',              sti.MFNetwork_LSA),
-    ('DesiredAgeBucket', sti.MFNetwork_DesiredAgeBucket),
-    ('GreedyOldEnough',  sti.MFNetwork_GreedyOldEnough),
-    ('KDTreeNN',         sti.MFNetwork_KDTreeNN),
-    ('BandMatch',        sti.MFNetwork_BandMatch),
+    ('SortBisect',       'sort_bisect'),
+    ('SortPair',         'sort_pair'),
+    ('LSA',              'lsa'),
+    ('DesiredAgeBucket', 'desired_age_bucket'),
+    ('GreedyOldEnough',  'greedy_old_enough'),
+    ('KDTreeNN',         'kdtree_nn'),
+    ('BandMatch',        'band_match'),
 ]
 
 LSA_MAX_N = 5_000
@@ -44,7 +45,7 @@ def run_generic(n_agents_list, n_reps, sim_years):
     """Generic benchmark on ss.Sim + MFNetwork variant + HIV."""
     results = sc.objdict()
     for n in n_agents_list:
-        for name, cls in VARIANTS:
+        for name, method in VARIANTS:
             if name == 'LSA' and n > LSA_MAX_N:
                 print(f'  skipping LSA at n={n} (capped at {LSA_MAX_N})')
                 continue
@@ -55,7 +56,7 @@ def run_generic(n_agents_list, n_reps, sim_years):
                     n_agents=n,
                     start='2000-01-01',
                     stop=f'{2000+sim_years}-01-01',
-                    networks=cls(),
+                    networks=sti.MFNetwork(match_method=method),
                     diseases=sti.HIV(),
                     analyzers=[
                         PartnersLastYearAnalyzer(),
@@ -81,50 +82,25 @@ def run_generic(n_agents_list, n_reps, sim_years):
     return results
 
 
-def make_variant_class(variant_cls):
-    """Build a StructuredSexual subclass that adopts ``variant_cls``'s match_pairs
-    plus any non-dunder class-level attributes (e.g. ``BandMatch.band_width``).
-
-    The Zimbabwe HIV module hard-codes ``sim.networks.structuredsexual`` lookups
-    (see stisim/diseases/sti.py make_init_prev), so we can't swap in a bare
-    MFNetwork_* — we need a StructuredSexual subclass that keeps the
-    ``structuredsexual`` name and the SW/risk-group plumbing.
-    """
-    attrs = {k: v for k, v in vars(variant_cls).items() if not k.startswith('__')}
-    return type(
-        f'StructuredSexual_{variant_cls.__name__}',
-        (sti.StructuredSexual,),
-        attrs,
-    )
-
-
 def run_zimbabwe(n_reps, n_agents=10_000, checkpoint=None):
     """Calibrated benchmark on hivsim.demo('zimbabwe')."""
     import hivsim  # noqa: F401  (used to register hivsim_examples.zimbabwe with sc.importbyname)
     results = sc.objdict()
-    for name, cls in VARIANTS:
+    for name, method in VARIANTS:
         if name == 'LSA':
             continue  # too slow for full hivsim runs
-        VariantNet = make_variant_class(cls)
         for rep in range(n_reps):
             key = (name, 'zimbabwe', rep)
             print(f'Running {key} ...')
             sim = hivsim.demo('zimbabwe', run=False, plot=False, n_agents=n_agents)
-            orig_idx = None
             orig_net = None
-            for i, net in enumerate(sim.pars['networks']):
+            for net in sim.pars['networks']:
                 if isinstance(net, sti.StructuredSexual):
-                    orig_idx = i
                     orig_net = net
                     break
-            if orig_idx is None:
+            if orig_net is None:
                 raise RuntimeError('No StructuredSexual found in hivsim.demo(zimbabwe) networks')
-            new_net = VariantNet(
-                pars=sc.dcp(dict(orig_net.pars)),
-                condom_data=getattr(orig_net, 'condom_data', None),
-                name='structuredsexual',
-            )
-            sim.pars['networks'][orig_idx] = new_net
+            orig_net.pars.match_method = method
             sim.pars['rand_seed'] = rep
             sim.pars['analyzers'] = list(sim.pars.get('analyzers') or []) + [
                 PartnersLastYearAnalyzer(),
