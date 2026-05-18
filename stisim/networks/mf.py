@@ -95,6 +95,9 @@ class MFPars(ss.Pars):
         self.age_diffs = ss.normal()
         self.dur_dist = ss.lognorm_ex()
 
+        # Pair-formation algorithm: string key in matchers.MATCHERS, or a callable.
+        self.match_method = 'kdtree_nn'
+
         self.update(kwargs)
         return
 
@@ -216,65 +219,16 @@ class MFNetwork(BaseNetwork):
         return self.sim.people.age[f_looking] + age_gaps
 
     def match_pairs(self):
-        """Match pairs by age, using sorting and bisect-trim of the support tails."""
-        ppl = self.sim.people
-        f_looking, m_eligible = self._get_eligible()
-        desired_ages = self._sample_desired_ages(f_looking)
-        m_ages = ppl.age[m_eligible]
-        ind_m = np.argsort(m_ages, stable=True)
-        ind_f = np.argsort(desired_ages, stable=True)
+        """Dispatch to the matcher named by ``pars.match_method``.
 
-        # If there are no agents in either group, return empty arrays
-        if len(ind_m) == 0 or len(ind_f) == 0:
-            raise NoPartnersFound()
-
-        # drop all males that are younger than one standard deviation below the lowest desired age.
-        youngest_preferred_male_age = desired_ages[ind_f[0]]
-        youngest_male_age = m_ages[ind_m[0]]
-
-        if youngest_male_age < youngest_preferred_male_age:
-            # remove the youngest males until the youngest is at least as old as the youngest preferred
-            cutoff_index = bisect_left(m_ages[ind_m], youngest_preferred_male_age)
-            ind_m = ind_m[cutoff_index:]
-
-        elif youngest_preferred_male_age < youngest_male_age:
-            # remove the youngest females until the youngest preferred is at least as old as the youngest male
-            cutoff_index = bisect_left(desired_ages[ind_f], youngest_male_age)
-            ind_f = ind_f[cutoff_index:]
-
-        # Check again for empty arrays after filtering
-        if len(ind_m) == 0 or len(ind_f) == 0:
-            raise NoPartnersFound()
-
-        # Check the upper limit of the age spectrum
-        oldest_preferred_male_age = desired_ages[ind_f[-1]]
-        oldest_male_age = m_ages[ind_m[-1]]
-
-        if oldest_male_age > oldest_preferred_male_age:
-            cutoff_index = bisect_left(m_ages[ind_m], oldest_preferred_male_age)
-            ind_m = ind_m[:cutoff_index]
-
-        elif oldest_preferred_male_age > oldest_male_age:
-            cutoff_index = bisect_left(desired_ages[ind_f], oldest_male_age)
-            ind_f = ind_f[:cutoff_index]
-
-        # draw n samples from the larger of the two groups, where n is the number of samples in the smaller group
-        if len(ind_m) < len(ind_f):
-            ind_f_subset = np.random.choice(len(ind_f), size=len(ind_m), replace=False)
-            ind_f_subset.sort()
-            ind_f = ind_f[ind_f_subset]
-        elif len(ind_f) < len(ind_m):
-            ind_m_subset = np.random.choice(len(ind_m), size=len(ind_f), replace=False)
-            ind_m_subset.sort()
-            ind_m = ind_m[ind_m_subset]
-
-        if len(ind_m) == 0 or len(ind_f) == 0:
-            raise NoPartnersFound()
-
-        p1 = m_eligible.uids[ind_m]
-        p2 = f_looking[ind_f]
-
-        return p1, p2
+        ``match_method`` is either a string key in ``matchers.MATCHERS``
+        or a callable ``f(net) -> (p1, p2)``. See ``matchers.py``.
+        """
+        from .matchers import MATCHERS
+        m = self.pars.match_method
+        if callable(m):
+            return m(self)
+        return MATCHERS[m](self)
 
     def add_pairs(self):
         """ Match and add stable/casual/onetime partnerships for this timestep. Assigns relationship type, duration, and acts based on risk group and age, and updates partner counts. """
