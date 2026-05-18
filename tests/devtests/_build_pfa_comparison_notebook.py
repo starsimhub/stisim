@@ -253,7 +253,7 @@ fig.suptitle(f'Lifetime partner distribution by sex (n_agents={n_max})')
 plt.tight_layout()
 plt.show()
 
-print('\\nMean and 95th percentile of lifetime partners, by method × sex (n=10k):')
+print('\\nLifetime partners among ever-partnered (lp >= 1), by method x sex (n=10k):')
 rows = []
 for method in all_methods:
     for sex_label, want_male in [('M', True), ('F', False)]:
@@ -262,12 +262,14 @@ for method in all_methods:
             if m == method and n == n_max and 'sex_male' in v:
                 lp = np.asarray(v.lifetime_partners)
                 mask = np.asarray(v.sex_male) if want_male else ~np.asarray(v.sex_male)
-                vals.extend(lp[mask])
+                vals.extend(lp[mask][lp[mask] >= 1])
         if vals:
             arr = np.asarray(vals)
             rows.append({'method': method, 'sex': sex_label,
-                         'mean': arr.mean(), 'p95': np.percentile(arr, 95),
-                         'pct_with_0': (arr == 0).mean()*100})
+                         'n_partnered': len(arr),
+                         'mean': arr.mean(),
+                         'p95':  np.percentile(arr, 95),
+                         'max':  int(arr.max())})
 print(pd.DataFrame(rows).round(2).to_string(index=False))"""))
 
 cells.append(nbf.v4.new_markdown_cell("""\
