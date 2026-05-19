@@ -43,6 +43,81 @@ HIV in STIsim is modeled with CD4-based disease progression through acute, laten
              └─────────────────────────────────┘
 ```
 
+## States and transitions with Treatment
+
+```
+                       ┌─────────────────┐
+                       │   Susceptible   │
+                       └────────┬────────┘
+                                │ infection (beta_m2f × rel_beta_f2m)
+                                │ condom use, VMMC reduce transmission here
+                                ▼
+                       ┌─────────────────┐
+                       │      Acute      │  CD4 declines from ~800 → ~500 (linear decline)
+                       │    (~3 mo)      │  rel_trans: 6× baseline
+                       └────────┬────────┘
+                                │                         ╔══════════════════════════╗
+                                │    ┌────────────────────║   ART initiation can     ║
+                                │    │  ART (testing      ║   occur from Acute,      ║
+                                │    │   + diagnosis      ║   Latent, or Falling.    ║
+                                │    │   required)        ║   Nullifies all pending  ║
+                                ▼    │                    ║   stage transitions.     ║
+                       ┌─────────────────┐                ╚══════════════════════════╝     
+                       │     Latent      │
+                       │    (~10 yr)     │
+                       │  CD4 stable     │
+                       │  at ~500        │
+                       │  rel_trans: 1×  │
+                       └────────┬────────┘
+                                │
+              ┌─────────────────┤
+              │  no treatment   │  diagnosis + ART initiation
+              ▼                 ▼
+     ┌─────────────────┐   ┌─────────────────┐
+     │    Falling      │   │    On ART       │  CD4 reconstitutes (logistic)
+     │    (~3 yr)      │──▶│    (~3 yr ×     │  toward cd4_potential ceiling
+     │  CD4: ~500 → 0  │   │  rel_dur_on_art)│  rel_trans: 0.04× baseline
+     │  rel_trans: 8×  │   │                 │  (96% reduction, ramps over 6mo)
+     └────────┬────────┘   └────────┬────────┘
+              │                     │ ART dropout
+              │                     │ (stochastic, dur_on_art ~ LogNormal)
+              │                     ▼
+              │            ┌─────────────────┐
+              │            │    Post-ART     │  CD4 declines linearly → 0
+              │            │                 │  Rate depends on CD4 at dropout
+              │            │                 │  and cd4_potential
+              │            └────────┬────────┘
+              │                     │
+              ▼                     ▼
+     ┌─────────────────────────────────────────┐
+     │                AIDS death               │
+     │   Deterministic: CD4 reaches 0 (ti_zero)│
+     │   Stochastic: p_death(CD4) per timestep │
+     │     CD4 > 350: 0.3%/yr                  │
+     │     200–350:   0.5%/yr                  │
+     │     50–200:    1.0%/yr                  │
+     │     0–50:      5.0%/yr                  │
+     │     ~0:       30.0%/yr                  │
+     │   (untreated agents only)               │
+     └─────────────────────────────────────────┘
+```
+
+### Notes on ART
+
+- ART can be initiated from **any** infected stage (Acute, Latent, or Falling)
+- On initiation: all pending stage transitions (`ti_latent`, `ti_falling`, `ti_zero`) are cleared for future events
+- ART duration is drawn per-agent: `dur_on_art ~ LogNormal(3yr, 1.5yr) × rel_dur_on_art`
+  - `rel_dur_on_art` is a calibrated scalar (range 1–20) that stretches mean duration
+- After dropout, `ti_zero` is redrawn based on CD4 at dropout and `cd4_potential`
+- **No age or sex dependence** anywhere in natural history, mortality, or ART effects
+
+### What is not modeled
+
+- Viral load / viral suppression (ART = fully suppressed, binary)
+- Age-varying progression rates or mortality
+- Sex-varying natural history
+- Re-infection or superinfection
+
 ## Parameters
 
 ### Natural history
