@@ -765,7 +765,7 @@ class MFNetwork(BaseNetwork):
         return np.array(matched_m, dtype=int), np.array(matched_f, dtype=int)
 
     @staticmethod
-    def _searchsorted_loop_closest(sorted_m_ages, sorted_desired, max_deviation=None):
+    def _searchsorted_loop_closest(sorted_m_ages, sorted_desired):
         """Variant of :func:`_two_pointer_loop_py_closest` that hoists the
         per-iteration ``bisect_left`` into a single vectorized
         ``np.searchsorted`` call before the loop.
@@ -781,7 +781,7 @@ class MFNetwork(BaseNetwork):
             return np.array([], dtype=int), np.array([], dtype=int)
         lower_bounds = np.searchsorted(sorted_m_ages, sorted_desired, side='left')
         j = lower_bounds[0]
-        last_j_selected = j
+        last_j_selected = j-1
         matched_f, matched_m = [], []
         for i in range(n_females):
             target_age = sorted_desired[i]
@@ -797,8 +797,6 @@ class MFNetwork(BaseNetwork):
                 # take the next male, j (cannot pick j-1)
                 selected_j = j
 
-            if max_deviation is not None and (np.abs(target_age - sorted_m_ages[selected_j])) > max_deviation:
-                break  # no reasonable male option for this female
             matched_m.append(selected_j)
             last_j_selected = selected_j
             j = selected_j + 1
@@ -893,6 +891,7 @@ class MFNetwork(BaseNetwork):
         active = self.over_debut
         underpartnered = self.partners < self.concurrency
         f_eligible = active & ppl.female & underpartnered
+
         m_eligible = active & ppl.male & underpartnered
         f_looking = self.pars.p_pair_form.filter(f_eligible.uids)
 
@@ -901,24 +900,35 @@ class MFNetwork(BaseNetwork):
 
         loc, scale = self.get_age_risk_pars(f_looking, self.pars.age_diff_pars)
         self.pars.age_diffs.set(loc=loc, scale=scale)
-        max_allowed_deviation = 2 * np.max(scale)  # 2 * max_sd
+        max_allowed_age_delta = np.max(loc + 2*scale)  # 2 * max_sd
 
         age_gaps = self.pars.age_diffs.rvs(f_looking)
         desired_ages = ppl.age[f_looking] + age_gaps
         m_ages = ppl.age[m_eligible]
 
+        # indicies of eligible male/females that would sort them
         ind_m = np.argsort(m_ages, stable=True)
         ind_f = np.argsort(desired_ages, stable=True)
+        # sorting ages for matching by these indicies
         sorted_m_ages = m_ages[ind_m]
         sorted_desired = desired_ages[ind_f]
 
-        matched_m, matched_f = self._searchsorted_loop_closest(sorted_m_ages, sorted_desired, max_deviation=max_allowed_deviation)
+        # Returns indicies of sorted_m_ages and sorted_desired that are matching.
+        matched_m, matched_f = self._searchsorted_loop_closest(sorted_m_ages, sorted_desired)
+
+        m_uids1 = m_eligible.uids[ind_m[matched_m]]
+        f_uids1 = f_looking[ind_f[matched_f]]
+
+        # remove agents where age gap exceeds max_alowed_deviation
+        indicies = (abs((ppl.age[m_uids1] - ppl.age[f_uids1])) <= max_allowed_age_delta)
+        m_uids = m_uids1[indicies]
+        f_uids = f_uids1[indicies]
 
         if len(matched_f) == 0:
             raise NoPartnersFound()
 
-        return (m_eligible.uids[ind_m[matched_m]],
-                f_looking[ind_f[matched_f]])
+        # backing out the matched agent uids for return
+        return (m_uids, f_uids)
 
     def add_pairs(self):
         """ Match and add stable/casual/onetime partnerships for this timestep. Assigns relationship type, duration, and acts based on risk group and age, and updates partner counts. """
