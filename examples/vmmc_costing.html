@@ -428,7 +428,7 @@ window.Quarto = {
 <p>This example shows how to run a much-simplified version of that kind of analysis in STIsim: build with-/without-VMMC scenarios, attach unit costs, discount, and compute an incremental cost-effectiveness ratio (ICER). We then compare our ballpark to the published range. The same recipe works for any STIsim intervention.</p>
 <section id="setup" class="level2">
 <h2 class="anchored" data-anchor-id="setup">Setup</h2>
-<div id="ee537248" class="cell" data-execution_count="1">
+<div id="00ce4d55" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sciris <span class="im">as</span> sc</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> starsim <span class="im">as</span> ss</span>
@@ -442,7 +442,7 @@ window.Quarto = {
 <section id="costing-assumptions" class="level2">
 <h2 class="anchored" data-anchor-id="costing-assumptions">Costing assumptions</h2>
 <p>Matched to Bansi-Matharu et al.&nbsp;where possible. The lifetime HIV cost is a stand-in for the DALY-weighted health and treatment burden of an infection and is used only as a back-of-envelope cost-saving benchmark.</p>
-<div id="9b0efcb9" class="cell" data-execution_count="2">
+<div id="19dcd87c" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>unit_cost_vmmc      <span class="op">=</span> <span class="dv">90</span>     <span class="co"># USD per procedure (Bansi-Matharu et al. 2022)</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>unit_cost_infection <span class="op">=</span> <span class="dv">3_000</span>  <span class="co"># USD per averted HIV infection (illustrative)</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>discount_rate       <span class="op">=</span> <span class="fl">0.03</span>   <span class="co"># 3% per year (standard)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -451,7 +451,7 @@ window.Quarto = {
 <section id="building-the-sims" class="level2">
 <h2 class="anchored" data-anchor-id="building-the-sims">Building the sims</h2>
 <p>We use the <code>hivsim</code> simple demo with <code>StructuredSexual</code> (heterosexual network with FSW/clients) so HIV transmission is sustained. The paper compares “continue VMMC for 5 more years” against “no further VMMC” starting from existing coverage; we approximate this by scaling VMMC from 0 to 60% coverage over the simulation window in the intervention scenario, and zero coverage in the comparator.</p>
-<div id="f8212187" class="cell" data-execution_count="3">
+<div id="93671d05" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>sim_kwargs <span class="op">=</span> <span class="bu">dict</span>(</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    n_agents<span class="op">=</span><span class="dv">5_000</span>, dur<span class="op">=</span><span class="dv">20</span>, start<span class="op">=</span><span class="dv">2005</span>, verbose<span class="op">=-</span><span class="dv">1</span>,</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    init_prev<span class="op">=</span><span class="fl">0.05</span>, beta_m2f<span class="op">=</span><span class="fl">0.05</span>,</span>
@@ -475,7 +475,7 @@ window.Quarto = {
 </section>
 <section id="running-scenarios" class="level2">
 <h2 class="anchored" data-anchor-id="running-scenarios">Running scenarios</h2>
-<div id="a5b6cd0e" class="cell" data-execution_count="4">
+<div id="827c1921" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>sims <span class="op">=</span> ss.parallel([make_sim(use_vmmc<span class="op">=</span><span class="va">False</span>), make_sim(use_vmmc<span class="op">=</span><span class="va">True</span>)]).sims</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> {sim.label: sim <span class="cf">for</span> sim <span class="kw">in</span> sims}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -486,86 +486,86 @@ Initializing sim "With VMMC" with 5000 agents
 
   Running "With VMMC": 2005.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
 
-  Running "No VMMC": 2006.01.01 (12/241) (0.57 s)  •——————————————————— 5%
+  Running "No VMMC": 2006.01.01 (12/241) (0.60 s)  •——————————————————— 5%
 
-  Running "With VMMC": 2006.01.01 (12/241) (0.58 s)  •——————————————————— 5%
+  Running "With VMMC": 2006.01.01 (12/241) (0.62 s)  •——————————————————— 5%
 
-  Running "No VMMC": 2007.01.01 (24/241) (0.94 s)  ••—————————————————— 10%
+  Running "No VMMC": 2007.01.01 (24/241) (0.98 s)  ••—————————————————— 10%
 
-  Running "With VMMC": 2007.01.01 (24/241) (0.94 s)  ••—————————————————— 10%
+  Running "With VMMC": 2007.01.01 (24/241) (1.01 s)  ••—————————————————— 10%
 
-  Running "No VMMC": 2008.01.01 (36/241) (1.31 s)  •••————————————————— 15%
+  Running "No VMMC": 2008.01.01 (36/241) (1.37 s)  •••————————————————— 15%
 
-  Running "With VMMC": 2008.01.01 (36/241) (1.31 s)  •••————————————————— 15%
+  Running "With VMMC": 2008.01.01 (36/241) (1.40 s)  •••————————————————— 15%
 
-  Running "No VMMC": 2009.01.01 (48/241) (1.67 s)  ••••———————————————— 20%
+  Running "No VMMC": 2009.01.01 (48/241) (1.76 s)  ••••———————————————— 20%
 
-  Running "With VMMC": 2009.01.01 (48/241) (1.68 s)  ••••———————————————— 20%
+  Running "With VMMC": 2009.01.01 (48/241) (1.80 s)  ••••———————————————— 20%
 
-  Running "No VMMC": 2010.01.01 (60/241) (2.04 s)  •••••——————————————— 25%
+  Running "No VMMC": 2010.01.01 (60/241) (2.14 s)  •••••——————————————— 25%
 
-  Running "With VMMC": 2010.01.01 (60/241) (2.05 s)  •••••——————————————— 25%
+  Running "With VMMC": 2010.01.01 (60/241) (2.20 s)  •••••——————————————— 25%
 
-  Running "No VMMC": 2011.01.01 (72/241) (2.41 s)  ••••••—————————————— 30%
+  Running "No VMMC": 2011.01.01 (72/241) (2.54 s)  ••••••—————————————— 30%
 
-  Running "With VMMC": 2011.01.01 (72/241) (2.42 s)  ••••••—————————————— 30%
+  Running "With VMMC": 2011.01.01 (72/241) (2.61 s)  ••••••—————————————— 30%
 
-  Running "No VMMC": 2012.01.01 (84/241) (2.79 s)  •••••••————————————— 35%
+  Running "No VMMC": 2012.01.01 (84/241) (2.93 s)  •••••••————————————— 35%
 
-  Running "With VMMC": 2012.01.01 (84/241) (2.81 s)  •••••••————————————— 35%
+  Running "With VMMC": 2012.01.01 (84/241) (3.02 s)  •••••••————————————— 35%
 
-  Running "No VMMC": 2013.01.01 (96/241) (3.15 s)  ••••••••———————————— 40%
+  Running "No VMMC": 2013.01.01 (96/241) (3.32 s)  ••••••••———————————— 40%
 
-  Running "With VMMC": 2013.01.01 (96/241) (3.18 s)  ••••••••———————————— 40%
+  Running "With VMMC": 2013.01.01 (96/241) (3.43 s)  ••••••••———————————— 40%
 
-  Running "No VMMC": 2014.01.01 (108/241) (3.51 s)  •••••••••——————————— 45%
+  Running "No VMMC": 2014.01.01 (108/241) (3.71 s)  •••••••••——————————— 45%
 
-  Running "With VMMC": 2014.01.01 (108/241) (3.54 s)  •••••••••——————————— 45%
+  Running "With VMMC": 2014.01.01 (108/241) (3.82 s)  •••••••••——————————— 45%
 
-  Running "No VMMC": 2015.01.01 (120/241) (3.87 s)  ••••••••••—————————— 50%
+  Running "No VMMC": 2015.01.01 (120/241) (4.11 s)  ••••••••••—————————— 50%
 
-  Running "With VMMC": 2015.01.01 (120/241) (3.91 s)  ••••••••••—————————— 50%
+  Running "With VMMC": 2015.01.01 (120/241) (4.23 s)  ••••••••••—————————— 50%
 
-  Running "No VMMC": 2016.01.01 (132/241) (4.24 s)  •••••••••••————————— 55%
+  Running "No VMMC": 2016.01.01 (132/241) (4.50 s)  •••••••••••————————— 55%
 
-  Running "With VMMC": 2016.01.01 (132/241) (4.29 s)  •••••••••••————————— 55%
+  Running "With VMMC": 2016.01.01 (132/241) (4.64 s)  •••••••••••————————— 55%
 
-  Running "No VMMC": 2017.01.01 (144/241) (4.60 s)  ••••••••••••———————— 60%
+  Running "No VMMC": 2017.01.01 (144/241) (4.91 s)  ••••••••••••———————— 60%
 
-  Running "With VMMC": 2017.01.01 (144/241) (4.67 s)  ••••••••••••———————— 60%
+  Running "With VMMC": 2017.01.01 (144/241) (5.05 s)  ••••••••••••———————— 60%
 
-  Running "No VMMC": 2018.01.01 (156/241) (4.97 s)  •••••••••••••——————— 65%
+  Running "No VMMC": 2018.01.01 (156/241) (5.30 s)  •••••••••••••——————— 65%
 
-  Running "With VMMC": 2018.01.01 (156/241) (5.04 s)  •••••••••••••——————— 65%
+  Running "With VMMC": 2018.01.01 (156/241) (5.46 s)  •••••••••••••——————— 65%
 
-  Running "No VMMC": 2019.01.01 (168/241) (5.34 s)  ••••••••••••••—————— 70%
+  Running "No VMMC": 2019.01.01 (168/241) (5.71 s)  ••••••••••••••—————— 70%
 
-  Running "With VMMC": 2019.01.01 (168/241) (5.41 s)  ••••••••••••••—————— 70%
+  Running "With VMMC": 2019.01.01 (168/241) (5.88 s)  ••••••••••••••—————— 70%
 
-  Running "No VMMC": 2020.01.01 (180/241) (5.71 s)  •••••••••••••••————— 75%
+  Running "No VMMC": 2020.01.01 (180/241) (6.12 s)  •••••••••••••••————— 75%
 
-  Running "With VMMC": 2020.01.01 (180/241) (5.78 s)  •••••••••••••••————— 75%
+  Running "With VMMC": 2020.01.01 (180/241) (6.29 s)  •••••••••••••••————— 75%
 
-  Running "No VMMC": 2021.01.01 (192/241) (6.10 s)  ••••••••••••••••———— 80%
+  Running "No VMMC": 2021.01.01 (192/241) (6.52 s)  ••••••••••••••••———— 80%
 
-  Running "With VMMC": 2021.01.01 (192/241) (6.16 s)  ••••••••••••••••———— 80%
+  Running "With VMMC": 2021.01.01 (192/241) (6.69 s)  ••••••••••••••••———— 80%
 
-  Running "No VMMC": 2022.01.01 (204/241) (6.47 s)  •••••••••••••••••——— 85%
+  Running "No VMMC": 2022.01.01 (204/241) (6.92 s)  •••••••••••••••••——— 85%
 
-  Running "With VMMC": 2022.01.01 (204/241) (6.53 s)  •••••••••••••••••——— 85%
+  Running "With VMMC": 2022.01.01 (204/241) (7.08 s)  •••••••••••••••••——— 85%
 
-  Running "No VMMC": 2023.01.01 (216/241) (6.86 s)  ••••••••••••••••••—— 90%
+  Running "No VMMC": 2023.01.01 (216/241) (7.33 s)  ••••••••••••••••••—— 90%
 
-  Running "With VMMC": 2023.01.01 (216/241) (6.94 s)  ••••••••••••••••••—— 90%
+  Running "With VMMC": 2023.01.01 (216/241) (7.50 s)  ••••••••••••••••••—— 90%
 
-  Running "No VMMC": 2024.01.01 (228/241) (7.25 s)  •••••••••••••••••••— 95%
+  Running "No VMMC": 2024.01.01 (228/241) (7.75 s)  •••••••••••••••••••— 95%
 
-  Running "With VMMC": 2024.01.01 (228/241) (7.32 s)  •••••••••••••••••••— 95%
+  Running "With VMMC": 2024.01.01 (228/241) (7.92 s)  •••••••••••••••••••— 95%
 
-  Running "No VMMC": 2025.01.01 (240/241) (7.65 s)  •••••••••••••••••••• 100%
+  Running "No VMMC": 2025.01.01 (240/241) (8.19 s)  •••••••••••••••••••• 100%
 
 
-  Running "With VMMC": 2025.01.01 (240/241) (7.74 s)  •••••••••••••••••••• 100%
+  Running "With VMMC": 2025.01.01 (240/241) (8.37 s)  •••••••••••••••••••• 100%
 </code></pre>
 </div>
 </div>
@@ -573,7 +573,7 @@ Initializing sim "With VMMC" with 5000 agents
 <section id="per-timestep-counts" class="level2">
 <h2 class="anchored" data-anchor-id="per-timestep-counts">Per-timestep counts</h2>
 <p>VMMC publishes <code>new_circumcisions</code> each timestep; HIV publishes <code>new_infections</code>. Those are the only quantities we need.</p>
-<div id="463ab3b6" class="cell" data-execution_count="5">
+<div id="37674e43" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>vmmc_sim <span class="op">=</span> results[<span class="st">'With VMMC'</span>]</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>yearvec  <span class="op">=</span> vmmc_sim.t.yearvec</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>new_circ <span class="op">=</span> vmmc_sim.results.vmmc.new_circumcisions</span>
@@ -592,14 +592,14 @@ New HIV infections, With VMMC:  852</code></pre>
 <section id="discounting" class="level2">
 <h2 class="anchored" data-anchor-id="discounting">Discounting</h2>
 <p>A 3% annual discount rate gives a per-timestep weight of <code>1 / (1 + r) ** (year - year0)</code>.</p>
-<div id="26420052" class="cell" data-execution_count="6">
+<div id="7de4461b" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>year0 <span class="op">=</span> yearvec[<span class="dv">0</span>]</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>discount <span class="op">=</span> <span class="dv">1</span> <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> discount_rate) <span class="op">**</span> (yearvec <span class="op">-</span> year0)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="costs-and-effects" class="level2">
 <h2 class="anchored" data-anchor-id="costs-and-effects">Costs and effects</h2>
-<div id="bee0ee3b" class="cell" data-execution_count="7">
+<div id="d83ec390" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Costs: VMMC procedures only (the HIV cost is captured through the effect side)</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>cost_vmmc_programme <span class="op">=</span> <span class="bu">float</span>(np.<span class="bu">sum</span>(new_circ <span class="op">*</span> unit_cost_vmmc <span class="op">*</span> discount))</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -620,7 +620,7 @@ Discounted infections averted:  84.7</code></pre>
 <h2 class="anchored" data-anchor-id="icer">ICER</h2>
 <p>The incremental cost-effectiveness ratio is the incremental cost divided by the incremental effect:</p>
 <p><span class="math display">\[\text{ICER} = \frac{\Delta\text{Cost}}{\Delta\text{Infections averted}}\]</span></p>
-<div id="90a1b790" class="cell" data-execution_count="8">
+<div id="44d334af" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> infections_averted <span class="op">&gt;</span> <span class="dv">0</span>:</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    icer <span class="op">=</span> cost_vmmc_programme <span class="op">/</span> infections_averted</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'ICER: $</span><span class="sc">{</span><span class="bu">int</span>(icer)<span class="sc">:n}</span><span class="ss"> per HIV infection averted'</span>)</span>
@@ -633,7 +633,7 @@ Discounted infections averted:  84.7</code></pre>
 </section>
 <section id="visualizing-the-cascade" class="level2">
 <h2 class="anchored" data-anchor-id="visualizing-the-cascade">Visualizing the cascade</h2>
-<div id="e2a86cd4" class="cell" data-execution_count="9">
+<div id="a45bfb42" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>fig, (ax0, ax1, ax2) <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">13</span>, <span class="dv">4</span>))</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Left: cumulative VMMCs</span></span>

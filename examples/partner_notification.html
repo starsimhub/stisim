@@ -399,7 +399,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <p>This example builds a small HIV sim and compares HIV diagnoses with and without PN.</p>
 <section id="setup" class="level2">
 <h2 class="anchored" data-anchor-id="setup">Setup</h2>
-<div id="5235df1b" class="cell" data-execution_count="1">
+<div id="d751da96" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sciris <span class="im">as</span> sc</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> starsim <span class="im">as</span> ss</span>
@@ -413,7 +413,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="index-cases-who-triggers-pn" class="level2">
 <h2 class="anchored" data-anchor-id="index-cases-who-triggers-pn">Index cases: who triggers PN?</h2>
 <p>PN runs every timestep against an <code>eligibility</code> callback that returns the UIDs of “index cases” — typically agents who just tested positive. Here we use the standard HIV testing pipeline and treat any newly-diagnosed agent as an index case.</p>
-<div id="64e42c8a" class="cell" data-execution_count="2">
+<div id="0204df1c" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> newly_diagnosed(sim):</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Index cases = agents whose HIV diagnosis fires this timestep."""</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    hiv <span class="op">=</span> sim.diseases.hiv</span>
@@ -423,7 +423,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="building-the-sim" class="level2">
 <h2 class="anchored" data-anchor-id="building-the-sim">Building the sim</h2>
 <p>The active sexual network needs <code>recall_prior=True</code> so dissolved partnerships are pushed into the :class:<a href="../api/networks.html#stisim.networks.PriorPartners" title="0"><code>~stisim.PriorPartners</code></a> recall network. We set the lookback to 6 months — typical of real-world PN programs that ask about partners from the past 3–12 months.</p>
-<div id="39bb0c87" class="cell" data-execution_count="3">
+<div id="bbaf22be" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_sim(use_pn<span class="op">=</span><span class="va">False</span>, rand_seed<span class="op">=</span><span class="dv">1</span>):</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    hiv_test <span class="op">=</span> sti.HIVTest(name<span class="op">=</span><span class="st">'hiv_test'</span>, test_prob_data<span class="op">=</span><span class="fl">0.3</span>)</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    interventions <span class="op">=</span> [hiv_test]</span>
@@ -457,7 +457,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </section>
 <section id="running-scenarios" class="level2">
 <h2 class="anchored" data-anchor-id="running-scenarios">Running scenarios</h2>
-<div id="74d0ef3c" class="cell" data-execution_count="4">
+<div id="4c3ab232" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>sims <span class="op">=</span> ss.parallel([make_sim(use_pn<span class="op">=</span><span class="va">False</span>), make_sim(use_pn<span class="op">=</span><span class="va">True</span>)]).sims</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> {sim.label: sim <span class="cf">for</span> sim <span class="kw">in</span> sims}</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -472,46 +472,46 @@ Initializing sim "With PN" with 2000 agents
 
   Running "With PN": 2000.01.01 ( 0/121) (0.00 s)  ———————————————————— 1%
 
-  Running "No PN": 2001.01.01 (12/121) (0.82 s)  ••—————————————————— 11%
+  Running "No PN": 2001.01.01 (12/121) (0.90 s)  ••—————————————————— 11%
 
-  Running "With PN": 2001.01.01 (12/121) (0.81 s)  ••—————————————————— 11%
+  Running "With PN": 2001.01.01 (12/121) (0.89 s)  ••—————————————————— 11%
 
-  Running "No PN": 2002.01.01 (24/121) (1.05 s)  ••••———————————————— 21%
+  Running "No PN": 2002.01.01 (24/121) (1.16 s)  ••••———————————————— 21%
 
-  Running "With PN": 2002.01.01 (24/121) (1.05 s)  ••••———————————————— 21%
+  Running "With PN": 2002.01.01 (24/121) (1.16 s)  ••••———————————————— 21%
 
-  Running "No PN": 2003.01.01 (36/121) (1.28 s)  ••••••—————————————— 31%
+  Running "No PN": 2003.01.01 (36/121) (1.42 s)  ••••••—————————————— 31%
 
-  Running "With PN": 2003.01.01 (36/121) (1.30 s)  ••••••—————————————— 31%
+  Running "With PN": 2003.01.01 (36/121) (1.44 s)  ••••••—————————————— 31%
 
-  Running "No PN": 2004.01.01 (48/121) (1.50 s)  ••••••••———————————— 40%
+  Running "No PN": 2004.01.01 (48/121) (1.67 s)  ••••••••———————————— 40%
 
-  Running "With PN": 2004.01.01 (48/121) (1.53 s)  ••••••••———————————— 40%
+  Running "With PN": 2004.01.01 (48/121) (1.71 s)  ••••••••———————————— 40%
 
-  Running "No PN": 2005.01.01 (60/121) (1.73 s)  ••••••••••—————————— 50%
+  Running "No PN": 2005.01.01 (60/121) (1.94 s)  ••••••••••—————————— 50%
 
-  Running "With PN": 2005.01.01 (60/121) (1.78 s)  ••••••••••—————————— 50%
+  Running "With PN": 2005.01.01 (60/121) (1.99 s)  ••••••••••—————————— 50%
 
-  Running "No PN": 2006.01.01 (72/121) (1.97 s)  ••••••••••••———————— 60%
+  Running "No PN": 2006.01.01 (72/121) (2.20 s)  ••••••••••••———————— 60%
 
-  Running "With PN": 2006.01.01 (72/121) (2.02 s)  ••••••••••••———————— 60%
+  Running "With PN": 2006.01.01 (72/121) (2.26 s)  ••••••••••••———————— 60%
 
-  Running "No PN": 2007.01.01 (84/121) (2.20 s)  ••••••••••••••—————— 70%
+  Running "No PN": 2007.01.01 (84/121) (2.46 s)  ••••••••••••••—————— 70%
 
-  Running "With PN": 2007.01.01 (84/121) (2.26 s)  ••••••••••••••—————— 70%
+  Running "With PN": 2007.01.01 (84/121) (2.53 s)  ••••••••••••••—————— 70%
 
-  Running "No PN": 2008.01.01 (96/121) (2.44 s)  ••••••••••••••••———— 80%
+  Running "No PN": 2008.01.01 (96/121) (2.73 s)  ••••••••••••••••———— 80%
 
-  Running "With PN": 2008.01.01 (96/121) (2.51 s)  ••••••••••••••••———— 80%
+  Running "With PN": 2008.01.01 (96/121) (2.81 s)  ••••••••••••••••———— 80%
 
-  Running "No PN": 2009.01.01 (108/121) (2.67 s)  ••••••••••••••••••—— 90%
+  Running "No PN": 2009.01.01 (108/121) (2.98 s)  ••••••••••••••••••—— 90%
 
-  Running "With PN": 2009.01.01 (108/121) (2.74 s)  ••••••••••••••••••—— 90%
+  Running "With PN": 2009.01.01 (108/121) (3.08 s)  ••••••••••••••••••—— 90%
 
-  Running "No PN": 2010.01.01 (120/121) (2.89 s)  •••••••••••••••••••• 100%
+  Running "No PN": 2010.01.01 (120/121) (3.22 s)  •••••••••••••••••••• 100%
 
 
-  Running "With PN": 2010.01.01 (120/121) (2.97 s)  •••••••••••••••••••• 100%
+  Running "With PN": 2010.01.01 (120/121) (3.34 s)  •••••••••••••••••••• 100%
 
      No PN:   254 HIV diagnoses
    With PN:   521 HIV diagnoses</code></pre>
@@ -521,7 +521,7 @@ Initializing sim "With PN" with 2000 agents
 <section id="inspecting-pn-outputs" class="level2">
 <h2 class="anchored" data-anchor-id="inspecting-pn-outputs">Inspecting PN outputs</h2>
 <p>The PN intervention exposes per-timestep counts of partners notified and attending, broken down by channel.</p>
-<div id="d9d07efb" class="cell" data-execution_count="5">
+<div id="ae80c77b" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>pn_res <span class="op">=</span> results[<span class="st">'With PN'</span>].results.pn</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>total_notified <span class="op">=</span> <span class="bu">int</span>(pn_res.new_notified.<span class="bu">sum</span>())</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>total_attending <span class="op">=</span> <span class="bu">int</span>(pn_res.new_attending.<span class="bu">sum</span>())</span>
@@ -538,7 +538,7 @@ Attending: 335</code></pre>
 </section>
 <section id="comparing-outcomes" class="level2">
 <h2 class="anchored" data-anchor-id="comparing-outcomes">Comparing outcomes</h2>
-<div id="a386efb0" class="cell" data-execution_count="6">
+<div id="dedc6719" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">11</span>, <span class="fl">4.5</span>))</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Left: HIV diagnoses over time</span></span>
