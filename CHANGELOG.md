@@ -2,6 +2,8 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.5.6 (TBC)
+
 ## Version 1.5.5 (2026-05-15)
 
 ### Sim / parameter routing
