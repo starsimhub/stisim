@@ -61,7 +61,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </style>
 
 
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js" integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2" crossorigin="anonymous"></script><script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script><script src="../site_libs/quarto-nav/quarto-nav.js"></script>
 <script src="../site_libs/quarto-nav/headroom.min.js"></script>
 <script src="../site_libs/clipboard/clipboard.min.js"></script>
 <script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
@@ -82,9 +82,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-354dbb5c8daf0de391636ff03b25cfd9.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-ebebdd7f480cdcd9c4984c7f251bfad5.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-354dbb5c8daf0de391636ff03b25cfd9.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-fec5a1fa81bfd162096066a3ebc5bcc8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-aafc68b2255684af78b035618dac2a51.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-fec5a1fa81bfd162096066a3ebc5bcc8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -120,7 +120,7 @@ function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
 gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </script>
-<script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.6/require.min.js" integrity="sha384-c9c+LnTbwQ3aujuU7ULEPVvgLs+Fn6fJUvIGTsuu1ZcCf11fiEubah0ttpca4ntM sha384-6V1/AdqZRWk1KAlWbKBlGhN7VG4iE/yAZcO6NZPMF8od0vukrvr0tg4qY6NSrItx" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
 
 <script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
 
@@ -681,7 +681,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="setup-generate-synthetic-data" class="level2">
 <h2 class="anchored" data-anchor-id="setup-generate-synthetic-data">Setup: generate synthetic data</h2>
 <p>To demonstrate calibration without external data files, we’ll generate synthetic targets from a simulation with known “true” parameters. In practice, you’d load survey data (e.g., DHS, PHIA) instead.</p>
-<div id="64b32e22" class="cell" data-execution_count="1">
+<div id="a997c310" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sciris <span class="im">as</span> sc</span>
@@ -727,32 +727,32 @@ Generated 21 data points</code></pre>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">0</th>
 <td>2010</td>
-<td>0.007965</td>
-<td>45.0</td>
+<td>0.021463</td>
+<td>232.0</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">1</th>
 <td>2011</td>
-<td>0.002247</td>
-<td>6.0</td>
+<td>0.085764</td>
+<td>554.0</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">2</th>
 <td>2012</td>
-<td>0.000000</td>
-<td>0.0</td>
+<td>0.101313</td>
+<td>576.0</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">3</th>
 <td>2013</td>
-<td>0.000000</td>
-<td>0.0</td>
+<td>0.099559</td>
+<td>541.0</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">4</th>
 <td>2014</td>
-<td>0.000000</td>
-<td>0.0</td>
+<td>0.093325</td>
+<td>582.0</td>
 </tr>
 </tbody>
 </table>
@@ -765,7 +765,7 @@ Generated 21 data points</code></pre>
 <h2 class="anchored" data-anchor-id="defining-calibration-parameters">Defining calibration parameters</h2>
 <p>STIsim uses <strong>dot notation</strong> to route parameters to the right module: <code>'module_name.par_name'</code>. The module name is whatever <code>sim.get_module()</code> would find – typically the disease name (<code>ng</code>, <code>hiv</code>, <code>syph</code>), network name (<code>structuredsexual</code>), connector name (<code>hiv_syph</code>), or intervention name (<code>art</code>, <code>fsw_testing</code>).</p>
 <p>You can write parameters in two equivalent formats:</p>
-<div id="c3758890" class="cell" data-execution_count="2">
+<div id="d4552888" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Nested format -- group parameters by module (Pythonic, uses keyword syntax)</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>calib_pars <span class="op">=</span> <span class="bu">dict</span>(</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    ng<span class="op">=</span><span class="bu">dict</span>(</span>
@@ -790,7 +790,7 @@ Generated 21 data points</code></pre>
 </div>
 <p>Each parameter spec requires <code>low</code> and <code>high</code> bounds. The optional <code>guess</code> is used as the starting point for the “before” comparison in <code>check_fit()</code>.</p>
 <p>The nested format is particularly convenient when calibrating multiple modules – parameters are visually grouped:</p>
-<div id="feae07a9" class="cell" data-execution_count="3">
+<div id="c2e12bbc" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Multi-module example (not run here -- just to show the pattern)</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>multi_pars <span class="op">=</span> <span class="bu">dict</span>(</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    hiv<span class="op">=</span><span class="bu">dict</span>(</span>
@@ -814,7 +814,7 @@ Generated 21 data points</code></pre>
 <section id="running-a-calibration" class="level2">
 <h2 class="anchored" data-anchor-id="running-a-calibration">Running a calibration</h2>
 <p>Create a <code>Calibration</code> with the sim, parameters, and data. No custom <code>build_fn</code> is needed – STIsim’s default automatically routes parameters using dot notation.</p>
-<div id="65ec5766" class="cell" data-execution_count="4">
+<div id="0f6e143e" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> sti.Sim(diseases<span class="op">=</span>sti.Gonorrhea(), n_agents<span class="op">=</span><span class="dv">500</span>, start<span class="op">=</span><span class="dv">2010</span>, stop<span class="op">=</span><span class="dv">2030</span>, verbose<span class="op">=-</span><span class="dv">1</span>)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>calib <span class="op">=</span> sti.Calibration(</span>
@@ -827,552 +827,39 @@ Generated 21 data points</code></pre>
 <span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>calib.calibrate()</span>
 <span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Best parameters: </span><span class="sc">{</span>calib<span class="sc">.</span>best_pars<span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Removed existing calibration file /tmp/tmpis4tdrfx/starsim_calibration.db
-sqlite:////tmp/tmpis4tdrfx/starsim_calibration.db</code></pre>
+<pre><code>Removed existing calibration file /tmp/tmpn9sqlzdl/starsim_calibration.db
+sqlite:////tmp/tmpn9sqlzdl/starsim_calibration.db</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-green-fg">[I 2026-05-19 23:04:34,325]</span> A new study created in RDB with name: starsim_calibration
-</pre>
-</div>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Initializing sim with 500 agents
-
-  Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
-
-  Running 2011.01.01 (12/241) (0.12 s)  •——————————————————— 5%
-
-  Running 2012.01.01 (24/241) (0.23 s)  ••—————————————————— 10%
-
-  Running 2013.01.01 (36/241) (0.33 s)  •••————————————————— 15%
-
-  Running 2014.01.01 (48/241) (0.44 s)  ••••———————————————— 20%
-
-  Running 2015.01.01 (60/241) (0.55 s)  •••••——————————————— 25%
-
-  Running 2016.01.01 (72/241) (0.66 s)  ••••••—————————————— 30%
-
-  Running 2017.01.01 (84/241) (0.76 s)  •••••••————————————— 35%
-
-  Running 2018.01.01 (96/241) (0.86 s)  ••••••••———————————— 40%
-
-  Running 2019.01.01 (108/241) (0.96 s)  •••••••••——————————— 45%
-
-  Running 2020.01.01 (120/241) (1.05 s)  ••••••••••—————————— 50%
-
-  Running 2021.01.01 (132/241) (1.15 s)  •••••••••••————————— 55%
-
-  Running 2022.01.01 (144/241) (1.25 s)  ••••••••••••———————— 60%
-
-  Running 2023.01.01 (156/241) (1.34 s)  •••••••••••••——————— 65%
-
-  Running 2024.01.01 (168/241) (1.43 s)  ••••••••••••••—————— 70%
-
-  Running 2025.01.01 (180/241) (1.53 s)  •••••••••••••••————— 75%
-
-  Running 2026.01.01 (192/241) (1.63 s)  ••••••••••••••••———— 80%
-
-  Running 2027.01.01 (204/241) (1.73 s)  •••••••••••••••••——— 85%
-
-  Running 2028.01.01 (216/241) (1.83 s)  ••••••••••••••••••—— 90%
-
-  Running 2029.01.01 (228/241) (1.93 s)  •••••••••••••••••••— 95%</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-green-fg">[I 2026-05-19 23:04:36,947]</span> Trial 0 finished with value: 5.74482860360588 and parameters: {'ng.beta_m2f': 0.11179277254832351, 'ng.eff_condom': 0.7884683195073976, 'rand_seed': 755619}. Best is trial 0 with value: 5.74482860360588.
-</pre>
-</div>
+<pre><code>[I 2026-04-29 23:09:42,438] A new study created in RDB with name: starsim_calibration
+[I 2026-04-29 23:09:44,751] Trial 0 finished with value: 35.734391485480195 and parameters: {'ng.beta_m2f': 0.08385663565350365, 'ng.eff_condom': 0.5593725135861704, 'rand_seed': 304075}. Best is trial 0 with value: 35.734391485480195.
+[I 2026-04-29 23:09:47,765] Trial 1 finished with value: 14.421585236246566 and parameters: {'ng.beta_m2f': 0.11499291628504861, 'ng.eff_condom': 0.615067680886376, 'rand_seed': 672820}. Best is trial 1 with value: 14.421585236246566.
+[I 2026-04-29 23:09:50,658] Trial 2 finished with value: 14.22643773990379 and parameters: {'ng.beta_m2f': 0.12432424193302818, 'ng.eff_condom': 0.6470902915452392, 'rand_seed': 690959}. Best is trial 2 with value: 14.22643773990379.
+[I 2026-04-29 23:09:53,140] Trial 3 finished with value: 35.80515263969013 and parameters: {'ng.beta_m2f': 0.1486161141858365, 'ng.eff_condom': 0.7026950548861759, 'rand_seed': 90032}. Best is trial 2 with value: 14.22643773990379.
+[I 2026-04-29 23:09:56,111] Trial 4 finished with value: 14.619654107834815 and parameters: {'ng.beta_m2f': 0.10677113073365593, 'ng.eff_condom': 0.44069451356722134, 'rand_seed': 80310}. Best is trial 2 with value: 14.22643773990379.
+[I 2026-04-29 23:09:58,352] Trial 5 finished with value: 35.85573605328024 and parameters: {'ng.beta_m2f': 0.06126823813615594, 'ng.eff_condom': 0.7892570435153161, 'rand_seed': 504618}. Best is trial 2 with value: 14.22643773990379.
+[I 2026-04-29 23:10:00,618] Trial 6 finished with value: 35.7431139184149 and parameters: {'ng.beta_m2f': 0.13495232011618796, 'ng.eff_condom': 0.3488022200378158, 'rand_seed': 543200}. Best is trial 2 with value: 14.22643773990379.
+[I 2026-04-29 23:10:02,868] Trial 7 finished with value: 35.88809822570305 and parameters: {'ng.beta_m2f': 0.05937103603131419, 'ng.eff_condom': 0.4191479903608839, 'rand_seed': 211401}. Best is trial 2 with value: 14.22643773990379.
+[I 2026-04-29 23:10:05,921] Trial 8 finished with value: 18.473071870104935 and parameters: {'ng.beta_m2f': 0.13850155227496985, 'ng.eff_condom': 0.5421702734094851, 'rand_seed': 427837}. Best is trial 2 with value: 14.22643773990379.
+[I 2026-04-29 23:10:08,809] Trial 9 finished with value: 15.484490801524561 and parameters: {'ng.beta_m2f': 0.14475765781136063, 'ng.eff_condom': 0.454791496458695, 'rand_seed': 322846}. Best is trial 2 with value: 14.22643773990379.</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>
-  Running 2030.01.01 (240/241) (2.03 s)  •••••••••••••••••••• 100%
-
-Initializing sim with 500 agents
-
-  Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
-
-  Running 2011.01.01 (12/241) (0.12 s)  •——————————————————— 5%
-
-  Running 2012.01.01 (24/241) (0.24 s)  ••—————————————————— 10%
-
-  Running 2013.01.01 (36/241) (0.36 s)  •••————————————————— 15%
-
-  Running 2014.01.01 (48/241) (0.47 s)  ••••———————————————— 20%
-
-  Running 2015.01.01 (60/241) (0.57 s)  •••••——————————————— 25%
-
-  Running 2016.01.01 (72/241) (0.67 s)  ••••••—————————————— 30%
-
-  Running 2017.01.01 (84/241) (0.76 s)  •••••••————————————— 35%
-
-  Running 2018.01.01 (96/241) (0.87 s)  ••••••••———————————— 40%
-
-  Running 2019.01.01 (108/241) (0.97 s)  •••••••••——————————— 45%
-
-  Running 2020.01.01 (120/241) (1.07 s)  ••••••••••—————————— 50%
-
-  Running 2021.01.01 (132/241) (1.18 s)  •••••••••••————————— 55%
-
-  Running 2022.01.01 (144/241) (1.29 s)  ••••••••••••———————— 60%
-
-  Running 2023.01.01 (156/241) (1.38 s)  •••••••••••••——————— 65%
-
-  Running 2024.01.01 (168/241) (1.48 s)  ••••••••••••••—————— 70%
-
-  Running 2025.01.01 (180/241) (1.57 s)  •••••••••••••••————— 75%
-
-  Running 2026.01.01 (192/241) (1.66 s)  ••••••••••••••••———— 80%
-
-  Running 2027.01.01 (204/241) (1.76 s)  •••••••••••••••••——— 85%
-
-  Running 2028.01.01 (216/241) (1.86 s)  ••••••••••••••••••—— 90%
-
-  Running 2029.01.01 (228/241) (1.95 s)  •••••••••••••••••••— 95%</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-green-fg">[I 2026-05-19 23:04:39,714]</span> Trial 1 finished with value: 4.001909002369589 and parameters: {'ng.beta_m2f': 0.12839160613228823, 'ng.eff_condom': 0.37398760338170733, 'rand_seed': 758011}. Best is trial 1 with value: 4.001909002369589.
-</pre>
-</div>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-  Running 2030.01.01 (240/241) (2.05 s)  •••••••••••••••••••• 100%
-
-Initializing sim with 500 agents
-
-  Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
-
-  Running 2011.01.01 (12/241) (0.10 s)  •——————————————————— 5%
-
-  Running 2012.01.01 (24/241) (0.20 s)  ••—————————————————— 10%
-
-  Running 2013.01.01 (36/241) (0.29 s)  •••————————————————— 15%
-
-  Running 2014.01.01 (48/241) (0.39 s)  ••••———————————————— 20%
-
-  Running 2015.01.01 (60/241) (0.48 s)  •••••——————————————— 25%
-
-  Running 2016.01.01 (72/241) (0.58 s)  ••••••—————————————— 30%
-
-  Running 2017.01.01 (84/241) (0.68 s)  •••••••————————————— 35%
-
-  Running 2018.01.01 (96/241) (0.77 s)  ••••••••———————————— 40%
-
-  Running 2019.01.01 (108/241) (0.87 s)  •••••••••——————————— 45%
-
-  Running 2020.01.01 (120/241) (0.96 s)  ••••••••••—————————— 50%
-
-  Running 2021.01.01 (132/241) (1.06 s)  •••••••••••————————— 55%
-
-  Running 2022.01.01 (144/241) (1.16 s)  ••••••••••••———————— 60%
-
-  Running 2023.01.01 (156/241) (1.25 s)  •••••••••••••——————— 65%
-
-  Running 2024.01.01 (168/241) (1.35 s)  ••••••••••••••—————— 70%
-
-  Running 2025.01.01 (180/241) (1.45 s)  •••••••••••••••————— 75%
-
-  Running 2026.01.01 (192/241) (1.55 s)  ••••••••••••••••———— 80%
-
-  Running 2027.01.01 (204/241) (1.65 s)  •••••••••••••••••——— 85%
-
-  Running 2028.01.01 (216/241) (1.75 s)  ••••••••••••••••••—— 90%
-
-  Running 2029.01.01 (228/241) (1.85 s)  •••••••••••••••••••— 95%
-
-  Running 2030.01.01 (240/241) (1.95 s)  •••••••••••••••••••• 100%
-</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-green-fg">[I 2026-05-19 23:04:42,212]</span> Trial 2 finished with value: 2.252487254897372 and parameters: {'ng.beta_m2f': 0.05371046366088233, 'ng.eff_condom': 0.5956699114485571, 'rand_seed': 151963}. Best is trial 2 with value: 2.252487254897372.
-</pre>
-</div>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Initializing sim with 500 agents
-
-  Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
-
-  Running 2011.01.01 (12/241) (0.13 s)  •——————————————————— 5%
-
-  Running 2012.01.01 (24/241) (0.27 s)  ••—————————————————— 10%
-
-  Running 2013.01.01 (36/241) (0.40 s)  •••————————————————— 15%
-
-  Running 2014.01.01 (48/241) (0.53 s)  ••••———————————————— 20%
-
-  Running 2015.01.01 (60/241) (0.66 s)  •••••——————————————— 25%
-
-  Running 2016.01.01 (72/241) (0.79 s)  ••••••—————————————— 30%
-
-  Running 2017.01.01 (84/241) (0.93 s)  •••••••————————————— 35%
-
-  Running 2018.01.01 (96/241) (1.06 s)  ••••••••———————————— 40%
-
-  Running 2019.01.01 (108/241) (1.20 s)  •••••••••——————————— 45%
-
-  Running 2020.01.01 (120/241) (1.34 s)  ••••••••••—————————— 50%
-
-  Running 2021.01.01 (132/241) (1.47 s)  •••••••••••————————— 55%
-
-  Running 2022.01.01 (144/241) (1.61 s)  ••••••••••••———————— 60%
-
-  Running 2023.01.01 (156/241) (1.74 s)  •••••••••••••——————— 65%
-
-  Running 2024.01.01 (168/241) (1.88 s)  ••••••••••••••—————— 70%
-
-  Running 2025.01.01 (180/241) (2.00 s)  •••••••••••••••————— 75%
-
-  Running 2026.01.01 (192/241) (2.13 s)  ••••••••••••••••———— 80%
-
-  Running 2027.01.01 (204/241) (2.25 s)  •••••••••••••••••——— 85%
-
-  Running 2028.01.01 (216/241) (2.37 s)  ••••••••••••••••••—— 90%
-
-  Running 2029.01.01 (228/241) (2.50 s)  •••••••••••••••••••— 95%</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-green-fg">[I 2026-05-19 23:04:45,392]</span> Trial 3 finished with value: 135.99460932706708 and parameters: {'ng.beta_m2f': 0.13052822194703678, 'ng.eff_condom': 0.5894521788627862, 'rand_seed': 409882}. Best is trial 2 with value: 2.252487254897372.
-</pre>
-</div>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-  Running 2030.01.01 (240/241) (2.64 s)  •••••••••••••••••••• 100%
-
-Initializing sim with 500 agents
-
-  Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
-
-  Running 2011.01.01 (12/241) (0.13 s)  •——————————————————— 5%
-
-  Running 2012.01.01 (24/241) (0.26 s)  ••—————————————————— 10%
-
-  Running 2013.01.01 (36/241) (0.39 s)  •••————————————————— 15%
-
-  Running 2014.01.01 (48/241) (0.52 s)  ••••———————————————— 20%
-
-  Running 2015.01.01 (60/241) (0.66 s)  •••••——————————————— 25%
-
-  Running 2016.01.01 (72/241) (0.80 s)  ••••••—————————————— 30%
-
-  Running 2017.01.01 (84/241) (0.93 s)  •••••••————————————— 35%
-
-  Running 2018.01.01 (96/241) (1.07 s)  ••••••••———————————— 40%
-
-  Running 2019.01.01 (108/241) (1.20 s)  •••••••••——————————— 45%
-
-  Running 2020.01.01 (120/241) (1.33 s)  ••••••••••—————————— 50%
-
-  Running 2021.01.01 (132/241) (1.46 s)  •••••••••••————————— 55%
-
-  Running 2022.01.01 (144/241) (1.59 s)  ••••••••••••———————— 60%
-
-  Running 2023.01.01 (156/241) (1.73 s)  •••••••••••••——————— 65%
-
-  Running 2024.01.01 (168/241) (1.86 s)  ••••••••••••••—————— 70%
-
-  Running 2025.01.01 (180/241) (1.98 s)  •••••••••••••••————— 75%
-
-  Running 2026.01.01 (192/241) (2.11 s)  ••••••••••••••••———— 80%
-
-  Running 2027.01.01 (204/241) (2.23 s)  •••••••••••••••••——— 85%
-
-  Running 2028.01.01 (216/241) (2.35 s)  ••••••••••••••••••—— 90%
-
-  Running 2029.01.01 (228/241) (2.46 s)  •••••••••••••••••••— 95%</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-green-fg">[I 2026-05-19 23:04:48,491]</span> Trial 4 finished with value: 83.76915945875099 and parameters: {'ng.beta_m2f': 0.10729891184203626, 'ng.eff_condom': 0.7005731004776277, 'rand_seed': 987854}. Best is trial 2 with value: 2.252487254897372.
-</pre>
-</div>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-  Running 2030.01.01 (240/241) (2.56 s)  •••••••••••••••••••• 100%
-
-Initializing sim with 500 agents
-
-  Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
-
-  Running 2011.01.01 (12/241) (0.11 s)  •——————————————————— 5%
-
-  Running 2012.01.01 (24/241) (0.21 s)  ••—————————————————— 10%
-
-  Running 2013.01.01 (36/241) (0.31 s)  •••————————————————— 15%
-
-  Running 2014.01.01 (48/241) (0.41 s)  ••••———————————————— 20%
-
-  Running 2015.01.01 (60/241) (0.52 s)  •••••——————————————— 25%
-
-  Running 2016.01.01 (72/241) (0.62 s)  ••••••—————————————— 30%
-
-  Running 2017.01.01 (84/241) (0.71 s)  •••••••————————————— 35%
-
-  Running 2018.01.01 (96/241) (0.81 s)  ••••••••———————————— 40%
-
-  Running 2019.01.01 (108/241) (0.91 s)  •••••••••——————————— 45%
-
-  Running 2020.01.01 (120/241) (1.01 s)  ••••••••••—————————— 50%
-
-  Running 2021.01.01 (132/241) (1.11 s)  •••••••••••————————— 55%
-
-  Running 2022.01.01 (144/241) (1.21 s)  ••••••••••••———————— 60%
-
-  Running 2023.01.01 (156/241) (1.31 s)  •••••••••••••——————— 65%
-
-  Running 2024.01.01 (168/241) (1.40 s)  ••••••••••••••—————— 70%
-
-  Running 2025.01.01 (180/241) (1.51 s)  •••••••••••••••————— 75%
-
-  Running 2026.01.01 (192/241) (1.61 s)  ••••••••••••••••———— 80%
-
-  Running 2027.01.01 (204/241) (1.70 s)  •••••••••••••••••——— 85%</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-green-fg">[I 2026-05-19 23:04:51,066]</span> Trial 5 finished with value: 1.966885799192868 and parameters: {'ng.beta_m2f': 0.03530198061602636, 'ng.eff_condom': 0.8232316655974705, 'rand_seed': 481292}. Best is trial 5 with value: 1.966885799192868.
-</pre>
-</div>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-  Running 2028.01.01 (216/241) (1.82 s)  ••••••••••••••••••—— 90%
-
-  Running 2029.01.01 (228/241) (1.94 s)  •••••••••••••••••••— 95%
-
-  Running 2030.01.01 (240/241) (2.04 s)  •••••••••••••••••••• 100%
-
-Initializing sim with 500 agents
-
-  Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
-
-  Running 2011.01.01 (12/241) (0.13 s)  •——————————————————— 5%
-
-  Running 2012.01.01 (24/241) (0.24 s)  ••—————————————————— 10%
-
-  Running 2013.01.01 (36/241) (0.36 s)  •••————————————————— 15%
-
-  Running 2014.01.01 (48/241) (0.47 s)  ••••———————————————— 20%
-
-  Running 2015.01.01 (60/241) (0.58 s)  •••••——————————————— 25%
-
-  Running 2016.01.01 (72/241) (0.68 s)  ••••••—————————————— 30%
-
-  Running 2017.01.01 (84/241) (0.79 s)  •••••••————————————— 35%
-
-  Running 2018.01.01 (96/241) (0.89 s)  ••••••••———————————— 40%
-
-  Running 2019.01.01 (108/241) (0.98 s)  •••••••••——————————— 45%
-
-  Running 2020.01.01 (120/241) (1.09 s)  ••••••••••—————————— 50%
-
-  Running 2021.01.01 (132/241) (1.20 s)  •••••••••••————————— 55%
-
-  Running 2022.01.01 (144/241) (1.30 s)  ••••••••••••———————— 60%
-
-  Running 2023.01.01 (156/241) (1.42 s)  •••••••••••••——————— 65%
-
-  Running 2024.01.01 (168/241) (1.52 s)  ••••••••••••••—————— 70%
-
-  Running 2025.01.01 (180/241) (1.62 s)  •••••••••••••••————— 75%
-
-  Running 2026.01.01 (192/241) (1.74 s)  ••••••••••••••••———— 80%
-
-  Running 2027.01.01 (204/241) (1.84 s)  •••••••••••••••••——— 85%
-
-  Running 2028.01.01 (216/241) (1.93 s)  ••••••••••••••••••—— 90%</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-green-fg">[I 2026-05-19 23:04:53,713]</span> Trial 6 finished with value: 10.846773534309808 and parameters: {'ng.beta_m2f': 0.1003385456087167, 'ng.eff_condom': 0.4580040762626214, 'rand_seed': 48025}. Best is trial 5 with value: 1.966885799192868.
-</pre>
-</div>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-  Running 2029.01.01 (228/241) (2.02 s)  •••••••••••••••••••— 95%
-
-  Running 2030.01.01 (240/241) (2.11 s)  •••••••••••••••••••• 100%
-
-Initializing sim with 500 agents
-
-  Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
-
-  Running 2011.01.01 (12/241) (0.11 s)  •——————————————————— 5%
-
-  Running 2012.01.01 (24/241) (0.21 s)  ••—————————————————— 10%
-
-  Running 2013.01.01 (36/241) (0.32 s)  •••————————————————— 15%
-
-  Running 2014.01.01 (48/241) (0.42 s)  ••••———————————————— 20%
-
-  Running 2015.01.01 (60/241) (0.53 s)  •••••——————————————— 25%
-
-  Running 2016.01.01 (72/241) (0.63 s)  ••••••—————————————— 30%
-
-  Running 2017.01.01 (84/241) (0.73 s)  •••••••————————————— 35%
-
-  Running 2018.01.01 (96/241) (0.83 s)  ••••••••———————————— 40%
-
-  Running 2019.01.01 (108/241) (0.93 s)  •••••••••——————————— 45%
-
-  Running 2020.01.01 (120/241) (1.03 s)  ••••••••••—————————— 50%
-
-  Running 2021.01.01 (132/241) (1.14 s)  •••••••••••————————— 55%
-
-  Running 2022.01.01 (144/241) (1.23 s)  ••••••••••••———————— 60%
-
-  Running 2023.01.01 (156/241) (1.33 s)  •••••••••••••——————— 65%
-
-  Running 2024.01.01 (168/241) (1.42 s)  ••••••••••••••—————— 70%
-
-  Running 2025.01.01 (180/241) (1.52 s)  •••••••••••••••————— 75%
-
-  Running 2026.01.01 (192/241) (1.61 s)  ••••••••••••••••———— 80%
-
-  Running 2027.01.01 (204/241) (1.70 s)  •••••••••••••••••——— 85%
-
-  Running 2028.01.01 (216/241) (1.80 s)  ••••••••••••••••••—— 90%
-
-  Running 2029.01.01 (228/241) (1.89 s)  •••••••••••••••••••— 95%</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-green-fg">[I 2026-05-19 23:04:56,244]</span> Trial 7 finished with value: 1.5436993139193413 and parameters: {'ng.beta_m2f': 0.11179910460297238, 'ng.eff_condom': 0.8249961931428036, 'rand_seed': 773150}. Best is trial 7 with value: 1.5436993139193413.
-</pre>
-</div>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-  Running 2030.01.01 (240/241) (1.99 s)  •••••••••••••••••••• 100%
-
-Initializing sim with 500 agents
-
-  Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
-
-  Running 2011.01.01 (12/241) (0.12 s)  •——————————————————— 5%
-
-  Running 2012.01.01 (24/241) (0.24 s)  ••—————————————————— 10%
-
-  Running 2013.01.01 (36/241) (0.35 s)  •••————————————————— 15%
-
-  Running 2014.01.01 (48/241) (0.46 s)  ••••———————————————— 20%
-
-  Running 2015.01.01 (60/241) (0.56 s)  •••••——————————————— 25%
-
-  Running 2016.01.01 (72/241) (0.66 s)  ••••••—————————————— 30%
-
-  Running 2017.01.01 (84/241) (0.76 s)  •••••••————————————— 35%
-
-  Running 2018.01.01 (96/241) (0.86 s)  ••••••••———————————— 40%
-
-  Running 2019.01.01 (108/241) (0.96 s)  •••••••••——————————— 45%
-
-  Running 2020.01.01 (120/241) (1.06 s)  ••••••••••—————————— 50%
-
-  Running 2021.01.01 (132/241) (1.16 s)  •••••••••••————————— 55%
-
-  Running 2022.01.01 (144/241) (1.26 s)  ••••••••••••———————— 60%
-
-  Running 2023.01.01 (156/241) (1.35 s)  •••••••••••••——————— 65%
-
-  Running 2024.01.01 (168/241) (1.45 s)  ••••••••••••••—————— 70%
-
-  Running 2025.01.01 (180/241) (1.54 s)  •••••••••••••••————— 75%
-
-  Running 2026.01.01 (192/241) (1.64 s)  ••••••••••••••••———— 80%
-
-  Running 2027.01.01 (204/241) (1.73 s)  •••••••••••••••••——— 85%
-
-  Running 2028.01.01 (216/241) (1.83 s)  ••••••••••••••••••—— 90%</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-green-fg">[I 2026-05-19 23:04:58,803]</span> Trial 8 finished with value: 4.401524511686256 and parameters: {'ng.beta_m2f': 0.10858463380970751, 'ng.eff_condom': 0.8619228044381344, 'rand_seed': 152693}. Best is trial 7 with value: 1.5436993139193413.
-</pre>
-</div>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-  Running 2029.01.01 (228/241) (1.93 s)  •••••••••••••••••••— 95%
-
-  Running 2030.01.01 (240/241) (2.02 s)  •••••••••••••••••••• 100%
-
-Initializing sim with 500 agents
-
-  Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
-
-  Running 2011.01.01 (12/241) (0.11 s)  •——————————————————— 5%
-
-  Running 2012.01.01 (24/241) (0.22 s)  ••—————————————————— 10%
-
-  Running 2013.01.01 (36/241) (0.32 s)  •••————————————————— 15%
-
-  Running 2014.01.01 (48/241) (0.41 s)  ••••———————————————— 20%
-
-  Running 2015.01.01 (60/241) (0.51 s)  •••••——————————————— 25%
-
-  Running 2016.01.01 (72/241) (0.60 s)  ••••••—————————————— 30%
-
-  Running 2017.01.01 (84/241) (0.70 s)  •••••••————————————— 35%
-
-  Running 2018.01.01 (96/241) (0.80 s)  ••••••••———————————— 40%
-
-  Running 2019.01.01 (108/241) (0.90 s)  •••••••••——————————— 45%
-
-  Running 2020.01.01 (120/241) (0.99 s)  ••••••••••—————————— 50%
-
-  Running 2021.01.01 (132/241) (1.10 s)  •••••••••••————————— 55%
-
-  Running 2022.01.01 (144/241) (1.20 s)  ••••••••••••———————— 60%
-
-  Running 2023.01.01 (156/241) (1.30 s)  •••••••••••••——————— 65%
-
-  Running 2024.01.01 (168/241) (1.40 s)  ••••••••••••••—————— 70%
-
-  Running 2025.01.01 (180/241) (1.51 s)  •••••••••••••••————— 75%
-
-  Running 2026.01.01 (192/241) (1.61 s)  ••••••••••••••••———— 80%
-
-  Running 2027.01.01 (204/241) (1.71 s)  •••••••••••••••••——— 85%
-
-  Running 2028.01.01 (216/241) (1.81 s)  ••••••••••••••••••—— 90%
-
-  Running 2029.01.01 (228/241) (1.92 s)  •••••••••••••••••••— 95%</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-green-fg">[I 2026-05-19 23:05:01,365]</span> Trial 9 finished with value: 1.550095868280772 and parameters: {'ng.beta_m2f': 0.06558803687472145, 'ng.eff_condom': 0.39314443023841505, 'rand_seed': 661363}. Best is trial 7 with value: 1.5436993139193413.
-</pre>
-</div>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-  Running 2030.01.01 (240/241) (2.02 s)  •••••••••••••••••••• 100%
-
-Making results structure...
+<pre><code>Making results structure...
 Processed 10 trials; 0 failed
-Best pars: {'ng.beta_m2f': 0.11179910460297238, 'ng.eff_condom': 0.8249961931428036, 'rand_seed': 773150}
-Removed existing calibration file /tmp/tmpis4tdrfx/starsim_calibration.db
-Best parameters: {'ng.beta_m2f': 0.11179910460297238, 'ng.eff_condom': 0.8249961931428036, 'rand_seed': 773150}</code></pre>
+Best pars: {'ng.beta_m2f': 0.12432424193302818, 'ng.eff_condom': 0.6470902915452392, 'rand_seed': 690959}
+Removed existing calibration file /tmp/tmpn9sqlzdl/starsim_calibration.db
+Best parameters: {'ng.beta_m2f': 0.12432424193302818, 'ng.eff_condom': 0.6470902915452392, 'rand_seed': 690959}</code></pre>
 </div>
 </div>
 <p>The calibration found parameters that minimize the mismatch between model output and data. Let’s see how they compare to the true values:</p>
-<div id="0f66e73d" class="cell" data-execution_count="5">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>true_pars <span class="op">=</span> {<span class="st">'ng.beta_m2f'</span>: true_beta, <span class="st">'ng.eff_condom'</span>: true_condom}</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> par, true_val <span class="kw">in</span> true_pars.items():</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    best_val <span class="op">=</span> calib.best_pars[par]</span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'</span><span class="sc">{</span>par<span class="sc">}</span><span class="ss">: true=</span><span class="sc">{</span>true_val<span class="sc">:.3f}</span><span class="ss">, calibrated=</span><span class="sc">{</span>best_val<span class="sc">:.3f}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="296043a7" class="cell" data-execution_count="6">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>true_pars <span class="op">=</span> {<span class="st">'ng.beta_m2f'</span>: true_beta, <span class="st">'ng.eff_condom'</span>: true_condom}</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> par, true_val <span class="kw">in</span> true_pars.items():</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    best_val <span class="op">=</span> calib.best_pars[par]</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'</span><span class="sc">{</span>par<span class="sc">}</span><span class="ss">: true=</span><span class="sc">{</span>true_val<span class="sc">:.3f}</span><span class="ss">, calibrated=</span><span class="sc">{</span>best_val<span class="sc">:.3f}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>ng.beta_m2f: true=0.080, calibrated=0.112
-ng.eff_condom: true=0.600, calibrated=0.825</code></pre>
+<pre><code>ng.beta_m2f: true=0.080, calibrated=0.124
+ng.eff_condom: true=0.600, calibrated=0.647</code></pre>
 </div>
 </div>
 </section>
@@ -1385,283 +872,66 @@ ng.eff_condom: true=0.600, calibrated=0.825</code></pre>
 <li><code>plot_optuna()</code> shows Optuna diagnostic plots (optimization history, parameter importance, etc.)</li>
 </ul>
 <p><strong>Note</strong>: <code>plot_param_importances</code> requires <code>scikit-learn</code> (<code>pip install scikit-learn</code>). If it’s not installed, the plot will be skipped with a warning.</p>
-<div id="b2530d81" class="cell" data-execution_count="6">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare GOF scores: guess parameters vs best-fit parameters</span></span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>calib.check_fit(do_plot<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="3ad40ed4" class="cell" data-execution_count="7">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare GOF scores: guess parameters vs best-fit parameters</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>calib.check_fit(do_plot<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-cyan-fg">
-
-Checking fit...</span>
-
-Initializing sim with 500 agents
-
-Initializing sim with 500 agents
-
-
-  Running "Sim 0": 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
-
-
-
-  Running "Sim 0": 2011.01.01 (12/241) (0.13 s)  •——————————————————— 5%
-
-
-
-  Running "Sim 0": 2012.01.01 (24/241) (0.24 s)  ••—————————————————— 10%
-
-
-
-  Running "Sim 0": 2013.01.01 (36/241) (0.35 s)  •••————————————————— 15%
-
-
-
-  Running "Sim 0": 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
-
-
-
-  Running "Sim 0": 2014.01.01 (48/241) (0.45 s)  ••••———————————————— 20%
-
-
-
-  Running "Sim 0": 2011.01.01 (12/241) (0.13 s)  •——————————————————— 5%
-
-
-
-  Running "Sim 0": 2015.01.01 (60/241) (0.56 s)  •••••——————————————— 25%
-
-
-
-  Running "Sim 0": 2012.01.01 (24/241) (0.26 s)  ••—————————————————— 10%
-
-
-
-  Running "Sim 0": 2016.01.01 (72/241) (0.66 s)  ••••••—————————————— 30%
-
-
-
-  Running "Sim 0": 2013.01.01 (36/241) (0.36 s)  •••————————————————— 15%
-
-
-
-  Running "Sim 0": 2017.01.01 (84/241) (0.75 s)  •••••••————————————— 35%
-
-
-
-  Running "Sim 0": 2014.01.01 (48/241) (0.46 s)  ••••———————————————— 20%
-
-
-
-  Running "Sim 0": 2018.01.01 (96/241) (0.85 s)  ••••••••———————————— 40%
-
-
-
-  Running "Sim 0": 2015.01.01 (60/241) (0.56 s)  •••••——————————————— 25%
-
-
-
-  Running "Sim 0": 2019.01.01 (108/241) (0.96 s)  •••••••••——————————— 45%
-
-
-
-  Running "Sim 0": 2016.01.01 (72/241) (0.65 s)  ••••••—————————————— 30%
-
-
-
-  Running "Sim 0": 2020.01.01 (120/241) (1.06 s)  ••••••••••—————————— 50%
-
-
-
-  Running "Sim 0": 2017.01.01 (84/241) (0.76 s)  •••••••————————————— 35%
-
-
-
-  Running "Sim 0": 2021.01.01 (132/241) (1.19 s)  •••••••••••————————— 55%
-
-
-
-  Running "Sim 0": 2018.01.01 (96/241) (0.87 s)  ••••••••———————————— 40%
-
-
-
-  Running "Sim 0": 2022.01.01 (144/241) (1.30 s)  ••••••••••••———————— 60%
-
-
-
-  Running "Sim 0": 2019.01.01 (108/241) (0.98 s)  •••••••••——————————— 45%
-
-
-
-  Running "Sim 0": 2023.01.01 (156/241) (1.40 s)  •••••••••••••——————— 65%
-
-
-
-  Running "Sim 0": 2020.01.01 (120/241) (1.08 s)  ••••••••••—————————— 50%
-
-
-
-  Running "Sim 0": 2024.01.01 (168/241) (1.52 s)  ••••••••••••••—————— 70%
-
-
-
-  Running "Sim 0": 2021.01.01 (132/241) (1.20 s)  •••••••••••————————— 55%
-
-
-
-  Running "Sim 0": 2025.01.01 (180/241) (1.63 s)  •••••••••••••••————— 75%
-
-
-
-  Running "Sim 0": 2022.01.01 (144/241) (1.31 s)  ••••••••••••———————— 60%
-
-
-
-  Running "Sim 0": 2026.01.01 (192/241) (1.74 s)  ••••••••••••••••———— 80%
-
-
-
-  Running "Sim 0": 2023.01.01 (156/241) (1.43 s)  •••••••••••••——————— 65%
-
-
-
-  Running "Sim 0": 2027.01.01 (204/241) (1.86 s)  •••••••••••••••••——— 85%
-
-
-
-  Running "Sim 0": 2024.01.01 (168/241) (1.54 s)  ••••••••••••••—————— 70%
-
-
-
-  Running "Sim 0": 2028.01.01 (216/241) (1.97 s)  ••••••••••••••••••—— 90%
-
-
-
-  Running "Sim 0": 2025.01.01 (180/241) (1.65 s)  •••••••••••••••————— 75%
-
-
-
-  Running "Sim 0": 2029.01.01 (228/241) (2.07 s)  •••••••••••••••••••— 95%
-
-
-
-  Running "Sim 0": 2026.01.01 (192/241) (1.76 s)  ••••••••••••••••———— 80%
-
-
-
-  Running "Sim 0": 2030.01.01 (240/241) (2.18 s)  •••••••••••••••••••• 100%
-
-
-
-
-
-  Running "Sim 0": 2027.01.01 (204/241) (1.87 s)  •••••••••••••••••——— 85%
-
-
-
-  Running "Sim 0": 2028.01.01 (216/241) (1.98 s)  ••••••••••••••••••—— 90%
-
-
-
-  Running "Sim 0": 2029.01.01 (228/241) (2.09 s)  •••••••••••••••••••— 95%
-
-
-
-  Running "Sim 0": 2030.01.01 (240/241) (2.21 s)  •••••••••••••••••••• 100%
-
-
-
-
-Fit with original pars: 1.6568503941291328
-
-Fit with best-fit pars: 1.7597484926911013
-
-✗ Calibration did not improve fit as the objective got worse (1.6568503941291328 --&gt; 1.7597484926911013), but this sometimes happens stochastically and is not necessarily an error
-</pre>
-</div>
+<pre><code>
+Checking fit...
+Fit with original pars: 20.728453906941684
+Fit with best-fit pars: 15.123646239179767
+✓ Calibration improved fit 20.728453906941684 --&gt; 15.123646239179767</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="6">
-<pre><code>False</code></pre>
+<pre><code>True</code></pre>
 </div>
 </div>
-<div id="ca1bea3e" class="cell" data-execution_count="7">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot the sim with best-fit parameters</span></span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>calib.plot_final()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Initializing sim with 500 agents
-
-  Running 2010.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
-
-  Running 2011.01.01 (12/241) (0.11 s)  •——————————————————— 5%
-
-  Running 2012.01.01 (24/241) (0.22 s)  ••—————————————————— 10%
-
-  Running 2013.01.01 (36/241) (0.31 s)  •••————————————————— 15%
-
-  Running 2014.01.01 (48/241) (0.40 s)  ••••———————————————— 20%
-
-  Running 2015.01.01 (60/241) (0.50 s)  •••••——————————————— 25%
-
-  Running 2016.01.01 (72/241) (0.58 s)  ••••••—————————————— 30%
-
-  Running 2017.01.01 (84/241) (0.67 s)  •••••••————————————— 35%
-
-  Running 2018.01.01 (96/241) (0.76 s)  ••••••••———————————— 40%
-
-  Running 2019.01.01 (108/241) (0.87 s)  •••••••••——————————— 45%
-
-  Running 2020.01.01 (120/241) (0.96 s)  ••••••••••—————————— 50%
-
-  Running 2021.01.01 (132/241) (1.07 s)  •••••••••••————————— 55%
-
-  Running 2022.01.01 (144/241) (1.17 s)  ••••••••••••———————— 60%
-
-  Running 2023.01.01 (156/241) (1.26 s)  •••••••••••••——————— 65%
-
-  Running 2024.01.01 (168/241) (1.36 s)  ••••••••••••••—————— 70%
-
-  Running 2025.01.01 (180/241) (1.46 s)  •••••••••••••••————— 75%
-
-  Running 2026.01.01 (192/241) (1.56 s)  ••••••••••••••••———— 80%
-
-  Running 2027.01.01 (204/241) (1.66 s)  •••••••••••••••••——— 85%
-
-  Running 2028.01.01 (216/241) (1.76 s)  ••••••••••••••••••—— 90%
-
-  Running 2029.01.01 (228/241) (1.86 s)  •••••••••••••••••••— 95%
-
-  Running 2030.01.01 (240/241) (1.96 s)  •••••••••••••••••••• 100%
-</code></pre>
-</div>
+<div id="2e98d0b8" class="cell" data-execution_count="8">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot the sim with best-fit parameters</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>calib.plot_final()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="tut_calibration_files/figure-html/cell-8-output-2.png" class="img-fluid figure-img"></p>
+<p><img src="tut_calibration_files/figure-html/cell-8-output-1.png" class="img-fluid figure-img"></p>
 </figure>
 </div>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="7">
 <div>
 <figure class="figure">
-<p><img src="tut_calibration_files/figure-html/cell-8-output-3.png" width="911" height="663" class="figure-img"></p>
+<p><img src="tut_calibration_files/figure-html/cell-8-output-2.png" width="903" height="663" class="figure-img"></p>
 </figure>
 </div>
 </div>
 </div>
-<div id="81e15fbb" class="cell" data-execution_count="8">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Optuna diagnostics: optimization history and parameter importance</span></span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>calib.plot_optuna([<span class="st">'plot_optimization_history'</span>, <span class="st">'plot_param_importances'</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Could not run plot_param_importances: Tried to import 'sklearn' but failed. Please make sure that the package is installed correctly to use this feature. Actual error: No module named 'sklearn'.</code></pre>
-</div>
+<div id="ce22856f" class="cell" data-execution_count="9">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Optuna diagnostics: optimization history and parameter importance</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>calib.plot_optuna([<span class="st">'plot_optimization_history'</span>, <span class="st">'plot_param_importances'</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>/opt/hostedtoolcache/Python/3.13.13/x64/lib/python3.13/site-packages/starsim/calibration.py:444: ExperimentalWarning: optuna.visualization.matplotlib._optimization_history.plot_optimization_history is experimental (supported from v2.2.0). The interface can change in the future.
-  fig = getattr(vis, method)(self.study)
-/opt/hostedtoolcache/Python/3.13.13/x64/lib/python3.13/site-packages/starsim/calibration.py:444: ExperimentalWarning: optuna.visualization.matplotlib._param_importances.plot_param_importances is experimental (supported from v2.2.0). The interface can change in the future.
-  fig = getattr(vis, method)(self.study)</code></pre>
+<pre><code>/home/cliffk/idm/starsim/starsim/calibration.py:444: ExperimentalWarning:
+
+optuna.visualization.matplotlib._optimization_history.plot_optimization_history is experimental (supported from v2.2.0). The interface can change in the future.
+
+/home/cliffk/idm/starsim/starsim/calibration.py:444: ExperimentalWarning:
+
+optuna.visualization.matplotlib._param_importances.plot_param_importances is experimental (supported from v2.2.0). The interface can change in the future.
+</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="8">
+<pre><code>[&lt;Axes: title={'center': 'Optimization History Plot'}, xlabel='Trial', ylabel='Objective Value'&gt;,
+ &lt;Axes: title={'left': 'Hyperparameter Importances'}, xlabel='Hyperparameter Importance', ylabel='Hyperparameter'&gt;]</code></pre>
 </div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
 <p><img src="tut_calibration_files/figure-html/cell-9-output-3.png" width="663" height="470" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="tut_calibration_files/figure-html/cell-9-output-4.png" width="669" height="455" class="figure-img"></p>
 </figure>
 </div>
 </div>
@@ -1671,15 +941,15 @@ Fit with best-fit pars: 1.7597484926911013
 <section id="extracting-calibrated-parameters" class="level2">
 <h2 class="anchored" data-anchor-id="extracting-calibrated-parameters">Extracting calibrated parameters</h2>
 <p>After calibration, use <code>get_pars()</code> to extract the top parameter sets as flat dicts ready to feed back into a sim:</p>
-<div id="6213221e" class="cell" data-execution_count="9">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Get top 3 parameter sets (sorted by mismatch)</span></span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>par_sets <span class="op">=</span> calib.get_pars(n<span class="op">=</span><span class="dv">3</span>)</span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, pars <span class="kw">in</span> <span class="bu">enumerate</span>(par_sets):</span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'Set </span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>pars<span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="4313ecc0" class="cell" data-execution_count="10">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Get top 3 parameter sets (sorted by mismatch)</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>par_sets <span class="op">=</span> calib.get_pars(n<span class="op">=</span><span class="dv">3</span>)</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, pars <span class="kw">in</span> <span class="bu">enumerate</span>(par_sets):</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'Set </span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>pars<span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Set 0: {'ng.beta_m2f': 0.11179910460297238, 'ng.eff_condom': 0.8249961931428036}
-Set 1: {'ng.beta_m2f': 0.06558803687472145, 'ng.eff_condom': 0.39314443023841505}
-Set 2: {'ng.beta_m2f': 0.03530198061602636, 'ng.eff_condom': 0.8232316655974705}</code></pre>
+<pre><code>Set 0: {'ng.beta_m2f': 0.12432424193302818, 'ng.eff_condom': 0.6470902915452392}
+Set 1: {'ng.beta_m2f': 0.11499291628504861, 'ng.eff_condom': 0.615067680886376}
+Set 2: {'ng.beta_m2f': 0.10677113073365593, 'ng.eff_condom': 0.44069451356722134}</code></pre>
 </div>
 </div>
 <p>You can also access the full results DataFrame via <code>calib.df</code>, which includes all parameters plus the mismatch value for every trial.</p>
@@ -1687,84 +957,64 @@ Set 2: {'ng.beta_m2f': 0.03530198061602636, 'ng.eff_condom': 0.8232316655974705}
 <section id="running-calibrated-sims-with-make_calib_sims" class="level2">
 <h2 class="anchored" data-anchor-id="running-calibrated-sims-with-make_calib_sims">Running calibrated sims with <code>make_calib_sims</code></h2>
 <p>The most common post-calibration task is running the top N parameter sets to generate results with uncertainty. <code>make_calib_sims()</code> handles this in one call:</p>
-<div id="1fb63af3" class="cell" data-execution_count="10">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run top 3 parameter sets</span></span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>msim <span class="op">=</span> sti.make_calib_sims(calib<span class="op">=</span>calib, n_parsets<span class="op">=</span><span class="dv">3</span>, verbose<span class="op">=-</span><span class="dv">1</span>)</span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Ran </span><span class="sc">{</span><span class="bu">len</span>(msim.sims)<span class="sc">}</span><span class="ss"> simulations'</span>)</span>
-<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Each sim has par_idx: </span><span class="sc">{</span>[s.par_idx <span class="cf">for</span> s <span class="kw">in</span> msim.sims]<span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="4ed7a0ce" class="cell" data-execution_count="11">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run top 3 parameter sets</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>msim <span class="op">=</span> sti.make_calib_sims(calib<span class="op">=</span>calib, n_parsets<span class="op">=</span><span class="dv">3</span>, verbose<span class="op">=-</span><span class="dv">1</span>)</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Ran </span><span class="sc">{</span><span class="bu">len</span>(msim.sims)<span class="sc">}</span><span class="ss"> simulations'</span>)</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Each sim has par_idx: </span><span class="sc">{</span>[s.par_idx <span class="cf">for</span> s <span class="kw">in</span> msim.sims]<span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Initializing sim "Sim 1" with 500 agents
-Initializing sim "Sim 0" with 500 agents
-Initializing sim "Sim 2" with 500 agents
-Ran 3 simulations
+<pre><code>Ran 3 simulations
 Each sim has par_idx: [0, 1, 2]</code></pre>
 </div>
 </div>
 <p>You can also pass calibration parameters directly – useful when loading saved results:</p>
-<div id="29fd0bb3" class="cell" data-execution_count="11">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># From a list of parameter dicts</span></span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>msim <span class="op">=</span> sti.make_calib_sims(</span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    calib_pars<span class="op">=</span>par_sets,</span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>    sim<span class="op">=</span>sti.Sim(diseases<span class="op">=</span>sti.Gonorrhea(), n_agents<span class="op">=</span><span class="dv">500</span>, start<span class="op">=</span><span class="dv">2010</span>, stop<span class="op">=</span><span class="dv">2030</span>, verbose<span class="op">=-</span><span class="dv">1</span>),</span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>    verbose<span class="op">=-</span><span class="dv">1</span>,</span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a><span class="co"># From a DataFrame (like calib.df)</span></span>
-<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>msim <span class="op">=</span> sti.make_calib_sims(</span>
-<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>    calib_pars<span class="op">=</span>calib.df,</span>
-<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>    sim<span class="op">=</span>sti.Sim(diseases<span class="op">=</span>sti.Gonorrhea(), n_agents<span class="op">=</span><span class="dv">500</span>, start<span class="op">=</span><span class="dv">2010</span>, stop<span class="op">=</span><span class="dv">2030</span>, verbose<span class="op">=-</span><span class="dv">1</span>),</span>
-<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>    n_parsets<span class="op">=</span><span class="dv">3</span>, verbose<span class="op">=-</span><span class="dv">1</span>,</span>
-<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Initializing sim "Sim 1" with 500 agents
-Initializing sim "Sim 0" with 500 agents
-Initializing sim "Sim 2" with 500 agents
-Initializing sim "Sim 0" with 500 agents
-Initializing sim "Sim 1" with 500 agents
-Initializing sim "Sim 2" with 500 agents</code></pre>
-</div>
+<div id="86767af5" class="cell" data-execution_count="12">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># From a list of parameter dicts</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>msim <span class="op">=</span> sti.make_calib_sims(</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    calib_pars<span class="op">=</span>par_sets,</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    sim<span class="op">=</span>sti.Sim(diseases<span class="op">=</span>sti.Gonorrhea(), n_agents<span class="op">=</span><span class="dv">500</span>, start<span class="op">=</span><span class="dv">2010</span>, stop<span class="op">=</span><span class="dv">2030</span>, verbose<span class="op">=-</span><span class="dv">1</span>),</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    verbose<span class="op">=-</span><span class="dv">1</span>,</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a><span class="co"># From a DataFrame (like calib.df)</span></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>msim <span class="op">=</span> sti.make_calib_sims(</span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>    calib_pars<span class="op">=</span>calib.df,</span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>    sim<span class="op">=</span>sti.Sim(diseases<span class="op">=</span>sti.Gonorrhea(), n_agents<span class="op">=</span><span class="dv">500</span>, start<span class="op">=</span><span class="dv">2010</span>, stop<span class="op">=</span><span class="dv">2030</span>, verbose<span class="op">=-</span><span class="dv">1</span>),</span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>    n_parsets<span class="op">=</span><span class="dv">3</span>, verbose<span class="op">=-</span><span class="dv">1</span>,</span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <section id="filtering-with-check_fn" class="level3">
 <h3 class="anchored" data-anchor-id="filtering-with-check_fn">Filtering with <code>check_fn</code></h3>
 <p>Some parameter combinations may produce epidemiologically implausible results (e.g., disease die-out). Pass a <code>check_fn</code> to filter:</p>
-<div id="7fe7aaf5" class="cell" data-execution_count="12">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> check_ng_alive(sim):</span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Reject sims where gonorrhea died out."""</span></span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">float</span>(sim.results.ng.new_infections[<span class="op">-</span><span class="dv">12</span>:].<span class="bu">sum</span>()) <span class="op">&gt;</span> <span class="dv">0</span></span>
-<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>msim <span class="op">=</span> sti.make_calib_sims(</span>
-<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>    calib<span class="op">=</span>calib, n_parsets<span class="op">=</span><span class="dv">3</span>,</span>
-<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>    check_fn<span class="op">=</span>check_ng_alive, verbose<span class="op">=-</span><span class="dv">1</span>,</span>
-<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Kept </span><span class="sc">{</span><span class="bu">len</span>(msim.sims)<span class="sc">}</span><span class="ss"> sims after filtering'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="dd326b72" class="cell" data-execution_count="13">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> check_ng_alive(sim):</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Reject sims where gonorrhea died out."""</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">float</span>(sim.results.ng.new_infections[<span class="op">-</span><span class="dv">12</span>:].<span class="bu">sum</span>()) <span class="op">&gt;</span> <span class="dv">0</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>msim <span class="op">=</span> sti.make_calib_sims(</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>    calib<span class="op">=</span>calib, n_parsets<span class="op">=</span><span class="dv">3</span>,</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>    check_fn<span class="op">=</span>check_ng_alive, verbose<span class="op">=-</span><span class="dv">1</span>,</span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Kept </span><span class="sc">{</span><span class="bu">len</span>(msim.sims)<span class="sc">}</span><span class="ss"> sims after filtering'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Initializing sim "Sim 2" with 500 agents
-Initializing sim "Sim 0" with 500 agents
-Initializing sim "Sim 1" with 500 agents
-Dropped 3/3 sims via check_fn
-Kept 0 sims after filtering</code></pre>
+<pre><code>Dropped 1/3 sims via check_fn
+Kept 2 sims after filtering</code></pre>
 </div>
 </div>
 </section>
 <section id="multiple-seeds-per-parameter-set" class="level3">
 <h3 class="anchored" data-anchor-id="multiple-seeds-per-parameter-set">Multiple seeds per parameter set</h3>
 <p>For stochastic robustness, run each parameter set with multiple random seeds. When combined with <code>check_fn</code>, only the first surviving seed per parameter set is kept:</p>
-<div id="b9eb465c" class="cell" data-execution_count="13">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>msim <span class="op">=</span> sti.make_calib_sims(</span>
-<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>    calib<span class="op">=</span>calib, n_parsets<span class="op">=</span><span class="dv">3</span>,</span>
-<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>    seeds_per_par<span class="op">=</span><span class="dv">2</span>,</span>
-<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>    check_fn<span class="op">=</span>check_ng_alive, verbose<span class="op">=-</span><span class="dv">1</span>,</span>
-<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Kept </span><span class="sc">{</span><span class="bu">len</span>(msim.sims)<span class="sc">}</span><span class="ss"> sims (1 per par set, best surviving seed)'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="862be8b7" class="cell" data-execution_count="14">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>msim <span class="op">=</span> sti.make_calib_sims(</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>    calib<span class="op">=</span>calib, n_parsets<span class="op">=</span><span class="dv">3</span>,</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    seeds_per_par<span class="op">=</span><span class="dv">2</span>,</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    check_fn<span class="op">=</span>check_ng_alive, verbose<span class="op">=-</span><span class="dv">1</span>,</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Kept </span><span class="sc">{</span><span class="bu">len</span>(msim.sims)<span class="sc">}</span><span class="ss"> sims (1 per par set, best surviving seed)'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Initializing sim "Sim 0" with 500 agents
-Initializing sim "Sim 1" with 500 agents
-Initializing sim "Sim 2" with 500 agents
-Initializing sim "Sim 3" with 500 agents
-Initializing sim "Sim 4" with 500 agents
-Initializing sim "Sim 5" with 500 agents
-Dropped 6/6 sims via check_fn
-Kept 0 sims (1 per par set, best surviving seed)</code></pre>
+<pre><code>Dropped 3/6 sims via check_fn
+Kept 3 sims (1 per par set, best surviving seed)</code></pre>
 </div>
 </div>
 </section>
@@ -1772,13 +1022,13 @@ Kept 0 sims (1 per par set, best surviving seed)</code></pre>
 <section id="saving-and-loading" class="level2">
 <h2 class="anchored" data-anchor-id="saving-and-loading">Saving and loading</h2>
 <p>After calibration, use <code>calib.save()</code> to save the calibration object and parameter DataFrame. This handles shrinking (keeping only the top results to reduce file size) automatically:</p>
-<div id="6814411d" class="cell" data-execution_count="14">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Save with shrinking (keeps top 10% by default)</span></span>
-<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>calib.save(<span class="st">'tutorial_output/my_calib.obj'</span>)</span>
-<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Load back and use</span></span>
-<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>loaded <span class="op">=</span> sc.load(<span class="st">'tutorial_output/my_calib.obj'</span>)</span>
-<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Loaded calibration with </span><span class="sc">{</span><span class="bu">len</span>(loaded.df)<span class="sc">}</span><span class="ss"> parameter sets'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="46065f9f" class="cell" data-execution_count="15">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Save with shrinking (keeps top 10% by default)</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>calib.save(<span class="st">'tutorial_output/my_calib.obj'</span>)</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Load back and use</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>loaded <span class="op">=</span> sc.load(<span class="st">'tutorial_output/my_calib.obj'</span>)</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Loaded calibration with </span><span class="sc">{</span><span class="bu">len</span>(loaded.df)<span class="sc">}</span><span class="ss"> parameter sets'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Saved calibration to tutorial_output/my_calib.obj
 Saved parameters to tutorial_output/my_calib_pars.df
@@ -1791,35 +1041,35 @@ Loaded calibration with 10 parameter sets</code></pre>
 <p>The key idea behind STIsim’s calibration is simple: <strong>any result that appears in <code>sim.to_df()</code> can be a calibration target</strong>. You just need to include a column with the same name in your data file.</p>
 <p>Built-in disease results (prevalence, incidence, etc.) are always available. But what if you need something custom – say, HIV-syphilis coinfection prevalence among adolescent girls? Any module (analyzers, interventions, connectors, etc.) can define custom results using <code>define_results</code> – see <a href="../tutorials/tut_results.html#custom-results">Custom results</a> for the full explanation. Add the result to your sim, add a matching column to your data, and the calibration fits to it automatically.</p>
 <p>Here’s an example using an analyzer:</p>
-<div id="dec1c2ee" class="cell" data-execution_count="15">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> CoinfectionPrev(ss.Analyzer):</span>
-<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Measure HIV-syphilis coinfection prevalence among 15-24 year old females."""</span></span>
-<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> init_pre(<span class="va">self</span>, sim):</span>
-<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().init_pre(sim)</span>
-<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.define_results(</span>
-<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>            ss.Result(<span class="st">'coinf_prev_f_15_24'</span>, dtype<span class="op">=</span><span class="bu">float</span>, scale<span class="op">=</span><span class="va">False</span>, label<span class="op">=</span><span class="st">'Coinfection prev (F 15-24)'</span>),</span>
-<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> step(<span class="va">self</span>):</span>
-<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a>        ppl <span class="op">=</span> <span class="va">self</span>.sim.people                                                    <span class="co"># Get the people object</span></span>
-<span id="cb41-12"><a href="#cb41-12" aria-hidden="true" tabindex="-1"></a>        target <span class="op">=</span> ppl.female <span class="op">&amp;</span> (ppl.age <span class="op">&gt;=</span> <span class="dv">15</span>) <span class="op">&amp;</span> (ppl.age <span class="op">&lt;</span> <span class="dv">25</span>)                  <span class="co"># Boolean mask: alive females aged 15-24</span></span>
-<span id="cb41-13"><a href="#cb41-13" aria-hidden="true" tabindex="-1"></a>        n_target <span class="op">=</span> target.count()                                                <span class="co"># Count how many match</span></span>
-<span id="cb41-14"><a href="#cb41-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> n_target <span class="op">&gt;</span> <span class="dv">0</span>:</span>
-<span id="cb41-15"><a href="#cb41-15" aria-hidden="true" tabindex="-1"></a>            hiv <span class="op">=</span> <span class="va">self</span>.sim.diseases.hiv.infected                                 <span class="co"># Boolean: who has HIV</span></span>
-<span id="cb41-16"><a href="#cb41-16" aria-hidden="true" tabindex="-1"></a>            syph <span class="op">=</span> <span class="va">self</span>.sim.diseases.syph.infected                               <span class="co"># Boolean: who has syphilis</span></span>
-<span id="cb41-17"><a href="#cb41-17" aria-hidden="true" tabindex="-1"></a>            has_both <span class="op">=</span> hiv <span class="op">&amp;</span> syph <span class="op">&amp;</span> target                                       <span class="co"># Intersection: coinfected in target group</span></span>
-<span id="cb41-18"><a href="#cb41-18" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.results[<span class="st">'coinf_prev_f_15_24'</span>][<span class="va">self</span>.ti] <span class="op">=</span> has_both.count() <span class="op">/</span> n_target  <span class="co"># Store as prevalence</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="98bf3279" class="cell" data-execution_count="16">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> CoinfectionPrev(ss.Analyzer):</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Measure HIV-syphilis coinfection prevalence among 15-24 year old females."""</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> init_pre(<span class="va">self</span>, sim):</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().init_pre(sim)</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.define_results(</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>            ss.Result(<span class="st">'coinf_prev_f_15_24'</span>, dtype<span class="op">=</span><span class="bu">float</span>, scale<span class="op">=</span><span class="va">False</span>, label<span class="op">=</span><span class="st">'Coinfection prev (F 15-24)'</span>),</span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> step(<span class="va">self</span>):</span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>        ppl <span class="op">=</span> <span class="va">self</span>.sim.people                                                    <span class="co"># Get the people object</span></span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>        target <span class="op">=</span> ppl.female <span class="op">&amp;</span> (ppl.age <span class="op">&gt;=</span> <span class="dv">15</span>) <span class="op">&amp;</span> (ppl.age <span class="op">&lt;</span> <span class="dv">25</span>)                  <span class="co"># Boolean mask: alive females aged 15-24</span></span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a>        n_target <span class="op">=</span> target.count()                                                <span class="co"># Count how many match</span></span>
+<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> n_target <span class="op">&gt;</span> <span class="dv">0</span>:</span>
+<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a>            hiv <span class="op">=</span> <span class="va">self</span>.sim.diseases.hiv.infected                                 <span class="co"># Boolean: who has HIV</span></span>
+<span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a>            syph <span class="op">=</span> <span class="va">self</span>.sim.diseases.syph.infected                               <span class="co"># Boolean: who has syphilis</span></span>
+<span id="cb31-17"><a href="#cb31-17" aria-hidden="true" tabindex="-1"></a>            has_both <span class="op">=</span> hiv <span class="op">&amp;</span> syph <span class="op">&amp;</span> target                                       <span class="co"># Intersection: coinfected in target group</span></span>
+<span id="cb31-18"><a href="#cb31-18" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.results[<span class="st">'coinf_prev_f_15_24'</span>][<span class="va">self</span>.ti] <span class="op">=</span> has_both.count() <span class="op">/</span> n_target  <span class="co"># Store as prevalence</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Now include this analyzer when creating your sim, and add the corresponding column to your data file:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Add the analyzer to your sim</span></span>
-<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> make_sim(analyzers<span class="op">=</span>[CoinfectionPrev()])</span>
-<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Your data CSV just needs a matching column:</span></span>
-<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a><span class="co">#</span></span>
-<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a><span class="co"># time, hiv.prevalence, syph.active_prevalence, coinfectionprev.coinf_prev_f_15_24</span></span>
-<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 2016, 0.12,           0.03,                   0.005</span></span>
-<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a><span class="co"># 2020, 0.11,           0.025,                  0.004</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Add the analyzer to your sim</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> make_sim(analyzers<span class="op">=</span>[CoinfectionPrev()])</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Your data CSV just needs a matching column:</span></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a><span class="co">#</span></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a><span class="co"># time, hiv.prevalence, syph.active_prevalence, coinfectionprev.coinf_prev_f_15_24</span></span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 2016, 0.12,           0.03,                   0.005</span></span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a><span class="co"># 2020, 0.11,           0.025,                  0.004</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>The column name follows the same dot notation: <code>analyzer_name.result_name</code>. When the calibration runs, it will automatically compare the model’s coinfection prevalence against your data, alongside the other targets. No changes to the calibration code are needed – just add the column to the data and the analyzer to the sim.</p>
 <p>This pattern works for any custom quantity: age-specific prevalence, risk-group-stratified incidence, treatment coverage by pathway, etc. If you can compute it in an analyzer, you can fit to it.</p>
 </section>
@@ -1858,44 +1108,44 @@ Loaded calibration with 10 parameter sets</code></pre>
 </table>
 <p>Missing years are fine – the calibration only compares at timepoints where data exists. To see what result names are available, run <code>sim.to_df().columns</code>.</p>
 <p>Not all targets are equally informative. Use <code>weights</code> to tell the calibration which data points matter most – for example, if you have high-quality survey data for syphilis but only routine program data for HIV:</p>
-<div id="661ef09a" class="cell" data-execution_count="16">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>weights <span class="op">=</span> {</span>
-<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">'hiv.prevalence'</span>: <span class="fl">2.0</span>,              <span class="co"># Routine data -- moderate weight</span></span>
-<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">'syph.active_prevalence'</span>: <span class="fl">10.0</span>,     <span class="co"># PHIA survey -- high weight</span></span>
-<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">'hiv.n_on_art'</span>: <span class="fl">1.0</span>,                <span class="co"># Program data -- default weight</span></span>
-<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="1485d191" class="cell" data-execution_count="17">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>weights <span class="op">=</span> {</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">'hiv.prevalence'</span>: <span class="fl">2.0</span>,              <span class="co"># Routine data -- moderate weight</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">'syph.active_prevalence'</span>: <span class="fl">10.0</span>,     <span class="co"># PHIA survey -- high weight</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">'hiv.n_on_art'</span>: <span class="fl">1.0</span>,                <span class="co"># Program data -- default weight</span></span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="typical-production-workflow" class="level2">
 <h2 class="anchored" data-anchor-id="typical-production-workflow">Typical production workflow</h2>
 <p>A complete calibration analysis typically has three scripts:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb44"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. run_calibrations.py -- find best parameters</span></span>
-<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> make_sim(verbose<span class="op">=-</span><span class="dv">1</span>)</span>
-<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> pd.read_csv(<span class="st">'data/calibration_targets.csv'</span>)</span>
-<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>calib <span class="op">=</span> sti.Calibration(</span>
-<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>    sim<span class="op">=</span>sim,</span>
-<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>    calib_pars<span class="op">=</span><span class="bu">dict</span>(</span>
-<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>        hiv<span class="op">=</span><span class="bu">dict</span>(beta_m2f<span class="op">=</span><span class="bu">dict</span>(low<span class="op">=</span><span class="fl">0.002</span>, high<span class="op">=</span><span class="fl">0.014</span>, guess<span class="op">=</span><span class="fl">0.006</span>)),</span>
-<span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a>        structuredsexual<span class="op">=</span><span class="bu">dict</span>(prop_f0<span class="op">=</span><span class="bu">dict</span>(low<span class="op">=</span><span class="fl">0.55</span>, high<span class="op">=</span><span class="fl">0.9</span>, guess<span class="op">=</span><span class="fl">0.7</span>)),</span>
-<span id="cb44-10"><a href="#cb44-10" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb44-11"><a href="#cb44-11" aria-hidden="true" tabindex="-1"></a>    data<span class="op">=</span>data,</span>
-<span id="cb44-12"><a href="#cb44-12" aria-hidden="true" tabindex="-1"></a>    weights<span class="op">=</span>{<span class="st">'hiv.prevalence'</span>: <span class="fl">5.0</span>},</span>
-<span id="cb44-13"><a href="#cb44-13" aria-hidden="true" tabindex="-1"></a>    total_trials<span class="op">=</span><span class="dv">2000</span>,</span>
-<span id="cb44-14"><a href="#cb44-14" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb44-15"><a href="#cb44-15" aria-hidden="true" tabindex="-1"></a>calib.calibrate()</span>
-<span id="cb44-16"><a href="#cb44-16" aria-hidden="true" tabindex="-1"></a>calib.save(<span class="st">'results/calib.obj'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. run_msim.py -- run top parameter sets with full results</span></span>
-<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>pars_df <span class="op">=</span> sc.load(<span class="st">'results/calib_pars.df'</span>)</span>
-<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>msim <span class="op">=</span> sti.make_calib_sims(</span>
-<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>    calib_pars<span class="op">=</span>pars_df, sim<span class="op">=</span>make_sim(), n_parsets<span class="op">=</span><span class="dv">200</span>,</span>
-<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb46"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. run_scenarios.py -- compare interventions</span></span>
-<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> scenario <span class="kw">in</span> [<span class="st">'baseline'</span>, <span class="st">'intervention'</span>]:</span>
-<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>    msim <span class="op">=</span> sti.make_calib_sims(</span>
-<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>        calib_pars<span class="op">=</span>pars_df, sim<span class="op">=</span>make_sim(scenario<span class="op">=</span>scenario),</span>
-<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>        n_parsets<span class="op">=</span><span class="dv">10</span>, seeds_per_par<span class="op">=</span><span class="dv">5</span>,</span>
-<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>    )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. run_calibrations.py -- find best parameters</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> make_sim(verbose<span class="op">=-</span><span class="dv">1</span>)</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> pd.read_csv(<span class="st">'data/calibration_targets.csv'</span>)</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>calib <span class="op">=</span> sti.Calibration(</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>    sim<span class="op">=</span>sim,</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>    calib_pars<span class="op">=</span><span class="bu">dict</span>(</span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>        hiv<span class="op">=</span><span class="bu">dict</span>(beta_m2f<span class="op">=</span><span class="bu">dict</span>(low<span class="op">=</span><span class="fl">0.002</span>, high<span class="op">=</span><span class="fl">0.014</span>, guess<span class="op">=</span><span class="fl">0.006</span>)),</span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>        structuredsexual<span class="op">=</span><span class="bu">dict</span>(prop_f0<span class="op">=</span><span class="bu">dict</span>(low<span class="op">=</span><span class="fl">0.55</span>, high<span class="op">=</span><span class="fl">0.9</span>, guess<span class="op">=</span><span class="fl">0.7</span>)),</span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>    data<span class="op">=</span>data,</span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>    weights<span class="op">=</span>{<span class="st">'hiv.prevalence'</span>: <span class="fl">5.0</span>},</span>
+<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a>    total_trials<span class="op">=</span><span class="dv">2000</span>,</span>
+<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb34-15"><a href="#cb34-15" aria-hidden="true" tabindex="-1"></a>calib.calibrate()</span>
+<span id="cb34-16"><a href="#cb34-16" aria-hidden="true" tabindex="-1"></a>calib.save(<span class="st">'results/calib.obj'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. run_msim.py -- run top parameter sets with full results</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>pars_df <span class="op">=</span> sc.load(<span class="st">'results/calib_pars.df'</span>)</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>msim <span class="op">=</span> sti.make_calib_sims(</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>    calib_pars<span class="op">=</span>pars_df, sim<span class="op">=</span>make_sim(), n_parsets<span class="op">=</span><span class="dv">200</span>,</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. run_scenarios.py -- compare interventions</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> scenario <span class="kw">in</span> [<span class="st">'baseline'</span>, <span class="st">'intervention'</span>]:</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>    msim <span class="op">=</span> sti.make_calib_sims(</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>        calib_pars<span class="op">=</span>pars_df, sim<span class="op">=</span>make_sim(scenario<span class="op">=</span>scenario),</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>        n_parsets<span class="op">=</span><span class="dv">10</span>, seeds_per_par<span class="op">=</span><span class="dv">5</span>,</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>    )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="further-reading" class="level2">
 <h2 class="anchored" data-anchor-id="further-reading">Further reading</h2>
