@@ -460,14 +460,19 @@ def test_age_gap_distribution(n_agents=25000, n_runs=5, dur=25, window_months=12
     age_diff_pars = {'teens': [(target_age_gap, sdA), (target_age_gap, sdA), (target_age_gap, sdA)],
                      'young': [(target_age_gap, sdA), (target_age_gap, sdA), (target_age_gap, sdA)],
                      'adult': [(target_age_gap, sdA), (target_age_gap, sdA), (target_age_gap, sdA)]}
-    max_allowed_age_delta = target_age_gap + 2 * sdA
+    max_allowed_age_delta = target_age_gap + 3 * sdA
 
 
     seeds = list(range(1, n_runs + 1))
-    # Integer-centered bins from -gap_range to +gap_range inclusive
+    # Bins of width ``gap_bin_width`` centered on integers from
+    # -max_allowed_age_delta to +max_allowed_age_delta inclusive. With
+    # gap_bin_width=1 and max_allowed_age_delta=11 that yields 23 bins
+    # centered on -11, -10, ..., +11 with edges at -11.5, -10.5, ..., +11.5.
     n_bins = int(round(2 * max_allowed_age_delta / gap_bin_width)) + 1
     half = gap_bin_width / 2
-    bin_edges = np.linspace(-(max_allowed_age_delta+1) - half, (max_allowed_age_delta+1) + half, n_bins + 1)
+    bin_edges = np.linspace(-max_allowed_age_delta - half,
+                             max_allowed_age_delta + half,
+                             n_bins + 1)
     bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
     if gap_bin_width == 1:
         bin_labels = [f'{int(round(c))}' for c in bin_centers]

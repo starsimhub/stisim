@@ -159,6 +159,11 @@ class MFPars(ss.Pars):
         self.age_diffs = ss.normal()
         self.dur_dist = ss.lognorm_ex()
 
+        # relationship search taper for older women
+        self.p_actually_looking = ss.bernoulli(p=0)         # Placeholder to be replaced by agent-based calculation per-timestep
+        self.f_partnership_taper_offset = 0 # mean_age_gap_target + 3*sd, maximum of all age groupings. Set in init_post()
+        self.f_partnership_taper_cut = 55  # max age, over which females no longer search for new relationships
+
         self.update(kwargs)
         return
 
@@ -405,6 +410,12 @@ class MFNetwork(BaseNetwork):
         self.relationship_durs = defaultdict(list)
         match_pairs_algo = "match_pairs_existing" if match_pairs_algo is None else match_pairs_algo
         self.match_pairs = getattr(self, match_pairs_algo)
+        return
+
+    def init_post(self):
+        super().init_post()
+        loc, scale = self.get_age_risk_pars(self.sim.people.uid, self.pars.age_diff_pars)
+        self.pars.f_partnership_taper_offset = max(loc + 3 * scale)  # mean age + 3*sd
         return
 
     def get_age_risk_pars(self, uids, par):
@@ -765,7 +776,7 @@ class MFNetwork(BaseNetwork):
         return np.array(matched_m, dtype=int), np.array(matched_f, dtype=int)
 
     @staticmethod
-    def _searchsorted_loop_closest(sorted_m_ages, sorted_desired):
+    def _searchsorted_loop_closest(sorted_m_ages, sorted_desired, max_deviation=1):
         """Variant of :func:`_two_pointer_loop_py_closest` that hoists the
         per-iteration ``bisect_left`` into a single vectorized
         ``np.searchsorted`` call before the loop.
@@ -774,6 +785,16 @@ class MFNetwork(BaseNetwork):
         because ``max(j, lower_bounds[i])`` yields the same index whenever the
         unconstrained leftmost (``lower_bounds[i]``) is below the forward-only
         bound ``j``.
+
+        ``max_deviation`` (years): if the closest available male's age differs
+        from the female's ``target_age`` by more than this, the female is
+        skipped (``continue``) instead of being force-matched to a male the
+        matching prefers to reject. Unlike :func:`_two_pointer_loop_py_closest`,
+        which ``break``s on this condition, the forward pointer is *not*
+        advanced on a skip -- so a later female with a slightly higher target
+        can still match the same candidate male if it fits her better. This is
+        what relieves the residual downward gap bias for older females whose
+        targets exceed the population's oldest viable males.
         """
         n_males = len(sorted_m_ages)
         n_females = len(sorted_desired)
@@ -797,13 +818,21 @@ class MFNetwork(BaseNetwork):
                 # take the next male, j (cannot pick j-1)
                 selected_j = j
 
+            if (max_deviation is not None
+                    and abs(target_age - sorted_m_ages[selected_j]) > max_deviation):
+                # Closest available male is too far from this female's target.
+                # Skip her (don't append, don't update j or last_j_selected);
+                # later (higher-target) females may still match because j is
+                # unchanged and may now sit in a denser part of the male age
+                # distribution relative to their target.
+                continue
+
             matched_m.append(selected_j)
             last_j_selected = selected_j
             j = selected_j + 1
             matched_f.append(i)
 
         return np.array(matched_m, dtype=int), np.array(matched_f, dtype=int)
-
 
     def match_pairs_two_pointer_linear_closest(self):
         """
@@ -891,16 +920,27 @@ class MFNetwork(BaseNetwork):
         active = self.over_debut
         underpartnered = self.partners < self.concurrency
         f_eligible = active & ppl.female & underpartnered
+        f_eligible_uids = f_eligible.uids
+
+        # Now we throttle the likelihood of older women looking for partners to reduce the downward bias in
+        # F-M age gaps due to a lack of available males for older females to partner with (especially when they draw
+        # higher gaps, below, than their average target gap)
+        actual_looking_chance = ((self.pars.f_partnership_taper_cut - ppl.age[f_eligible]) / self.pars.f_partnership_taper_offset)  # taper in looking chance for older women
+        actual_looking_chance = np.clip(actual_looking_chance, 0, 1)**1.5  # arbitrary, but more forceful than linear tapering
+        self.pars.p_actually_looking.set(p=actual_looking_chance)
+        actually_looking = self.pars.p_actually_looking.rvs()
+        f_eligible_uids = f_eligible_uids[actually_looking]
 
         m_eligible = active & ppl.male & underpartnered
-        f_looking = self.pars.p_pair_form.filter(f_eligible.uids)
+        f_looking = self.pars.p_pair_form.filter(f_eligible_uids)
+
 
         if len(f_looking) == 0 or m_eligible.count() == 0:
             raise NoPartnersFound()
 
         loc, scale = self.get_age_risk_pars(f_looking, self.pars.age_diff_pars)
         self.pars.age_diffs.set(loc=loc, scale=scale)
-        max_allowed_age_delta = np.max(loc + 2*scale)  # 2 * max_sd
+        max_allowed_age_delta = np.max(loc + 3*scale)        # post-filter, on |male - female| gap
 
         age_gaps = self.pars.age_diffs.rvs(f_looking)
         desired_ages = ppl.age[f_looking] + age_gaps
@@ -914,7 +954,12 @@ class MFNetwork(BaseNetwork):
         sorted_desired = desired_ages[ind_f]
 
         # Returns indicies of sorted_m_ages and sorted_desired that are matching.
-        matched_m, matched_f = self._searchsorted_loop_closest(sorted_m_ages, sorted_desired)
+        # max_deviation skips females whose closest available male is way off
+        # their target_age, which catches the cases (typically older females
+        # under a population age pyramid) that the looking-chance taper leaves
+        # in the pool.
+        matched_m, matched_f = self._searchsorted_loop_closest(
+            sorted_m_ages, sorted_desired, max_deviation=1)
 
         m_uids1 = m_eligible.uids[ind_m[matched_m]]
         f_uids1 = f_looking[ind_f[matched_f]]
