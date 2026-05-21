@@ -5,19 +5,16 @@ formation, relationship duration, debut age, MSM) affect behaviour as expected.
 import os
 import sys
 import time
-import warnings
 import stisim as sti
 import starsim as ss
 import numpy as np
 import sciris as sc
 from collections import defaultdict
 
-# Allow `from test_network_proposal import _match_pairs_fast` whether pytest
-# collects from the project root or this file is run directly.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
-def test_age_differences(n_agents=25000):
+def test_age_differences(n_agents=25000, target_age_gap=8, sd=3):
     """
     Sexual network with default relationship type distribution: run for 1 month and
     analyze partner age differences. Produces a scatterplot of female vs male partner
@@ -28,16 +25,11 @@ def test_age_differences(n_agents=25000):
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
 
-    target_age_gap = 5
 
-    sdA = 3
-    sdB = 3 # 2
-    sdC = 3 # 1
-    age_diff_pars_older = {'teens': [(target_age_gap, sdA), (target_age_gap, sdA), (target_age_gap, sdC)],
-                           'young': [(target_age_gap, sdA), (target_age_gap, sdA), (target_age_gap, sdB)],
-                           'adult': [(target_age_gap, sdA), (target_age_gap, sdA), (target_age_gap, sdB)]}
-    network = sti.MFNetwork(age_diff_pars=age_diff_pars_older,
-                            match_pairs_algo='match_pairs_closest_age_bounding_binary_search')
+    age_diff_pars_older = {'teens': [(target_age_gap, sd), (target_age_gap, sd), (target_age_gap, sd)],
+                           'young': [(target_age_gap, sd), (target_age_gap, sd), (target_age_gap, sd)],
+                           'adult': [(target_age_gap, sd), (target_age_gap, sd), (target_age_gap, sd)]}
+    network = sti.MFNetwork(age_diff_pars=age_diff_pars_older)
     sim = sti.Sim(n_agents=n_agents, networks=[network], dur=1, rand_seed=1)
     sim.run()
 
@@ -47,7 +39,7 @@ def test_age_differences(n_agents=25000):
 
     # Restrict both axes to 15–75 years
     min_age = 0
-    max_age = 1000
+    max_age = 100
     mask = (female_ages >= min_age) & (female_ages <= max_age) & (male_ages >= min_age) & (male_ages <= max_age)
     female_ages = female_ages[mask]
     male_ages = male_ages[mask]
@@ -71,7 +63,7 @@ def test_age_differences(n_agents=25000):
             label=f'Linear fit  slope={slope:.2f}')
     ax.set_xlabel('Female partner age (years)')
     ax.set_ylabel('Male partner age (years)')
-    ax.set_title('Relationship partner ages')
+    ax.set_title('Relationship partner ages (at formation time)')
     ax.set_xlim(min_age, max_age)
     ax.set_ylim(min_age, max_age)
     ax.legend()
@@ -147,14 +139,12 @@ def _print_sweep_summary(results, label=''):
 
 
 def test_algorithm_comparison(n_agents=25000):
-
+    """this test is useful for comparing new proposed algorithms to the current one"""
     target_age_gaps = [5]
-    seeds = [1, 2, 3, 4, 5] #, 4, 5, 6, 7]# , 2, 3]# , 3, 4, 5]
+    seeds = [1, 2, 3, 4, 5]
     dur = 25
 
-    algorithms = ['match_pairs_existing', 'match_pairs_two_pointer_linear', 'match_pairs_two_pointer_linear_closest'] #, 'match_pairs_target_age_multipass', ]
-    algorithms = ['match_pairs_two_pointer_linear', 'match_pairs_two_pointer_linear_closest', 'match_pairs_two_pointer_linear_closest_age_bounding']
-    algorithms = ['match_pairs_two_pointer_linear_closest_age_bounding', 'match_pairs_closest_age_bounding_binary_search']
+    algorithms = ['match_pairs']
 
     all_results = {}
     for algo_name in algorithms:
@@ -296,8 +286,7 @@ def test_n_partners_distribution(n_agents=25000, n_runs=5, dur=25, window_months
     per_run_n_males = np.zeros(n_runs, dtype=int)
 
     for i, seed in enumerate(seeds):
-        network = sti.MFNetwork(age_diff_pars=age_diff_pars,
-                                match_pairs_algo='match_pairs_closest_age_bounding_binary_search')
+        network = sti.MFNetwork(age_diff_pars=age_diff_pars)
         analyzer = NPartnersAnalyzer(network='mfnetwork', window_months=window_months)
         sim = sti.Sim(n_agents=n_agents, networks=[network], analyzers=[analyzer],
                       dur=dur, rand_seed=seed)
@@ -464,8 +453,7 @@ def test_age_gap_distribution(n_agents=25000, n_runs=5, dur=25, window_months=12
     all_gaps = []
 
     for i, seed in enumerate(seeds):
-        network = sti.MFNetwork(age_diff_pars=age_diff_pars,
-                                match_pairs_algo='match_pairs_closest_age_bounding_binary_search')
+        network = sti.MFNetwork(age_diff_pars=age_diff_pars)
 
         analyzer = AgeGapAnalyzer(network='mfnetwork', window_months=window_months)
         sim = sti.Sim(n_agents=n_agents, networks=[network], analyzers=[analyzer],

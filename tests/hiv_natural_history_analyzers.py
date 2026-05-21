@@ -1,3 +1,4 @@
+import numpy as np
 import sciris as sc
 import starsim as ss
 
@@ -242,3 +243,83 @@ class MTCTransmissionCountTracker(ss.Analyzer):
 #         born_infected = born & (hiv.ti_infected <= self.ti)
 #         born_infected_uids = born_infected.uids
 #         self.results['hiv.perinatally_infected_uids'].extend(born_infected_uids)
+
+
+class AgeGapWindowAnalyzer(ss.Analyzer):
+    """Record edges each step; reconstruct unique (m,f) pairs over a trailing window.
+
+    For each unique pair, captures the first-observed male and female ages.
+    Used to compute realized age-gap statistics by female age bin.
+
+    Args:
+        network (str): Network name (default ``'mfnetwork'``).
+        window_months (int): Trailing window length in months; assumes monthly
+            dt so one ti per month.
+    """
+
+    def __init__(self, network='mfnetwork', window_months=12, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.network = network
+        self.window_months = window_months
+        self._records = []  # list of (ti, p1, p2, age_p1, age_p2)
+        self._final_ti = None
+        return
+
+    def step(self):
+        nw = self.sim.networks[self.network]
+        p1 = np.asarray(nw.edges.p1, dtype=np.int64)
+        p2 = np.asarray(nw.edges.p2, dtype=np.int64)
+        age_p1 = np.asarray(nw.edges.age_p1, dtype=float)
+        age_p2 = np.asarray(nw.edges.age_p2, dtype=float)
+        if len(p1):
+            self._records.append((self.ti, p1, p2, age_p1, age_p2))
+        self._final_ti = self.ti
+        return
+
+    def get_first_appearance(self):
+        """Return (male_ages, female_ages, gaps) for unique (m,f) pairs in window."""
+        threshold = self._final_ti - self.window_months + 1
+        seen = {}
+        for ti, p1s, p2s, a1s, a2s in self._records:
+            if ti < threshold:
+                continue
+            for m, f, am, af in zip(p1s, p2s, a1s, a2s):
+                pair = (int(m), int(f))
+                if pair not in seen:
+                    seen[pair] = (float(am), float(af))
+        if not seen:
+            return (np.array([], dtype=float),) * 3
+        arr = np.array(list(seen.values()))
+        male_ages = arr[:, 0]
+        female_ages = arr[:, 1]
+        return male_ages, female_ages, male_ages - female_ages
+
+
+class NewPairsAnalyzer(ss.Analyzer):
+    """Capture female age at the first appearance of each unique (m,f) edge.
+
+    Tracks the full sim (no window) so the count of "new" partnerships per
+    female age is a stable proxy for the formation-rate distribution.
+    """
+
+    def __init__(self, network='mfnetwork', *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.network = network
+        self._seen = set()
+        self._female_ages = []
+        return
+
+    def step(self):
+        nw = self.sim.networks[self.network]
+        p1 = np.asarray(nw.edges.p1, dtype=np.int64)
+        p2 = np.asarray(nw.edges.p2, dtype=np.int64)
+        age_p2 = np.asarray(nw.edges.age_p2, dtype=float)
+        for m, f, af in zip(p1, p2, age_p2):
+            pair = (int(m), int(f))
+            if pair not in self._seen:
+                self._seen.add(pair)
+                self._female_ages.append(float(af))
+        return
+
+    def get_female_ages(self):
+        return np.array(self._female_ages, dtype=float)

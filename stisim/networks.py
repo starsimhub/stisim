@@ -161,7 +161,7 @@ class MFPars(ss.Pars):
 
         # relationship search taper for older women
         self.p_actually_looking = ss.bernoulli(p=0)         # Placeholder to be replaced by agent-based calculation per-timestep
-        self.f_partnership_taper_offset = 0 # mean_age_gap_target + 3*sd, maximum of all age groupings. Set in init_post()
+        self._f_partnership_taper_offset = 0 # mean_age_gap_target + 3*sd, maximum of all age groupings. Set in init_post()
         self.f_partnership_taper_cut = 55  # max age, over which females no longer search for new relationships
 
         self.update(kwargs)
@@ -408,7 +408,7 @@ class MFNetwork(BaseNetwork):
         self.edge_types = {'stable': 0, 'casual': 1, 'onetime': 2}
         self.define_states(*_mf_states())
         self.relationship_durs = defaultdict(list)
-        match_pairs_algo = "match_pairs_existing" if match_pairs_algo is None else match_pairs_algo
+        match_pairs_algo = "match_pairs" if match_pairs_algo is None else match_pairs_algo
         self.match_pairs = getattr(self, match_pairs_algo)
         return
 
@@ -417,7 +417,7 @@ class MFNetwork(BaseNetwork):
         super().init_post()
         uids_born = (self.sim.people.age > 0).uids
         loc, scale = self.get_age_risk_pars(uids_born, self.pars.age_diff_pars)
-        self.pars.f_partnership_taper_offset = max(loc + 3 * scale)  # mean age + 3*sd
+        self.pars._f_partnership_taper_offset = max(loc + 3 * scale)  # mean age + 3*sd
         return
 
     def get_age_risk_pars(self, uids, par):
@@ -537,7 +537,7 @@ class MFNetwork(BaseNetwork):
         desired age who has not been selected already in this selection process. Any matches proposed by algorithm that
         exceed the maximum specified: target_age_gap + 3*stddev ... will be trimmed as unrealistic. This algorithm also
         employs an age-based female-seeking-taper that linearly reduces the chances of women over
-        age: (pars.f_partnership_taper_cut - pars.f_partnership_taper_offset) from searching for partners
+        age: (pars.f_partnership_taper_cut - pars._f_partnership_taper_offset) from searching for partners
         (reaches 0% chance at pars.f_partnership_taper_cut). This forces better alignment in age gap of pairings when
         older men looking for additional relationships become scarce.
         """
@@ -550,7 +550,7 @@ class MFNetwork(BaseNetwork):
         # Now we throttle the likelihood of older women looking for partners to reduce the downward bias in
         # F-M age gaps due to a lack of available males for older females to partner with (especially when they draw
         # higher gaps, below, than their average target gap)
-        actual_looking_chance = ((self.pars.f_partnership_taper_cut - ppl.age[f_eligible]) / self.pars.f_partnership_taper_offset)  # taper in looking chance for older women
+        actual_looking_chance = ((self.pars.f_partnership_taper_cut - ppl.age[f_eligible]) / self.pars._f_partnership_taper_offset)  # taper in looking chance for older women
         actual_looking_chance = np.clip(actual_looking_chance, 0, 1)**1.5  # arbitrary, but more forceful than linear tapering
         self.pars.p_actually_looking.set(p=actual_looking_chance)
         actually_looking = self.pars.p_actually_looking.rvs()
