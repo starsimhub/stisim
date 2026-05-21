@@ -17,7 +17,7 @@ from collections import defaultdict
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
-def test_age_differences(n_agents=100000):
+def test_age_differences(n_agents=25000):
     """
     Sexual network with default relationship type distribution: run for 1 month and
     analyze partner age differences. Produces a scatterplot of female vs male partner
@@ -86,7 +86,7 @@ def test_age_differences(n_agents=100000):
 
 
 
-def _run_age_diff_sim(target_age_gap, seed, algorithm, n_agents=10000, dur=1):
+def _run_age_diff_sim(target_age_gap, seed, algorithm, n_agents=25000, dur=1):
     age_diff_pars = {
         'teens': [(target_age_gap, 3), (target_age_gap, 3), (target_age_gap, 3)],
         'young': [(target_age_gap, 3), (target_age_gap, 3), (target_age_gap, 3)],
@@ -146,37 +146,15 @@ def _print_sweep_summary(results, label=''):
         print(f"  {target_gap:9d} | {mm:14.3f} | {ms:9.3f} | {mn:13d}")
 
 
-# def test_age_differences_sweep(n_agents=10000):
-#     """Sweep ``target_age_gap`` in [2,4,6,8,10,12,14,16] x seeds [1,2,3].
-#
-#     Runs the current :meth:`MFNetwork.match_pairs` for each combo and reports
-#     the mean reported partnership age difference and mean reported standard
-#     deviation per ``target_age_gap``. Useful for characterizing how the
-#     matching algorithm reproduces the requested age-gap distribution.
-#     """
-#     target_age_gaps = [4, 6, 8, 10]
-#     seeds = [1, 2, 3, 4, 5]
-#     print(f"Sweep: {len(target_age_gaps)} target_gaps x {len(seeds)} seeds "
-#           f"= {len(target_age_gaps)*len(seeds)} sims, n_agents={n_agents}")
-#     results = _run_age_diff_sweep(target_age_gaps=target_age_gaps,
-#                                   seeds=seeds,
-#                                   n_agents=n_agents,
-#                                   label='match_pairs')
-#     _print_sweep_summary(results, label='match_pairs (current)')
-#     return results
-
-
-
-def test_algorithm_comparison(n_agents=100000):
+def test_algorithm_comparison(n_agents=25000):
 
     target_age_gaps = [5]
     seeds = [1, 2, 3, 4, 5] #, 4, 5, 6, 7]# , 2, 3]# , 3, 4, 5]
-    dur = 10
+    dur = 25
 
     algorithms = ['match_pairs_existing', 'match_pairs_two_pointer_linear', 'match_pairs_two_pointer_linear_closest'] #, 'match_pairs_target_age_multipass', ]
     algorithms = ['match_pairs_two_pointer_linear', 'match_pairs_two_pointer_linear_closest', 'match_pairs_two_pointer_linear_closest_age_bounding']
     algorithms = ['match_pairs_two_pointer_linear_closest_age_bounding', 'match_pairs_two_pointer_linear_closest_age_bounding_binary_search']
-    algorithms = ['match_pairs_two_pointer_linear_closest_age_bounding_binary_search']
 
     all_results = {}
     for algo_name in algorithms:
@@ -283,7 +261,7 @@ class NPartnersAnalyzer(ss.Analyzer):
         return counts
 
 
-def test_n_partners_distribution(n_agents=25000, n_runs=5, dur=25, window_months=12, target_age_gap=5):
+def test_n_partners_distribution(n_agents=25000, n_runs=5, dur=25, window_months=12, target_age_gap=8):
     """
     Sweep over rand_seed and characterize the distribution of unique female
     partners per male over a trailing 12-month window in an MFNetwork.
@@ -431,7 +409,7 @@ class AgeGapAnalyzer(ss.Analyzer):
 
 
 def test_age_gap_distribution(n_agents=25000, n_runs=5, dur=25, window_months=12,
-                              target_age_gap=5, gap_bin_width=1):
+                              target_age_gap=8, gap_bin_width=1):
     """
     Sweep over rand_seed and characterize the distribution of male-minus-female
     age gaps across unique relationships over a trailing 12-month window in an
@@ -574,7 +552,6 @@ def test_age_gap_distribution(n_agents=25000, n_runs=5, dur=25, window_months=12
 
 if __name__ == '__main__':
     test_age_differences()
-    # test_age_differences_sweep()
     test_algorithm_comparison()
     test_n_partners_distribution()
     test_age_gap_distribution()
