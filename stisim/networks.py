@@ -413,8 +413,10 @@ class MFNetwork(BaseNetwork):
         return
 
     def init_post(self):
+        """This is intended to auto-set the female partnership looking rate for pairing based on input age gap data"""
         super().init_post()
-        loc, scale = self.get_age_risk_pars(self.sim.people.uid, self.pars.age_diff_pars)
+        uids_born = (self.sim.people.age > 0).uids
+        loc, scale = self.get_age_risk_pars(uids_born, self.pars.age_diff_pars)
         self.pars.f_partnership_taper_offset = max(loc + 3 * scale)  # mean age + 3*sd
         return
 
