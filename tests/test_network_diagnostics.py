@@ -37,7 +37,7 @@ def test_age_differences(n_agents=25000):
                            'young': [(target_age_gap, sdA), (target_age_gap, sdA), (target_age_gap, sdB)],
                            'adult': [(target_age_gap, sdA), (target_age_gap, sdA), (target_age_gap, sdB)]}
     network = sti.MFNetwork(age_diff_pars=age_diff_pars_older,
-                            match_pairs_algo='match_pairs_two_pointer_linear_closest_age_bounding_binary_search')
+                            match_pairs_algo='match_pairs_closest_age_bounding_binary_search')
     sim = sti.Sim(n_agents=n_agents, networks=[network], dur=1, rand_seed=1)
     sim.run()
 
@@ -154,7 +154,7 @@ def test_algorithm_comparison(n_agents=25000):
 
     algorithms = ['match_pairs_existing', 'match_pairs_two_pointer_linear', 'match_pairs_two_pointer_linear_closest'] #, 'match_pairs_target_age_multipass', ]
     algorithms = ['match_pairs_two_pointer_linear', 'match_pairs_two_pointer_linear_closest', 'match_pairs_two_pointer_linear_closest_age_bounding']
-    algorithms = ['match_pairs_two_pointer_linear_closest_age_bounding', 'match_pairs_two_pointer_linear_closest_age_bounding_binary_search']
+    algorithms = ['match_pairs_two_pointer_linear_closest_age_bounding', 'match_pairs_closest_age_bounding_binary_search']
 
     all_results = {}
     for algo_name in algorithms:
@@ -297,7 +297,7 @@ def test_n_partners_distribution(n_agents=25000, n_runs=5, dur=25, window_months
 
     for i, seed in enumerate(seeds):
         network = sti.MFNetwork(age_diff_pars=age_diff_pars,
-                                match_pairs_algo='match_pairs_two_pointer_linear_closest_age_bounding_binary_search')
+                                match_pairs_algo='match_pairs_closest_age_bounding_binary_search')
         analyzer = NPartnersAnalyzer(network='mfnetwork', window_months=window_months)
         sim = sti.Sim(n_agents=n_agents, networks=[network], analyzers=[analyzer],
                       dur=dur, rand_seed=seed)
@@ -465,7 +465,7 @@ def test_age_gap_distribution(n_agents=25000, n_runs=5, dur=25, window_months=12
 
     for i, seed in enumerate(seeds):
         network = sti.MFNetwork(age_diff_pars=age_diff_pars,
-                                match_pairs_algo='match_pairs_two_pointer_linear_closest_age_bounding_binary_search')
+                                match_pairs_algo='match_pairs_closest_age_bounding_binary_search')
 
         analyzer = AgeGapAnalyzer(network='mfnetwork', window_months=window_months)
         sim = sti.Sim(n_agents=n_agents, networks=[network], analyzers=[analyzer],
