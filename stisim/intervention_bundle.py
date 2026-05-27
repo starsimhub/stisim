@@ -7,7 +7,14 @@ class InterventionBundle(ss.Intervention):
     InterventionBundle, they know for sure the order involved and can more easily setup conditional effects during
     execution of the interventions.
     """
-    def __init__(self, interventions: list, states: list = None, pars=None, *args, **kwargs):
+    def __init__(self, interventions: list, states: list[str] = None, pars=None, *args, **kwargs):
+        """
+
+        Args:
+            interventions: a list of ss.Intervention objects to be contained
+            states: a list of state names that will be defined on the bundle for inter-intervention communication.
+            pars: standard starsim pars
+        """
         super().__init__(*args, **kwargs)
         self.interventions = interventions
         for intv in self.interventions:
