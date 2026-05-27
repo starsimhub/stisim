@@ -27,6 +27,8 @@ sc.options(interactive=False)
 # Helpers
 # ---------------------------------------------------------------------------
 
+test_eligibilities = [lambda sim: sim.people.female == True]
+
 def make_product(name='oral_prep', cost=10.0):
     return Product(name=name, type='prep', delivery_mode='pill', cost=cost, eff_by_ti=[1.0])
 
@@ -36,7 +38,8 @@ def make_supply(product, quantity=100):
 
 
 def make_intervention(*supplies):
-    return SuppliedIntervention(supplies=Supplies(list(supplies)))
+    return SuppliedIntervention(supplies=Supplies(list(supplies)), name='intervention_name',
+                                eligibilities=test_eligibilities)
 
 
 # ---------------------------------------------------------------------------

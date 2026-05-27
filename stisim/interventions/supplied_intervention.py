@@ -8,20 +8,20 @@ from stisim.interventions.supplies import Supplies
 class SuppliedIntervention(ss.Intervention):
     def __init__(self,
                  name: str,
-                 eligibilities: dict[str, list[Callable]],
-                 coverages: dict[str, list[float]] = None,
+                 eligibilities: list[Callable],
+                 coverages: list[float] = None,
                  supplies: Supplies=None, pars=None, *args, **kwargs):
         """
-        A SuppliedIntervention can represent 1+ sets of decisions that represent an 'event' containing 1+ 'decisions',
-        each with its own set of eligibility criteria and corresponding coverages.
+        A SuppliedIntervention an intervention 'event' 1+ eligibility criteria and corresponding target coverages.
+        Supplies can either be finite or infinite, depending on use case and usage costs are accrued
 
         Representation of a generic distribution intervention with an arbitrary number Supply/Product available for
-        1+ number of intervention 'decisions'. Each decision is associated with 1+ eligibility groups at corresponding
-        target coverages 0.0-1.0 . Distribution during any decision will occur to agents that are eligible and
-        determined to be care seeking. Default care-seeking is all eligible agents. If coverage constraints are hit for
-        one or more eligibility groups for a decision, distributions will not push any coverage beyond the target
-        coverage. However, there is currently no mechanism for removing agents from an intervention type (e.g. PrEP), so
-        coverage can float over target coverage if the eligibility group shrinks over time.
+        distribution. Each eligibility group is associated with its own target coverage at corresponding 0.0-1.0 .
+        Distribution will occur to agents that are eligible and determined to be care seeking. Default care-seeking is
+        all eligible agents. If coverage constraints are hit for one or more eligibility groups, distributions will not
+        push any coverage beyond the target coverage. However, there is currently no mechanism for removing agents from
+        an intervention type (e.g. PrEP), so coverage can float over target coverage if the eligibility group shrinks
+        over time.
 
         If finite quantities of a product are modeled in the Supplies and quantity availability restriction
         is reached, the remaining supply counts will be distributed to eligibility groups proportional to the
@@ -32,30 +32,12 @@ class SuppliedIntervention(ss.Intervention):
             groupA will receive 40% (0.2 / (0.2 + 0.3)) of the remaining, limited PreP supply
             groupB will receive 60% (0.3 / (0.2 + 0.3)) of the remaining, limited PreP supply.
 
-        For example, a SuppliedIntervention representing a doctor office visit that combines the potential for a HIV
-        test and PrEP distribution may utilize the following:
-
-        eligibilities = {'hiv_test': [elig_func1], 'prep': [elig_func2, elig_func3]}
-        coverages     = {'hiv_test': [cov1],       'prep': [cov2,       cov3]}
-
-        The step() function would likely use these as follows:
-        First, check for agents eligible for an HIV test, delivering an appropriate number to satisfy the target
-        coverage as best as possible.
-
-        Second, after any test results have come back, the doctor offers PrEP to eligible agents. There are two different
-        criteria here defined by elig_func2 and elig_func3, each with their on coverage targets. elig_func2 might
-        specify pregnant women and elig_func3 might specify female sex workers. Note that agents could potentially
-        qualify under more than one criterion. Agents matching each criterion will be offered PrEP up to corresponding
-        coverage targets.
-
         Args:
             name: (str) Intervention name. Useful for identification of and disambiguation of interventions.
-            eligibilities: (dict[str, list[Callable]]) Defines groups of agents who are eligible at various decision
-                point(s) in the intervention. The first layer of key: [funcs] represents organization by decisions where
-                the key is the name of the decision for use in step(). The [funcs] represent the functions that
-                identify eligible agents.
-            coverages: (dict[str, list[Callable]]) The target fraction of each corresponding eligibility group that will
-                enter (be covered) at each decision in the intervention. Default: 1.0 per group for all decisions.
+            eligibilities: (list[Callable]) Defines groups of agents who are eligible for the intervention. The
+                [funcs] represent the functions that identify eligible agents and take one argument: sim .
+            coverages: (list[float]) The target fraction of each corresponding eligibility group to cover by by the
+                intervention. Default: 1.0 per eligibility function.
             supplies: (Supplies): a Supplies object representing a discrete quantity of 1+ Supply of Products. Can
                 be used to in conjunction with or independently of coverage-limiting distribution. Default: No Supplies
                 (or limits of them)
