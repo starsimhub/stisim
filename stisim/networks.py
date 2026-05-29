@@ -494,7 +494,9 @@ class MFNetwork(BaseNetwork):
     @staticmethod
     def _searchsorted_loop_closest(sorted_m_ages, sorted_desired, max_deviation=1):
         """
-        max_deviation is the maximum gap between desired and selected male age to count as a successful match.
+        max_deviation is the maximum gap between desired and selected male age to count as a successful match. Higher
+        values allow more matches at the expense of reduced adherence to individual requested age gaps (and vice versa
+        for lower values).
         """
         n_males = len(sorted_m_ages)
         n_females = len(sorted_desired)
@@ -518,8 +520,7 @@ class MFNetwork(BaseNetwork):
                 # take the next male, j (cannot pick j-1)
                 selected_j = j
 
-            if (max_deviation is not None
-                    and abs(target_age - sorted_m_ages[selected_j]) > max_deviation):
+            if (max_deviation is not None and abs(target_age - sorted_m_ages[selected_j]) > max_deviation):
                 # Closest available male is too far from this female's target; skip her.
                 # later (higher-target) females may still match, so keep trying
                 continue
@@ -540,6 +541,11 @@ class MFNetwork(BaseNetwork):
         age: (pars.f_partnership_taper_cut - pars._f_partnership_taper_offset) from searching for partners
         (reaches 0% chance at pars.f_partnership_taper_cut). This forces better alignment in age gap of pairings when
         older men looking for additional relationships become scarce.
+
+        This algorithm still contains a small downward bias of female-male relationship age gaps of < 1 year. The
+        residual is currently understood to be largely due demographic and age-seeking structural issues, largely
+        driven by the matching of young men (who are chosen by women stochastically selecting fromm the low end of their
+        preference distribution, and no counter-weighting high-end selecting females (because of debut age limits).
         """
         ppl = self.sim.people
         active = self.over_debut
@@ -565,8 +571,11 @@ class MFNetwork(BaseNetwork):
 
         loc, scale = self.get_age_risk_pars(f_looking, self.pars.age_diff_pars)
         self.pars.age_diffs.set(loc=loc, scale=scale)
-        max_allowed_age_delta = np.max(loc + 3*scale)  # post-filter, on |male - female| gap
 
+        # Extreme age-gap relationships beyond this limit will be trimmed after matching
+        max_allowed_age_delta = np.max(loc + 3*scale)
+
+        # females choose their target male age + identifying eligible male ages
         age_gaps = self.pars.age_diffs.rvs(f_looking)
         desired_ages = ppl.age[f_looking] + age_gaps
         m_ages = ppl.age[m_eligible]
@@ -579,16 +588,15 @@ class MFNetwork(BaseNetwork):
         sorted_desired = desired_ages[ind_f]
 
         # Returns indicies of sorted_m_ages and sorted_desired that are matching.
-        # max_deviation skips females whose closest available male is way off
-        # their target_age, which catches the cases (typically older females
-        # under a population age pyramid) that the looking-chance taper leaves
-        # in the pool.
+        # max_deviation skips females whose closest available male is way off their target_age. In other words, it is
+        # how tightly a female's choice is honored, and it may be more/less important at smaller/larger populations
+        # being matched.
         matched_m, matched_f = self._searchsorted_loop_closest(sorted_m_ages, sorted_desired, max_deviation=1)
 
         m_uids1 = m_eligible.uids[ind_m[matched_m]]
         f_uids1 = f_looking[ind_f[matched_f]]
 
-        # remove agents where age gap exceeds max_alowed_deviation
+        # remove agents where age gap exceeds max_allowed_age_delta (current: approx target_gap + 3*stddev
         indicies = (abs((ppl.age[m_uids1] - ppl.age[f_uids1])) <= max_allowed_age_delta)
         m_uids = m_uids1[indicies]
         f_uids = f_uids1[indicies]
