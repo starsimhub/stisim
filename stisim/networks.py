@@ -546,6 +546,9 @@ class MFNetwork(BaseNetwork):
         residual is currently understood to be largely due demographic and age-seeking structural issues, largely
         driven by the matching of young men (who are chosen by women stochastically selecting fromm the low end of their
         preference distribution, and no counter-weighting high-end selecting females (because of debut age limits).
+
+        Note also that, in a calibration setting, age_diff_pars is not orthogonal to stable_dur_pars (concurrency), as
+        concurrency factors influence the available pool of females and males looking for partners.
         """
         ppl = self.sim.people
         active = self.over_debut

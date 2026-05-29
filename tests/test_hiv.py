@@ -70,7 +70,7 @@ def test_time_from_infection_to_aids_untreated():
     sc.heading("Regression: Ensuring mean time from infection to AIDS (to falling state) is reasonable.")
 
     result_tolerance = 0.03  # fraction of the expected value
-    sim = build_testing_sim(analyzers=[TimeToAIDSTracker()], n_agents=500, duration=5)
+    sim = build_testing_sim(analyzers=[TimeToAIDSTracker()], n_agents=2500, duration=5)
     sim.run()
     results = sim.results
     times_to_aids = list(chain(*results.timetoaidstracker['hiv.ti_to_aids']))
