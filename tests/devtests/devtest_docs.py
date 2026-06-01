@@ -9,7 +9,7 @@ installed, so it's marked manual: pytest skips it unless the
 
 Run before merging any rcX.X.X branch into main:
 
-    RUN_DOCS_BUILD=1 pytest tests/test_docs.py -s
+    RUN_DOCS_BUILD=1 pytest tests/devtests/devtest_docs.py -s
 
 Skip otherwise — CI will run it on push/merge.
 """
