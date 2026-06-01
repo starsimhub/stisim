@@ -35,6 +35,29 @@ import matplotlib.pyplot as plt
 sc.options(dpi=110)
 ```
 
+## Tracking pregnant FSWs
+
+`PregnancyRiskReduction` doesn't publish its own per-timestep results.
+A small analyzer records the number of agents who are simultaneously
+pregnant and FSW each step. ``scale=True`` on the ``Result`` ensures
+the count is multiplied by ``sim.pars.pop_scale`` when reading via
+``sim.results`` — so the trajectory plot is interpretable as a real
+population count, not an agent count.
+
+```{python}
+class PregnantFswAnalyzer(ss.Analyzer):
+    """Record number of pregnant FSWs each timestep (population-scaled)."""
+
+    def init_results(self):
+        super().init_results()
+        self.define_results(ss.Result('n', dtype=int, scale=True))
+
+    def step(self):
+        nw = self.sim.networks.structuredsexual
+        preg = self.sim.demographics.pregnancy
+        self.results['n'][self.ti] = int((preg.pregnant & nw.fsw).count())
+```
+
 ## Building the sims
 
 Both scenarios run the same HIV transmission model and same population
@@ -43,7 +66,7 @@ included.
 
 ```{python}
 sim_kwargs = dict(
-    n_agents=5_000, dur=20, start=2005, verbose=-1, rand_seed=1,
+    n_agents=10_000, dur=20, start=2005, verbose=-1, rand_seed=1,
     networks=[sti.StructuredSexual(), ss.MaternalNet(), ss.BreastfeedingNet()],
     demographics=[ss.Pregnancy(), ss.Deaths()],
 )
@@ -54,42 +77,40 @@ def make_sim(modify_pregnancy):
                      sti.ART(coverage=0.6)]
     if modify_pregnancy:
         interventions.append(sti.PregnancyRiskReduction())
-    label = 'Pregnancy modifier on' if modify_pregnancy else 'Pregnancy modifier off'
+    label = 'Modifier on' if modify_pregnancy else 'Modifier off'
     return sti.Sim(diseases=[hiv], interventions=interventions,
+                   analyzers=[PregnantFswAnalyzer()],
                    label=label, **sim_kwargs)
 
-sims = ss.parallel([make_sim(True), make_sim(False)]).sims
+sims = ss.parallel([make_sim(False), make_sim(True)]).sims
 results = {sim.label: sim for sim in sims}
 ```
 
-## Sanity checks
+## Pregnant FSWs over time
 
-With the modifier on, pregnant agents should not be FSW and should have
-concurrency 0 (since ``fsw_redux`` and ``concurrency_redux`` default to
-1.0). The "off" scenario provides the comparator.
+The clearest visual signal: with the modifier off, pregnant FSWs
+accumulate as the simulation runs (any female agent in her SW window
+who becomes pregnant remains FSW). With the modifier on, the
+intervention reversibly toggles ``paused`` on those agents and the
+count stays at zero.
 
 ```{python}
-def snapshot(sim):
-    preg = sim.demographics.pregnancy.pregnant
-    nw = sim.networks.structuredsexual
-    return dict(
-        n_pregnant=int(preg.count()),
-        n_pregnant_fsw=int((preg & nw.fsw).count()),
-        mean_conc_pregnant=float(nw.concurrency[preg.uids].mean()) if preg.count() else 0.0,
-    )
+yearvec = sims[0].t.yearvec
 
-for label, sim in results.items():
-    s = snapshot(sim)
-    print(f'{label:<25}: pregnant={s["n_pregnant"]:3d}  '
-          f'pregnant&FSW={s["n_pregnant_fsw"]:3d}  '
-          f'mean concurrency among pregnant={s["mean_conc_pregnant"]:.2f}')
+fig, ax = plt.subplots(figsize=(8, 4.5))
+ax.plot(yearvec, results['Modifier off'].results.pregnantfswanalyzer.n, lw=2, label='Modifier off')
+ax.plot(yearvec, results['Modifier on'].results.pregnantfswanalyzer.n,  lw=2, label='Modifier on')
+ax.set_xlabel('Year')
+ax.set_ylabel('Pregnant FSWs')
+ax.set_title('Pregnant FSWs over time')
+ax.legend()
+sc.figlayout()
+plt.show()
 ```
 
 ## HIV incidence comparison
 
 ```{python}
-yearvec = sims[0].t.yearvec
-
 fig, ax = plt.subplots(figsize=(8, 4.5))
 for label, sim in results.items():
     ax.plot(yearvec, sim.results.hiv.new_infections, label=label, lw=2)
@@ -110,15 +131,17 @@ reducing onward transmission both to them and from them.
 
 `PregnancyRiskReduction` runs every timestep and:
 
-1. Records per-agent **high-water marks** (``ever_fsw``,
-   ``ever_high_risk``, ``default_concurrency``) so the original
-   behaviour can be restored after pregnancy.
+1. Records per-agent **high-water marks** (``was_fsw``,
+   ``was_high_risk``, ``ever_pregnant``, ``default_concurrency``) so the
+   original behaviour can be restored after pregnancy and the
+   intervention is a no-op for agents who have never been pregnant.
 2. **During pregnancy**, samples per-agent Bernoullis to clear FSW
    status, reduce risk group to ``default_risk_group``, and zero out
    concurrency.
-3. **Postpartum** (defined as ``breastfeeding & ~pregnant``), restores
-   the agent's pre-pregnancy FSW status, risk group, and concurrency
-   from the high-water mark.
+3. **After pregnancy ends** (``~pregnant`` for an agent flagged
+   ``ever_pregnant``), restores the agent's FSW status, risk group, and
+   concurrency from the high-water mark. No dependency on a
+   breastfeeding state.
 
 The defaults assume 100% behavioural shift; tune each Bernoulli to
 match locally-observed transitions:
@@ -133,9 +156,10 @@ sti.PregnancyRiskReduction(
 
 ## Caveats
 
-- Recovery is gated on **breastfeeding**, not birth. If your sim
-  doesn't run ``BreastfeedingNet`` or your ``Pregnancy`` module doesn't
-  publish a ``breastfeeding`` state, postpartum restoration never fires.
+- Restoration fires immediately when an agent's pregnancy ends. The
+  intervention has no built-in postpartum window — if you want
+  behaviour to stay reduced for some months after birth, wrap or
+  subclass the intervention.
 - The intervention writes directly to network state (``nw.fsw``,
   ``nw.risk_group``, ``nw.concurrency``). It assumes those attributes
   exist on the network identified by ``network_name`` (default

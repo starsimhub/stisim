@@ -99,23 +99,54 @@ def test_redux_zero_means_no_change():
 
 @sc.timer()
 def test_postpartum_restoration():
-    """Postpartum agents (breastfeeding & not pregnant) should have their
-    ever_fsw and ever_high_risk statuses restored by the intervention.
+    """Agents who have been pregnant and are no longer pregnant should
+    have their concurrency restored from the high-water mark. Does NOT
+    require a breastfeeding state.
+
+    Concurrency (rather than FSW) is the cleanest signal here because
+    ``StructuredSexual`` independently ages agents out of FSW via the
+    ``age_sw_start`` + ``dur_sw`` window — a legitimately-aged-out agent
+    shouldn't be forced back to FSW by this intervention.
     """
     sim = _make_sim()
     sim.run()
     nw = sim.networks.structuredsexual
     preg = sim.demographics.pregnancy
     intv = sim.interventions.pregnancyriskreduction
-    postpartum = preg.breastfeeding & ~preg.pregnant
-    if postpartum.count() == 0:
-        return  # too few agents/years to observe postpartum window
-    # Anyone flagged ever_fsw who is currently postpartum should be FSW now.
-    pp_ever_fsw = (postpartum & intv.ever_fsw).uids
-    if len(pp_ever_fsw):
-        assert nw.fsw[pp_ever_fsw].all(), \
-            f'Postpartum agents flagged ever_fsw are not restored to FSW: ' \
-            f'{(~nw.fsw[pp_ever_fsw]).sum()}/{len(pp_ever_fsw)}'
+    post = ~preg.pregnant & intv.ever_pregnant
+    if post.count() == 0:
+        return  # too few agents/years to observe a post-pregnancy window
+    post_uids = post.uids
+    # default_concurrency captures the per-agent high-water mark; restored
+    # concurrency should equal it for everyone who has finished a pregnancy.
+    assert np.all(nw.concurrency[post_uids] == intv.default_concurrency[post_uids]), \
+        f'Post-pregnancy agents not restored to high-water concurrency'
+
+
+@sc.timer()
+def test_runs_without_breastfeedingnet():
+    """The intervention should work without BreastfeedingNet — restoration
+    should not depend on a breastfeeding state. Asserts via concurrency
+    (see test_postpartum_restoration for rationale).
+    """
+    sim = sti.Sim(
+        diseases=[sti.HIV(init_prev=0.05, beta_m2f=0.05)],
+        # Note: NO BreastfeedingNet here
+        networks=[sti.StructuredSexual(), ss.MaternalNet()],
+        demographics=[ss.Pregnancy(), ss.Deaths()],
+        interventions=[sti.PregnancyRiskReduction()],
+        n_agents=3_000, dur=15, start=2005, verbose=-1, rand_seed=1,
+    )
+    sim.run()
+    intv = sim.interventions.pregnancyriskreduction
+    nw = sim.networks.structuredsexual
+    preg = sim.demographics.pregnancy
+    post = ~preg.pregnant & intv.ever_pregnant
+    if post.count() == 0:
+        return
+    post_uids = post.uids
+    assert np.all(nw.concurrency[post_uids] == intv.default_concurrency[post_uids]), \
+        f'Post-pregnancy agents not restored without BreastfeedingNet'
 
 
 # %% Run as a script
@@ -125,3 +156,4 @@ if __name__ == '__main__':
     test_pregnant_agents_not_in_high_risk_group()
     test_redux_zero_means_no_change()
     test_postpartum_restoration()
+    test_runs_without_breastfeedingnet()
