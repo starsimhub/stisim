@@ -1,0 +1,221 @@
+---
+title: Targeting PrEP to people with gonorrhea
+jupyter: python3
+---
+
+
+*New in v1.5.6*
+
+People with active sexually-transmitted infections like gonorrhea (NG)
+acquire HIV faster, both because the immune-recruitment / mucosal-disruption
+biology raises per-act risk and because NG is itself a marker of recent
+condomless sex with someone in a higher-prevalence pool. If PrEP allocation
+is scarce, does it pay to target it at NG-positive people rather than the
+general HIV-negative population?
+
+This example builds a small HIV + gonorrhea sim and compares three
+scenarios:
+
+1. **No PrEP** — baseline.
+2. **Untargeted PrEP** — every HIV-negative adult is eligible.
+3. **NG-targeted PrEP** — only HIV-negative adults who are currently
+   NG-positive are eligible.
+
+We hold the per-eligible-person coverage probability fixed across (2) and
+(3), so the targeted arm naturally uses far fewer PrEP person-years. The
+question is whether the resulting HIV infections-averted-per-PrEP-year
+favours targeting.
+
+## Setup
+
+```{python}
+import numpy as np
+import sciris as sc
+import starsim as ss
+import stisim as sti
+import matplotlib.pyplot as plt
+
+sc.options(dpi=110)
+```
+
+## Tiny PrEP-coverage analyzer
+
+`Prep` exposes an `on_prep` boolean state on the `People` array but does
+not publish a per-timestep count as a result. We attach a small analyzer
+that tallies `on_prep.count()` each step so we can compute cumulative
+person-years on PrEP downstream.
+
+```{python}
+class PrepCountAnalyzer(ss.Analyzer):
+    """Record `on_prep.count()` each step; serves as PrEP person-years denominator."""
+    def init_results(self):
+        super().init_results()
+        self.define_results(ss.Result('n_on_prep', dtype=int, scale=True))
+
+    def step(self):
+        prep = self.sim.interventions.prep
+        self.results['n_on_prep'][self.ti] = int(prep.on_prep.count())
+```
+
+## Building the sims
+
+We use `StructuredSexual` (heterosexual + FSW/clients) and run HIV and
+gonorrhea jointly with the built-in `hiv_ng` connector, which raises
+HIV susceptibility 1.2× in NG-positive agents.
+
+```{python}
+sim_kwargs = dict(
+    n_agents=5_000, dur=20, start=2005, verbose=-1,
+    networks=[sti.StructuredSexual(), ss.MaternalNet(), ss.BreastfeedingNet()],
+    demographics=[ss.Pregnancy(), ss.Deaths()],
+)
+
+# Same PrEP coverage probability for (2) and (3); the targeted arm
+# simply has fewer eligible people each step.
+prep_cov_target = 0.4
+prep_start_year = 2010
+
+
+def make_sim(scenario, rand_seed=1):
+    hiv = sti.HIV(init_prev=0.05, beta_m2f=0.05)
+    ng  = sti.Gonorrhea(init_prev=0.10)
+    diseases = [hiv, ng]
+    connectors = [sti.hiv_ng(hiv, ng)]
+
+    interventions = [
+        sti.HIVTest(name='hiv_test', test_prob_data=0.3),
+        sti.ART(coverage=0.6),
+    ]
+
+    if scenario == 'untargeted':
+        interventions.append(sti.Prep(
+            name='prep',
+            coverage={'year': [prep_start_year, prep_start_year + 5], 'value': [0, prep_cov_target]},
+            eligibility=lambda sim: sim.people.alive & (sim.people.age >= 15) & (sim.people.age < 50),
+        ))
+    elif scenario == 'ng_targeted':
+        interventions.append(sti.Prep(
+            name='prep',
+            coverage={'year': [prep_start_year, prep_start_year + 5], 'value': [0, prep_cov_target]},
+            eligibility=lambda sim: sim.diseases.ng.infected
+                                    & (sim.people.age >= 15) & (sim.people.age < 50),
+        ))
+    elif scenario != 'baseline':
+        raise ValueError(f'unknown scenario {scenario!r}')
+
+    analyzers = [PrepCountAnalyzer()] if scenario != 'baseline' else []
+
+    return sti.Sim(
+        diseases=diseases, connectors=connectors,
+        interventions=interventions, analyzers=analyzers,
+        label=scenario, rand_seed=rand_seed, **sim_kwargs,
+    )
+```
+
+## Running scenarios
+
+```{python}
+sims = ss.parallel([
+    make_sim('baseline'),
+    make_sim('untargeted'),
+    make_sim('ng_targeted'),
+]).sims
+results = {sim.label: sim for sim in sims}
+```
+
+## Headline numbers
+
+```{python}
+def cumulative_new_infections(sim):
+    return float(np.sum(sim.results.hiv.new_infections))
+
+def prep_person_years(sim):
+    if 'prepcountanalyzer' not in sim.results:
+        return 0.0
+    # n_on_prep is a per-timestep count; dt is in years (sti.Sim default).
+    n = np.asarray(sim.results.prepcountanalyzer.n_on_prep, dtype=float)
+    dt = float(sim.t.dt)
+    return float(n.sum() * dt)
+
+
+baseline_inf = cumulative_new_infections(results['baseline'])
+
+rows = []
+for label in ('baseline', 'untargeted', 'ng_targeted'):
+    sim = results[label]
+    new_inf = cumulative_new_infections(sim)
+    py_prep = prep_person_years(sim)
+    averted = baseline_inf - new_inf
+    nnp     = py_prep / averted if averted > 0 else float('inf')
+    rows.append((label, new_inf, averted, py_prep, nnp))
+
+print(f'{"scenario":<13} {"HIV inf":>9} {"averted":>9} {"PrEP-yr":>9} {"NNP":>8}')
+for label, new_inf, averted, py_prep, nnp in rows:
+    nnp_str = f'{nnp:7.1f}' if np.isfinite(nnp) else '     —'
+    print(f'{label:<13} {new_inf:9.0f} {averted:9.1f} {py_prep:9.0f} {nnp_str}')
+```
+
+**NNP** = Number Needed to PrEP, here interpreted as PrEP person-years
+deployed per HIV infection averted (lower is more efficient).
+
+## Visualising
+
+```{python}
+fig, (ax0, ax1, ax2) = plt.subplots(1, 3, figsize=(13, 4))
+yearvec = results['baseline'].t.yearvec
+
+for label, sim in results.items():
+    ax0.plot(yearvec, np.cumsum(sim.results.hiv.new_infections), label=label, lw=2)
+ax0.set_xlabel('Year'); ax0.set_ylabel('Cumulative HIV infections')
+ax0.set_title('HIV burden'); ax0.legend()
+
+for label in ('untargeted', 'ng_targeted'):
+    sim = results[label]
+    ax1.plot(yearvec, sim.results.prepcountanalyzer.n_on_prep, label=label, lw=2)
+ax1.set_xlabel('Year'); ax1.set_ylabel('Agents currently on PrEP')
+ax1.set_title('PrEP uptake'); ax1.legend()
+
+efficiencies = {}
+for label in ('untargeted', 'ng_targeted'):
+    sim = results[label]
+    averted_ts = np.cumsum(results['baseline'].results.hiv.new_infections
+                           - sim.results.hiv.new_infections)
+    py_ts = np.cumsum(np.asarray(sim.results.prepcountanalyzer.n_on_prep, dtype=float)
+                      * float(sim.t.dt))
+    eff = np.where(averted_ts > 0, py_ts / np.maximum(averted_ts, 1e-9), np.nan)
+    ax2.plot(yearvec, eff, label=label, lw=2)
+ax2.set_xlabel('Year'); ax2.set_ylabel('PrEP-years per HIV infection averted')
+ax2.set_title('Programme efficiency')
+ax2.set_yscale('log'); ax2.legend()
+
+sc.figlayout()
+plt.show()
+```
+
+## Reading the result
+
+NG-targeted PrEP allocates a small fraction of the PrEP doses the
+untargeted programme uses (the green line in the middle panel sits well
+below the orange one), and the people it does reach are
+substantially-higher-risk for HIV acquisition. The right panel shows
+the **cumulative PrEP person-years deployed per HIV infection averted**
+over time. Targeting NG-positive people typically improves this ratio
+several-fold once the PrEP programme has been running long enough for
+infections to accumulate in the comparator arm.
+
+The caveats are the standard ones:
+
+- We target on **true** NG infection status. In practice you can only
+  target on **diagnosed** NG, so add a gonorrhea screening intervention
+  and target on diagnosed agents instead. Effective coverage will fall
+  by roughly the screening sensitivity × treatment-completion fraction.
+- We've used the default `hiv_ng` connector
+  (`rel_sus_hiv_ng=1.2`, `rel_trans_hiv_ng=1.2`). Higher coupling
+  amplifies the targeting benefit; pure-marker scenarios
+  (`rel_sus_hiv_ng=1.0`) still favour targeting because NG flags people
+  in higher-prevalence networks, but the margin is smaller.
+- This is a single-run illustration. For programme decisions you would
+  sweep `rand_seed`, vary coverage targets, and add a cost model
+  (PrEP procurement + delivery + NG-screening per case found) to
+  compute an ICER. See the [VMMC costing example](vmmc_costing.qmd) for
+  the ICER recipe.
