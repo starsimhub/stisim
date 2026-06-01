@@ -122,7 +122,10 @@ gp_test = sti.HIVTest(
 
 art2 = sti.ART(coverage=0.8)
 
-sim = hivsim.demo('simple', run=False, plot=False, n_agents=3000)
+# Use StructuredSexual so `fsw` is available on the network (hivsim.demo('simple')
+# now uses MFNetwork by default, which has no sex-work compartment)
+sim = hivsim.demo('simple', run=False, plot=False, n_agents=3000,
+                  networks=[sti.StructuredSexual(), ss.MaternalNet(), ss.BreastfeedingNet()])
 sim.pars.interventions = [fsw_test, gp_test, art2]
 sim.run(verbose=0)
 sim.plot(key=['hiv.prevalence_15_49', 'hiv.new_infections', 'hiv.n_on_art'])

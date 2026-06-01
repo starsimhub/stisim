@@ -403,7 +403,10 @@ class Sim(ss.Sim):
         """
         user_pars = self._user_connector_pars
 
-        if len(self.pars['connectors']) > 0:
+        # Normalize before length check: pars['connectors'] may be a single
+        # Connector instance (whose own __len__ can return 0), a list, or an ndict.
+        existing = sc.tolist(self.pars['connectors'])
+        if len(existing) > 0:
             if user_pars:
                 raise ValueError(
                     f'Got flat connector pars {sorted(user_pars)} but `connectors=` '

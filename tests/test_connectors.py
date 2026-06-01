@@ -48,12 +48,33 @@ def test_hiv_syph():
     return s0, s1
 
 
+def test_single_connector_instance():
+    """
+    Regression: passing a single connector instance (not a list) via
+    ``connectors=`` should not trigger the auto-add machinery — previously
+    ``len(connector_instance)`` returned 0 and a duplicate was added,
+    causing ndict to raise on init.
+    """
+    hiv  = sti.HIV(init_prev=0.05, beta_m2f=0.05)
+    syph = sti.Syphilis(init_prev=0.05, beta_m2f=0.05)
+    sim = sti.Sim(
+        diseases=[hiv, syph],
+        connectors=sti.hiv_syph(hiv, syph),  # single instance, not a list
+        n_agents=200, dur=2, verbose=-1,
+    )
+    sim.run()
+    assert len(sim.pars['connectors']) == 1, \
+        f'Expected exactly one connector, got {len(sim.pars["connectors"])}'
+    return sim
+
+
 # %% Run as a script
 if __name__ == '__main__':
 
     T = sc.tic()
 
     s0, s1 = test_hiv_syph()
+    test_single_connector_instance()
 
     pl.plot(s0.results.hiv.timevec, s0.results.hiv.prevalence, label='No connector')
     pl.plot(s1.results.hiv.timevec, s1.results.hiv.prevalence, label='With connector')
