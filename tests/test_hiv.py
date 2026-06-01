@@ -70,7 +70,12 @@ def test_time_from_infection_to_aids_untreated():
     sc.heading("Regression: Ensuring mean time from infection to AIDS (to falling state) is reasonable.")
 
     result_tolerance = 0.03  # fraction of the expected value
-    sim = build_testing_sim(analyzers=[TimeToAIDSTracker()], n_agents=500, duration=5)
+    # 500 agents × 5 years yields only ~25–100 progressed-to-AIDS samples and a means
+    # spread of ~12% across seeds — far too noisy for 3% tolerance. 4000 × 15 yields
+    # ~900 samples and means within ~0.7% across seeds; the fixed rand_seed makes the
+    # test deterministic.
+    sim = build_testing_sim(analyzers=[TimeToAIDSTracker()], n_agents=4000, duration=15)
+    sim.pars.rand_seed = 0
     sim.run()
     results = sim.results
     times_to_aids = list(chain(*results.timetoaidstracker['hiv.ti_to_aids']))
