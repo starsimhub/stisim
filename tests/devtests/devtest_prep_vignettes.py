@@ -770,6 +770,106 @@ def v5b_kenya_targeting_comparison():
     pass
 
 
+# local "in-dev" and stub imports to allow the following example to look nice & not show undefined errors. Not prod code.
+import numpy as np
+from tests.supplied_intervention_classes.intervention_bundle import InterventionBundle
+from tests.supplied_intervention_classes.office_visit import OfficeVisit
+from tests.supplied_intervention_classes.product import Product
+from tests.supplied_intervention_classes.prep import SuppliedPrep
+from tests.supplied_intervention_classes.supplied_art import SuppliedART
+from tests.supplied_intervention_classes.supplied_hiv_test import SuppliedHIVTest
+from tests.supplied_intervention_classes.supplies import Supplies
+from tests.supplied_intervention_classes.supply import Supply
+
+
+def build_office_visit_bundle__clark__using_InterventionBundle_with_SuppliedPrep_and_others():
+    """
+    Representation of a relatively simple doctor office visit, an extension of the SuppliedPrep proposal of Clark's.
+    Commenting it out to remove non-defined errors.
+
+    interventions:
+        FSW choosing to enter the visit
+            NOTE: the FSW who actually enter the visit will be controlled by a combination of OfficeVisit coverage
+                and OfficeVisit health-seeking behavior.
+        HIV test dispensed to everyone not already diagnosed in the visit
+        HIV- result: PrEP offered if not already on PrEP
+        HIV+ result OR (already diagnosed AND not on ART): ART offered
+    """
+
+    sim_args = {
+        'n_agents': 5000,
+        'start_y': ss.years(1990),
+        'duration': 3, # years
+        'dt': 1/12  # years
+    }
+    # build the intervention bundle
+
+    bundle_name = 'office_visit'
+
+    # condition controlling states of the bundle -- these are used for inter-intervention communication/linkage
+    entered_visit = 'entered_visit'
+    test_offered = 'test_offered'
+    tested_neg = 'tested_HIVneg'
+    tested_pos = 'tested_HIVpos'
+    bundle_states = [entered_visit, test_offered, tested_neg, tested_pos]
+
+    # supplies to share -- currently set to infinity; not attempting to model potential shortages.
+    supply_objs = [
+        Supply(quantity=np.inf, product=Product(name='HIVtest', type='regular',     delivery_mode='regular', cost=1,
+                                                 eff_by_ti=[1])),
+        Supply(quantity=np.inf, product=Product(name='PrEP',    type='lenacapavir', delivery_mode='shot',    cost=3,
+                                                 eff_by_ti=[0.999, 0.999, 0.999, 0.999, 0.999, 0.999])),
+        Supply(quantity=np.inf, product=Product(name='ART',     type='biktarvy',    delivery_mode='pills',   cost=5,
+                                                 eff_by_ti=[0.95, 0.95, 0.95]))
+    ]
+    supplies = Supplies(supplies=supply_objs)
+
+    # Order matters for the interventions here. Any intervention in the bundle that sets state A must precede any
+    # intervention that utilizes state A.
+    interventions = []
+
+    # Entering the visit -- sets state entered_visit
+    intervention = OfficeVisit(name='visit_doctor',
+                               eligibilities=[lambda sim: lambda sim: sim.networks.structuredsexual.fsw],
+                               coverages=[0.92])
+    interventions.append(intervention)
+
+    # HIV test offered -- sets state tested_HIVneg and tested_HIVpos on appropriate agents
+    intervention = SuppliedHIVTest(name='hiv_test',
+                                   eligibilities=[lambda sim: sim.interventions[bundle_name].state_dict[entered_visit] &
+                                                              (~sim.diseases.hiv.diagnosed)],
+                                   coverages=[1.0],
+                                   supplies=supplies)
+    interventions.append(intervention)
+
+    # HIV- result: PrEP offered
+    intervention = SuppliedPrep(name='Offer_lenacapavir_PrEP',
+                                eligibilities=[lambda sim: sim.interventions[bundle_name].state_dict[tested_neg] &
+                                                           (~sim.diseases.hiv.on_prep)],
+                                coverages=[1.0],
+                                supplies=supplies)
+    interventions.append(intervention)
+
+    # HIV+ result: ART offered
+    intervention = SuppliedART(name='Offer_ART',
+                               eligibilities=[lambda sim: sim.interventions[bundle_name].state_dict[tested_pos] |
+                                                          (sim.diseases.hiv.diagnosed & (~sim.diseases.hiv.on_art))],
+                               coverages=[1.0],
+                               supplies=supplies)
+    interventions.append(intervention)
+
+    # create the bundle of interventions
+    bundle = InterventionBundle(name=bundle_name, states=bundle_states, interventions=interventions)
+
+    # create the sim and run it
+    diseases = [sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=0.05)]
+    networks = [sti.StructuredSexual(recall_prior=True), sti.PriorPartners(), ss.MaternalNet()]
+    demographics = [ss.Pregnancy(fertility_rate=10), ss.Deaths(death_rate=10)]
+    sim = sti.Sim(diseases=diseases, networks=networks, demographics=demographics, interventions=[bundle],
+                  **sim_args)
+    return sim
+
+
 # =============================================================================
 # Run
 # =============================================================================
