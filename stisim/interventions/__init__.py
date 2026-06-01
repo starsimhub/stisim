@@ -1,4 +1,5 @@
 from .base_interventions        import *
+from .pregnancy_risk            import *
 
 # Individual diseases
 from .bv_interventions import *
