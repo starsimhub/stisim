@@ -2,19 +2,23 @@
 Network dynamics validation: verify that network parameters (concurrency, pair
 formation, relationship duration, debut age, MSM) affect behaviour as expected.
 """
+import matplotlib.pyplot as plt
+import numpy as np
 import os
+import sciris as sc
+import starsim as ss
+import stisim as sti
 import sys
 import time
-import stisim as sti
-import starsim as ss
-import numpy as np
-import sciris as sc
+
 from collections import defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from stisim.networks.matchers import MATCHERS
 
-def test_age_differences(n_agents=25000, target_age_gap=8, sd=3):
+@sc.timer()
+def test_age_differences(n_agents=25000, target_age_gap=8, sd=3, matching_algo=MATCHERS['closest_age_tapered_seeking']):
     """
     Sexual network with default relationship type distribution: run for 1 month and
     analyze partner age differences. Produces a scatterplot of female vs male partner
@@ -29,7 +33,7 @@ def test_age_differences(n_agents=25000, target_age_gap=8, sd=3):
     age_diff_pars_older = {'teens': [(target_age_gap, sd), (target_age_gap, sd), (target_age_gap, sd)],
                            'young': [(target_age_gap, sd), (target_age_gap, sd), (target_age_gap, sd)],
                            'adult': [(target_age_gap, sd), (target_age_gap, sd), (target_age_gap, sd)]}
-    network = sti.MFNetwork(age_diff_pars=age_diff_pars_older)
+    network = sti.MFNetwork(age_diff_pars=age_diff_pars_older, match_method=matching_algo)
     sim = sti.Sim(n_agents=n_agents, networks=[network], dur=1, rand_seed=1)
     sim.run()
 
@@ -84,7 +88,7 @@ def _run_age_diff_sim(target_age_gap, seed, algorithm, n_agents=25000, dur=1):
         'young': [(target_age_gap, 3), (target_age_gap, 3), (target_age_gap, 3)],
         'adult': [(target_age_gap, 3), (target_age_gap, 3), (target_age_gap, 3)],
     }
-    network = sti.MFNetwork(age_diff_pars=age_diff_pars, match_pairs_algo=algorithm)
+    network = sti.MFNetwork(age_diff_pars=age_diff_pars, match_method=algorithm)
     # with warnings.catch_warnings():
     #     warnings.simplefilter('ignore')
     sim = sti.Sim(n_agents=n_agents, networks=[network], dur=dur,
@@ -138,62 +142,63 @@ def _print_sweep_summary(results, label=''):
         print(f"  {target_gap:9d} | {mm:14.3f} | {ms:9.3f} | {mn:13d}")
 
 
+@sc.timer()
 def test_algorithm_comparison(n_agents=25000):
     """this test is useful for comparing new proposed algorithms to the current one"""
-    target_age_gaps = [5]
+    target_age_gaps = [5, 8, 11]
     seeds = [1, 2, 3, 4, 5]
     dur = 25
 
-    algorithms = ['match_pairs']
+    algorithms = {'closest_age_tapered_seeking': MATCHERS['closest_age_tapered_seeking']}
 
     all_results = {}
-    for algo_name in algorithms:
-        print(f"\n=== Sweep: {algo_name} ===")
-        all_results[algo_name] = _run_age_diff_sweep(target_age_gaps, seeds, algorithm=algo_name,
-                                                     n_agents=n_agents, dur=dur, label=algo_name)
-        _print_sweep_summary(all_results[algo_name], label=algo_name)
+    for matching_algo_name, matching_algo in algorithms.items():
+        print(f"\n=== Sweep: {matching_algo} ===")
+        all_results[matching_algo_name] = _run_age_diff_sweep(target_age_gaps, seeds, algorithm=matching_algo,
+                                                     n_agents=n_agents, dur=dur, label=matching_algo_name)
+        _print_sweep_summary(all_results[matching_algo_name], label=matching_algo_name)
 
     # Side-by-side: mean age diff (mean over seeds), one column per algorithm
     print("\n=== Side-by-side: mean age diff per target_gap ===")
-    header = "  target_gap | " + " | ".join(f"{n:>30s}" for n in algorithms)
-    sep    = "  " + "-"*9 + "-+-" + "-+-".join(["-"*30]*len(algorithms))
+    header = "  target_gap | " + " | ".join(f"{name:>30s}" for name in algorithms.keys())
+    sep    = "  " + "-"*9 + "-+-" + "-+-".join(["-"*30]*len(algorithms.keys()))
     print(header)
     print(sep)
     for target_age_gap in target_age_gaps:
-        cells = [f"{float(np.nanmean(all_results[n][target_age_gap]['means'])):30.3f}"
-                 for n in algorithms]
+        cells = [f"{float(np.nanmean(all_results[name][target_age_gap]['means'])):30.3f}"
+                 for name in algorithms.keys()]
         print(f"  {target_age_gap:9d} | " + " | ".join(cells))
 
     print("\n=== Side-by-side: mean realized std per target_gap ===")
     print(header)
     print(sep)
     for target_age_gap in target_age_gaps:
-        cells = [f"{float(np.nanmean(all_results[n][target_age_gap]['stds'])):30.3f}"
-                 for n in algorithms]
+        cells = [f"{float(np.nanmean(all_results[name][target_age_gap]['stds'])):30.3f}"
+                 for name in algorithms.keys()]
         print(f"  {target_age_gap:9d} | " + " | ".join(cells))
 
     print("\n=== Side-by-side: mean partnership count per target_gap ===")
     print(header)
     print(sep)
     for target_age_gap in target_age_gaps:
-        cells = [f"{int(np.mean(all_results[n][target_age_gap]['n_pairs'])):30d}"
-                 for n in algorithms]
+        cells = [f"{int(np.mean(all_results[name][target_age_gap]['n_pairs'])):30d}"
+                 for name in algorithms.keys()]
         print(f"  {target_age_gap:9d} | " + " | ".join(cells))
 
     print("\n=== Side-by-side: mean run time (s) per target_gap ===")
     print(header)
     print(sep)
     for target_age_gap in target_age_gaps:
-        cells = [f"{float(all_results[n][target_age_gap]['time_mean']):30.3f}"
-                 for n in algorithms]
+        cells = [f"{float(all_results[name][target_age_gap]['time_mean']):30.3f}"
+                 for name in algorithms.keys()]
         print(f"  {target_age_gap:9d} | " + " | ".join(cells))
 
     print("\n=== Side-by-side: run time std (s) per target_gap ===")
     print(header)
     print(sep)
     for target_age_gap in target_age_gaps:
-        cells = [f"{float(all_results[n][target_age_gap]['time_stds']):30.3f}"
-                 for n in algorithms]
+        cells = [f"{float(all_results[name][target_age_gap]['time_stds']):30.3f}"
+                 for name in algorithms.keys()]
         print(f"  {target_age_gap:9d} | " + " | ".join(cells))
 
     return {'stats': all_results}
@@ -251,7 +256,9 @@ class NPartnersAnalyzer(ss.Analyzer):
         return counts
 
 
-def test_n_partners_distribution(n_agents=25000, n_runs=5, dur=25, window_months=12, target_age_gap=8):
+@sc.timer()
+def test_n_partners_distribution(n_agents=25000, n_runs=5, dur=25, window_months=12, target_age_gap=8,
+                                 matching_algo=MATCHERS['closest_age_tapered_seeking']):
     """
     Sweep over rand_seed and characterize the distribution of unique female
     partners per male over a trailing 12-month window in an MFNetwork.
@@ -286,7 +293,7 @@ def test_n_partners_distribution(n_agents=25000, n_runs=5, dur=25, window_months
     per_run_n_males = np.zeros(n_runs, dtype=int)
 
     for i, seed in enumerate(seeds):
-        network = sti.MFNetwork(age_diff_pars=age_diff_pars)
+        network = sti.MFNetwork(age_diff_pars=age_diff_pars, match_method=matching_algo)
         analyzer = NPartnersAnalyzer(network='mfnetwork', window_months=window_months)
         sim = sti.Sim(n_agents=n_agents, networks=[network], analyzers=[analyzer],
                       dur=dur, rand_seed=seed)
@@ -397,8 +404,9 @@ class AgeGapAnalyzer(ss.Analyzer):
         return np.array(list(seen.values()), dtype=float)
 
 
+@sc.timer()
 def test_age_gap_distribution(n_agents=25000, n_runs=5, dur=25, window_months=12,
-                              target_age_gap=8, gap_bin_width=1):
+                              target_age_gap=8, gap_bin_width=1, matching_algo=MATCHERS['closest_age_tapered_seeking']):
     """
     Sweep over rand_seed and characterize the distribution of male-minus-female
     age gaps across unique relationships over a trailing 12-month window in an
@@ -453,7 +461,7 @@ def test_age_gap_distribution(n_agents=25000, n_runs=5, dur=25, window_months=12
     all_gaps = []
 
     for i, seed in enumerate(seeds):
-        network = sti.MFNetwork(age_diff_pars=age_diff_pars)
+        network = sti.MFNetwork(age_diff_pars=age_diff_pars, match_method=matching_algo)
 
         analyzer = AgeGapAnalyzer(network='mfnetwork', window_months=window_months)
         sim = sti.Sim(n_agents=n_agents, networks=[network], analyzers=[analyzer],
@@ -539,7 +547,17 @@ def test_age_gap_distribution(n_agents=25000, n_runs=5, dur=25, window_months=12
 
 
 if __name__ == '__main__':
+    do_plot = True
+    sc.options(interactive=do_plot)
+    timer = sc.timer()
+
     test_age_differences()
     test_algorithm_comparison()
     test_n_partners_distribution()
     test_age_gap_distribution()
+
+    sc.heading("Total:")
+    timer.toc()
+
+    if do_plot:
+        plt.show()

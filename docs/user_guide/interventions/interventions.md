@@ -235,4 +235,4 @@ sim = sti.Sim(
 )
 ```
 
-For a complete worked example, see the [Interventions tutorial](../../tutorials/tut_interventions.ipynb).
+For a complete worked example, see the [Interventions tutorial](../../tutorials/tut_interventions.qmd).

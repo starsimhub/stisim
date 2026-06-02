@@ -24,12 +24,14 @@ Companion to tests/test_network_diagnostics.py, which produces diagnostic
 plots; this file produces assertable pass/fail tests.
 """
 import math
-import os
-import sys
-from collections import defaultdict
-
+import matplotlib.pyplot as plt
 import numpy as np
+import os
+import sciris as sc
 import stisim as sti
+import sys
+
+from collections import defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -93,6 +95,7 @@ def _bin_stats(female_ages, gaps):
 
 
 # ---- Tests -----------------------------------------------------------------
+@sc.timer()
 def test_mfnetwork_age_gap_targets(n_agents=N_AGENTS, dur=DUR, seeds=SEEDS,
                                      target_gaps=TARGET_GAPS, target_std=TARGET_STD,
                                      window_months=WINDOW_MONTHS):
@@ -201,6 +204,7 @@ def test_mfnetwork_age_gap_targets(n_agents=N_AGENTS, dur=DUR, seeds=SEEDS,
     return sweep
 
 
+@sc.timer()
 def test_mfnetwork_taper_kwargs(n_agents=N_AGENTS, dur=DUR, target_age_gap=5,
                                   target_std=TARGET_STD, seed=1):
     """Verify the f_partnership_taper_cut kwarg shapes new-partnership formation.
@@ -281,5 +285,15 @@ def test_mfnetwork_taper_kwargs(n_agents=N_AGENTS, dur=DUR, target_age_gap=5,
 
 
 if __name__ == '__main__':
+    do_plot = True
+    sc.options(interactive=do_plot)
+    timer = sc.timer()
+
     test_mfnetwork_age_gap_targets()
     test_mfnetwork_taper_kwargs()
+
+    sc.heading("Total:")
+    timer.toc()
+
+    if do_plot:
+        plt.show()
