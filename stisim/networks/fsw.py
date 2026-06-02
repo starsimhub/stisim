@@ -22,6 +22,7 @@ def _sw_states():
         ss.FloatArr('sw_intensity'),
         ss.FloatArr('sw_partners', default=0),
         ss.FloatArr('lifetime_sw_partners', default=0),
+        ss.BoolArr('paused'),                  # Reversible exclusion from FSW status (e.g. during pregnancy); leaves ever_fsw untouched
     ]
 
 
@@ -136,9 +137,17 @@ class SWNetwork(BaseNetwork):
 
     @property
     def fsw(self):
-        """Currently a female sex worker."""
+        """Currently a female sex worker.
+
+        Derived from the lifetime ``ever_fsw`` flag, the per-agent
+        ``age_sw_start``/``age_sw_stop`` window, AND a reversible
+        ``paused`` flag (default ``False`` for everyone). Interventions
+        that want to temporarily exclude an agent from FSW status
+        (e.g. ``sti.PregnancyRiskReduction``) toggle ``paused`` instead
+        of mutating any of the lifetime fields.
+        """
         age = self.sim.people.age
-        return (age >= self.age_sw_start) & (age < self.age_sw_stop) & self.ever_fsw
+        return (age >= self.age_sw_start) & (age < self.age_sw_stop) & self.ever_fsw & ~self.paused
 
     @property
     def client(self):
