@@ -93,3 +93,46 @@ def test_init_pre_raises_when_max_below_target():
     sim = _make_sim(net=net)
     with pytest.raises(ValueError, match='max_edge_dur'):
         sim.init()
+
+
+@sc.timer()
+def test_get_pool_filters_to_post_debut_males():
+    """``_get_pool`` returns only post-debut male agents."""
+    net = sti.MSMScaleFreeNetwork()
+    sim = _make_sim(net=net)
+    sim.init()
+    sim_net = sim.networks[0]
+    pool = sim_net._get_pool()
+    pool_uids = pool.uids
+    assert len(pool_uids) > 0, 'pool is empty — fixture must produce post-debut males'
+    assert sim.people.male[pool_uids].all(), 'pool contains females'
+    debut_ok = sim.people.age[pool_uids] >= sim_net.debut[pool_uids]
+    assert debut_ok.all(), 'pool contains pre-debut agents'
+
+
+@sc.timer()
+def test_mix_node_arrays_zero_degree_at_init():
+    """Before any edges form, every agent has log1p_deg == 1."""
+    net = sti.MSMScaleFreeNetwork()
+    sim = _make_sim(net=net)
+    sim.init()
+    sim_net = sim.networks[0]
+    arrays = sim_net._mix_node_arrays()
+    assert arrays['log1p_deg'].size > 0, 'mix arrays empty — fixture must produce a non-empty pool'
+    assert np.allclose(arrays['log1p_deg'], 1.0)
+
+
+@sc.timer()
+def test_mix_weights_row_returns_correct_length():
+    """``_mix_weights_row(i, ...)`` returns ``n - 1 - i`` weights."""
+    net = sti.MSMScaleFreeNetwork()
+    sim = _make_sim(net=net)
+    sim.init()
+    sim_net = sim.networks[0]
+    arrays = sim_net._mix_node_arrays()
+    n = arrays['log1p_deg'].size
+    assert n >= 3, f'fixture pool size {n} too small for shape test (need >= 3)'
+    for i in range(min(n - 1, 3)):
+        w = sim_net._mix_weights_row(i, arrays)
+        assert w.shape == (n - 1 - i,), f'i={i}: got {w.shape}, expected ({n - 1 - i},)'
+        assert np.all(w >= 0.0), 'mix weights must be non-negative'

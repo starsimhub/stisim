@@ -98,3 +98,62 @@ class MSMScaleFreeNetwork(BaseNetwork):
         if isinstance(dur, (int, np.integer)):
             return int(dur)
         return int(round(float(dur) / float(self.t.dt)))
+
+    # ---- Subclass extension points -----------------------------------------
+    def _get_pool(self):
+        """Eligible agents the kernel operates on. Returns a BoolArr-shaped mask.
+
+        Default: post-debut males. Subclasses override for other pools
+        (e.g. heterosexual: return ``self.over_debut`` and add a cross-sex
+        constraint in ``_mix_weights_row``).
+        """
+        return self.over_debut & self.sim.people.male
+
+    def _mix_node_arrays(self):
+        """Return a dict of per-node arrays consumed by ``_mix_weights_row``.
+
+        Base implementation provides:
+            - ``'nodes'`` (np.ndarray of int uids in the pool, monotonically
+              sorted by uid)
+            - ``'log1p_deg'`` (1 + log1p of current degree per pool node)
+
+        Subclasses extend the dict with ``'age_vec'``, ``'risk_vec'``, etc.
+        as needed and reference them from a custom ``_mix_weights_row``.
+        """
+        pool_uids = np.asarray(self._get_pool().uids, dtype=np.int64)
+        n = pool_uids.size
+        if n == 0:
+            return {
+                'nodes': pool_uids,
+                'log1p_deg': np.empty(0, dtype=float),
+            }
+        # Vectorised degree count: pool_uids is sorted, so searchsorted maps
+        # edge endpoints to pool indices in O((|E|+n) log n) without Python
+        # loops. Endpoints outside the pool are filtered before bincount.
+        endpoints = np.concatenate([
+            np.asarray(self.edges.p1, dtype=np.int64),
+            np.asarray(self.edges.p2, dtype=np.int64),
+        ])
+        if endpoints.size:
+            idx = np.searchsorted(pool_uids, endpoints)
+            in_bounds = idx < n
+            hit = np.zeros_like(endpoints, dtype=bool)
+            hit[in_bounds] = pool_uids[idx[in_bounds]] == endpoints[in_bounds]
+            deg_vec = np.bincount(idx[hit], minlength=n).astype(float)
+        else:
+            deg_vec = np.zeros(n, dtype=float)
+        return {
+            'nodes': pool_uids,
+            'log1p_deg': 1.0 + np.log1p(deg_vec),
+        }
+
+    def _mix_weights_row(self, i, mix_arrays):
+        """Vectorised pair weights between node i and all j > i.
+
+        Returns a 1D array of length (n - 1 - i) of non-negative weights.
+        Default = preferential-attachment degree multiplier. Subclasses
+        may read ``mix_arrays['nodes']`` for per-row uids when needed
+        (e.g. to look up an external per-agent state).
+        """
+        log1p_deg = mix_arrays['log1p_deg']
+        return log1p_deg[i] * log1p_deg[i+1:]
