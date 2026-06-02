@@ -146,22 +146,17 @@ class MSMScaleFreeNetwork(BaseNetwork):
     def init_pre(self, sim):
         """Convert ``ss.dur`` parameters to integer step counts.
 
-        Raw ints pass through unchanged so users can bypass ``ss.dur``.
+        Uses ``ss.dur / ss.dur`` arithmetic (sciris-native unit conversion).
         """
         super().init_pre(sim)
-        self._target_mean_dur_steps = self._as_steps(self.pars.target_mean_dur)
-        self._max_edge_dur_steps = self._as_steps(self.pars.max_edge_dur)
+        self._target_mean_dur_steps = int(round(self.pars.target_mean_dur / self.t.dt))
+        self._max_edge_dur_steps = int(round(self.pars.max_edge_dur / self.t.dt))
         if self._max_edge_dur_steps < self._target_mean_dur_steps:
             raise ValueError(
                 f'max_edge_dur ({self._max_edge_dur_steps} steps) must be >= '
                 f'target_mean_dur ({self._target_mean_dur_steps} steps)'
             )
         return
-
-    def _as_steps(self, dur):
-        if isinstance(dur, (int, np.integer)):
-            return int(dur)
-        return int(round(float(dur) / float(self.t.dt)))
 
     def _get_rng(self):
         """Step-local numpy Generator. Not CRN — see class docstring."""
@@ -180,14 +175,11 @@ class MSMScaleFreeNetwork(BaseNetwork):
         ``log1p_deg`` (1 + log1p of current degree). Subclasses extend
         the dict with age/risk vectors as needed.
         """
-        pool_uids = np.asarray(self._get_pool().uids, dtype=np.int64)
+        pool_uids = self._get_pool().uids
         n = pool_uids.size
         if n == 0:
             return {'nodes': pool_uids, 'log1p_deg': np.empty(0, dtype=float)}
-        endpoints = np.concatenate([
-            np.asarray(self.edges.p1, dtype=np.int64),
-            np.asarray(self.edges.p2, dtype=np.int64),
-        ])
+        endpoints = np.concatenate([self.edges.p1, self.edges.p2])
         if endpoints.size:
             idx = np.searchsorted(pool_uids, endpoints)
             in_bounds = idx < n
@@ -316,11 +308,20 @@ class MSMScaleFreeNetwork(BaseNetwork):
             sel_cdf = np.empty(0, dtype=float)
 
         # Global add-event clock from target stock + duration.
-        q0_exact = 1.0 / (1.0 + phi)
+        # Note: Whittles' q0 = 1/(1+phi) is the stationary density over the
+        # *coupled* (non-zero A_ij) pair set. With heterogeneous λ that's
+        # naturally sparse; with the uniform-λ fallback the catalog spans
+        # all upper-triangle pairs, so we derive q0 from the target stock
+        # directly to avoid over-densification at init.
         E_star = 0.5 * float(n) * float(self.pars.target_mean_degree)
+        m_pairs = pairs_i.size
+        if m_pairs > 0:
+            q0 = min(1.0, E_star / float(m_pairs))
+        else:
+            q0 = 1.0 / (1.0 + phi)
         D = max(float(self._target_mean_dur_steps), 1e-12)
         mu_turnover = E_star / D
-        hat_Ra = float(mu_turnover / max(1.0 - q0_exact, 1e-12))
+        hat_Ra = float(mu_turnover / max(1.0 - q0, 1e-12))
 
         self._kernel_pool_uids = pool_uids
         self._kernel_pairs_i = pairs_i
@@ -329,7 +330,7 @@ class MSMScaleFreeNetwork(BaseNetwork):
         self._kernel_sel_w = sel_w
         self._kernel_sel_cdf = sel_cdf
         self._kernel_hat_Ra = hat_Ra
-        self._kernel_q0 = q0_exact
+        self._kernel_q0 = q0
         return n
 
     def _sample_pair_index(self, rng):
@@ -344,6 +345,113 @@ class MSMScaleFreeNetwork(BaseNetwork):
         if k >= self._kernel_sel_cdf.size:
             k = self._kernel_sel_cdf.size - 1
         return k
+
+    # ---- Initial network ---------------------------------------------------
+    def _sample_P0(self, rng):
+        """Sample initial-network edges via Bernoulli(q0) per S2 Step-3."""
+        m = self._kernel_pairs_i.size
+        empty = ss.uids()
+        if m == 0:
+            return empty, empty
+        draws = rng.random(m) < self._kernel_q0
+        if not draws.any():
+            return empty, empty
+        pool = self._kernel_pool_uids
+        return ss.uids(pool[self._kernel_pairs_i[draws]]), ss.uids(pool[self._kernel_pairs_j[draws]])
+
+    def _append_new_edges(self, p1, p2):
+        """Append edges with default attributes + ``max_edge_dur`` lifetime.
+
+        ``BaseNetwork.end_pairs`` decrements ``dur`` each step, so setting
+        ``dur = max_edge_dur_steps`` at creation gives the hard cap for free.
+        """
+        n = len(p1)
+        if n == 0:
+            return
+        ages = self.sim.people.age
+        self.append(
+            p1=p1, p2=p2,
+            beta=np.ones(n, dtype=float),
+            dur=np.full(n, float(self._max_edge_dur_steps), dtype=float),
+            acts=np.ones(n, dtype=int),
+            condoms=np.zeros(n, dtype=float),
+            age_p1=ages[p1],
+            age_p2=ages[p2],
+            edge_type=np.zeros(n, dtype=float),
+        )
+        return
+
+    def init_post(self):
+        """Build kernel once + sample the q0 initial network."""
+        super().init_post()
+        n = self._build_kernel()
+        if n < 2:
+            return
+        rng = np.random.default_rng(int(self.sim.pars.rand_seed) + 1001)
+        p1, p2 = self._sample_P0(rng)
+        if len(p1):
+            self._append_new_edges(p1, p2)
+        return
+
+    # ---- Step dynamics -----------------------------------------------------
+    def step(self):
+        """One step of S2 dynamics.
+
+        Rebuilds the kernel every ``_rebuild_every`` steps, then defers to
+        ``BaseNetwork.step()`` which runs ``end_pairs`` (dur decrement →
+        ``max_edge_dur`` hard cap), ``set_network_states``, ``add_pairs``
+        (our S2 add + Markov delete), and ``set_condom_use``.
+        """
+        if self.ti > 0 and (self.ti % self._rebuild_every == 0):
+            self._build_kernel()
+        super().step()
+        return
+
+    def add_pairs(self):
+        """S2 add + Markov delete, called from ``BaseNetwork.step()``.
+
+        Adds are Poisson-counted draws from the sel-weight CDF; deletes
+        are Poisson-counted uniform-at-random removals from the current
+        edge list. Both target ``mu_turnover = E* / D``, balancing the
+        stationary edge stock.
+        """
+        if self._kernel_sel_cdf is None:
+            return
+        rng = self._get_rng()
+        rate = float(self._kernel_hat_Ra) * (1.0 - float(self._kernel_q0))
+        if rate <= 0.0:
+            return
+
+        # Add events.
+        n_adds = int(rng.poisson(rate))
+        if n_adds and self._kernel_sel_cdf.size > 0:
+            pool = self._kernel_pool_uids
+            alive = self.sim.people.alive
+            new_p1, new_p2 = [], []
+            for _ in range(n_adds):
+                k = self._sample_pair_index(rng)
+                if k < 0:
+                    break
+                u1 = int(pool[self._kernel_pairs_i[k]])
+                u2 = int(pool[self._kernel_pairs_j[k]])
+                # Pool may be stale between rebuilds; skip dead endpoints.
+                if alive[u1] and alive[u2]:
+                    new_p1.append(u1)
+                    new_p2.append(u2)
+            if new_p1:
+                self._append_new_edges(ss.uids(new_p1), ss.uids(new_p2))
+
+        # Markov deletes: uniform among current edges.
+        n_cur = len(self.edges.p1)
+        if n_cur > 0:
+            n_dels = min(int(rng.poisson(rate)), n_cur)
+            if n_dels > 0:
+                keep = np.ones(n_cur, dtype=bool)
+                idx = rng.choice(n_cur, size=n_dels, replace=False)
+                keep[idx] = False
+                for k in self.meta_keys():
+                    self.edges[k] = self.edges[k][keep]
+        return
 
 
 class AgeApproxMSM(MFNetwork):
