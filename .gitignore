@@ -128,3 +128,4 @@ flake8_junit.xml
 *.obj
 tutorial_output/
 starsim_calibration.db
+docs/superpowers/
