@@ -2,12 +2,12 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.37">
+<meta name="generator" content="quarto-1.9.38">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>hivsim – STIsim</title>
+<title>Switching sexual-risk behaviour during pregnancy – STIsim</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -22,6 +22,41 @@ ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 </style>
 
@@ -40,14 +75,14 @@ ul.task-list li input[type="checkbox"] {
 <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-23bbe8b5e4efc1e257f6d59dce478b08.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-de63f62b328812d8e578a4d74e282472.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-6b6957c917596b414ec0b78690761e87.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-de63f62b328812d8e578a4d74e282472.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-fec5a1fa81bfd162096066a3ebc5bcc8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-aafc68b2255684af78b035618dac2a51.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-fec5a1fa81bfd162096066a3ebc5bcc8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-fd1f6cbdafbf99fa1cd16ea34f28c7d8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-76aae80bb79b6e78359000ef1b30f63f.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-fd1f6cbdafbf99fa1cd16ea34f28c7d8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -321,21 +356,255 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#stisim.hivsim" id="toc-stisim.hivsim" class="nav-link active" data-scroll-target="#stisim.hivsim">hivsim</a></li>
+  <li><a href="#setup" id="toc-setup" class="nav-link active" data-scroll-target="#setup">Setup</a></li>
+  <li><a href="#tracking-pregnant-fsws" id="toc-tracking-pregnant-fsws" class="nav-link" data-scroll-target="#tracking-pregnant-fsws">Tracking pregnant FSWs</a></li>
+  <li><a href="#building-the-sims" id="toc-building-the-sims" class="nav-link" data-scroll-target="#building-the-sims">Building the sims</a></li>
+  <li><a href="#pregnant-fsws-over-time" id="toc-pregnant-fsws-over-time" class="nav-link" data-scroll-target="#pregnant-fsws-over-time">Pregnant FSWs over time</a></li>
+  <li><a href="#hiv-incidence-comparison" id="toc-hiv-incidence-comparison" class="nav-link" data-scroll-target="#hiv-incidence-comparison">HIV incidence comparison</a></li>
+  <li><a href="#what-the-intervention-does" id="toc-what-the-intervention-does" class="nav-link" data-scroll-target="#what-the-intervention-does">What the intervention does</a></li>
+  <li><a href="#caveats" id="toc-caveats" class="nav-link" data-scroll-target="#caveats">Caveats</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></nav>
     </div>
 <!-- main -->
-<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"></header>
+<main class="content" id="quarto-document-content">
+
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Switching sexual-risk behaviour during pregnancy</h1>
+</div>
 
 
 
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
 
 
-<section id="stisim.hivsim" class="level1">
-<h1>hivsim</h1>
-<p><code>hivsim</code></p>
-<p>Allow HIVsim functionality to be accessed from within STIsim</p>
+</header>
+
+
+<p><em>New in v1.5.6</em></p>
+<p>In many sexual-health models, pregnancy is associated with reduced sexual risk-taking: agents who were sex workers tend to exit FSW status, agents with high-concurrency partnerships tend to drop concurrency, and high-risk-group members tend to transition to lower-risk patterns. The postpartum period often sees those behaviours resume.</p>
+<p>STIsim 1.5.6 introduces <code>sti.PregnancyRiskReduction</code>, a plug-in intervention that layers this dynamic on top of any <code>StructuredSexual</code>-style network plus an <a href="https://docs.starsim.org/api/demographics.html#starsim.demographics.Pregnancy" title="0"><code>ss.Pregnancy</code></a> demographics module. Each parameter is a Bernoulli over the affected pregnant sub-population, so you can configure full, partial, or zero behavioural shift.</p>
+<p>This example compares two scenarios — one with the modifier on and one with it off — and shows how it shifts incidence during the pregnancy/postpartum window.</p>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<div id="9f51f6bf" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sciris <span class="im">as</span> sc</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> starsim <span class="im">as</span> ss</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> stisim <span class="im">as</span> sti</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>sc.options(dpi<span class="op">=</span><span class="dv">110</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="tracking-pregnant-fsws" class="level2">
+<h2 class="anchored" data-anchor-id="tracking-pregnant-fsws">Tracking pregnant FSWs</h2>
+<p><code>PregnancyRiskReduction</code> doesn’t publish its own per-timestep results. A small analyzer records the number of agents who are simultaneously pregnant and FSW each step. <code>scale=True</code> on the <code>Result</code> ensures the count is multiplied by <code>sim.pars.pop_scale</code> when reading via <code>sim.results</code> — so the trajectory plot is interpretable as a real population count, not an agent count.</p>
+<div id="7412a0ce" class="cell" data-execution_count="2">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> PregnantFswAnalyzer(ss.Analyzer):</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Record number of pregnant FSWs each timestep (population-scaled)."""</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> init_results(<span class="va">self</span>):</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().init_results()</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.define_results(ss.Result(<span class="st">'n'</span>, dtype<span class="op">=</span><span class="bu">int</span>, scale<span class="op">=</span><span class="va">True</span>))</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> step(<span class="va">self</span>):</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        nw <span class="op">=</span> <span class="va">self</span>.sim.networks.structuredsexual</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        preg <span class="op">=</span> <span class="va">self</span>.sim.demographics.pregnancy</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.results[<span class="st">'n'</span>][<span class="va">self</span>.ti] <span class="op">=</span> <span class="bu">int</span>((preg.pregnant <span class="op">&amp;</span> nw.fsw).count())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="building-the-sims" class="level2">
+<h2 class="anchored" data-anchor-id="building-the-sims">Building the sims</h2>
+<p>Both scenarios run the same HIV transmission model and same population structure; they differ only in whether <code>PregnancyRiskReduction</code> is included.</p>
+<div id="a56ee2bb" class="cell" data-execution_count="3">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>sim_kwargs <span class="op">=</span> <span class="bu">dict</span>(</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    n_agents<span class="op">=</span><span class="dv">10_000</span>, dur<span class="op">=</span><span class="dv">20</span>, start<span class="op">=</span><span class="dv">2005</span>, verbose<span class="op">=-</span><span class="dv">1</span>, rand_seed<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    networks<span class="op">=</span>[sti.StructuredSexual(), ss.MaternalNet(), ss.BreastfeedingNet()],</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    demographics<span class="op">=</span>[ss.Pregnancy(), ss.Deaths()],</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_sim(modify_pregnancy):</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    hiv <span class="op">=</span> sti.HIV(init_prev<span class="op">=</span><span class="fl">0.05</span>, beta_m2f<span class="op">=</span><span class="fl">0.05</span>)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    interventions <span class="op">=</span> [sti.HIVTest(name<span class="op">=</span><span class="st">'hiv_test'</span>, test_prob_data<span class="op">=</span><span class="fl">0.3</span>),</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>                     sti.ART(coverage<span class="op">=</span><span class="fl">0.6</span>)]</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> modify_pregnancy:</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>        interventions.append(sti.PregnancyRiskReduction())</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    label <span class="op">=</span> <span class="st">'Modifier on'</span> <span class="cf">if</span> modify_pregnancy <span class="cf">else</span> <span class="st">'Modifier off'</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> sti.Sim(diseases<span class="op">=</span>[hiv], interventions<span class="op">=</span>interventions,</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>                   analyzers<span class="op">=</span>[PregnantFswAnalyzer()],</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>                   label<span class="op">=</span>label, <span class="op">**</span>sim_kwargs)</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>sims <span class="op">=</span> ss.parallel([make_sim(<span class="va">False</span>), make_sim(<span class="va">True</span>)]).sims</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> {sim.label: sim <span class="cf">for</span> sim <span class="kw">in</span> sims}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Initializing sim "Modifier off" with 10000 agents
+Initializing sim "Modifier on" with 10000 agents
+
+  Running "Modifier off": 2005.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
+
+  Running "Modifier on": 2005.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
+
+  Running "Modifier off": 2006.01.01 (12/241) (0.75 s)  •——————————————————— 5%
+
+  Running "Modifier on": 2006.01.01 (12/241) (0.75 s)  •——————————————————— 5%
+
+  Running "Modifier off": 2007.01.01 (24/241) (1.26 s)  ••—————————————————— 10%
+
+  Running "Modifier on": 2007.01.01 (24/241) (1.28 s)  ••—————————————————— 10%
+
+  Running "Modifier off": 2008.01.01 (36/241) (1.78 s)  •••————————————————— 15%
+
+  Running "Modifier on": 2008.01.01 (36/241) (1.80 s)  •••————————————————— 15%
+
+  Running "Modifier off": 2009.01.01 (48/241) (2.31 s)  ••••———————————————— 20%
+
+  Running "Modifier on": 2009.01.01 (48/241) (2.34 s)  ••••———————————————— 20%
+
+  Running "Modifier off": 2010.01.01 (60/241) (2.82 s)  •••••——————————————— 25%
+
+  Running "Modifier on": 2010.01.01 (60/241) (2.86 s)  •••••——————————————— 25%
+
+  Running "Modifier off": 2011.01.01 (72/241) (3.34 s)  ••••••—————————————— 30%
+
+  Running "Modifier on": 2011.01.01 (72/241) (3.40 s)  ••••••—————————————— 30%
+
+  Running "Modifier off": 2012.01.01 (84/241) (3.87 s)  •••••••————————————— 35%
+
+  Running "Modifier on": 2012.01.01 (84/241) (3.92 s)  •••••••————————————— 35%
+
+  Running "Modifier off": 2013.01.01 (96/241) (4.41 s)  ••••••••———————————— 40%
+
+  Running "Modifier on": 2013.01.01 (96/241) (4.47 s)  ••••••••———————————— 40%
+
+  Running "Modifier off": 2014.01.01 (108/241) (4.93 s)  •••••••••——————————— 45%
+
+  Running "Modifier on": 2014.01.01 (108/241) (5.00 s)  •••••••••——————————— 45%
+
+  Running "Modifier off": 2015.01.01 (120/241) (5.45 s)  ••••••••••—————————— 50%
+
+  Running "Modifier on": 2015.01.01 (120/241) (5.54 s)  ••••••••••—————————— 50%
+
+  Running "Modifier off": 2016.01.01 (132/241) (5.99 s)  •••••••••••————————— 55%
+
+  Running "Modifier on": 2016.01.01 (132/241) (6.07 s)  •••••••••••————————— 55%
+
+  Running "Modifier off": 2017.01.01 (144/241) (6.53 s)  ••••••••••••———————— 60%
+
+  Running "Modifier on": 2017.01.01 (144/241) (6.63 s)  ••••••••••••———————— 60%
+
+  Running "Modifier off": 2018.01.01 (156/241) (7.06 s)  •••••••••••••——————— 65%
+
+  Running "Modifier on": 2018.01.01 (156/241) (7.17 s)  •••••••••••••——————— 65%
+
+  Running "Modifier off": 2019.01.01 (168/241) (7.59 s)  ••••••••••••••—————— 70%
+
+  Running "Modifier on": 2019.01.01 (168/241) (7.70 s)  ••••••••••••••—————— 70%
+
+  Running "Modifier off": 2020.01.01 (180/241) (8.11 s)  •••••••••••••••————— 75%
+
+  Running "Modifier on": 2020.01.01 (180/241) (8.26 s)  •••••••••••••••————— 75%
+
+  Running "Modifier off": 2021.01.01 (192/241) (8.67 s)  ••••••••••••••••———— 80%
+
+  Running "Modifier on": 2021.01.01 (192/241) (8.81 s)  ••••••••••••••••———— 80%
+
+  Running "Modifier off": 2022.01.01 (204/241) (9.24 s)  •••••••••••••••••——— 85%
+
+  Running "Modifier on": 2022.01.01 (204/241) (9.40 s)  •••••••••••••••••——— 85%
+
+  Running "Modifier off": 2023.01.01 (216/241) (9.82 s)  ••••••••••••••••••—— 90%
+
+  Running "Modifier on": 2023.01.01 (216/241) (9.99 s)  ••••••••••••••••••—— 90%
+
+  Running "Modifier off": 2024.01.01 (228/241) (10.40 s)  •••••••••••••••••••— 95%
+
+  Running "Modifier on": 2024.01.01 (228/241) (10.59 s)  •••••••••••••••••••— 95%
+
+  Running "Modifier off": 2025.01.01 (240/241) (11.00 s)  •••••••••••••••••••• 100%
+
+
+  Running "Modifier on": 2025.01.01 (240/241) (11.20 s)  •••••••••••••••••••• 100%
+</code></pre>
+</div>
+</div>
+</section>
+<section id="pregnant-fsws-over-time" class="level2">
+<h2 class="anchored" data-anchor-id="pregnant-fsws-over-time">Pregnant FSWs over time</h2>
+<p>The clearest visual signal: with the modifier off, pregnant FSWs accumulate as the simulation runs (any female agent in her SW window who becomes pregnant remains FSW). With the modifier on, the intervention reversibly toggles <code>paused</code> on those agents and the count stays at zero.</p>
+<div id="95959446" class="cell" data-execution_count="4">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>yearvec <span class="op">=</span> sims[<span class="dv">0</span>].t.yearvec</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="fl">4.5</span>))</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>ax.plot(yearvec, results[<span class="st">'Modifier off'</span>].results.pregnantfswanalyzer.n, lw<span class="op">=</span><span class="dv">2</span>, label<span class="op">=</span><span class="st">'Modifier off'</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>ax.plot(yearvec, results[<span class="st">'Modifier on'</span>].results.pregnantfswanalyzer.n,  lw<span class="op">=</span><span class="dv">2</span>, label<span class="op">=</span><span class="st">'Modifier on'</span>)</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'Year'</span>)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'Pregnant FSWs'</span>)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'Pregnant FSWs over time'</span>)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>ax.legend()</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>sc.figlayout()</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="pregnancy_risk_modifier_files/figure-html/cell-5-output-1.png" width="869" height="483" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="hiv-incidence-comparison" class="level2">
+<h2 class="anchored" data-anchor-id="hiv-incidence-comparison">HIV incidence comparison</h2>
+<div id="9ac4fe11" class="cell" data-execution_count="5">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="fl">4.5</span>))</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> label, sim <span class="kw">in</span> results.items():</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    ax.plot(yearvec, sim.results.hiv.new_infections, label<span class="op">=</span>label, lw<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'Year'</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'New HIV infections per timestep'</span>)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'HIV incidence with and without the pregnancy modifier'</span>)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>ax.legend()</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>sc.figlayout()</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="pregnancy_risk_modifier_files/figure-html/cell-6-output-1.png" width="869" height="483" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The “modifier on” curve typically sits below the “off” curve because pregnant women — a relatively-high-acquisition-risk subgroup — are shifted out of FSW / high-concurrency partnerships during pregnancy, reducing onward transmission both to them and from them.</p>
+</section>
+<section id="what-the-intervention-does" class="level2">
+<h2 class="anchored" data-anchor-id="what-the-intervention-does">What the intervention does</h2>
+<p><code>PregnancyRiskReduction</code> runs every timestep and:</p>
+<ol type="1">
+<li>Records per-agent <strong>high-water marks</strong> (<code>was_fsw</code>, <code>was_high_risk</code>, <code>ever_pregnant</code>, <code>default_concurrency</code>) so the original behaviour can be restored after pregnancy and the intervention is a no-op for agents who have never been pregnant.</li>
+<li><strong>During pregnancy</strong>, samples per-agent Bernoullis to clear FSW status, reduce risk group to <code>default_risk_group</code>, and zero out concurrency.</li>
+<li><strong>After pregnancy ends</strong> (<code>~pregnant</code> for an agent flagged <code>ever_pregnant</code>), restores the agent’s FSW status, risk group, and concurrency from the high-water mark. No dependency on a breastfeeding state.</li>
+</ol>
+<p>The defaults assume 100% behavioural shift; tune each Bernoulli to match locally-observed transitions:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>sti.PregnancyRiskReduction(</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    fsw_redux<span class="op">=</span>ss.bernoulli(p<span class="op">=</span><span class="fl">0.7</span>),       <span class="co"># 70% of pregnant FSWs exit FSW</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    high_risk_redux<span class="op">=</span>ss.bernoulli(p<span class="op">=</span><span class="fl">0.5</span>),  <span class="co"># 50% drop to default risk group</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    concurrency_redux<span class="op">=</span>ss.bernoulli(p<span class="op">=</span><span class="fl">0.9</span>),</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="caveats" class="level2">
+<h2 class="anchored" data-anchor-id="caveats">Caveats</h2>
+<ul>
+<li>Restoration fires immediately when an agent’s pregnancy ends. The intervention has no built-in postpartum window — if you want behaviour to stay reduced for some months after birth, wrap or subclass the intervention.</li>
+<li>The intervention writes directly to network state (<code>nw.fsw</code>, <code>nw.risk_group</code>, <code>nw.concurrency</code>). It assumes those attributes exist on the network identified by <code>network_name</code> (default <code>'structuredsexual'</code>).</li>
+<li>This is a behavioural shift on top of an otherwise unchanged network. If you want pregnancy to also break specific partnerships (e.g.&nbsp;force a partner separation), do that in a downstream intervention.</li>
+</ul>
 
 
 </section>
@@ -761,7 +1030,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.5.5 (2026-05-15).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.5.6 (2026-06-02).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">

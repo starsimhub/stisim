@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.37">
+<meta name="generator" content="quarto-1.9.38">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -75,14 +75,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-23bbe8b5e4efc1e257f6d59dce478b08.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-de63f62b328812d8e578a4d74e282472.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-6b6957c917596b414ec0b78690761e87.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-de63f62b328812d8e578a4d74e282472.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-fec5a1fa81bfd162096066a3ebc5bcc8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-aafc68b2255684af78b035618dac2a51.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-fec5a1fa81bfd162096066a3ebc5bcc8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-fd1f6cbdafbf99fa1cd16ea34f28c7d8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-76aae80bb79b6e78359000ef1b30f63f.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-fd1f6cbdafbf99fa1cd16ea34f28c7d8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -393,13 +393,13 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <p>Partner notification (PN) — also called contact tracing or partner services — identifies sexual partners of newly diagnosed agents and offers them follow-up testing. STIsim’s :class:<code>~stisim.PartnerNotification</code> intervention does this through two channels:</p>
 <ul>
 <li><strong>Current partners</strong>: anyone with an active edge in the sexual network.</li>
-<li><strong>Previous partners</strong>: anyone with an edge in the :class:<a href="../api/networks.html#stisim.networks.PriorPartners" title="0"><code>~stisim.PriorPartners</code></a> recall network — dissolved partnerships within a configurable lookback window.</li>
+<li><strong>Previous partners</strong>: anyone with an edge in the :class:<code>~stisim.PriorPartners</code> recall network — dissolved partnerships within a configurable lookback window.</li>
 </ul>
 <p>Each contact is independently subject to a notification step (probability <code>p_notify_&lt;scope&gt;</code>) and an attendance step (probability <code>p_attends_&lt;scope&gt;</code>). Attendees are scheduled for the supplied <a href="https://docs.python.org/3/library/test.html#module-test" title="1"><code>test</code></a> intervention on the next timestep.</p>
 <p>This example builds a small HIV sim and compares HIV diagnoses with and without PN.</p>
 <section id="setup" class="level2">
 <h2 class="anchored" data-anchor-id="setup">Setup</h2>
-<div id="7ecc8317" class="cell" data-execution_count="1">
+<div id="4a8c575d" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sciris <span class="im">as</span> sc</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> starsim <span class="im">as</span> ss</span>
@@ -413,7 +413,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="index-cases-who-triggers-pn" class="level2">
 <h2 class="anchored" data-anchor-id="index-cases-who-triggers-pn">Index cases: who triggers PN?</h2>
 <p>PN runs every timestep against an <code>eligibility</code> callback that returns the UIDs of “index cases” — typically agents who just tested positive. Here we use the standard HIV testing pipeline and treat any newly-diagnosed agent as an index case.</p>
-<div id="76445f1b" class="cell" data-execution_count="2">
+<div id="50315222" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> newly_diagnosed(sim):</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Index cases = agents whose HIV diagnosis fires this timestep."""</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    hiv <span class="op">=</span> sim.diseases.hiv</span>
@@ -422,8 +422,8 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </section>
 <section id="building-the-sim" class="level2">
 <h2 class="anchored" data-anchor-id="building-the-sim">Building the sim</h2>
-<p>The active sexual network needs <code>recall_prior=True</code> so dissolved partnerships are pushed into the :class:<a href="../api/networks.html#stisim.networks.PriorPartners" title="0"><code>~stisim.PriorPartners</code></a> recall network. We set the lookback to 6 months — typical of real-world PN programs that ask about partners from the past 3–12 months.</p>
-<div id="30c3d212" class="cell" data-execution_count="3">
+<p>The active sexual network needs <code>recall_prior=True</code> so dissolved partnerships are pushed into the :class:<code>~stisim.PriorPartners</code> recall network. We set the lookback to 6 months — typical of real-world PN programs that ask about partners from the past 3–12 months.</p>
+<div id="df856268" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_sim(use_pn<span class="op">=</span><span class="va">False</span>, rand_seed<span class="op">=</span><span class="dv">1</span>):</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    hiv_test <span class="op">=</span> sti.HIVTest(name<span class="op">=</span><span class="st">'hiv_test'</span>, test_prob_data<span class="op">=</span><span class="fl">0.3</span>)</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    interventions <span class="op">=</span> [hiv_test]</span>
@@ -457,7 +457,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </section>
 <section id="running-scenarios" class="level2">
 <h2 class="anchored" data-anchor-id="running-scenarios">Running scenarios</h2>
-<div id="14bfc1e7" class="cell" data-execution_count="4">
+<div id="5e7e88ca" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>sims <span class="op">=</span> ss.parallel([make_sim(use_pn<span class="op">=</span><span class="va">False</span>), make_sim(use_pn<span class="op">=</span><span class="va">True</span>)]).sims</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> {sim.label: sim <span class="cf">for</span> sim <span class="kw">in</span> sims}</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -467,39 +467,61 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <div class="cell-output cell-output-stdout">
 <pre><code>Initializing sim "No PN" with 2000 agents
 Initializing sim "With PN" with 2000 agents
+
   Running "No PN": 2000.01.01 ( 0/121) (0.00 s)  ———————————————————— 1%
+
   Running "With PN": 2000.01.01 ( 0/121) (0.00 s)  ———————————————————— 1%
-  Running "No PN": 2001.01.01 (12/121) (0.47 s)  ••—————————————————— 11%
-  Running "With PN": 2001.01.01 (12/121) (0.47 s)  ••—————————————————— 11%
-  Running "No PN": 2002.01.01 (24/121) (0.60 s)  ••••———————————————— 21%
-  Running "With PN": 2002.01.01 (24/121) (0.60 s)  ••••———————————————— 21%
-  Running "No PN": 2003.01.01 (36/121) (0.73 s)  ••••••—————————————— 31%
-  Running "With PN": 2003.01.01 (36/121) (0.73 s)  ••••••—————————————— 31%
-  Running "No PN": 2004.01.01 (48/121) (0.85 s)  ••••••••———————————— 40%
-  Running "With PN": 2004.01.01 (48/121) (0.86 s)  ••••••••———————————— 40%
-  Running "No PN": 2005.01.01 (60/121) (0.98 s)  ••••••••••—————————— 50%
-  Running "With PN": 2005.01.01 (60/121) (1.00 s)  ••••••••••—————————— 50%
-  Running "No PN": 2006.01.01 (72/121) (1.10 s)  ••••••••••••———————— 60%
-  Running "With PN": 2006.01.01 (72/121) (1.13 s)  ••••••••••••———————— 60%
-  Running "No PN": 2007.01.01 (84/121) (1.23 s)  ••••••••••••••—————— 70%
-  Running "With PN": 2007.01.01 (84/121) (1.26 s)  ••••••••••••••—————— 70%
-  Running "No PN": 2008.01.01 (96/121) (1.36 s)  ••••••••••••••••———— 80%
-  Running "With PN": 2008.01.01 (96/121) (1.40 s)  ••••••••••••••••———— 80%
-  Running "No PN": 2009.01.01 (108/121) (1.48 s)  ••••••••••••••••••—— 90%
-  Running "With PN": 2009.01.01 (108/121) (1.53 s)  ••••••••••••••••••—— 90%
-  Running "No PN": 2010.01.01 (120/121) (1.60 s)  •••••••••••••••••••• 100%
 
-  Running "With PN": 2010.01.01 (120/121) (1.65 s)  •••••••••••••••••••• 100%
+  Running "No PN": 2001.01.01 (12/121) (0.82 s)  ••—————————————————— 11%
 
-     No PN:   254 HIV diagnoses
-   With PN:   521 HIV diagnoses</code></pre>
+  Running "With PN": 2001.01.01 (12/121) (0.84 s)  ••—————————————————— 11%
+
+  Running "No PN": 2002.01.01 (24/121) (1.06 s)  ••••———————————————— 21%
+
+  Running "With PN": 2002.01.01 (24/121) (1.09 s)  ••••———————————————— 21%
+
+  Running "No PN": 2003.01.01 (36/121) (1.29 s)  ••••••—————————————— 31%
+
+  Running "With PN": 2003.01.01 (36/121) (1.33 s)  ••••••—————————————— 31%
+
+  Running "No PN": 2004.01.01 (48/121) (1.52 s)  ••••••••———————————— 40%
+
+  Running "With PN": 2004.01.01 (48/121) (1.58 s)  ••••••••———————————— 40%
+
+  Running "No PN": 2005.01.01 (60/121) (1.76 s)  ••••••••••—————————— 50%
+
+  Running "With PN": 2005.01.01 (60/121) (1.83 s)  ••••••••••—————————— 50%
+
+  Running "No PN": 2006.01.01 (72/121) (1.99 s)  ••••••••••••———————— 60%
+
+  Running "With PN": 2006.01.01 (72/121) (2.07 s)  ••••••••••••———————— 60%
+
+  Running "No PN": 2007.01.01 (84/121) (2.22 s)  ••••••••••••••—————— 70%
+
+  Running "With PN": 2007.01.01 (84/121) (2.32 s)  ••••••••••••••—————— 70%
+
+  Running "No PN": 2008.01.01 (96/121) (2.47 s)  ••••••••••••••••———— 80%
+
+  Running "With PN": 2008.01.01 (96/121) (2.56 s)  ••••••••••••••••———— 80%
+
+  Running "No PN": 2009.01.01 (108/121) (2.70 s)  ••••••••••••••••••—— 90%
+
+  Running "With PN": 2009.01.01 (108/121) (2.80 s)  ••••••••••••••••••—— 90%
+
+  Running "No PN": 2010.01.01 (120/121) (2.92 s)  •••••••••••••••••••• 100%
+
+
+  Running "With PN": 2010.01.01 (120/121) (3.02 s)  •••••••••••••••••••• 100%
+
+     No PN:   238 HIV diagnoses
+   With PN:   419 HIV diagnoses</code></pre>
 </div>
 </div>
 </section>
 <section id="inspecting-pn-outputs" class="level2">
 <h2 class="anchored" data-anchor-id="inspecting-pn-outputs">Inspecting PN outputs</h2>
 <p>The PN intervention exposes per-timestep counts of partners notified and attending, broken down by channel.</p>
-<div id="fb61ac6f" class="cell" data-execution_count="5">
+<div id="e1e85afc" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>pn_res <span class="op">=</span> results[<span class="st">'With PN'</span>].results.pn</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>total_notified <span class="op">=</span> <span class="bu">int</span>(pn_res.new_notified.<span class="bu">sum</span>())</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>total_attending <span class="op">=</span> <span class="bu">int</span>(pn_res.new_attending.<span class="bu">sum</span>())</span>
@@ -509,14 +531,14 @@ Initializing sim "With PN" with 2000 agents
 <span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Notified: </span><span class="sc">{</span>total_notified<span class="sc">}</span><span class="ss"> (</span><span class="sc">{</span>total_current<span class="sc">}</span><span class="ss"> current, </span><span class="sc">{</span>total_previous<span class="sc">}</span><span class="ss"> prior)'</span>)</span>
 <span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Attending: </span><span class="sc">{</span>total_attending<span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Notified: 480 (480 current, 0 prior)
-Attending: 335</code></pre>
+<pre><code>Notified: 355 (355 current, 0 prior)
+Attending: 246</code></pre>
 </div>
 </div>
 </section>
 <section id="comparing-outcomes" class="level2">
 <h2 class="anchored" data-anchor-id="comparing-outcomes">Comparing outcomes</h2>
-<div id="2de8a0fa" class="cell" data-execution_count="6">
+<div id="5e4b7501" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">11</span>, <span class="fl">4.5</span>))</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Left: HIV diagnoses over time</span></span>
@@ -543,7 +565,7 @@ Attending: 335</code></pre>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="partner_notification_files/figure-html/cell-7-output-1.png" class="img-fluid figure-img"></p>
+<p><img src="partner_notification_files/figure-html/cell-7-output-1.png" width="1199" height="483" class="figure-img"></p>
 </figure>
 </div>
 </div>
@@ -982,7 +1004,7 @@ Attending: 335</code></pre>
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.5.5 (2026-05-15).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.5.6 (2026-06-02).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">

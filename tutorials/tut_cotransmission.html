@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.37">
+<meta name="generator" content="quarto-1.9.38">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -77,14 +77,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-23bbe8b5e4efc1e257f6d59dce478b08.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-de63f62b328812d8e578a4d74e282472.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-6b6957c917596b414ec0b78690761e87.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-de63f62b328812d8e578a4d74e282472.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-fec5a1fa81bfd162096066a3ebc5bcc8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-aafc68b2255684af78b035618dac2a51.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-fec5a1fa81bfd162096066a3ebc5bcc8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-fd1f6cbdafbf99fa1cd16ea34f28c7d8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-76aae80bb79b6e78359000ef1b30f63f.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-fd1f6cbdafbf99fa1cd16ea34f28c7d8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -656,7 +656,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="multiple-stis-on-a-shared-network" class="level2">
 <h2 class="anchored" data-anchor-id="multiple-stis-on-a-shared-network">Multiple STIs on a shared network</h2>
 <p>When you pass multiple diseases to a sim, they all transmit on the same <code>StructuredSexual</code> network. Each disease has its own transmission probability, natural history, and clearance dynamics – but the partnerships are shared.</p>
-<div id="10646e40" class="cell" data-execution_count="1">
+<div id="7177e0c4" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> stisim <span class="im">as</span> sti</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> sti.Sim(</span>
@@ -674,7 +674,7 @@ Figure(768x576)</code></pre>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="tut_cotransmission_files/figure-html/cell-2-output-2.png" class="img-fluid figure-img"></p>
+<p><img src="tut_cotransmission_files/figure-html/cell-2-output-2.png" width="756" height="566" class="figure-img"></p>
 </figure>
 </div>
 </div>
@@ -684,7 +684,7 @@ Figure(768x576)</code></pre>
 <section id="customizing-disease-parameters" class="level2">
 <h2 class="anchored" data-anchor-id="customizing-disease-parameters">Customizing disease parameters</h2>
 <p>Use <code>sti_pars</code> to override defaults for each disease:</p>
-<div id="f544dd94" class="cell" data-execution_count="2">
+<div id="e1f392fc" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> sti.Sim(</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    diseases<span class="op">=</span>[<span class="st">'ng'</span>, <span class="st">'ct'</span>, <span class="st">'tv'</span>],</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    sti_pars<span class="op">=</span><span class="bu">dict</span>(</span>
@@ -705,7 +705,7 @@ Figure(768x576)</code></pre>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="tut_cotransmission_files/figure-html/cell-3-output-2.png" class="img-fluid figure-img"></p>
+<p><img src="tut_cotransmission_files/figure-html/cell-3-output-2.png" width="764" height="566" class="figure-img"></p>
 </figure>
 </div>
 </div>
@@ -715,7 +715,7 @@ Figure(768x576)</code></pre>
 <h2 class="anchored" data-anchor-id="adding-hiv-with-connectors">Adding HIV with connectors</h2>
 <p>When diseases interact biologically – for example, having an STI increases susceptibility to HIV – you model this with <strong>connectors</strong>. STIsim provides connectors for HIV-STI coinfection interactions.</p>
 <p>Connectors modify <code>rel_sus</code> (relative susceptibility) and <code>rel_trans</code> (relative transmissibility) for coinfected agents at each timestep. For example, <code>hiv_ng</code> increases HIV susceptibility for agents who have gonorrhea.</p>
-<div id="6031a6ac" class="cell" data-execution_count="3">
+<div id="b8d2fee0" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create disease modules</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>hiv <span class="op">=</span> sti.HIV(init_prev<span class="op">=</span><span class="fl">0.10</span>)</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>ng <span class="op">=</span> sti.Gonorrhea(init_prev<span class="op">=</span><span class="fl">0.03</span>)</span>
@@ -739,13 +739,20 @@ Figure(768x576)</code></pre>
 <span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>sim.run(verbose<span class="op">=</span><span class="dv">0</span>)</span>
 <span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>sim.plot(key<span class="op">=</span>[<span class="st">'hiv.prevalence'</span>, <span class="st">'ng.prevalence'</span>, <span class="st">'ct.prevalence'</span>, <span class="st">'tv.prevalence'</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Initializing sim with 2000 agents
-Figure(768x576)</code></pre>
+<pre><code>Initializing sim with 2000 agents</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/opt/hostedtoolcache/Python/3.13.13/x64/lib/python3.13/site-packages/starsim/arrays.py:486: RuntimeWarning: 
+Trying to access non-initialized Arr object; in most cases, Arr objects need to be initialized with a Sim object, but set skip_init=True if this is intentional.
+  ss.warn('Trying to access non-initialized Arr object; in most cases, Arr objects need to be initialized with a Sim object, but set skip_init=True if this is intentional.')</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Figure(768x576)</code></pre>
 </div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="tut_cotransmission_files/figure-html/cell-4-output-2.png" class="img-fluid figure-img"></p>
+<p><img src="tut_cotransmission_files/figure-html/cell-4-output-4.png" width="756" height="566" class="figure-img"></p>
 </figure>
 </div>
 </div>
@@ -757,52 +764,64 @@ Figure(768x576)</code></pre>
 <p>To see the effect of coinfection interactions, we compare HIV and syphilis co-transmission with and without an <code>hiv_syph</code> connector.</p>
 <p>In reality, syphilis epidemics are sustained by cycles of treatment and reinfection – people with symptomatic (active) syphilis seek treatment, clearing the infection but leaving them susceptible to reinfection. Without treatment, most cases quickly progress to the latent stage, where they are far less infectious and the connector has little effect.</p>
 <p>To make the connector’s impact visible without adding treatment interventions, we artificially extend the primary stage duration. This keeps more agents in the active (primary + secondary) stages where the connector amplifies HIV susceptibility.</p>
-<div id="07aa1a60" class="cell" data-execution_count="4">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> starsim <span class="im">as</span> ss</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_diseases():</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">""" Helper to create fresh disease modules """</span></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    hiv <span class="op">=</span> sti.HIV(init_prev<span class="op">=</span><span class="fl">0.02</span>, beta_m2f<span class="op">=</span><span class="fl">0.03</span>)</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    syph <span class="op">=</span> sti.Syphilis(</span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>        init_prev<span class="op">=</span><span class="fl">0.10</span>, beta_m2f<span class="op">=</span><span class="fl">0.25</span>,</span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>        rel_trans_primary<span class="op">=</span><span class="dv">5</span>, rel_trans_latent<span class="op">=</span><span class="fl">0.1</span>,</span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>        eff_condom<span class="op">=</span><span class="fl">0.5</span>,</span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>        dur_primary<span class="op">=</span>ss.constant(v<span class="op">=</span>ss.years(<span class="dv">2</span>)),  <span class="co"># Extended for illustration</span></span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> hiv, syph</span>
-<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Without connectors</span></span>
-<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>hiv, syph <span class="op">=</span> make_diseases()</span>
-<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>s0 <span class="op">=</span> sti.Sim(diseases<span class="op">=</span>[hiv, syph], n_agents<span class="op">=</span><span class="dv">5000</span>, start<span class="op">=</span><span class="dv">2000</span>, stop<span class="op">=</span><span class="dv">2020</span>)</span>
-<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>s0.run(verbose<span class="op">=</span><span class="dv">0</span>)</span>
-<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a><span class="co"># With connectors -- syphilis increases HIV susceptibility 2.67x (default)</span></span>
-<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>hiv, syph <span class="op">=</span> make_diseases()</span>
-<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>s1 <span class="op">=</span> sti.Sim(</span>
-<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>    diseases<span class="op">=</span>[hiv, syph],</span>
-<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>    connectors<span class="op">=</span>sti.hiv_syph(hiv, syph),</span>
-<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>    n_agents<span class="op">=</span><span class="dv">5000</span>, start<span class="op">=</span><span class="dv">2000</span>, stop<span class="op">=</span><span class="dv">2020</span>,</span>
-<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>s1.run(verbose<span class="op">=</span><span class="dv">0</span>)</span>
-<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare cumulative HIV infections</span></span>
-<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots()</span>
-<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>ax.plot(s0.timevec, s0.results.hiv.cum_infections, label<span class="op">=</span><span class="st">'Without connector'</span>)</span>
-<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>ax.plot(s1.timevec, s1.results.hiv.cum_infections, label<span class="op">=</span><span class="st">'With hiv_syph connector'</span>)</span>
-<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'Year'</span>)</span>
-<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'Cumulative HIV infections'</span>)</span>
-<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'Effect of syphilis coinfection on HIV acquisition'</span>)</span>
-<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>ax.legend()</span>
-<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>fig</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="46361997" class="cell" data-execution_count="4">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> starsim <span class="im">as</span> ss</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_diseases():</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">""" Helper to create fresh disease modules """</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    hiv <span class="op">=</span> sti.HIV(init_prev<span class="op">=</span><span class="fl">0.02</span>, beta_m2f<span class="op">=</span><span class="fl">0.03</span>)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    syph <span class="op">=</span> sti.Syphilis(</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>        init_prev<span class="op">=</span><span class="fl">0.10</span>, beta_m2f<span class="op">=</span><span class="fl">0.25</span>,</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>        rel_trans_primary<span class="op">=</span><span class="dv">5</span>, rel_trans_latent<span class="op">=</span><span class="fl">0.1</span>,</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>        eff_condom<span class="op">=</span><span class="fl">0.5</span>,</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>        dur_primary<span class="op">=</span>ss.constant(v<span class="op">=</span>ss.years(<span class="dv">2</span>)),  <span class="co"># Extended for illustration</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> hiv, syph</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Without connectors</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>hiv, syph <span class="op">=</span> make_diseases()</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>s0 <span class="op">=</span> sti.Sim(diseases<span class="op">=</span>[hiv, syph], n_agents<span class="op">=</span><span class="dv">5000</span>, start<span class="op">=</span><span class="dv">2000</span>, stop<span class="op">=</span><span class="dv">2020</span>)</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>s0.run(verbose<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a><span class="co"># With connectors -- syphilis increases HIV susceptibility 2.67x (default)</span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>hiv, syph <span class="op">=</span> make_diseases()</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>s1 <span class="op">=</span> sti.Sim(</span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>    diseases<span class="op">=</span>[hiv, syph],</span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>    connectors<span class="op">=</span>sti.hiv_syph(hiv, syph),</span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>    n_agents<span class="op">=</span><span class="dv">5000</span>, start<span class="op">=</span><span class="dv">2000</span>, stop<span class="op">=</span><span class="dv">2020</span>,</span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>s1.run(verbose<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare cumulative HIV infections</span></span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots()</span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>ax.plot(s0.timevec, s0.results.hiv.cum_infections, label<span class="op">=</span><span class="st">'Without connector'</span>)</span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>ax.plot(s1.timevec, s1.results.hiv.cum_infections, label<span class="op">=</span><span class="st">'With hiv_syph connector'</span>)</span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'Year'</span>)</span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'Cumulative HIV infections'</span>)</span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'Effect of syphilis coinfection on HIV acquisition'</span>)</span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>ax.legend()</span>
+<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a>fig</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Initializing sim with 5000 agents
 Initializing sim with 5000 agents</code></pre>
 </div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/opt/hostedtoolcache/Python/3.13.13/x64/lib/python3.13/site-packages/starsim/arrays.py:486: RuntimeWarning: 
+Trying to access non-initialized Arr object; in most cases, Arr objects need to be initialized with a Sim object, but set skip_init=True if this is intentional.
+  ss.warn('Trying to access non-initialized Arr object; in most cases, Arr objects need to be initialized with a Sim object, but set skip_init=True if this is intentional.')</code></pre>
+</div>
 <div class="cell-output cell-output-display" data-execution_count="4">
 <div>
 <figure class="figure">
-<p><img src="tut_cotransmission_files/figure-html/cell-5-output-2.png" class="img-fluid figure-img"></p>
+<p><img src="tut_cotransmission_files/figure-html/cell-5-output-3.png" width="593" height="464" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="tut_cotransmission_files/figure-html/cell-5-output-4.png" width="593" height="464" class="figure-img"></p>
 </figure>
 </div>
 </div>
@@ -852,7 +871,7 @@ Initializing sim with 5000 agents</code></pre>
 </tbody>
 </table>
 <p>All connector parameters can be overridden at creation time, e.g.:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>sti.hiv_ng(hiv, ng, rel_sus_hiv_ng<span class="op">=</span><span class="fl">2.0</span>, rel_trans_hiv_ng<span class="op">=</span><span class="fl">2.0</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>sti.hiv_ng(hiv, ng, rel_sus_hiv_ng<span class="op">=</span><span class="fl">2.0</span>, rel_trans_hiv_ng<span class="op">=</span><span class="fl">2.0</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="exercises" class="level2">
 <h2 class="anchored" data-anchor-id="exercises">Exercises</h2>
@@ -1298,7 +1317,7 @@ Initializing sim with 5000 agents</code></pre>
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.5.5 (2026-05-15).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.5.6 (2026-06-02).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">

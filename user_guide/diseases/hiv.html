@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.37">
+<meta name="generator" content="quarto-1.9.38">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -77,14 +77,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-23bbe8b5e4efc1e257f6d59dce478b08.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-de63f62b328812d8e578a4d74e282472.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-6b6957c917596b414ec0b78690761e87.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-de63f62b328812d8e578a4d74e282472.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-fec5a1fa81bfd162096066a3ebc5bcc8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../../site_libs/bootstrap/bootstrap-dark-aafc68b2255684af78b035618dac2a51.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../../site_libs/bootstrap/bootstrap-fec5a1fa81bfd162096066a3ebc5bcc8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-fd1f6cbdafbf99fa1cd16ea34f28c7d8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-dark-76aae80bb79b6e78359000ef1b30f63f.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../../site_libs/bootstrap/bootstrap-fd1f6cbdafbf99fa1cd16ea34f28c7d8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -618,6 +618,11 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
   <li><a href="#hiv" id="toc-hiv" class="nav-link active" data-scroll-target="#hiv">HIV</a>
   <ul>
   <li><a href="#states-and-transitions" id="toc-states-and-transitions" class="nav-link" data-scroll-target="#states-and-transitions">States and transitions</a></li>
+  <li><a href="#states-and-transitions-with-treatment" id="toc-states-and-transitions-with-treatment" class="nav-link" data-scroll-target="#states-and-transitions-with-treatment">States and transitions with Treatment</a>
+  <ul>
+  <li><a href="#notes-on-art" id="toc-notes-on-art" class="nav-link" data-scroll-target="#notes-on-art">Notes on ART</a></li>
+  <li><a href="#what-is-not-modeled" id="toc-what-is-not-modeled" class="nav-link" data-scroll-target="#what-is-not-modeled">What is not modeled</a></li>
+  </ul></li>
   <li><a href="#parameters" id="toc-parameters" class="nav-link" data-scroll-target="#parameters">Parameters</a>
   <ul>
   <li><a href="#natural-history" id="toc-natural-history" class="nav-link" data-scroll-target="#natural-history">Natural history</a></li>
@@ -691,6 +696,85 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
              │          AIDS death             │
              │       (CD4 reaches 0)           │
              └─────────────────────────────────┘</code></pre>
+</section>
+<section id="states-and-transitions-with-treatment" class="level2">
+<h2 class="anchored" data-anchor-id="states-and-transitions-with-treatment">States and transitions with Treatment</h2>
+<pre><code>                       ┌─────────────────┐
+                       │   Susceptible   │
+                       └────────┬────────┘
+                                │ infection (beta_m2f × rel_beta_f2m)
+                                │ condom use, VMMC reduce transmission here
+                                ▼
+                       ┌─────────────────┐
+                       │      Acute      │  CD4 declines from ~800 → ~500 (linear decline)
+                       │    (~3 mo)      │  rel_trans: 6× baseline
+                       └────────┬────────┘
+                                │                         ╔══════════════════════════╗
+                                │    ┌────────────────────║   ART initiation can     ║
+                                │    │  ART (testing      ║   occur from Acute,      ║
+                                │    │   + diagnosis      ║   Latent, or Falling.    ║
+                                │    │   required)        ║   Nullifies all pending  ║
+                                ▼    │                    ║   stage transitions.     ║
+                       ┌─────────────────┐                ╚══════════════════════════╝     
+                       │     Latent      │
+                       │    (~10 yr)     │
+                       │  CD4 stable     │
+                       │  at ~500        │
+                       │  rel_trans: 1×  │
+                       └────────┬────────┘
+                                │
+              ┌─────────────────┤
+              │  no treatment   │  diagnosis + ART initiation
+              ▼                 ▼
+     ┌─────────────────┐   ┌─────────────────┐
+     │    Falling      │   │    On ART       │  CD4 reconstitutes (logistic)
+     │    (~3 yr)      │──▶│    (~3 yr ×     │  toward cd4_potential ceiling
+     │  CD4: ~500 → 0  │   │  rel_dur_on_art)│  rel_trans: 0.04× baseline
+     │  rel_trans: 8×  │   │                 │  (96% reduction, ramps over 6mo)
+     └────────┬────────┘   └────────┬────────┘
+              │                     │ ART dropout
+              │                     │ (stochastic, dur_on_art ~ LogNormal)
+              │                     ▼
+              │            ┌─────────────────┐
+              │            │    Post-ART     │  CD4 declines linearly → 0
+              │            │                 │  Rate depends on CD4 at dropout
+              │            │                 │  and cd4_potential
+              │            └────────┬────────┘
+              │                     │
+              ▼                     ▼
+     ┌─────────────────────────────────────────┐
+     │                AIDS death               │
+     │   Deterministic: CD4 reaches 0 (ti_zero)│
+     │   Stochastic: p_death(CD4) per timestep │
+     │     CD4 &gt; 350: 0.3%/yr                  │
+     │     200–350:   0.5%/yr                  │
+     │     50–200:    1.0%/yr                  │
+     │     0–50:      5.0%/yr                  │
+     │     ~0:       30.0%/yr                  │
+     │   (untreated agents only)               │
+     └─────────────────────────────────────────┘</code></pre>
+<section id="notes-on-art" class="level3">
+<h3 class="anchored" data-anchor-id="notes-on-art">Notes on ART</h3>
+<ul>
+<li>ART can be initiated from <strong>any</strong> infected stage (Acute, Latent, or Falling)</li>
+<li>On initiation: all pending stage transitions (<code>ti_latent</code>, <code>ti_falling</code>, <code>ti_zero</code>) are cleared for future events</li>
+<li>ART duration is drawn per-agent: <code>dur_on_art ~ LogNormal(3yr, 1.5yr) × rel_dur_on_art</code>
+<ul>
+<li><code>rel_dur_on_art</code> is a calibrated scalar (range 1–20) that stretches mean duration</li>
+</ul></li>
+<li>After dropout, <code>ti_zero</code> is redrawn based on CD4 at dropout and <code>cd4_potential</code></li>
+<li><strong>No age or sex dependence</strong> anywhere in natural history, mortality, or ART effects</li>
+</ul>
+</section>
+<section id="what-is-not-modeled" class="level3">
+<h3 class="anchored" data-anchor-id="what-is-not-modeled">What is not modeled</h3>
+<ul>
+<li>Viral load / viral suppression (ART = fully suppressed, binary)</li>
+<li>Age-varying progression rates or mortality</li>
+<li>Sex-varying natural history</li>
+<li>Re-infection or superinfection</li>
+</ul>
+</section>
 </section>
 <section id="parameters" class="level2">
 <h2 class="anchored" data-anchor-id="parameters">Parameters</h2>
@@ -1011,13 +1095,13 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </table>
 <p>These satisfy: <code>new_infections_prenatal + new_infections_postnatal == new_infections_mtct</code>.</p>
 <p><strong>Accessing MTCT results:</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>sim.run()</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Total MTCT infections over the simulation</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>total_mtct <span class="op">=</span> sim.results.hiv.new_infections_mtct.<span class="bu">sum</span>()</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Time series</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>plt.plot(sim.t.yearvec, sim.results.hiv.new_infections_mtct)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>sim.run()</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Total MTCT infections over the simulation</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>total_mtct <span class="op">=</span> sim.results.hiv.new_infections_mtct.<span class="bu">sum</span>()</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Time series</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>plt.plot(sim.t.yearvec, sim.results.hiv.new_infections_mtct)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 </section>
 <section id="pmtct-prevention-of-mother-to-child-transmission" class="level2">
@@ -1026,17 +1110,17 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="anc-testing" class="level3">
 <h3 class="anchored" data-anchor-id="anc-testing">1. ANC testing</h3>
 <p>ANC (antenatal care) testing identifies HIV-positive pregnant women so they can start ART. This is implemented as an <code>HIVTest</code> with pregnancy-based eligibility, the same pattern used for FSW-targeted testing:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> stisim <span class="im">as</span> sti</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Test undiagnosed pregnant women in first trimester</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>anc_test <span class="op">=</span> sti.HIVTest(</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    test_prob_data<span class="op">=</span><span class="fl">0.9</span>,</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    dt_scale<span class="op">=</span><span class="va">False</span>,</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span><span class="st">'anc_test'</span>,</span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    eligibility<span class="op">=</span><span class="kw">lambda</span> sim: sim.demographics.pregnancy.tri1_uids[</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>        <span class="op">~</span>sim.diseases.hiv.diagnosed[sim.demographics.pregnancy.tri1_uids]</span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    ],</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> stisim <span class="im">as</span> sti</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Test undiagnosed pregnant women in first trimester</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>anc_test <span class="op">=</span> sti.HIVTest(</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    test_prob_data<span class="op">=</span><span class="fl">0.9</span>,</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    dt_scale<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span><span class="st">'anc_test'</span>,</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    eligibility<span class="op">=</span><span class="kw">lambda</span> sim: sim.demographics.pregnancy.tri1_uids[</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>        <span class="op">~</span>sim.diseases.hiv.diagnosed[sim.demographics.pregnancy.tri1_uids]</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    ],</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>ANC testing is not included in <code>hivsim.Sim</code> defaults (which use a single general-population <code>HIVTest</code>). Add it explicitly when modeling targeted testing pathways. The <code>p_diagnosed_pregnant</code> result tracks what proportion of HIV+ pregnant women have been diagnosed, which measures the effectiveness of the ANC testing pathway.</p>
 </section>
 <section id="art-retention-during-pregnancy" class="level3">
@@ -1054,13 +1138,13 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </section>
 <section id="configuring-pmtct" class="level3">
 <h3 class="anchored" data-anchor-id="configuring-pmtct">Configuring PMTCT</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> stisim <span class="im">as</span> sti</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Custom PMTCT efficacy</span></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>art <span class="op">=</span> sti.ART(pmtct_efficacy<span class="op">=</span><span class="fl">0.98</span>)</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Complete protection (previous default behavior)</span></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>art <span class="op">=</span> sti.ART(pmtct_efficacy<span class="op">=</span><span class="fl">1.0</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> stisim <span class="im">as</span> sti</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Custom PMTCT efficacy</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>art <span class="op">=</span> sti.ART(pmtct_efficacy<span class="op">=</span><span class="fl">0.98</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Complete protection (previous default behavior)</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>art <span class="op">=</span> sti.ART(pmtct_efficacy<span class="op">=</span><span class="fl">1.0</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 </section>
 <section id="hivsim.sim-parameter-routing" class="level2">
@@ -1103,19 +1187,19 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </tbody>
 </table>
 <p>In most cases you only need flat kwargs:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> hivsim</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Override HIV pars</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> hivsim.Sim(beta_m2f<span class="op">=</span><span class="fl">0.03</span>, rel_trans_acute<span class="op">=</span><span class="dv">10</span>)</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Override network pars</span></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> hivsim.Sim(debut_f<span class="op">=</span><span class="dv">18</span>, fsw_shares<span class="op">=</span><span class="fl">0.03</span>)</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Mix</span></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> hivsim.Sim(beta_m2f<span class="op">=</span><span class="fl">0.03</span>, n_agents<span class="op">=</span><span class="dv">5000</span>, start<span class="op">=</span><span class="dv">1990</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> hivsim</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Override HIV pars</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> hivsim.Sim(beta_m2f<span class="op">=</span><span class="fl">0.03</span>, rel_trans_acute<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Override network pars</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> hivsim.Sim(debut_f<span class="op">=</span><span class="dv">18</span>, fsw_shares<span class="op">=</span><span class="fl">0.03</span>)</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Mix</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> hivsim.Sim(beta_m2f<span class="op">=</span><span class="fl">0.03</span>, n_agents<span class="op">=</span><span class="dv">5000</span>, start<span class="op">=</span><span class="dv">1990</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>The same patterns work via <code>hivsim.demo</code>:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> hivsim.demo(<span class="st">'simple'</span>, run<span class="op">=</span><span class="va">False</span>, beta_m2f<span class="op">=</span><span class="fl">0.03</span>)</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> hivsim.demo(<span class="st">'zimbabwe'</span>, run<span class="op">=</span><span class="va">False</span>, hiv<span class="op">=</span><span class="bu">dict</span>(rel_trans_acute<span class="op">=</span><span class="dv">10</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> hivsim.demo(<span class="st">'simple'</span>, run<span class="op">=</span><span class="va">False</span>, beta_m2f<span class="op">=</span><span class="fl">0.03</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> hivsim.demo(<span class="st">'zimbabwe'</span>, run<span class="op">=</span><span class="va">False</span>, hiv<span class="op">=</span><span class="bu">dict</span>(rel_trans_acute<span class="op">=</span><span class="dv">10</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p><strong>Rule</strong>: pass a module instance (e.g.&nbsp;<code>diseases=sti.HIV(...)</code>) <strong>or</strong> pars for the default — not both. <a href="../../api/sim.html#stisim.sim.Sim" title="0"><code>sti.Sim</code></a> raises an error if you do both for the same module slot.</p>
 
 
@@ -1555,7 +1639,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.5.5 (2026-05-15).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.5.6 (2026-06-02).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">
