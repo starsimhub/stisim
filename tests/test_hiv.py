@@ -626,6 +626,7 @@ def test_vmmc_targeting():
 #     tis_falling = sim.results['birthtracker']['hiv.tis_falling']
 
 
+@sc.timer()
 def test_par_ranges(n_agents=1000):
     """
     Test that HIV parameters affect dynamics in the expected direction.
@@ -665,6 +666,7 @@ def test_par_ranges(n_agents=1000):
     return
 
 
+@sc.timer()
 def test_rel_sus_age(n_agents=3000):
     """
     Higher rel_sus_age multiplier for young women should produce more infections
@@ -693,6 +695,7 @@ def test_rel_sus_age(n_agents=3000):
     return sim_age, sim_uni
 
 
+@sc.timer()
 def test_prevalence_by_sex(n_agents=3000):
     """
     Under default parameters, female HIV prevalence should exceed male prevalence.
@@ -712,6 +715,7 @@ def test_prevalence_by_sex(n_agents=3000):
     return sim
 
 
+@sc.timer()
 def test_mtct_rates_in_range():
     """
     Verify default HIV parameters imply MTCT rates within published ranges.
@@ -780,6 +784,7 @@ if __name__ == '__main__':
     test_vmmc_targeting()
     test_cd4_falls_after_ART_dropout()
     test_rel_trans_rises_after_ART_dropout()
+    test_rel_sus_age()
 
     sc.heading("Total:")
     timer.toc()

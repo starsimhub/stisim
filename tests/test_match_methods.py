@@ -1,10 +1,13 @@
 """Tests for the match_method API on MFNetwork."""
 import hashlib
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
+import sciris as sc
 import starsim as ss
 import stisim as sti
-from stisim.networks import matchers
+
+from stisim.networks.matchers import MATCHERS
 
 
 def _make_sim(match_method=None, n_agents=2_000, seed=0):
@@ -24,6 +27,7 @@ def _fingerprint(p1, p2):
     return hashlib.sha256(raw).hexdigest()
 
 
+@sc.timer()
 def test_sort_bisect_dispatch_is_reproducible():
     """sort_bisect dispatch is deterministic: same seed → same fingerprint."""
     sim_a = _make_sim(match_method='sort_bisect', seed=42)
@@ -39,7 +43,8 @@ def test_sort_bisect_dispatch_is_reproducible():
     assert _fingerprint(p1_a, p2_a) == _fingerprint(p1_b, p2_b)
 
 
-@pytest.mark.parametrize('method', sorted(matchers.MATCHERS.keys()))
+@sc.timer()
+@pytest.mark.parametrize('method', sorted(MATCHERS.keys()))
 def test_each_matcher_produces_valid_pairs(method):
     """Smoke test: each registered matcher runs and produces valid (p1, p2)."""
     seed = abs(hash(method)) % 1000
@@ -56,6 +61,7 @@ def test_each_matcher_produces_valid_pairs(method):
         assert sim.people.female[p2].all(), 'p2 must be all female'
 
 
+@sc.timer()
 def test_callable_match_method_is_invoked():
     """Passing a callable as match_method bypasses the registry."""
     sentinel = {'called': False}
@@ -74,6 +80,7 @@ def test_callable_match_method_is_invoked():
     assert sentinel['called'], 'custom matcher must be called'
 
 
+@sc.timer()
 def test_unknown_string_raises_keyerror():
     """Unknown method strings raise KeyError."""
     sim = _make_sim(match_method='no_such_method', n_agents=200, seed=0)
@@ -82,7 +89,26 @@ def test_unknown_string_raises_keyerror():
         net.match_pairs()
 
 
-def test_default_match_method_is_kdtree_nn():
-    """A bare MFNetwork() uses kdtree_nn by default."""
+@sc.timer()
+def test_default_match_method_is_closest_age_tapered_seeking():
+    """A bare MFNetwork() uses closest_age_tapered_seeking by default."""
     net = sti.MFNetwork()
-    assert net.pars.match_method == 'kdtree_nn'
+    assert net.pars.match_method == 'closest_age_tapered_seeking'
+
+if __name__ == '__main__':
+    do_plot = True
+    sc.options(interactive=do_plot)
+    timer = sc.timer()
+
+    test_sort_bisect_dispatch_is_reproducible()
+    for method in sorted(MATCHERS.keys()):
+        test_each_matcher_produces_valid_pairs(method=method)
+    test_callable_match_method_is_invoked()
+    test_unknown_string_raises_keyerror()
+    test_default_match_method_is_closest_age_tapered_seeking()
+
+    sc.heading("Total:")
+    timer.toc()
+
+    if do_plot:
+        plt.show()

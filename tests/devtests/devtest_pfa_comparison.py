@@ -36,6 +36,7 @@ VARIANTS = [
     ('GreedyOldEnough',  'greedy_old_enough'),
     ('KDTreeNN',         'kdtree_nn'),
     ('BandMatch',        'band_match'),
+    ('ClosestAgeTaperedSeeking', 'closest_age_tapered_seeking')
 ]
 
 LSA_MAX_N = 5_000

@@ -95,8 +95,13 @@ class MFPars(ss.Pars):
         self.age_diffs = ss.normal()
         self.dur_dist = ss.lognorm_ex()
 
+        # relationship search taper for older women -- used only for match method closest_age_tapered_seeking
+        self.p_actually_looking = ss.bernoulli(p=0)  # Placeholder to be replaced by agent-based calculation per-timestep
+        self._f_partnership_taper_offset = 0  # Placeholder: mean_age_gap_target + 3*sd, maximum of all age groupings. Set in init_post()
+        self.f_partnership_taper_cut = 55  # max age, over which females no longer search for new relationships
+
         # Pair-formation algorithm: string key in matchers.MATCHERS, or a callable.
-        self.match_method = 'kdtree_nn'
+        self.match_method = 'closest_age_tapered_seeking'
 
         self.update(kwargs)
         return
@@ -126,6 +131,17 @@ class MFNetwork(BaseNetwork):
         self.edge_types = {'stable': 0, 'casual': 1, 'onetime': 2}
         self.define_states(*_mf_states())
         self.relationship_durs = defaultdict(list)
+        return
+
+    def init_post(self):
+        """
+        This is intended to auto-set the female partnership looking rate for pairing based on input age gap data.
+        It is needed if using the closest_age_tapered_seeking matching algorithm (otherwise ignored).
+        """
+        super().init_post()
+        uids_born = (self.sim.people.age > 0).uids
+        loc, scale = self.get_age_risk_pars(uids_born, self.pars.age_diff_pars)
+        self.pars._f_partnership_taper_offset = max(loc + 3 * scale)  # mean age + 3*sd
         return
 
     def get_age_risk_pars(self, uids, par):

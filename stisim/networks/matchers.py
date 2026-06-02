@@ -24,7 +24,7 @@ from .base import NoPartnersFound
 
 __all__ = ['MATCHERS', 'BAND_MATCH_WIDTH',
            'sort_bisect', 'sort_pair', 'kdtree_nn',
-           'desired_age_bucket', 'greedy_old_enough', 'band_match', 'lsa']
+           'desired_age_bucket', 'greedy_old_enough', 'band_match', 'lsa', 'closest_age_tapered_seeking']
 
 
 BAND_MATCH_WIDTH = 5  # Year-band width for the ``band_match`` matcher.
@@ -295,6 +295,126 @@ def lsa(net):
     return m_eligible.uids[ind_m], f_looking[ind_f]
 
 
+def _searchsorted_loop_closest(sorted_m_ages, sorted_desired, max_deviation=1):
+    """
+    max_deviation is the maximum gap between desired and selected male age to count as a successful match. Higher
+    values allow more matches at the expense of reduced adherence to individual requested age gaps (and vice versa
+    for lower values).
+    """
+    n_males = len(sorted_m_ages)
+    n_females = len(sorted_desired)
+    if n_females == 0 or n_males == 0:
+        return np.array([], dtype=int), np.array([], dtype=int)
+    lower_bounds = np.searchsorted(sorted_m_ages, sorted_desired, side='left')
+    j = lower_bounds[0]
+    last_j_selected = j - 1
+    matched_f, matched_m = [], []
+    for i in range(n_females):
+        target_age = sorted_desired[i]
+        j = max(j, lower_bounds[i])
+        if j >= n_males:
+            break
+
+        # pick closest male as current index permits; either index j or j-1
+        if j > last_j_selected:
+            # pick closest male, j or j-1
+            selected_j = j if abs(target_age - sorted_m_ages[j]) < abs(target_age - sorted_m_ages[j - 1]) else j - 1
+        else:
+            # take the next male, j (cannot pick j-1)
+            selected_j = j
+
+        if (max_deviation is not None and abs(target_age - sorted_m_ages[selected_j]) > max_deviation):
+            # Closest available male is too far from this female's target; skip her.
+            # later (higher-target) females may still match, so keep trying
+            continue
+
+        matched_m.append(selected_j)
+        last_j_selected = selected_j
+        j = selected_j + 1
+        matched_f.append(i)
+
+    return np.array(matched_m, dtype=int), np.array(matched_f, dtype=int)
+
+
+def closest_age_tapered_seeking(net):
+    """
+    sort females by desired age and males by actual age, then for each female assign the first male whose age >= her
+    desired age who has not been selected already in this selection process. Any matches proposed by algorithm that
+    exceed the maximum specified: target_age_gap + 3*stddev ... will be trimmed as unrealistic. This algorithm also
+    employs an age-based female-seeking-taper that linearly reduces the chances of women over
+    age: (pars.f_partnership_taper_cut - pars._f_partnership_taper_offset) from searching for partners
+    (reaches 0% chance at pars.f_partnership_taper_cut). This forces better alignment in age gap of pairings when
+    older men looking for additional relationships become scarce.
+
+    This algorithm still contains a small downward bias of female-male relationship age gaps of < 1 year. The
+    residual is currently understood to be largely due demographic and age-seeking structural issues, largely
+    driven by the matching of young men (who are chosen by women stochastically selecting fromm the low end of their
+    preference distribution, and no counter-weighting high-end selecting females (because of debut age limits).
+
+    Note also that, in a calibration setting, age_diff_pars is not orthogonal to stable_dur_pars (concurrency), as
+    concurrency factors influence the available pool of females and males looking for partners.
+    """
+    ppl = net.sim.people
+    active = net.over_debut
+    underpartnered = net.partners < net.concurrency
+    f_eligible = active & ppl.female & underpartnered
+    f_eligible_uids = f_eligible.uids
+
+    # Now we throttle the likelihood of older women looking for partners to reduce the downward bias in
+    # F-M age gaps due to a lack of available males for older females to partner with (especially when they draw
+    # higher gaps, below, than their average target gap)
+    actual_looking_chance = ((net.pars.f_partnership_taper_cut - ppl.age[f_eligible]) / net.pars._f_partnership_taper_offset)  # taper in looking chance for older women
+    actual_looking_chance = np.clip(actual_looking_chance, 0, 1)**1.5  # arbitrary, but more forceful than linear tapering
+    net.pars.p_actually_looking.set(p=actual_looking_chance)
+    actually_looking = net.pars.p_actually_looking.rvs()
+    f_eligible_uids = f_eligible_uids[actually_looking]
+
+    m_eligible = active & ppl.male & underpartnered
+    f_looking = net.pars.p_pair_form.filter(f_eligible_uids)
+
+
+    if len(f_looking) == 0 or m_eligible.count() == 0:
+        raise NoPartnersFound()
+
+    loc, scale = net.get_age_risk_pars(f_looking, net.pars.age_diff_pars)
+    net.pars.age_diffs.set(loc=loc, scale=scale)
+
+    # Extreme age-gap relationships beyond this limit will be trimmed after matching
+    max_allowed_age_delta = np.max(loc + 3*scale)
+
+    # females choose their target male age + identifying eligible male ages
+    age_gaps = net.pars.age_diffs.rvs(f_looking)
+    desired_ages = ppl.age[f_looking] + age_gaps
+    m_ages = ppl.age[m_eligible]
+
+    # indicies of eligible male/females that would sort them
+    ind_m = np.argsort(m_ages, stable=True)
+    ind_f = np.argsort(desired_ages, stable=True)
+    # sorting ages for matching by these indicies
+    sorted_m_ages = m_ages[ind_m]
+    sorted_desired = desired_ages[ind_f]
+
+    # Returns indicies of sorted_m_ages and sorted_desired that are matching.
+    # max_deviation skips females whose closest available male is way off their target_age. In other words, it is
+    # how tightly a female's choice is honored, and it may be more/less important at smaller/larger populations
+    # being matched.
+    matched_m, matched_f = _searchsorted_loop_closest(sorted_m_ages, sorted_desired, max_deviation=1)
+
+    m_uids1 = m_eligible.uids[ind_m[matched_m]]
+    f_uids1 = f_looking[ind_f[matched_f]]
+
+    # remove agents where age gap exceeds max_allowed_age_delta (current: approx target_gap + 3*stddev
+    indicies = (abs((ppl.age[m_uids1] - ppl.age[f_uids1])) <= max_allowed_age_delta)
+    m_uids = m_uids1[indicies]
+    f_uids = f_uids1[indicies]
+
+    if len(matched_f) == 0:
+        raise NoPartnersFound()
+
+    # backing out the matched agent uids for return
+    return (m_uids, f_uids)
+
+
 MATCHERS = {
     'kdtree_nn':          kdtree_nn,
     'sort_bisect':        sort_bisect,
@@ -303,4 +423,5 @@ MATCHERS = {
     'greedy_old_enough':  greedy_old_enough,
     'band_match':         band_match,
     'lsa':                lsa,
+    'closest_age_tapered_seeking': closest_age_tapered_seeking
 }
