@@ -22,7 +22,7 @@ from pathlib import Path
 import pytest
 
 
-DOCS_DIR = Path(__file__).resolve().parent.parent / 'docs'
+DOCS_DIR = Path(__file__).resolve().parent.parent.parent / 'docs'
 
 
 def _quarto_available():

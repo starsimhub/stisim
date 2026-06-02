@@ -2,7 +2,22 @@
 
 All notable changes to the codebase are documented in this file.
 
-## Version 1.5.6 (TBC)
+## Version 1.5.6 (2026-06-02)
+
+### Networks
+- **Breaking — default behaviour change.** Split `stisim/networks.py` into a `stisim/networks/` sub-package (`base.py`, `mf.py`, `fsw.py`, `msm.py`, `layered_networks.py`, `matchers.py`). Add a `match_method` string parameter on `MFNetwork`, dispatched through a `MATCHERS` registry of pair-formation algorithms (accepts string or callable). The default match method changes from `sort_bisect` to `kdtree_nn`: the previous default collapsed the M-F age gap to ~0 (didn't honour `age_diff_pars`); `kdtree_nn` does. See [tests/devtests/PFA_RESULTS.md](tests/devtests/PFA_RESULTS.md). Downstream calibrated models will need recalibration: HIV prevalence shifts ~18% in Zimbabwe and ~59% in Eswatini at default settings. Removes `stisim/pfa_variants.py` and the seven `MFNetwork_*` subclasses. (#472)
+- New `MFNetwork.match_pairs()` algorithm reduces the negative/growing bias in modelled age gap at relationship formation. Realised mean age gap is now within <5% of target (slight residual downward bias) with the target stddev preserved. Optimised via batch binary search on male ages. (#477)
+- Add `sti.MSMScaleFreeNetwork`: a preferential-attachment MSM sexual network with continuous-time formation/Markovian deletion (Whittles-2019 S2 kernel). Restricted to post-debut males in this first port; subclass hooks (`_get_pool`, `_mix_node_arrays`, `_mix_weights_row`) let you plug in age-/risk-/λ-weighted variants. Documented as not branching-stable under starsim CRN (global weighted-categorical sampling over a pair catalog). Ported from `starsim_x/BespokeNet`, contributed by Stephen Attwood (Oxford). (#488)
+
+### Interventions
+- Add `sti.PregnancyRiskReduction`: during pregnancy, optionally clears FSW status (`fsw_redux`), drops high-risk-group membership to `default_risk_group` (`high_risk_redux`), and/or zeros concurrency (`concurrency_redux`). Ported from `syph_dx_zim`. (#482, #484)
+
+### Documentation
+- New ART state diagram in the docs illustrating how ART intersects the HIV mortality cascade. (#471)
+
+### Tests
+- Regenerate `tests/baseline.yaml` for the new default match method and match_pairs algorithm.
+- Add `tests/update_baseline` script (mirroring hpvsim's pattern) to regenerate both `baseline.yaml` and `benchmark.yaml` in one command.
 
 ## Version 1.5.5 (2026-05-15)
 
