@@ -47,3 +47,49 @@ def test_fast_sampler_handles_negative_weights():
     # Only indices 1 and 3 should ever be drawn
     drawn = {sampler.sample_index(rng) for _ in range(200)}
     assert drawn <= {1, 3}, f'drew clipped-out indices: {drawn}'
+
+
+# %% MSMScaleFreeNetwork tests
+
+
+def _make_sim(net=None, n_agents=1_000, dur=2, rand_seed=1):
+    if net is None:
+        net = sti.MSMScaleFreeNetwork()
+    return sti.Sim(
+        diseases=[sti.HIV(init_prev=0.05, beta_m2f=0.05)],
+        networks=[net, ss.MaternalNet()],
+        demographics=[ss.Pregnancy(), ss.Deaths()],
+        n_agents=n_agents, dur=dur, start=2010, verbose=-1, rand_seed=rand_seed,
+    )
+
+
+@sc.timer()
+def test_class_instantiates_with_defaults():
+    """Bare instantiation: defaults are set; no sim required."""
+    net = sti.MSMScaleFreeNetwork()
+    assert net.pars.target_mean_degree == 2.0
+    assert float(net.pars.phi) == 1.0
+    # ss.dur is stored as-is; converted to steps at init_pre.
+    assert net._target_mean_dur_steps is None  # not yet converted
+
+
+@sc.timer()
+def test_init_pre_converts_durs_to_steps():
+    """After sim init, dur params are converted to integer step counts."""
+    net = sti.MSMScaleFreeNetwork()
+    sim = _make_sim(net=net)
+    sim.init()
+    # sti.Sim deep-copies modules by default; pull the live network from the sim.
+    sim_net = sim.networks[0]
+    # default ss.years(2) and a default dt of 1/12 yr -> 24 steps
+    assert sim_net._target_mean_dur_steps == int(round(2.0 / float(sim_net.t.dt)))
+    assert sim_net._max_edge_dur_steps == int(round(10.0 / float(sim_net.t.dt)))
+
+
+@sc.timer()
+def test_init_pre_raises_when_max_below_target():
+    """``max_edge_dur < target_mean_dur`` is rejected at init."""
+    net = sti.MSMScaleFreeNetwork(target_mean_dur=ss.years(5), max_edge_dur=ss.years(2))
+    sim = _make_sim(net=net)
+    with pytest.raises(ValueError, match='max_edge_dur'):
+        sim.init()
