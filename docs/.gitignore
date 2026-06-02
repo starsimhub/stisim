@@ -11,3 +11,5 @@ api/
 objects.inv
 objects.json
 /.quarto/
+
+**/*.quarto_ipynb

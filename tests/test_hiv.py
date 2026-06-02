@@ -70,7 +70,12 @@ def test_time_from_infection_to_aids_untreated():
     sc.heading("Regression: Ensuring mean time from infection to AIDS (to falling state) is reasonable.")
 
     result_tolerance = 0.03  # fraction of the expected value
-    sim = build_testing_sim(analyzers=[TimeToAIDSTracker()], n_agents=500, duration=5)
+    # 500 agents × 5 years yields only ~25–100 progressed-to-AIDS samples and a means
+    # spread of ~12% across seeds — far too noisy for 3% tolerance. 4000 × 15 yields
+    # ~900 samples and means within ~0.7% across seeds; the fixed rand_seed makes the
+    # test deterministic.
+    sim = build_testing_sim(analyzers=[TimeToAIDSTracker()], n_agents=4000, duration=15)
+    sim.pars.rand_seed = 0
     sim.run()
     results = sim.results
     times_to_aids = list(chain(*results.timetoaidstracker['hiv.ti_to_aids']))
@@ -621,6 +626,7 @@ def test_vmmc_targeting():
 #     tis_falling = sim.results['birthtracker']['hiv.tis_falling']
 
 
+@sc.timer()
 def test_par_ranges(n_agents=1000):
     """
     Test that HIV parameters affect dynamics in the expected direction.
@@ -660,6 +666,7 @@ def test_par_ranges(n_agents=1000):
     return
 
 
+@sc.timer()
 def test_rel_sus_age(n_agents=3000):
     """
     Higher rel_sus_age multiplier for young women should produce more infections
@@ -688,6 +695,7 @@ def test_rel_sus_age(n_agents=3000):
     return sim_age, sim_uni
 
 
+@sc.timer()
 def test_prevalence_by_sex(n_agents=3000):
     """
     Under default parameters, female HIV prevalence should exceed male prevalence.
@@ -707,6 +715,7 @@ def test_prevalence_by_sex(n_agents=3000):
     return sim
 
 
+@sc.timer()
 def test_mtct_rates_in_range():
     """
     Verify default HIV parameters imply MTCT rates within published ranges.
@@ -775,6 +784,7 @@ if __name__ == '__main__':
     test_vmmc_targeting()
     test_cd4_falls_after_ART_dropout()
     test_rel_trans_rises_after_ART_dropout()
+    test_rel_sus_age()
 
     sc.heading("Total:")
     timer.toc()

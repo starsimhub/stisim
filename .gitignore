@@ -123,6 +123,9 @@ flake8_junit.xml
 .vscode/
 *.code-workspace
 *.png
+!docs/assets/*.png
+!docs/examples/*.png
 *.obj
 tutorial_output/
 starsim_calibration.db
+docs/superpowers/
