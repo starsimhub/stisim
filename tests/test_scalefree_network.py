@@ -1,55 +1,9 @@
-"""Tests for ``sti.MSMScaleFreeNetwork`` and its FastSampler helper."""
+"""Tests for ``sti.MSMScaleFreeNetwork``."""
 import numpy as np
 import pytest
 import sciris as sc
 import starsim as ss
 import stisim as sti
-from stisim.networks._fast_sampler import FastSampler
-
-
-# %% FastSampler unit tests
-
-def test_fast_sampler_uniform_recovery():
-    """Uniform weights → uniform samples (within tolerance)."""
-    rng = np.random.default_rng(0)
-    sampler = FastSampler(np.ones(4))
-    n_draws = 10_000
-    counts = np.bincount([sampler.sample_index(rng) for _ in range(n_draws)], minlength=4)
-    rel_freq = counts / n_draws
-    assert np.all(np.abs(rel_freq - 0.25) < 0.02), f'non-uniform rel_freq: {rel_freq}'
-
-
-def test_fast_sampler_weighted_recovery():
-    """Weight ratio is preserved in the empirical sample."""
-    rng = np.random.default_rng(0)
-    sampler = FastSampler(np.array([1.0, 3.0]))
-    n_draws = 10_000
-    counts = np.bincount([sampler.sample_index(rng) for _ in range(n_draws)], minlength=2)
-    rel_freq = counts / n_draws
-    # Expected: index 0 -> 0.25, index 1 -> 0.75
-    assert abs(rel_freq[0] - 0.25) < 0.02
-    assert abs(rel_freq[1] - 0.75) < 0.02
-
-
-def test_fast_sampler_zero_mass_raises():
-    """Empty or all-zero input raises on sample."""
-    rng = np.random.default_rng(0)
-    for w in [np.array([]), np.zeros(5)]:
-        sampler = FastSampler(w)
-        with pytest.raises(RuntimeError, match='no mass'):
-            sampler.sample_index(rng)
-
-
-def test_fast_sampler_handles_negative_weights():
-    """Negative weights are clipped to zero (not raise)."""
-    rng = np.random.default_rng(0)
-    sampler = FastSampler(np.array([-1.0, 2.0, -3.0, 4.0]))
-    # Only indices 1 and 3 should ever be drawn
-    drawn = {sampler.sample_index(rng) for _ in range(200)}
-    assert drawn <= {1, 3}, f'drew clipped-out indices: {drawn}'
-
-
-# %% MSMScaleFreeNetwork tests
 
 
 def _make_sim(net=None, n_agents=1_000, dur=2, rand_seed=1):
@@ -69,7 +23,6 @@ def test_class_instantiates_with_defaults():
     net = sti.MSMScaleFreeNetwork()
     assert net.pars.target_mean_degree == 2.0
     assert float(net.pars.phi) == 1.0
-    # ss.dur is stored as-is; converted to steps at init_pre.
     assert net._target_mean_dur_steps is None  # not yet converted
 
 
@@ -79,9 +32,7 @@ def test_init_pre_converts_durs_to_steps():
     net = sti.MSMScaleFreeNetwork()
     sim = _make_sim(net=net)
     sim.init()
-    # sti.Sim deep-copies modules by default; pull the live network from the sim.
     sim_net = sim.networks[0]
-    # default ss.years(2) and a default dt of 1/12 yr -> 24 steps
     assert sim_net._target_mean_dur_steps == int(round(2.0 / float(sim_net.t.dt)))
     assert sim_net._max_edge_dur_steps == int(round(10.0 / float(sim_net.t.dt)))
 
@@ -102,8 +53,7 @@ def test_get_pool_filters_to_post_debut_males():
     sim = _make_sim(net=net)
     sim.init()
     sim_net = sim.networks[0]
-    pool = sim_net._get_pool()
-    pool_uids = pool.uids
+    pool_uids = sim_net._get_pool().uids
     assert len(pool_uids) > 0, 'pool is empty — fixture must produce post-debut males'
     assert sim.people.male[pool_uids].all(), 'pool contains females'
     debut_ok = sim.people.age[pool_uids] >= sim_net.debut[pool_uids]
@@ -173,8 +123,35 @@ def test_build_kernel_degenerate_pool_returns_zero():
     sim = _make_sim(net=net, n_agents=100)
     sim.init()
     sim_net = sim.networks[0]
-    # Override pool to be empty for this test
     sim_net._get_pool = lambda: sim.people.alive & ~sim.people.alive
     n = sim_net._build_kernel()
     assert n == 0
     assert sim_net._kernel_pairs_i.size == 0
+
+
+@sc.timer()
+def test_sample_pair_index_in_range_and_weighted():
+    """``_sample_pair_index`` returns valid indices weighted by sel_w."""
+    net = sti.MSMScaleFreeNetwork()
+    sim = _make_sim(net=net, n_agents=300)
+    sim.init()
+    sim_net = sim.networks[0]
+    sim_net._build_kernel()
+    m = sim_net._kernel_sel_w.size
+    assert m > 0, 'fixture must produce a non-empty selection cdf'
+    rng = np.random.default_rng(0)
+    draws = np.array([sim_net._sample_pair_index(rng) for _ in range(500)])
+    assert (draws >= 0).all() and (draws < m).all()
+
+
+@sc.timer()
+def test_sample_pair_index_returns_neg_on_empty_kernel():
+    """Empty kernel → sentinel -1 from ``_sample_pair_index``."""
+    net = sti.MSMScaleFreeNetwork()
+    sim = _make_sim(net=net, n_agents=100)
+    sim.init()
+    sim_net = sim.networks[0]
+    sim_net._get_pool = lambda: sim.people.alive & ~sim.people.alive
+    sim_net._build_kernel()
+    rng = np.random.default_rng(0)
+    assert sim_net._sample_pair_index(rng) == -1
