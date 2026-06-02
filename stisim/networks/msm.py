@@ -83,6 +83,10 @@ class MSMScaleFreeNetwork(BaseNetwork):
     """Preferential-attachment MSM sexual network with continuous-time
     formation and Markovian deletion (Whittles-2019 S2 kernel).
 
+    Contributed by Stephen Attwood (Postdoctoral Researcher, Department of
+    Biology, University of Oxford), June 2026. Originally prototyped as
+    ``BespokeNet`` in the ``starsim_x`` repository.
+
     Eligible agents are post-debut males. Edges form via a rate kernel
     proportional to ``g(λ_i) g(λ_j) × pair_weight``, where the default
     pair weight is a degree-based multiplier (rich-get-richer). Edges are
