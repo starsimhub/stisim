@@ -9,7 +9,7 @@ use ``stisim.networks.matchers`` (see Commit B).
 from .base import NoPartnersFound, BasePars, NetworkPars, BaseNetwork
 from .mf import MFPars, MFNetwork
 from .fsw import SWPars, SWNetwork
-from .msm import AgeMatchedMSM, AgeApproxMSM
+from .msm import AgeMatchedMSM, AgeApproxMSM, MSMScaleFreeNetwork
 from .layered_networks import StructuredSexual, PriorPartners
 from . import matchers
 from .matchers import MATCHERS
@@ -18,7 +18,7 @@ __all__ = [
     'NoPartnersFound', 'BasePars', 'NetworkPars', 'BaseNetwork',
     'MFPars', 'MFNetwork',
     'SWPars', 'SWNetwork',
-    'AgeMatchedMSM', 'AgeApproxMSM',
+    'AgeMatchedMSM', 'AgeApproxMSM', 'MSMScaleFreeNetwork',
     'StructuredSexual', 'PriorPartners',
     'MATCHERS',
 ]
