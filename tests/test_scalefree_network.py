@@ -136,3 +136,45 @@ def test_mix_weights_row_returns_correct_length():
         w = sim_net._mix_weights_row(i, arrays)
         assert w.shape == (n - 1 - i,), f'i={i}: got {w.shape}, expected ({n - 1 - i},)'
         assert np.all(w >= 0.0), 'mix weights must be non-negative'
+
+
+@sc.timer()
+def test_build_kernel_populates_artefacts():
+    """``_build_kernel`` populates all the caches after init."""
+    net = sti.MSMScaleFreeNetwork()
+    sim = _make_sim(net=net, n_agents=300)
+    sim.init()
+    sim_net = sim.networks[0]
+    n = sim_net._build_kernel()
+    assert n >= 2, f'fixture must produce a non-degenerate pool (got n={n})'
+    assert sim_net._kernel_pairs_i.size == sim_net._kernel_pairs_j.size
+    assert sim_net._kernel_pairs_i.size == sim_net._kernel_A_w.size
+    assert sim_net._kernel_pairs_i.size == sim_net._kernel_sel_w.size
+    assert sim_net._kernel_hat_Ra > 0
+    assert 0 < sim_net._kernel_q0 < 1
+
+
+@sc.timer()
+def test_build_kernel_pair_indices_upper_triangle():
+    """``pairs_i < pairs_j`` for every entry (upper triangle only)."""
+    net = sti.MSMScaleFreeNetwork()
+    sim = _make_sim(net=net, n_agents=300)
+    sim.init()
+    sim_net = sim.networks[0]
+    sim_net._build_kernel()
+    assert sim_net._kernel_pairs_i.size > 0, 'fixture must produce a non-empty kernel'
+    assert np.all(sim_net._kernel_pairs_i < sim_net._kernel_pairs_j)
+
+
+@sc.timer()
+def test_build_kernel_degenerate_pool_returns_zero():
+    """Empty pool produces zero-sized kernel artefacts and n=0."""
+    net = sti.MSMScaleFreeNetwork()
+    sim = _make_sim(net=net, n_agents=100)
+    sim.init()
+    sim_net = sim.networks[0]
+    # Override pool to be empty for this test
+    sim_net._get_pool = lambda: sim.people.alive & ~sim.people.alive
+    n = sim_net._build_kernel()
+    assert n == 0
+    assert sim_net._kernel_pairs_i.size == 0
