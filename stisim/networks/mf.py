@@ -305,7 +305,8 @@ class MFNetwork(BaseNetwork):
             pair = (min(a,b), max(a,b))
             self.relationship_durs[pair].append({'start': self.ti, 'dur': reldur, 'edge_type': int(etype)}) # set dur to intended duration. When the relationship actually ends, this will be updated
 
-        self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types)
+        formation_ti = np.full(match_count, self.ti, dtype=int)
+        self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types, formation_ti=formation_ti)
 
         # Checks
         if (self.sim.people.female[p1].any() or self.sim.people.male[p2].any()) and (self.name == 'structuredsexual'):

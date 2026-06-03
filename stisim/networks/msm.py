@@ -382,6 +382,7 @@ class MSMScaleFreeNetwork(BaseNetwork):
             age_p1=ages[p1],
             age_p2=ages[p2],
             edge_type=np.zeros(n, dtype=float),
+            formation_ti=np.full(n, self.ti, dtype=int),
         )
         return
 

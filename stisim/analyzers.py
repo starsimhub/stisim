@@ -1,6 +1,7 @@
 """
 Common analyzers for STI analyses
 """
+import warnings
 
 # %% Imports and settings
 import numpy as np
@@ -755,120 +756,130 @@ class art_coverage(ss.Analyzer):
 class PartnershipFormationAnalyzer(ss.Analyzer):
     """Track the number of new partnerships formed per gender, age bin, and timestep.
 
-    Wraps the ``add_pairs`` method of every ``ss.SexualNetwork`` in the sim so
-    that newly appended edges are captured each timestep. For each new
-    partnership, both partners contribute one count to the cell corresponding
-    to their (sex, age bin) at the moment of formation. Works for partnerships
-    of any gender combination (male-female, male-male, female-female) across
-    any number of sexual networks.
+    Detects new partnerships by reading ``nw.edges.formation_ti`` on each
+    tracked network: edges where ``formation_ti == self.ti`` were appended on
+    the current step. For each new partnership, both partners contribute one
+    count to the cell corresponding to their (sex, age bin) at the moment of
+    formation. Works for partnerships of any gender combination
+    (male-female, male-male, female-female).
+
+    Results are stored as nested dicts keyed by sex / network / age bin, with
+    a preallocated numpy array at the leaf indexed by timestep::
+
+        self.results['new_partnerships_f'][nw_name][age_bin][ti]
+        self.results['new_partnerships_m'][nw_name][age_bin][ti]
+
+    where ``nw_name`` is the network's ``name`` attribute and ``age_bin``
+    is the original bin string (e.g. ``'0-5'``).
 
     Args:
         age_bins (list[str]): Age bin strings parsable by
             ``ss.parse_age_range`` (e.g., ``['0-5', '5-10', ..., '70-75']``).
             Defaults to five-year bins from ``'0-5'`` through ``'70-75'``.
+        networks (list[str] | None): Names of the networks to track. If
+            ``None`` (default), every ``ss.SexualNetwork`` in the sim is
+            tracked. If supplied, each name must match a network in
+            ``sim.networks``; non-matching names raise ``ValueError`` in
+            ``init_results``. Named networks that are not ``ss.SexualNetwork``
+            instances trigger a warning and are skipped. Each tracked
+            network's edges must carry a ``formation_ti`` field (BaseNetwork
+            does this by default).
     """
 
     DEFAULT_AGE_BINS = [f'{lo}-{lo+5}' for lo in range(0, 75, 5)]
 
-    def __init__(self, age_bins=None, *args, **kwargs):
+    def __init__(self, age_bins: list[str] = None, networks: list[str] = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.age_bins = list(age_bins) if age_bins is not None else list(self.DEFAULT_AGE_BINS)
         self.age_ranges = [ss.parse_age_range(b) for b in self.age_bins]
-        self._new_pairs = {}        # nw_name -> dict(p1=ndarray, p2=ndarray)
-        self._wrapped_networks = [] # list of network names whose add_pairs we've wrapped
-        return
-
-    @staticmethod
-    def _bin_key(bin_str):
-        """Convert an age-bin string into a result-name-safe suffix."""
-        return (
-            bin_str.strip().lower()
-            .replace('+', 'plus')
-            .replace('<', 'lt')
-            .replace('>', 'gt')
-            .replace(' to ', '_')
-            .replace(' ', '_')
-            .replace('-', '_')
-        )
-
-    def init_pre(self, sim, **kwargs):
-        super().init_pre(sim, **kwargs)
-        for nw in sim.networks():
-            if isinstance(nw, ss.SexualNetwork) and hasattr(nw, 'add_pairs'):
-                self._wrap_add_pairs(nw)
-        return
-
-    def _wrap_add_pairs(self, nw):
-        """Replace ``nw.add_pairs`` with a wrapper that records appended edges."""
-        nw_name = nw.name
-        self._new_pairs[nw_name] = {'p1': np.empty(0, dtype=int), 'p2': np.empty(0, dtype=int)}
-        original_add_pairs = nw.add_pairs
-        store = self._new_pairs
-
-        def wrapped(*args, **kwargs):
-            n_before = len(nw.edges.p1)
-            result = original_add_pairs(*args, **kwargs)
-            store[nw_name] = {
-                'p1': np.asarray(nw.edges.p1[n_before:], dtype=int).copy(),
-                'p2': np.asarray(nw.edges.p2[n_before:], dtype=int).copy(),
-            }
-            return result
-
-        nw.add_pairs = wrapped
-        self._wrapped_networks.append(nw_name)
+        self.target_network_names = networks
+        self._tracked_names = []  # populated in init_results
         return
 
     def init_results(self):
         super().init_results()
-        results = []
+
+        # Resolve target networks. We track sexual networks only (not parent-child).
+        all_nws = list(self.sim.networks())
+        if self.target_network_names is None:
+            target_nws = [nw for nw in all_nws if isinstance(nw, ss.SexualNetwork)]
+        else:
+            name_to_nw = {nw.name: nw for nw in all_nws}
+            target_nws = []
+            for name in self.target_network_names:
+                if name not in name_to_nw:
+                    raise ValueError(f"PartnershipFormationAnalyzer: network '{name}' not found in sim.networks. Available: {sorted(name_to_nw)}.")
+                nw = name_to_nw[name]
+                if not isinstance(nw, ss.SexualNetwork):
+                    warnings.warn(f"PartnershipFormationAnalyzer: network '{name}' not a sexual network, ignoring ...")
+                    continue
+                target_nws.append(nw)
+        self._tracked_names = [nw.name for nw in target_nws]
+
+        # Preallocate nested-dict result structure:
+        # self.results['new_partnerships_{sex}'][nw_name][age_bin][ti]
+        n_ti = len(self.t.tvec)
         for sex in ('f', 'm'):
-            sex_label = 'Female' if sex == 'f' else 'Male'
-            for bin_str in self.age_bins:
-                key = f'new_partnerships_{sex}_{self._bin_key(bin_str)}'
-                label = f'New partnerships ({sex_label}) age {bin_str}'
-                results.append(ss.Result(key, dtype=int, label=label, auto_plot=False))
-        self.define_results(*results)
+            per_network = {}
+            for nw_name in self._tracked_names:
+                per_network[nw_name] = {bin_str: np.zeros(n_ti, dtype=int) for bin_str in self.age_bins}
+            self.results[f'new_partnerships_{sex}'] = per_network
         return
 
     def step(self):
         ti = self.ti
-        ppl = self.sim.people
-        counts = np.zeros((2, len(self.age_bins)), dtype=int)  # row 0 = female, row 1 = male
+        n_bins = len(self.age_bins)
 
-        for nw_name in self._wrapped_networks:
-            pairs = self._new_pairs.get(nw_name)
-            if pairs is None:
-                continue
-            for uid_array in (pairs['p1'], pairs['p2']):
-                if len(uid_array) == 0:
-                    continue
-                uids = ss.uids(uid_array)
-                ages = np.asarray(ppl.age[uids], dtype=float)
-                is_female = np.asarray(ppl.female[uids], dtype=bool)
-                bin_idx = self._assign_bins(ages)
-                in_range = bin_idx >= 0
-                if not in_range.any():
-                    continue
-                f_mask = in_range & is_female
-                m_mask = in_range & ~is_female
-                if f_mask.any():
-                    np.add.at(counts[0], bin_idx[f_mask], 1)
-                if m_mask.any():
-                    np.add.at(counts[1], bin_idx[m_mask], 1)
-            # Reset so we don't double-count if step runs again with no new pairs
-            self._new_pairs[nw_name] = {'p1': np.empty(0, dtype=int), 'p2': np.empty(0, dtype=int)}
+        for nw_name in self._tracked_names:
+            nw = self.sim.networks[nw_name]
+            counts_female = np.zeros(n_bins, dtype=int)
+            counts_male   = np.zeros(n_bins, dtype=int)
 
-        for bi, bin_str in enumerate(self.age_bins):
-            suffix = self._bin_key(bin_str)
-            self.results[f'new_partnerships_f_{suffix}'][ti] = counts[0, bi]
-            self.results[f'new_partnerships_m_{suffix}'][ti] = counts[1, bi]
+            formation_ti = np.asarray(nw.edges.formation_ti)
+            if len(formation_ti) > 0:
+                this_ti_mask = formation_ti == ti
+                if this_ti_mask.any():
+                    new_rel_p1 = nw.edges.p1[this_ti_mask]
+                    new_rel_p2 = nw.edges.p2[this_ti_mask]
+                    # We don't know which of p1/p2 is male vs female (depends on the network type); pass each side to
+                    # both counters and let _count_by_age_bin filter by each agent's actual sex.
+                    for uid_array in (new_rel_p1, new_rel_p2):
+                        counts_female += self._count_by_age_bin(uid_array, female=True)
+                        counts_male   += self._count_by_age_bin(uid_array, female=False)
+
+            f_bins = self.results['new_partnerships_f'][nw_name]
+            m_bins = self.results['new_partnerships_m'][nw_name]
+            for i, bin_str in enumerate(self.age_bins):
+                f_bins[bin_str][ti] = counts_female[i]
+                m_bins[bin_str][ti] = counts_male[i]
         return
 
-    def _assign_bins(self, ages):
-        """Return the age-bin index for each age (-1 if outside all bins)."""
-        ages = np.asarray(ages, dtype=float)
-        out = np.full(len(ages), -1, dtype=int)
+    def _count_by_age_bin(self, uid_array, female):
+        """Count agents in ``uid_array`` of the given sex, binned by age.
+
+        Each agent contributes to every bin whose age range contains their
+        age, so overlapping bins (e.g. ``['15-50', '40-50']``) correctly
+        count agents once per matching bin. Agents whose age is outside
+        every bin are skipped.
+
+        Args:
+            uid_array (array-like): UIDs to process. May be empty.
+            female (bool): True to count female agents only, False for male only.
+
+        Returns:
+            ndarray of shape ``(len(self.age_bins),)``.
+        """
+        n_bins = len(self.age_bins)
+        counts = np.zeros(n_bins, dtype=int)
+        if len(uid_array) == 0:
+            return counts
+        ppl = self.sim.people
+        uids = ss.uids(uid_array)
+        is_female = np.asarray(ppl.female[uids], dtype=bool)
+        sex_mask = is_female if female else ~is_female
+        if not sex_mask.any():
+            return counts
+        ages = np.asarray(ppl.age[uids], dtype=float)
         for i, (lo, hi) in enumerate(self.age_ranges):
-            mask = (ages >= lo) & (ages < hi)
-            out[mask] = i
-        return out
+            counts[i] = int(np.count_nonzero(sex_mask & (ages >= lo) & (ages < hi)))
+        return counts

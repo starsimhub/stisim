@@ -65,6 +65,7 @@ class BaseNetwork(ss.SexualNetwork):
         self.meta.age_p1 = ss_float
         self.meta.age_p2 = ss_float
         self.meta.edge_type = ss_float
+        self.meta.formation_ti = ss_int  # timestep at which the edge was formed
         self.define_pars(**BasePars())
         self.define_states(
             ss.BoolArr('participant', default=True),
