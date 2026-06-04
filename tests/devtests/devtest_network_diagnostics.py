@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import sciris as sc
+import shutil
 import starsim as ss
 import stisim as sti
 import sys
@@ -16,6 +17,27 @@ from collections import defaultdict
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from stisim.networks.matchers import MATCHERS
+
+# All output files written by these diagnostics go in this single directory.
+OUTPUT_DIR = sc.thisdir(__file__, 'devtest_network_diagnostics')
+
+
+def reset_output_dir():
+    """Delete OUTPUT_DIR if it exists and recreate it empty."""
+    if os.path.exists(OUTPUT_DIR):
+        shutil.rmtree(OUTPUT_DIR)
+    os.makedirs(OUTPUT_DIR)
+    return
+
+
+def _output_path(filename):
+    """Return the full path for an output file inside OUTPUT_DIR."""
+    return os.path.join(OUTPUT_DIR, filename)
+
+
+# Reset the output directory once when the module is imported, so a clean
+# directory is guaranteed whether tests run via pytest or via __main__.
+reset_output_dir()
 
 @sc.timer()
 def test_age_differences(n_agents=25000, target_age_gap=8, sd=3, matching_algo=MATCHERS['closest_age_tapered_seeking']):
@@ -73,7 +95,7 @@ def test_age_differences(n_agents=25000, target_age_gap=8, sd=3, matching_algo=M
     ax.legend()
     ax.grid(True, alpha=0.3)
     plt.tight_layout()
-    outfile = sc.thisdir(__file__, 'relationship_age_differences.png')
+    outfile = _output_path('relationship_age_differences.png')
     plt.savefig(outfile, dpi=100)
     plt.close(fig)
     print(f"Scatterplot saved to {outfile}")
@@ -205,12 +227,25 @@ def test_algorithm_comparison(n_agents=25000):
 
 
 class NPartnersAnalyzer(ss.Analyzer):
-    """Track unique female partners per male over a trailing month window.
+    """Track partnerships per agent over a trailing month window.
 
-    Walks the active MFNetwork edges each step and remembers, per male, the
-    most recent timestep on which each female partner appeared. After the sim
-    finishes, ``get_partner_counts`` returns the number of unique female
-    partners each male saw in the trailing ``window_months`` months.
+    Works with any male-female sexual network (e.g. ``MFNetwork``,
+    ``SWNetwork``, ``StructuredSexual``), which all share the edge convention
+    that ``p1`` is male and ``p2`` is female. Same-sex networks are not
+    supported.
+
+    Walks the active network edges each step, recording (per timestep) the
+    male/female partners and each edge's ``formation_ti``. After the sim
+    finishes:
+
+      - ``get_unique_partner_counts(female)`` returns the number of *unique*
+        opposite-sex partners each agent saw in the trailing window.
+      - ``get_n_partnerships_formed(female)`` returns the *total* number of
+        partnerships each agent formed in the trailing window (NOT unique:
+        forming three partnerships with the same person counts as three).
+
+    Both methods toggle their subject population with the ``female`` arg:
+    ``False`` (default) → results per male, ``True`` → results per female.
 
     Args:
         network (str): Network name to inspect (default ``'mfnetwork'``).
@@ -222,8 +257,11 @@ class NPartnersAnalyzer(ss.Analyzer):
         super().__init__(*args, **kwargs)
         self.network = network
         self.window_months = window_months
-        self._records = []  # list of (ti, male_uids_array, female_uids_array)
+        # list of (ti, male_uids, female_uids, formation_ti, age_male, age_female)
+        # where age_* are each partner's age recorded on the edge at formation.
+        self._records = []
         self._final_male_uids = None
+        self._final_female_uids = None
         self._final_ti = None
         return
 
@@ -232,27 +270,113 @@ class NPartnersAnalyzer(ss.Analyzer):
         nw = sim.networks[self.network]
         p1 = np.asarray(nw.edges.p1, dtype=np.int64)
         p2 = np.asarray(nw.edges.p2, dtype=np.int64)
+        formation_ti = np.asarray(nw.edges.formation_ti, dtype=np.int64)
+        # age_p1 / age_p2 are stored on the edge at formation, so they give each
+        # partner's age at the moment the partnership formed (not the current ti).
+        age_p1 = np.asarray(nw.edges.age_p1, dtype=float)
+        age_p2 = np.asarray(nw.edges.age_p2, dtype=float)
         if len(p1):
-            self._records.append((self.ti, p1, p2))
+            self._records.append((self.ti, p1, p2, formation_ti, age_p1, age_p2))
         # Cache so we can compute counts even after sim is finalized/shrunk
         self._final_male_uids = np.asarray(sim.people.male.uids, dtype=np.int64)
+        self._final_female_uids = np.asarray(sim.people.female.uids, dtype=np.int64)
         self._final_ti = self.ti
         return
 
-    def get_partner_counts(self):
-        """Return per-male unique-partner counts over the trailing window."""
+    def _subject_uids(self, female):
+        """Return the cached uid array for the requested subject population."""
+        return self._final_female_uids if female else self._final_male_uids
+
+    def get_unique_partner_counts(self, female=False):
+        """Return per-agent unique opposite-sex partner counts over the window.
+
+        Args:
+            female (bool): If False (default), count unique female partners per
+                male. If True, count unique male partners per female.
+
+        Returns:
+            ndarray indexed like the subject-population uid array (males if
+            ``female`` is False, females if True).
+        """
         threshold = self._final_ti - self.window_months + 1
         partner_sets = defaultdict(set)
-        for ti, males, females in self._records:
+        for ti, males, females, fti, age_m, age_f in self._records:
             if ti < threshold:
                 continue
-            for m, f in zip(males, females):
-                partner_sets[int(m)].add(int(f))
+            # p1 is male, p2 is female. Key on the subject sex and accumulate
+            # the (unique) partner of the other sex.
+            if female:
+                for m, f in zip(males, females):
+                    partner_sets[int(f)].add(int(m))
+            else:
+                for m, f in zip(males, females):
+                    partner_sets[int(m)].add(int(f))
 
-        male_uids = self._final_male_uids
-        counts = np.zeros(len(male_uids), dtype=np.int64)
-        for i, uid in enumerate(male_uids):
+        uids = self._subject_uids(female)
+        counts = np.zeros(len(uids), dtype=np.int64)
+        for i, uid in enumerate(uids):
             counts[i] = len(partner_sets.get(int(uid), ()))
+        return counts
+
+    def get_n_partnerships_formed(self, female=False, age_bins=None):
+        """Return the count of partnerships formed in the trailing window.
+
+        Unlike :meth:`get_unique_partner_counts`, this is a *non-unique* count:
+        if an agent forms three partnerships with the same partner during the
+        window, all three are counted. Formation events are identified from
+        the edges' ``formation_ti`` (an edge is "formed at" a step when its
+        ``formation_ti`` equals that step's ``ti``).
+
+        Args:
+            female (bool): If False (default), count partnerships formed by
+                males. If True, count by females.
+            age_bins (list[str] | None): If None (default), return a per-agent
+                count indexed like the subject-population uid array. If a list
+                of age-range strings parsable by ``ss.parse_age_range`` (e.g.
+                ``['0-5', '5-10', ...]``), return a per-bin count where each
+                formed partnership is attributed to every bin containing the
+                subject's age *at formation* (so overlapping bins each count
+                it). The bin age uses the partner's age recorded on the edge.
+
+        Returns:
+            ndarray. If ``age_bins`` is None: indexed like the subject-population
+            uid array. Otherwise: length ``len(age_bins)``, ordered as given.
+        """
+        threshold = self._final_ti - self.window_months + 1
+
+        if age_bins is None:
+            counts_by_uid = defaultdict(int)
+            for ti, males, females, fti, age_m, age_f in self._records:
+                if ti < threshold:
+                    continue
+                # Edges newly formed at this step (counted once, at formation).
+                new_mask = fti == ti
+                if not new_mask.any():
+                    continue
+                subjects = females[new_mask] if female else males[new_mask]
+                for uid in subjects:
+                    counts_by_uid[int(uid)] += 1
+
+            uids = self._subject_uids(female)
+            counts = np.zeros(len(uids), dtype=np.int64)
+            for i, uid in enumerate(uids):
+                counts[i] = counts_by_uid.get(int(uid), 0)
+            return counts
+
+        # Binned by the subject's age at formation. Overlapping bins each count.
+        ranges = [ss.parse_age_range(b) for b in age_bins]
+        counts = np.zeros(len(ranges), dtype=np.int64)
+        for ti, males, females, fti, age_m, age_f in self._records:
+            if ti < threshold:
+                continue
+            new_mask = fti == ti
+            if not new_mask.any():
+                continue
+            ages = (age_f if female else age_m)[new_mask]
+            for a in ages:
+                for bi, (lo, hi) in enumerate(ranges):
+                    if lo <= a < hi:
+                        counts[bi] += 1
         return counts
 
 
@@ -300,7 +424,7 @@ def test_n_partners_distribution(n_agents=25000, n_runs=5, dur=25, window_months
         sim.run()
         # sti.Sim copies the analyzer during init, so retrieve the live instance
         sim_analyzer = sim.analyzers.npartnersanalyzer
-        counts = sim_analyzer.get_partner_counts()
+        counts = sim_analyzer.get_unique_partner_counts()
         binned, _ = np.histogram(counts, bins=bin_edges)
         per_run_counts[i] = binned
         per_run_n_males[i] = counts.size
@@ -339,7 +463,7 @@ def test_n_partners_distribution(n_agents=25000, n_runs=5, dur=25, window_months
                  f'({n_runs} runs, {n_agents} agents, {dur} yr)')
     ax.grid(True, axis='y', alpha=0.3)
     plt.tight_layout()
-    outfile = sc.thisdir(__file__, 'n_partners_distribution.png')
+    outfile = _output_path('n_partners_distribution.png')
     plt.savefig(outfile, dpi=100)
     plt.close(fig)
     print(f"Histogram saved to {outfile}")
@@ -354,6 +478,119 @@ def test_n_partners_distribution(n_agents=25000, n_runs=5, dur=25, window_months
             'mean_counts': mean_counts, 'std_counts': std_counts,
             'bin_labels': bin_labels,
             'per_run_counts': per_run_counts, 'per_run_fractions': per_run_fractions}
+
+
+@sc.timer()
+def test_n_partners_pyramid(n_agents=25000, n_runs=5, dur=25, window_months=12, target_age_gap=8,
+                            matching_algo=MATCHERS['closest_age_tapered_seeking']):
+    """
+    Population-pyramid of partnerships formed (non-unique) by age and sex.
+
+    Sweeps over ``n_runs`` seeds and, for each, uses ``NPartnersAnalyzer`` to
+    count the number of partnerships *formed* (not unique-partner counts) in the
+    trailing ``window_months``, binned by each subject's age at formation. The
+    per-bin counts are averaged across seeds and drawn as a population pyramid:
+    a central vertical line at x=0 with male counts extending left and female
+    counts extending right, age bins stacked bottom (youngest) to top (oldest).
+    Each bar is labelled with its raw (mean) count.
+
+    Args:
+        n_agents (int): Number of agents per simulation.
+        n_runs (int): Number of seeds to sweep over.
+        dur (float): Simulation duration in years.
+        window_months (int): Trailing formation window in months.
+        target_age_gap (float): Mean male-female age gap for partner matching.
+        matching_algo: Partner-matching algorithm (from ``MATCHERS``).
+    """
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
+    sdA = 3
+    age_diff_pars = {'teens': [(target_age_gap, sdA), (target_age_gap, sdA), (target_age_gap, sdA)],
+                     'young': [(target_age_gap, sdA), (target_age_gap, sdA), (target_age_gap, sdA)],
+                     'adult': [(target_age_gap, sdA), (target_age_gap, sdA), (target_age_gap, sdA)]}
+
+    # 5-year age bins, low -> high (bottom -> top of the pyramid).
+    age_bins = [f'{lo}-{lo + 5}' for lo in range(0, 80, 5)]  # '0-5' .. '75-80'
+    n_bins = len(age_bins)
+
+    seeds = list(range(n_runs))
+    male_per_run = np.zeros((n_runs, n_bins), dtype=float)
+    female_per_run = np.zeros((n_runs, n_bins), dtype=float)
+
+    for i, seed in enumerate(seeds):
+        network = sti.MFNetwork(age_diff_pars=age_diff_pars, match_method=matching_algo)
+        analyzer = NPartnersAnalyzer(network='mfnetwork', window_months=window_months)
+        sim = sti.Sim(n_agents=n_agents, networks=[network], analyzers=[analyzer],
+                      dur=dur, rand_seed=seed)
+        sim.run()
+        # sti.Sim copies the analyzer during init, so retrieve the live instance
+        sim_analyzer = sim.analyzers.npartnersanalyzer
+        male_per_run[i] = sim_analyzer.get_n_partnerships_formed(female=False, age_bins=age_bins)
+        female_per_run[i] = sim_analyzer.get_n_partnerships_formed(female=True, age_bins=age_bins)
+        print(f"  seed={seed}: male_formed={int(male_per_run[i].sum())} "
+              f"female_formed={int(female_per_run[i].sum())}")
+
+    male_mean = male_per_run.mean(axis=0)
+    female_mean = female_per_run.mean(axis=0)
+    # Population std across the n_runs seeds (per age bin, per sex).
+    male_std = male_per_run.std(axis=0)
+    female_std = female_per_run.std(axis=0)
+    # Two-tailed 5%/95% whiskers under a normal approximation: mean +/- z*std,
+    # z=1.645 puts the lower cap at the 5th percentile and the upper cap at the
+    # 95th percentile (a 90% central interval). Matches test_n_partners_distribution.
+    Z_90 = 1.645
+    male_err = Z_90 * male_std
+    female_err = Z_90 * female_std
+
+    # Population pyramid: males extend left (negative), females extend right.
+    y = np.arange(n_bins)
+    fig, ax = plt.subplots(figsize=(11, 8))
+    ax.barh(y, -male_mean, color='blue', alpha=0.7, edgecolor='black', label='Male')
+    ax.barh(y, female_mean, color='red', alpha=0.7, edgecolor='black', label='Female')
+    # 5%/95% normal-approx whiskers at each bar tip (computed across seeds).
+    ax.errorbar(-male_mean, y, xerr=male_err, fmt='none', ecolor='black',
+                capsize=3, capthick=1.0, lw=1.0)
+    ax.errorbar(female_mean, y, xerr=female_err, fmt='none', ecolor='black',
+                capsize=3, capthick=1.0, lw=1.0)
+    ax.axvline(0, color='black', linewidth=1.0)
+
+    # Raw (mean) count displayed within each box.
+    for yi, (m, f) in enumerate(zip(male_mean, female_mean)):
+        if m > 0:
+            ax.text(-m / 2, yi, f'{m:.1f}', ha='center', va='center', fontsize=8, color='black')
+        if f > 0:
+            ax.text(f / 2, yi, f'{f:.1f}', ha='center', va='center', fontsize=8, color='black')
+
+    # Symmetric x-limits: abs(left edge) == right edge, large enough to contain
+    # every drawn element (bar tip + its 95% whisker) on both sides.
+    max_extent = max((male_mean + male_err).max(), (female_mean + female_err).max())
+    lim = max_extent * 1.05 if max_extent > 0 else 1.0  # 5% padding
+    ax.set_xlim(-lim, lim)
+
+    ax.set_yticks(y)
+    ax.set_yticklabels(age_bins)
+    ax.set_ylabel('Age bin at formation')
+    ax.set_xlabel('Mean partnerships formed (male ← | → female)')
+    # x tick labels as absolute magnitudes (both directions read positive).
+    ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda v, pos: f'{abs(v):g}'))
+    matcher_name = getattr(matching_algo, '__name__', str(matching_algo))
+    ax.set_title(f'Partnerships formed by age & sex (population pyramid)\n'
+                 f'n_agents={n_agents}, n_runs={n_runs}, dur={dur}, '
+                 f'window_months={window_months}, target_age_gap={target_age_gap}, '
+                 f'matcher={matcher_name}')
+    ax.legend(loc='upper right')
+    ax.grid(True, axis='x', alpha=0.3)
+    plt.tight_layout()
+    outfile = _output_path('n_partners_pyramid.png')
+    plt.savefig(outfile, dpi=100)
+    plt.close(fig)
+    print(f"Pyramid saved to {outfile}")
+
+    return {'age_bins': age_bins, 'male_mean': male_mean, 'female_mean': female_mean,
+            'male_std': male_std, 'female_std': female_std,
+            'male_per_run': male_per_run, 'female_per_run': female_per_run}
 
 
 class AgeGapAnalyzer(ss.Analyzer):
@@ -512,7 +749,7 @@ def test_age_gap_distribution(n_agents=25000, n_runs=5, dur=25, window_months=12
                  f'({n_runs} runs, {n_agents} agents, {dur} yr)')
     ax.grid(True, axis='y', alpha=0.3)
     plt.tight_layout()
-    outfile = sc.thisdir(__file__, 'age_gap_distribution.png')
+    outfile = _output_path('age_gap_distribution.png')
     plt.savefig(outfile, dpi=100)
     plt.close(fig)
     print(f"Histogram saved to {outfile}")
@@ -554,6 +791,7 @@ if __name__ == '__main__':
     test_age_differences()
     test_algorithm_comparison()
     test_n_partners_distribution()
+    test_n_partners_pyramid()
     test_age_gap_distribution()
 
     sc.heading("Total:")

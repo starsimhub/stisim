@@ -8,22 +8,26 @@ gender / age bin / timestep, and produces two plots:
      with male/female lines.
 """
 
+import os
+import shutil
+
 import numpy as np
 import pandas as pd
 import pylab as pl
 import starsim as ss
 import stisim as sti
 
+# Directory holding this test file. Plots are saved inside a dedicated
+# subdirectory below it, which is recreated fresh on each run.
+TEST_DIR   = os.path.dirname(os.path.abspath(__file__))
+OUTPUT_DIR = os.path.join(TEST_DIR, 'partnership_formation_analyzer')
+
 
 # Default test configuration (configurable via function arguments)
-DEFAULT_N_AGENTS  = 1000
+DEFAULT_N_AGENTS  = 10000
 DEFAULT_DUR_YEARS = 5
-DEFAULT_AGE_BINS  = [f'{lo}-{lo+5}' for lo in range(0, 75, 5)]  # 0-5 ... 70-75
-
-# NOTE: the instructions call for dt=1/12 (monthly), but sti.Sim's route_pars
-# broadcasts ``dt`` to ['sim', 'sti', 'connector'] which then trips either the
-# disease-instance XOR check or the unused-connector-par check. Until sti.Sim
-# handles universal pars cleanly, we let the sim use its default dt.
+DEFAULT_N_SEEDS   = 3
+DEFAULT_AGE_BINS  = None  # None -> PartnershipFormationAnalyzer's own default
 
 # Plot colors per the instructions
 MALE_COLOR   = 'blue'
@@ -33,17 +37,17 @@ FEMALE_COLOR = 'red'
 ANALYZER_NAME = 'partnershipformationanalyzer'
 
 
-def make_sim(n_agents=DEFAULT_N_AGENTS, dur=DEFAULT_DUR_YEARS, age_bins=None):
+def make_sim(n_agents=DEFAULT_N_AGENTS, dur=DEFAULT_DUR_YEARS, age_bins=None, rand_seed=1):
     """Construct a sim with a StructuredSexual network and the analyzer.
 
     Returns the sim only — fetch the analyzer post-init via
     ``sim.analyzers[ANALYZER_NAME]`` because sti.Sim deep-copies the analyzer
     during init, leaving any pre-init reference stale.
     """
-    age_bins = list(age_bins) if age_bins is not None else list(DEFAULT_AGE_BINS)
     sim = sti.Sim(
         n_agents=n_agents,
         dur=dur,
+        rand_seed=rand_seed,
         diseases=[sti.HIV(init_prev=0.05)],
         networks=[sti.StructuredSexual()],
         analyzers=[sti.PartnershipFormationAnalyzer(age_bins=age_bins)],
@@ -71,47 +75,67 @@ def build_dataframe(sim, analyzer):
 
 
 def print_tables(df, analyzer):
-    """Print one wide table per sex: rows = age bins, columns = timesteps."""
+    """Print one wide table per sex: rows = age bins, columns = timesteps.
+
+    Cell values are means across seeds, formatted to 2 decimal places.
+    """
     for sex in ('f', 'm'):
         label = 'FEMALE' if sex == 'f' else 'MALE'
         sub = df[df.sex == sex]
         wide = sub.pivot(index='age_bin', columns='ti', values='count')
         wide = wide.reindex(analyzer.age_bins)  # keep age order
-        print(f'\n=== New partnerships per timestep ({label}) ===')
+        print(f'\n=== Mean new partnerships per timestep ({label}) ===')
         with pd.option_context('display.max_columns', None,
                                'display.width', 200,
-                               'display.max_rows', None):
+                               'display.max_rows', None,
+                               'display.float_format', '{:.2f}'.format):
             print(wide)
 
 
-def plot_totals(df, sim):
-    """Total new partnerships per timestep, one line per sex."""
+def _title_suffix(dur, n_agents, n_seeds):
+    return f'dur={dur}y, n_agents={n_agents}, n_seeds={n_seeds}'
+
+
+def plot_totals(df, sim, dur, n_agents, n_seeds):
+    """Total new partnerships per timestep (mean across seeds), one line per sex."""
     yearvec = sim.t.yearvec
     n_ti = len(yearvec)
-    male   = (df[df.sex == 'm'].groupby('ti')['count'].sum()
-                .reindex(range(n_ti)).fillna(0).values)
-    female = (df[df.sex == 'f'].groupby('ti')['count'].sum()
-                .reindex(range(n_ti)).fillna(0).values)
+    male   = (df[df.sex == 'm'].groupby('ti')['count'].sum().reindex(range(n_ti)).fillna(0).values)
+    female = (df[df.sex == 'f'].groupby('ti')['count'].sum().reindex(range(n_ti)).fillna(0).values)
+
+    # Integer year marks that fall within the simulated yearvec range; these
+    # become thin black vertical gridlines on every subplot.
+    year_marks = list(range(int(np.floor(yearvec[0])), int(np.floor(yearvec[-1])) + 1))
 
     fig, ax = pl.subplots(figsize=(9, 5))
     ax.plot(yearvec, male,   color=MALE_COLOR,   label='Male')
     ax.plot(yearvec, female, color=FEMALE_COLOR, label='Female')
+    for y in year_marks:
+        ax.axvline(y, color='black', linewidth=0.5)
     ax.set_xlabel('Year')
-    ax.set_ylabel('Number of partnerships formed')
-    ax.set_title('Total partnerships formed per timestep')
+    ax.set_ylabel('Mean number of partnerships formed')
+    ax.set_title(f'Total partnerships formed per timestep\n'
+                 f'({_title_suffix(dur, n_agents, n_seeds)})')
     ax.legend()
     pl.tight_layout()
     return fig
 
 
-def plot_by_age_bin(df, analyzer, sim):
-    """Stacked subplots (one per age bin), youngest at bottom, oldest at top."""
+def plot_by_age_bin(df, analyzer, sim, dur, n_agents, n_seeds):
+    """Stacked subplots (one per age bin), youngest at bottom, oldest at top.
+
+    Each subplot shows the mean across seeds for male/female partner-side counts.
+    """
     yearvec = sim.t.yearvec
     n_bins = len(analyzer.age_bins)
     fig, axes = pl.subplots(n_bins, 1, figsize=(9, max(1.2 * n_bins, 4)),
-                            sharex=True)
+                            sharex=True, sharey=True)
     if n_bins == 1:
         axes = [axes]
+
+    # Integer year marks that fall within the simulated yearvec range; these
+    # become thin black vertical gridlines on every subplot.
+    year_marks = list(range(int(np.floor(yearvec[0])), int(np.floor(yearvec[-1])) + 1))
 
     for i, bin_str in enumerate(analyzer.age_bins):
         # axes[0] is the TOP row. Youngest -> bottom -> last axis.
@@ -121,11 +145,14 @@ def plot_by_age_bin(df, analyzer, sim):
         female = sub[sub.sex == 'f']['count'].values
         ax.plot(yearvec, male,   color=MALE_COLOR,   label='Male')
         ax.plot(yearvec, female, color=FEMALE_COLOR, label='Female')
+        for y in year_marks:
+            ax.axvline(y, color='black', linewidth=0.5)
         ax.set_ylabel(bin_str, fontsize=9, rotation=0, ha='right', va='center')
 
     axes[-1].set_xlabel('Year')
-    axes[0].set_title('Partnerships formed per timestep by age bin '
-                      '(youngest at bottom)')
+    axes[0].set_title(f'Mean partnerships formed per timestep by age bin '
+                      f'(youngest at bottom)\n'
+                      f'({_title_suffix(dur, n_agents, n_seeds)})')
     axes[0].legend(loc='upper right', fontsize=8)
     pl.tight_layout()
     return fig
@@ -133,56 +160,83 @@ def plot_by_age_bin(df, analyzer, sim):
 
 def test_partnership_formation_analyzer(n_agents=DEFAULT_N_AGENTS,
                                         dur=DEFAULT_DUR_YEARS,
-                                        age_bins=None,
+                                        age_bins=DEFAULT_AGE_BINS,
+                                        n_seeds=DEFAULT_N_SEEDS,
                                         show_plots=False):
-    """End-to-end test: run sim, check counts, print tables, build plots."""
-    sim = make_sim(n_agents=n_agents, dur=dur, age_bins=age_bins)
-    sim.run()
-    # sti.Sim deep-copies analyzer instances during init, so fetch the live
-    # post-run analyzer from sim.analyzers (lookup is by ss.Module.name).
-    analyzer = sim.analyzers['partnershipformationanalyzer']
+    """End-to-end test: run n_seeds sims in parallel, average their
+    per-(sex, age_bin, ti) counts, then print tables and produce plots."""
+    # Build one sim per seed and run them in parallel via ss.parallel (a thin
+    # wrapper around ss.MultiSim). The returned MultiSim holds the run sims.
+    sims = [make_sim(n_agents=n_agents, dur=dur, age_bins=age_bins, rand_seed=seed)
+            for seed in range(1, n_seeds + 1)]
+    msim = ss.parallel(*sims)
+    run_sims = list(msim.sims)
 
-    df = build_dataframe(sim, analyzer)
+    # Build per-seed long-format DataFrames and concat with a seed index, then
+    # average across seeds per (ti, year, sex, age_bin) cell.
+    dfs = []
+    for seed_i, sim in enumerate(run_sims, start=1):
+        analyzer = sim.analyzers['partnershipformationanalyzer']
+        df_seed = build_dataframe(sim, analyzer)
+        df_seed['seed'] = seed_i
+        dfs.append(df_seed)
+    df_all = pd.concat(dfs, ignore_index=True)
+    df_mean = (df_all
+               .groupby(['ti', 'year', 'sex', 'age_bin'], as_index=False)['count']
+               .mean())
 
-    # ----- Sanity checks -----
-    total = int(df['count'].sum())
-    assert total > 0, 'Expected at least some new partnerships in a 5-year sim.'
+    # Use the last run sim/analyzer for shared axis info (identical structure
+    # across seeds: same yearvec, same age_bins).
+    sim_ref = run_sims[-1]
+    analyzer_ref = sim_ref.analyzers['partnershipformationanalyzer']
 
-    # StructuredSexual is male-female only. When both partners fall inside the
-    # age bins, total male and total female counts must match exactly. Allow a
-    # small tolerance for partnerships where one partner ages above the top bin.
-    male_total   = int(df[df.sex == 'm']['count'].sum())
-    female_total = int(df[df.sex == 'f']['count'].sum())
-    max_total = max(male_total, female_total, 1)
-    diff_share = abs(male_total - female_total) / max_total
+    # ----- Sanity checks (on the mean DataFrame) -----
+    total_mean = float(df_mean['count'].sum())
+    assert total_mean > 0, 'Expected at least some new partnerships in the mean run.'
+
+    # StructuredSexual is male-female only, so male and female means should
+    # match. Allow a small tolerance for partners aging above the top bin.
+    male_total_mean   = float(df_mean[df_mean.sex == 'm']['count'].sum())
+    female_total_mean = float(df_mean[df_mean.sex == 'f']['count'].sum())
+    denom = max(male_total_mean, female_total_mean, 1.0)
+    diff_share = abs(male_total_mean - female_total_mean) / denom
     assert diff_share < 0.10, (
-        f'Male/female partnership totals diverge by more than 10% '
-        f'(m={male_total}, f={female_total}). For a male-female-only network '
-        f'they should be approximately equal.'
+        f'Male/female mean totals diverge by more than 10% '
+        f'(m={male_total_mean:.2f}, f={female_total_mean:.2f}).'
     )
 
-    # No counts should appear in pre-debut age bins (0-5, 5-10) — debut age is
-    # well above 10 for the StructuredSexual defaults.
-    pre_debut_count = int(df[df.age_bin.isin(['0-5', '5-10'])]['count'].sum())
-    assert pre_debut_count == 0, (
-        f'Found {pre_debut_count} partnerships in pre-debut age bins (0-5, 5-10).'
+    # No counts in pre-debut age bins (0-5, 5-10) — debut age is well above 10.
+    pre_debut = float(df_mean[df_mean.age_bin.isin(['0-5', '5-10'])]['count'].sum())
+    assert pre_debut == 0.0, (
+        f'Found {pre_debut} mean partnerships in pre-debut age bins (0-5, 5-10).'
     )
 
-    # First timestep typically has no new partnerships (sim just initialized);
-    # but later timesteps should accumulate counts.
-    per_ti_total = df.groupby('ti')['count'].sum().values
+    # Later timesteps should accumulate counts (i.e. not all activity at ti=0).
+    per_ti_total = df_mean.groupby('ti')['count'].sum().values
     assert per_ti_total[1:].sum() > 0, 'No new partnerships after the first timestep.'
 
     # ----- Reporting -----
-    print(f'\nSim: n_agents={n_agents}, dur={dur} years, '
-          f'{len(sim.t.yearvec)} timesteps (default sim dt)')
-    print(f'Total new partnerships recorded (male+female partner counts): {total}')
-    print(f'  Male contributions:   {male_total}')
-    print(f'  Female contributions: {female_total}')
+    print(f'\nSim: n_agents={n_agents}, dur={dur}y, '
+          f'{len(sim_ref.t.yearvec)} timesteps, n_seeds={n_seeds}')
+    print(f'Mean total new partnerships across seeds: {total_mean:.2f}')
+    print(f'  Male mean contribution:   {male_total_mean:.2f}')
+    print(f'  Female mean contribution: {female_total_mean:.2f}')
 
-    print_tables(df, analyzer)
-    fig_totals = plot_totals(df, sim)
-    fig_by_bin = plot_by_age_bin(df, analyzer, sim)
+    print_tables(df_mean, analyzer_ref)
+    fig_totals = plot_totals(df_mean, sim_ref, dur, n_agents, n_seeds)
+    fig_by_bin = plot_by_age_bin(df_mean, analyzer_ref, sim_ref, dur, n_agents, n_seeds)
+
+    # Recreate the output subdirectory fresh, then save plots with names
+    # encoding the run's configuration.
+    if os.path.exists(OUTPUT_DIR):
+        shutil.rmtree(OUTPUT_DIR)
+    os.makedirs(OUTPUT_DIR)
+    stem = f'partnership_formation_dur{dur}y_n{n_agents}_seeds{n_seeds}'
+    totals_path = os.path.join(OUTPUT_DIR, f'{stem}_totals.png')
+    by_bin_path = os.path.join(OUTPUT_DIR, f'{stem}_by_age_bin.png')
+    fig_totals.savefig(totals_path, dpi=100, bbox_inches='tight')
+    fig_by_bin.savefig(by_bin_path, dpi=100, bbox_inches='tight')
+    print(f'Saved plots to {OUTPUT_DIR}:\n  {os.path.basename(totals_path)}\n  {os.path.basename(by_bin_path)}')
 
     if show_plots:
         pl.show()
@@ -190,7 +244,7 @@ def test_partnership_formation_analyzer(n_agents=DEFAULT_N_AGENTS,
         pl.close(fig_totals)
         pl.close(fig_by_bin)
 
-    return sim, analyzer, df
+    return run_sims, analyzer_ref, df_mean
 
 
 def _first_bin_for_age(ana, age):
