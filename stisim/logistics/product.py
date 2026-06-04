@@ -1,5 +1,5 @@
 class Product:  # TODO: determine sublassing potential with ss.Product + features that can be pushed there, too
-    def __init__(self, name, type, delivery_mode, cost, eff_by_ti, rel_eff_by_adherence=None):
+    def __init__(self, name, type, delivery_mode, cost, eff_by_ti):
         """
         A product that can be distributed to agents in interventions. They can be anything that modifies agent state
         or may be quantity limited (examples: doses of lenacapavir PrEP, "seats" in an educational campaign,
@@ -24,6 +24,8 @@ class Product:  # TODO: determine sublassing potential with ss.Product + feature
 
     def efficacy_at_ti(self, ti):
         """efficacy at a given time index after initiation. 0 beyond product durability"""
+        if ti < 0:
+            raise IndexError(f"ti must be a non-negative time index since delivery, got {ti}.")
         eff = self.eff_by_ti[ti] if ti < len(self.eff_by_ti) else 0
         return eff
 

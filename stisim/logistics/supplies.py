@@ -1,5 +1,3 @@
-from typing import Iterable
-
 from stisim.logistics.supply import Supply
 
 
@@ -10,7 +8,7 @@ class Supplies:
     class DuplicateSupplyException(ValueError):
         pass
 
-    def __init__(self, supplies: Iterable[Supply] = None):
+    def __init__(self, supplies: list[Supply] = None):
         """
         Represents a cache of 1+ Supply of Products. The mix of Supply/Products is arbitrary, for example, the provided
         Supply objects could contain oral PrEP, injectable PrEP, condoms, needles, and appointment slots.
@@ -19,6 +17,10 @@ class Supplies:
             supplies: The individual Supply objects containing Products that will be distributed within an
                 intervention.
         """
+        # NOTE: `supplies` is stored by reference, and the _supplies_by_name/_supplies_by_type indexes below are
+        # built once here. Mutating the passed-in list (or self.supplies) after construction would desync the
+        # indexes. This is fine given intended usage (supplies are fixed at construction); if mutation is ever
+        # needed, add add_supply/remove_supply methods that rebuild the indexes, or copy with list(supplies).
         self.supplies = [] if supplies is None else supplies
         self._supplies_by_name = {supply.product.name: supply for supply in self.supplies}
         if len(self._supplies_by_name) < len(self.supplies):
