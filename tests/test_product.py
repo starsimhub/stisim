@@ -33,16 +33,6 @@ def test_product_attributes_stored():
 
 
 @sc.timer()
-def test_product_ids_are_unique():
-    sc.heading("Ensuring each Product instance receives a unique id.")
-
-    p1 = Product(name='a', category=ProductCategory.PREP, delivery_mode=DeliveryMode.PILL, cost=1.0, eff_by_ti=[1.0])
-    p2 = Product(name='a', category=ProductCategory.PREP, delivery_mode=DeliveryMode.PILL, cost=1.0, eff_by_ti=[1.0])
-
-    assert p1.id != p2.id, f"Expected unique ids for separate Product instances, but both are {p1.id}"
-
-
-@sc.timer()
 def test_max_durability_matches_eff_by_ti_length():
     sc.heading("Ensuring max_durability equals len(eff_by_ti).")
 
@@ -111,7 +101,6 @@ if __name__ == '__main__':
     timer = sc.timer()
 
     test_product_attributes_stored()
-    test_product_ids_are_unique()
     test_max_durability_matches_eff_by_ti_length()
     test_efficacy_at_ti_contained_index()
     test_efficacy_at_ti_out_of_range_index()

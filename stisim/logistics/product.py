@@ -28,7 +28,6 @@ class Product:  # TODO: determine sublassing potential with ss.Product + feature
         self.delivery_mode = self._validate(delivery_mode, DeliveryMode, 'delivery_mode')  # DeliveryMode.SHOT, ...
         self.cost = cost # per dose/item
         self.eff_by_ti = eff_by_ti # TODO, usage of this should accept different formats than just by ti. Probably a Time/Date class-based representation?
-        self.id = id(self)
 
     @staticmethod
     def _validate(value, enum_cls, field):

@@ -47,13 +47,13 @@ class Supplies:
         return cost
 
     @property
-    def product_names(self):
+    def product_names(self) :
         return self._supplies_by_name.keys()
 
-    def has_product(self, prod_name):
+    def has_product(self, prod_name) -> bool:
         return prod_name in self._supplies_by_name
 
-    def get_quantity(self, prod_name):
+    def get_quantity(self, prod_name) -> int:
         return self.get_supply(prod_name=prod_name).quantity
 
     def get_product(self, prod_name):

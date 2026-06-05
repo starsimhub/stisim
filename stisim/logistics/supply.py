@@ -29,7 +29,7 @@ class Supply:
         self.accrued_cost = 0
 
     def use(self, quantity):
-        """uses a specified quantity of the product, returning the quantity remaining and cost of usage"""
+        """uses a specified quantity of the product, returning the remaining quantity and cost of usage"""
         remaining = self.quantity - quantity
         if remaining < 0:
             raise self.InsufficientSupplyException(f"Attempted to use {quantity} {self.product.name}. "
