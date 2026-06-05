@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 from stisim.logistics.product import Product
+from stisim.logistics import ProductCategory, DeliveryMode
 from stisim.logistics.supply import Supply
 from stisim.logistics.supplies import Supplies
 
@@ -25,12 +26,12 @@ do_plot = False
 sc.options(interactive=False)
 
 
-def _make_product(name='pill', type='prep', cost=10.0):
-    return Product(name=name, type=type, delivery_mode='pill', cost=cost, eff_by_ti=[1.0])
+def _make_product(name='pill', category=ProductCategory.PREP, cost=10.0):
+    return Product(name=name, category=category, delivery_mode=DeliveryMode.PILL, cost=cost, eff_by_ti=[1.0])
 
 
-def _make_supply(name='pill', type='prep', quantity=50, cost=10.0):
-    return Supply(quantity=quantity, product=_make_product(name=name, type=type, cost=cost))
+def _make_supply(name='pill', category=ProductCategory.PREP, quantity=50, cost=10.0):
+    return Supply(quantity=quantity, product=_make_product(name=name, category=category, cost=cost))
 
 
 @sc.timer()
@@ -122,8 +123,8 @@ def test_use_does_not_modify_state_on_overuse():
 def test_accrued_cost_sums_all_supplies():
     sc.heading("Ensuring accrued_cost reflects the sum of costs across all contained Supply objects.")
 
-    supply_a = _make_supply(name='oral_prep', type='prep', quantity=50, cost=2.0)
-    supply_b = _make_supply(name='injectable_prep', type='prep', quantity=50, cost=5.0)
+    supply_a = _make_supply(name='oral_prep', category=ProductCategory.PREP, quantity=50, cost=2.0)
+    supply_b = _make_supply(name='injectable_prep', category=ProductCategory.PREP, quantity=50, cost=5.0)
     s = Supplies(supplies=[supply_a, supply_b])
 
     s.use(prod_name='oral_prep', quantity=3)   # cost += 6.0
@@ -154,35 +155,35 @@ def test_get_supply_by_name_raises_if_missing():
 
 
 @sc.timer()
-def test_get_supply_by_type_returns_correct_supplies():
-    sc.heading("Ensuring get_supply(prod_type=...) returns all Supply objects of the specified type.")
+def test_get_supplies_returns_correct_supplies():
+    sc.heading("Ensuring get_supplies(prod_category=...) returns all Supply objects of the specified category.")
 
-    supply = _make_supply(name='oral_prep', type='prep')
+    supply = _make_supply(name='oral_prep', category=ProductCategory.PREP)
     s = Supplies(supplies=[supply])
-    result = s.get_supply(prod_type='prep')
+    result = s.get_supplies(prod_category=ProductCategory.PREP)
 
     assert isinstance(result, list), f"Expected a list, got {type(result)}"
     assert len(result) == 1, f"Expected exactly one prep Supply to be returned, but was: {len(result)}"
-    assert supply in result, "Expected get_supply by type to include the matching Supply"
+    assert supply in result, "Expected get_supplies by category to include the matching Supply"
 
 
 @sc.timer()
-def test_get_supply_by_type_returns_all_matching():
-    sc.heading("Ensuring get_supply(prod_type=...) returns every Supply sharing that type.")
+def test_get_supplies_returns_all_matching():
+    sc.heading("Ensuring get_supplies(prod_category=...) returns every Supply sharing that category.")
 
-    supply_a = _make_supply(name='oral_prep', type='prep')
-    supply_b = _make_supply(name='injectable_prep', type='prep')
-    supply_c = _make_supply(name='condom', type='barrier')
+    supply_a = _make_supply(name='oral_prep', category=ProductCategory.PREP)
+    supply_b = _make_supply(name='injectable_prep', category=ProductCategory.PREP)
+    supply_c = _make_supply(name='condom', category=ProductCategory.BARRIER)
     s = Supplies(supplies=[supply_a, supply_b, supply_c])
 
-    result = s.get_supply(prod_type='prep')
+    result = s.get_supplies(prod_category=ProductCategory.PREP)
     assert isinstance(result, list), f"Expected a list, got {type(result)}"
     assert len(result) == 2, f"Expected 2 prep supplies, got {len(result)}"
     assert supply_a in result, "Expected oral_prep in prep supplies"
     assert supply_b in result, "Expected injectable_prep in prep supplies"
     assert supply_c not in result, "Expected condom not in prep supplies"
 
-    result = s.get_supply(prod_type='barrier')
+    result = s.get_supplies(prod_category=ProductCategory.BARRIER)
     assert isinstance(result, list), f"Expected a list, got {type(result)}"
     assert len(result) == 1, f"Expected 1 condom supplies, got {len(result)}"
     assert supply_a not in result, "Expected oral_prep not in barrier supplies"
@@ -191,33 +192,23 @@ def test_get_supply_by_type_returns_all_matching():
 
 
 @sc.timer()
-def test_get_supply_by_type_raises_if_missing():
-    sc.heading("Ensuring get_supply(prod_type=...) raises MissingSupplyException for an unknown type.")
+def test_get_supplies_raises_if_missing():
+    sc.heading("Ensuring get_supplies(prod_category=...) raises MissingSupplyException for an absent category.")
 
-    s = Supplies(supplies=[_make_supply(name='oral_prep', type='prep')])
+    s = Supplies(supplies=[_make_supply(name='oral_prep', category=ProductCategory.PREP)])
 
     with pytest.raises(Supplies.MissingSupplyException):
-        s.get_supply(prod_type='art')
+        s.get_supplies(prod_category=ProductCategory.ART)
 
 
 @sc.timer()
-def test_get_supply_raises_if_both_specified():
-    sc.heading("Ensuring get_supply() raises ValueError when both prod_name and prod_type are provided.")
+def test_get_supplies_raises_on_non_member_category():
+    sc.heading("Ensuring get_supplies() raises ValueError when prod_category is not a ProductCategory member.")
 
-    s = Supplies(supplies=[_make_supply(name='oral_prep', type='prep')])
-
-    with pytest.raises(ValueError):
-        s.get_supply(prod_name='oral_prep', prod_type='prep')
-
-
-@sc.timer()
-def test_get_supply_raises_if_neither_specified():
-    sc.heading("Ensuring get_supply() raises ValueError when neither prod_name nor prod_type is provided.")
-
-    s = Supplies(supplies=[_make_supply()])
+    s = Supplies(supplies=[_make_supply(name='oral_prep', category=ProductCategory.PREP)])
 
     with pytest.raises(ValueError):
-        s.get_supply()
+        s.get_supplies(prod_category='prep')
 
 
 if __name__ == '__main__':
@@ -235,11 +226,10 @@ if __name__ == '__main__':
     test_accrued_cost_sums_all_supplies()
     test_get_supply_by_name_returns_correct_supply()
     test_get_supply_by_name_raises_if_missing()
-    test_get_supply_by_type_returns_correct_supplies()
-    test_get_supply_by_type_returns_all_matching()
-    test_get_supply_by_type_raises_if_missing()
-    test_get_supply_raises_if_both_specified()
-    test_get_supply_raises_if_neither_specified()
+    test_get_supplies_returns_correct_supplies()
+    test_get_supplies_returns_all_matching()
+    test_get_supplies_raises_if_missing()
+    test_get_supplies_raises_on_non_member_category()
 
     sc.heading("Total:")
     timer.toc()

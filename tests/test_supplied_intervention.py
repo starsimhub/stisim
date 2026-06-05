@@ -12,6 +12,7 @@ import pytest
 import sciris as sc
 
 from stisim.logistics.product import Product
+from stisim.logistics import ProductCategory, DeliveryMode
 from stisim.logistics.supply import Supply
 from stisim.logistics.supplies import Supplies
 from stisim.logistics.supplied_intervention import SuppliedIntervention
@@ -30,7 +31,7 @@ sc.options(interactive=False)
 test_eligibilities = [lambda sim: sim.people.female == True]
 
 def make_product(name='oral_prep', cost=10.0):
-    return Product(name=name, type='prep', delivery_mode='pill', cost=cost, eff_by_ti=[1.0])
+    return Product(name=name, category=ProductCategory.PREP, delivery_mode=DeliveryMode.PILL, cost=cost, eff_by_ti=[1.0])
 
 
 def make_supply(product, quantity=100):

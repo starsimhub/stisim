@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 from stisim.logistics.product import Product
+from stisim.logistics import ProductCategory, DeliveryMode
 from stisim.logistics.supply import Supply
 
 tests_directory = Path(__file__).resolve().parent
@@ -23,7 +24,7 @@ do_plot = False
 sc.options(interactive=False)
 
 def _make_product(cost=10.0):
-    return Product(name='test_product', type='prep', delivery_mode='pill', cost=cost, eff_by_ti=[1.0])
+    return Product(name='test_product', category=ProductCategory.PREP, delivery_mode=DeliveryMode.PILL, cost=cost, eff_by_ti=[1.0])
 
 
 @sc.timer()
