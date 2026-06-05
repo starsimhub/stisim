@@ -1,3 +1,4 @@
+import abc
 from typing import Callable
 
 import starsim as ss
@@ -5,7 +6,28 @@ import starsim as ss
 from stisim.logistics.supplies import Supplies
 
 
-class SuppliedIntervention(ss.Intervention):
+class SuppliedIntervention(ss.Intervention, metaclass=abc.ABCMeta):
+    """
+    Abstract base for distribution interventions that hand out supply-limited (or unlimited) Products to eligible,
+    care-seeking agents.
+
+    This class provides the building blocks for a distribution intervention but is NOT runnable on its own: it does
+    not implement step(), so it cannot be instantiated directly. Concrete subclasses MUST implement step() to
+    orchestrate, each timestep, the flow:
+
+        eligibilities -> determine_care_seeking -> calc_supply_distribution -> distribute -> use
+
+    Subclassing contract:
+        - step(self): REQUIRED. Drive the per-timestep distribution using the building-block methods below.
+        - determine_care_seeking(self, eligible): OPTIONAL override; defaults to all eligible agents.
+        - the dist_func passed to distribute(): a callback that applies the intervention's effect to selected
+          agents and draws down supply via use() (see distribute() for its signature).
+        - the on_intervention BoolState is defined here for subclasses to track active participation; the base
+          neither reads nor writes it.
+
+    Provided building blocks: determine_care_seeking(), calc_supply_distribution(), distribute(), use().
+    """
+
     def __init__(self,
                  name: str,
                  eligibilities: list[Callable],
@@ -29,8 +51,8 @@ class SuppliedIntervention(ss.Intervention):
             groupA has target coverage 0.8 and actual coverage 0.6 (gap: 0.2)
             groupB has target coverage 0.5 and actual coverage 0.2 (gap 0.3)
 
-            groupA will receive 40% (0.2 / (0.2 + 0.3)) of the remaining, limited PreP supply
-            groupB will receive 60% (0.3 / (0.2 + 0.3)) of the remaining, limited PreP supply.
+            groupA will receive 40% (0.2 / (0.2 + 0.3)) of the remaining, limited supply
+            groupB will receive 60% (0.3 / (0.2 + 0.3)) of the remaining, limited supply.
 
         Args:
             name: (str) Intervention name. Useful for identification of and disambiguation of interventions.
@@ -39,8 +61,10 @@ class SuppliedIntervention(ss.Intervention):
             coverages: (list[float]) The target fraction of each corresponding eligibility group to cover by by the
                 intervention. Default: 1.0 per eligibility function.
             supplies: (Supplies): a Supplies object representing a discrete quantity of 1+ Supply of Products. Can
-                be used to in conjunction with or independently of coverage-limiting distribution. Default: No Supplies
-                (or limits of them)
+                be used to in conjunction with or independently of coverage-limiting distribution. The same Supplies
+                object may be passed to more than one SuppliedIntervention, in which case it is a shared resource:
+                quantity drawdown and pooled cost (Supplies.accrued_cost) are aggregated across all sharers. Default:
+                No Supplies (or limits of them)
             pars: (dict) intervention/module parameters to set
 
 
@@ -59,7 +83,10 @@ class SuppliedIntervention(ss.Intervention):
             raise ValueError(f"The number of eligibility groups {len(self.eligibilities)} must equal the number of "
                              f"provided coverage targets: {len(self.coverages)}")
 
-        self.accrued_cost = 0  # for supply use, distribution, and anything else a subclass wants to model
+        # Cost attributable to THIS intervention's own use() calls (supply use, distribution, and anything else a
+        # subclass wants to model). When self.supplies is shared across interventions, this is only this
+        # intervention's share; query self.supplies.accrued_cost for the shared pool total across all sharers.
+        self.accrued_cost = 0
         # self.allow_reuptake = False  # disabled for now pending further clarification/research request
 
         self.update_pars(pars, **kwargs)
@@ -70,6 +97,16 @@ class SuppliedIntervention(ss.Intervention):
         ]
         self.define_states(*states)
 
+    @abc.abstractmethod
+    def step(self):
+        """
+        Advance the intervention by one timestep. REQUIRED in subclasses; the sim calls this each step.
+
+        A typical implementation: identify eligible agents via self.eligibilities, narrow to care-seekers with
+        determine_care_seeking(), size per-group allocations with calc_supply_distribution(), then pass the offer
+        pools to distribute() with a dist_func that applies the effect and draws down supply via self.use().
+        """
+        raise NotImplementedError
 
     @property
     def default_coverages(self):
@@ -80,16 +117,22 @@ class SuppliedIntervention(ss.Intervention):
         return eligible.uids
 
     def use(self, prod_name, quantity):
-        """record cost to intervention for supplies used in addition to using up the quantity specified"""
+        """
+        Use the specified quantity of a product, accruing its cost to this intervention and returning
+        (remaining_quantity, cost).
+
+        The cost is added to self.accrued_cost (this intervention's own spend). If self.supplies is shared with other
+        interventions, those interventions' costs are not reflected here; query self.supplies.accrued_cost for the
+        pooled total across all sharers.
+        """
         remaining_quantity, cost = self.supplies.use(prod_name=prod_name, quantity=quantity)
         self.accrued_cost += cost
         return remaining_quantity, cost
 
     def calc_supply_distribution(self, offer_pools: list, cur_coverages: list, target_coverages: list,
                                  n_eligibles: list, n_supply):
-        # agents who can be offered to are those who are:
-        # seeking care AND not on PrEP of any kind
-        # ... OR are looking to reuptake this intervention
+        # offer_pools are the agents eligible to be offered the product this step (seeking care and not already on
+        # this intervention, or seeking to re-uptake it); assembled by the caller. Here we only size each pool.
         offer_pool_size = [len(pool) for pool in offer_pools]
 
         coverage_gaps = [(coverage - cur_coverages[i]) for i, coverage in enumerate(target_coverages)]
@@ -110,6 +153,24 @@ class SuppliedIntervention(ss.Intervention):
         return max_supply_dist
 
     def distribute(self, offer_pools, cur_coverages, target_coverages, n_eligibles, n_supply, dist_func):
+        """
+        Select recipients across the offer pools and apply the intervention's effect to them.
+
+        Args:
+            offer_pools: (list[ss.uids]) per eligibility group, the agents who may be offered the product this
+                step (typically care-seekers not already covered, plus any seeking to re-uptake). The caller
+                (a subclass's step()) is responsible for assembling these.
+            cur_coverages: (list[float]) current coverage per eligibility group.
+            target_coverages: (list[float]) target coverage per eligibility group.
+            n_eligibles: (list[int]) number of eligible agents per group.
+            n_supply: (int | float) units available to distribute this step (np.inf for unlimited).
+            dist_func: (Callable) callback applied to each group's selected recipients, invoked as
+                dist_func(uptakers=<ss.uids>) -> None. It applies the product's effect to the given agents (e.g.
+                setting state, flipping on_intervention) and is expected to draw down supply via self.use().
+
+        Returns:
+            ss.uids of all agents selected across all offer pools.
+        """
         import random  # TODO: change this to use a ss-based selection
 
         # determine how many agents will be distributed to in each offer pool

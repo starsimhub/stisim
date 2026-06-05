@@ -30,6 +30,12 @@ sc.options(interactive=False)
 
 test_eligibilities = [lambda sim: sim.people.female == True]
 
+class ConcreteSuppliedIntervention(SuppliedIntervention):
+    """Minimal concrete subclass so the abstract base's behavior (use(), cost accrual) can be exercised."""
+    def step(self):
+        pass
+
+
 def make_product(name='oral_prep', cost=10.0):
     return Product(name=name, category=ProductCategory.PREP, delivery_mode=DeliveryMode.PILL, cost=cost, eff_by_ti=[1.0])
 
@@ -39,8 +45,8 @@ def make_supply(product, quantity=100):
 
 
 def make_intervention(*supplies):
-    return SuppliedIntervention(supplies=Supplies(list(supplies)), name='intervention_name',
-                                eligibilities=test_eligibilities)
+    return ConcreteSuppliedIntervention(supplies=Supplies(list(supplies)), name='intervention_name',
+                                        eligibilities=test_eligibilities)
 
 
 # ---------------------------------------------------------------------------
@@ -123,6 +129,14 @@ def test_use_raises_on_insufficient_supply():
         intervention.use(prod_name=product.name, quantity=10)
 
 
+@sc.timer()
+def test_abstract_base_cannot_be_instantiated():
+    sc.heading("Ensuring the abstract SuppliedIntervention base cannot be instantiated without a step() override.")
+
+    with pytest.raises(TypeError):
+        SuppliedIntervention(name='abstract', eligibilities=test_eligibilities)
+
+
 if __name__ == '__main__':
     do_plot = True
     sc.options(interactive=do_plot)
@@ -133,6 +147,7 @@ if __name__ == '__main__':
     test_use_reflects_costs_across_multiple_contained_supplies()
     test_use_returns_remaining_quantity_and_cost()
     test_use_raises_on_insufficient_supply()
+    test_abstract_base_cannot_be_instantiated()
 
     sc.heading("Total:")
     timer.toc()

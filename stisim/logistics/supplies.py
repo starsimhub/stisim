@@ -42,7 +42,13 @@ class Supplies:
 
     @property
     def accrued_cost(self):
-        """the summed cost of all contained Supply objects"""
+        """
+        The summed cost of all contained Supply objects.
+
+        A Supplies object may be shared across more than one SuppliedIntervention (it can be passed to several at
+        construction), so this is the total cost of the pool across every intervention that has drawn on it. For the
+        cost attributable to a single intervention, see SuppliedIntervention.accrued_cost instead.
+        """
         cost = sum([supply.accrued_cost for supply in self.supplies])
         return cost
 
