@@ -199,7 +199,7 @@ class MFNetwork(BaseNetwork):
         in_age_lim = (people.age < upper_age)
         uids = in_age_lim.uids
 
-        lam = np.full(uids.shape, fill_value=np.nan, dtype=ss_float)
+        mu = np.full(uids.shape, fill_value=np.nan, dtype=ss_float)
         for rg in range(self.pars.n_risk_groups):
             f_conc = self.pars[f'f{rg}_conc']
             m_conc = self.pars[f'm{rg}_conc']
@@ -207,11 +207,17 @@ class MFNetwork(BaseNetwork):
             in_group = in_risk_group & in_age_lim
             f_in = (people.female & in_group)[uids]
             m_in = (people.male   & in_group)[uids]
-            if f_in.any(): lam[f_in] = f_conc
-            if m_in.any(): lam[m_in] = m_conc
+            if f_in.any(): mu[f_in] = f_conc
+            if m_in.any(): mu[m_in] = m_conc
 
-        self.pars.concurrency_dist.set(lam=lam)
-        self.concurrency[uids] = self.pars.concurrency_dist.rvs(uids) + 1
+        dist = self.pars.concurrency_dist
+        if isinstance(dist, ss.nbinom):
+            n = dist.pars['n']
+            p = n / (n + mu)
+            dist.set(n=n, p=p)
+        else:
+            dist.set(lam=mu)
+        self.concurrency[uids] = dist.rvs(uids) + 1
 
         return
 

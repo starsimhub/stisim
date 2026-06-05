@@ -313,6 +313,7 @@ class Syphilis(BaseSTI):
         super().init_results()
         results = [
             ss.Result('n_active', dtype=int, label="Number of active cases", auto_plot=False),
+            ss.Result('serological_prevalence', dtype=float, scale=False, label="Serological prevalence (ever exposed)"),
             ss.Result('pregnant_prevalence', dtype=float, scale=False, label="Pregnant prevalence", auto_plot=False),
             ss.Result('detected_pregnant_prevalence', dtype=float, scale=False, label="ANC prevalence", auto_plot=False),
             ss.Result('delivery_prevalence', dtype=float, scale=False, label="Delivery prevalence", auto_plot=False),
@@ -339,6 +340,7 @@ class Syphilis(BaseSTI):
             skl = '' if sk == '' else f' ({sk.upper()})'
             if skk != '':
                 results += [
+                    ss.Result(f'serological_prevalence{skk}', scale=False, label=f"Serological prevalence{skl}", auto_plot=False),
                     ss.Result(f'active_prevalence{skk}', scale=False, label=f"Active prevalence{skl}", auto_plot=False),
                 ]
 
@@ -496,7 +498,7 @@ class Syphilis(BaseSTI):
 
         # Overwrite prevalence so we're always storing prevalence of syphilis among sexually active adults
         self.results['prevalence'][ti] = cond_prob(self.infected, sexually_active_adults)
-        # self.results['active_prevalence'][ti] = cond_prob(self.active, sexually_active_adults)
+        self.results['serological_prevalence'][ti] = cond_prob(self.ever_exposed, sexually_active_adults)
         self.results['n_active'][ti] = n_active
 
         # Pregnant women prevalence, if present
@@ -541,7 +543,11 @@ class Syphilis(BaseSTI):
             skk = '' if pkey == '' else f'_{pkey}'
 
             n_act = self.active & ppl[pattr]
-            self.results[f'active_prevalence{skk}'][ti] = cond_prob(self.active, adults & ppl[pattr])
+            sex_denom = sexually_active_adults & ppl[pattr]
+            if skk != '':
+                self.results[f'prevalence{skk}'][ti] = cond_prob(self.infected, sex_denom)
+                self.results[f'serological_prevalence{skk}'][ti] = cond_prob(self.ever_exposed, sex_denom)
+            self.results[f'active_prevalence{skk}'][ti] = cond_prob(self.active, sex_denom)
 
             # Compute age results
             age_results = dict(active_prevalence = div(self.agehist(n_act), self.agehist(ppl[pattr])))
