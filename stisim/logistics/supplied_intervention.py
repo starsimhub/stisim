@@ -1,3 +1,4 @@
+"""Define SuppliedIntervention: an abstract base for interventions that distribute supplied Products."""
 import abc
 from typing import Callable
 
@@ -137,8 +138,33 @@ class SuppliedIntervention(ss.Intervention, metaclass=abc.ABCMeta):
 
     def calc_supply_distribution(self, offer_pools: list, cur_coverages: list, target_coverages: list,
                                  n_eligibles: list, n_supply):
-        # offer_pools are the agents eligible to be offered the product this step (seeking care and not already on
-        # this intervention, or seeking to re-uptake it); assembled by the caller. Here we only size each pool.
+        """
+        Compute the maximum number of distributions to perform for each eligibility group.
+
+        offer_pools, cur_coverages, target_coverages, and n_eligibles are PARALLEL lists: they are index-aligned
+        (entry i describes eligibility group i) and must all be non-empty and the same length, one entry per
+        eligibility group. n_supply is a single scalar, not a per-group list. A ValueError is raised if the four
+        lists are empty or are not all the same length.
+
+        Args:
+            offer_pools: (list[ss.uids]) per group, the agents who may be offered the product this step (seeking
+                care and not already on this intervention, or seeking to re-uptake it); assembled by the caller.
+            cur_coverages: (list[float]) per group, current coverage.
+            target_coverages: (list[float]) per group, target coverage.
+            n_eligibles: (list[int]) per group, number of eligible agents.
+            n_supply: (int | float) units available to distribute this step (np.inf for unlimited).
+
+        Returns:
+            list[int]: per group, the maximum number of distributions to perform.
+        """
+        lengths = {len(offer_pools), len(cur_coverages), len(target_coverages), len(n_eligibles)}
+        if len(lengths) != 1 or 0 in lengths:
+            raise ValueError(
+                f"offer_pools, cur_coverages, target_coverages, and n_eligibles must be non-empty, index-aligned, "
+                f"and the same length, got lengths {len(offer_pools)}, {len(cur_coverages)}, "
+                f"{len(target_coverages)}, {len(n_eligibles)} respectively.")
+
+        # Here we only size each pool; see the Args above for what offer_pools represents.
         offer_pool_size = [len(pool) for pool in offer_pools]
 
         coverage_gaps = [(coverage - cur_coverages[i]) for i, coverage in enumerate(target_coverages)]
@@ -161,6 +187,11 @@ class SuppliedIntervention(ss.Intervention, metaclass=abc.ABCMeta):
     def distribute(self, offer_pools, cur_coverages, target_coverages, n_eligibles, n_supply, dist_func):
         """
         Select recipients across the offer pools and apply the intervention's effect to them.
+
+        offer_pools, cur_coverages, target_coverages, and n_eligibles are PARALLEL lists: they are index-aligned
+        (entry i describes eligibility group i) and must all be non-empty and the same length, one entry per
+        eligibility group. n_supply is a single scalar, not a per-group list. calc_supply_distribution() (called
+        here) raises ValueError if the four lists are empty or are not all the same length.
 
         Args:
             offer_pools: (list[ss.uids]) per eligibility group, the agents who may be offered the product this

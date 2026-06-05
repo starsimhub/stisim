@@ -147,6 +147,55 @@ def test_out_of_range_coverage_raises():
         ConcreteSuppliedIntervention(name='x', eligibilities=test_eligibilities, coverages=[-0.3])
 
 
+@sc.timer()
+def test_calc_supply_distribution_raises_on_length_mismatch():
+    sc.heading("Ensuring calc_supply_distribution raises ValueError when the parallel lists differ in length.")
+
+    intervention = make_intervention()
+
+    with pytest.raises(ValueError):
+        intervention.calc_supply_distribution(
+            offer_pools=[[], []],
+            cur_coverages=[0.0],            # length 1: mismatched with the others (length 2)
+            target_coverages=[1.0, 1.0],
+            n_eligibles=[10, 10],
+            n_supply=5,
+        )
+
+
+@sc.timer()
+def test_calc_supply_distribution_raises_on_empty_lists():
+    sc.heading("Ensuring calc_supply_distribution raises ValueError when the (aligned) lists are empty.")
+
+    intervention = make_intervention()
+
+    with pytest.raises(ValueError):
+        intervention.calc_supply_distribution(
+            offer_pools=[],
+            cur_coverages=[],
+            target_coverages=[],
+            n_eligibles=[],
+            n_supply=5,
+        )
+
+
+@sc.timer()
+def test_calc_supply_distribution_accepts_aligned_lists():
+    sc.heading("Ensuring calc_supply_distribution returns a per-group result for correctly aligned lists.")
+
+    intervention = make_intervention()
+
+    result = intervention.calc_supply_distribution(
+        offer_pools=[[], []],
+        cur_coverages=[0.0, 0.0],
+        target_coverages=[1.0, 1.0],
+        n_eligibles=[10, 10],
+        n_supply=5,
+    )
+
+    assert len(result) == 2, f"Expected one distribution count per group (2), got {len(result)}"
+
+
 if __name__ == '__main__':
     do_plot = True
     sc.options(interactive=do_plot)
@@ -159,6 +208,9 @@ if __name__ == '__main__':
     test_use_raises_on_insufficient_supply()
     test_abstract_base_cannot_be_instantiated()
     test_out_of_range_coverage_raises()
+    test_calc_supply_distribution_raises_on_length_mismatch()
+    test_calc_supply_distribution_raises_on_empty_lists()
+    test_calc_supply_distribution_accepts_aligned_lists()
 
     sc.heading("Total:")
     timer.toc()

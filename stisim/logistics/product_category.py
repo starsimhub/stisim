@@ -1,3 +1,4 @@
+"""Define ProductCategory: the category enum used to group Products by function."""
 from enum import Enum
 
 __all__ = ["ProductCategory"]

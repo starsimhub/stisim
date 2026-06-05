@@ -1,3 +1,4 @@
+"""Define the Product class: a distributable item with time-varying efficacy and a per-unit cost."""
 import warnings
 
 from stisim.logistics.delivery_mode import DeliveryMode
@@ -62,3 +63,7 @@ class Product:  # TODO: determine sublassing potential with ss.Product + feature
     def max_durability(self):
         """The maximum number of timesteps for which the product has any efficacy"""
         return len(self.eff_by_ti)
+
+    def __repr__(self):
+        return (f"Product(name={self.name!r}, category={self.category.name}, "
+                f"delivery_mode={self.delivery_mode.name}, cost={self.cost})")

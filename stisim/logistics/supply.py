@@ -1,3 +1,4 @@
+"""Define Supply: a quantity of a single Product, tracking its use and accrued cost."""
 import numpy as np
 
 from stisim.logistics.product import Product
@@ -49,3 +50,6 @@ class Supply:
         """increase the available quantity of the product"""
         self.quantity += quantity
         return self.quantity
+
+    def __repr__(self):
+        return f"Supply(product={self.product.name!r}, quantity={self.quantity})"

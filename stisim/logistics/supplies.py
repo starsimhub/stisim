@@ -1,3 +1,4 @@
+"""Define Supplies: an immutable, name-keyed collection of Supply objects."""
 from stisim.logistics import ProductCategory
 from stisim.logistics.supply import Supply
 

@@ -1,3 +1,4 @@
+"""Define DeliveryMode: the enum describing how a Product is delivered."""
 from enum import Enum
 
 __all__ = ["DeliveryMode"]
