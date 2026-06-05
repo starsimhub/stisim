@@ -1,6 +1,8 @@
 from stisim.logistics import ProductCategory
 from stisim.logistics.supply import Supply
 
+__all__ = ["Supplies"]
+
 
 class Supplies:
     class MissingSupplyException(ValueError):

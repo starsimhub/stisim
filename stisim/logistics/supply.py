@@ -2,6 +2,8 @@ import numpy as np
 
 from stisim.logistics.product import Product
 
+__all__ = ["Supply"]
+
 
 class Supply:
     class InsufficientSupplyException(ValueError):

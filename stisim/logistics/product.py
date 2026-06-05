@@ -3,6 +3,8 @@ import warnings
 from stisim.logistics.delivery_mode import DeliveryMode
 from stisim.logistics.product_category import ProductCategory
 
+__all__ = ["Product"]
+
 
 class Product:  # TODO: determine sublassing potential with ss.Product + features that can be pushed there, too
     def __init__(self, name: str, category: ProductCategory, delivery_mode: DeliveryMode, cost: float, eff_by_ti: list[float]):

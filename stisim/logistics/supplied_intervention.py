@@ -5,6 +5,8 @@ import starsim as ss
 
 from stisim.logistics.supplies import Supplies
 
+__all__ = ["SuppliedIntervention"]
+
 
 class SuppliedIntervention(ss.Intervention, metaclass=abc.ABCMeta):
     """
