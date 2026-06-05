@@ -83,6 +83,10 @@ class SuppliedIntervention(ss.Intervention, metaclass=abc.ABCMeta):
             raise ValueError(f"The number of eligibility groups {len(self.eligibilities)} must equal the number of "
                              f"provided coverage targets: {len(self.coverages)}")
 
+        for i, coverage in enumerate(self.coverages):
+            if not (0.0 <= coverage <= 1.0):
+                raise ValueError(f"coverages must be fractions in [0.0, 1.0], got {coverage!r} at index {i}.")
+
         # Cost attributable to THIS intervention's own use() calls (supply use, distribution, and anything else a
         # subclass wants to model). When self.supplies is shared across interventions, this is only this
         # intervention's share; query self.supplies.accrued_cost for the shared pool total across all sharers.

@@ -137,6 +137,16 @@ def test_abstract_base_cannot_be_instantiated():
         SuppliedIntervention(name='abstract', eligibilities=test_eligibilities)
 
 
+@sc.timer()
+def test_out_of_range_coverage_raises():
+    sc.heading("Ensuring a coverage outside [0.0, 1.0] raises ValueError at construction.")
+
+    with pytest.raises(ValueError):
+        ConcreteSuppliedIntervention(name='x', eligibilities=test_eligibilities, coverages=[1.5])
+    with pytest.raises(ValueError):
+        ConcreteSuppliedIntervention(name='x', eligibilities=test_eligibilities, coverages=[-0.3])
+
+
 if __name__ == '__main__':
     do_plot = True
     sc.options(interactive=do_plot)
@@ -148,6 +158,7 @@ if __name__ == '__main__':
     test_use_returns_remaining_quantity_and_cost()
     test_use_raises_on_insufficient_supply()
     test_abstract_base_cannot_be_instantiated()
+    test_out_of_range_coverage_raises()
 
     sc.heading("Total:")
     timer.toc()

@@ -95,6 +95,33 @@ def test_invalid_delivery_mode_raises():
         Product(name='x', category=ProductCategory.PREP, delivery_mode='carrier_pigeon', cost=1.0, eff_by_ti=[1.0])
 
 
+@sc.timer()
+def test_empty_eff_by_ti_raises():
+    sc.heading("Ensuring an empty eff_by_ti raises ValueError at construction.")
+
+    with pytest.raises(ValueError):
+        Product(name='x', category=ProductCategory.PREP, delivery_mode=DeliveryMode.PILL, cost=1.0, eff_by_ti=[])
+
+
+@sc.timer()
+def test_out_of_range_efficacy_raises():
+    sc.heading("Ensuring eff_by_ti entries outside [0.0, 1.0] raise ValueError at construction.")
+
+    with pytest.raises(ValueError):
+        Product(name='x', category=ProductCategory.PREP, delivery_mode=DeliveryMode.PILL, cost=1.0, eff_by_ti=[1.5])
+    with pytest.raises(ValueError):
+        Product(name='x', category=ProductCategory.PREP, delivery_mode=DeliveryMode.PILL, cost=1.0, eff_by_ti=[0.8, -0.2])
+
+
+@sc.timer()
+def test_negative_cost_warns_but_is_permitted():
+    sc.heading("Ensuring a negative cost emits a warning but is still accepted.")
+
+    with pytest.warns(Warning):
+        p = Product(name='x', category=ProductCategory.PREP, delivery_mode=DeliveryMode.PILL, cost=-3.0, eff_by_ti=[1.0])
+    assert p.cost == -3.0, f"Expected negative cost to be stored, got {p.cost}"
+
+
 if __name__ == '__main__':
     do_plot = True
     sc.options(interactive=do_plot)
@@ -107,6 +134,9 @@ if __name__ == '__main__':
     test_enum_members_accepted_directly()
     test_invalid_category_raises()
     test_invalid_delivery_mode_raises()
+    test_empty_eff_by_ti_raises()
+    test_out_of_range_efficacy_raises()
+    test_negative_cost_warns_but_is_permitted()
 
     sc.heading("Total:")
     timer.toc()

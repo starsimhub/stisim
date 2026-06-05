@@ -1,3 +1,5 @@
+import warnings
+
 from stisim.logistics.delivery_mode import DeliveryMode
 from stisim.logistics.product_category import ProductCategory
 
@@ -19,14 +21,24 @@ class Product:  # TODO: determine sublassing potential with ss.Product + feature
                 have the same category but are delivered differently in intervention-relevant ways (for example,
                 pill vs. shot). Must be a DeliveryMode member; anything else (including its raw string value) raises
                 ValueError at construction.
-            cost: (float) a per dose/distribution usage cost (units: currency)
+            cost: (float) a per dose/distribution usage cost (units: currency). Negative costs are permitted but
+                emit a warning, as they are unusual.
             eff_by_ti: (list[float]) A effectivity durability map of the product in time, by time indices since
-                delivery.
+                delivery. Must be non-empty and every entry must be a fraction in [0.0, 1.0].
         """
         self.name = name # lenacapavir, ...
         self.category = self._validate(category, ProductCategory, 'category')  # ProductCategory.PREP, ...
         self.delivery_mode = self._validate(delivery_mode, DeliveryMode, 'delivery_mode')  # DeliveryMode.SHOT, ...
+
+        if cost < 0:
+            warnings.warn(f"Product cost is negative ({cost}); this is unusual but permitted.")
         self.cost = cost # per dose/item
+
+        if len(eff_by_ti) == 0:
+            raise ValueError("eff_by_ti must be non-empty; a product needs at least one efficacy value.")
+        for i, eff in enumerate(eff_by_ti):
+            if not (0.0 <= eff <= 1.0):
+                raise ValueError(f"eff_by_ti entries must be in [0.0, 1.0], got {eff!r} at index {i}.")
         self.eff_by_ti = eff_by_ti # TODO, usage of this should accept different formats than just by ti. Probably a Time/Date class-based representation?
 
     @staticmethod

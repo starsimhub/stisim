@@ -100,6 +100,14 @@ def test_use_entire_supply_does_not_raise():
 
 
 @sc.timer()
+def test_negative_quantity_raises():
+    sc.heading("Ensuring a negative initial quantity raises ValueError at construction.")
+
+    with pytest.raises(ValueError):
+        Supply(quantity=-5, product=_make_product())
+
+
+@sc.timer()
 def test_use_raises_on_overuse():
     sc.heading("Ensuring use() raises InsufficientSupplyException when requested quantity exceeds supply.")
 
@@ -164,6 +172,7 @@ if __name__ == '__main__':
     test_use_accrues_cost()
     test_multiple_uses_accumulate_cost()
     test_use_entire_supply_does_not_raise()
+    test_negative_quantity_raises()
     test_use_raises_on_overuse()
     test_use_does_not_modify_state_on_overuse()
     test_add_increases_quantity_and_returns_new_quantity()
