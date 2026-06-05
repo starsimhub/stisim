@@ -83,6 +83,13 @@ class SyphPars(BaseSTIPars):
         self.p_death = ss.bernoulli(p=0.05)  # probability of dying of tertiary syphilis
         self.time_to_death = ss.lognorm_ex(ss.years(5), ss.years(5))  # Time to death
 
+        # Time from late-latent onset until non-treponemal titre falls below
+        # detection threshold on serological tests (WHO 2021 fig 7: late latent
+        # described as "maybe positive but lower titres, possibly negative").
+        # Wide default prior; expected to be tuned in calibration. Expert input
+        # pending.
+        self.time_to_undetectable = ss.lognorm_ex(ss.years(5), ss.years(5))
+
         # Transmission by stage
         self.beta_m2f = 0.1
         self.eff_condom = 0.0
@@ -158,6 +165,7 @@ class Syphilis(BaseSTI):
             ss.BoolState('tertiary'),     # Includes complications (cardio/neuro/disfigurement)
             ss.BoolState('immune'),       # After effective treatment people may acquire temp immunity
             ss.BoolState('ever_exposed'), # Anyone ever exposed - stays true after treatment
+            ss.BoolState('detectable'),   # Non-treponemal serology positive (dual-RDT 'active syph' would detect)
             ss.IntArr('n_infections', default=0),  # Lifetime infection count (incremented each time infected)
 
             # Symptom visibility — determined at infection/stage entry, reflects anatomical site
@@ -175,6 +183,7 @@ class Syphilis(BaseSTI):
             ss.FloatArr('ti_latent'),
             ss.FloatArr('dur_early'),
             ss.FloatArr('ti_tertiary'),
+            ss.FloatArr('ti_detectable_end'),  # When non-trep titre drops below detection
             ss.FloatArr('ti_dead'),
             ss.FloatArr('ti_immune'),
             ss.FloatArr('ti_miscarriage'),
@@ -318,6 +327,7 @@ class Syphilis(BaseSTI):
             ss.Result('detected_pregnant_prevalence', dtype=float, scale=False, label="ANC prevalence", auto_plot=False),
             ss.Result('delivery_prevalence', dtype=float, scale=False, label="Delivery prevalence", auto_plot=False),
             ss.Result('active_prevalence', dtype=float, scale=False, label="Active prevalence"),
+            ss.Result('detectable_prevalence', dtype=float, scale=False, label="Detectable prevalence (non-trep RDT positive)"),
             ss.Result('new_nnds', dtype=int, label="Neonatal deaths", auto_plot=False),
             ss.Result('new_stillborns', dtype=int, label="Stillbirths", auto_plot=False),
             ss.Result('new_congenital', dtype=int, label="Congenital cases"),
@@ -342,6 +352,7 @@ class Syphilis(BaseSTI):
                 results += [
                     ss.Result(f'serological_prevalence{skk}', scale=False, label=f"Serological prevalence{skl}", auto_plot=False),
                     ss.Result(f'active_prevalence{skk}', scale=False, label=f"Active prevalence{skl}", auto_plot=False),
+                    ss.Result(f'detectable_prevalence{skk}', scale=False, label=f"Detectable prevalence{skl}", auto_plot=False),
                 ]
 
             for ab1,ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
@@ -456,6 +467,14 @@ class Syphilis(BaseSTI):
             self.late[is_early] = False
             self.late[is_late] = True
 
+        # Serology detectability: non-trep titre falls below detection at
+        # the per-agent ti_detectable_end (drawn from time_to_undetectable in
+        # set_latent_prognoses). Reactivation back to secondary re-sets
+        # detectable=True in set_secondary_prognoses.
+        becomes_undetectable = self.detectable & (self.ti_detectable_end <= ti)
+        if len(becomes_undetectable.uids) > 0:
+            self.detectable[becomes_undetectable] = False
+
         return
 
     def step_die(self, uids):
@@ -473,6 +492,7 @@ class Syphilis(BaseSTI):
         self.immune[uids] = False
         self.congenital[uids] = False
         self.ever_exposed[uids] = False
+        self.detectable[uids] = False
         self.n_infections[uids] = 0
         self.chancre_visible[uids] = False
         self.rash_visible[uids] = False
@@ -499,6 +519,7 @@ class Syphilis(BaseSTI):
         # Overwrite prevalence so we're always storing prevalence of syphilis among sexually active adults
         self.results['prevalence'][ti] = cond_prob(self.infected, sexually_active_adults)
         self.results['serological_prevalence'][ti] = cond_prob(self.ever_exposed, sexually_active_adults)
+        self.results['detectable_prevalence'][ti] = cond_prob(self.detectable, sexually_active_adults)
         self.results['n_active'][ti] = n_active
 
         # Pregnant women prevalence, if present
@@ -547,6 +568,7 @@ class Syphilis(BaseSTI):
             if skk != '':
                 self.results[f'prevalence{skk}'][ti] = cond_prob(self.infected, sex_denom)
                 self.results[f'serological_prevalence{skk}'][ti] = cond_prob(self.ever_exposed, sex_denom)
+                self.results[f'detectable_prevalence{skk}'][ti] = cond_prob(self.detectable, sex_denom)
             self.results[f'active_prevalence{skk}'][ti] = cond_prob(self.active, sex_denom)
 
             # Compute age results
@@ -636,9 +658,18 @@ class Syphilis(BaseSTI):
         """ Set prognoses for people who have just progressed to secondary infection """
         dur_secondary = self.pars.dur_secondary.rvs(uids)
         self.ti_latent[uids] = self.ti_secondary[uids] + rr(dur_secondary)
+        # Non-treponemal titre rises by secondary; serology becomes detectable.
+        # Also covers reactivation from late latent (titre climbs again — Fig 7).
+        self.detectable[uids] = True
         return
 
     def set_latent_prognoses(self, uids):
+        # Late-latent serology: draw the time at which non-trep titre is
+        # expected to fall below detection. ti_detectable_end is measured
+        # from the *start of late latent* = ti_latent + dur_early.
+        late_start = self.ti_latent[uids] + self.dur_early[uids]
+        self.ti_detectable_end[uids] = late_start + rr(self.pars.time_to_undetectable.rvs(uids))
+
         # Reactivators
         will_reactivate = self.pars.p_reactivate.rvs(uids)
         reactivate_uids = uids[will_reactivate]
