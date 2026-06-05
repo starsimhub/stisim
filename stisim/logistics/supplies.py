@@ -20,21 +20,40 @@ class Supplies:
             supplies: The individual Supply objects containing Products that will be distributed within an
                 intervention.
         """
-        # NOTE: `supplies` is stored by reference, and the _supplies_by_name/_supplies_by_category indexes below are
-        # built once here. Mutating the passed-in list (or self.supplies) after construction would desync the
-        # indexes. This is fine given intended usage (supplies are fixed at construction); if mutation is ever
-        # needed, add add_supply/remove_supply methods that rebuild the indexes, or copy with list(supplies).
-        self.supplies = [] if supplies is None else supplies
-        self._supplies_by_name = {supply.product.name: supply for supply in self.supplies}
-        if len(self._supplies_by_name) < len(self.supplies):
+        # A Supplies is immutable after construction: the contained Supply objects are fixed here and the
+        # _supplies_by_name/_supplies_by_category indexes are built once, so they can never desync. We copy the
+        # passed-in list so later mutation of the caller's list does not affect us, and expose the contents only
+        # through the read-only `supplies` property. (The Supply objects themselves still mutate as they are used.)
+        self._supplies = [] if supplies is None else list(supplies)
+        self._supplies_by_name = {supply.product.name: supply for supply in self._supplies}
+        if len(self._supplies_by_name) < len(self._supplies):
             raise self.DuplicateSupplyException(f"Two or more products with the same name were added to a Supplies. "
                                                 f"Product names must be unique.")
         self._supplies_by_category = {}
-        for supply in self.supplies:
+        for supply in self._supplies:
             category = supply.product.category
             if category not in self._supplies_by_category:
                 self._supplies_by_category[category] = []
             self._supplies_by_category[category].append(supply)
+
+    @property
+    def supplies(self) -> list[Supply]:
+        """The contained Supply objects (a copy; Supplies is immutable after construction)."""
+        return list(self._supplies)
+
+    def __len__(self) -> int:
+        return len(self._supplies)
+
+    def __iter__(self):
+        """Iterate over the contained product names (Supplies is keyed by product name)."""
+        return iter(self._supplies_by_name)
+
+    def __contains__(self, prod_name) -> bool:
+        return prod_name in self._supplies_by_name
+
+    def __getitem__(self, prod_name) -> Supply:
+        """supplies[prod_name] -> the Supply for that product name (raises MissingSupplyException if absent)."""
+        return self.get_supply(prod_name)
 
     def use(self, prod_name, quantity):
         """use a specified quantity of a product, returning the remaining quantity and usage cost"""
@@ -51,15 +70,15 @@ class Supplies:
         construction), so this is the total cost of the pool across every intervention that has drawn on it. For the
         cost attributable to a single intervention, see SuppliedIntervention.accrued_cost instead.
         """
-        cost = sum([supply.accrued_cost for supply in self.supplies])
+        cost = sum([supply.accrued_cost for supply in self._supplies])
         return cost
 
     @property
-    def product_names(self) :
-        return self._supplies_by_name.keys()
+    def product_names(self) -> list[str]:
+        return list(self._supplies_by_name)
 
     def has_product(self, prod_name) -> bool:
-        return prod_name in self._supplies_by_name
+        return prod_name in self
 
     def get_quantity(self, prod_name) -> int:
         return self.get_supply(prod_name=prod_name).quantity
@@ -84,6 +103,6 @@ class Supplies:
         return requested
 
     def __repr__(self):
-        strs = [f"{supply.product.name}: {supply.quantity}" for supply in self.supplies]
+        strs = [f"{supply.product.name}: {supply.quantity}" for supply in self._supplies]
         result = '\n'.join(strs)
         return result

@@ -211,6 +211,73 @@ def test_get_supplies_raises_on_non_member_category():
         s.get_supplies(prod_category='prep')
 
 
+@sc.timer()
+def test_len_counts_supplies():
+    sc.heading("Ensuring len(Supplies) returns the number of contained Supply objects.")
+
+    s = Supplies(supplies=[_make_supply(name='oral_prep'), _make_supply(name='injectable_prep')])
+
+    assert len(s) == 2, f"Expected len 2, got {len(s)}"
+    assert len(Supplies()) == 0, f"Expected len 0 for empty Supplies, got {len(Supplies())}"
+
+
+@sc.timer()
+def test_iter_yields_product_names():
+    sc.heading("Ensuring iterating a Supplies yields its product names (it is keyed by product name).")
+
+    s = Supplies(supplies=[_make_supply(name='oral_prep'), _make_supply(name='injectable_prep')])
+
+    assert set(s) == {'oral_prep', 'injectable_prep'}, f"Expected product names on iteration, got {set(s)}"
+
+
+@sc.timer()
+def test_contains_by_product_name():
+    sc.heading("Ensuring `in` tests membership by product name (consistent with has_product).")
+
+    s = Supplies(supplies=[_make_supply(name='oral_prep')])
+
+    assert 'oral_prep' in s, "Expected 'oral_prep' to be in Supplies"
+    assert 'condom' not in s, "Expected 'condom' not to be in Supplies"
+    assert s.has_product('oral_prep') == ('oral_prep' in s), "Expected has_product to agree with `in`"
+
+
+@sc.timer()
+def test_getitem_by_product_name():
+    sc.heading("Ensuring supplies[prod_name] returns the Supply, and raises MissingSupplyException if absent.")
+
+    supply = _make_supply(name='oral_prep')
+    s = Supplies(supplies=[supply])
+
+    assert s['oral_prep'] is supply, "Expected supplies['oral_prep'] to return the exact Supply object"
+    with pytest.raises(Supplies.MissingSupplyException):
+        _ = s['condom']
+
+
+@sc.timer()
+def test_product_names_is_list_snapshot():
+    sc.heading("Ensuring product_names returns a plain list snapshot, not a live dict view.")
+
+    s = Supplies(supplies=[_make_supply(name='oral_prep')])
+    names = s.product_names
+
+    assert isinstance(names, list), f"Expected a list, got {type(names)}"
+    assert names == ['oral_prep'], f"Expected ['oral_prep'], got {names}"
+
+
+@sc.timer()
+def test_supplies_property_returns_copy():
+    sc.heading("Ensuring the supplies property returns a copy so mutation cannot desync internal state.")
+
+    supply = _make_supply(name='oral_prep')
+    s = Supplies(supplies=[supply])
+
+    returned = s.supplies
+    returned.append(_make_supply(name='condom'))  # mutate the copy
+
+    assert len(s) == 1, f"Expected internal state unchanged (len 1), got {len(s)}"
+    assert 'condom' not in s, "Expected mutation of the returned list not to affect the Supplies"
+
+
 if __name__ == '__main__':
     do_plot = True
     sc.options(interactive=do_plot)
@@ -230,6 +297,12 @@ if __name__ == '__main__':
     test_get_supplies_returns_all_matching()
     test_get_supplies_raises_if_missing()
     test_get_supplies_raises_on_non_member_category()
+    test_len_counts_supplies()
+    test_iter_yields_product_names()
+    test_contains_by_product_name()
+    test_getitem_by_product_name()
+    test_product_names_is_list_snapshot()
+    test_supplies_property_returns_copy()
 
     sc.heading("Total:")
     timer.toc()
