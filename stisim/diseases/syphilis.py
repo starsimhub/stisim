@@ -323,11 +323,13 @@ class Syphilis(BaseSTI):
         results = [
             ss.Result('n_active', dtype=int, label="Number of active cases", auto_plot=False),
             ss.Result('serological_prevalence', dtype=float, scale=False, label="Serological prevalence (ever exposed)"),
+            ss.Result('serological_prevalence_15_64', dtype=float, scale=False, label="Serological prevalence, ages 15-64 (household-survey denominator)"),
             ss.Result('pregnant_prevalence', dtype=float, scale=False, label="Pregnant prevalence", auto_plot=False),
             ss.Result('detected_pregnant_prevalence', dtype=float, scale=False, label="ANC prevalence", auto_plot=False),
             ss.Result('delivery_prevalence', dtype=float, scale=False, label="Delivery prevalence", auto_plot=False),
             ss.Result('active_prevalence', dtype=float, scale=False, label="Active prevalence"),
             ss.Result('detectable_prevalence', dtype=float, scale=False, label="Detectable prevalence (non-trep RDT positive)"),
+            ss.Result('detectable_prevalence_15_64', dtype=float, scale=False, label="Detectable prevalence, ages 15-64 (household-survey denominator)"),
             ss.Result('new_nnds', dtype=int, label="Neonatal deaths", auto_plot=False),
             ss.Result('new_stillborns', dtype=int, label="Stillbirths", auto_plot=False),
             ss.Result('new_congenital', dtype=int, label="Congenital cases"),
@@ -351,8 +353,10 @@ class Syphilis(BaseSTI):
             if skk != '':
                 results += [
                     ss.Result(f'serological_prevalence{skk}', scale=False, label=f"Serological prevalence{skl}", auto_plot=False),
+                    ss.Result(f'serological_prevalence_15_64{skk}', scale=False, label=f"Serological prevalence, ages 15-64{skl}", auto_plot=False),
                     ss.Result(f'active_prevalence{skk}', scale=False, label=f"Active prevalence{skl}", auto_plot=False),
                     ss.Result(f'detectable_prevalence{skk}', scale=False, label=f"Detectable prevalence{skl}", auto_plot=False),
+                    ss.Result(f'detectable_prevalence_15_64{skk}', scale=False, label=f"Detectable prevalence, ages 15-64{skl}", auto_plot=False),
                 ]
 
             for ab1,ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
@@ -515,11 +519,15 @@ class Syphilis(BaseSTI):
         n_active = res['n_primary'][ti] + res['n_secondary'][ti]
         adults = (ppl.age >= 15) & (ppl.age < 50)
         sexually_active_adults = adults & self.sim.networks.structuredsexual.active(self.sim.people)
+        # Household-survey denominator (ZIMPHIA, etc.): all alive 15-64, no debut/network filter.
+        adults_15_64 = (ppl.age >= 15) & (ppl.age < 65) & ppl.alive
 
         # Overwrite prevalence so we're always storing prevalence of syphilis among sexually active adults
         self.results['prevalence'][ti] = cond_prob(self.infected, sexually_active_adults)
         self.results['serological_prevalence'][ti] = cond_prob(self.ever_exposed, sexually_active_adults)
         self.results['detectable_prevalence'][ti] = cond_prob(self.detectable, sexually_active_adults)
+        self.results['serological_prevalence_15_64'][ti] = cond_prob(self.ever_exposed, adults_15_64)
+        self.results['detectable_prevalence_15_64'][ti] = cond_prob(self.detectable, adults_15_64)
         self.results['n_active'][ti] = n_active
 
         # Pregnant women prevalence, if present
@@ -565,10 +573,13 @@ class Syphilis(BaseSTI):
 
             n_act = self.active & ppl[pattr]
             sex_denom = sexually_active_adults & ppl[pattr]
+            sex_denom_15_64 = adults_15_64 & ppl[pattr]
             if skk != '':
                 self.results[f'prevalence{skk}'][ti] = cond_prob(self.infected, sex_denom)
                 self.results[f'serological_prevalence{skk}'][ti] = cond_prob(self.ever_exposed, sex_denom)
                 self.results[f'detectable_prevalence{skk}'][ti] = cond_prob(self.detectable, sex_denom)
+                self.results[f'serological_prevalence_15_64{skk}'][ti] = cond_prob(self.ever_exposed, sex_denom_15_64)
+                self.results[f'detectable_prevalence_15_64{skk}'][ti] = cond_prob(self.detectable, sex_denom_15_64)
             self.results[f'active_prevalence{skk}'][ti] = cond_prob(self.active, sex_denom)
 
             # Compute age results
