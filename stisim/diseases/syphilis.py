@@ -164,8 +164,8 @@ class Syphilis(BaseSTI):
             ss.BoolState('latent'),       # Can relapse to secondary, remain in latent, or progress to tertiary,
             ss.BoolState('tertiary'),     # Includes complications (cardio/neuro/disfigurement)
             ss.BoolState('immune'),       # After effective treatment people may acquire temp immunity
-            ss.BoolState('ever_exposed'), # Anyone ever exposed - stays true after treatment
-            ss.BoolState('detectable'),   # Non-treponemal serology positive (dual-RDT 'active syph' would detect)
+            ss.BoolState('ever_exposed'), # Anyone ever exposed - proxy for treponemal-test positive (antibodies persist for life)
+            ss.BoolState('nontrep'),      # Non-treponemal (RPR/VDRL) test positive — would be flagged dual-positive in ZIMPHIA's "active infection" category
             ss.IntArr('n_infections', default=0),  # Lifetime infection count (incremented each time infected)
 
             # Symptom visibility — determined at infection/stage entry, reflects anatomical site
@@ -183,7 +183,7 @@ class Syphilis(BaseSTI):
             ss.FloatArr('ti_latent'),
             ss.FloatArr('dur_early'),
             ss.FloatArr('ti_tertiary'),
-            ss.FloatArr('ti_detectable_end'),  # When non-trep titre drops below detection
+            ss.FloatArr('ti_nontrep_end'),  # When non-trep titre drops below test threshold (sero-reversion on RPR/VDRL)
             ss.FloatArr('ti_dead'),
             ss.FloatArr('ti_immune'),
             ss.FloatArr('ti_miscarriage'),
@@ -322,14 +322,14 @@ class Syphilis(BaseSTI):
         super().init_results()
         results = [
             ss.Result('n_active', dtype=int, label="Number of active cases", auto_plot=False),
-            ss.Result('serological_prevalence', dtype=float, scale=False, label="Serological prevalence (ever exposed)"),
-            ss.Result('serological_prevalence_15_64', dtype=float, scale=False, label="Serological prevalence, ages 15-64 (household-survey denominator)"),
+            ss.Result('trep_prevalence', dtype=float, scale=False, label="Treponemal-test positive (ever-exposed proxy; matches ZIMPHIA total seroprev)"),
+            ss.Result('trep_prevalence_15_64', dtype=float, scale=False, label="Treponemal-test positive, ages 15-64 (household-survey denominator)"),
             ss.Result('pregnant_prevalence', dtype=float, scale=False, label="Pregnant prevalence", auto_plot=False),
             ss.Result('detected_pregnant_prevalence', dtype=float, scale=False, label="ANC prevalence", auto_plot=False),
             ss.Result('delivery_prevalence', dtype=float, scale=False, label="Delivery prevalence", auto_plot=False),
             ss.Result('active_prevalence', dtype=float, scale=False, label="Active prevalence"),
-            ss.Result('detectable_prevalence', dtype=float, scale=False, label="Detectable prevalence (non-trep RDT positive)"),
-            ss.Result('detectable_prevalence_15_64', dtype=float, scale=False, label="Detectable prevalence, ages 15-64 (household-survey denominator)"),
+            ss.Result('nontrep_prevalence', dtype=float, scale=False, label="Non-treponemal (RPR) positive — matches ZIMPHIA dual-positive 'active syph'"),
+            ss.Result('nontrep_prevalence_15_64', dtype=float, scale=False, label="Non-treponemal positive, ages 15-64 (household-survey denominator)"),
             ss.Result('new_nnds', dtype=int, label="Neonatal deaths", auto_plot=False),
             ss.Result('new_stillborns', dtype=int, label="Stillbirths", auto_plot=False),
             ss.Result('new_congenital', dtype=int, label="Congenital cases"),
@@ -352,11 +352,11 @@ class Syphilis(BaseSTI):
             skl = '' if sk == '' else f' ({sk.upper()})'
             if skk != '':
                 results += [
-                    ss.Result(f'serological_prevalence{skk}', scale=False, label=f"Serological prevalence{skl}", auto_plot=False),
-                    ss.Result(f'serological_prevalence_15_64{skk}', scale=False, label=f"Serological prevalence, ages 15-64{skl}", auto_plot=False),
+                    ss.Result(f'trep_prevalence{skk}', scale=False, label=f"Treponemal-test positive{skl}", auto_plot=False),
+                    ss.Result(f'trep_prevalence_15_64{skk}', scale=False, label=f"Treponemal-test positive, ages 15-64{skl}", auto_plot=False),
                     ss.Result(f'active_prevalence{skk}', scale=False, label=f"Active prevalence{skl}", auto_plot=False),
-                    ss.Result(f'detectable_prevalence{skk}', scale=False, label=f"Detectable prevalence{skl}", auto_plot=False),
-                    ss.Result(f'detectable_prevalence_15_64{skk}', scale=False, label=f"Detectable prevalence, ages 15-64{skl}", auto_plot=False),
+                    ss.Result(f'nontrep_prevalence{skk}', scale=False, label=f"Non-treponemal positive{skl}", auto_plot=False),
+                    ss.Result(f'nontrep_prevalence_15_64{skk}', scale=False, label=f"Non-treponemal positive, ages 15-64{skl}", auto_plot=False),
                 ]
 
             for ab1,ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
@@ -471,13 +471,13 @@ class Syphilis(BaseSTI):
             self.late[is_early] = False
             self.late[is_late] = True
 
-        # Serology detectability: non-trep titre falls below detection at
-        # the per-agent ti_detectable_end (drawn from time_to_undetectable in
+        # Non-trep sero-reversion: non-trep titre falls below test threshold at
+        # the per-agent ti_nontrep_end (drawn from time_to_undetectable in
         # set_latent_prognoses). Reactivation back to secondary re-sets
-        # detectable=True in set_secondary_prognoses.
-        becomes_undetectable = self.detectable & (self.ti_detectable_end <= ti)
-        if len(becomes_undetectable.uids) > 0:
-            self.detectable[becomes_undetectable] = False
+        # nontrep=True in set_secondary_prognoses.
+        becomes_nontrep_neg = self.nontrep & (self.ti_nontrep_end <= ti)
+        if len(becomes_nontrep_neg.uids) > 0:
+            self.nontrep[becomes_nontrep_neg] = False
 
         return
 
@@ -496,7 +496,7 @@ class Syphilis(BaseSTI):
         self.immune[uids] = False
         self.congenital[uids] = False
         self.ever_exposed[uids] = False
-        self.detectable[uids] = False
+        self.nontrep[uids] = False
         self.n_infections[uids] = 0
         self.chancre_visible[uids] = False
         self.rash_visible[uids] = False
@@ -524,10 +524,10 @@ class Syphilis(BaseSTI):
 
         # Overwrite prevalence so we're always storing prevalence of syphilis among sexually active adults
         self.results['prevalence'][ti] = cond_prob(self.infected, sexually_active_adults)
-        self.results['serological_prevalence'][ti] = cond_prob(self.ever_exposed, sexually_active_adults)
-        self.results['detectable_prevalence'][ti] = cond_prob(self.detectable, sexually_active_adults)
-        self.results['serological_prevalence_15_64'][ti] = cond_prob(self.ever_exposed, adults_15_64)
-        self.results['detectable_prevalence_15_64'][ti] = cond_prob(self.detectable, adults_15_64)
+        self.results['trep_prevalence'][ti] = cond_prob(self.ever_exposed, sexually_active_adults)
+        self.results['nontrep_prevalence'][ti] = cond_prob(self.nontrep, sexually_active_adults)
+        self.results['trep_prevalence_15_64'][ti] = cond_prob(self.ever_exposed, adults_15_64)
+        self.results['nontrep_prevalence_15_64'][ti] = cond_prob(self.nontrep, adults_15_64)
         self.results['n_active'][ti] = n_active
 
         # Pregnant women prevalence, if present
@@ -576,10 +576,10 @@ class Syphilis(BaseSTI):
             sex_denom_15_64 = adults_15_64 & ppl[pattr]
             if skk != '':
                 self.results[f'prevalence{skk}'][ti] = cond_prob(self.infected, sex_denom)
-                self.results[f'serological_prevalence{skk}'][ti] = cond_prob(self.ever_exposed, sex_denom)
-                self.results[f'detectable_prevalence{skk}'][ti] = cond_prob(self.detectable, sex_denom)
-                self.results[f'serological_prevalence_15_64{skk}'][ti] = cond_prob(self.ever_exposed, sex_denom_15_64)
-                self.results[f'detectable_prevalence_15_64{skk}'][ti] = cond_prob(self.detectable, sex_denom_15_64)
+                self.results[f'trep_prevalence{skk}'][ti] = cond_prob(self.ever_exposed, sex_denom)
+                self.results[f'nontrep_prevalence{skk}'][ti] = cond_prob(self.nontrep, sex_denom)
+                self.results[f'trep_prevalence_15_64{skk}'][ti] = cond_prob(self.ever_exposed, sex_denom_15_64)
+                self.results[f'nontrep_prevalence_15_64{skk}'][ti] = cond_prob(self.nontrep, sex_denom_15_64)
             self.results[f'active_prevalence{skk}'][ti] = cond_prob(self.active, sex_denom)
 
             # Compute age results
@@ -669,17 +669,18 @@ class Syphilis(BaseSTI):
         """ Set prognoses for people who have just progressed to secondary infection """
         dur_secondary = self.pars.dur_secondary.rvs(uids)
         self.ti_latent[uids] = self.ti_secondary[uids] + rr(dur_secondary)
-        # Non-treponemal titre rises by secondary; serology becomes detectable.
+        # Non-treponemal titre rises by secondary; RPR becomes positive.
         # Also covers reactivation from late latent (titre climbs again — Fig 7).
-        self.detectable[uids] = True
+        self.nontrep[uids] = True
         return
 
     def set_latent_prognoses(self, uids):
-        # Late-latent serology: draw the time at which non-trep titre is
-        # expected to fall below detection. ti_detectable_end is measured
-        # from the *start of late latent* = ti_latent + dur_early.
+        # Late-latent non-trep sero-reversion: draw the time at which
+        # non-trep titre is expected to fall below test threshold.
+        # ti_nontrep_end is measured from the *start of late latent* =
+        # ti_latent + dur_early.
         late_start = self.ti_latent[uids] + self.dur_early[uids]
-        self.ti_detectable_end[uids] = late_start + rr(self.pars.time_to_undetectable.rvs(uids))
+        self.ti_nontrep_end[uids] = late_start + rr(self.pars.time_to_undetectable.rvs(uids))
 
         # Reactivators
         will_reactivate = self.pars.p_reactivate.rvs(uids)
