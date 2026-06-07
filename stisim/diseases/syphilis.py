@@ -75,7 +75,7 @@ class SyphPars(BaseSTIPars):
         self.dur_exposed = ss.normal(ss.days(50), ss.days(10))  # https://pubmed.ncbi.nlm.nih.gov/9101629/
         self.dur_primary = ss.normal(ss.weeks(6), ss.weeks(1))  # https://pubmed.ncbi.nlm.nih.gov/9101629/
         self.dur_secondary = ss.lognorm_ex(ss.months(3.6), ss.months(1.5))  # https://pubmed.ncbi.nlm.nih.gov/9101629/
-        self.dur_early = ss.uniform(ss.months(12), ss.months(14))  # Assumption
+        self.dur_early = ss.uniform(ss.months(22), ss.months(24))  # Early-latent boundary matches WHO Europe definition (≤2 years post-infection)
         self.p_reactivate = ss.bernoulli(p=0.35)  # Probability of reactivating from latent to secondary
         self.time_to_reactivate = ss.lognorm_ex(ss.years(1), ss.years(1))  # Time to reactivation
         self.p_tertiary = ss.bernoulli(p=0.35)  # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4917057/
@@ -89,6 +89,20 @@ class SyphPars(BaseSTIPars):
         # Wide default prior; expected to be tuned in calibration. Expert input
         # pending.
         self.time_to_undetectable = ss.lognorm_ex(ss.years(5), ss.years(5))
+
+        # Treponemal-test seroconversion + persistence (WHO report):
+        #   - dur_to_trep: time from infection to trep antibody detection
+        #     (window period during which the agent is infected but the
+        #     trep test is still negative; ~2-3 weeks for IgM/IgG)
+        #   - p_trep_persists: 80% of trep-positive agents remain trep+
+        #     for life. The other 20% sero-revert eventually.
+        #   - time_to_trep_revert: timing for the 20% who do sero-revert
+        #     (slow, variable; mean ~10y post-seroconversion)
+        # Agents treated BEFORE ti_trep_start (window-period treatment)
+        # never become trep+ — SyphTx handles that case in change_states.
+        self.dur_to_trep = ss.normal(ss.weeks(3), ss.weeks(1))
+        self.p_trep_persists = ss.bernoulli(p=0.80)
+        self.time_to_trep_revert = ss.normal(ss.years(10), ss.years(5))
 
         # Transmission by stage
         self.beta_m2f = 0.1
@@ -164,7 +178,8 @@ class Syphilis(BaseSTI):
             ss.BoolState('latent'),       # Can relapse to secondary, remain in latent, or progress to tertiary,
             ss.BoolState('tertiary'),     # Includes complications (cardio/neuro/disfigurement)
             ss.BoolState('immune'),       # After effective treatment people may acquire temp immunity
-            ss.BoolState('ever_exposed'), # Anyone ever exposed - proxy for treponemal-test positive (antibodies persist for life)
+            ss.BoolState('ever_exposed'), # Biological: ever infected (lifetime); used for is_naive/sus_not_naive logic
+            ss.BoolState('trep'),         # Treponemal test positive (matches what a real trep RDT would detect: 80% persist for life, 20% sero-revert eventually)
             ss.BoolState('nontrep'),      # Non-treponemal (RPR/VDRL) test positive — would be flagged dual-positive in ZIMPHIA's "active infection" category
             ss.IntArr('n_infections', default=0),  # Lifetime infection count (incremented each time infected)
 
@@ -184,6 +199,8 @@ class Syphilis(BaseSTI):
             ss.FloatArr('dur_early'),
             ss.FloatArr('ti_tertiary'),
             ss.FloatArr('ti_nontrep_end'),  # When non-trep titre drops below test threshold (sero-reversion on RPR/VDRL)
+            ss.FloatArr('ti_trep_start'),   # When trep antibodies appear (post-seroconversion); NaN if treated in window period
+            ss.FloatArr('ti_trep_end'),     # When trep test reverts to negative (NaN for the 80% who persist for life)
             ss.FloatArr('ti_dead'),
             ss.FloatArr('ti_immune'),
             ss.FloatArr('ti_miscarriage'),
@@ -479,6 +496,15 @@ class Syphilis(BaseSTI):
         if len(becomes_nontrep_neg.uids) > 0:
             self.nontrep[becomes_nontrep_neg] = False
 
+        # Treponemal seroconversion (post-window-period appearance of trep+)
+        becomes_trep_pos = (~self.trep) & (self.ti_trep_start <= ti)
+        if len(becomes_trep_pos.uids) > 0:
+            self.trep[becomes_trep_pos] = True
+        # Treponemal sero-reversion (for the 20% with ti_trep_end set)
+        becomes_trep_neg = self.trep & (self.ti_trep_end <= ti)
+        if len(becomes_trep_neg.uids) > 0:
+            self.trep[becomes_trep_neg] = False
+
         return
 
     def step_die(self, uids):
@@ -496,6 +522,7 @@ class Syphilis(BaseSTI):
         self.immune[uids] = False
         self.congenital[uids] = False
         self.ever_exposed[uids] = False
+        self.trep[uids] = False
         self.nontrep[uids] = False
         self.n_infections[uids] = 0
         self.chancre_visible[uids] = False
@@ -509,6 +536,9 @@ class Syphilis(BaseSTI):
         self.ti_latent[uids] = np.nan
         self.ti_tertiary[uids] = np.nan
         self.ti_congenital[uids] = np.nan
+        self.ti_nontrep_end[uids] = np.nan
+        self.ti_trep_start[uids] = np.nan
+        self.ti_trep_end[uids] = np.nan
 
     def update_results(self):
         super().update_results()
@@ -524,9 +554,9 @@ class Syphilis(BaseSTI):
 
         # Overwrite prevalence so we're always storing prevalence of syphilis among sexually active adults
         self.results['prevalence'][ti] = cond_prob(self.infected, sexually_active_adults)
-        self.results['trep_prevalence'][ti] = cond_prob(self.ever_exposed, sexually_active_adults)
+        self.results['trep_prevalence'][ti] = cond_prob(self.trep, sexually_active_adults)
         self.results['nontrep_prevalence'][ti] = cond_prob(self.nontrep, sexually_active_adults)
-        self.results['trep_prevalence_15_64'][ti] = cond_prob(self.ever_exposed, adults_15_64)
+        self.results['trep_prevalence_15_64'][ti] = cond_prob(self.trep, adults_15_64)
         self.results['nontrep_prevalence_15_64'][ti] = cond_prob(self.nontrep, adults_15_64)
         self.results['n_active'][ti] = n_active
 
@@ -576,9 +606,9 @@ class Syphilis(BaseSTI):
             sex_denom_15_64 = adults_15_64 & ppl[pattr]
             if skk != '':
                 self.results[f'prevalence{skk}'][ti] = cond_prob(self.infected, sex_denom)
-                self.results[f'trep_prevalence{skk}'][ti] = cond_prob(self.ever_exposed, sex_denom)
+                self.results[f'trep_prevalence{skk}'][ti] = cond_prob(self.trep, sex_denom)
                 self.results[f'nontrep_prevalence{skk}'][ti] = cond_prob(self.nontrep, sex_denom)
-                self.results[f'trep_prevalence_15_64{skk}'][ti] = cond_prob(self.ever_exposed, sex_denom_15_64)
+                self.results[f'trep_prevalence_15_64{skk}'][ti] = cond_prob(self.trep, sex_denom_15_64)
                 self.results[f'nontrep_prevalence_15_64{skk}'][ti] = cond_prob(self.nontrep, sex_denom_15_64)
             self.results[f'active_prevalence{skk}'][ti] = cond_prob(self.active, sex_denom)
 
@@ -645,6 +675,18 @@ class Syphilis(BaseSTI):
         self.infected[uids] = True
         self.ti_exposed[uids] = ti
         self.ti_infected[uids] = ti
+
+        # Treponemal seroconversion: trep+ appears ~3 weeks post-infection,
+        # so during the window period agents are infected but trep-negative.
+        # 80% remain trep+ for life; the other 20% sero-revert ~10y later.
+        dur_to_trep = self.pars.dur_to_trep.rvs(uids)
+        self.ti_trep_start[uids] = self.ti_exposed[uids] + rr(dur_to_trep)
+        persists = self.pars.p_trep_persists.rvs(uids)
+        reverters = uids[~persists]
+        if len(reverters) > 0:
+            revert_delay = self.pars.time_to_trep_revert.rvs(reverters)
+            self.ti_trep_end[reverters] = self.ti_trep_start[reverters] + rr(revert_delay)
+        # Persisters keep ti_trep_end at default NaN (never reverts)
 
         # Exposed to primary
         dur_exposed = self.pars.dur_exposed.rvs(uids)

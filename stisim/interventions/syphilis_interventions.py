@@ -53,7 +53,15 @@ class SyphTx(STITreatment):
             treat_eff=ss.bernoulli(p=.98),
             fetus_treat_eff=ss.bernoulli(p=.98),
             fetus_age_cutoff_treat_eff=-0.25,  # Reduced treatment efficacy for fetuses in the last trimester
-            treat_eff_reduced=ss.bernoulli(p=.75)  # Reduced efficacy for fetuses older than cut off
+            treat_eff_reduced=ss.bernoulli(p=.75),  # Reduced efficacy for fetuses older than cut off
+            # Non-trep sero-reversion after early-stage treatment.
+            # WHO 2021 fig 7: RPR titre drops 4-fold within ~6 months
+            # of adequate treatment of primary/secondary/early-latent
+            # syphilis, with most patients becoming RPR-negative
+            # within 6-12 months. Late-latent treatment does NOT
+            # produce reliable RPR sero-reversion and is excluded
+            # in change_states below.
+            nontrep_revert_months=ss.uniform(low=6, high=12),
         )
         self.update_pars(pars, **kwargs)
         return
@@ -61,6 +69,16 @@ class SyphTx(STITreatment):
     def change_states(self, disease, treat_succ):
         """ Change the states of people who are treated """
         d = self.sim.diseases[disease]
+
+        # Identify early-stage treated agents BEFORE clearing stage flags.
+        # Per WHO 2021 fig 7, treatment in primary, secondary, or early
+        # latent yields RPR sero-reversion within 6-12 months; late-latent
+        # treatment does not reliably clear the non-trep test.
+        early_stage_mask = (d.primary[treat_succ]
+                             | d.secondary[treat_succ]
+                             | d.early[treat_succ])
+        early_stage_treated = treat_succ[early_stage_mask]
+
         d.primary[treat_succ] = False
         d.secondary[treat_succ] = False
         d.early[treat_succ] = False
@@ -75,6 +93,30 @@ class SyphTx(STITreatment):
         d.ti_tertiary[treat_succ] = np.nan
         d.susceptible[treat_succ] = True
         d.infected[treat_succ] = False
+
+        # Schedule post-treatment non-trep sero-reversion for early-stage
+        # treated agents currently RPR-positive. Without this, treated
+        # patients stayed nontrep=True for life (ti_nontrep_end was only
+        # set when entering late latent, never for early-stage treated).
+        nontrep_treated = early_stage_treated[d.nontrep[early_stage_treated]]
+        if len(nontrep_treated) > 0:
+            months = self.pars.nontrep_revert_months.rvs(nontrep_treated)
+            steps_to_revert = np.maximum(
+                1, np.round(months / (12.0 * d.t.dt_year)).astype(int))
+            d.ti_nontrep_end[nontrep_treated] = d.ti + steps_to_revert
+
+        # Window-period treatment: if treated BEFORE the agent's
+        # ti_trep_start fires (i.e. before trep antibodies appear, ~3 weeks
+        # post-infection), the trep test also stays negative — they never
+        # seroconvert. Clear ti_trep_start so step_state doesn't flip
+        # trep=True later. (User instruction 2026-06-07.)
+        window_period_treated = treat_succ[
+            (~d.trep[treat_succ]) &
+            (~np.isnan(d.ti_trep_start[treat_succ])) &
+            (d.ti + 1 < d.ti_trep_start[treat_succ])
+        ]
+        if len(window_period_treated) > 0:
+            d.ti_trep_start[window_period_treated] = np.nan
 
     def treat_fetus(self, sim, mother_uids):
         """
