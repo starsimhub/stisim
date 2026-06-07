@@ -642,10 +642,18 @@ class Syphilis(BaseSTI):
 
     def set_latent_trans(self, ti=None):
         if ti is None: ti = self.ti
+        # Latent rel_trans starts at the secondary-stage level and decays
+        # exponentially with half-life rel_trans_latent_half_life. Using
+        # rel_trans_secondary as the starting value ensures any increase in
+        # secondary transmissibility propagates smoothly into latent (no
+        # discontinuity at the secondary->latent boundary). The
+        # rel_trans_latent parameter is retained for backward compat as a
+        # multiplier on the secondary starting level.
         dur_latent = ti - self.ti_latent[self.latent]
         hl = self.pars.rel_trans_latent_half_life
         decay_rate = np.log(2) / hl if ~np.isnan(hl) else 0.
-        latent_trans = self.pars.rel_trans_latent * np.exp(-decay_rate * dur_latent)
+        starting = self.pars.rel_trans_secondary * self.pars.rel_trans_latent
+        latent_trans = starting * np.exp(-decay_rate * dur_latent)
         self.rel_trans[self.latent] = latent_trans
         return
 
