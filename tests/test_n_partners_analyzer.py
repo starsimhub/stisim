@@ -15,9 +15,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sciris as sc
 
+from stisim.analyzers import NPartnersAnalyzer
+
 # NPartnersAnalyzer lives in the devtests diagnostics module; make it importable.
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'devtests'))
-from devtest_network_diagnostics import NPartnersAnalyzer
 
 
 verbose = False
