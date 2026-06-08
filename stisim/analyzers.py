@@ -799,31 +799,38 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
     def init_results(self):
         super().init_results()
 
-        # Resolve target networks. We track sexual networks only (not parent-child).
-        all_nws = list(self.sim.networks())
+        # Validate passed-in network names for tracking
+        all_nw_names = self.sim.networks.keys()
         if self.target_network_names is None:
-            target_nws = [nw for nw in all_nws if isinstance(nw, ss.SexualNetwork)]
+            # default to all sexual networks
+            selected = [nw_name for nw_name in all_nw_names if isinstance(self.sim.networks[nw_name], ss.SexualNetwork)]
         else:
-            name_to_nw = {nw.name: nw for nw in all_nws}
-            target_nws = []
-            for name in self.target_network_names:
-                if name not in name_to_nw:
-                    raise ValueError(f"PartnershipFormationAnalyzer: network '{name}' not found in sim.networks. Available: {sorted(name_to_nw)}.")
-                nw = name_to_nw[name]
-                if not isinstance(nw, ss.SexualNetwork):
-                    warnings.warn(f"PartnershipFormationAnalyzer: network '{name}' not a sexual network, ignoring ...")
-                    continue
-                target_nws.append(nw)
-        self._tracked_names = [nw.name for nw in target_nws]
+            # ensure all requested networks exist
+            missing = [nw_name for nw_name in self.target_network_names if nw_name not in all_nw_names]
+            if len(missing) > 0:
+                missing_str = ', '.join(missing)
+                raise ValueError(f"PartnershipFormationAnalyzer: network(s) '{missing_str}' not found in sim.networks. "
+                                 f"Available: {sorted(all_nw_names)}.")
+
+            # warn for any requested network that is non sexual; it will be ignored.
+            non_sexual = [nw_name for nw_name in self.target_network_names
+                          if not isinstance(self.sim.networks[nw_name], ss.SexualNetwork)]
+            if len(non_sexual) > 0:
+                non_sexual_str = ', '.join(non_sexual)
+                warnings.warn(f"PartnershipFormationAnalyzer: network(s) '{non_sexual_str}' not a sexual network, ignoring ...")
+            selected = [nw_name for nw_name in self.target_network_names
+                        if nw_name not in missing and nw_name not in non_sexual]
+
+        self._tracked_names = selected
 
         # Preallocate nested-dict result structure:
         # self.results['new_partnerships_{sex}'][nw_name][age_bin][ti]
         n_ti = len(self.t.tvec)
         for sex in ('f', 'm'):
-            per_network = {}
+            nw_dict = {}
             for nw_name in self._tracked_names:
-                per_network[nw_name] = {bin_str: np.zeros(n_ti, dtype=int) for bin_str in self.age_bins}
-            self.results[f'new_partnerships_{sex}'] = per_network
+                nw_dict[nw_name] = {age_bin_str: np.zeros(n_ti, dtype=int) for age_bin_str in self.age_bins}
+            self.results[f'new_partnerships_{sex}'] = nw_dict
         return
 
     def step(self):
@@ -837,24 +844,22 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
 
             formation_ti = np.asarray(nw.edges.formation_ti)
             if len(formation_ti) > 0:
-                this_ti_mask = formation_ti == ti
-                if this_ti_mask.any():
-                    new_rel_p1 = nw.edges.p1[this_ti_mask]
-                    new_rel_p2 = nw.edges.p2[this_ti_mask]
+                form_ti_mask = formation_ti == ti
+                if form_ti_mask.any():
+                    new_rel_p1 = nw.edges.p1[form_ti_mask]
+                    new_rel_p2 = nw.edges.p2[form_ti_mask]
                     # We don't know which of p1/p2 is male vs female (depends on the network type); pass each side to
                     # both counters and let _count_by_age_bin filter by each agent's actual sex.
                     for uid_array in (new_rel_p1, new_rel_p2):
                         counts_female += self._count_by_age_bin(uid_array, female=True)
                         counts_male   += self._count_by_age_bin(uid_array, female=False)
 
-            f_bins = self.results['new_partnerships_f'][nw_name]
-            m_bins = self.results['new_partnerships_m'][nw_name]
             for i, bin_str in enumerate(self.age_bins):
-                f_bins[bin_str][ti] = counts_female[i]
-                m_bins[bin_str][ti] = counts_male[i]
+                self.results['new_partnerships_f'][nw_name][bin_str][ti] = counts_female[i]
+                self.results['new_partnerships_m'][nw_name][bin_str][ti] = counts_male[i]
         return
 
-    def _count_by_age_bin(self, uid_array, female):
+    def _count_by_age_bin(self, uid_array, female: bool):
         """Count agents in ``uid_array`` of the given sex, binned by age.
 
         Each agent contributes to every bin whose age range contains their

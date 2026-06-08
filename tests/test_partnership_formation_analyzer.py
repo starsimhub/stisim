@@ -247,9 +247,9 @@ def test_partnership_formation_analyzer(n_agents=DEFAULT_N_AGENTS,
     return run_sims, analyzer_ref, df_mean
 
 
-def _first_bin_for_age(ana, age):
+def _first_bin_for_age(analyzer, age):
     """Return the index of the first age bin containing ``age``, or -1 if none."""
-    for i, (lo, hi) in enumerate(ana.age_ranges):
+    for i, (lo, hi) in enumerate(analyzer.age_ranges):
         if lo <= age < hi:
             return i
     return -1
@@ -267,14 +267,14 @@ def test_count_by_age_bin_duplicates(n_agents=200):
         analyzers=[sti.PartnershipFormationAnalyzer()],
     )
     sim.init()
-    ana = sim.analyzers['partnershipformationanalyzer']
+    analyzer = sim.analyzers['partnershipformationanalyzer']
     ppl = sim.people
 
-    # Find one female and one male UID whose age falls inside some bin
+    # Find ANY one female and ANY one male UID whose age falls inside A bin
     female_uid = None
     male_uid = None
     for uid in range(n_agents):
-        if _first_bin_for_age(ana, float(ppl.age[uid])) < 0:
+        if _first_bin_for_age(analyzer, float(ppl.age[uid])) < 0:
             continue
         if bool(ppl.female[uid]) and female_uid is None:
             female_uid = uid
@@ -282,37 +282,38 @@ def test_count_by_age_bin_duplicates(n_agents=200):
             male_uid = uid
         if female_uid is not None and male_uid is not None:
             break
-    assert female_uid is not None and male_uid is not None, (
-        'Could not find both a female and male UID in-range; raise n_agents.'
-    )
+    assert female_uid is not None and male_uid is not None, ('Could not find both a female and male UID in a specified age_bin')
 
-    # female_uid appears 3 times, male_uid appears 1 time
+    # create a contrived case where this arbitrary female_uid appears 3 times, and the arbitrary male_uid appears 1 time
     uid_array = np.array([female_uid, male_uid, female_uid, female_uid])
-    f_bin = _first_bin_for_age(ana, float(ppl.age[female_uid]))
-    m_bin = _first_bin_for_age(ana, float(ppl.age[male_uid]))
+    # determine a bin containing them (individually)
+    f_bin_index = _first_bin_for_age(analyzer, float(ppl.age[female_uid]))
+    m_bin_index = _first_bin_for_age(analyzer, float(ppl.age[male_uid]))
 
-    f_counts = ana._count_by_age_bin(uid_array, female=True)
-    m_counts = ana._count_by_age_bin(uid_array, female=False)
+    # verify the internal _count_by_age_bin function properly counts the provided contrived data (3xfemale, 1xmale)
+    f_counts = analyzer._count_by_age_bin(uid_array, female=True)
+    m_counts = analyzer._count_by_age_bin(uid_array, female=False)
 
-    assert f_counts[f_bin] == 3, (
-        f'Female UID appeared 3 times but bin {f_bin} count is {f_counts[f_bin]} '
+    assert f_counts[f_bin_index] == 3, (
+        f'Female UID appeared 3 times but matching bin at index {f_bin_index} count is {f_counts[f_bin_index]} '
         f'(full counts: {f_counts.tolist()}).'
     )
-    assert m_counts[m_bin] == 1, (
-        f'Male UID appeared 1 time but bin {m_bin} count is {m_counts[m_bin]} '
+    assert m_counts[m_bin_index] == 1, (
+        f'Male UID appeared 1 time but matching bin at index {m_bin_index} count is {m_counts[m_bin_index]} '
         f'(full counts: {m_counts.tolist()}).'
     )
-    # No spurious counts elsewhere (default bins are non-overlapping)
-    assert int(f_counts.sum()) == 3, f'Stray female counts: {f_counts.tolist()}'
-    assert int(m_counts.sum()) == 1, f'Stray male counts: {m_counts.tolist()}'
+    # No spurious counts elsewhere; we ONLY passed in 3xFemale + 1xMale (default bins are non-overlapping, so each agent
+    # is at most single-counted)
+    assert int(f_counts.sum()) == 3, f'Stray female counts exist, full counts: {f_counts.tolist()}'
+    assert int(m_counts.sum()) == 1, f'Stray male counts exist, full counts: {m_counts.tolist()}'
 
     # Empty input → all-zero counts
-    empty = np.empty(0, dtype=int)
-    assert int(ana._count_by_age_bin(empty, female=True).sum()) == 0
-    assert int(ana._count_by_age_bin(empty, female=False).sum()) == 0
+    empty = np.empty(0, dtype=int)  # there is no data in this array
+    assert int(analyzer._count_by_age_bin(empty, female=True).sum()) == 0
+    assert int(analyzer._count_by_age_bin(empty, female=False).sum()) == 0
 
-    print(f'test_count_by_age_bin_duplicates: female bin {f_bin} = 3, '
-          f'male bin {m_bin} = 1, empty input = 0. PASSED.')
+    print(f'test_count_by_age_bin_duplicates: female bin {f_bin_index} = 3, '
+          f'male bin {m_bin_index} = 1, empty input = 0. PASSED.')
     return
 
 
@@ -320,7 +321,7 @@ def test_count_by_age_bin_overlapping(n_agents=200):
     """Regression: with overlapping age bins, each agent is counted in every
     bin whose range contains their age (not just one).
     """
-    overlapping_bins = ['15-50', '40-50']  # 40-49 falls in BOTH
+    overlapping_bins = ['15-50', '40-50']  # [40, 50) falls in BOTH
     sim = sti.Sim(
         n_agents=n_agents, dur=1,
         diseases=[sti.HIV(init_prev=0.05)],
@@ -328,10 +329,12 @@ def test_count_by_age_bin_overlapping(n_agents=200):
         analyzers=[sti.PartnershipFormationAnalyzer(age_bins=overlapping_bins)],
     )
     sim.init()
-    ana = sim.analyzers['partnershipformationanalyzer']
+    analyzer = sim.analyzers['partnershipformationanalyzer']
     ppl = sim.people
-    assert ana.age_bins == overlapping_bins
-    assert ana.age_ranges == [(15.0, 50.0), (40.0, 50.0)]
+
+    # sanity check to ensure bins parsed correctly
+    assert analyzer.age_bins == overlapping_bins
+    assert analyzer.age_ranges == [(15.0, 50.0), (40.0, 50.0)]
 
     # Find a female agent aged 40-49 (in BOTH bins)
     both_bins_female = None
@@ -340,37 +343,36 @@ def test_count_by_age_bin_overlapping(n_agents=200):
         if bool(ppl.female[uid]) and 40 <= age < 50:
             both_bins_female = uid
             break
-    assert both_bins_female is not None, (
-        'Could not find a female aged 40-49; raise n_agents.'
-    )
+    assert both_bins_female is not None, 'Could not find a female aged 40-49 as needed by this test'
 
     # Single occurrence: expect count of 1 in BOTH bins
-    counts = ana._count_by_age_bin(np.array([both_bins_female]), female=True)
+    counts = analyzer._count_by_age_bin(np.array([both_bins_female]), female=True)
     assert counts.tolist() == [1, 1], (
-        f'Overlapping-bins fix: agent aged 40-49 should count in both bins, '
+        f'Overlapping-bins 15-50, 40-50: agent aged 40-49 should count in both bins, '
         f'got {counts.tolist()} (expected [1, 1]).'
     )
 
     # Repeated occurrences should still accumulate independently in each bin
-    counts_repeated = ana._count_by_age_bin(
+    counts_repeated = analyzer._count_by_age_bin(
         np.array([both_bins_female, both_bins_female, both_bins_female]), female=True)
     assert counts_repeated.tolist() == [3, 3], (
-        f'Three occurrences should give [3, 3], got {counts_repeated.tolist()}.'
+        f'Overlapping-bins 15-50, 40-50: agent aged 40-49 should count in both bins three times in this test, '
+        f'got {counts.tolist()} (expected [3, 3]).'
     )
 
-    # A female aged 15-39 should only land in the wide bin
-    only_wide_female = None
+    # Find a female aged 15-39 who should only land in 15-50
+    first_bin_only_female = None
     for uid in range(n_agents):
         age = float(ppl.age[uid])
         if bool(ppl.female[uid]) and 15 <= age < 40:
-            only_wide_female = uid
+            first_bin_only_female = uid
             break
-    if only_wide_female is not None:
-        counts_one = ana._count_by_age_bin(np.array([only_wide_female]), female=True)
-        assert counts_one.tolist() == [1, 0], (
-            f'Female aged 15-39 should land only in 15-50, got {counts_one.tolist()}.'
-        )
+    assert first_bin_only_female is not None, 'Could not find a female aged 15-40 as needed by this test'
 
+    counts_first_bin_only = analyzer._count_by_age_bin(np.array([first_bin_only_female]), female=True)
+    assert counts_first_bin_only.tolist() == [1, 0], (
+        f'Female aged 15-39 should land only in 15-50, got {counts_first_bin_only.tolist()}.'
+    )
     print(f'test_count_by_age_bin_overlapping: agent aged 40-49 counted in both bins, '
           f'repeated occurrences accumulate. PASSED.')
     return
