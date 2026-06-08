@@ -59,6 +59,14 @@ class StructuredSexual(MFNetwork):
     def set_network_states(self, upper_age=None):
         super().set_network_states(upper_age=upper_age)
         self.set_sex_work(upper_age=upper_age)
+        # Apply FSW-specific MF concurrency multiplier post-hoc, now that
+        # self.fsw is populated. No-op at default 1.0.
+        mult = self.pars.fsw_mf_conc_mult
+        if mult != 1.0:
+            fsw_uids = self.fsw.uids
+            if len(fsw_uids) > 0:
+                scaled = np.maximum(1, np.round(self.concurrency[fsw_uids] * mult)).astype(int)
+                self.concurrency[fsw_uids] = scaled
         return
 
     def add_pairs(self):

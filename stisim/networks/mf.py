@@ -60,6 +60,11 @@ class MFPars(ss.Pars):
         self.m0_conc = 0.0001
         self.m1_conc = 0.2
         self.m2_conc = 0.5
+        # Multiplier applied to FSW's MF concurrency (non-commercial
+        # partnerships). Default 1.0 = no effect. Used on networks that
+        # combine MF + SW (e.g. StructuredSexual); ignored when the network
+        # doesn't expose a `fsw` boolean.
+        self.fsw_mf_conc_mult = 1.0
 
         # Relationship initiation, stability, and duration
         self.p_pair_form = ss.bernoulli(p=0.5)              # Probability of a (stable) pair forming between two matched people
@@ -209,6 +214,10 @@ class MFNetwork(BaseNetwork):
             m_in = (people.male   & in_group)[uids]
             if f_in.any(): mu[f_in] = f_conc
             if m_in.any(): mu[m_in] = m_conc
+
+        # Note: the FSW-specific multiplier (fsw_mf_conc_mult) is applied in
+        # StructuredSexual.set_network_states post-hoc, because set_sex_work
+        # populates self.fsw AFTER set_concurrency runs in the MF flow.
 
         dist = self.pars.concurrency_dist
         if isinstance(dist, ss.nbinom):
