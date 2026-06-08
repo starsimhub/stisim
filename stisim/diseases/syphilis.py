@@ -291,7 +291,8 @@ class Syphilis(BaseSTI):
 
     @property
     def active(self):
-        """ Active infection includes primary and secondary stages """
+        """ Active infection includes primary and secondary stages. Used by
+        connectors (hiv_sti, gud_syph) for coinfection coupling. """
         return self.primary | self.secondary
 
     @property
@@ -300,13 +301,30 @@ class Syphilis(BaseSTI):
         return self.active | self.latent
 
     @property
+    def sexually_transmissible(self):
+        """ Stages during which syphilis is sexually transmissible: primary,
+        secondary, and early latent. Late latent and tertiary are not
+        normally sexually transmissible (late latent can still transmit
+        congenitally at low levels). Matches WHO 'early infectious syphilis'. """
+        return self.primary | self.secondary | self.early
+
+    @property
+    def symptomatic(self):
+        """ Symptomatic stages of syphilis: primary or secondary. Distinct from
+        ``visibly_symptomatic``, which requires that the symptom actually be
+        observable (chancre at a visible site, or rash). """
+        return self.primary | self.secondary
+
+    @property
     def ulcerative(self):
         """ Has a visible genital ulcer (chancre at a visible site during primary stage) """
         return self.chancre_visible & self.primary
 
     @property
-    def symptomatic(self):
-        """ Has noticeable symptoms: visible ulcer or visible rash """
+    def visibly_symptomatic(self):
+        """ Has clinically detectable symptoms: visible ulcer or visible rash.
+        Used by care-seeking pathways. (Formerly named ``symptomatic``; renamed
+        2026-06-08 to free that name for the disease-stage definition.) """
         return self.ulcerative | (self.rash_visible & self.secondary)
 
     def init_post(self):
@@ -344,7 +362,10 @@ class Syphilis(BaseSTI):
             ss.Result('pregnant_prevalence', dtype=float, scale=False, label="Pregnant prevalence", auto_plot=False),
             ss.Result('detected_pregnant_prevalence', dtype=float, scale=False, label="ANC prevalence", auto_plot=False),
             ss.Result('delivery_prevalence', dtype=float, scale=False, label="Delivery prevalence", auto_plot=False),
-            ss.Result('active_prevalence', dtype=float, scale=False, label="Active prevalence"),
+            ss.Result('active_prevalence', dtype=float, scale=False, label="Active prevalence (primary + secondary)"),
+            ss.Result('sexually_transmissible_prevalence', dtype=float, scale=False, label="Sexually transmissible (primary + secondary + early latent)"),
+            ss.Result('symptomatic_prevalence', dtype=float, scale=False, label="Symptomatic stage prevalence (primary + secondary)"),
+            ss.Result('primary_prevalence', dtype=float, scale=False, label="Primary stage prevalence"),
             ss.Result('nontrep_prevalence', dtype=float, scale=False, label="Non-treponemal (RPR) positive — matches ZIMPHIA dual-positive 'active syph'"),
             ss.Result('nontrep_prevalence_15_64', dtype=float, scale=False, label="Non-treponemal positive, ages 15-64 (household-survey denominator)"),
             ss.Result('new_nnds', dtype=int, label="Neonatal deaths", auto_plot=False),
@@ -372,15 +393,23 @@ class Syphilis(BaseSTI):
                     ss.Result(f'trep_prevalence{skk}', scale=False, label=f"Treponemal-test positive{skl}", auto_plot=False),
                     ss.Result(f'trep_prevalence_15_64{skk}', scale=False, label=f"Treponemal-test positive, ages 15-64{skl}", auto_plot=False),
                     ss.Result(f'active_prevalence{skk}', scale=False, label=f"Active prevalence{skl}", auto_plot=False),
+                    ss.Result(f'sexually_transmissible_prevalence{skk}', scale=False, label=f"Sexually transmissible prevalence{skl}", auto_plot=False),
+                    ss.Result(f'symptomatic_prevalence{skk}', scale=False, label=f"Symptomatic prevalence{skl}", auto_plot=False),
+                    ss.Result(f'primary_prevalence{skk}', scale=False, label=f"Primary stage prevalence{skl}", auto_plot=False),
                     ss.Result(f'nontrep_prevalence{skk}', scale=False, label=f"Non-treponemal positive{skl}", auto_plot=False),
                     ss.Result(f'nontrep_prevalence_15_64{skk}', scale=False, label=f"Non-treponemal positive, ages 15-64{skl}", auto_plot=False),
                 ]
 
             for ab1,ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
                 ask = f'{skk}_{ab1}_{ab2}'
-                asl = f' ({skl}, {ab2}-{ab2})'
+                asl = f' ({skl}, {ab1}-{ab2})'
                 results += [
                     ss.Result(f'active_prevalence{ask}', scale=False, label=f"Active prevalence{asl}", auto_plot=False),
+                    ss.Result(f'sexually_transmissible_prevalence{ask}', scale=False, label=f"Sexually transmissible prevalence{asl}", auto_plot=False),
+                    ss.Result(f'symptomatic_prevalence{ask}', scale=False, label=f"Symptomatic prevalence{asl}", auto_plot=False),
+                    ss.Result(f'primary_prevalence{ask}', scale=False, label=f"Primary stage prevalence{asl}", auto_plot=False),
+                    ss.Result(f'trep_prevalence{ask}', scale=False, label=f"Treponemal positive{asl}", auto_plot=False),
+                    ss.Result(f'nontrep_prevalence{ask}', scale=False, label=f"Non-treponemal positive{asl}", auto_plot=False),
                 ]
 
         # Add FSW and clients to results:
@@ -558,6 +587,10 @@ class Syphilis(BaseSTI):
         self.results['nontrep_prevalence'][ti] = cond_prob(self.nontrep, sexually_active_adults)
         self.results['trep_prevalence_15_64'][ti] = cond_prob(self.trep, adults_15_64)
         self.results['nontrep_prevalence_15_64'][ti] = cond_prob(self.nontrep, adults_15_64)
+        self.results['active_prevalence'][ti] = cond_prob(self.active, sexually_active_adults)
+        self.results['sexually_transmissible_prevalence'][ti] = cond_prob(self.sexually_transmissible, sexually_active_adults)
+        self.results['symptomatic_prevalence'][ti] = cond_prob(self.symptomatic, sexually_active_adults)
+        self.results['primary_prevalence'][ti] = cond_prob(self.primary, sexually_active_adults)
         self.results['n_active'][ti] = n_active
 
         # Pregnant women prevalence, if present
@@ -601,7 +634,6 @@ class Syphilis(BaseSTI):
         for pkey, pattr in self.sex_keys.items():
             skk = '' if pkey == '' else f'_{pkey}'
 
-            n_act = self.active & ppl[pattr]
             sex_denom = sexually_active_adults & ppl[pattr]
             sex_denom_15_64 = adults_15_64 & ppl[pattr]
             if skk != '':
@@ -610,10 +642,21 @@ class Syphilis(BaseSTI):
                 self.results[f'nontrep_prevalence{skk}'][ti] = cond_prob(self.nontrep, sex_denom)
                 self.results[f'trep_prevalence_15_64{skk}'][ti] = cond_prob(self.trep, sex_denom_15_64)
                 self.results[f'nontrep_prevalence_15_64{skk}'][ti] = cond_prob(self.nontrep, sex_denom_15_64)
+                self.results[f'symptomatic_prevalence{skk}'][ti] = cond_prob(self.symptomatic, sex_denom)
+                self.results[f'sexually_transmissible_prevalence{skk}'][ti] = cond_prob(self.sexually_transmissible, sex_denom)
+                self.results[f'primary_prevalence{skk}'][ti] = cond_prob(self.primary, sex_denom)
             self.results[f'active_prevalence{skk}'][ti] = cond_prob(self.active, sex_denom)
 
-            # Compute age results
-            age_results = dict(active_prevalence = div(self.agehist(n_act), self.agehist(ppl[pattr])))
+            # Compute age-binned prevalences (denominator = all people of that sex in each age bin)
+            ppl_pattr_hist = self.agehist(ppl[pattr])
+            age_results = dict(
+                active_prevalence = div(self.agehist(self.active & ppl[pattr]), ppl_pattr_hist),
+                sexually_transmissible_prevalence = div(self.agehist(self.sexually_transmissible & ppl[pattr]), ppl_pattr_hist),
+                symptomatic_prevalence = div(self.agehist(self.symptomatic & ppl[pattr]), ppl_pattr_hist),
+                primary_prevalence = div(self.agehist(self.primary & ppl[pattr]), ppl_pattr_hist),
+                trep_prevalence = div(self.agehist(self.trep & ppl[pattr]), ppl_pattr_hist),
+                nontrep_prevalence = div(self.agehist(self.nontrep & ppl[pattr]), ppl_pattr_hist),
+            )
 
             # Store age results
             for akey, ares in age_results.items():
