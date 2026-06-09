@@ -4,7 +4,7 @@ import starsim as ss
 from collections import defaultdict
 from bisect import bisect_left
 
-from .base import BaseNetwork, NoPartnersFound, ss_float
+from .base import BaseNetwork, NoPartnersFound, ss_float, ss_int
 
 __all__ = ['MFPars', 'MFNetwork']
 
@@ -60,6 +60,15 @@ class MFPars(ss.Pars):
         self.m0_conc = 0.0001
         self.m1_conc = 0.2
         self.m2_conc = 0.5
+
+        # Stable-edge coital-frequency decay: linear in edge age (years),
+        # floored. Acts on edges with edge_type == stable. Default 0.0
+        # = no decay = backwards compatible. Empirically, monthly coital
+        # frequency in long-running couples is ~50% of newlywed baseline
+        # by year 5-7 (DHS / Demographic Health Surveys), suggesting
+        # stable_act_decay ≈ 0.07-0.10 / yr with a floor near 0.4.
+        self.stable_act_decay = 0.0
+        self.stable_act_floor = 0.3
 
         # Relationship initiation, stability, and duration
         self.p_pair_form = ss.bernoulli(p=0.5)              # Probability of a (stable) pair forming between two matched people
@@ -305,7 +314,10 @@ class MFNetwork(BaseNetwork):
             pair = (min(a,b), max(a,b))
             self.relationship_durs[pair].append({'start': self.ti, 'dur': reldur, 'edge_type': int(etype)}) # set dur to intended duration. When the relationship actually ends, this will be updated
 
-        self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types)
+        self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur,
+                    acts=acts, acts_baseline=acts.astype(ss_float),
+                    start_ti=np.full(match_count, self.ti, dtype=ss_int),
+                    age_p1=age_p1, age_p2=age_p2, edge_type=edge_types)
 
         # Checks
         if (self.sim.people.female[p1].any() or self.sim.people.male[p2].any()) and (self.name == 'structuredsexual'):
@@ -329,6 +341,24 @@ class MFNetwork(BaseNetwork):
             getattr(self, f'lifetime_{key}_partners')[p2_edges] += 1
 
         return
+
+    def _compute_act_multiplier(self):
+        """Linear coital decay over stable-edge age. Casual / onetime edges
+        unaffected. Returns ``None`` to skip the per-step update when
+        ``stable_act_decay == 0`` (the default) — preserves backwards
+        compatibility.
+        """
+        decay = self.pars.stable_act_decay
+        if not decay:
+            return None
+        floor = self.pars.stable_act_floor
+        n = len(self.edges.acts_baseline)
+        mult = np.ones(n, dtype=ss_float)
+        is_stable = self.edges.edge_type == self.edge_types['stable']
+        if is_stable.any():
+            age_years = (self.ti - self.edges.start_ti[is_stable]) * self.t.dt_year
+            mult[is_stable] = np.maximum(1.0 - decay * age_years, floor)
+        return mult
 
     def _on_edge_dissolution(self, active):
         """Record dissolved partnerships and decrement partner counts."""

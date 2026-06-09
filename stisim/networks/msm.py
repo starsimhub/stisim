@@ -10,7 +10,7 @@ Three MSM variants live here:
 """
 import numpy as np
 import starsim as ss
-from .base import NoPartnersFound, BaseNetwork
+from .base import NoPartnersFound, BaseNetwork, ss_float, ss_int
 from .mf import MFNetwork
 
 __all__ = ['AgeMatchedMSM', 'AgeApproxMSM', 'MSMScaleFreeNetwork']
@@ -373,11 +373,14 @@ class MSMScaleFreeNetwork(BaseNetwork):
         if n == 0:
             return
         ages = self.sim.people.age
+        acts = np.ones(n, dtype=int)
         self.append(
             p1=p1, p2=p2,
             beta=np.ones(n, dtype=float),
             dur=np.full(n, float(self._max_edge_dur_steps), dtype=float),
-            acts=np.ones(n, dtype=int),
+            acts=acts,
+            acts_baseline=acts.astype(ss_float),
+            start_ti=np.full(n, self.ti, dtype=ss_int),
             condoms=np.zeros(n, dtype=float),
             age_p1=ages[p1],
             age_p2=ages[p2],

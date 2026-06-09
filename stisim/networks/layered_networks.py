@@ -66,6 +66,28 @@ class StructuredSexual(MFNetwork):
         SWNetwork.add_pairs(self)
         return
 
+    def _compute_act_multiplier(self):
+        """Compose MFNetwork's stable-edge decay with a client-husband
+        marital multiplier. Returns ``None`` only if BOTH knobs are
+        no-ops (preserves backwards compatibility).
+        """
+        mult = MFNetwork._compute_act_multiplier(self)
+        client_mult = self.pars.client_marital_act_mult
+        if mult is None and client_mult == 1.0:
+            return None
+        if mult is None:
+            mult = np.ones(len(self.edges.acts_baseline), dtype=ss_float)
+        if client_mult != 1.0 and 'stable' in self.edge_types:
+            is_stable = self.edges.edge_type == self.edge_types['stable']
+            if is_stable.any():
+                # client is a property of male agents (p1); intersect with
+                # stable edges so casual / onetime / sw edges are untouched
+                p1_uids = ss.uids(self.edges.p1[is_stable])
+                client_husbands = self.client[p1_uids]
+                ix = np.where(is_stable)[0][client_husbands]
+                mult[ix] *= client_mult
+        return mult
+
     # end_pairs and set_condom_use inherited from BaseNetwork. _decrement_partners
     # (in MFNetwork) skips SW edges via the ``'sw' in self.edge_types`` check;
     # set_condom_use's per-key dispatch handles ``(rgm, rgf)`` and ``('fsw','client')``
