@@ -12,7 +12,7 @@ import stisim as sti
 import sys
 import time
 
-from stisim.analyzers import NPartnersAnalyzer
+from stisim.analyzers import PartnershipFormationAnalyzer
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -264,13 +264,13 @@ def test_n_partners_distribution(n_agents=25000, n_runs=5, dur=25, window_months
 
     for i, seed in enumerate(seeds):
         network = sti.MFNetwork(age_diff_pars=age_diff_pars, match_method=matching_algo)
-        analyzer = NPartnersAnalyzer(network='mfnetwork', window_months=window_months)
+        analyzer = PartnershipFormationAnalyzer(networks=['mfnetwork'])
         sim = sti.Sim(n_agents=n_agents, networks=[network], analyzers=[analyzer],
                       dur=dur, rand_seed=seed)
         sim.run()
         # sti.Sim copies the analyzer during init, so retrieve the live instance
-        sim_analyzer = sim.analyzers.npartnersanalyzer
-        counts = sim_analyzer.get_unique_partner_counts()
+        sim_analyzer = sim.analyzers.partnershipformationanalyzer
+        counts = sim_analyzer.get_unique_partners_active_per_agent(female=False, window_months=window_months)['mfnetwork']
         binned, _ = np.histogram(counts, bins=bin_edges)
         per_run_counts[i] = binned
         per_run_n_males[i] = counts.size
@@ -332,8 +332,8 @@ def test_n_partners_pyramid(n_agents=25000, n_runs=5, dur=25, window_months=12, 
     """
     Population-pyramid of partnerships formed (non-unique) by age and sex.
 
-    Sweeps over ``n_runs`` seeds and, for each, uses ``NPartnersAnalyzer`` to
-    count the number of partnerships *formed* (not unique-partner counts) in the
+    Sweeps over ``n_runs`` seeds and, for each, uses ``PartnershipFormationAnalyzer``
+    to count the number of partnerships *formed* (not unique-partner counts) in the
     trailing ``window_months``, binned by each subject's age at formation. The
     per-bin counts are averaged across seeds and drawn as a population pyramid:
     a central vertical line at x=0 with male counts extending left and female
@@ -367,14 +367,19 @@ def test_n_partners_pyramid(n_agents=25000, n_runs=5, dur=25, window_months=12, 
 
     for i, seed in enumerate(seeds):
         network = sti.MFNetwork(age_diff_pars=age_diff_pars, match_method=matching_algo)
-        analyzer = NPartnersAnalyzer(network='mfnetwork', window_months=window_months)
+        analyzer = PartnershipFormationAnalyzer(networks=['mfnetwork'])
         sim = sti.Sim(n_agents=n_agents, networks=[network], analyzers=[analyzer],
                       dur=dur, rand_seed=seed)
         sim.run()
         # sti.Sim copies the analyzer during init, so retrieve the live instance
-        sim_analyzer = sim.analyzers.npartnersanalyzer
-        male_per_run[i] = sim_analyzer.get_n_partnerships_formed(female=False, age_bins=age_bins)
-        female_per_run[i] = sim_analyzer.get_n_partnerships_formed(female=True, age_bins=age_bins)
+        sim_analyzer = sim.analyzers.partnershipformationanalyzer
+        # {nw: {age_bin: array([window_sum])}}; collapse each bin's length-1 array.
+        male_by_bin = sim_analyzer.get_n_partnerships_formed(
+            female=False, age_bins=age_bins, window_months=window_months)['mfnetwork']
+        female_by_bin = sim_analyzer.get_n_partnerships_formed(
+            female=True, age_bins=age_bins, window_months=window_months)['mfnetwork']
+        male_per_run[i] = [male_by_bin[b][0] for b in age_bins]
+        female_per_run[i] = [female_by_bin[b][0] for b in age_bins]
         print(f"  seed={seed}: male_formed={int(male_per_run[i].sum())} "
               f"female_formed={int(female_per_run[i].sum())}")
 

@@ -11,7 +11,7 @@ import pandas as pd
 
 import stisim as sti
 import pylab as pl
-from collections import defaultdict
+from collections import defaultdict, Counter
 
 __all__ = ["result_grouper", "coinfection_stats", "sw_stats", "RelationshipDurations", "NetworkDegree", "DebutAge", "partner_age_diff", "TimeBetweenRelationships", "art_coverage", "PartnershipFormationAnalyzer"]
 
@@ -754,36 +754,64 @@ class art_coverage(ss.Analyzer):
 
 
 class PartnershipFormationAnalyzer(ss.Analyzer):
-    """Track the number of new partnerships formed per gender, age bin, and timestep.
+    """Track partnership formation per network, gender, age bin, and timestep.
 
-    Detects new partnerships by reading ``nw.edges.formation_ti`` on each
-    tracked network: edges where ``formation_ti == self.ti`` were appended on
-    the current step. For each new partnership, both partners contribute one
-    count to the cell corresponding to their (sex, age bin) at the moment of
-    formation. Works for partnerships of any gender combination
+    Each timestep, for every tracked network, records the active edges and which
+    of them were newly formed (``formation_ti == ti``). Each partner's sex and
+    age-at-formation are taken from the edge/people directly, so the analyzer
+    makes no p1=male/p2=female assumption and works for any gender combination
     (male-female, male-male, female-female).
 
-    Results are stored as nested dicts keyed by sex / network / age bin, with
-    a preallocated numpy array at the leaf indexed by timestep::
+    All recorded data lives in ``self.results``:
 
-        self.results['new_partnerships_f'][nw_name][age_bin][ti]
-        self.results['new_partnerships_m'][nw_name][age_bin][ti]
+      - ``self.results['n_formed'][nw][sex][age_bin]`` -> ``array(n_ti)``:
+        per-timestep count of partnerships formed in which a partner of that
+        ``sex`` (``'f'``/``'m'``) fell in ``age_bin`` at formation. Both
+        partners of every new edge are counted (a new partnership updates two
+        cells).
+      - ``self.results['edges'][nw]`` -> list of per-timestep records
+        ``(ti, p1, p2, formation_ti, age_p1, age_p2, female_p1, female_p2)``,
+        used by the per-agent / windowed getters.
 
-    where ``nw_name`` is the network's ``name`` attribute and ``age_bin``
-    is the original bin string (e.g. ``'0-5'``).
+    Example (``self.results`` layout, default bins, network 'structuredsexual')::
+
+        # per-timestep male-side formations in age bin '20-25':
+        ana.results['n_formed']['structuredsexual']['m']['20-25']
+        # -> array([0, 1, 0, 2, 0, ...])   # 1 at ti=1, 2 at ti=3, ... (len == n_ti)
+
+        # the raw edge record captured at one timestep (here a single edge):
+        ana.results['edges']['structuredsexual'][0]
+        # -> (0,                       # ti
+        #     array([9]), array([17]),   # p1, p2  (edge endpoints' uids)
+        #     array([0]),               # formation_ti (formed at ti=0)
+        #     array([27.23]),           # age_p1 at formation
+        #     array([19.62]),           # age_p2 at formation
+        #     array([False]),           # female_p1 (this p1 is male)
+        #     array([ True]))           # female_p2 (this p2 is female)
+
+    Reporting is via getters (all return ``{network_name: result}``; ``female``
+    selects the subject sex):
+
+      - ``get_n_partnerships_formed(female, age_bins=None, window_months=None)``
+        -- ``{nw: {age_bin: array}}``. With ``window_months=None`` the inner
+        array is the full per-timestep series (length ``n_ti``); with an int it
+        is a single trailing-window sum (length 1).
+      - ``get_n_partnerships_formed_per_agent(female, window_months=None)`` --
+        ``{nw: array}`` of non-unique formation counts per agent over the window.
+      - ``get_unique_partners_active_per_agent(female, window_months=None)`` --
+        ``{nw: array}`` of unique partners per agent on edges active during the
+        window.
 
     Args:
-        age_bins (list[str]): Age bin strings parsable by
-            ``ss.parse_age_range`` (e.g., ``['0-5', '5-10', ..., '70-75']``).
-            Defaults to five-year bins from ``'0-5'`` through ``'70-75'``.
-        networks (list[str] | None): Names of the networks to track. If
-            ``None`` (default), every ``ss.SexualNetwork`` in the sim is
-            tracked. If supplied, each name must match a network in
-            ``sim.networks``; non-matching names raise ``ValueError`` in
-            ``init_results``. Named networks that are not ``ss.SexualNetwork``
-            instances trigger a warning and are skipped. Each tracked
-            network's edges must carry a ``formation_ti`` field (BaseNetwork
-            does this by default).
+        age_bins (list[str]): Age bin strings parsable by ``ss.parse_age_range``
+            (e.g. ``['0-5', '5-10', ..., '70-75']``). Bins may overlap; a
+            partner is counted in every bin containing its age. Defaults to
+            five-year bins from ``'0-5'`` through ``'70-75'``.
+        networks (list[str] | None): Network names to track. ``None`` (default)
+            tracks every ``ss.SexualNetwork`` in the sim. Named networks that
+            are missing raise ``ValueError``; named non-sexual networks warn and
+            are skipped. Tracked networks' edges must carry ``formation_ti``,
+            ``age_p1``, ``age_p2`` (BaseNetwork provides these).
     """
 
     DEFAULT_AGE_BINS = [f'{lo}-{lo+5}' for lo in range(0, 75, 5)]
@@ -791,15 +819,26 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
     def __init__(self, age_bins: list[str] = None, networks: list[str] = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.age_bins = list(age_bins) if age_bins is not None else list(self.DEFAULT_AGE_BINS)
+
+        # Age-bin strings are used as result dict keys, so duplicates are not
+        # allowed (they would collide). Detect via multiset-minus-set difference:
+        # Counter(all occurrences) - Counter(one of each unique) leaves only the
+        # surplus occurrences, whose keys are exactly the duplicated values.
+        dups = sorted((Counter(self.age_bins) - Counter(set(self.age_bins))).keys())
+        if len(dups) > 0:
+            raise ValueError(f"PartnershipFormationAnalyzer: duplicate age_bins are not allowed: {dups}")
+
         self.age_ranges = [ss.parse_age_range(b) for b in self.age_bins]
         self.target_network_names = networks
-        self._tracked_names = []  # populated in init_results
+        self._tracked_names = []                     # populated in init_results
+        self._final_uids = {'f': None, 'm': None}    # subject universes, set in step
+        self._final_ti = None
         return
 
     def init_results(self):
         super().init_results()
 
-        # Validate passed-in network names for tracking
+        # Validate passed-in network names for tracking.
         all_nw_names = self.sim.networks.keys()
         if self.target_network_names is None:
             # default to all sexual networks
@@ -823,222 +862,235 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
 
         self._tracked_names = selected
 
-        # Preallocate nested-dict result structure:
-        # self.results['new_partnerships_{sex}'][nw_name][age_bin][ti]
+        # Canonical per-timestep formation time series (the stisim-norm storage):
+        #   self.results['n_formed'][nw_name][sex][age_bin] -> array(n_ti)
         n_ti = len(self.t.tvec)
-        for sex in ('f', 'm'):
-            nw_dict = {}
-            for nw_name in self._tracked_names:
-                nw_dict[nw_name] = {age_bin_str: np.zeros(n_ti, dtype=int) for age_bin_str in self.age_bins}
-            self.results[f'new_partnerships_{sex}'] = nw_dict
+        n_formed = {}
+        for nw_name in self._tracked_names:
+            n_formed[nw_name] = {
+                'f': {age_bin: np.zeros(n_ti, dtype=int) for age_bin in self.age_bins},
+                'm': {age_bin: np.zeros(n_ti, dtype=int) for age_bin in self.age_bins},
+            }
+        self.results['n_formed'] = n_formed
+
+        # Raw per-timestep edge records, for the per-agent / windowed getters:
+        #   self.results['edges'][nw_name] -> list of
+        #     (ti, p1, p2, formation_ti, age_p1, age_p2, female_p1, female_p2)
+        self.results['edges'] = {nw_name: [] for nw_name in self._tracked_names}
         return
 
     def step(self):
         ti = self.ti
-        n_bins = len(self.age_bins)
+        ppl = self.sim.people
 
         for nw_name in self._tracked_names:
             nw = self.sim.networks[nw_name]
-            counts_female = np.zeros(n_bins, dtype=int)
-            counts_male   = np.zeros(n_bins, dtype=int)
-
-            formation_ti = np.asarray(nw.edges.formation_ti)
-            if len(formation_ti) > 0:
-                form_ti_mask = formation_ti == ti
-                if form_ti_mask.any():
-                    new_rel_p1 = nw.edges.p1[form_ti_mask]
-                    new_rel_p2 = nw.edges.p2[form_ti_mask]
-                    # We don't know which of p1/p2 is male vs female (depends on the network type); pass each side to
-                    # both counters and let _count_by_age_bin filter by each agent's actual sex.
-                    for uid_array in (new_rel_p1, new_rel_p2):
-                        counts_female += self._count_by_age_bin(uid_array, female=True)
-                        counts_male   += self._count_by_age_bin(uid_array, female=False)
-
-            for i, bin_str in enumerate(self.age_bins):
-                self.results['new_partnerships_f'][nw_name][bin_str][ti] = counts_female[i]
-                self.results['new_partnerships_m'][nw_name][bin_str][ti] = counts_male[i]
-        return
-
-    def _count_by_age_bin(self, uid_array, female: bool):
-        """Count agents in ``uid_array`` of the given sex, binned by age.
-
-        Each agent contributes to every bin whose age range contains their
-        age, so overlapping bins (e.g. ``['15-50', '40-50']``) correctly
-        count agents once per matching bin. Agents whose age is outside
-        every bin are skipped.
-
-        Args:
-            uid_array (array-like): UIDs to process. May be empty.
-            female (bool): True to count female agents only, False for male only.
-
-        Returns:
-            ndarray of shape ``(len(self.age_bins),)``.
-        """
-        n_bins = len(self.age_bins)
-        counts = np.zeros(n_bins, dtype=int)
-        if len(uid_array) == 0:
-            return counts
-        ppl = self.sim.people
-        uids = ss.uids(uid_array)
-        is_female = np.asarray(ppl.female[uids], dtype=bool)
-        sex_mask = is_female if female else ~is_female
-        if not sex_mask.any():
-            return counts
-        ages = np.asarray(ppl.age[uids], dtype=float)
-        for i, (lo, hi) in enumerate(self.age_ranges):
-            counts[i] = int(np.count_nonzero(sex_mask & (ages >= lo) & (ages < hi)))
-        return counts
-
-
-class NPartnersAnalyzer(ss.Analyzer):
-    """Track partnerships per agent over a trailing month window.
-
-    Works with any male-female sexual network (e.g. ``MFNetwork``,
-    ``SWNetwork``, ``StructuredSexual``), which all share the edge convention
-    that ``p1`` is male and ``p2`` is female. Same-sex networks are not
-    supported.
-
-    Walks the active network edges each step, recording (per timestep) the
-    male/female partners and each edge's ``formation_ti``. After the sim
-    finishes:
-
-      - ``get_unique_partner_counts(female)`` returns the number of *unique*
-        opposite-sex partners each agent saw in the trailing window.
-      - ``get_n_partnerships_formed(female)`` returns the *total* number of
-        partnerships each agent formed in the trailing window (NOT unique:
-        forming three partnerships with the same person counts as three).
-
-    Both methods toggle their subject population with the ``female`` arg:
-    ``False`` (default) → results per male, ``True`` → results per female.
-
-    Args:
-        network (str): Network name to inspect (default ``'mfnetwork'``).
-        window_months (int): Trailing window in months; assumes monthly dt
-            (one ti per month) so this is also the number of trailing steps.
-    """
-
-    def __init__(self, network='mfnetwork', window_months=12, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.network = network
-        self.window_months = window_months
-        # list of (ti, male_uids, female_uids, formation_ti, age_male, age_female)
-        # where age_* are each partner's age recorded on the edge at formation.
-        self._records = []
-        self._final_male_uids = None
-        self._final_female_uids = None
-        self._final_ti = None
-        return
-
-    def step(self):
-        sim = self.sim
-        nw = sim.networks[self.network]
-        p1 = np.asarray(nw.edges.p1, dtype=np.int64)
-        p2 = np.asarray(nw.edges.p2, dtype=np.int64)
-        formation_ti = np.asarray(nw.edges.formation_ti, dtype=np.int64)
-        # age_p1 / age_p2 are stored on the edge at formation, so they give each
-        # partner's age at the moment the partnership formed (not the current ti).
-        age_p1 = np.asarray(nw.edges.age_p1, dtype=float)
-        age_p2 = np.asarray(nw.edges.age_p2, dtype=float)
-        if len(p1):
-            self._records.append((self.ti, p1, p2, formation_ti, age_p1, age_p2))
-        # Cache so we can compute counts even after sim is finalized/shrunk
-        self._final_male_uids = np.asarray(sim.people.male.uids, dtype=np.int64)
-        self._final_female_uids = np.asarray(sim.people.female.uids, dtype=np.int64)
-        self._final_ti = self.ti
-        return
-
-    def _subject_uids(self, female):
-        """Return the cached uid array for the requested subject population."""
-        return self._final_female_uids if female else self._final_male_uids
-
-    def get_unique_partner_counts(self, female=False):
-        """Return per-agent unique opposite-sex partner counts over the window.
-
-        Args:
-            female (bool): If False (default), count unique female partners per
-                male. If True, count unique male partners per female.
-
-        Returns:
-            ndarray indexed like the subject-population uid array (males if
-            ``female`` is False, females if True).
-        """
-        threshold = self._final_ti - self.window_months + 1
-        partner_sets = defaultdict(set)
-        for ti, males, females, fti, age_m, age_f in self._records:
-            if ti < threshold:
+            p1 = np.asarray(nw.edges.p1, dtype=np.int64)
+            p2 = np.asarray(nw.edges.p2, dtype=np.int64)
+            if len(p1) == 0:
                 continue
-            # p1 is male, p2 is female. Key on the subject sex and accumulate
-            # the (unique) partner of the other sex.
-            if female:
-                for m, f in zip(males, females):
-                    partner_sets[int(f)].add(int(m))
-            else:
-                for m, f in zip(males, females):
-                    partner_sets[int(m)].add(int(f))
+            formation_ti = np.asarray(nw.edges.formation_ti, dtype=np.int64)
+            # age_p1 / age_p2 are stored on the edge at formation, so they give
+            # each partner's age at the moment the partnership formed.
+            age_p1 = np.asarray(nw.edges.age_p1, dtype=float)
+            age_p2 = np.asarray(nw.edges.age_p2, dtype=float)
+            # Determine each partner's sex from people (no p1/p2 assumption), so
+            # same-sex networks are handled correctly.
+            female_p1 = np.asarray(ppl.female[ss.uids(p1)], dtype=bool)
+            female_p2 = np.asarray(ppl.female[ss.uids(p2)], dtype=bool)
 
-        uids = self._subject_uids(female)
-        counts = np.zeros(len(uids), dtype=np.int64)
-        for i, uid in enumerate(uids):
-            counts[i] = len(partner_sets.get(int(uid), ()))
-        return counts
+            self.results['edges'][nw_name].append(
+                (ti, p1, p2, formation_ti, age_p1, age_p2, female_p1, female_p2))
 
-    def get_n_partnerships_formed(self, female=False, age_bins=None):
-        """Return the count of partnerships formed in the trailing window.
+            # Per-timestep formation counts: both partners of each new edge
+            # contribute to their own (sex, age-bin) cell.
+            new_mask = formation_ti == ti
+            if new_mask.any():
+                nfm = self.results['n_formed'][nw_name]
+                for ages, fems in ((age_p1[new_mask], female_p1[new_mask]),
+                                   (age_p2[new_mask], female_p2[new_mask])):
+                    for sex_key, sex_mask in (('f', fems), ('m', ~fems)):
+                        if not sex_mask.any():
+                            continue
+                        bin_counts = self._bin_counts(ages[sex_mask], self.age_ranges)
+                        for i, age_bin in enumerate(self.age_bins):
+                            if bin_counts[i]:
+                                nfm[sex_key][age_bin][ti] += bin_counts[i]
 
-        Unlike :meth:`get_unique_partner_counts`, this is a *non-unique* count:
-        if an agent forms three partnerships with the same partner during the
-        window, all three are counted. Formation events are identified from
-        the edges' ``formation_ti`` (an edge is "formed at" a step when its
-        ``formation_ti`` equals that step's ``ti``).
+        # Cache subject universes and final ti for the per-agent getters.
+        self._final_uids = {'f': np.asarray(ppl.female.uids, dtype=np.int64),
+                            'm': np.asarray(ppl.male.uids, dtype=np.int64)}
+        self._final_ti = ti
+        return
 
-        Args:
-            female (bool): If False (default), count partnerships formed by
-                males. If True, count by females.
-            age_bins (list[str] | None): If None (default), return a per-agent
-                count indexed like the subject-population uid array. If a list
-                of age-range strings parsable by ``ss.parse_age_range`` (e.g.
-                ``['0-5', '5-10', ...]``), return a per-bin count where each
-                formed partnership is attributed to every bin containing the
-                subject's age *at formation* (so overlapping bins each count
-                it). The bin age uses the partner's age recorded on the edge.
-
-        Returns:
-            ndarray. If ``age_bins`` is None: indexed like the subject-population
-            uid array. Otherwise: length ``len(age_bins)``, ordered as given.
-        """
-        threshold = self._final_ti - self.window_months + 1
-
-        if age_bins is None:
-            counts_by_uid = defaultdict(int)
-            for ti, males, females, fti, age_m, age_f in self._records:
-                if ti < threshold:
-                    continue
-                # Edges newly formed at this step (counted once, at formation).
-                new_mask = fti == ti
-                if not new_mask.any():
-                    continue
-                subjects = females[new_mask] if female else males[new_mask]
-                for uid in subjects:
-                    counts_by_uid[int(uid)] += 1
-
-            uids = self._subject_uids(female)
-            counts = np.zeros(len(uids), dtype=np.int64)
-            for i, uid in enumerate(uids):
-                counts[i] = counts_by_uid.get(int(uid), 0)
-            return counts
-
-        # Binned by the subject's age at formation. Overlapping bins each count.
-        ranges = [ss.parse_age_range(b) for b in age_bins]
+    @staticmethod
+    def _bin_counts(ages, ranges):
+        """Count ages into (possibly overlapping) bins; returns array(len(ranges))."""
         counts = np.zeros(len(ranges), dtype=np.int64)
-        for ti, males, females, fti, age_m, age_f in self._records:
-            if ti < threshold:
-                continue
+        for i, (lo, hi) in enumerate(ranges):
+            counts[i] = int(np.count_nonzero((ages >= lo) & (ages < hi)))
+        return counts
+
+    def _threshold(self, window_months):
+        """First ti included by a trailing window (None => whole run)."""
+        if window_months is None:
+            return None
+        return self._final_ti - window_months + 1
+
+    def _iter_formations(self, nw_name, female):
+        """Yield (ti, subject_uids, subject_ages) for newly-formed edges whose
+        endpoint matches the subject sex (ages are ages at formation)."""
+        for ti, p1, p2, fti, age1, age2, fem1, fem2 in self.results['edges'][nw_name]:
             new_mask = fti == ti
             if not new_mask.any():
                 continue
-            ages = (age_f if female else age_m)[new_mask]
-            for a in ages:
-                for bi, (lo, hi) in enumerate(ranges):
-                    if lo <= a < hi:
-                        counts[bi] += 1
-        return counts
+            m1 = new_mask & (fem1 if female else ~fem1)
+            m2 = new_mask & (fem2 if female else ~fem2)
+            uids = np.concatenate([p1[m1], p2[m2]])
+            if len(uids) == 0:
+                continue
+            ages = np.concatenate([age1[m1], age2[m2]])
+            yield ti, uids, ages
+
+    def _formed_per_ti(self, nw_name, female, ranges, age_bins):
+        """Per-(age-bin, ti) formation counts for one network: array(n_bins, n_ti).
+
+        Uses the stored ``n_formed`` time series when ``age_bins`` are the
+        construction bins; recomputes from the raw edge records otherwise.
+        """
+        if age_bins is self.age_bins:
+            nfm = self.results['n_formed'][nw_name]['f' if female else 'm']
+            return np.vstack([nfm[age_bin] for age_bin in self.age_bins])
+        # final_ti is the last stepped timestep, so n_ti == final_ti + 1 (matches
+        # len(self.t.tvec) after a run, and avoids needing self.t in unit tests).
+        n_ti = self._final_ti + 1
+        arr = np.zeros((len(ranges), n_ti), dtype=np.int64)
+        for ti, uids, ages in self._iter_formations(nw_name, female):
+            arr[:, ti] += self._bin_counts(ages, ranges)
+        return arr
+
+    def get_n_partnerships_formed(self, female=False, age_bins=None, window_months=None):
+        """Partnerships formed (non-unique), per network and age bin.
+
+        Args:
+            female (bool): Subject sex (True=female, False=male).
+            age_bins (list[str] | None): Bins to report; ``None`` (default) uses
+                the analyzer's construction bins. A partner is counted in every
+                bin containing its age at formation (overlapping bins each count
+                it).
+            window_months (int | None): If ``None`` (default), the inner array is
+                the full per-timestep series (length ``n_ti``, indexed by ti). If
+                an int, the inner array is a single trailing-window sum
+                (length 1).
+
+        Returns:
+            dict ``{network_name: {age_bin: ndarray}}``. The inner array is
+            length ``n_ti`` when ``window_months is None``, else length 1.
+
+        Example (per timestep, whole run)::
+
+            ana.get_n_partnerships_formed(female=False, age_bins=['15-50', '40-50'])
+            # -> {'structuredsexual': {'15-50': array([0, 2, 0, 0, 4]),   # by timestep
+            #                          '40-50': array([0, 0, 1, 0, 0])}}
+
+        Example (single trailing-window sum)::
+
+            ana.get_n_partnerships_formed(female=False, age_bins=['15-50', '40-50'],
+                                          window_months=12)
+            # -> {'structuredsexual': {'15-50': array([6]),   # sum over last 12 steps
+            #                          '40-50': array([1])}}
+        """
+        bins = self.age_bins if age_bins is None else age_bins
+        ranges = self.age_ranges if age_bins is None else [ss.parse_age_range(b) for b in bins]
+        threshold = self._threshold(window_months)
+
+        out = {}
+        for nw_name in self._tracked_names:
+            per_ti = self._formed_per_ti(nw_name, female, ranges, bins)  # (n_bins, n_ti)
+            if window_months is None:
+                out[nw_name] = {age_bin: per_ti[i] for i, age_bin in enumerate(bins)}
+            else:
+                lo = max(0, threshold)
+                out[nw_name] = {age_bin: np.array([int(per_ti[i, lo:].sum())])
+                                for i, age_bin in enumerate(bins)}
+        return out
+
+    def get_n_partnerships_formed_per_agent(self, female=False, window_months=None):
+        """Partnerships formed (non-unique) per agent over a trailing window.
+
+        Args:
+            female (bool): Subject sex.
+            window_months (int | None): Trailing window length in timesteps;
+                ``None`` aggregates over the whole run.
+
+        Returns:
+            dict ``{network_name: array}`` indexed like the subject-sex uid
+            universe (``ana._final_uids['f'|'m']``).
+
+        Example (whole run)::
+
+            ana.get_n_partnerships_formed_per_agent(female=False)
+            # -> {'structuredsexual': array([0, 0, 1, 0, 4, ...])}
+            #    aligned to ana._final_uids['m']; e.g. that male formed 4
+            #    partnerships over the run (non-unique: a re-formed pair counts twice).
+        """
+        threshold = self._threshold(window_months)
+        uid_universe = self._final_uids['f' if female else 'm']
+        out = {}
+        for nw_name in self._tracked_names:
+            counts_by_uid = defaultdict(int)
+            for ti, uids, ages in self._iter_formations(nw_name, female):
+                if threshold is not None and ti < threshold:
+                    continue
+                for u in uids:
+                    counts_by_uid[int(u)] += 1
+            out[nw_name] = np.array([counts_by_uid.get(int(u), 0) for u in uid_universe],
+                                    dtype=np.int64)
+        return out
+
+    def get_unique_partners_active_per_agent(self, female=False, window_months=None):
+        """Per-agent count of unique partners over a trailing window.
+
+        Counts partners from edges *active* during the window (not just newly
+        formed). Sex-general: the partner is the other endpoint regardless of
+        its sex, so this works for same-sex networks too. Dedups by partner
+        uid (a network is assumed not to hold concurrent duplicate edges
+        between the same pair, so unique partners == unique active partnerships).
+
+        Args:
+            female (bool): Subject sex.
+            window_months (int | None): Trailing window length; ``None`` uses
+                the whole run.
+
+        Returns:
+            dict ``{network_name: array}`` indexed like the subject-sex uid
+            universe.
+
+        Example (trailing 12 timesteps)::
+
+            ana.get_unique_partners_active_per_agent(female=False, window_months=12)
+            # -> {'structuredsexual': array([1, 0, 2, ...])}
+            #    aligned to ana._final_uids['m']; e.g. the male at index 2 had 2
+            #    distinct partners across edges active during the last 12 steps
+            #    (re-forming with the same partner still counts as 1 unique).
+        """
+        threshold = self._threshold(window_months)
+        uid_universe = self._final_uids['f' if female else 'm']
+        out = {}
+        for nw_name in self._tracked_names:
+            partner_sets = defaultdict(set)
+            for ti, p1, p2, fti, age1, age2, fem1, fem2 in self.results['edges'][nw_name]:
+                if threshold is not None and ti < threshold:
+                    continue
+                # Subject = endpoints matching the requested sex; the partner is
+                # the opposite endpoint (whatever its sex).
+                sub1 = fem1 if female else ~fem1
+                sub2 = fem2 if female else ~fem2
+                for s, partner in zip(p1[sub1], p2[sub1]):
+                    partner_sets[int(s)].add(int(partner))
+                for s, partner in zip(p2[sub2], p1[sub2]):
+                    partner_sets[int(s)].add(int(partner))
+            out[nw_name] = np.array([len(partner_sets.get(int(u), ())) for u in uid_universe],
+                                    dtype=np.int64)
+        return out
+

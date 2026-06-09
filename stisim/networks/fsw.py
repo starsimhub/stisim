@@ -203,6 +203,10 @@ class SWNetwork(BaseNetwork):
         also inherit ``MFNetwork.match_pairs`` (e.g. :class:`StructuredSexual`)
         still pick the SW matcher here.
         """
+        # TODO: consider rejecting a (p1, p2) pairing if that pair already has an
+        # active edge in this or any other known network, to enforce the
+        # no-concurrent-duplicate-edge invariant that partner-uniqueness
+        # reporting (e.g. PartnershipFormationAnalyzer) assumes.
         ppl = self.sim.people
 
         try:

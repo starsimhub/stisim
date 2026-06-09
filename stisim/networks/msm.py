@@ -420,6 +420,10 @@ class MSMScaleFreeNetwork(BaseNetwork):
         edge list. Both target ``mu_turnover = E* / D``, balancing the
         stationary edge stock.
         """
+        # TODO: consider rejecting a (p1, p2) pairing if that pair already has an
+        # active edge in this or any other known network, to enforce the
+        # no-concurrent-duplicate-edge invariant that partner-uniqueness
+        # reporting (e.g. PartnershipFormationAnalyzer) assumes.
         if self._kernel_sel_cdf is None:
             return
         rng = self._get_rng()

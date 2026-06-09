@@ -62,6 +62,11 @@ class StructuredSexual(MFNetwork):
         return
 
     def add_pairs(self):
+        # TODO: consider rejecting a (p1, p2) pairing if that pair already has an
+        # active edge in this or any other known network, to enforce the
+        # no-concurrent-duplicate-edge invariant that partner-uniqueness
+        # reporting (e.g. PartnershipFormationAnalyzer) assumes. (Delegates to
+        # MFNetwork/SWNetwork below, so the check could live there instead.)
         MFNetwork.add_pairs(self)
         SWNetwork.add_pairs(self)
         return

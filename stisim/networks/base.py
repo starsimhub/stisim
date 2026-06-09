@@ -155,6 +155,10 @@ class BaseNetwork(ss.SexualNetwork):
 
     def add_pairs(self):
         """Subclasses override."""
+        # TODO: consider rejecting a (p1, p2) pairing if that pair already has an
+        # active edge in this or any other known network, to enforce the
+        # no-concurrent-duplicate-edge invariant that partner-uniqueness
+        # reporting (e.g. PartnershipFormationAnalyzer) assumes.
         pass
 
     def set_condom_use(self):
