@@ -65,6 +65,12 @@ class BaseNetwork(ss.SexualNetwork):
         self.meta.age_p1 = ss_float
         self.meta.age_p2 = ss_float
         self.meta.edge_type = ss_float
+        # acts_baseline preserves the per-edge act count assigned at edge
+        # formation; per-step `acts` may be a decayed multiple of it
+        # (see ``update_acts``). start_ti is the timestep when the edge
+        # was created — used to compute edge age for the decay.
+        self.meta.acts_baseline = ss_float
+        self.meta.start_ti = ss_int
         self.define_pars(**BasePars())
         self.define_states(
             ss.BoolArr('participant', default=True),
@@ -150,7 +156,33 @@ class BaseNetwork(ss.SexualNetwork):
         self.set_network_states(upper_age=self.t.dt_year)
         self.add_pairs()
         self.set_condom_use()
+        self.update_acts()
         return
+
+    def update_acts(self):
+        """Per-step recompute of per-edge ``acts`` from ``acts_baseline``
+        and any per-edge multiplier returned by ``_compute_act_multiplier``.
+        No-op at default parameters (multiplier = 1.0 for all edges).
+        Subclasses override ``_compute_act_multiplier`` to inject custom
+        per-edge modifiers (e.g. stable-edge coital decay, client-husband
+        displacement).
+        """
+        if len(self.edges.acts) == 0:
+            return
+        mult = self._compute_act_multiplier()
+        if mult is None:
+            return
+        out = np.round(self.edges.acts_baseline * mult)
+        self.edges.acts[:] = out.astype(self.edges.acts.dtype)
+        return
+
+    def _compute_act_multiplier(self):
+        """Return a per-edge float array of multipliers on ``acts_baseline``,
+        or ``None`` to skip the update (default — backwards compatible).
+        Subclasses override to apply duration-based decay, partner-status
+        modifiers, etc.
+        """
+        return None
 
     def add_pairs(self):
         """Subclasses override."""

@@ -5,7 +5,7 @@ for discoverability.
 """
 import numpy as np
 import starsim as ss
-from .base import BaseNetwork, NoPartnersFound, ss_float
+from .base import BaseNetwork, NoPartnersFound, ss_float, ss_int
 
 __all__ = ['SWPars', 'SWNetwork']
 
@@ -48,6 +48,14 @@ class SWPars(ss.Pars):
         self.sw_seeking_dist = ss.bernoulli(p=0.5)     # Placeholder; replaced by dt-adjusted sw_seeking_rate
         self.sw_beta = 1
         self.sw_intensity = ss.random()                # FSW may work with varying intensity each step
+
+        # Multiplier applied to STABLE-edge per-step acts when the male
+        # partner (p1) is a client of an FSW. Captures the "wife
+        # displacement" effect — extramarital activity often substitutes
+        # for marital activity. Default 1.0 = no effect. Applied on
+        # networks that combine MF + SW (e.g. StructuredSexual); ignored
+        # by bare SWNetwork (its only edge type is sw, not stable).
+        self.client_marital_act_mult = 1.0
 
         # Per-agent age window — placeholders; tune to context
         self.age_sw_start = ss.normal(loc=20, scale=3)
@@ -219,7 +227,10 @@ class SWNetwork(BaseNetwork):
         age_p2 = ppl.age[p2]
         edge_types = np.full(match_count, dtype=ss_float, fill_value=self.edge_types['sw'])
 
-        self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types)
+        self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur,
+                    acts=acts, acts_baseline=acts.astype(ss_float),
+                    start_ti=np.full(match_count, self.ti, dtype=ss_int),
+                    age_p1=age_p1, age_p2=age_p2, edge_type=edge_types)
 
         p1_edges, p1_counts = np.unique(p1, return_counts=True)
         p2_edges, p2_counts = np.unique(p2, return_counts=True)
