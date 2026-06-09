@@ -259,11 +259,12 @@ def test_partnership_formation_analyzer(n_agents=DEFAULT_N_AGENTS,
     return run_sims, analyzer_ref, df_mean
 
 
+# ===========================================================================
+# Pure-function unit tests
 # ---------------------------------------------------------------------------
-# Unit tests for analyzer internals and getters, using injected state so that
-# uniqueness, non-uniqueness, duplicate handling, the trailing-window boundary,
-# and same-sex networks can be checked deterministically without a full sim.
-# ---------------------------------------------------------------------------
+# Exercise the static age-binning helper directly, with no analyzer instance
+# and no simulation.
+# ===========================================================================
 
 def test_bin_counts_duplicates():
     """``_bin_counts`` counts each occurrence (duplicates preserved); ages
@@ -286,6 +287,28 @@ def test_bin_counts_overlapping():
     print('test_bin_counts_overlapping: PASSED.')
     return
 
+
+# ===========================================================================
+# Injection-based getter tests
+# ---------------------------------------------------------------------------
+# The getters (get_n_partnerships_formed, get_n_partnerships_formed_per_agent,
+# get_unique_partners_active_per_agent) are pure functions of the recorded
+# state: self.results['edges'], self._final_uids and self._final_ti. The helper
+# below injects that state directly, so each test below can assert EXACT getter
+# outputs for a hand-built edge history -- which a real (stochastic) sim cannot
+# give you (it only supports loose aggregate checks). This is where uniqueness
+# vs non-uniqueness, duplicate handling, the trailing-window boundary,
+# active-vs-formed semantics, per-network separation, and same-sex handling are
+# verified to the exact value.
+#
+# CAVEAT: injection bypasses step() and init_results(), so these tests do NOT
+# verify that the recorded state is populated correctly during a run, nor the
+# `n_formed` fast path in get_n_partnerships_formed. That wiring is covered by
+# the sim-level test (test_partnership_formation_analyzer) and the
+# network-selection tests (test_network_*), which call sim.init()/run(). The
+# 8-tuple record format documented below is the contract between step() and
+# these tests; if step() changes its record layout, update the helper to match.
+# ===========================================================================
 
 def _inject_analyzer(records, uids_by_sex, final_ti, age_bins=None, nw_name='mfnetwork'):
     """Build a PartnershipFormationAnalyzer with injected state (no sim run).
@@ -414,22 +437,6 @@ def test_get_n_partnerships_formed_binned():
 
 
 @sc.timer()
-def test_duplicate_age_bins_rejected():
-    """Duplicate age-bin strings collide as dict keys and must be rejected at
-    construction, with every duplicated value reported."""
-    sc.heading("Duplicate age_bins raise ValueError listing all duplicates")
-    try:
-        sti.PartnershipFormationAnalyzer(age_bins=['0-5', '5-10', '0-5', '5-10', '10-15'])
-    except ValueError as e:
-        msg = str(e)
-        assert '0-5' in msg and '5-10' in msg, msg
-        assert '10-15' not in msg, msg  # non-duplicated bin must not be listed
-        print(f'test_duplicate_age_bins_rejected: raised as expected -> {msg}. PASSED.')
-        return
-    raise AssertionError('Expected ValueError for duplicate age_bins, none raised.')
-
-
-@sc.timer()
 def test_same_sex_network():
     """Same-sex (male-male) edges: both endpoints are classified male via the
     stored per-endpoint sex, so unique and formed counts work with no p1/p2
@@ -516,6 +523,29 @@ def test_multiple_networks():
     return
 
 
+# ===========================================================================
+# Construction- and sim-level behavior tests (no injected state)
+# ---------------------------------------------------------------------------
+# Build a real analyzer (and, where needed, a real sim) to exercise __init__
+# validation and init_results() network selection / warnings / errors.
+# ===========================================================================
+
+@sc.timer()
+def test_duplicate_age_bins_rejected():
+    """Duplicate age-bin strings collide as dict keys and must be rejected at
+    construction, with every duplicated value reported."""
+    sc.heading("Duplicate age_bins raise ValueError listing all duplicates")
+    try:
+        sti.PartnershipFormationAnalyzer(age_bins=['0-5', '5-10', '0-5', '5-10', '10-15'])
+    except ValueError as e:
+        msg = str(e)
+        assert '0-5' in msg and '5-10' in msg, msg
+        assert '10-15' not in msg, msg  # non-duplicated bin must not be listed
+        print(f'test_duplicate_age_bins_rejected: raised as expected -> {msg}. PASSED.')
+        return
+    raise AssertionError('Expected ValueError for duplicate age_bins, none raised.')
+
+
 @sc.timer()
 def test_network_missing_raises():
     """Naming a network absent from the sim raises ValueError during init."""
@@ -562,15 +592,22 @@ def test_network_nonsexual_warns_and_skips():
 
 
 if __name__ == '__main__':
+    # Pure-function unit tests
     test_bin_counts_duplicates()
     test_bin_counts_overlapping()
+
+    # Injection-based getter tests (exact-value verification, no sim)
     test_get_unique_partners_active_per_agent()
     test_get_n_partnerships_formed_per_agent()
     test_get_n_partnerships_formed_binned()
-    test_duplicate_age_bins_rejected()
     test_same_sex_network()
     test_active_vs_formed()
     test_multiple_networks()
+
+    # Construction- and sim-level behavior tests
+    test_duplicate_age_bins_rejected()
     test_network_missing_raises()
     test_network_nonsexual_warns_and_skips()
+
+    # End-to-end integration (real multi-seed sim + plots/tables)
     test_partnership_formation_analyzer(show_plots=True)
