@@ -951,10 +951,10 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
                     index[(int(a), int(b), int(ft))] = len(rows)
                     rows.append([int(a), int(b), int(ft), None, float(am), float(bm), bool(f1), bool(f2)])
 
-            # (2) Edges that expired this step: stamp ti_expired = ti, prune the
-            # index, and drain the buffer (the network accumulates into it, so we
-            # must clear it once consumed; see _drain_expired).
-            self._drain_expired(nw, rows, index, ti)
+            # (2) Edges that expired this step: record ti_expired = ti and prune
+            # the index. Read-only -- the network accumulates into the buffer and
+            # clears it itself in finish_step (step 14); see _record_expired.
+            self._record_expired(nw, rows, index, ti)
 
         # Cache subject universes and final ti for the getters.
         self._final_uids = {'f': np.asarray(ppl.female.uids, dtype=np.int64),
@@ -962,44 +962,44 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
         self._final_ti = ti
         return
 
-    def _drain_expired(self, nw, rows, index, stamp):
-        """Stamp ``ti_expired = stamp`` on each edge in ``nw.expired_this_ti``.
+    def _record_expired(self, nw, rows, index, ti_expired):
+        """Record ``ti_expired`` on each edge in ``nw.expired_this_ti``.
 
-        Edges are matched to their row by the ``(p1, p2, formation_ti)`` key,
-        the index entry is pruned, and the network's buffer is cleared (it
-        accumulates expirations across ``end_pairs`` and ``remove_uids`` until a
-        consumer drains it). Edges never placed in the buffer (i.e. still active)
-        are left untouched, keeping ``ti_expired = None``.
+        Edges are matched to their row by the ``(p1, p2, formation_ti)`` key and
+        the index entry is pruned. This is **read-only** with respect to the
+        network: the network accumulates expirations across ``end_pairs`` and
+        ``remove_uids`` and clears the buffer itself in ``finish_step`` (step 14),
+        so several analyzers can each read the same buffer, and recording works
+        with no analyzer present. Edges never placed in the buffer (i.e. still
+        active) are left untouched, keeping ``ti_expired = None``.
         """
         expired = nw.expired_this_ti
         if len(expired.get('p1', ())) > 0:
-            ep1 = np.asarray(expired['p1'], dtype=np.int64)
-            ep2 = np.asarray(expired['p2'], dtype=np.int64)
-            efti = np.asarray(expired['formation_ti'], dtype=np.int64)
-            for a, b, ff in zip(ep1, ep2, efti):
-                row_idx = index.pop((int(a), int(b), int(ff)), None)
+            p1_arr = np.asarray(expired['p1'], dtype=np.int64)
+            p2_arr = np.asarray(expired['p2'], dtype=np.int64)
+            formation_ti_arr = np.asarray(expired['formation_ti'], dtype=np.int64)
+            for p1, p2, formation_ti in zip(p1_arr, p2_arr, formation_ti_arr):
+                row_idx = index.pop((int(p1), int(p2), int(formation_ti)), None)
                 if row_idx is not None:
-                    rows[row_idx][self._TI_EXPIRED] = stamp
-        nw.expired_this_ti = {}
+                    rows[row_idx][self._TI_EXPIRED] = ti_expired
         return
 
     def finalize(self):
-        """Resolve still-buffered expirations at the end of the run.
-
-        After the loop, the only edges left in a network's ``expired_this_ti``
-        are those removed by death/removal at the **final** step 15 — i.e. after
-        the last ``step()`` read. They were active through ``final_ti`` (alive at
-        step 9 of ``final_ti``), so they get ``ti_expired = final_ti + 1``. Edges
-        genuinely still active at run end were never buffered, so they keep
-        ``ti_expired = None`` (the right-censored marker; getters treat ``None``
-        as active through ``final_ti``).
         """
-        stamp = self._final_ti + 1
+        Resolve still-buffered relationships that expired at the end of the simulation.
+
+        After the loop, the only edges left in a network's ``self.expired_this_ti`` are those removed by death at
+        the **final** step 15 — i.e. after the last ``step()`` read. They were active through the disease phase of the
+        final ti (step 9), so they get ``ti_expired = final_ti + 1``. Relationships/edges still active at sim end were
+        never buffered for removal recording, so they keep ``ti_expired = None`` (the right-censored marker; getter
+        methods treat ``None`` as still-active relationships at simulation end).
+        """
+        ti_expired = self._final_ti + 1
         for nw_name in self._tracked_names:
             nw = self.sim.networks[nw_name]
             rows = self.results['edges'][nw_name]
             index = self._edge_index[nw_name]
-            self._drain_expired(nw, rows, index, stamp)
+            self._record_expired(nw, rows, index, ti_expired)
         super().finalize()
         return
 

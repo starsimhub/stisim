@@ -214,14 +214,15 @@ class BaseNetwork(ss.SexualNetwork):
             self.edges[k] = self.edges[k][active]
         return
 
-    def _append_expired(self, mask):
-        """Accumulate the edges selected by ``mask`` into ``expired_this_ti``.
+    def _append_expired_relationships(self, mask):
+        """
+        Accumulate the relationship edges selected by ``mask`` into ``self.expired_this_ti``.
 
-        No-op unless ``self.record_expired`` is True. Records are **appended**
-        (concatenated), not overwritten, so multiple removal points within a
-        timestep (``end_pairs`` at loop step 7 and ``remove_uids`` at step 15)
-        both land in the buffer. The buffer is drained by the consumer (e.g.
-        ``PartnershipFormationAnalyzer.step()``), not reset here.
+        When ``self.record_expired`` is True, records expiring relationships (edges) by appending them
+        (concatenated), to self.expired_this_ti. This is to prevent overwrite, as multiple removal points within a
+        timestep (``end_pairs`` at loop step 7 and ``remove_uids`` at step 15) both land in the buffer. This method only
+        appends; the buffer is reset by the network in ``finish_step`` (step 14) each timestep, after any analyzer has
+        read it at step 13.
         """
         if not self.record_expired:
             return
@@ -242,9 +243,9 @@ class BaseNetwork(ss.SexualNetwork):
         ``self.record_expired`` is True it appends the full records of the edges
         being removed this timestep to ``self.expired_this_ti`` (a dict mirroring
         the edge meta layout, e.g. ``expired_this_ti['p1']``, including
-        ``formation_ti``). Analyzers such as ``PartnershipFormationAnalyzer`` use
-        this to learn each edge's expiry timestep, and drain (clear) the buffer
-        each step.
+        ``formation_ti``). Analyzers such as ``PartnershipFormationAnalyzer``
+        read this (read-only) to learn each edge's expiry timestep; the network
+        itself clears the buffer in ``finish_step`` (step 14) each timestep.
 
         Extending BaseNetwork — to keep expiration tracking complete:
           * If you override this method, call ``super()._on_edge_dissolution(active)``
@@ -254,7 +255,7 @@ class BaseNetwork(ss.SexualNetwork):
             too, or set the class attribute ``records_all_expirations = False`` so
             analyzers know the expiry data is incomplete and skip the network.
         """
-        self._append_expired(~active)
+        self._append_expired_relationships(~active)
 
     def remove_uids(self, uids):
         """Record death/removal-driven edge removals before dropping them.
@@ -266,9 +267,35 @@ class BaseNetwork(ss.SexualNetwork):
         ``expired_this_ti`` first, so analyzers capture death/removal expirations
         (consumed on the next step, hence ``ti_expired = T+1``). Upstream
         behavior is otherwise unchanged.
+
+        The ``super().remove_uids(uids)`` call is required and must be at the end. it performs
+        the actual edge removal (slicing the dead/removed agents out of
+        ``self.edges``). This (local) method records relationships of these uids as ending just before they will be
+        deleted in the super() version. Dropping the ``super()`` call would leave
+        dead agents' edges in the network, corrupting every downstream step, and putting it first would prevent
+        proper accounting of death-terminated relationships.
         """
         if self.record_expired and len(self.edges.p1) > 0:
             removing = np.isin(self.edges.p1, uids) | np.isin(self.edges.p2, uids)
-            self._append_expired(removing)
+            self._on_edge_dissolution(~removing)
         super().remove_uids(uids)
+        return
+
+    def finish_step(self):
+        """Reset the per-step relationship expiration buffer, self.expired_this_ti (loop step 14).
+
+        When ``record_expired`` is on, ``expired_this_ti`` accumulates the edges
+        removed across ``end_pairs`` (step 7) and ``remove_uids`` (step 15). The
+        network clears it here -- *after* any analyzer has read it at step 13,
+        and *before* this step's ``remove_uids`` (step 15) appends death/removal
+        edges. This makes recording and clearing entirely network-owned: an
+        analyzer is an optional, read-only consumer (and several may read the
+        same buffer), and with no analyzer present the buffer is still reset each
+        step so nothing accumulates. Death/removal edges appended at step 15 are
+        not wiped by this clear -- it has already run -- and are read at the next
+        step's step 13.
+        """
+        super().finish_step()
+        if self.record_expired:
+            self.expired_this_ti = {}
         return

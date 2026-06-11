@@ -40,7 +40,7 @@ ANALYZER_NAME = 'partnershipformationanalyzer'
 
 
 def make_sim(n_agents=DEFAULT_N_AGENTS, dur=DEFAULT_DUR_YEARS, age_bins=None, rand_seed=1):
-    """Construct a sim with a StructuredSexual network and the analyzer.
+    """Construct a sim with an MFNetwork and the analyzer.
 
     Returns the sim only — fetch the analyzer post-init via
     ``sim.analyzers[ANALYZER_NAME]`` because sti.Sim deep-copies the analyzer
@@ -260,200 +260,209 @@ def test_partnership_formation_analyzer(n_agents=DEFAULT_N_AGENTS,
 
 
 # ===========================================================================
-# Pure-function unit tests
-# ---------------------------------------------------------------------------
-# Exercise the static age-binning helper directly, with no analyzer instance
-# and no simulation.
-# ===========================================================================
-
-def test_bin_counts_duplicates():
-    """``_bin_counts`` counts each occurrence (duplicates preserved); ages
-    outside every bin are skipped; empty input -> zeros."""
-    ranges = [ss.parse_age_range(b) for b in ['0-5', '5-10', '10-15']]
-    ages = np.array([12.0, 7.0, 12.0, 12.0, 99.0])  # 7 -> [5,10); 12 x3 -> [10,15); 99 out
-    counts = sti.PartnershipFormationAnalyzer._bin_counts(ages, ranges)
-    assert counts.tolist() == [0, 1, 3], counts.tolist()
-    assert sti.PartnershipFormationAnalyzer._bin_counts(np.empty(0), ranges).tolist() == [0, 0, 0]
-    print('test_bin_counts_duplicates: PASSED.')
-    return
-
-
-def test_bin_counts_overlapping():
-    """``_bin_counts``: overlapping bins each count an age in their range."""
-    ranges = [ss.parse_age_range(b) for b in ['15-50', '40-50']]  # [40,50) in BOTH
-    assert sti.PartnershipFormationAnalyzer._bin_counts(np.array([42.0]), ranges).tolist() == [1, 1]
-    assert sti.PartnershipFormationAnalyzer._bin_counts(np.array([42.0, 42.0, 42.0]), ranges).tolist() == [3, 3]
-    assert sti.PartnershipFormationAnalyzer._bin_counts(np.array([20.0]), ranges).tolist() == [1, 0]
-    print('test_bin_counts_overlapping: PASSED.')
-    return
-
-
-# ===========================================================================
 # Injection-based getter tests
 # ---------------------------------------------------------------------------
 # The getters (get_n_partnerships_formed, get_n_partnerships_formed_per_agent,
 # get_unique_partners_active_per_agent) are pure functions of the recorded
-# state: self.results['edges'], self._final_uids and self._final_ti. The helper
-# below injects that state directly, so each test below can assert EXACT getter
-# outputs for a hand-built edge history -- which a real (stochastic) sim cannot
-# give you (it only supports loose aggregate checks). This is where uniqueness
-# vs non-uniqueness, duplicate handling, the trailing-window boundary,
-# active-vs-formed semantics, per-network separation, and same-sex handling are
-# verified to the exact value.
+# state: self.results['edges'] (one interval row per edge), self._final_uids,
+# and self._final_ti. The helper below injects that state directly, so each
+# test asserts EXACT getter outputs for a hand-built edge history -- which a
+# real (stochastic) sim cannot give (it only supports loose aggregate checks).
+# This is where uniqueness vs non-uniqueness, the trailing-window boundary
+# (half-open [formation_ti, ti_expired)), active-vs-formed semantics,
+# per-network separation, and same-sex handling are verified to the value.
 #
 # CAVEAT: injection bypasses step() and init_results(), so these tests do NOT
-# verify that the recorded state is populated correctly during a run, nor the
-# `n_formed` fast path in get_n_partnerships_formed. That wiring is covered by
-# the sim-level test (test_partnership_formation_analyzer) and the
-# network-selection tests (test_network_*), which call sim.init()/run(). The
-# 8-tuple record format documented below is the contract between step() and
-# these tests; if step() changes its record layout, update the helper to match.
+# verify that edge intervals are recorded correctly during a run (formation
+# detection + ti_expired patching from expired_this_ti). That wiring is covered
+# by the sim-level test (test_partnership_formation_analyzer) and the
+# construction/sim-level tests below (which call sim.init()/run()). The edge-row
+# layout below is the contract with step(); if it changes, update the helper.
 # ===========================================================================
 
-def _inject_analyzer(records, uids_by_sex, final_ti, age_bins=None, nw_name='mfnetwork'):
-    """Build a PartnershipFormationAnalyzer with injected state (no sim run).
+def _inject_analyzer(edges, uids_by_sex, final_ti, age_bins=None, nw_name='mfnetwork'):
+    """Build a PartnershipFormationAnalyzer with injected edge intervals (no sim).
 
-    ``records`` is either a list of per-timestep 8-tuples for a single network
-    (stored under ``nw_name``), or a dict ``{network_name: [records...]}`` for
-    multiple tracked networks. Each record is::
+    ``edges`` is a list of per-edge rows for one network (stored under
+    ``nw_name``), or a dict ``{network_name: [rows...]}`` for multiple tracked
+    networks. Each row is::
 
-        (ti, p1, p2, formation_ti, age_p1, age_p2, female_p1, female_p2)
+        [p1, p2, formation_ti, ti_expired, age_p1, age_p2, female_p1, female_p2]
 
-    Sex is explicit per endpoint, so same-sex edges are expressible. This drives
-    the getters directly off ``self.results['edges']`` and the cached subject
-    universes, bypassing the simulation loop.
+    ``ti_expired`` is the expiry timestep (active interval is the half-open
+    ``[formation_ti, ti_expired)``), or ``None`` if the edge is still active at
+    run end. Sex is explicit per endpoint, so same-sex edges are expressible.
+    This drives the getters directly off ``self.results['edges']`` and the
+    cached subject universes, bypassing the simulation loop.
     """
-    records_by_nw = records if isinstance(records, dict) else {nw_name: records}
+    edges_by_nw = edges if isinstance(edges, dict) else {nw_name: edges}
     ana = sti.PartnershipFormationAnalyzer(age_bins=age_bins)
-    ana._tracked_names = list(records_by_nw.keys())
-    ana.results = {'edges': {
-        nw: [(ti, np.asarray(p1, np.int64), np.asarray(p2, np.int64),
-              np.asarray(fti, np.int64), np.asarray(a1, float), np.asarray(a2, float),
-              np.asarray(f1, bool), np.asarray(f2, bool))
-             for (ti, p1, p2, fti, a1, a2, f1, f2) in recs]
-        for nw, recs in records_by_nw.items()
-    }}
+    ana._tracked_names = list(edges_by_nw.keys())
+    ana.results = {'edges': {nw: [list(row) for row in rows] for nw, rows in edges_by_nw.items()}}
+    ana._edge_index = {nw: {} for nw in edges_by_nw}
     ana._final_uids = {'f': np.asarray(uids_by_sex.get('f', []), np.int64),
                        'm': np.asarray(uids_by_sex.get('m', []), np.int64)}
     ana._final_ti = final_ti
     return ana
 
 
-# Male-female scenario. window_months=3, final_ti=5 -> threshold=3 (ti in {3,4,5}).
+# Male-female scenario as edge intervals. final_ti=5; window_months=3 ->
+# threshold=3, i.e. window timesteps {3,4,5} (win_start=3, win_end=5).
 # Males 10,11 (female flag False); Females 20,21,22 (female flag True).
-_MF_RECORDS = [
-    # (ti, p1, p2, formation_ti, age_p1, age_p2, female_p1, female_p2)
-    (2, [10],             [20],             [2],          [30],             [22],
-        [False],          [True]),
-    # ti=3: m10-f20 forms TWICE (duplicate pair), m10-f21 forms; m11-f22 formed earlier (fti=1).
-    (3, [10, 10, 10, 11], [20, 20, 21, 22], [3, 3, 3, 1], [31, 31, 31, 41], [22, 22, 18, 27],
-        [False, False, False, False], [True, True, True, True]),
-    (4, [10, 11],         [20, 22],         [3, 1],       [32, 42],         [23, 28],
-        [False, False],   [True, True]),
-    (5, [10],             [22],             [5],          [33],             [29],
-        [False],          [True]),
+# Row: [p1, p2, formation_ti, ti_expired, age_p1, age_p2, female_p1, female_p2]
+_MF_EDGES = [
+    [10, 20, 2, 4,    30, 22, False, True],   # E1: active {2,3}
+    [10, 21, 3, None, 31, 18, False, True],   # E2: active {3,4,5}
+    [10, 22, 5, None, 33, 29, False, True],   # E3: active {5}
+    [11, 22, 1, None, 41, 27, False, True],   # E4: formed pre-window, active throughout
+    [10, 20, 5, None, 33, 24, False, True],   # E5: re-form of 10-20 (distinct edge)
+    [11, 21, 0, 2,    40, 17, False, True],   # E6: active {0,1}, ends before window
 ]
 _MF_UIDS = {'m': [10, 11], 'f': [20, 21, 22]}
 
 
 @sc.timer()
 def test_get_unique_partners_active_per_agent():
-    """Unique partners per subject over the trailing window, both sexes, with
-    duplicate pairings collapsed to a single unique partner."""
-    sc.heading("get_unique_partners_active_per_agent: unique partners per male/female over a window")
-    ana = _inject_analyzer(_MF_RECORDS, _MF_UIDS, final_ti=5)
+    """Unique partners per subject on edges ACTIVE during the window, both sexes;
+    duplicate partners collapse; an edge that ended before the window is dropped."""
+    sc.heading("get_unique_partners_active_per_agent: unique active partners per male/female")
+    ana = _inject_analyzer(_MF_EDGES, _MF_UIDS, final_ti=5)
+
+    # window=3 (active during {3,4,5}). E1 (ti_expired=4 > win_start=3) is active
+    # (last-active ti=3); E6 (ti_expired=2) ended before the window -> dropped.
     male = ana.get_unique_partners_active_per_agent(female=False, window_months=3)['mfnetwork']
     female = ana.get_unique_partners_active_per_agent(female=True, window_months=3)['mfnetwork']
-    assert male.tolist() == [3, 1], male.tolist()        # m10->{20,21,22}, m11->{22}
-    assert female.tolist() == [1, 1, 2], female.tolist()  # f20->{10}, f21->{10}, f22->{11,10}
+    assert male.tolist() == [3, 1], male.tolist()         # m10->{20,21,22}; m11->{22} (E6 dropped)
+    assert female.tolist() == [1, 1, 2], female.tolist()  # f20->{10}; f21->{10}; f22->{10,11}
 
-    # window_months=None -> whole run. Here it matches the windowed result, since
-    # the only pre-window edge (ti=2 m10-f20) adds no NEW unique partner.
+    # whole run additionally includes E6: m11->{22,21}=2 and f21->{10,11}=2.
     male_all = ana.get_unique_partners_active_per_agent(female=False)['mfnetwork']
     female_all = ana.get_unique_partners_active_per_agent(female=True)['mfnetwork']
-    assert male_all.tolist() == [3, 1], male_all.tolist()
-    assert female_all.tolist() == [1, 1, 2], female_all.tolist()
-    print(f'test_get_unique_partners_active_per_agent: male={male.tolist()}, female={female.tolist()}; '
+    assert male_all.tolist() == [3, 2], male_all.tolist()
+    assert female_all.tolist() == [1, 2, 2], female_all.tolist()
+    print(f'test_get_unique_partners_active_per_agent: window male={male.tolist()}, '
           f'whole-run male={male_all.tolist()}. PASSED.')
     return
 
 
 @sc.timer()
 def test_get_n_partnerships_formed_per_agent():
-    """Non-unique formations per agent over the window; duplicate pairings each
-    count; formations outside the window are excluded."""
-    sc.heading("get_n_partnerships_formed_per_agent: non-unique formations per agent over a window")
-    ana = _inject_analyzer(_MF_RECORDS, _MF_UIDS, final_ti=5)
+    """Non-unique formations per agent; a pair re-forming counts each time;
+    formations outside the window are excluded."""
+    sc.heading("get_n_partnerships_formed_per_agent: non-unique formations per agent")
+    ana = _inject_analyzer(_MF_EDGES, _MF_UIDS, final_ti=5)
+
     male = ana.get_n_partnerships_formed_per_agent(female=False, window_months=3)['mfnetwork']
     female = ana.get_n_partnerships_formed_per_agent(female=True, window_months=3)['mfnetwork']
-    assert male.tolist() == [4, 0], male.tolist()         # m10: 3 @ ti3 + 1 @ ti5; m11: 0 (formed ti1)
-    assert female.tolist() == [2, 1, 1], female.tolist()   # f20:2, f21:1, f22:1
+    assert male.tolist() == [3, 0], male.tolist()         # m10: E2,E3,E5 (ft 3,5,5); m11: 0 (ft 1,0)
+    assert female.tolist() == [1, 1, 1], female.tolist()  # f20:E5; f21:E2; f22:E3
 
-    # window_months=None -> whole run, which additionally counts the ti=2 formation
-    # (m10-f20) excluded by the window above.
+    # whole run: m10 also gets E1(ft2) -> 4; m11 gets E4,E6 -> 2. Non-unique:
+    # m10-f20 counts twice (E1+E5), so m10 formed=4 > its unique partners=3.
     male_all = ana.get_n_partnerships_formed_per_agent(female=False)['mfnetwork']
     female_all = ana.get_n_partnerships_formed_per_agent(female=True)['mfnetwork']
-    assert male_all.tolist() == [5, 0], male_all.tolist()       # m10: ti2(1)+ti3(3)+ti5(1)
-    assert female_all.tolist() == [3, 1, 1], female_all.tolist()  # f20: ti2(1)+ti3(2)
-    print(f'test_get_n_partnerships_formed_per_agent: male={male.tolist()}, female={female.tolist()}; '
-          f'whole-run male={male_all.tolist()}, female={female_all.tolist()}. PASSED.')
+    assert male_all.tolist() == [4, 2], male_all.tolist()
+    assert female_all.tolist() == [2, 2, 2], female_all.tolist()
+    print(f'test_get_n_partnerships_formed_per_agent: window male={male.tolist()}, '
+          f'whole-run male={male_all.tolist()}. PASSED.')
     return
 
 
 @sc.timer()
 def test_get_n_partnerships_formed_binned():
-    """Binned by age at formation. Returns {nw: {bin: array}} with the inner
-    array a per-ti series (window_months=None) or a single window sum. In-window
-    formation ages: male [31,31,31,33], female [22,22,18,29]."""
-    sc.heading("get_n_partnerships_formed (binned): per-timestep and windowed, overlapping bins")
-    ana = _inject_analyzer(_MF_RECORDS, _MF_UIDS, final_ti=5)
+    """Binned by age at formation: {nw:{bin:array}}; per-ti when window_months=None,
+    a single window sum otherwise. Covers disjoint, overlapping, and out-of-range bins."""
+    sc.heading("get_n_partnerships_formed (binned): per-timestep, windowed, overlapping, out-of-range")
+    ana = _inject_analyzer(_MF_EDGES, _MF_UIDS, final_ti=5)
 
-    # --- windowed: single trailing-window sum per bin (length-1 inner arrays) ---
+    # In-window (ft>=3) male formation ages: E2(31),E3(33),E5(33).
+    # In-window female formation ages: E2 f21(18), E3 f22(29), E5 f20(24).
     disjoint = ['15-30', '30-45']
     male = ana.get_n_partnerships_formed(female=False, age_bins=disjoint, window_months=3)['mfnetwork']
     female = ana.get_n_partnerships_formed(female=True, age_bins=disjoint, window_months=3)['mfnetwork']
-    assert male['15-30'].tolist() == [0] and male['30-45'].tolist() == [4], male
-    assert female['15-30'].tolist() == [4] and female['30-45'].tolist() == [0], female
-    # Disjoint bins partition the observed ages -> window sums equal the per-agent totals.
+    assert male['15-30'].tolist() == [0] and male['30-45'].tolist() == [3], male
+    assert female['15-30'].tolist() == [3] and female['30-45'].tolist() == [0], female
+    # Disjoint bins partition the observed ages -> window sums equal the per-agent total.
     male_pa = ana.get_n_partnerships_formed_per_agent(female=False, window_months=3)['mfnetwork']
-    assert male['15-30'][0] + male['30-45'][0] == male_pa.sum()
+    assert male['15-30'][0] + male['30-45'][0] == int(male_pa.sum())
 
-    # overlapping bins each count
-    overlapping = ['15-45', '30-45']  # 15-45 contains 30-45
+    # Overlapping bins each count the same formation (15-45 contains 30-45).
+    overlapping = ['15-45', '30-45']
     male_o = ana.get_n_partnerships_formed(female=False, age_bins=overlapping, window_months=3)['mfnetwork']
-    female_o = ana.get_n_partnerships_formed(female=True, age_bins=overlapping, window_months=3)['mfnetwork']
-    assert male_o['15-45'].tolist() == [4] and male_o['30-45'].tolist() == [4], male_o
-    assert female_o['15-45'].tolist() == [4] and female_o['30-45'].tolist() == [0], female_o
+    assert male_o['15-45'].tolist() == [3] and male_o['30-45'].tolist() == [3], male_o
 
-    # --- per-timestep (window_months=None): inner arrays indexed by ti (len n_ti=6) ---
-    # The full-run series includes ti=2 (outside the window above): male age 30 (30-45).
+    # Ages outside every bin are not counted (all male ages are >= 30).
+    narrow = ana.get_n_partnerships_formed(female=False, age_bins=['15-25'], window_months=3)['mfnetwork']
+    assert narrow['15-25'].tolist() == [0], narrow
+
+    # per-timestep (window_months=None): inner arrays indexed by ti (len n_ti=6).
     male_ts = ana.get_n_partnerships_formed(female=False, age_bins=disjoint)['mfnetwork']
-    # ti2 -> 1 male age 30; ti3 -> 3 males age 31; ti5 -> 1 male age 33 (all 30-45); none in 15-30.
-    assert male_ts['30-45'].tolist() == [0, 0, 1, 3, 0, 1], male_ts['30-45'].tolist()
+    # 30-45 male ages by formation_ti: ft0:40(E6), ft1:41(E4), ft2:30(E1), ft3:31(E2), ft5:33,33(E3,E5).
+    assert male_ts['30-45'].tolist() == [1, 1, 1, 1, 0, 2], male_ts['30-45'].tolist()
     assert male_ts['15-30'].tolist() == [0, 0, 0, 0, 0, 0], male_ts['15-30'].tolist()
-    print(f'test_get_n_partnerships_formed_binned: windowed m={ {k: v.tolist() for k, v in male.items()} }; '
-          f'per-ti 30-45={male_ts["30-45"].tolist()}. PASSED.')
+    print(f"test_get_n_partnerships_formed_binned: window male={ {k: v.tolist() for k, v in male.items()} }; "
+          f"per-ti 30-45={male_ts['30-45'].tolist()}. PASSED.")
+    return
+
+
+@sc.timer()
+def test_active_vs_formed():
+    """A partnership formed BEFORE the window but still active during it is counted
+    by get_unique_partners_active_per_agent, but NOT by
+    get_n_partnerships_formed_per_agent."""
+    sc.heading("Active-vs-formed: pre-window partnership counts as active, not as formed")
+    # final_ti=5, window=3 (threshold=3). m10-f20 formed ti1 (pre-window), still
+    # active (ti_expired=None). m11-f21 formed ti4 (inside the window).
+    edges = [
+        [10, 20, 1, None, 31, 22, False, True],
+        [11, 21, 4, None, 41, 19, False, True],
+    ]
+    ana = _inject_analyzer(edges, {'m': [10, 11], 'f': [20, 21]}, final_ti=5)
+    active = ana.get_unique_partners_active_per_agent(female=False, window_months=3)['mfnetwork']
+    formed = ana.get_n_partnerships_formed_per_agent(female=False, window_months=3)['mfnetwork']
+    assert active.tolist() == [1, 1], active.tolist()   # m10 active{20}; m11 active{21}
+    assert formed.tolist() == [0, 1], formed.tolist()   # m10 formed pre-window=0; m11 formed ti4=1
+    print(f'test_active_vs_formed: active={active.tolist()} vs formed={formed.tolist()}. PASSED.')
+    return
+
+
+@sc.timer()
+def test_half_open_window_boundary():
+    """Half-open active interval [formation_ti, ti_expired): an edge whose
+    ti_expired equals win_start is NOT active in the window (its last-active ti is
+    win_start-1); a single-timestep edge inside the window is counted."""
+    sc.heading("Half-open boundary: ti_expired == win_start is excluded")
+    # final_ti=5, window=3 -> win_start=3, win_end=5.
+    edges = [
+        [10, 20, 1, 3,    31, 22, False, True],   # B1: active {1,2}; ti_expired==win_start -> excluded
+        [11, 21, 1, 4,    41, 19, False, True],   # B2: active {1,2,3}; last-active 3 IS in window
+        [10, 22, 4, 5,    32, 24, False, True],   # B3: active {4} (single timestep) in window
+    ]
+    ana = _inject_analyzer(edges, {'m': [10, 11], 'f': [20, 21, 22]}, final_ti=5)
+    win = ana.get_unique_partners_active_per_agent(female=False, window_months=3)['mfnetwork']
+    assert win.tolist() == [1, 1], win.tolist()       # m10->{22} (B1 excluded, B3 in); m11->{21}
+    allrun = ana.get_unique_partners_active_per_agent(female=False)['mfnetwork']
+    assert allrun.tolist() == [2, 1], allrun.tolist()  # whole run: m10->{20(B1),22(B3)}=2; m11->{21}
+    print(f'test_half_open_window_boundary: window={win.tolist()}, whole-run={allrun.tolist()}. PASSED.')
     return
 
 
 @sc.timer()
 def test_same_sex_network():
-    """Same-sex (male-male) edges: both endpoints are classified male via the
-    stored per-endpoint sex, so unique and formed counts work with no p1/p2
-    sex assumption."""
+    """Male-male edges: both endpoints are classified male via the stored
+    per-endpoint sex, so unique and formed counts work with no p1/p2 assumption."""
     sc.heading("Same-sex network: male-male edges counted for the male subject")
-    # Males 10,11,12; all edges male-male (a male-male network, e.g. MSM).
-    # final_ti=5, window=3 -> ti in {3,4,5}.
-    records = [
-        (3, [10, 10], [11, 12], [3, 3], [31, 31], [29, 27], [False, False], [False, False]),
-        (4, [10],     [11],     [3],    [32],     [30],     [False],        [False]),  # persists
+    # Males 10,11,12; all edges male-male (e.g. an MSM network). final_ti=5, window=3.
+    edges = [
+        [10, 11, 3, None, 31, 29, False, False],   # m10-m11 formed ti3
+        [10, 12, 3, None, 31, 27, False, False],   # m10-m12 formed ti3
     ]
-    ana = _inject_analyzer(records, {'m': [10, 11, 12], 'f': []}, final_ti=5, nw_name='msmnet')
+    ana = _inject_analyzer(edges, {'m': [10, 11, 12], 'f': []}, final_ti=5, nw_name='msmnet')
 
     uniq = ana.get_unique_partners_active_per_agent(female=False, window_months=3)['msmnet']
-    assert uniq.tolist() == [2, 1, 1], uniq.tolist()      # 10->{11,12}, 11->{10}, 12->{10}
+    assert uniq.tolist() == [2, 1, 1], uniq.tolist()      # 10->{11,12}; 11->{10}; 12->{10}
     formed = ana.get_n_partnerships_formed_per_agent(female=False, window_months=3)['msmnet']
-    assert formed.tolist() == [2, 1, 1], formed.tolist()  # 10 in 2 edges @ ti3; 11,12 in 1 each
+    assert formed.tolist() == [2, 1, 1], formed.tolist()  # both endpoints male -> 10 counts in 2 edges
     # No females -> empty subject universe.
     assert len(ana.get_unique_partners_active_per_agent(female=True, window_months=3)['msmnet']) == 0
     print(f'test_same_sex_network: unique={uniq.tolist()}, formed={formed.tolist()}. PASSED.')
@@ -461,49 +470,24 @@ def test_same_sex_network():
 
 
 @sc.timer()
-def test_active_vs_formed():
-    """Active-vs-formed distinction: a partnership formed BEFORE the window but
-    still active during it is counted by get_unique_partners_active_per_agent
-    (active edges) but NOT by get_n_partnerships_formed_per_agent (formed in
-    window)."""
-    sc.heading("Active-vs-formed: pre-window partnership counts as active, not as formed")
-    # final_ti=5, window=3 -> threshold=3 (ti in {3,4,5}).
-    # m10-f20 formed at ti=1 (before window) but active throughout it.
-    # m11-f21 formed at ti=4 (inside the window).
-    records = [
-        (3, [10],     [20],     [1],    [31],     [22],     [False],        [True]),
-        (4, [10, 11], [20, 21], [1, 4], [32, 41], [23, 19], [False, False], [True, True]),
-        (5, [10, 11], [20, 21], [1, 4], [33, 42], [24, 20], [False, False], [True, True]),
-    ]
-    ana = _inject_analyzer(records, {'m': [10, 11], 'f': [20, 21]}, final_ti=5)
-
-    active = ana.get_unique_partners_active_per_agent(female=False, window_months=3)['mfnetwork']
-    formed = ana.get_n_partnerships_formed_per_agent(female=False, window_months=3)['mfnetwork']
-    assert active.tolist() == [1, 1], active.tolist()   # m10->{20} active; m11->{21} active
-    assert formed.tolist() == [0, 1], formed.tolist()   # m10 formed pre-window=0; m11 formed @ ti4=1
-    print(f'test_active_vs_formed: active={active.tolist()} vs formed={formed.tolist()}. PASSED.')
-    return
-
-
-@sc.timer()
 def test_multiple_networks():
-    """Two tracked networks return independent per-network results; a single
-    agent (uid=2) present in both has independent partnerships per network."""
+    """Two tracked networks return independent per-network results; a shared
+    agent (uid=2) has independent partnerships per network."""
     sc.heading("Multiple networks: independent per-network results; shared agent uid=2")
     # TODO: consider adding a real MF+SW integration smoke test (a sti.Sim with
     # both MFNetwork and SWNetwork) to complement this injection-based check.
-    # final_ti=5, window=3 -> threshold=3.
-    records_by_nw = {
+    # final_ti=5, window=3.
+    edges_by_nw = {
         'mfnetwork': [
-            (3, [2], [20], [3], [31], [22], [False], [True]),    # uid2 forms with f20 in MF
+            [2, 20, 3, None, 31, 22, False, True],    # uid2 forms with f20 in MF
         ],
         'swnetwork': [
-            (3, [2], [30], [3], [31], [25], [False], [True]),    # uid2 (client) forms with fsw30
-            (4, [2], [31], [4], [32], [26], [False], [True]),    # uid2 forms with fsw31
+            [2, 30, 3, None, 31, 25, False, True],    # uid2 forms with fsw30
+            [2, 31, 4, None, 32, 26, False, True],    # uid2 forms with fsw31
         ],
     }
     uids = {'m': [2], 'f': [20, 30, 31]}
-    ana = _inject_analyzer(records_by_nw, uids, final_ti=5)
+    ana = _inject_analyzer(edges_by_nw, uids, final_ti=5)
 
     formed = ana.get_n_partnerships_formed_per_agent(female=False, window_months=3)
     assert set(formed.keys()) == {'mfnetwork', 'swnetwork'}, list(formed.keys())
@@ -591,23 +575,121 @@ def test_network_nonsexual_warns_and_skips():
     return
 
 
-if __name__ == '__main__':
-    # Pure-function unit tests
-    test_bin_counts_duplicates()
-    test_bin_counts_overlapping()
+@sc.timer()
+def test_network_unsupported_expiry_warns_and_skips():
+    """A network that cannot record all expirations (records_all_expirations=False,
+    e.g. MSMScaleFreeNetwork) is skipped with a warning; other sexual networks are
+    still tracked."""
+    sc.heading("Network with records_all_expirations=False warns + skipped")
+    sim = sti.Sim(n_agents=200, dur=1, diseases=[sti.HIV(init_prev=0.05)],
+                  networks=[sti.MFNetwork(), sti.MSMScaleFreeNetwork()],
+                  analyzers=[sti.PartnershipFormationAnalyzer()])
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')
+        sim.init()
+    ana = sim.analyzers['partnershipformationanalyzer']
+    assert any('record all edge expirations' in str(w.message) for w in caught), [str(w.message) for w in caught]
+    assert ana._tracked_names == ['mfnetwork'], ana._tracked_names
+    assert 'msmscalefreenetwork' in ana._skipped_networks, ana._skipped_networks
+    print(f'test_network_unsupported_expiry_warns_and_skips: tracked={ana._tracked_names}, '
+          f'skipped={ana._skipped_networks}. PASSED.')
+    return
 
+
+@sc.timer()
+def test_records_expired_end_to_end():
+    """A real run records edge expirations through the full mechanism
+    (_on_edge_dissolution append + remove_uids override + step() drain +
+    finalize): some edges get a finite ti_expired, finite intervals are valid
+    (ti_expired > formation_ti), and the still-active (None) edges exactly match
+    the network's active edges at run end."""
+    sc.heading("End-to-end: MFNetwork records expirations; intervals consistent")
+    sim = sti.Sim(n_agents=500, dur=5, rand_seed=1, diseases=[sti.HIV(init_prev=0.05)],
+                  networks=[sti.MFNetwork()],
+                  analyzers=[sti.PartnershipFormationAnalyzer()])
+    sim.run(verbose=0)
+    ana = sim.analyzers['partnershipformationanalyzer']
+    rows = ana.results['edges']['mfnetwork']
+    assert len(rows) > 0, 'No edges recorded.'
+    n_finite = sum(1 for r in rows if r[3] is not None)
+    assert n_finite > 0, 'No expirations recorded — is super()._on_edge_dissolution missing?'
+    assert all(r[3] > r[2] for r in rows if r[3] is not None), 'Found ti_expired <= formation_ti.'
+
+    nw = sim.networks['mfnetwork']
+    final_keys = set(zip(np.asarray(nw.edges.p1).tolist(),
+                         np.asarray(nw.edges.p2).tolist(),
+                         np.asarray(nw.edges.formation_ti).tolist()))
+    none_keys = set((r[0], r[1], r[2]) for r in rows if r[3] is None)
+    assert none_keys == final_keys, (len(none_keys), len(final_keys))
+    print(f'test_records_expired_end_to_end: {n_finite}/{len(rows)} edges expired; '
+          f'{len(none_keys)} active-at-end match the network. PASSED.')
+    return
+
+
+@sc.timer()
+def test_deaths_intervals_consistent():
+    """With deaths enabled, every removed edge (including death-driven, via the
+    remove_uids override) is captured: no edge is left with ti_expired=None
+    unless it is genuinely still active in the network at run end. Also checks
+    intervals are valid and that expirations are actually recorded during the
+    run (not all swept to the final sentinel) -- this is what regresses if the
+    remove_uids override breaks. Guards against a removal path bypassing
+    expiration recording."""
+    sc.heading("Deaths: no edge stuck active; None-edges match the network active set")
+    sim = sti.Sim(n_agents=500, dur=5, rand_seed=2, diseases=[sti.HIV(init_prev=0.05)],
+                  networks=[sti.MFNetwork()], demographics=[ss.Deaths(death_rate=30)],
+                  analyzers=[sti.PartnershipFormationAnalyzer()])
+    sim.run(verbose=0)
+    ana = sim.analyzers['partnershipformationanalyzer']
+    rows = ana.results['edges']['mfnetwork']
+    assert len(rows) > 0, 'No edges recorded.'
+    final_ti = ana._final_ti
+
+    # Valid intervals: every finite ti_expired is strictly after formation_ti
+    # (duration >= 1, no empty/negative intervals).
+    finite = [r for r in rows if r[3] is not None]
+    assert len(finite) > 0, 'No expirations recorded at all.'
+    assert all(r[3] > r[2] for r in finite), 'Found ti_expired <= formation_ti.'
+    assert all(r[3] <= final_ti + 1 for r in finite), 'Found ti_expired > final_ti + 1.'
+
+    # Expirations recorded *during* the run (ti_expired <= final_ti), not all
+    # deferred to the final-step sentinel. If the remove_uids override broke,
+    # death-removed edges would stay None and be swept to final_ti+1, so this
+    # count would collapse.
+    n_during_run = sum(1 for r in finite if r[3] <= final_ti)
+    assert n_during_run > 0, 'No expirations recorded during the run (override may be broken).'
+
+    nw = sim.networks['mfnetwork']
+    final_keys = set(zip(np.asarray(nw.edges.p1).tolist(),
+                         np.asarray(nw.edges.p2).tolist(),
+                         np.asarray(nw.edges.formation_ti).tolist()))
+    none_keys = set((r[0], r[1], r[2]) for r in rows if r[3] is None)
+    # Any edge still recorded as active (None) must actually be active in the
+    # network; a mismatch means a (death) removal bypassed expiration recording.
+    assert none_keys == final_keys, (
+        f'{len(none_keys - final_keys)} edges stuck active (bypassed expiration recording)')
+    print(f'test_deaths_intervals_consistent: {len(none_keys)} active-at-end match the network; '
+          f'{n_during_run} expirations during the run (of {len(rows)} edges). PASSED.')
+    return
+
+
+if __name__ == '__main__':
     # Injection-based getter tests (exact-value verification, no sim)
     test_get_unique_partners_active_per_agent()
     test_get_n_partnerships_formed_per_agent()
     test_get_n_partnerships_formed_binned()
-    test_same_sex_network()
     test_active_vs_formed()
+    test_half_open_window_boundary()
+    test_same_sex_network()
     test_multiple_networks()
 
     # Construction- and sim-level behavior tests
     test_duplicate_age_bins_rejected()
     test_network_missing_raises()
     test_network_nonsexual_warns_and_skips()
+    test_network_unsupported_expiry_warns_and_skips()
+    test_records_expired_end_to_end()
+    test_deaths_intervals_consistent()
 
     # End-to-end integration (real multi-seed sim + plots/tables)
     test_partnership_formation_analyzer(show_plots=True)
