@@ -59,7 +59,13 @@ class BaseNetwork(ss.SexualNetwork):
     ``MFNetwork``.
     """
 
-    def __init__(self, name=None, **kwargs):
+    # Capability flag read by analyzers (e.g. PartnershipFormationAnalyzer):
+    # True means every edge removal funnels through ``_on_edge_dissolution`` so
+    # ``expired_this_ti`` is complete. A subclass that removes edges by any other
+    # path (e.g. a custom delete inside ``add_pairs``) MUST set this to False.
+    records_all_expirations = True
+
+    def __init__(self, name=None, record_expired: bool = False, **kwargs):
         super().__init__(name=name)
         self.meta.condoms = ss_float
         self.meta.age_p1 = ss_float
@@ -72,6 +78,8 @@ class BaseNetwork(ss.SexualNetwork):
             ss.FloatArr('debut', default=0),
             reset=True,
         )
+        self.record_expired = record_expired
+        self.expired_this_ti = {}  # only utilized if self.record_expired is True
 
     @staticmethod
     def process_condom_data(condom_data):
@@ -206,7 +214,61 @@ class BaseNetwork(ss.SexualNetwork):
             self.edges[k] = self.edges[k][active]
         return
 
+    def _append_expired(self, mask):
+        """Accumulate the edges selected by ``mask`` into ``expired_this_ti``.
+
+        No-op unless ``self.record_expired`` is True. Records are **appended**
+        (concatenated), not overwritten, so multiple removal points within a
+        timestep (``end_pairs`` at loop step 7 and ``remove_uids`` at step 15)
+        both land in the buffer. The buffer is drained by the consumer (e.g.
+        ``PartnershipFormationAnalyzer.step()``), not reset here.
+        """
+        if not self.record_expired:
+            return
+        if np.count_nonzero(mask) == 0:
+            return
+        for k in self.meta_keys():
+            vals = self.edges[k][mask]
+            if k in self.expired_this_ti:
+                self.expired_this_ti[k] = np.concatenate([self.expired_this_ti[k], vals])
+            else:
+                self.expired_this_ti[k] = vals
+        return
+
     def _on_edge_dissolution(self, active):
-        """Subclass hook — runs after the active mask is computed and before
-        expired edges are removed. Default is a no-op."""
-        pass
+        """
+        Subclass hook — runs after the active mask is computed and before
+        expired edges are removed. Default is a no-op, but when
+        ``self.record_expired`` is True it appends the full records of the edges
+        being removed this timestep to ``self.expired_this_ti`` (a dict mirroring
+        the edge meta layout, e.g. ``expired_this_ti['p1']``, including
+        ``formation_ti``). Analyzers such as ``PartnershipFormationAnalyzer`` use
+        this to learn each edge's expiry timestep, and drain (clear) the buffer
+        each step.
+
+        Extending BaseNetwork — to keep expiration tracking complete:
+          * If you override this method, call ``super()._on_edge_dissolution(active)``
+            or expired-edge recording silently stops.
+          * If you remove edges anywhere other than ``end_pairs`` (e.g. a custom
+            delete inside ``add_pairs``), route those removals through this hook
+            too, or set the class attribute ``records_all_expirations = False`` so
+            analyzers know the expiry data is incomplete and skip the network.
+        """
+        self._append_expired(~active)
+
+    def remove_uids(self, uids):
+        """Record death/removal-driven edge removals before dropping them.
+
+        ``Network.remove_uids`` (called from ``People.remove_dead`` at loop step
+        15, after analyzers have run) slices dead/removed agents' edges out of
+        ``self.edges`` directly, bypassing ``end_pairs`` / ``_on_edge_dissolution``.
+        When ``record_expired`` is True we append those edges to
+        ``expired_this_ti`` first, so analyzers capture death/removal expirations
+        (consumed on the next step, hence ``ti_expired = T+1``). Upstream
+        behavior is otherwise unchanged.
+        """
+        if self.record_expired and len(self.edges.p1) > 0:
+            removing = np.isin(self.edges.p1, uids) | np.isin(self.edges.p2, uids)
+            self._append_expired(removing)
+        super().remove_uids(uids)
+        return

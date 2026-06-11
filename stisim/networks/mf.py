@@ -336,7 +336,14 @@ class MFNetwork(BaseNetwork):
         return
 
     def _on_edge_dissolution(self, active):
-        """Record dissolved partnerships and decrement partner counts."""
+        """Record dissolved partnerships and decrement partner counts.
+
+        Calls ``super()`` first so BaseNetwork's expired-edge recording (used by
+        ``PartnershipFormationAnalyzer`` when ``record_expired`` is True) still
+        fires — overriding this hook without ``super()`` would silently disable
+        expiration tracking for MFNetwork and its subclasses.
+        """
+        super()._on_edge_dissolution(active)
         self._record_prior_partners(active)
         self._decrement_partners(active)
 

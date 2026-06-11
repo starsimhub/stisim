@@ -120,6 +120,12 @@ class MSMScaleFreeNetwork(BaseNetwork):
         **kwargs: forwarded to ``update_pars``.
     """
 
+    # This network deletes edges inside ``add_pairs`` (Markov deletes) without
+    # routing them through ``_on_edge_dissolution``, so ``expired_this_ti`` is
+    # incomplete. Flag it so expiry-dependent analyzers (e.g.
+    # PartnershipFormationAnalyzer) skip it. See the TODO in ``add_pairs``.
+    records_all_expirations = False
+
     def __init__(self, pars=None, name=None, **kwargs):
         super().__init__(name=name)
         self.define_pars(
@@ -424,6 +430,16 @@ class MSMScaleFreeNetwork(BaseNetwork):
         # active edge in this or any other known network, to enforce the
         # no-concurrent-duplicate-edge invariant that partner-uniqueness
         # reporting (e.g. PartnershipFormationAnalyzer) assumes.
+        #
+        # TODO: the Markov deletes below remove edges WITHOUT routing them
+        # through ``_on_edge_dissolution`` or ``remove_uids``, so
+        # ``expired_this_ti`` misses them and this network is currently
+        # incompatible with PartnershipFormationAnalyzer (hence
+        # ``records_all_expirations = False`` above). To support it, record the
+        # deleted edges via ``self._append_expired(<removed-mask>)`` before
+        # slicing them out (BaseNetwork now *accumulates* expiries within a step,
+        # so this composes with the dur/death expiries end_pairs records the same
+        # step -- no clobbering); then set ``records_all_expirations = True``.
         if self._kernel_sel_cdf is None:
             return
         rng = self._get_rng()
