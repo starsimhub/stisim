@@ -1006,10 +1006,10 @@ class STITreatment(ss.Intervention):
 
 class PartnerNotification(ss.Intervention):
     """
-    Notify and follow up sexual partners of index cases.
+    Notify and follow up contacts of index cases.
 
-    Each timestep, eligible index cases (e.g. newly diagnosed agents) have their
-    partners identified across two channels:
+    Each timestep, eligible index cases (e.g. newly diagnosed agents) have
+    their contacts identified across two channels:
 
     - **Current partners**: edges in the active sexual network.
     - **Previous partners**: edges in a :class:`stisim.PriorPartners` recall
@@ -1018,15 +1018,46 @@ class PartnerNotification(ss.Intervention):
     Each contact is offered notification with probability ``p_notify_<scope>``;
     notified contacts attend follow-up with probability ``p_attends_<scope>``.
     Attendees are scheduled for the supplied ``test`` intervention on the next
-    timestep. Index cases are not notified about themselves; partners reachable
-    via both channels are not double-notified.
+    timestep. Index cases are not notified about themselves; contacts
+    reachable via both channels are not double-notified.
+
+    **Cycle prevention.** Default behaviour blocks A→B→A back-notification.
+    When agent ``A`` attends as a contact of index ``B``, ``last_notifier[A]``
+    is set to ``B``. On a later step where ``A`` becomes an index, the
+    ``(A, partner=B)`` edge is dropped (``B`` was the agent who originally
+    notified ``A`` — re-notifying them would be a redundant cycle). Set
+    ``prevent_cycles=False`` to disable.
+
+    **Diagnostic results.** If ``diseases`` is set (a list of disease module
+    names that count as "STI" for this notification cascade), a
+    ``new_attended_no_sti`` result is added: attendees who at the moment of
+    attendance had none of the listed diseases. If ``index_treatments`` is
+    also set (a list of STITreatment intervention names that, when applied
+    to an agent, make that agent an index case), a ``new_index_no_sti``
+    result is added: index cases who at the moment of treatment had none of
+    the listed diseases — i.e. all their triggering treatments were
+    over-treatment.
 
     Args:
         eligibility: Callable ``f(sim) -> uids`` returning index cases (e.g.
             agents who just tested positive).
-        test: Test intervention to schedule for attending partners. Optional
+        test: Test intervention to schedule for attending contacts. Optional
             — subclasses overriding :meth:`notify_attendees` may set this to
             ``None``.
+        prevent_cycles: If True (default), block A→B→A back-notification by
+            tracking ``last_notifier`` per agent and dropping
+            ``(index, partner)`` edges where ``last_notifier[index] ==
+            partner``. Set False for the legacy "no memory" behaviour.
+        diseases: Optional list of disease module names (e.g.
+            ``['ng', 'ct', 'tv', 'syph']``) that count as "STI" for the
+            ``new_attended_no_sti`` and ``new_index_no_sti`` diagnostic
+            results. If None, those results are not added.
+        index_treatments: Optional list of STITreatment intervention names
+            (e.g. ``['ng_tx', 'ct_tx', 'metronidazole', 'syph_tx']``) that,
+            when applied to an agent, make them an index case for this PN.
+            Used to compute the ``new_index_no_sti`` diagnostic by reading
+            ``tx.outcomes[disease].(successful|unsuccessful|unnecessary)``.
+            Requires ``diseases`` to also be set.
         pars: Optional dict of parameter overrides.
         **kwargs: Forwarded to ``ss.Intervention``.
 
@@ -1049,10 +1080,15 @@ class PartnerNotification(ss.Intervention):
           have ``recall_prior=True`` so dissolved partnerships are pushed to
           ``PriorPartners``.
         - For more elaborate downstream actions (e.g. setting treatment
-          eligibility per partnership), subclass and override :meth:`step`.
+          eligibility per partnership), subclass and override
+          :meth:`notify_attendees`.
+        - Cycle prevention applies to the current-partner channel only.
     """
 
-    def __init__(self, eligibility, test=None, pars=None, **kwargs):
+    def __init__(self, eligibility, test=None, pars=None,
+                 prevent_cycles=True,
+                 diseases=None, index_treatments=None,
+                 **kwargs):
         super().__init__()
         self.define_pars(
             p_notify_current=ss.bernoulli(p=0.5),
@@ -1066,9 +1102,28 @@ class PartnerNotification(ss.Intervention):
         self.eligibility = eligibility
         self.test = test
 
-        self.define_states(
-            ss.FloatArr('ti_notified'),
-        )
+        self.prevent_cycles = bool(prevent_cycles)
+        self.diseases = list(diseases) if diseases else None
+        self.index_treatments = list(index_treatments) if index_treatments else None
+        if self.index_treatments and not self.diseases:
+            raise ValueError(
+                'PartnerNotification: index_treatments requires diseases '
+                'to also be set (to know which disease keys to read out of '
+                'tx.outcomes).'
+            )
+
+        # Per-edge arrays from _build_partner_edges, stashed for use in
+        # step() (last_notifier update). Reset each step.
+        self._last_index_per_edge = None
+        self._last_partner_per_edge = None
+
+        states = [ss.FloatArr('ti_notified')]
+        if self.prevent_cycles:
+            states.append(
+                ss.FloatArr('last_notifier', default=np.nan,
+                            label='UID of agent who most recently notified this agent'),
+            )
+        self.define_states(*states)
         self._cur_nw = None
         self._prev_nw = None
         self._use_previous = False
@@ -1095,12 +1150,25 @@ class PartnerNotification(ss.Intervention):
 
     def init_results(self):
         super().init_results()
-        self.define_results(
-            ss.Result('new_notified', dtype=int, label='Partners notified'),
-            ss.Result('new_attending', dtype=int, label='Partners attending'),
+        results = [
+            ss.Result('new_notified', dtype=int, label='Contacts notified'),
+            ss.Result('new_attending', dtype=int, label='Contacts attending'),
             ss.Result('new_notified_current', dtype=int, label='Current partners notified', auto_plot=False),
             ss.Result('new_notified_previous', dtype=int, label='Prior partners notified', auto_plot=False),
-        )
+        ]
+        if self.diseases:
+            results.append(
+                ss.Result('new_attended_no_sti', dtype=int,
+                          label='Attendees with no current STI',
+                          auto_plot=False),
+            )
+        if self.index_treatments:
+            results.append(
+                ss.Result('new_index_no_sti', dtype=int,
+                          label='Index cases whose triggering treatment was unnecessary',
+                          auto_plot=False),
+            )
+        self.define_results(*results)
         return
 
     def notify_attendees(self, uids):
@@ -1137,33 +1205,54 @@ class PartnerNotification(ss.Intervention):
 
     def _build_partner_edges(self, nw, index_uids):
         """Return dict {partner_uid: [edge_type_int, ...]} for current-channel
-        edges where one endpoint is an index case. Edges that connect two
-        index cases are excluded — index cases are not notified about
+        edges where exactly one endpoint is an index case. Edges that connect
+        two index cases are excluded — index cases are not notified about
         themselves.
 
         Edge-type info is exposed via ``self.current_partner_edges`` so that
         callables passed to ``p_notify_current.p`` / ``p_attends_current.p``
         can return per-UID probabilities stratified by edge type (see the
         :func:`stisim.pn_rates` helper).
+
+        When ``prevent_cycles=True``, the per-pair filter drops
+        ``(index, partner)`` edges where ``last_notifier[index] == partner``
+        — i.e. the partner was the agent who originally notified this index,
+        so back-notifying them would close an A→B→A cycle. Per-edge
+        ``(index, partner)`` arrays are stashed on ``self`` for
+        :meth:`step` to use when updating ``last_notifier``.
         """
-        in_p1 = np.isin(nw.p1, index_uids)
-        in_p2 = np.isin(nw.p2, index_uids)
-        partner_uids = np.concatenate([nw.p2[in_p1], nw.p1[in_p2]])
-        edge_types = np.concatenate([nw.edges.edge_type[in_p1],
-                                     nw.edges.edge_type[in_p2]])
-        # Drop index-from-index edges
-        keep = ~np.isin(partner_uids, index_uids)
-        partner_uids = partner_uids[keep]
-        edge_types = edge_types[keep]
+        p1_is_index = np.isin(nw.p1, index_uids)
+        p2_is_index = np.isin(nw.p2, index_uids)
+        # XOR — exactly one endpoint is an index. Automatically drops
+        # both-index edges (no need for a separate ~isin filter).
+        candidate = p1_is_index ^ p2_is_index
+        partner_per_edge = np.where(p1_is_index, nw.p2, nw.p1)[candidate]
+        index_per_edge   = np.where(p1_is_index, nw.p1, nw.p2)[candidate]
+        edge_types       = nw.edges.edge_type[candidate]
+
+        # Cycle prevention: drop (I, P) edges where P was the last
+        # notifier of I.
+        if self.prevent_cycles and len(partner_per_edge):
+            ln_of_index = self.last_notifier[ss.uids(index_per_edge)]
+            keep = np.isnan(ln_of_index) | (ln_of_index != partner_per_edge.astype(float))
+            partner_per_edge = partner_per_edge[keep]
+            index_per_edge   = index_per_edge[keep]
+            edge_types       = edge_types[keep]
+
+        # Stash per-edge arrays for last_notifier update in step()
+        self._last_partner_per_edge = ss.uids(partner_per_edge)
+        self._last_index_per_edge   = ss.uids(index_per_edge)
 
         partner_edges = defaultdict(list)
-        for uid, et in zip(partner_uids, edge_types):
+        for uid, et in zip(partner_per_edge, edge_types):
             partner_edges[int(uid)].append(int(et))
         return partner_edges
 
     def step(self):
         index_uids = self.eligibility(self.sim)
         if len(index_uids) == 0:
+            self._last_partner_per_edge = None
+            self._last_index_per_edge = None
             return
 
         # Current-partner channel: walk edges, group edge_types by partner uid.
@@ -1192,6 +1281,31 @@ class PartnerNotification(ss.Intervention):
         all_attending = cur_attending | prev_attending
         if len(all_attending):
             self.ti_notified[all_attending] = self.ti
+
+            # Cycle prevention bookkeeping: for each attendee in the
+            # current-partner channel, record which index notified them.
+            # Uses the per-edge arrays stashed by _build_partner_edges.
+            # When multiple indices share an edge with the same attendee,
+            # the first (in sorted order) wins — semantics: "an index who
+            # could have notified you in this step".
+            if self.prevent_cycles and len(cur_attending) and \
+                    self._last_partner_per_edge is not None and \
+                    len(self._last_partner_per_edge):
+                partners = self._last_partner_per_edge.view(np.ndarray)
+                indices  = self._last_index_per_edge.view(np.ndarray)
+                order    = np.argsort(partners, kind='stable')
+                p_sorted = partners[order]
+                i_sorted = indices[order]
+                first = np.searchsorted(p_sorted, cur_attending, side='left')
+                in_range = first < len(p_sorted)
+                if in_range.any():
+                    safe = np.clip(first, 0, len(p_sorted) - 1)
+                    match = (p_sorted[safe] == cur_attending) & in_range
+                    if match.any():
+                        atts = cur_attending[match]
+                        notifier = i_sorted[first[match]]
+                        self.last_notifier[atts] = notifier.astype(float)
+
             self.notify_attendees(all_attending)
 
         # Record
@@ -1200,7 +1314,72 @@ class PartnerNotification(ss.Intervention):
         self.results['new_notified_previous'][ti] = len(prev_notified)
         self.results['new_notified'][ti] = len(cur_notified) + len(prev_notified)
         self.results['new_attending'][ti] = len(all_attending)
+
+        # --- Diagnostic results (opt-in via `diseases` / `index_treatments`) ---
+        if self.diseases and len(all_attending):
+            no_sti = self._attendees_with_no_sti(all_attending)
+            self.results['new_attended_no_sti'][ti] = no_sti
+
+        if self.index_treatments:
+            self.results['new_index_no_sti'][ti] = self._false_alarm_index_count()
+
+        # Reset per-edge stash
+        self._last_partner_per_edge = None
+        self._last_index_per_edge = None
         return
+
+    def _attendees_with_no_sti(self, attending):
+        """Count attendees with none of ``self.diseases`` infected right
+        now. Read directly from each disease module's ``infected``
+        attribute."""
+        if not self.diseases or not len(attending):
+            return 0
+        diseases = self.sim.diseases
+        any_inf = None
+        for dname in self.diseases:
+            d = diseases.get(dname)
+            if d is None:
+                continue
+            arr = d.infected[attending]
+            any_inf = arr if any_inf is None else (any_inf | arr)
+        if any_inf is None:
+            return 0
+        return int((~any_inf).sum())
+
+    def _false_alarm_index_count(self):
+        """Count index cases (agents whose ``index_treatments`` fired this
+        step) who had none of ``self.diseases`` at the moment of
+        treatment.
+
+        An agent appears in ``treated_any`` iff at least one of their
+        ``index_treatments`` recorded them in
+        ``outcomes[d].(successful | unsuccessful | unnecessary)`` for some
+        ``d in self.diseases``. They appear in ``had_sti`` iff at least one
+        treatment recorded them in
+        ``outcomes[d].(successful | unsuccessful)`` for some ``d`` —
+        meaning the agent was actually treatable for that disease.
+        False alarm = ``treated_any \\ had_sti``.
+        """
+        had_sti = ss.uids()
+        treated_any = ss.uids()
+        targets = set(self.diseases or ())
+        for tx_name in self.index_treatments:
+            tx = self.sim.interventions.get(tx_name)
+            if tx is None:
+                continue
+            outcomes = getattr(tx, 'outcomes', None)
+            if outcomes is None:
+                continue
+            for key, val in outcomes.items():
+                if key not in targets or not hasattr(val, 'get'):
+                    continue
+                succ   = val.get('successful',   ss.uids())
+                unsucc = val.get('unsuccessful', ss.uids())
+                unnec  = val.get('unnecessary',  ss.uids())
+                had_sti      = had_sti      | succ | unsucc
+                treated_any  = treated_any  | succ | unsucc | unnec
+        false_alarm = treated_any - had_sti
+        return int(len(false_alarm))
 
 
 def pn_rates(rates):
