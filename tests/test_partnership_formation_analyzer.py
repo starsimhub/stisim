@@ -264,7 +264,7 @@ def test_partnership_formation_analyzer(n_agents=DEFAULT_N_AGENTS,
 # ---------------------------------------------------------------------------
 # The getters (get_n_partnerships_formed, get_n_partnerships_formed_per_agent,
 # get_unique_partners_active_per_agent) are pure functions of the recorded
-# state: self.results['edges'] (one interval row per edge), self._final_uids,
+# state: self.results['relationships'] (one interval row per edge), self._final_uids,
 # and self._final_ti. The helper below injects that state directly, so each
 # test asserts EXACT getter outputs for a hand-built edge history -- which a
 # real (stochastic) sim cannot give (it only supports loose aggregate checks).
@@ -292,14 +292,14 @@ def _inject_analyzer(edges, uids_by_sex, final_ti, age_bins=None, nw_name='mfnet
     ``ti_expired`` is the expiry timestep (active interval is the half-open
     ``[formation_ti, ti_expired)``), or ``None`` if the edge is still active at
     run end. Sex is explicit per endpoint, so same-sex edges are expressible.
-    This drives the getters directly off ``self.results['edges']`` and the
-    cached subject universes, bypassing the simulation loop.
+    This drives the getters directly off ``self.results['relationships']`` and the
+    cached surviving-agent uids, bypassing the simulation loop.
     """
     edges_by_nw = edges if isinstance(edges, dict) else {nw_name: edges}
     ana = sti.PartnershipFormationAnalyzer(age_bins=age_bins)
-    ana._tracked_names = list(edges_by_nw.keys())
-    ana.results = {'edges': {nw: [list(row) for row in rows] for nw, rows in edges_by_nw.items()}}
-    ana._edge_index = {nw: {} for nw in edges_by_nw}
+    ana._tracked_nw_names = list(edges_by_nw.keys())
+    ana.results = {'relationships': {nw: [list(row) for row in rows] for nw, rows in edges_by_nw.items()}}
+    ana._indicies_of_rels_in_table_for_nw = {nw: {} for nw in edges_by_nw}
     ana._final_uids = {'f': np.asarray(uids_by_sex.get('f', []), np.int64),
                        'm': np.asarray(uids_by_sex.get('m', []), np.int64)}
     ana._final_ti = final_ti
@@ -463,7 +463,7 @@ def test_same_sex_network():
     assert uniq.tolist() == [2, 1, 1], uniq.tolist()      # 10->{11,12}; 11->{10}; 12->{10}
     formed = ana.get_n_partnerships_formed_per_agent(female=False, window_months=3)['msmnet']
     assert formed.tolist() == [2, 1, 1], formed.tolist()  # both endpoints male -> 10 counts in 2 edges
-    # No females -> empty subject universe.
+    # No females -> empty surviving-agent set.
     assert len(ana.get_unique_partners_active_per_agent(female=True, window_months=3)['msmnet']) == 0
     print(f'test_same_sex_network: unique={uniq.tolist()}, formed={formed.tolist()}. PASSED.')
     return
@@ -561,7 +561,7 @@ def test_network_nonsexual_warns_and_skips():
         sim.init()
     ana = sim.analyzers['partnershipformationanalyzer']
     assert any('maternalnet' in str(w.message) for w in caught), [str(w.message) for w in caught]
-    assert len(ana._tracked_names) == 0, ana._tracked_names
+    assert len(ana._tracked_nw_names) == 0, ana._tracked_nw_names
 
     # Default None -> only the sexual network is tracked (no maternalnet, no warning).
     sim2 = sti.Sim(n_agents=100, dur=1, diseases=[sti.HIV(init_prev=0.05)],
@@ -569,9 +569,9 @@ def test_network_nonsexual_warns_and_skips():
                    analyzers=[sti.PartnershipFormationAnalyzer()])
     sim2.init()
     ana2 = sim2.analyzers['partnershipformationanalyzer']
-    assert ana2._tracked_names == ['mfnetwork'], ana2._tracked_names
-    print(f'test_network_nonsexual_warns_and_skips: explicit skip -> {ana._tracked_names}, '
-          f'default -> {ana2._tracked_names}. PASSED.')
+    assert ana2._tracked_nw_names == ['mfnetwork'], ana2._tracked_nw_names
+    print(f'test_network_nonsexual_warns_and_skips: explicit skip -> {ana._tracked_nw_names}, '
+          f'default -> {ana2._tracked_nw_names}. PASSED.')
     return
 
 
@@ -589,10 +589,10 @@ def test_network_unsupported_expiry_warns_and_skips():
         sim.init()
     ana = sim.analyzers['partnershipformationanalyzer']
     assert any('record all edge expirations' in str(w.message) for w in caught), [str(w.message) for w in caught]
-    assert ana._tracked_names == ['mfnetwork'], ana._tracked_names
-    assert 'msmscalefreenetwork' in ana._skipped_networks, ana._skipped_networks
-    print(f'test_network_unsupported_expiry_warns_and_skips: tracked={ana._tracked_names}, '
-          f'skipped={ana._skipped_networks}. PASSED.')
+    assert ana._tracked_nw_names == ['mfnetwork'], ana._tracked_nw_names
+    assert 'msmscalefreenetwork' in ana._skipped_nw_names, ana._skipped_nw_names
+    print(f'test_network_unsupported_expiry_warns_and_skips: tracked={ana._tracked_nw_names}, '
+          f'skipped={ana._skipped_nw_names}. PASSED.')
     return
 
 
@@ -609,7 +609,7 @@ def test_records_expired_end_to_end():
                   analyzers=[sti.PartnershipFormationAnalyzer()])
     sim.run(verbose=0)
     ana = sim.analyzers['partnershipformationanalyzer']
-    rows = ana.results['edges']['mfnetwork']
+    rows = ana.results['relationships']['mfnetwork']
     assert len(rows) > 0, 'No edges recorded.'
     n_finite = sum(1 for r in rows if r[3] is not None)
     assert n_finite > 0, 'No expirations recorded — is super()._on_edge_dissolution missing?'
@@ -641,7 +641,7 @@ def test_deaths_intervals_consistent():
                   analyzers=[sti.PartnershipFormationAnalyzer()])
     sim.run(verbose=0)
     ana = sim.analyzers['partnershipformationanalyzer']
-    rows = ana.results['edges']['mfnetwork']
+    rows = ana.results['relationships']['mfnetwork']
     assert len(rows) > 0, 'No edges recorded.'
     final_ti = ana._final_ti
 

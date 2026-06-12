@@ -766,7 +766,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
     the analyzer makes no p1=male/p2=female assumption and works for any gender
     combination (male-female, male-male).
 
-    Recorded state lives in ``self.results['edges'][nw]``: a list of one mutable
+    Recorded state lives in ``self.results['relationships'][nw]``: a list of one mutable
     row per distinct edge::
 
         [p1, p2, formation_ti, ti_expired, age_p1, age_p2, female_p1, female_p2]
@@ -776,6 +776,22 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
     ``[formation_ti, ti_expired)``), or ``None`` while the edge is still active
     at the end of the run. Getters map ``None -> final_ti + 1`` so an ongoing
     edge tests active through the last timestep.
+
+    .. warning::
+        **Single-edge-per-pair-per-timestep assumption.** Edges are keyed by
+        ``(p1, p2, formation_ti)`` (see ``_edge_index``). If a network ever forms
+        **more than one edge between the same pair of agents at the same ti**,
+        those edges collide on this key and **expiry data is corrupted**: only
+        the last-formed colliding edge remains reachable for ``ti_expired``
+        recording, so the others keep ``ti_expired = None`` (wrongly treated as
+        active through run end) and their expiry events are dropped. Formation
+        *counts* are unaffected (every edge is still appended as its own row), so
+        only the active-interval results (``get_unique_partners_active_per_agent``
+        and any duration computed from ``ti_expired``) are affected. The bundled
+        networks do not do this; the assumption holds as long as a pair forms at
+        most one edge per network per timestep (the no-concurrent-duplicate-edge
+        invariant noted in ``BaseNetwork.add_pairs``). Forming a second edge
+        between the same pair at a *different* ti is fine (distinct key).
 
     **Duration semantics.** ``ti_expired`` is defined as one past the last
     timestep the edge was present and transmission-capable during the disease
@@ -807,7 +823,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
 
     Example (``self.results`` layout, network 'mfnetwork')::
 
-        ana.results['edges']['mfnetwork'][0]
+        ana.results['relationships']['mfnetwork'][0]
         # -> [9, 17, 0, 4, 27.23, 19.62, False, True]
         #    p1=9, p2=17, formation_ti=0, ti_expired=4 (active ti 0..3),
         #    ages at formation, female flags. ti_expired is None if still active
@@ -845,7 +861,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
 
     DEFAULT_AGE_BINS = [f'{lo}-{lo+5}' for lo in range(0, 75, 5)]
 
-    # Edge-row column indices (rows stored in self.results['edges'][nw]).
+    # Edge-row column indices (rows stored in self.results['relationships'][nw]).
     _P1, _P2, _FORMATION_TI, _TI_EXPIRED, _AGE1, _AGE2, _FEM1, _FEM2 = range(8)
 
     def __init__(self, age_bins: list[str] = None, networks: list[str] = None, *args, **kwargs):
@@ -861,11 +877,11 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
             raise ValueError(f"PartnershipFormationAnalyzer: duplicate age_bins are not allowed: {dups}")
 
         self.age_ranges = [ss.parse_age_range(b) for b in self.age_bins]
-        self.target_network_names = networks
-        self._tracked_names = []                     # populated in init_results
-        self._skipped_networks = []                  # networks skipped (can't record expirations)
-        self._edge_index = {}                        # nw -> {(p1,p2,formation_ti): row_idx}, pruned on expiry
-        self._final_uids = {'f': None, 'm': None}    # subject universes, set in step
+        self.target_nw_names = networks
+        self._tracked_nw_names = []                     # populated in init_results
+        self._skipped_nw_names = []                  # networks skipped (can't record expirations)
+        self._indicies_of_rels_in_table_for_nw = {}                        # nw -> {(p1,p2,formation_ti): row_idx}, pruned on expiry
+        self._final_uids = {'f': None, 'm': None}    # surviving-agent uids by sex, set in step
         self._final_ti = None
         return
 
@@ -877,26 +893,26 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
         # edge meta -- formation_ti, age_p1, age_p2 -- and the expired_this_ti
         # buffer), so a plain ss.SexualNetwork is not enough.
         all_nw_names = self.sim.networks.keys()
-        if self.target_network_names is None:
+        if self.target_nw_names is None:
             # default to all BaseNetwork-derived sexual networks
             candidates = [nw_name for nw_name in all_nw_names
                           if isinstance(self.sim.networks[nw_name], sti.BaseNetwork)]
         else:
             # ensure all requested networks exist
-            missing = [nw_name for nw_name in self.target_network_names if nw_name not in all_nw_names]
+            missing = [nw_name for nw_name in self.target_nw_names if nw_name not in all_nw_names]
             if len(missing) > 0:
                 missing_str = ', '.join(missing)
                 raise ValueError(f"PartnershipFormationAnalyzer: network(s) '{missing_str}' not found in sim.networks. "
                                  f"Available: {sorted(all_nw_names)}.")
 
             # warn for any requested network that isn't BaseNetwork-derived; it will be ignored.
-            unsupported = [nw_name for nw_name in self.target_network_names
+            unsupported = [nw_name for nw_name in self.target_nw_names
                            if not isinstance(self.sim.networks[nw_name], sti.BaseNetwork)]
             if len(unsupported) > 0:
                 unsupported_str = ', '.join(unsupported)
                 warnings.warn(f"PartnershipFormationAnalyzer: network(s) '{unsupported_str}' not a stisim "
                               f"BaseNetwork-derived sexual network, ignoring ...")
-            candidates = [nw_name for nw_name in self.target_network_names
+            candidates = [nw_name for nw_name in self.target_nw_names
                           if nw_name not in missing and nw_name not in unsupported]
 
         # Warn-and-skip networks that cannot record all edge expirations (e.g.
@@ -906,63 +922,70 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
         for nw_name in candidates:
             nw = self.sim.networks[nw_name]
             if not nw.records_all_expirations:
-                self._skipped_networks.append(nw_name)
+                self._skipped_nw_names.append(nw_name)
                 warnings.warn(f"PartnershipFormationAnalyzer: network '{nw_name}' "
                               f"({type(nw).__name__}) does not record all edge expirations "
                               f"(it removes edges outside _on_edge_dissolution), so "
                               f"active-interval results would be incomplete; skipping.")
                 continue
             selected.append(nw_name)
-        self._tracked_names = selected
+        self._tracked_nw_names = selected
 
         # Enable expiration recording on tracked networks (pure read-side-effect;
         # supplies ti_expired via nw.expired_this_ti each step).
-        for nw_name in self._tracked_names:
+        for nw_name in self._tracked_nw_names:
             self.sim.networks[nw_name].record_expired = True
 
         # One mutable row per distinct edge, plus a key->row index (pruned on
         # expiry) used only to patch ti_expired in step().
-        self.results['edges'] = {nw_name: [] for nw_name in self._tracked_names}
-        self._edge_index = {nw_name: {} for nw_name in self._tracked_names}
+        self.results['relationships'] = {nw_name: [] for nw_name in self._tracked_nw_names}
+        self._indicies_of_rels_in_table_for_nw = {nw_name: {} for nw_name in self._tracked_nw_names}
         return
+
+    def _key_for_rel(self, p1, p2, formation_ti):
+        return (int(p1), int(p2), int(formation_ti))
 
     def step(self):
         ti = self.ti
         ppl = self.sim.people
 
-        for nw_name in self._tracked_names:
+        for nw_name in self._tracked_nw_names:
             nw = self.sim.networks[nw_name]
-            rows = self.results['edges'][nw_name]
-            index = self._edge_index[nw_name]
+            rel_table = self.results['relationships'][nw_name]
+            rel_to_index = self._indicies_of_rels_in_table_for_nw[nw_name]
 
-            # (1) Newly-formed edges this step (formation_ti == ti): append one
-            # row each, ti_expired=None, and index by key for later patching.
-            new_mask = np.asarray(nw.edges.formation_ti, dtype=np.int64) == ti
-            if new_mask.any():
-                p1 = np.asarray(nw.edges.p1, dtype=np.int64)[new_mask]
-                p2 = np.asarray(nw.edges.p2, dtype=np.int64)[new_mask]
-                formation_ti = np.asarray(nw.edges.formation_ti, dtype=np.int64)[new_mask]
-                age1 = np.asarray(nw.edges.age_p1, dtype=float)[new_mask]
-                age2 = np.asarray(nw.edges.age_p2, dtype=float)[new_mask]
-                # Sex from people, only for the new edges (no p1/p2 assumption).
-                fem1 = np.asarray(ppl.female[ss.uids(p1)], dtype=bool)
-                fem2 = np.asarray(ppl.female[ss.uids(p2)], dtype=bool)
-                for a, b, ft, am, bm, f1, f2 in zip(p1, p2, formation_ti, age1, age2, fem1, fem2):
-                    index[(int(a), int(b), int(ft))] = len(rows)
-                    rows.append([int(a), int(b), int(ft), None, float(am), float(bm), bool(f1), bool(f2)])
+            # (1) append newly formed rels this ti to the rels table with ti_expired=None, and index by key for later
+            # recording of actual ti_expired.
+            new_rel_mask = np.asarray(nw.edges.formation_ti, dtype=np.int64) == ti
+            if new_rel_mask.any():
+                p1arr = np.asarray(nw.edges.p1, dtype=np.int64)[new_rel_mask]
+                p2arr = np.asarray(nw.edges.p2, dtype=np.int64)[new_rel_mask]
+                form_ti_arr = np.asarray(nw.edges.formation_ti, dtype=np.int64)[new_rel_mask]
+                age1arr = np.asarray(nw.edges.age_p1, dtype=float)[new_rel_mask]
+                age2arr = np.asarray(nw.edges.age_p2, dtype=float)[new_rel_mask]
+                # Female sex (T/F) of agents in the relationships; not assuming p1/p2 sex for sexual network generality.
+                fem1arr = np.asarray(ppl.female[ss.uids(p1arr)], dtype=bool)
+                fem2arr = np.asarray(ppl.female[ss.uids(p2arr)], dtype=bool)
+                # insert the new edges into the relationship table, recording its table index in the lookup dict
+                # so we can find it later (to update relationship end time). None below denotes as-yet unknown end time.
+                for (p1, p2, form_ti, age1, age2, fem1, fem2) in zip(p1arr, p2arr, form_ti_arr, age1arr, age2arr, fem1arr, fem2arr):
+                    rel_key = self._key_for_rel(p1=p1, p2=p2, formation_ti=form_ti)
+                    rel_to_index[rel_key] = len(rel_table)
+                    # Ensure the order of data here matches the edge row column indicies noted at top of this analyzer
+                    rel_table.append([int(p1), int(p2), int(form_ti), None, float(age1), float(age2), bool(fem1), bool(fem2)])
 
-            # (2) Edges that expired this step: record ti_expired = ti and prune
-            # the index. Read-only -- the network accumulates into the buffer and
-            # clears it itself in finish_step (step 14); see _record_expired.
-            self._record_expired(nw, rows, index, ti)
+            # (2) Edges that expired this step (before disease transmission): record ti_expired = ti and prune
+            # the index. Read-only -- the network accumulates into the buffer and clears it itself in finish_step
+            # (step 14); see _record_expired.
+            self._record_expired(nw, rel_table, rel_to_index, ti_expired=ti)
 
-        # Cache subject universes and final ti for the getters.
+        # Cache surviving-agent uids and final ti for the getters.
         self._final_uids = {'f': np.asarray(ppl.female.uids, dtype=np.int64),
                             'm': np.asarray(ppl.male.uids, dtype=np.int64)}
         self._final_ti = ti
         return
 
-    def _record_expired(self, nw, rows, index, ti_expired):
+    def _record_expired(self, nw, rel_table, rel_to_index, ti_expired):
         """Record ``ti_expired`` on each edge in ``nw.expired_this_ti``.
 
         Edges are matched to their row by the ``(p1, p2, formation_ti)`` key and
@@ -973,15 +996,20 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
         with no analyzer present. Edges never placed in the buffer (i.e. still
         active) are left untouched, keeping ``ti_expired = None``.
         """
-        expired = nw.expired_this_ti
-        if len(expired.get('p1', ())) > 0:
-            p1_arr = np.asarray(expired['p1'], dtype=np.int64)
-            p2_arr = np.asarray(expired['p2'], dtype=np.int64)
-            formation_ti_arr = np.asarray(expired['formation_ti'], dtype=np.int64)
-            for p1, p2, formation_ti in zip(p1_arr, p2_arr, formation_ti_arr):
-                row_idx = index.pop((int(p1), int(p2), int(formation_ti)), None)
+        # grab the expired relationship info
+        expired_rels = nw.expired_this_ti
+        # if at least one relationship expired, record known end dates.
+        if len(expired_rels.get('p1', ())) > 0:
+            p1_arr = np.asarray(expired_rels['p1'], dtype=np.int64)
+            p2_arr = np.asarray(expired_rels['p2'], dtype=np.int64)
+            formation_ti_arr = np.asarray(expired_rels['formation_ti'], dtype=np.int64)
+            for p1, p2, form_ti in zip(p1_arr, p2_arr, formation_ti_arr):
+                # Removing the relationship from our rel_to_index mapping, as we only need to record the end date once.
+                rel_key = self._key_for_rel(p1=p1, p2=p2, formation_ti=form_ti)
+                row_idx = rel_to_index.pop(rel_key, None)
+                # set the end date to the specified ti
                 if row_idx is not None:
-                    rows[row_idx][self._TI_EXPIRED] = ti_expired
+                    rel_table[row_idx][self._TI_EXPIRED] = ti_expired
         return
 
     def finalize(self):
@@ -995,11 +1023,12 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
         methods treat ``None`` as still-active relationships at simulation end).
         """
         ti_expired = self._final_ti + 1
-        for nw_name in self._tracked_names:
+        for nw_name in self._tracked_nw_names:
             nw = self.sim.networks[nw_name]
-            rows = self.results['edges'][nw_name]
-            index = self._edge_index[nw_name]
-            self._record_expired(nw, rows, index, ti_expired)
+            rel_table = self.results['relationships'][nw_name]
+            rel_to_index = self._indicies_of_rels_in_table_for_nw[nw_name]
+            self._record_expired(nw, rel_table, rel_to_index, ti_expired=ti_expired)
+
         super().finalize()
         return
 
@@ -1009,14 +1038,14 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
             return None
         return self._final_ti - window_months + 1
 
-    def _edge_arrays(self, nw_name):
+    def _rel_element_arrs(self, nw_name):
         """Columnar numpy arrays for one network's edge table.
 
         ``ti_expired`` is materialized with ``None -> final_ti + 1`` so the
         half-open active test ``formation_ti <= ti < ti_expired`` treats an
         ongoing edge as active through the final timestep.
         """
-        rows = self.results['edges'][nw_name]
+        rows = self.results['relationships'][nw_name]
         n = len(rows)
         sentinel = self._final_ti + 1
         if n == 0:
@@ -1041,18 +1070,23 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
         )
 
     @staticmethod
-    def _counts_for_universe(uids, universe):
-        """Count occurrences of each uid, aligned to ``universe`` order."""
-        counts = np.zeros(len(universe), dtype=np.int64)
-        if len(uids) == 0 or len(universe) == 0:
+    def _counts_for_surviving_agents(uids, surviving_agents):
+        """Count occurrences of each uid, aligned to ``surviving_agents`` order."""
+        counts = np.zeros(len(surviving_agents), dtype=np.int64)
+        if len(uids) == 0 or len(surviving_agents) == 0:
             return counts
         tally = Counter(int(u) for u in uids)
-        for i, u in enumerate(universe):
+        for i, u in enumerate(surviving_agents):
             counts[i] = tally.get(int(u), 0)
         return counts
 
     def get_n_partnerships_formed(self, female=False, age_bins=None, window_months=None):
-        """Partnerships formed (non-unique), per network and age bin.
+        """
+        Total count of partnerships formed (non-unique pairings), per network and age bin.
+
+        When window_months is not used (None), one timeseries of partnership formation counts will be returned per
+        age bin. When window_months is an int, N, it will return single-element lists of partnership formation counts
+        during the final N months of the simulation, one single-element list per age bin.
 
         Args:
             female (bool): Subject sex (True=female, False=male).
@@ -1089,37 +1123,41 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
         lo_ti = 0 if threshold is None else max(0, threshold)
 
         out = {}
-        for nw_name in self._tracked_names:
-            arr = self._edge_arrays(nw_name)
-            # Each subject-sex endpoint of every edge contributes its
-            # (formation_ti, age); a male-male edge contributes both partners.
-            sub1 = arr['fem1'] if female else ~arr['fem1']
-            sub2 = arr['fem2'] if female else ~arr['fem2']
-            fts = np.concatenate([arr['formation_ti'][sub1], arr['formation_ti'][sub2]])
-            ages = np.concatenate([arr['age1'][sub1], arr['age2'][sub2]])
+        for nw_name in self._tracked_nw_names:
+            arr = self._rel_element_arrs(nw_name)
+            # Each subject-sex endpoint of every relationship contributes its (formation_ti, age)
+            # Note: a same-sex relationship contributes both partners (both "formed a relationship" (double counting, but they will be sorted out to potentially different age bins).
+            subject1 = arr['fem1'] if female else ~arr['fem1']
+            subject2 = arr['fem2'] if female else ~arr['fem2']
+            formation_tis = np.concatenate([arr['formation_ti'][subject1], arr['formation_ti'][subject2]])
+            ages = np.concatenate([arr['age1'][subject1], arr['age2'][subject2]])
             nw_out = {}
             for age_bin, (lo, hi) in zip(bins, ranges):
-                in_bin = (ages >= lo) & (ages < hi)
+                age_mask = (ages >= lo) & (ages < hi)
                 # Per-timestep counts: a formation at ti contributes to index ti.
-                per_ti = np.bincount(fts[in_bin], minlength=n_ti).astype(np.int64)
+                per_ti = np.bincount(formation_tis[age_mask], minlength=n_ti).astype(np.int64)
                 if window_months is None:
+                    # here we store the timeseries of relationship formation for return
                     nw_out[age_bin] = per_ti
                 else:
+                    # window_months was specified, so instead sum the counts in the final window_months timesteps.
                     nw_out[age_bin] = np.array([int(per_ti[lo_ti:].sum())])
             out[nw_name] = nw_out
         return out
 
     def get_n_partnerships_formed_per_agent(self, female=False, window_months=None):
-        """Partnerships formed (non-unique) per agent over a trailing window.
+        """
+        Partnerships formed (non-unique) per agent over a trailing window, for agents alive at simulation end.
+
+        Equivalent to asking living agents, "How many partnerships have you formed over the last X months?"
 
         Args:
             female (bool): Subject sex.
-            window_months (int | None): Trailing window length in timesteps;
-                ``None`` aggregates over the whole run.
+            window_months (int | None): Trailing ti window length for partnership counting, None for whole simulation.
 
         Returns:
-            dict ``{network_name: array}`` indexed like the subject-sex uid
-            universe (``ana._final_uids['f'|'m']``).
+            dict ``{network_name: array}`` indexed like the subject-sex
+            surviving-agent uids (``ana._final_uids['f'|'m']``).
 
         Example (whole run)::
 
@@ -1129,40 +1167,47 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
             #    partnerships over the run (non-unique: a re-formed pair counts twice).
         """
         threshold = self._threshold(window_months)
-        uid_universe = self._final_uids['f' if female else 'm']
+        surviving_agent_uids = self._final_uids['f' if female else 'm']
         out = {}
-        for nw_name in self._tracked_names:
-            arr = self._edge_arrays(nw_name)
-            sub1 = arr['fem1'] if female else ~arr['fem1']
-            sub2 = arr['fem2'] if female else ~arr['fem2']
-            uids = np.concatenate([arr['p1'][sub1], arr['p2'][sub2]])
-            fts = np.concatenate([arr['formation_ti'][sub1], arr['formation_ti'][sub2]])
+        for nw_name in self._tracked_nw_names:
+            arrs = self._rel_element_arrs(nw_name)
+            # we do not presume sex of p1 and p2, so we grab the selected sex agents from both (p1 and p2 agents,
+            # independently, will be 0-matching or all-matching the female sex bool passed in).
+            sex1 = arrs['fem1'] if female else ~arrs['fem1']
+            sex2 = arrs['fem2'] if female else ~arrs['fem2']
+            uids = np.concatenate([arrs['p1'][sex1], arrs['p2'][sex2]])
+            formation_tis = np.concatenate([arrs['formation_ti'][sex1], arrs['formation_ti'][sex2]])
             if threshold is not None:
-                keep = fts >= threshold
+                keep = formation_tis >= threshold
                 uids = uids[keep]
-            out[nw_name] = self._counts_for_universe(uids, uid_universe)
+            out[nw_name] = self._counts_for_surviving_agents(uids, surviving_agent_uids)
         return out
 
     def get_unique_partners_active_per_agent(self, female=False, window_months=None):
-        """Per-agent count of unique partners on edges active during a window.
+        """
+        Unique partner counts per agent over a trailing window, for agents alive at simulation end.
 
-        An edge is active during ``[win_start, win_end]`` iff its half-open
-        interval ``[formation_ti, ti_expired)`` overlaps it, i.e.
-        ``formation_ti <= win_end`` and ``ti_expired > win_start`` (an ongoing
-        edge uses ``ti_expired = final_ti + 1``). For ``window_months=None`` the
-        window is the whole run. Sex-general: the partner is the other endpoint
-        regardless of its sex, so this works for same-sex networks too. Dedups by
-        partner uid (a network is assumed not to hold concurrent duplicate edges
-        between the same pair, so unique partners == unique active partnerships).
+        Equivalent to asking living agents, "How many unique partners have you had over the last X months?"
+
+        An edge counts as active in the trailing window iff it had not expired
+        before the window opened, i.e. ``ti_expired > win_start`` (its half-open
+        active interval ``[formation_ti, ti_expired)`` overlaps the window). The
+        window always ends at the final timestep, so no upper bound on
+        ``formation_ti`` is needed; an ongoing edge carries
+        ``ti_expired = final_ti + 1`` and therefore always counts. For
+        ``window_months=None`` the window is the whole run (``win_start = 0``).
+        Sex-general: the partner is the other endpoint regardless of its sex, so
+        this works for same-sex networks too. Dedups by partner uid (a network is
+        assumed not to hold concurrent duplicate edges between the same pair, so
+        unique partners == unique active partnerships).
 
         Args:
             female (bool): Subject sex.
-            window_months (int | None): Trailing window length; ``None`` uses
-                the whole run.
+            window_months (int | None): Trailing ti window length for partner counting, None for whole simulation.
 
         Returns:
-            dict ``{network_name: array}`` indexed like the subject-sex uid
-            universe.
+            dict ``{network_name: array}`` indexed like the subject-sex
+            surviving-agent uids.
 
         Example (trailing 12 timesteps)::
 
@@ -1173,21 +1218,33 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
         """
         threshold = self._threshold(window_months)
         win_start = 0 if threshold is None else threshold
-        win_end = self._final_ti
-        uid_universe = self._final_uids['f' if female else 'm']
+        surviving_agent_uids = self._final_uids['f' if female else 'm']
         out = {}
-        for nw_name in self._tracked_names:
-            arr = self._edge_arrays(nw_name)
-            active = (arr['formation_ti'] <= win_end) & (arr['ti_expired'] > win_start)
-            sub1 = active & (arr['fem1'] if female else ~arr['fem1'])
-            sub2 = active & (arr['fem2'] if female else ~arr['fem2'])
-            subj = np.concatenate([arr['p1'][sub1], arr['p2'][sub2]])
-            part = np.concatenate([arr['p2'][sub1], arr['p1'][sub2]])
-            if len(subj) > 0:
+        for nw_name in self._tracked_nw_names:
+            arr = self._rel_element_arrs(nw_name)
+            # ti_expired > win_start drops edges that ended before the window opened;
+            # ongoing edges carry ti_expired = final_ti + 1 (see _rel_element_arrs) so they pass.
+            active_in_win = arr['ti_expired'] > win_start
+
+            # subject_mask1/subject_mask2 select active edges whose p1/p2 (respectively)
+            # is the requested sex (female if female=True, else male).
+            subject_mask1 = active_in_win & (arr['fem1'] if female else ~arr['fem1'])
+            subject_mask2 = active_in_win & (arr['fem2'] if female else ~arr['fem2'])
+
+            # female (bool) identifies the subject -- subjects can be in p1 and/or p2 as we do not assume sex of p1/p2
+            subjects = np.concatenate([arr['p1'][subject_mask1], arr['p2'][subject_mask2]])
+            # swapping p1/p2 identifies the partners of the subjects (in subject-order of arrays)
+            partners = np.concatenate([arr['p2'][subject_mask1], arr['p1'][subject_mask2]])
+
+            if len(subjects) > 0:
                 # Distinct (subject, partner) pairs -> count partners per subject.
-                uniq_pairs = np.unique(np.stack([subj, part], axis=1), axis=0)
-                out[nw_name] = self._counts_for_universe(uniq_pairs[:, 0], uid_universe)
+                # Create 2-element pairing arrays from aligned subjects and partners arrays ([[sub0, part0], ..., [subN, partN]]
+                pairings = np.stack([subjects, partners], axis=1)
+
+                # treats each [subI, partI] element as items to be uniquified
+                unique_pairs = np.unique(pairings, axis=0)
+                out[nw_name] = self._counts_for_surviving_agents(unique_pairs[:, 0], surviving_agent_uids)
             else:
-                out[nw_name] = np.zeros(len(uid_universe), dtype=np.int64)
+                out[nw_name] = np.zeros(len(surviving_agent_uids), dtype=np.int64)
         return out
 
