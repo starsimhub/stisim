@@ -60,10 +60,8 @@ class MFPars(ss.Pars):
         self.m0_conc = 0.0001
         self.m1_conc = 0.2
         self.m2_conc = 0.5
-        # Multiplier applied to FSW's MF concurrency (non-commercial
-        # partnerships). Default 1.0 = no effect. Used on networks that
-        # combine MF + SW (e.g. StructuredSexual); ignored when the network
-        # doesn't expose a `fsw` boolean.
+        # Multiplier on FSW concurrency: values <1 mean that active sex workers
+        # have fewer non-sex-work partners. Default 1.0 = no effect.
         self.fsw_mf_conc_mult = 1.0
 
         # Relationship initiation, stability, and duration

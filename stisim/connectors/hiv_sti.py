@@ -57,7 +57,7 @@ class hiv_syph(ss.Connector):
     def step(self):
 
         # HIV changes due to syphilis
-        syphilis = self.syphilis.active
+        syphilis = self.syphilis.symptomatic
         self.hiv.rel_sus[syphilis] *= self.rel_sus_hiv_syph[syphilis]
         self.hiv.rel_trans[syphilis] *= self.rel_trans_hiv_syph[syphilis]
 

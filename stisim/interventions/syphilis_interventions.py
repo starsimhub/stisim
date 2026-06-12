@@ -54,12 +54,11 @@ class SyphTx(STITreatment):
             fetus_treat_eff=ss.bernoulli(p=.98),
             fetus_age_cutoff_treat_eff=-0.25,  # Reduced treatment efficacy for fetuses in the last trimester
             treat_eff_reduced=ss.bernoulli(p=.75),  # Reduced efficacy for fetuses older than cut off
-            # Non-trep sero-reversion after early-stage treatment.
-            # WHO 2021 fig 7: RPR titre drops 4-fold within ~6 months
-            # of adequate treatment of primary/secondary/early-latent
-            # syphilis, with most patients becoming RPR-negative
-            # within 6-12 months. Late-latent treatment does NOT
-            # produce reliable RPR sero-reversion and is excluded
+            # Non-trep sero-reversion after early-stage treatment: RPR titre
+            # drops 4-fold within ~6 months of adequate treatment of
+            # primary/secondary/early-latent syphilis, with most patients
+            # becoming RPR-negative within 6-12 months. Late-latent treatment
+            # does NOT produce reliable RPR sero-reversion and is excluded
             # in change_states below.
             nontrep_revert_months=ss.uniform(low=6, high=12),
         )
@@ -71,9 +70,9 @@ class SyphTx(STITreatment):
         d = self.sim.diseases[disease]
 
         # Identify early-stage treated agents BEFORE clearing stage flags.
-        # Per WHO 2021 fig 7, treatment in primary, secondary, or early
-        # latent yields RPR sero-reversion within 6-12 months; late-latent
-        # treatment does not reliably clear the non-trep test.
+        # Treatment in primary, secondary, or early latent yields RPR
+        # sero-reversion within 6-12 months; late-latent treatment does not
+        # reliably clear the non-trep test.
         early_stage_mask = (d.primary[treat_succ]
                              | d.secondary[treat_succ]
                              | d.early[treat_succ])
@@ -109,10 +108,10 @@ class SyphTx(STITreatment):
         # ti_trep_start fires (i.e. before trep antibodies appear, ~3 weeks
         # post-infection), the trep test also stays negative — they never
         # seroconvert. Clear ti_trep_start so step_state doesn't flip
-        # trep=True later. (User instruction 2026-06-07.)
+        # trep=True later.
         window_period_treated = treat_succ[
             (~d.trep[treat_succ]) &
-            (~np.isnan(d.ti_trep_start[treat_succ])) &
+            (d.ti_trep_start.notnan[treat_succ]) &
             (d.ti + 1 < d.ti_trep_start[treat_succ])
         ]
         if len(window_period_treated) > 0:
