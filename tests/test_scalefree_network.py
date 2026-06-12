@@ -6,9 +6,16 @@ import starsim as ss
 import stisim as sti
 
 
+def _make_net(**kw):
+    """Network with full male participation, so kernel-mechanics tests see the
+    whole post-debut male pool regardless of the default ``msm_share``."""
+    kw.setdefault('msm_share', ss.bernoulli(p=1.0))
+    return sti.MSMScaleFreeNetwork(**kw)
+
+
 def _make_sim(net=None, n_agents=1_000, dur=2, rand_seed=1):
     if net is None:
-        net = sti.MSMScaleFreeNetwork()
+        net = _make_net()
     return sti.Sim(
         diseases=[sti.HIV(init_prev=0.05, beta_m2f=0.05)],
         networks=[net, ss.MaternalNet()],
@@ -20,7 +27,7 @@ def _make_sim(net=None, n_agents=1_000, dur=2, rand_seed=1):
 @sc.timer()
 def test_class_instantiates_with_defaults():
     """Bare instantiation: defaults are set; no sim required."""
-    net = sti.MSMScaleFreeNetwork()
+    net = _make_net()
     assert net.pars.target_mean_degree == 2.0
     assert float(net.pars.phi) == 1.0
     assert net._target_mean_dur_steps is None  # not yet converted
@@ -29,7 +36,7 @@ def test_class_instantiates_with_defaults():
 @sc.timer()
 def test_init_pre_converts_durs_to_steps():
     """After sim init, dur params are converted to integer step counts."""
-    net = sti.MSMScaleFreeNetwork()
+    net = _make_net()
     sim = _make_sim(net=net)
     sim.init()
     sim_net = sim.networks[0]
@@ -40,7 +47,7 @@ def test_init_pre_converts_durs_to_steps():
 @sc.timer()
 def test_init_pre_raises_when_max_below_target():
     """``max_edge_dur < target_mean_dur`` is rejected at init."""
-    net = sti.MSMScaleFreeNetwork(target_mean_dur=ss.years(5), max_edge_dur=ss.years(2))
+    net = _make_net(target_mean_dur=ss.years(5), max_edge_dur=ss.years(2))
     sim = _make_sim(net=net)
     with pytest.raises(ValueError, match='max_edge_dur'):
         sim.init()
@@ -49,7 +56,7 @@ def test_init_pre_raises_when_max_below_target():
 @sc.timer()
 def test_get_pool_filters_to_post_debut_males():
     """``_get_pool`` returns only post-debut male agents."""
-    net = sti.MSMScaleFreeNetwork()
+    net = _make_net()
     sim = _make_sim(net=net)
     sim.init()
     sim_net = sim.networks[0]
@@ -61,9 +68,22 @@ def test_get_pool_filters_to_post_debut_males():
 
 
 @sc.timer()
+def test_msm_share_filters_pool():
+    """``msm_share`` controls the fraction of post-debut males in the pool."""
+    full = _make_sim(net=_make_net(msm_share=ss.bernoulli(p=1.0)), n_agents=2_000)
+    part = _make_sim(net=sti.MSMScaleFreeNetwork(msm_share=ss.bernoulli(p=0.2)), n_agents=2_000)
+    full.init(); part.init()
+    n_full = full.networks[0]._get_pool().count()
+    n_part = part.networks[0]._get_pool().count()
+    assert n_full > 0, 'full-participation pool is empty — fixture failure'
+    assert 0.1 < n_part / n_full < 0.35, \
+        f'msm_share=0.2 pool fraction {n_part / n_full:.2f} not near 0.2 (full={n_full}, part={n_part})'
+
+
+@sc.timer()
 def test_mix_node_arrays_log1p_deg_invariant():
     """``log1p_deg`` is ``1 + log1p(deg)`` and bounded below by 1.0."""
-    net = sti.MSMScaleFreeNetwork()
+    net = _make_net()
     sim = _make_sim(net=net)
     sim.init()
     sim_net = sim.networks[0]
@@ -75,7 +95,7 @@ def test_mix_node_arrays_log1p_deg_invariant():
 @sc.timer()
 def test_mix_weights_row_returns_correct_length():
     """``_mix_weights_row(i, ...)`` returns ``n - 1 - i`` weights."""
-    net = sti.MSMScaleFreeNetwork()
+    net = _make_net()
     sim = _make_sim(net=net)
     sim.init()
     sim_net = sim.networks[0]
@@ -91,7 +111,7 @@ def test_mix_weights_row_returns_correct_length():
 @sc.timer()
 def test_build_kernel_populates_artefacts():
     """``_build_kernel`` populates all the caches after init."""
-    net = sti.MSMScaleFreeNetwork()
+    net = _make_net()
     sim = _make_sim(net=net, n_agents=300)
     sim.init()
     sim_net = sim.networks[0]
@@ -107,7 +127,7 @@ def test_build_kernel_populates_artefacts():
 @sc.timer()
 def test_build_kernel_pair_indices_upper_triangle():
     """``pairs_i < pairs_j`` for every entry (upper triangle only)."""
-    net = sti.MSMScaleFreeNetwork()
+    net = _make_net()
     sim = _make_sim(net=net, n_agents=300)
     sim.init()
     sim_net = sim.networks[0]
@@ -119,7 +139,7 @@ def test_build_kernel_pair_indices_upper_triangle():
 @sc.timer()
 def test_build_kernel_degenerate_pool_returns_zero():
     """Empty pool produces zero-sized kernel artefacts and n=0."""
-    net = sti.MSMScaleFreeNetwork()
+    net = _make_net()
     sim = _make_sim(net=net, n_agents=100)
     sim.init()
     sim_net = sim.networks[0]
@@ -132,7 +152,7 @@ def test_build_kernel_degenerate_pool_returns_zero():
 @sc.timer()
 def test_sample_pair_index_in_range_and_weighted():
     """``_sample_pair_index`` returns valid indices weighted by sel_w."""
-    net = sti.MSMScaleFreeNetwork()
+    net = _make_net()
     sim = _make_sim(net=net, n_agents=300)
     sim.init()
     sim_net = sim.networks[0]
@@ -147,7 +167,7 @@ def test_sample_pair_index_in_range_and_weighted():
 @sc.timer()
 def test_sample_pair_index_returns_neg_on_empty_kernel():
     """Empty kernel → sentinel -1 from ``_sample_pair_index``."""
-    net = sti.MSMScaleFreeNetwork()
+    net = _make_net()
     sim = _make_sim(net=net, n_agents=100)
     sim.init()
     sim_net = sim.networks[0]
@@ -163,7 +183,7 @@ def test_sample_pair_index_returns_neg_on_empty_kernel():
 @sc.timer()
 def test_initial_network_q0_non_empty():
     """``init_post`` samples a non-empty initial edge set for a large pool."""
-    net = sti.MSMScaleFreeNetwork()
+    net = _make_net()
     sim = _make_sim(net=net, n_agents=2_000)
     sim.init()
     sim_net = sim.networks[0]
@@ -173,7 +193,7 @@ def test_initial_network_q0_non_empty():
 @sc.timer()
 def test_initial_edges_post_debut_males_only():
     """Every endpoint of every initial edge is a post-debut male."""
-    net = sti.MSMScaleFreeNetwork()
+    net = _make_net()
     sim = _make_sim(net=net, n_agents=2_000)
     sim.init()
     sim_net = sim.networks[0]
@@ -188,7 +208,7 @@ def test_initial_edges_post_debut_males_only():
 @sc.timer()
 def test_max_edge_dur_cap_respected():
     """No edge persists past ``max_edge_dur_steps``."""
-    net = sti.MSMScaleFreeNetwork(max_edge_dur=ss.years(1), target_mean_dur=ss.months(6))
+    net = _make_net(max_edge_dur=ss.years(1), target_mean_dur=ss.months(6))
     sim = _make_sim(net=net, n_agents=1_500, dur=3)
     sim.run()
     sim_net = sim.networks[0]
@@ -201,7 +221,7 @@ def test_max_edge_dur_cap_respected():
 @sc.timer()
 def test_network_initialises_and_steps():
     """End-to-end: a 2yr sim with the new network completes and forms edges."""
-    net = sti.MSMScaleFreeNetwork()
+    net = _make_net()
     sim = _make_sim(net=net, n_agents=2_000, dur=2)
     sim.run()
     sim_net = sim.networks[0]
@@ -215,7 +235,7 @@ def test_network_initialises_and_steps():
 def test_target_mean_degree_honoured():
     """After burn-in, realised mean degree is within ±30% of target."""
     target = 2.0
-    net = sti.MSMScaleFreeNetwork(target_mean_degree=target, target_mean_dur=ss.years(1))
+    net = _make_net(target_mean_degree=target, target_mean_dur=ss.years(1))
     sim = _make_sim(net=net, n_agents=2_500, dur=5)
     sim.run()
     sim_net = sim.networks[0]
@@ -234,7 +254,7 @@ def test_target_mean_dur_honoured():
     so the lower bound is half the target rather than the full target.
     """
     target_yrs = 1.0
-    net = sti.MSMScaleFreeNetwork(target_mean_dur=ss.years(target_yrs))
+    net = _make_net(target_mean_dur=ss.years(target_yrs))
     sim = _make_sim(net=net, n_agents=2_500, dur=5)
     sim.run()
     sim_net = sim.networks[0]
@@ -269,7 +289,7 @@ def test_subclass_mix_weights_override_is_used():
             # Sentinel: row i returns weights = (i+1) uniformly.
             return np.full(mix_arrays['log1p_deg'].size - 1 - i, float(i + 1))
 
-    net = SentinelMSM()
+    net = SentinelMSM(msm_share=ss.bernoulli(p=1.0))
     sim = _make_sim(net=net, n_agents=300)
     sim.init()
     assert SentinelMSM.call_count > 0, 'subclass _mix_weights_row was never called'
