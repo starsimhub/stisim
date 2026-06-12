@@ -513,6 +513,7 @@ class SyndromicManagement(STITest):
         self.define_states(
             ss.FloatArr('ti_referred'),
             ss.FloatArr('ti_dismissed'),
+            ss.BoolArr('has_cerv_symp'),
         )
         self.treat_prob_data = treat_prob_data
         self.treated_by_uid = None
@@ -524,9 +525,13 @@ class SyndromicManagement(STITest):
         self.pars.tx_cerv_m.set(p=self.mvals_cerv)
         self.pars.tx_noncerv_f.set(p=self.fvals_noncerv)
         self.pars.tx_noncerv_m.set(p=self.mvals_noncerv)
-        # Resolve cervical diseases: use explicit list, else find 'ng'/'ct' in diseases
-        if not self._cervical_diseases:
-            self._cervical_diseases = [d for d in self.diseases if d.name in ('ng', 'ct')]
+        # Resolve diseases via sim.diseases so state/result references are linked
+        self.diseases = [sim.diseases[d.name] for d in self.diseases]
+        if self._cervical_diseases:
+            names = [d.name for d in self._cervical_diseases]
+        else:
+            names = [d.name for d in self.diseases if d.name in ('ng', 'ct')]
+        self._cervical_diseases = [sim.diseases[n] for n in names]
         return
 
     def init_results(self):
@@ -565,13 +570,12 @@ class SyndromicManagement(STITest):
                 m_uids = uids[ppl.male[uids]]
 
                 # Cervical symptomatic flag: OR over user-specified cervical disease modules
-                has_cerv_symp = ss.BoolArr('has_cerv_symp')
-                has_cerv_symp.initialize(sim.people)
+                self.has_cerv_symp[:] = False
                 for d in self._cervical_diseases:
-                    has_cerv_symp = has_cerv_symp | d.symptomatic
+                    self.has_cerv_symp |= d.symptomatic
 
-                f_cerv_uids    = f_uids[has_cerv_symp[f_uids]]
-                f_noncerv_uids = f_uids[~has_cerv_symp[f_uids]]
+                f_cerv_uids    = f_uids[self.has_cerv_symp[f_uids]]
+                f_noncerv_uids = f_uids[~self.has_cerv_symp[f_uids]]
 
                 ofc  = self.pars.tx_cerv_f.rvs(f_cerv_uids)
                 ofnc = self.pars.tx_noncerv_f.rvs(f_noncerv_uids)
