@@ -448,8 +448,9 @@ class SyndromicManagement(STITest):
 
     Args:
         treatments (list):        treatment module instances
-        diseases (list):          disease modules to track accuracy for
-        cervical_diseases (list): disease modules whose symptomatic flag
+        diseases (list):          names of diseases to track accuracy for
+                                  (resolved against ``sim.diseases`` at init)
+        cervical_diseases (list): names of diseases whose symptomatic flag
                                   indicates cervical infection; defaults to
                                   any disease named 'ng' or 'ct' in ``diseases``
         outcome_tx_map (dict):    maps outcome name → list of treatment modules;
@@ -460,7 +461,7 @@ class SyndromicManagement(STITest):
     Examples::
 
         syndromic = sti.SyndromicManagement(
-            diseases=[ng, ct, tv, bv],
+            diseases=['ng', 'ct', 'tv', 'bv'],
             treatments=[ng_tx, ct_tx, metronidazole],
             eligibility=seeking_care_vds,
         )
@@ -525,13 +526,15 @@ class SyndromicManagement(STITest):
         self.pars.tx_cerv_m.set(p=self.mvals_cerv)
         self.pars.tx_noncerv_f.set(p=self.fvals_noncerv)
         self.pars.tx_noncerv_m.set(p=self.mvals_noncerv)
-        # Resolve diseases via sim.diseases so state/result references are linked
-        self.diseases = [sim.diseases[d.name] for d in self.diseases]
+        # diseases/cervical_diseases are passed as names, not module objects:
+        # Sim deep-copies modules, so a constructor-passed object would be an
+        # orphan copy the sim never steps. Resolve names to the live modules.
+        self.diseases = [sim.diseases[name] for name in self.diseases]
         if self._cervical_diseases:
-            names = [d.name for d in self._cervical_diseases]
+            cerv_names = list(self._cervical_diseases)
         else:
-            names = [d.name for d in self.diseases if d.name in ('ng', 'ct')]
-        self._cervical_diseases = [sim.diseases[n] for n in names]
+            cerv_names = [d.name for d in self.diseases if d.name in ('ng', 'ct')]
+        self._cervical_diseases = [sim.diseases[name] for name in cerv_names]
         return
 
     def init_results(self):
