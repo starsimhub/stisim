@@ -8,8 +8,8 @@ import stisim as sti
 
 def _make_net(**kw):
     """Network with full male participation, so kernel-mechanics tests see the
-    whole post-debut male pool regardless of the default ``msm_share``."""
-    kw.setdefault('msm_share', ss.bernoulli(p=1.0))
+    whole post-debut male pool regardless of the default ``p_msm``."""
+    kw.setdefault('p_msm', ss.bernoulli(p=1.0))
     return sti.MSMScaleFreeNetwork(**kw)
 
 
@@ -68,16 +68,16 @@ def test_get_pool_filters_to_post_debut_males():
 
 
 @sc.timer()
-def test_msm_share_filters_pool():
-    """``msm_share`` controls the fraction of post-debut males in the pool."""
-    full = _make_sim(net=_make_net(msm_share=ss.bernoulli(p=1.0)), n_agents=2_000)
-    part = _make_sim(net=sti.MSMScaleFreeNetwork(msm_share=ss.bernoulli(p=0.2)), n_agents=2_000)
+def test_p_msm_filters_pool():
+    """``p_msm`` controls the fraction of post-debut males in the pool."""
+    full = _make_sim(net=_make_net(p_msm=ss.bernoulli(p=1.0)), n_agents=2_000)
+    part = _make_sim(net=_make_net(p_msm=ss.bernoulli(p=0.2)), n_agents=2_000)
     full.init(); part.init()
     n_full = full.networks[0]._get_pool().count()
     n_part = part.networks[0]._get_pool().count()
     assert n_full > 0, 'full-participation pool is empty — fixture failure'
     assert 0.1 < n_part / n_full < 0.35, \
-        f'msm_share=0.2 pool fraction {n_part / n_full:.2f} not near 0.2 (full={n_full}, part={n_part})'
+        f'p_msm=0.2 pool fraction {n_part / n_full:.2f} not near 0.2 (full={n_full}, part={n_part})'
 
 
 @sc.timer()
@@ -289,7 +289,7 @@ def test_subclass_mix_weights_override_is_used():
             # Sentinel: row i returns weights = (i+1) uniformly.
             return np.full(mix_arrays['log1p_deg'].size - 1 - i, float(i + 1))
 
-    net = SentinelMSM(msm_share=ss.bernoulli(p=1.0))
+    net = SentinelMSM(p_msm=ss.bernoulli(p=1.0))
     sim = _make_sim(net=net, n_agents=300)
     sim.init()
     assert SentinelMSM.call_count > 0, 'subclass _mix_weights_row was never called'

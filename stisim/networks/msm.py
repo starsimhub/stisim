@@ -21,11 +21,11 @@ class AgeMatchedMSM(MFNetwork):
 
     Extends :class:`MFNetwork` for MSM partnerships. Eligible males
     are sorted by age and paired sequentially so that partners have similar
-    ages. The ``msm_share`` parameter controls what fraction of males
+    ages. The ``p_msm`` parameter controls what fraction of males
     participate.
 
     Args:
-        pars (dict): Parameter overrides; key parameter is ``msm_share``
+        pars (dict): Parameter overrides; key parameter is ``p_msm``
             (default ``ss.bernoulli(p=0.015)``).
         **kwargs: Additional parameter overrides.
     """
@@ -33,7 +33,7 @@ class AgeMatchedMSM(MFNetwork):
     def __init__(self, pars=None, **kwargs):
         super().__init__(name='msm')
         self.define_pars(
-            msm_share=ss.bernoulli(p=0.015),
+            p_msm=ss.bernoulli(p=0.015),
         )
         self.update_pars(pars=pars, **kwargs)
 
@@ -45,8 +45,15 @@ class AgeMatchedMSM(MFNetwork):
         return
 
     def set_msm(self, upper_age=None):
+        """Flag the ``p_msm`` fraction of post-debut males as MSM participants.
+
+        Writes the shared ``participant`` state (True for the sampled fraction,
+        False for the rest), which gates the MSM pool/matching. Called from
+        ``set_network_states``, so it runs at init and re-samples for
+        newly-entered males each step.
+        """
         _, m_uids = self._get_uids(upper_age=upper_age)
-        self.participant[m_uids] = self.pars.msm_share.rvs(m_uids)
+        self.participant[m_uids] = self.pars.p_msm.rvs(m_uids)
         return
 
     def match_pairs(self):
@@ -124,7 +131,7 @@ class MSMScaleFreeNetwork(BaseNetwork):
     def __init__(self, pars=None, name=None, **kwargs):
         super().__init__(name=name)
         self.define_pars(
-            msm_share=ss.bernoulli(p=0.015),  # fraction of males in the MSM pool
+            p_msm=ss.bernoulli(p=0.015),  # fraction of males in the MSM pool
             target_mean_degree=2.0,
             target_mean_dur=ss.years(2),
             max_edge_dur=ss.years(10),
@@ -170,8 +177,15 @@ class MSMScaleFreeNetwork(BaseNetwork):
         return
 
     def set_msm(self, upper_age=None):
+        """Flag the ``p_msm`` fraction of post-debut males as MSM participants.
+
+        Writes the shared ``participant`` state (True for the sampled fraction,
+        False for the rest), which gates the MSM pool/matching. Called from
+        ``set_network_states``, so it runs at init and re-samples for
+        newly-entered males each step.
+        """
         _, m_uids = self._get_uids(upper_age=upper_age)
-        self.participant[m_uids] = self.pars.msm_share.rvs(m_uids)
+        self.participant[m_uids] = self.pars.p_msm.rvs(m_uids)
         return
 
     def _get_rng(self):
@@ -479,7 +493,7 @@ class AgeApproxMSM(MFNetwork):
     distributions rather than exact age sorting.
 
     Args:
-        pars (dict): Parameter overrides; key parameter is ``msm_share``
+        pars (dict): Parameter overrides; key parameter is ``p_msm``
             (default ``ss.bernoulli(p=0.015)``).
         **kwargs: Additional parameter overrides.
     """
@@ -487,7 +501,7 @@ class AgeApproxMSM(MFNetwork):
     def __init__(self, pars=None, **kwargs):
         super().__init__(name='msm')
         self.define_pars(
-            msm_share=ss.bernoulli(p=0.015),
+            p_msm=ss.bernoulli(p=0.015),
         )
         self.update_pars(pars=pars, **kwargs)
         return
@@ -498,8 +512,15 @@ class AgeApproxMSM(MFNetwork):
         return
 
     def set_msm(self, upper_age=None):
+        """Flag the ``p_msm`` fraction of post-debut males as MSM participants.
+
+        Writes the shared ``participant`` state (True for the sampled fraction,
+        False for the rest), which gates the MSM pool/matching. Called from
+        ``set_network_states``, so it runs at init and re-samples for
+        newly-entered males each step.
+        """
         _, m_uids = self._get_uids(upper_age=upper_age)
-        self.participant[m_uids] = self.pars.msm_share.rvs(m_uids)
+        self.participant[m_uids] = self.pars.p_msm.rvs(m_uids)
         return
 
     def match_pairs(self):
