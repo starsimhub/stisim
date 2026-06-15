@@ -758,7 +758,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
 
     Stores **one row per distinct edge** with its active interval, rather than
     re-snapshotting the active edge set every timestep. Formation is detected
-    at the step where ``formation_ti == ti``; the end of the interval comes from
+    at the step where ``ti_formed == ti``; the end of the interval comes from
     the network's ``expired_this_ti`` (populated by ``_on_edge_dissolution`` when
     ``record_expired=True``), so ``step()`` only touches the per-step *flows*
     (newly-formed and newly-expired edges), never the active *stock*. Each
@@ -769,17 +769,17 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
     Recorded state lives in ``self.results['relationships'][nw]``: a list of one mutable
     row per distinct edge::
 
-        [p1, p2, formation_ti, ti_expired, age_p1, age_p2, female_p1, female_p2]
+        [p1, p2, ti_formed, ti_expired, age_p1, age_p2, female_p1, female_p2]
 
     ``ti_expired`` is the timestep at which the edge was observed in
     ``expired_this_ti`` (so its active interval is the half-open
-    ``[formation_ti, ti_expired)``), or ``None`` while the edge is still active
+    ``[ti_formed, ti_expired)``), or ``None`` while the edge is still active
     at the end of the run. Getters map ``None -> final_ti + 1`` so an ongoing
     edge tests active through the last timestep.
 
     .. warning::
         **Single-edge-per-pair-per-timestep assumption.** Edges are keyed by
-        ``(p1, p2, formation_ti)`` (see ``_indicies_of_rels_in_table_for_nw``). If a network ever forms
+        ``(p1, p2, ti_formed)`` (see ``_indicies_of_rels_in_table_for_nw``). If a network ever forms
         **more than one edge between the same pair of agents at the same ti**,
         those edges collide on this key and **expiry data is corrupted**: only
         the last-formed colliding edge remains reachable for ``ti_expired``
@@ -798,7 +798,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
     transmission step (step 9 of the 16-step integration loop). Any duration
     reported or computed from this analyzer is therefore::
 
-        duration = ti_expired - formation_ti
+        duration = ti_expired - ti_formed
                  = number of active transmission steps the relationship existed
 
     where an "active transmission step" means the edge was present in the
@@ -825,7 +825,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
 
         ana.results['relationships']['mfnetwork'][0]
         # -> [9, 17, 0, 4, 27.23, 19.62, False, True]
-        #    p1=9, p2=17, formation_ti=0, ti_expired=4 (active ti 0..3),
+        #    p1=9, p2=17, ti_formed=0, ti_expired=4 (active ti 0..3),
         #    ages at formation, female flags. ti_expired is None if still active
         #    at run end.
 
@@ -855,7 +855,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
             False, e.g. ``MSMScaleFreeNetwork``) is **skipped with a warning**,
             since its active-interval results would be incomplete. The analyzer
             requires ``BaseNetwork`` because it reads BaseNetwork-only edge meta
-            (``formation_ti``, ``age_p1``, ``age_p2``) and the ``expired_this_ti``
+            (``ti_formed``, ``age_p1``, ``age_p2``) and the ``expired_this_ti``
             buffer, and sets ``record_expired = True`` on each tracked network.
     """
 
@@ -880,7 +880,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
         self.target_nw_names = networks
         self._tracked_nw_names = []                     # populated in init_results
         self._skipped_nw_names = []                  # networks skipped (can't record expirations)
-        self._indicies_of_rels_in_table_for_nw = {}                        # nw -> {(p1,p2,formation_ti): row_idx}, pruned on expiry
+        self._indicies_of_rels_in_table_for_nw = {}                        # nw -> {(p1,p2,ti_formed): row_idx}, pruned on expiry
         self._final_uids = {'f': None, 'm': None}    # surviving-agent uids by sex, set in step
         self._final_ti = None
         return
@@ -890,7 +890,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
 
         # Validate passed-in network names for tracking. The analyzer requires a
         # stisim BaseNetwork-derived sexual network (it reads BaseNetwork-only
-        # edge meta -- formation_ti, age_p1, age_p2 -- and the expired_this_ti
+        # edge meta -- ti_formed, age_p1, age_p2 -- and the expired_this_ti
         # buffer), so a plain ss.SexualNetwork is not enough.
         all_nw_names = self.sim.networks.keys()
         if self.target_nw_names is None:
@@ -942,8 +942,8 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
         self._indicies_of_rels_in_table_for_nw = {nw_name: {} for nw_name in self._tracked_nw_names}
         return
 
-    def _key_for_rel(self, p1, p2, formation_ti):
-        return (int(p1), int(p2), int(formation_ti))
+    def _key_for_rel(self, p1, p2, ti_formed):
+        return (int(p1), int(p2), int(ti_formed))
 
     def step(self):
         ti = self.ti
@@ -956,11 +956,11 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
 
             # (1) append newly formed rels this ti to the rels table with ti_expired=None, and index by key for later
             # recording of actual ti_expired.
-            new_rel_mask = np.asarray(nw.edges.formation_ti, dtype=np.int64) == ti
+            new_rel_mask = np.asarray(nw.edges.ti_formed, dtype=np.int64) == ti
             if new_rel_mask.any():
                 p1arr = np.asarray(nw.edges.p1, dtype=np.int64)[new_rel_mask]
                 p2arr = np.asarray(nw.edges.p2, dtype=np.int64)[new_rel_mask]
-                form_ti_arr = np.asarray(nw.edges.formation_ti, dtype=np.int64)[new_rel_mask]
+                form_ti_arr = np.asarray(nw.edges.ti_formed, dtype=np.int64)[new_rel_mask]
                 age1arr = np.asarray(nw.edges.age_p1, dtype=float)[new_rel_mask]
                 age2arr = np.asarray(nw.edges.age_p2, dtype=float)[new_rel_mask]
                 # Female sex (T/F) of agents in the relationships; not assuming p1/p2 sex for sexual network generality.
@@ -969,7 +969,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
                 # insert the new edges into the relationship table, recording its table index in the lookup dict
                 # so we can find it later (to update relationship end time). None below denotes as-yet unknown end time.
                 for (p1, p2, form_ti, age1, age2, fem1, fem2) in zip(p1arr, p2arr, form_ti_arr, age1arr, age2arr, fem1arr, fem2arr):
-                    rel_key = self._key_for_rel(p1=p1, p2=p2, formation_ti=form_ti)
+                    rel_key = self._key_for_rel(p1=p1, p2=p2, ti_formed=form_ti)
                     rel_to_index[rel_key] = len(rel_table)
                     # Ensure the order of data here matches the edge row column indicies noted at top of this analyzer
                     rel_table.append([int(p1), int(p2), int(form_ti), None, float(age1), float(age2), bool(fem1), bool(fem2)])
@@ -988,7 +988,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
     def _record_expired(self, nw, rel_table, rel_to_index, ti_expired):
         """Record ``ti_expired`` on each edge in ``nw.expired_this_ti``.
 
-        Edges are matched to their row by the ``(p1, p2, formation_ti)`` key and
+        Edges are matched to their row by the ``(p1, p2, ti_formed)`` key and
         the index entry is pruned. This is **read-only** with respect to the
         network: the network accumulates expirations across ``end_pairs`` and
         ``remove_uids`` and clears the buffer itself in ``finish_step`` (step 14),
@@ -1002,10 +1002,10 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
         if len(expired_rels.get('p1', ())) > 0:
             p1_arr = np.asarray(expired_rels['p1'], dtype=np.int64)
             p2_arr = np.asarray(expired_rels['p2'], dtype=np.int64)
-            formation_ti_arr = np.asarray(expired_rels['formation_ti'], dtype=np.int64)
-            for p1, p2, form_ti in zip(p1_arr, p2_arr, formation_ti_arr):
+            ti_formed_arr = np.asarray(expired_rels['ti_formed'], dtype=np.int64)
+            for p1, p2, form_ti in zip(p1_arr, p2_arr, ti_formed_arr):
                 # Removing the relationship from our rel_to_index mapping, as we only need to record the end date once.
-                rel_key = self._key_for_rel(p1=p1, p2=p2, formation_ti=form_ti)
+                rel_key = self._key_for_rel(p1=p1, p2=p2, ti_formed=form_ti)
                 row_idx = rel_to_index.pop(rel_key, None)
                 # set the end date to the specified ti
                 if row_idx is not None:
@@ -1042,7 +1042,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
         """Columnar numpy arrays for one network's edge table.
 
         ``ti_expired`` is materialized with ``None -> final_ti + 1`` so the
-        half-open active test ``formation_ti <= ti < ti_expired`` treats an
+        half-open active test ``ti_formed <= ti < ti_expired`` treats an
         ongoing edge as active through the final timestep.
         """
         rows = self.results['relationships'][nw_name]
@@ -1052,7 +1052,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
             z_int = np.empty(0, dtype=np.int64)
             z_flt = np.empty(0, dtype=float)
             z_bool = np.empty(0, dtype=bool)
-            return dict(p1=z_int, p2=z_int.copy(), formation_ti=z_int.copy(),
+            return dict(p1=z_int, p2=z_int.copy(), ti_formed=z_int.copy(),
                         ti_expired=z_int.copy(), age1=z_flt, age2=z_flt.copy(),
                         fem1=z_bool, fem2=z_bool.copy())
         cols = list(zip(*rows))  # tuple per column
@@ -1061,7 +1061,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
         return dict(
             p1=np.fromiter(cols[self._P1], dtype=np.int64, count=n),
             p2=np.fromiter(cols[self._P2], dtype=np.int64, count=n),
-            formation_ti=np.fromiter(cols[self._FORMATION_TI], dtype=np.int64, count=n),
+            ti_formed=np.fromiter(cols[self._FORMATION_TI], dtype=np.int64, count=n),
             ti_expired=ti_expired,
             age1=np.fromiter(cols[self._AGE1], dtype=float, count=n),
             age2=np.fromiter(cols[self._AGE2], dtype=float, count=n),
@@ -1125,17 +1125,17 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
         out = {}
         for nw_name in self._tracked_nw_names:
             arr = self._rel_element_arrs(nw_name)
-            # Each subject-sex endpoint of every relationship contributes its (formation_ti, age)
+            # Each subject-sex endpoint of every relationship contributes its (ti_formed, age)
             # Note: a same-sex relationship contributes both partners (both "formed a relationship" (double counting, but they will be sorted out to potentially different age bins).
             subject1 = arr['fem1'] if female else ~arr['fem1']
             subject2 = arr['fem2'] if female else ~arr['fem2']
-            formation_tis = np.concatenate([arr['formation_ti'][subject1], arr['formation_ti'][subject2]])
+            ti_formeds = np.concatenate([arr['ti_formed'][subject1], arr['ti_formed'][subject2]])
             ages = np.concatenate([arr['age1'][subject1], arr['age2'][subject2]])
             nw_out = {}
             for age_bin, (lo, hi) in zip(bins, ranges):
                 age_mask = (ages >= lo) & (ages < hi)
                 # Per-timestep counts: a formation at ti contributes to index ti.
-                per_ti = np.bincount(formation_tis[age_mask], minlength=n_ti).astype(np.int64)
+                per_ti = np.bincount(ti_formeds[age_mask], minlength=n_ti).astype(np.int64)
                 if window_months is None:
                     # here we store the timeseries of relationship formation for return
                     nw_out[age_bin] = per_ti
@@ -1176,9 +1176,9 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
             sex1 = arrs['fem1'] if female else ~arrs['fem1']
             sex2 = arrs['fem2'] if female else ~arrs['fem2']
             uids = np.concatenate([arrs['p1'][sex1], arrs['p2'][sex2]])
-            formation_tis = np.concatenate([arrs['formation_ti'][sex1], arrs['formation_ti'][sex2]])
+            ti_formeds = np.concatenate([arrs['ti_formed'][sex1], arrs['ti_formed'][sex2]])
             if threshold is not None:
-                keep = formation_tis >= threshold
+                keep = ti_formeds >= threshold
                 uids = uids[keep]
             out[nw_name] = self._counts_for_surviving_agents(uids, surviving_agent_uids)
         return out
@@ -1191,9 +1191,9 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
 
         An edge counts as active in the trailing window iff it had not expired
         before the window opened, i.e. ``ti_expired > win_start`` (its half-open
-        active interval ``[formation_ti, ti_expired)`` overlaps the window). The
+        active interval ``[ti_formed, ti_expired)`` overlaps the window). The
         window always ends at the final timestep, so no upper bound on
-        ``formation_ti`` is needed; an ongoing edge carries
+        ``ti_formed`` is needed; an ongoing edge carries
         ``ti_expired = final_ti + 1`` and therefore always counts. For
         ``window_months=None`` the window is the whole run (``win_start = 0``).
         Sex-general: the partner is the other endpoint regardless of its sex, so

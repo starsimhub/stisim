@@ -71,7 +71,7 @@ class BaseNetwork(ss.SexualNetwork):
         self.meta.age_p1 = ss_float
         self.meta.age_p2 = ss_float
         self.meta.edge_type = ss_float
-        self.meta.formation_ti = ss_int  # timestep at which the edge was formed
+        self.meta.ti_formed = ss_int  # timestep at which the edge was formed
         self.define_pars(**BasePars())
         self.define_states(
             ss.BoolArr('participant', default=True),
@@ -243,7 +243,7 @@ class BaseNetwork(ss.SexualNetwork):
         ``self.record_expired`` is True it appends the full records of the edges
         being removed this timestep to ``self.expired_this_ti`` (a dict mirroring
         the edge meta layout, e.g. ``expired_this_ti['p1']``, including
-        ``formation_ti``). Analyzers such as ``PartnershipFormationAnalyzer``
+        ``ti_formed``). Analyzers such as ``PartnershipFormationAnalyzer``
         read this (read-only) to learn each edge's expiry timestep; the network
         itself clears the buffer in ``finish_step`` (step 14) each timestep.
 

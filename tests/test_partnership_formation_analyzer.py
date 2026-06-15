@@ -262,7 +262,7 @@ def test_partnership_formation_analyzer(n_agents=DEFAULT_N_AGENTS,
 # test asserts EXACT getter outputs for a hand-built edge history -- which a
 # real (stochastic) sim cannot give (it only supports loose aggregate checks).
 # This is where uniqueness vs non-uniqueness, the trailing-window boundary
-# (half-open [formation_ti, ti_expired)), active-vs-formed semantics,
+# (half-open [ti_formed, ti_expired)), active-vs-formed semantics,
 # per-network separation, and same-sex handling are verified to the value.
 #
 # CAVEAT: injection bypasses step() and init_results(), so these tests do NOT
@@ -279,10 +279,10 @@ def _inject_analyzer(edges_by_nw, uids_by_sex, final_ti, age_bins=None):
     ``edges_by_nw`` is a dict ``{network_name: [rows...]}`` of the tracked
     networks' edge tables. Each row is::
 
-        [p1, p2, formation_ti, ti_expired, age_p1, age_p2, female_p1, female_p2]
+        [p1, p2, ti_formed, ti_expired, age_p1, age_p2, female_p1, female_p2]
 
     ``ti_expired`` is the expiry timestep (active interval is the half-open
-    ``[formation_ti, ti_expired)``), or ``None`` if the edge is still active at
+    ``[ti_formed, ti_expired)``), or ``None`` if the edge is still active at
     run end. Sex is explicit per endpoint, so same-sex edges are expressible.
     This drives the getters directly off ``self.results['relationships']`` and the
     cached surviving-agent uids, bypassing the simulation loop.
@@ -301,7 +301,7 @@ def _inject_analyzer(edges_by_nw, uids_by_sex, final_ti, age_bins=None):
 # threshold=3, i.e. window timesteps {3,4,5} (win_start=3, win_end=5).
 # Males 10,11 (female flag False); Females 20,21,22 (female flag True).
 #
-# Format: [p1, p2, formation_ti, ti_expired, age_p1, age_p2, female_p1, female_p2]
+# Format: [p1, p2, ti_formed, ti_expired, age_p1, age_p2, female_p1, female_p2]
 # The active ti values below are known relative to usage, with "final_ti" being 5.
 _MF_EDGES = [
     [10, 20, 2, 4,    30, 22, False, True],   # E1: active {2,3}
@@ -387,7 +387,7 @@ def test_get_n_partnerships_formed_binned():
 
     # per-timestep (window_months=None): inner arrays indexed by ti (len n_ti=6).
     male_ts = ana.get_n_partnerships_formed(female=False, age_bins=disjoint)['mfnetwork']
-    # 30-45 male ages by formation_ti: ft0:40(E6), ft1:41(E4), ft2:30(E1), ft3:31(E2), ft5:33,33(E3,E5).
+    # 30-45 male ages by ti_formed: ft0:40(E6), ft1:41(E4), ft2:30(E1), ft3:31(E2), ft5:33,33(E3,E5).
     assert male_ts['30-45'].tolist() == [1, 1, 1, 1, 0, 2], male_ts['30-45'].tolist()
     assert male_ts['15-30'].tolist() == [0, 0, 0, 0, 0, 0], male_ts['15-30'].tolist()
     print(f"test_get_n_partnerships_formed_binned: window male={ {k: v.tolist() for k, v in male.items()} }; "
@@ -418,7 +418,7 @@ def test_active_vs_formed():
 
 @sc.timer()
 def test_half_open_window_boundary():
-    """Half-open active interval [formation_ti, ti_expired): an edge whose
+    """Half-open active interval [ti_formed, ti_expired): an edge whose
     ti_expired equals win_start is NOT active in the window (its last-active ti is
     win_start-1); a single-timestep edge inside the window is counted."""
     sc.heading("Half-open boundary: ti_expired == win_start is excluded")
@@ -594,7 +594,7 @@ def test_records_expired_end_to_end(deaths=False):
     """A real run records edge expirations through the full mechanism
     (_on_edge_dissolution append + remove_uids override + step() drain +
     finalize): some edges get a finite ti_expired, finite intervals are valid
-    (ti_expired > formation_ti), and the still-active (None) edges exactly match
+    (ti_expired > ti_formed), and the still-active (None) edges exactly match
     the network's active edges at run end."""
     sc.heading("End-to-end: MFNetwork records expirations; intervals consistent")
     if deaths:
@@ -614,8 +614,8 @@ def test_records_expired_end_to_end(deaths=False):
     # See _MF_EDGES, above, to understand indicies into rel records
     finite = [rel for rel in rels if rel[3] is not None]
     assert len(finite) > 0, 'No expirations recorded — is super()._on_edge_dissolution missing?'
-    assert all(rel[3] > rel[2] for rel in rels if rel[3] is not None), 'Found ti_expired <= formation_ti, minimum diff == 1.'
-    assert all(rel[3] > rel[2] for rel in finite), 'Found ti_expired <= formation_ti.'
+    assert all(rel[3] > rel[2] for rel in rels if rel[3] is not None), 'Found ti_expired <= ti_formed, minimum diff == 1.'
+    assert all(rel[3] > rel[2] for rel in finite), 'Found ti_expired <= ti_formed.'
     assert all(rel[3] <= final_ti + 1 for rel in finite), 'Found ti_expired > final_ti + 1.'
 
     # Expirations recorded *during* the run (ti_expired <= final_ti), not all
@@ -628,7 +628,7 @@ def test_records_expired_end_to_end(deaths=False):
     nw = sim.networks['mfnetwork']
     final_keys = set(zip(np.asarray(nw.edges.p1).tolist(),
                          np.asarray(nw.edges.p2).tolist(),
-                         np.asarray(nw.edges.formation_ti).tolist()))
+                         np.asarray(nw.edges.ti_formed).tolist()))
     none_keys = set((rel[0], rel[1], rel[2]) for rel in rels if rel[3] is None)
     assert len(none_keys) > 0, "There are no relationships left in network."
     assert none_keys == final_keys, (len(none_keys), len(final_keys))
