@@ -15,7 +15,6 @@ def _mf_states():
         ss.FloatArr('risk_group'),
         ss.FloatArr('concurrency'),
         ss.FloatArr('partners', default=0),
-        ss.FloatArr('partners_12', default=0),
         ss.FloatArr('lifetime_partners', default=0),
         ss.FloatArr('casual_partners', default=0),
         ss.FloatArr('stable_partners', default=0),
