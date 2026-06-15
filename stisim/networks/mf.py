@@ -60,9 +60,6 @@ class MFPars(ss.Pars):
         self.m0_conc = 0.0001
         self.m1_conc = 0.2
         self.m2_conc = 0.5
-        # Multiplier on FSW concurrency: values <1 mean that active sex workers
-        # have fewer non-sex-work partners. Default 1.0 = no effect.
-        self.fsw_mf_conc_mult = 1.0
 
         # Relationship initiation, stability, and duration
         self.p_pair_form = ss.bernoulli(p=0.5)              # Probability of a (stable) pair forming between two matched people
@@ -217,6 +214,13 @@ class MFNetwork(BaseNetwork):
         # StructuredSexual.set_network_states post-hoc, because set_sex_work
         # populates self.fsw AFTER set_concurrency runs in the MF flow.
 
+        # `mu` is the target *mean* concurrency, but the two supported dists
+        # are parameterized differently: ss.poisson takes the mean directly as
+        # `lam`, whereas ss.nbinom takes (n, p) and must be reparameterized from
+        # the mean at fixed dispersion n via p = n/(n+mu). Calling .set(lam=...)
+        # on an nbinom is silently ignored (it has no `lam` parameter), so we
+        # branch on the dist type to avoid a no-op that would leave the dist at
+        # its construction default.
         dist = self.pars.concurrency_dist
         if isinstance(dist, ss.nbinom):
             n = dist.pars['n']

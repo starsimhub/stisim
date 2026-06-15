@@ -41,6 +41,11 @@ class StructuredSexual(MFNetwork):
         super().__init__(name=name)
         # SW layer
         self.define_pars(**SWPars())
+        # Multiplier on FSW non-sex-work (MF) concurrency: values <1 mean
+        # active sex workers have fewer non-sex-work partners. Default 1.0 =
+        # no effect. Lives here rather than on MFNetwork because StructuredSexual
+        # (MF + SW combined) is the only consumer.
+        self.define_pars(fsw_mf_conc_mult=1.0)
         self.define_states(*_sw_states())
         self.edge_types['sw'] = max(self.edge_types.values()) + 1
         # Apply user pars/kwargs against the full pars dict
@@ -59,8 +64,10 @@ class StructuredSexual(MFNetwork):
     def set_network_states(self, upper_age=None):
         super().set_network_states(upper_age=upper_age)
         self.set_sex_work(upper_age=upper_age)
-        # Apply FSW-specific MF concurrency multiplier post-hoc, now that
-        # self.fsw is populated. No-op at default 1.0.
+        # Scale FSW agents' MF (non-sex-work) concurrency, now that self.fsw is
+        # populated. This affects only sex workers' non-commercial partnerships;
+        # their sex-work edges come from SWNetwork.add_pairs and are untouched.
+        # No-op at default 1.0.
         mult = self.pars.fsw_mf_conc_mult
         if mult != 1.0:
             fsw_uids = self.fsw.uids
