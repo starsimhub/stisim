@@ -120,7 +120,7 @@ class BaseSTI(ss.Infection):
         init_prev_data: Initial prevalence data (float or DataFrame by age/sex/risk group).
         **kwargs: Additional parameters passed to ``update_pars``.
     """
-    def __init__(self, name=None, pars=None, init_prev_data=None, **kwargs):
+    def __init__(self, name=None, pars=None, init_prev_data=None, age_range=None, **kwargs):
         super().__init__(name=name)
 
         # Handle parameters
@@ -142,7 +142,7 @@ class BaseSTI(ss.Infection):
 
 
         # Results
-        self.age_range = [15, 50]  # Age range for main results e.g. prevalence
+        self.age_range = age_range if age_range is not None else [15, 50]  # Age range for main results e.g. prevalence
         self.age_bins = np.array([0, 15, 20, 25, 30, 35, 50, 65, 100])  # Age bins for results
         self.sex_keys = {'': 'alive', 'f': 'female', 'm': 'male'}
 
