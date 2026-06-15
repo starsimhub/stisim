@@ -121,7 +121,7 @@ class MSMScaleFreeNetwork(BaseNetwork):
     """
 
     # This network deletes edges inside ``add_pairs`` (Markov deletes) without
-    # routing them through ``_on_edge_dissolution``, so ``expired_this_ti`` is
+    # routing them through ``_on_edge_dissolution``, so ``expired_this_loop`` is
     # incomplete. Flag it so expiry-dependent analyzers (e.g.
     # PartnershipFormationAnalyzer) skip it. See the TODO in ``add_pairs``.
     records_all_expirations = False
@@ -433,7 +433,7 @@ class MSMScaleFreeNetwork(BaseNetwork):
         #
         # TODO: the Markov deletes below remove edges WITHOUT routing them
         # through ``_on_edge_dissolution`` or ``remove_uids``, so
-        # ``expired_this_ti`` misses them and this network is currently
+        # ``expired_this_loop`` misses them and this network is currently
         # incompatible with PartnershipFormationAnalyzer (hence
         # ``records_all_expirations = False`` above). To support it, record the
         # deleted edges via ``self._append_expired(<removed-mask>)`` before

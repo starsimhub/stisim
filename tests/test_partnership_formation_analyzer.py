@@ -267,7 +267,7 @@ def test_partnership_formation_analyzer(n_agents=DEFAULT_N_AGENTS,
 #
 # CAVEAT: injection bypasses step() and init_results(), so these tests do NOT
 # verify that edge intervals are recorded correctly during a run (formation
-# detection + ti_expired patching from expired_this_ti). That wiring is covered
+# detection + ti_expired patching from expired_this_loop). That wiring is covered
 # by the sim-level test (test_partnership_formation_analyzer) and the
 # construction/sim-level tests below (which call sim.init()/run()). The edge-row
 # layout below is the contract with step(); if it changes, update the helper.
@@ -289,7 +289,10 @@ def _inject_analyzer(edges_by_nw, uids_by_sex, final_ti, age_bins=None):
     """
     ana = sti.PartnershipFormationAnalyzer(age_bins=age_bins)
     ana._tracked_nw_names = list(edges_by_nw.keys())
-    ana.results = {'relationships': {nw: [list(row) for row in rows] for nw, rows in edges_by_nw.items()}}
+
+    # using setattribute due to 'results' being locked by default. But we're not running anything, so its ok.
+    ana.setattribute('results',
+                     {'relationships': {nw: [list(row) for row in rows] for nw, rows in edges_by_nw.items()}})
     # ana._indicies_of_rels_in_table_for_nw = {nw: {} for nw in edges_by_nw} # not strictly unless running a sim
     ana._final_uids = {'f': np.asarray(uids_by_sex.get('f', []), np.int64),
                        'm': np.asarray(uids_by_sex.get('m', []), np.int64)}

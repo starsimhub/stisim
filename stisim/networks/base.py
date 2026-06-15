@@ -61,7 +61,7 @@ class BaseNetwork(ss.SexualNetwork):
 
     # Capability flag read by analyzers (e.g. PartnershipFormationAnalyzer):
     # True means every edge removal funnels through ``_on_edge_dissolution`` so
-    # ``expired_this_ti`` is complete. A subclass that removes edges by any other
+    # ``expired_this_loop`` is complete. A subclass that removes edges by any other
     # path (e.g. a custom delete inside ``add_pairs``) MUST set this to False.
     records_all_expirations = True
 
@@ -79,7 +79,7 @@ class BaseNetwork(ss.SexualNetwork):
             reset=True,
         )
         self.record_expired = record_expired
-        self.expired_this_ti = {}  # only utilized if self.record_expired is True
+        self.expired_this_loop = {}  # only utilized if self.record_expired is True
 
     @staticmethod
     def process_condom_data(condom_data):
@@ -216,10 +216,10 @@ class BaseNetwork(ss.SexualNetwork):
 
     def _append_expired_relationships(self, mask):
         """
-        Accumulate the relationship edges selected by ``mask`` into ``self.expired_this_ti``.
+        Accumulate the relationship edges selected by ``mask`` into ``self.expired_this_loop``.
 
         When ``self.record_expired`` is True, records expiring relationships (edges) by appending them
-        (concatenated), to self.expired_this_ti. This is to prevent overwrite, as multiple removal points within a
+        (concatenated), to self.expired_this_loop. This is to prevent overwrite, as multiple removal points within a
         timestep (``end_pairs`` at loop step 7 and ``remove_uids`` at step 15) both land in the buffer. This method only
         appends; the buffer is reset by the network in ``finish_step`` (step 14) each timestep, after any analyzer has
         read it at step 13.
@@ -230,10 +230,10 @@ class BaseNetwork(ss.SexualNetwork):
             return
         for k in self.meta_keys():
             vals = self.edges[k][mask]
-            if k in self.expired_this_ti:
-                self.expired_this_ti[k] = np.concatenate([self.expired_this_ti[k], vals])
+            if k in self.expired_this_loop:
+                self.expired_this_loop[k] = np.concatenate([self.expired_this_loop[k], vals])
             else:
-                self.expired_this_ti[k] = vals
+                self.expired_this_loop[k] = vals
         return
 
     def _on_edge_dissolution(self, active):
@@ -241,8 +241,8 @@ class BaseNetwork(ss.SexualNetwork):
         Subclass hook — runs after the active mask is computed and before
         expired edges are removed. Default is a no-op, but when
         ``self.record_expired`` is True it appends the full records of the edges
-        being removed this timestep to ``self.expired_this_ti`` (a dict mirroring
-        the edge meta layout, e.g. ``expired_this_ti['p1']``, including
+        being removed this timestep to ``self.expired_this_loop`` (a dict mirroring
+        the edge meta layout, e.g. ``expired_this_loop['p1']``, including
         ``ti_formed``). Analyzers such as ``PartnershipFormationAnalyzer``
         read this (read-only) to learn each edge's expiry timestep; the network
         itself clears the buffer in ``finish_step`` (step 14) each timestep.
@@ -264,7 +264,7 @@ class BaseNetwork(ss.SexualNetwork):
         15, after analyzers have run) slices dead/removed agents' edges out of
         ``self.edges`` directly, bypassing ``end_pairs`` / ``_on_edge_dissolution``.
         When ``record_expired`` is True we append those edges to
-        ``expired_this_ti`` first, so analyzers capture death/removal expirations
+        ``expired_this_loop`` first, so analyzers capture death/removal expirations
         (consumed on the next step, hence ``ti_expired = T+1``). Upstream
         behavior is otherwise unchanged.
 
@@ -282,9 +282,9 @@ class BaseNetwork(ss.SexualNetwork):
         return
 
     def finish_step(self):
-        """Reset the per-step relationship expiration buffer, self.expired_this_ti (loop step 14).
+        """Reset the per-step relationship expiration buffer, self.expired_this_loop (loop step 14).
 
-        When ``record_expired`` is on, ``expired_this_ti`` accumulates the edges
+        When ``record_expired`` is on, ``expired_this_loop`` accumulates the edges
         removed across ``end_pairs`` (step 7) and ``remove_uids`` (step 15). The
         network clears it here -- *after* any analyzer has read it at step 13,
         and *before* this step's ``remove_uids`` (step 15) appends death/removal
@@ -297,5 +297,5 @@ class BaseNetwork(ss.SexualNetwork):
         """
         super().finish_step()
         if self.record_expired:
-            self.expired_this_ti = {}
+            self.expired_this_loop = {}
         return

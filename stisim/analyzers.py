@@ -754,12 +754,17 @@ class art_coverage(ss.Analyzer):
 
 
 class PartnershipFormationAnalyzer(ss.Analyzer):
-    """Track partnership formation per network, gender, and age bin.
+    """
+    Track partnership formation per network, gender, and age bin.
+
+    Works with any analyzer that subclasses stisim BaseNetwork (that does not have class attribute
+    records_all_expirations set to False on purpose. This attribute (when False) explicitly tells
+    PartnershipFormationAnalyzer the network is not configured to work with it (yet)).
 
     Stores **one row per distinct edge** with its active interval, rather than
     re-snapshotting the active edge set every timestep. Formation is detected
     at the step where ``ti_formed == ti``; the end of the interval comes from
-    the network's ``expired_this_ti`` (populated by ``_on_edge_dissolution`` when
+    the network's ``expired_this_loop`` (populated by ``_on_edge_dissolution`` when
     ``record_expired=True``), so ``step()`` only touches the per-step *flows*
     (newly-formed and newly-expired edges), never the active *stock*. Each
     partner's sex and age-at-formation are read from the edge/people directly, so
@@ -772,7 +777,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
         [p1, p2, ti_formed, ti_expired, age_p1, age_p2, female_p1, female_p2]
 
     ``ti_expired`` is the timestep at which the edge was observed in
-    ``expired_this_ti`` (so its active interval is the half-open
+    ``expired_this_loop`` (so its active interval is the half-open
     ``[ti_formed, ti_expired)``), or ``None`` while the edge is still active
     at the end of the run. Getters map ``None -> final_ti + 1`` so an ongoing
     edge tests active through the last timestep.
@@ -855,7 +860,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
             False, e.g. ``MSMScaleFreeNetwork``) is **skipped with a warning**,
             since its active-interval results would be incomplete. The analyzer
             requires ``BaseNetwork`` because it reads BaseNetwork-only edge meta
-            (``ti_formed``, ``age_p1``, ``age_p2``) and the ``expired_this_ti``
+            (``ti_formed``, ``age_p1``, ``age_p2``) and the ``expired_this_loop``
             buffer, and sets ``record_expired = True`` on each tracked network.
     """
 
@@ -890,7 +895,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
 
         # Validate passed-in network names for tracking. The analyzer requires a
         # stisim BaseNetwork-derived sexual network (it reads BaseNetwork-only
-        # edge meta -- ti_formed, age_p1, age_p2 -- and the expired_this_ti
+        # edge meta -- ti_formed, age_p1, age_p2 -- and the expired_this_loop
         # buffer), so a plain ss.SexualNetwork is not enough.
         all_nw_names = self.sim.networks.keys()
         if self.target_nw_names is None:
@@ -932,7 +937,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
         self._tracked_nw_names = selected
 
         # Enable expiration recording on tracked networks (pure read-side-effect;
-        # supplies ti_expired via nw.expired_this_ti each step).
+        # supplies ti_expired via nw.expired_this_loop each step).
         for nw_name in self._tracked_nw_names:
             self.sim.networks[nw_name].record_expired = True
 
@@ -986,7 +991,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
         return
 
     def _record_expired(self, nw, rel_table, rel_to_index, ti_expired):
-        """Record ``ti_expired`` on each edge in ``nw.expired_this_ti``.
+        """Record ``ti_expired`` on each edge in ``nw.expired_this_loop``.
 
         Edges are matched to their row by the ``(p1, p2, ti_formed)`` key and
         the index entry is pruned. This is **read-only** with respect to the
@@ -997,7 +1002,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
         active) are left untouched, keeping ``ti_expired = None``.
         """
         # grab the expired relationship info
-        expired_rels = nw.expired_this_ti
+        expired_rels = nw.expired_this_loop
         # if at least one relationship expired, record known end dates.
         if len(expired_rels.get('p1', ())) > 0:
             p1_arr = np.asarray(expired_rels['p1'], dtype=np.int64)
@@ -1016,7 +1021,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
         """
         Resolve still-buffered relationships that expired at the end of the simulation.
 
-        After the loop, the only edges left in a network's ``self.expired_this_ti`` are those removed by death at
+        After the loop, the only edges left in a network's ``self.expired_this_loop`` are those removed by death at
         the **final** step 15 — i.e. after the last ``step()`` read. They were active through the disease phase of the
         final ti (step 9), so they get ``ti_expired = final_ti + 1``. Relationships/edges still active at sim end were
         never buffered for removal recording, so they keep ``ti_expired = None`` (the right-censored marker; getter
