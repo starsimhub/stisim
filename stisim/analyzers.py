@@ -779,7 +779,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
 
     .. warning::
         **Single-edge-per-pair-per-timestep assumption.** Edges are keyed by
-        ``(p1, p2, formation_ti)`` (see ``_edge_index``). If a network ever forms
+        ``(p1, p2, formation_ti)`` (see ``_indicies_of_rels_in_table_for_nw``). If a network ever forms
         **more than one edge between the same pair of agents at the same ti**,
         those edges collide on this key and **expiry data is corrupted**: only
         the last-formed colliding edge remains reachable for ``ti_expired``
