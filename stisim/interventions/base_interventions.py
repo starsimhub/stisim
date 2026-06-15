@@ -259,6 +259,9 @@ class SymptomaticTesting(STITest):
     Unlike other test classes, this doesn't return positive/negative outcomes, since
     syndromic management doesn't involve reaching a diagnosis.
     Rather, the testing intervention itself contains a linked treatment intervention.
+
+    ``diseases`` is a list of disease names (e.g. ``['ng', 'ct', 'tv']``),
+    resolved against ``sim.diseases`` at init.
     """
 
     def __init__(self, pars=None, treatments=None, diseases=None, disease_treatment_map=None, negative_treatments=None,
@@ -282,9 +285,9 @@ class SymptomaticTesting(STITest):
         )
         self.update_pars(pars, **kwargs)
 
-        # Store treatments and diseases
+        # Store treatments and diseases (diseases are names, resolved in init_pre)
         self.treatments = sc.tolist(treatments)
-        self.diseases = diseases
+        self.diseases = sc.tolist(diseases)
         if disease_treatment_map is None:
             disease_treatment_map = {t.disease: t for t in self.treatments}
         self.disease_treatment_map = disease_treatment_map
@@ -303,6 +306,11 @@ class SymptomaticTesting(STITest):
 
     def init_pre(self, sim):
         super().init_pre(sim)
+        # diseases are passed as names; resolve to the live sim modules. Sim
+        # deep-copies modules, so constructor-passed objects would be orphans
+        # the sim never steps — state reads and result writes below would hit
+        # dead copies.
+        self.diseases = [sim.diseases[name] for name in self.diseases]
         if self.treat_prob_data is not None:
             self.treat_prob = sc.smoothinterp(sim.yearvec, self.treat_prob_data.year.values, self.treat_prob_data.treat_prob.values, smoothness=0)
         return
@@ -448,8 +456,9 @@ class SyndromicManagement(STITest):
 
     Args:
         treatments (list):        treatment module instances
-        diseases (list):          disease modules to track accuracy for
-        cervical_diseases (list): disease modules whose symptomatic flag
+        diseases (list):          names of diseases to track accuracy for
+                                  (resolved against ``sim.diseases`` at init)
+        cervical_diseases (list): names of diseases whose symptomatic flag
                                   indicates cervical infection; defaults to
                                   any disease named 'ng' or 'ct' in ``diseases``
         outcome_tx_map (dict):    maps outcome name → list of treatment modules;
@@ -460,7 +469,7 @@ class SyndromicManagement(STITest):
     Examples::
 
         syndromic = sti.SyndromicManagement(
-            diseases=[ng, ct, tv, bv],
+            diseases=['ng', 'ct', 'tv', 'bv'],
             treatments=[ng_tx, ct_tx, metronidazole],
             eligibility=seeking_care_vds,
         )
@@ -513,6 +522,7 @@ class SyndromicManagement(STITest):
         self.define_states(
             ss.FloatArr('ti_referred'),
             ss.FloatArr('ti_dismissed'),
+            ss.BoolArr('has_cerv_symp'),
         )
         self.treat_prob_data = treat_prob_data
         self.treated_by_uid = None
@@ -524,9 +534,15 @@ class SyndromicManagement(STITest):
         self.pars.tx_cerv_m.set(p=self.mvals_cerv)
         self.pars.tx_noncerv_f.set(p=self.fvals_noncerv)
         self.pars.tx_noncerv_m.set(p=self.mvals_noncerv)
-        # Resolve cervical diseases: use explicit list, else find 'ng'/'ct' in diseases
-        if not self._cervical_diseases:
-            self._cervical_diseases = [d for d in self.diseases if d.name in ('ng', 'ct')]
+        # diseases/cervical_diseases are passed as names, not module objects:
+        # Sim deep-copies modules, so a constructor-passed object would be an
+        # orphan copy the sim never steps. Resolve names to the live modules.
+        self.diseases = [sim.diseases[name] for name in self.diseases]
+        if self._cervical_diseases:
+            cerv_names = list(self._cervical_diseases)
+        else:
+            cerv_names = [d.name for d in self.diseases if d.name in ('ng', 'ct')]
+        self._cervical_diseases = [sim.diseases[name] for name in cerv_names]
         return
 
     def init_results(self):
@@ -565,13 +581,12 @@ class SyndromicManagement(STITest):
                 m_uids = uids[ppl.male[uids]]
 
                 # Cervical symptomatic flag: OR over user-specified cervical disease modules
-                has_cerv_symp = ss.BoolArr('has_cerv_symp')
-                has_cerv_symp.initialize(sim.people)
+                self.has_cerv_symp[:] = False
                 for d in self._cervical_diseases:
-                    has_cerv_symp = has_cerv_symp | d.symptomatic
+                    self.has_cerv_symp |= d.symptomatic
 
-                f_cerv_uids    = f_uids[has_cerv_symp[f_uids]]
-                f_noncerv_uids = f_uids[~has_cerv_symp[f_uids]]
+                f_cerv_uids    = f_uids[self.has_cerv_symp[f_uids]]
+                f_noncerv_uids = f_uids[~self.has_cerv_symp[f_uids]]
 
                 ofc  = self.pars.tx_cerv_f.rvs(f_cerv_uids)
                 ofnc = self.pars.tx_noncerv_f.rvs(f_noncerv_uids)

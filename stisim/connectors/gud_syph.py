@@ -36,9 +36,9 @@ class gud_syph(ss.Connector):
         sim.diseases.syphilis.rel_trans[sim.people.gud.infected] = self.pars.rel_trans_syph_gud
 
         # People with active syphilis are more likely to acquire GUD
-        sim.diseases.gud.rel_sus[sim.diseases.syphilis.active] = self.pars.rel_sus_gud_syph
+        sim.diseases.gud.rel_sus[sim.diseases.syphilis.symptomatic] = self.pars.rel_sus_gud_syph
 
         # People with active syphilis are more likely to transmit GUD
-        sim.diseases.gud.rel_trans[sim.diseases.syphilis.active] = self.pars.rel_trans_gud_syph
+        sim.diseases.gud.rel_trans[sim.diseases.syphilis.symptomatic] = self.pars.rel_trans_gud_syph
 
         return
