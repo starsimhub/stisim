@@ -259,6 +259,9 @@ class SymptomaticTesting(STITest):
     Unlike other test classes, this doesn't return positive/negative outcomes, since
     syndromic management doesn't involve reaching a diagnosis.
     Rather, the testing intervention itself contains a linked treatment intervention.
+
+    ``diseases`` is a list of disease names (e.g. ``['ng', 'ct', 'tv']``),
+    resolved against ``sim.diseases`` at init.
     """
 
     def __init__(self, pars=None, treatments=None, diseases=None, disease_treatment_map=None, negative_treatments=None,
@@ -282,9 +285,9 @@ class SymptomaticTesting(STITest):
         )
         self.update_pars(pars, **kwargs)
 
-        # Store treatments and diseases
+        # Store treatments and diseases (diseases are names, resolved in init_pre)
         self.treatments = sc.tolist(treatments)
-        self.diseases = diseases
+        self.diseases = sc.tolist(diseases)
         if disease_treatment_map is None:
             disease_treatment_map = {t.disease: t for t in self.treatments}
         self.disease_treatment_map = disease_treatment_map
@@ -303,6 +306,11 @@ class SymptomaticTesting(STITest):
 
     def init_pre(self, sim):
         super().init_pre(sim)
+        # diseases are passed as names; resolve to the live sim modules. Sim
+        # deep-copies modules, so constructor-passed objects would be orphans
+        # the sim never steps — state reads and result writes below would hit
+        # dead copies.
+        self.diseases = [sim.diseases[name] for name in self.diseases]
         if self.treat_prob_data is not None:
             self.treat_prob = sc.smoothinterp(sim.yearvec, self.treat_prob_data.year.values, self.treat_prob_data.treat_prob.values, smoothness=0)
         return
