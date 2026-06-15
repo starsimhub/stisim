@@ -50,7 +50,6 @@ class SimpleBV(ss.Disease):
             p_base=0.45,                 # Used to calculate the baseline (intercept) probability of spontaneous occurrence
             p_spontaneous=sc.objdict(
                 douching=3,             # OR of BV for douching
-                n_partners_12m=2,       # OR of BV for each additional partner in the past 12 months - not working yet
                 poor_menstrual_hygiene=2,    # OR of BV for poor menstrual hygiene
             ),
 
@@ -78,7 +77,6 @@ class SimpleBV(ss.Disease):
             ss.FloatArr('ti_symptomatic', label='Time of symptoms'),
             ss.FloatArr('dur_inf', label='Duration of infection'),
             ss.BoolArr('douching', label='Douching'),
-            ss.FloatArr('n_partners_12m', default=0, label='Number of partners in the past 12 months'),
             ss.BoolArr('poor_menstrual_hygiene', label='Poor menstrual hygiene'),
         )
         self.sex_keys = {'': 'alive', 'f': 'female', 'm': 'male'}
