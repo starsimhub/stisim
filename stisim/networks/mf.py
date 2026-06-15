@@ -264,6 +264,10 @@ class MFNetwork(BaseNetwork):
 
     def add_pairs(self):
         """ Match and add stable/casual/onetime partnerships for this timestep. Assigns relationship type, duration, and acts based on risk group and age, and updates partner counts. """
+        # TODO: consider rejecting a (p1, p2) pairing if that pair already has an
+        # active edge in this or any other known network, to enforce the
+        # no-concurrent-duplicate-edge invariant that partner-uniqueness
+        # reporting (e.g. PartnershipFormationAnalyzer) assumes.
         ppl = self.sim.people
 
         try:
@@ -321,7 +325,8 @@ class MFNetwork(BaseNetwork):
             pair = (min(a,b), max(a,b))
             self.relationship_durs[pair].append({'start': self.ti, 'dur': reldur, 'edge_type': int(etype)}) # set dur to intended duration. When the relationship actually ends, this will be updated
 
-        self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types)
+        ti_formed = np.full(match_count, self.ti, dtype=int)
+        self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types, ti_formed=ti_formed)
 
         # Checks
         if (self.sim.people.female[p1].any() or self.sim.people.male[p2].any()) and (self.name == 'structuredsexual'):
@@ -347,7 +352,14 @@ class MFNetwork(BaseNetwork):
         return
 
     def _on_edge_dissolution(self, active):
-        """Record dissolved partnerships and decrement partner counts."""
+        """Record dissolved partnerships and decrement partner counts.
+
+        Calls ``super()`` first so BaseNetwork's expired-edge recording (used by
+        ``PartnershipFormationAnalyzer`` when ``record_expired`` is True) still
+        fires — overriding this hook without ``super()`` would silently disable
+        expiration tracking for MFNetwork and its subclasses.
+        """
+        super()._on_edge_dissolution(active)
         self._record_prior_partners(active)
         self._decrement_partners(active)
 
