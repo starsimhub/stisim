@@ -9,10 +9,10 @@ STIsim provides two networks for modeling sexual contact between men. Both exten
 
 ## Participation
 
-Both networks expose an `msm_share` parameter (default `ss.bernoulli(p=0.015)`) which sets the fraction of males that participate in MSM partnerships. Participation is assigned at sexual debut and is fixed for the lifetime of the agent.
+Both networks expose an `p_msm` parameter (default `ss.bernoulli(p=0.015)`) which sets the fraction of males that participate in MSM partnerships. Participation is assigned at sexual debut and is fixed for the lifetime of the agent.
 
 ```python
-msm = sti.AgeMatchedMSM(msm_share=ss.bernoulli(p=0.05))  # 5% of males
+msm = sti.AgeMatchedMSM(p_msm=ss.bernoulli(p=0.05))  # 5% of males
 ```
 
 ## Combining with the heterosexual network

@@ -67,6 +67,10 @@ class BaseNetwork(ss.SexualNetwork):
         self.meta.edge_type = ss_float
         self.define_pars(**BasePars())
         self.define_states(
+            # Whether the agent takes part in this network's partnerships.
+            # Default True (all agents). Subclasses may restrict it in
+            # set_network_states — e.g. the MSM networks flag only the `p_msm`
+            # fraction of males via set_msm(), and gate the pool/matching on it.
             ss.BoolArr('participant', default=True),
             ss.FloatArr('debut', default=0),
             reset=True,
