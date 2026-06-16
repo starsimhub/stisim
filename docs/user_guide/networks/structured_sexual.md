@@ -65,7 +65,7 @@ Values are the age difference (male minus female) in years.
 
 ### Pair matching
 
-How sampled preferences are turned into pairs is set by `match_method`, which selects an algorithm from `sti.networks.matchers` (default `'closest_age_tapered_seeking'`). Pass any registered key, or a callable `f(net) -> (p1, p2)` for a custom matcher.
+How sampled preferences are turned into pairs is set by `match_method` (default `'closest_age_tapered_seeking'`). See [Pair matching](matching.md) for the algorithms and how to supply your own.
 
 ## Sex work
 
