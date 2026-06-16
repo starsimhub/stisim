@@ -1,8 +1,21 @@
 # Structured sexual network
 
-**Class:** `sti.StructuredSexual` | **Base class:** `ss.SexualNetwork`
+**Class:** `sti.StructuredSexual` | **Base class:** `sti.MFNetwork`
 
-The `StructuredSexual` network is STIsim's primary sexual contact network. It is created automatically when you make a sim.
+The `StructuredSexual` network is STIsim's primary sexual contact network. It is created automatically when you make a sim, and bundles heterosexual partnerships with sex work on a single edge list.
+
+## Architecture
+
+STIsim's sexual networks are layered. Each network below extends `sti.BaseNetwork`, which provides the shared machinery: sexual debut, coital acts, condom-use data, and prior-partner recall.
+
+| Class | Models | Notes |
+|-------|--------|-------|
+| `sti.BaseNetwork` | shared infrastructure | debut, acts, condom data, `recall_prior` |
+| `sti.MFNetwork` | heterosexual partnerships | risk groups, concurrency, age mixing |
+| `sti.SWNetwork` | sex work | FSW–client edges |
+| `sti.StructuredSexual` | MF + sex work | the default; extends `MFNetwork` and adds sex-work edges |
+
+`StructuredSexual` keeps the historical API, so `sim.networks.structuredsexual` exposes `fsw`, `client`, risk groups, and concurrency directly. For modular use — heterosexual partnerships without sex work, or sex work alone — use `sti.MFNetwork` or `sti.SWNetwork` directly.
 
 ## Overview
 
@@ -16,12 +29,14 @@ Agents are assigned a **risk group** (low, medium, high) at initialization. Risk
 | 1 (medium) | Marry then divorce, or have concurrent partners | 14% | 18% |
 | 2 (high) | Never marry | 1% | 2% |
 
+Shares are set by `prop_f0`, `prop_m0` (low) and `prop_f2`, `prop_m2` (high); the medium group is the remainder.
+
 ## Partnership types
 
 How a partnership is classified depends on the risk groups of both partners:
 
-- **Stable**: Both partners in the same risk group and pass a stability check (RG0: 90%, RG1: 50%, RG2: 0%)
-- **Casual**: Mismatched risk groups, 50% chance (otherwise one-time)
+- **Stable**: Both partners in the same risk group and pass a stability check (`p_matched_stable`: RG0 90%, RG1 50%, RG2 0%)
+- **Casual**: Mismatched risk groups, 50% chance (`p_mismatched_casual`; otherwise one-time)
 - **One-time**: Single-timestep contact
 - **Sex work**: FSW-client contacts, one-time duration
 
@@ -34,7 +49,7 @@ The number of concurrent partners an agent seeks depends on their sex and risk g
 | Female | 0.0001 | 0.01 | 0.1 |
 | Male | 0.0001 | 0.2 | 0.5 |
 
-Values represent the parameter of a Poisson distribution (+1), so a male in RG2 typically seeks 1-3 concurrent partners.
+Each value is the target *mean* concurrency. By default `concurrency_dist` is a Poisson (`lam` = the value above) and the realized count is `rvs + 1`, so every active agent seeks at least one partner. Set `concurrency_dist` to `ss.nbinom` for an overdispersed alternative — it is reparameterized from the same mean automatically.
 
 ## Age mixing
 
@@ -46,22 +61,29 @@ Women sample a preferred partner age from a normal distribution. Parameters vary
 | Young (20-25) | (8, 3) | (7, 3) | (5, 2) |
 | Adult (25+) | (8, 3) | (7, 3) | (5, 2) |
 
-Values are the age difference (male minus female) in years. Partners are matched by sorting both groups by age.
+Values are the age difference (male minus female) in years.
+
+### Pair matching
+
+How sampled preferences are turned into pairs is set by `match_method`, which selects an algorithm from `sti.networks.matchers` (default `'closest_age_tapered_seeking'`). Pass any registered key, or a callable `f(net) -> (p1, p2)` for a custom matcher.
 
 ## Sex work
 
+FSW and client status are lifetime fates (`fsw_shares`, `client_shares`) gated by a per-agent active window — an entry age (`age_sw_start`) and duration (`dur_sw`) — so an agent counts as currently FSW only while inside that window.
+
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `fsw_shares` | 5% | Proportion of women who are sex workers |
-| `client_shares` | 12% | Proportion of men who are clients |
+| `fsw_shares` | 5% | Lifetime proportion of women who are sex workers |
+| `client_shares` | 12% | Lifetime proportion of men who are clients |
 | `sw_seeking_rate` | 1/month | Rate at which clients seek FSWs |
+| `fsw_mf_conc_mult` | 1.0 | Multiplier on FSW non-sex-work concurrency (values <1 mean active sex workers have fewer non-sex-work partners) |
 
 ## Coital acts and condoms
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `acts` | lognorm(80/yr, 30/yr) | Coital acts per partnership per year |
-| `condom_data` | None | Condom use probability (can be stratified by risk group) |
+| `condom_data` | None | Condom use probability (scalar, or stratified by risk-group pair / sex-work edges) |
 
 Transmission probability per partnership accounts for both condom use and number of acts:
 
@@ -71,6 +93,7 @@ P(transmission) = 1 - [1 - beta * (1 - eff_condom)]^(acts * p_condom) * [1 - bet
 
 STIsim also includes:
 
-- **`ss.MaternalNet`**: Mother-to-child transmission network (created automatically)
-- **`sti.AgeMatchedMSM`**: Men-who-have-sex-with-men network with age-based matching
-- **`sti.PriorPartners`**: Stores former partners for contact tracing (opt-in via `recall_prior=True`)
+- **`sti.MFNetwork`** / **`sti.SWNetwork`**: the heterosexual and sex-work layers, usable standalone (see [Architecture](#architecture)).
+- **`ss.MaternalNet`**: Mother-to-child transmission network (created automatically).
+- **MSM networks**: men-who-have-sex-with-men contact, with several matching strategies — see [MSM networks](msm.md).
+- **`sti.PriorPartners`**: Stores former partners for contact tracing. Add it alongside an MF network and set `recall_prior=True`.
