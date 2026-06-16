@@ -60,7 +60,7 @@ Syndromic management: test symptomatic care-seekers and route them to treatment 
 
 ```python
 syndromic = sti.SymptomaticTesting(
-    diseases=[ng, ct, tv],
+    diseases=['ng', 'ct', 'tv'],
     treatments=[ng_tx, ct_tx, metro],
     disease_treatment_map={'ng': ng_tx, 'ct': ct_tx, 'tv': metro},
 )

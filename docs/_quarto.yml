@@ -106,6 +106,7 @@ website:
             - section: "Networks"
               contents:
                 - user_guide/networks/structured_sexual.md
+                - user_guide/networks/matching.md
                 - user_guide/networks/msm.md
             - section: "Interventions"
               contents:

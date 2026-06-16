@@ -2,6 +2,24 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.5.7 (2026-06-15)
+
+### Diseases
+- Syphilis: add treponemal (`trep`) and non-treponemal (`nontrep`) serology states with seroconversion/reversion dynamics (window period, ~80% lifelong trep persistence, non-trep titre decline + post-treatment reversion). New `trep_prevalence`/`nontrep_prevalence` results (overall, by sex, by age×sex) plus `sexually_transmissible`/`symptomatic`/`primary` stage prevalences. Consolidated the duplicate `active` property into `symptomatic` (removed `active_prevalence` and the `*_prevalence_15_64` results). Prevalence denominator age band is now configurable via `age_range`, exposed as a `BaseSTI` constructor argument. (#500)
+
+### Networks
+- Add `fsw_mf_conc_mult` on `StructuredSexual` to scale FSW non-sex-work concurrency (values <1 = fewer non-commercial partners). `MFNetwork.set_concurrency` is now negative-binomial-aware: it reparameterizes the target mean correctly instead of silently no-opping when `concurrency_dist` is `ss.nbinom`. (#500)
+- Fix the three MSM networks (`AgeMatchedMSM`, `AgeApproxMSM`, `MSMScaleFreeNetwork`): all now honour a participation filter and no longer crash at init. The participation parameter is renamed `msm_share` → `p_msm`. (#502)
+
+### Interventions
+- `SyndromicManagement` and `SymptomaticTesting` now take disease **names** (e.g. `diseases=['ng', 'ct']`) rather than module objects, resolved against `sim.diseases` at init. Objects passed at construction were deep-copied into orphans the sim never stepped, giving stale state and dropped result-writes. (#503)
+
+### Analyzers
+- Add `sti.PartnershipFormationAnalyzer`. Networks now record the timestep each relationship ends (`None` if still active at sim end), enabling efficient post-run partnership analysis from a shared results store. (#504)
+
+### Results
+- Remove the unimplemented `partners_12` / `n_partners_12m` references. (#473, #507)
+
 ## Version 1.5.6 (2026-06-02)
 
 ### Networks
