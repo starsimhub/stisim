@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 import sciris as sc
+import starsim as ss
 
 from stisim.logistics.product import Product
 from stisim.logistics import ProductCategory, DeliveryMode
@@ -34,6 +35,23 @@ class ConcreteSuppliedIntervention(SuppliedIntervention):
     """Minimal concrete subclass so the abstract base's behavior (use(), cost accrual) can be exercised."""
     def step(self):
         pass
+
+
+class UsingSuppliedIntervention(SuppliedIntervention):
+    """Concrete subclass that uses fixed quantities of named products each step (for in-sim tests).
+
+    `usage` maps product name -> quantity used per step. `n_steps_run` counts how many times step() ran, so a
+    test can compute expected remaining quantities independently of the Supplies accounting under test.
+    """
+    def __init__(self, usage, **kwargs):
+        super().__init__(**kwargs)
+        self.usage = dict(usage)
+        self.n_steps_run = 0
+
+    def step(self):
+        for prod_name, quantity in self.usage.items():
+            self.use(prod_name=prod_name, quantity=quantity)
+        self.n_steps_run += 1
 
 
 def make_product(name='oral_prep', cost=10.0):
@@ -196,6 +214,47 @@ def test_calc_supply_distribution_accepts_aligned_lists():
     assert len(result) == 2, f"Expected one distribution count per group (2), got {len(result)}"
 
 
+@sc.timer()
+def test_shared_supplies_accounting_after_sim_run():
+    sc.heading("Ensuring a Supplies shared by two interventions accounts for remaining quantities after a sim run.")
+
+    # Three finite supplies. Both interventions use A; intervention 1 also uses B; intervention 2 also uses C.
+    A0, B0, C0 = 100_000, 100_000, 100_000
+    usage1 = {'A': 2, 'B': 3}   # intervention 1: shared A + exclusive B
+    usage2 = {'A': 5, 'C': 11}   # intervention 2: shared A + exclusive C
+
+    shared = Supplies([
+        make_supply(make_product('A'), quantity=A0),
+        make_supply(make_product('B'), quantity=B0),
+        make_supply(make_product('C'), quantity=C0),
+    ])
+    i1 = UsingSuppliedIntervention(usage=usage1, name='iv1', eligibilities=test_eligibilities, supplies=shared)
+    i2 = UsingSuppliedIntervention(usage=usage2, name='iv2', eligibilities=test_eligibilities, supplies=shared)
+
+    sim = ss.Sim(n_agents=50, dur=5, dt=1, interventions=[i1, i2])
+    sim.run()
+
+    # ss.Sim deep-copies its inputs, so the runtime objects are NOT i1/i2; read them back from the sim. The copy
+    # preserves the shared-by-reference Supplies, which this test guards.
+    ri1, ri2 = sim.interventions[0], sim.interventions[1]
+    assert ri1.supplies is ri2.supplies, "Expected the shared Supplies reference to survive sim initialization"
+
+    s = ri1.supplies
+    n1, n2 = ri1.n_steps_run, ri2.n_steps_run
+    assert n1 > 0 and n2 > 0, f"Expected both interventions to have stepped, got n1={n1}, n2={n2}"
+
+    expected_A = A0 - (usage1['A'] * n1 + usage2['A'] * n2)  # A drawn down by BOTH interventions
+    expected_B = B0 - (usage1['B'] * n1)                     # B drawn down by intervention 1 only
+    expected_C = C0 - (usage2['C'] * n2)                     # C drawn down by intervention 2 only
+
+    assert s.get_quantity('A') == expected_A, \
+        f"Shared product A: expected {expected_A} remaining, got {s.get_quantity('A')}"
+    assert s.get_quantity('B') == expected_B, \
+        f"Product B (intervention 1 only): expected {expected_B} remaining, got {s.get_quantity('B')}"
+    assert s.get_quantity('C') == expected_C, \
+        f"Product C (intervention 2 only): expected {expected_C} remaining, got {s.get_quantity('C')}"
+    return sim
+
 if __name__ == '__main__':
     do_plot = True
     sc.options(interactive=do_plot)
@@ -211,6 +270,7 @@ if __name__ == '__main__':
     test_calc_supply_distribution_raises_on_length_mismatch()
     test_calc_supply_distribution_raises_on_empty_lists()
     test_calc_supply_distribution_accepts_aligned_lists()
+    test_shared_supplies_accounting_after_sim_run()
 
     sc.heading("Total:")
     timer.toc()
