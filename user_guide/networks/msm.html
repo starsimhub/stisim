@@ -69,7 +69,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../../">
 <link href="../../user_guide/interventions/interventions.html" rel="next">
-<link href="../../user_guide/networks/structured_sexual.html" rel="prev">
+<link href="../../user_guide/networks/matching.html" rel="prev">
 <link href="../..//assets/favicon.ico" rel="icon">
 <script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
@@ -82,9 +82,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-de63f62b328812d8e578a4d74e282472.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-fd1f6cbdafbf99fa1cd16ea34f28c7d8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../../site_libs/bootstrap/bootstrap-dark-76aae80bb79b6e78359000ef1b30f63f.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../../site_libs/bootstrap/bootstrap-fd1f6cbdafbf99fa1cd16ea34f28c7d8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-d583026f9b0ef0925622aad6f62ce451.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-dark-89e3c27e96d96616de92a086d0ca516a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../../site_libs/bootstrap/bootstrap-d583026f9b0ef0925622aad6f62ce451.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -527,6 +527,12 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../../user_guide/networks/matching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Pair matching</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../../user_guide/networks/msm.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">MSM networks</span></a>
   </div>
@@ -619,6 +625,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
   <ul>
   <li><a href="#participation" id="toc-participation" class="nav-link" data-scroll-target="#participation">Participation</a></li>
   <li><a href="#combining-with-the-heterosexual-network" id="toc-combining-with-the-heterosexual-network" class="nav-link" data-scroll-target="#combining-with-the-heterosexual-network">Combining with the heterosexual network</a></li>
+  <li><a href="#scale-free-network" id="toc-scale-free-network" class="nav-link" data-scroll-target="#scale-free-network">Scale-free network</a></li>
   <li><a href="#api" id="toc-api" class="nav-link" data-scroll-target="#api">API</a></li>
   </ul></li>
   </ul>
@@ -633,7 +640,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 
 <section id="msm-networks" class="level1">
 <h1>MSM networks</h1>
-<p>STIsim provides two networks for modeling sexual contact between men. Both extend <a href="../../user_guide/networks/structured_sexual.html"><code>StructuredSexual</code></a>, inheriting risk groups, concurrency, and partnership classification, but differ in how partners are matched.</p>
+<p>STIsim provides three networks for modeling sexual contact between men. <code>AgeMatchedMSM</code> and <code>AgeApproxMSM</code> extend <a href="../../user_guide/networks/structured_sexual.html"><code>MFNetwork</code></a>, inheriting risk groups, concurrency, and partnership classification, and differ only in how partners are matched. <code>MSMScaleFreeNetwork</code> extends <code>BaseNetwork</code> directly and uses a preferential-attachment kernel instead of risk groups.</p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 18%">
@@ -655,15 +662,20 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </tr>
 <tr class="even">
 <td><code>sti.AgeApproxMSM</code></td>
-<td>Reuses <code>StructuredSexual</code> age-difference preferences to match split groups of eligible males</td>
+<td>Reuses <code>MFNetwork</code> age-difference preferences to match split groups of eligible males</td>
 <td>More flexible age mixing</td>
+</tr>
+<tr class="odd">
+<td><code>sti.MSMScaleFreeNetwork</code></td>
+<td>Preferential-attachment (rich-get-richer) degree kernel with Markovian edge deletion</td>
+<td>Scale-free degree distribution; concentrated transmission</td>
 </tr>
 </tbody>
 </table>
 <section id="participation" class="level2">
 <h2 class="anchored" data-anchor-id="participation">Participation</h2>
-<p>Both networks expose an <code>msm_share</code> parameter (default <code>ss.bernoulli(p=0.015)</code>) which sets the fraction of males that participate in MSM partnerships. Participation is assigned at sexual debut and is fixed for the lifetime of the agent.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>msm <span class="op">=</span> sti.AgeMatchedMSM(msm_share<span class="op">=</span>ss.bernoulli(p<span class="op">=</span><span class="fl">0.05</span>))  <span class="co"># 5% of males</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>All three networks expose a <code>p_msm</code> parameter (default <code>ss.bernoulli(p=0.015)</code>) which sets the fraction of males that participate in MSM partnerships. Participation is assigned at sexual debut and is fixed for the lifetime of the agent.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>msm <span class="op">=</span> sti.AgeMatchedMSM(p_msm<span class="op">=</span>ss.bernoulli(p<span class="op">=</span><span class="fl">0.05</span>))  <span class="co"># 5% of males</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="combining-with-the-heterosexual-network" class="level2">
 <h2 class="anchored" data-anchor-id="combining-with-the-heterosexual-network">Combining with the heterosexual network</h2>
@@ -674,11 +686,59 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Each network maintains its own edges and partnership classification. Disease modules see contacts from all networks each timestep.</p>
 </section>
+<section id="scale-free-network" class="level2">
+<h2 class="anchored" data-anchor-id="scale-free-network">Scale-free network</h2>
+<p><code>sti.MSMScaleFreeNetwork</code> (Whittles-2019 S2 kernel) forms edges via a rate proportional to a degree-based pair weight, producing a scale-free degree distribution where a minority of high-degree agents drive most transmission. Edges are deleted at random subject to a hard duration cap.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 27%">
+<col style="width: 39%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>p_msm</code></td>
+<td><code>ss.bernoulli(p=0.015)</code></td>
+<td>Fraction of males in the MSM pool</td>
+</tr>
+<tr class="even">
+<td><code>target_mean_degree</code></td>
+<td>2.0</td>
+<td>Target mean concurrent partners per pool agent</td>
+</tr>
+<tr class="odd">
+<td><code>target_mean_dur</code></td>
+<td><code>ss.years(2)</code></td>
+<td>Target mean edge duration</td>
+</tr>
+<tr class="even">
+<td><code>max_edge_dur</code></td>
+<td><code>ss.years(10)</code></td>
+<td>Hard cap on edge persistence</td>
+</tr>
+<tr class="odd">
+<td><code>phi</code></td>
+<td>1.0</td>
+<td>Turnover parameter (sets initial network density)</td>
+</tr>
+</tbody>
+</table>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>msm <span class="op">=</span> sti.MSMScaleFreeNetwork(target_mean_degree<span class="op">=</span><span class="fl">3.0</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Note: unlike the other networks, this one is not branching-stable under Common Random Numbers — adding an intervention that perturbs the population reshuffles edges from that point on. Reproducibility holds per <code>(rand_seed, ti)</code>. It also does not record edge expirations, so analyzers that depend on them (e.g.&nbsp;<code>PartnershipFormationAnalyzer</code>) skip it.</p>
+</section>
 <section id="api" class="level2">
 <h2 class="anchored" data-anchor-id="api">API</h2>
 <ul>
 <li><code>sti.AgeMatchedMSM</code> — exact-age matching; cheap and deterministic given inputs.</li>
-<li><code>sti.AgeApproxMSM</code> — distribution-based matching; reuses age preference machinery from <code>StructuredSexual</code>.</li>
+<li><code>sti.AgeApproxMSM</code> — distribution-based matching; reuses age-preference machinery from <code>MFNetwork</code>.</li>
+<li><code>sti.MSMScaleFreeNetwork</code> — preferential-attachment kernel; scale-free degree distribution.</li>
 </ul>
 
 
@@ -1101,8 +1161,8 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../../user_guide/networks/structured_sexual.html" class="pagination-link" aria-label="Structured sexual network">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Structured sexual network</span>
+      <a href="../../user_guide/networks/matching.html" class="pagination-link" aria-label="Pair matching">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Pair matching</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
@@ -1118,7 +1178,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.5.6 (2026-06-02).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.5.7 (2026-06-15).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">

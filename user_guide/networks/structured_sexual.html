@@ -33,7 +33,7 @@ ul.task-list li input[type="checkbox"] {
 <script src="../../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../../">
-<link href="../../user_guide/networks/msm.html" rel="next">
+<link href="../../user_guide/networks/matching.html" rel="next">
 <link href="../../user_guide/diseases/gud.html" rel="prev">
 <link href="../..//assets/favicon.ico" rel="icon">
 <script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
@@ -47,9 +47,9 @@ ul.task-list li input[type="checkbox"] {
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-de63f62b328812d8e578a4d74e282472.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-fd1f6cbdafbf99fa1cd16ea34f28c7d8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../../site_libs/bootstrap/bootstrap-dark-76aae80bb79b6e78359000ef1b30f63f.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../../site_libs/bootstrap/bootstrap-fd1f6cbdafbf99fa1cd16ea34f28c7d8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-d583026f9b0ef0925622aad6f62ce451.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-dark-89e3c27e96d96616de92a086d0ca516a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../../site_libs/bootstrap/bootstrap-d583026f9b0ef0925622aad6f62ce451.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -492,6 +492,12 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../../user_guide/networks/matching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Pair matching</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../../user_guide/networks/msm.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">MSM networks</span></a>
   </div>
@@ -582,11 +588,15 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
   <ul>
   <li><a href="#structured-sexual-network" id="toc-structured-sexual-network" class="nav-link active" data-scroll-target="#structured-sexual-network">Structured sexual network</a>
   <ul>
+  <li><a href="#architecture" id="toc-architecture" class="nav-link" data-scroll-target="#architecture">Architecture</a></li>
   <li><a href="#overview" id="toc-overview" class="nav-link" data-scroll-target="#overview">Overview</a></li>
   <li><a href="#risk-groups" id="toc-risk-groups" class="nav-link" data-scroll-target="#risk-groups">Risk groups</a></li>
   <li><a href="#partnership-types" id="toc-partnership-types" class="nav-link" data-scroll-target="#partnership-types">Partnership types</a></li>
   <li><a href="#concurrency" id="toc-concurrency" class="nav-link" data-scroll-target="#concurrency">Concurrency</a></li>
-  <li><a href="#age-mixing" id="toc-age-mixing" class="nav-link" data-scroll-target="#age-mixing">Age mixing</a></li>
+  <li><a href="#age-mixing" id="toc-age-mixing" class="nav-link" data-scroll-target="#age-mixing">Age mixing</a>
+  <ul>
+  <li><a href="#pair-matching" id="toc-pair-matching" class="nav-link" data-scroll-target="#pair-matching">Pair matching</a></li>
+  </ul></li>
   <li><a href="#sex-work" id="toc-sex-work" class="nav-link" data-scroll-target="#sex-work">Sex work</a></li>
   <li><a href="#coital-acts-and-condoms" id="toc-coital-acts-and-condoms" class="nav-link" data-scroll-target="#coital-acts-and-condoms">Coital acts and condoms</a></li>
   <li><a href="#other-networks" id="toc-other-networks" class="nav-link" data-scroll-target="#other-networks">Other networks</a></li>
@@ -603,8 +613,49 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 
 <section id="structured-sexual-network" class="level1">
 <h1>Structured sexual network</h1>
-<p><strong>Class:</strong> <code>sti.StructuredSexual</code> | <strong>Base class:</strong> <a href="https://docs.starsim.org/api/networks.html#starsim.networks.SexualNetwork" title="0"><code>ss.SexualNetwork</code></a></p>
-<p>The <code>StructuredSexual</code> network is STIsim’s primary sexual contact network. It is created automatically when you make a sim.</p>
+<p><strong>Class:</strong> <code>sti.StructuredSexual</code> | <strong>Base class:</strong> <code>sti.MFNetwork</code></p>
+<p>The <code>StructuredSexual</code> network is STIsim’s primary sexual contact network. It is created automatically when you make a sim, and bundles heterosexual partnerships with sex work on a single edge list.</p>
+<section id="architecture" class="level2">
+<h2 class="anchored" data-anchor-id="architecture">Architecture</h2>
+<p>STIsim’s sexual networks are layered. Each network below extends <code>sti.BaseNetwork</code>, which provides the shared machinery: sexual debut, coital acts, condom-use data, and prior-partner recall.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 31%">
+<col style="width: 36%">
+<col style="width: 31%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Class</th>
+<th>Models</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>sti.BaseNetwork</code></td>
+<td>shared infrastructure</td>
+<td>debut, acts, condom data, <code>recall_prior</code></td>
+</tr>
+<tr class="even">
+<td><code>sti.MFNetwork</code></td>
+<td>heterosexual partnerships</td>
+<td>risk groups, concurrency, age mixing</td>
+</tr>
+<tr class="odd">
+<td><code>sti.SWNetwork</code></td>
+<td>sex work</td>
+<td>FSW–client edges</td>
+</tr>
+<tr class="even">
+<td><code>sti.StructuredSexual</code></td>
+<td>MF + sex work</td>
+<td>the default; extends <code>MFNetwork</code> and adds sex-work edges</td>
+</tr>
+</tbody>
+</table>
+<p><code>StructuredSexual</code> keeps the historical API, so <code>sim.networks.structuredsexual</code> exposes <code>fsw</code>, <code>client</code>, risk groups, and concurrency directly. For modular use — heterosexual partnerships without sex work, or sex work alone — use <code>sti.MFNetwork</code> or <code>sti.SWNetwork</code> directly.</p>
+</section>
 <section id="overview" class="level2">
 <h2 class="anchored" data-anchor-id="overview">Overview</h2>
 <p>Agents are assigned a <strong>risk group</strong> (low, medium, high) at initialization. Risk group determines partnership patterns: concurrency, relationship type, and duration. Partnerships form each timestep based on age preferences, dissolve after their sampled duration, and are classified as stable, casual, one-time, or sex work.</p>
@@ -647,13 +698,14 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </tr>
 </tbody>
 </table>
+<p>Shares are set by <code>prop_f0</code>, <code>prop_m0</code> (low) and <code>prop_f2</code>, <code>prop_m2</code> (high); the medium group is the remainder.</p>
 </section>
 <section id="partnership-types" class="level2">
 <h2 class="anchored" data-anchor-id="partnership-types">Partnership types</h2>
 <p>How a partnership is classified depends on the risk groups of both partners:</p>
 <ul>
-<li><strong>Stable</strong>: Both partners in the same risk group and pass a stability check (RG0: 90%, RG1: 50%, RG2: 0%)</li>
-<li><strong>Casual</strong>: Mismatched risk groups, 50% chance (otherwise one-time)</li>
+<li><strong>Stable</strong>: Both partners in the same risk group and pass a stability check (<code>p_matched_stable</code>: RG0 90%, RG1 50%, RG2 0%)</li>
+<li><strong>Casual</strong>: Mismatched risk groups, 50% chance (<code>p_mismatched_casual</code>; otherwise one-time)</li>
 <li><strong>One-time</strong>: Single-timestep contact</li>
 <li><strong>Sex work</strong>: FSW-client contacts, one-time duration</li>
 </ul>
@@ -685,7 +737,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </tr>
 </tbody>
 </table>
-<p>Values represent the parameter of a Poisson distribution (+1), so a male in RG2 typically seeks 1-3 concurrent partners.</p>
+<p>Each value is the target <em>mean</em> concurrency. By default <code>concurrency_dist</code> is a Poisson (<code>lam</code> = the value above) and the realized count is <code>rvs + 1</code>, so every active agent seeks at least one partner. Set <code>concurrency_dist</code> to <a href="https://docs.starsim.org/api/distributions.html#starsim.distributions.nbinom" title="0"><code>ss.nbinom</code></a> for an overdispersed alternative — it is reparameterized from the same mean automatically.</p>
 </section>
 <section id="age-mixing" class="level2">
 <h2 class="anchored" data-anchor-id="age-mixing">Age mixing</h2>
@@ -720,11 +772,21 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </tr>
 </tbody>
 </table>
-<p>Values are the age difference (male minus female) in years. Partners are matched by sorting both groups by age.</p>
+<p>Values are the age difference (male minus female) in years.</p>
+<section id="pair-matching" class="level3">
+<h3 class="anchored" data-anchor-id="pair-matching">Pair matching</h3>
+<p>How sampled preferences are turned into pairs is set by <code>match_method</code> (default <code>'closest_age_tapered_seeking'</code>). See <a href="../../user_guide/networks/matching.html">Pair matching</a> for the algorithms and how to supply your own.</p>
+</section>
 </section>
 <section id="sex-work" class="level2">
 <h2 class="anchored" data-anchor-id="sex-work">Sex work</h2>
+<p>FSW and client status are lifetime fates (<code>fsw_shares</code>, <code>client_shares</code>) gated by a per-agent active window — an entry age (<code>age_sw_start</code>) and duration (<code>dur_sw</code>) — so an agent counts as currently FSW only while inside that window.</p>
 <table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 27%">
+<col style="width: 39%">
+</colgroup>
 <thead>
 <tr class="header">
 <th>Parameter</th>
@@ -736,17 +798,22 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <tr class="odd">
 <td><code>fsw_shares</code></td>
 <td>5%</td>
-<td>Proportion of women who are sex workers</td>
+<td>Lifetime proportion of women who are sex workers</td>
 </tr>
 <tr class="even">
 <td><code>client_shares</code></td>
 <td>12%</td>
-<td>Proportion of men who are clients</td>
+<td>Lifetime proportion of men who are clients</td>
 </tr>
 <tr class="odd">
 <td><code>sw_seeking_rate</code></td>
 <td>1/month</td>
 <td>Rate at which clients seek FSWs</td>
+</tr>
+<tr class="even">
+<td><code>fsw_mf_conc_mult</code></td>
+<td>1.0</td>
+<td>Multiplier on FSW non-sex-work concurrency (values &lt;1 mean active sex workers have fewer non-sex-work partners)</td>
 </tr>
 </tbody>
 </table>
@@ -775,7 +842,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <tr class="even">
 <td><code>condom_data</code></td>
 <td>None</td>
-<td>Condom use probability (can be stratified by risk group)</td>
+<td>Condom use probability (scalar, or stratified by risk-group pair / sex-work edges)</td>
 </tr>
 </tbody>
 </table>
@@ -786,9 +853,10 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <h2 class="anchored" data-anchor-id="other-networks">Other networks</h2>
 <p>STIsim also includes:</p>
 <ul>
-<li><strong><a href="https://docs.starsim.org/api/networks.html#starsim.networks.MaternalNet" title="0"><code>ss.MaternalNet</code></a></strong>: Mother-to-child transmission network (created automatically)</li>
-<li><strong><code>sti.AgeMatchedMSM</code></strong>: Men-who-have-sex-with-men network with age-based matching</li>
-<li><strong><code>sti.PriorPartners</code></strong>: Stores former partners for contact tracing (opt-in via <code>recall_prior=True</code>)</li>
+<li><strong><code>sti.MFNetwork</code></strong> / <strong><code>sti.SWNetwork</code></strong>: the heterosexual and sex-work layers, usable standalone (see <a href="#architecture">Architecture</a>).</li>
+<li><strong><a href="https://docs.starsim.org/api/networks.html#starsim.networks.MaternalNet" title="0"><code>ss.MaternalNet</code></a></strong>: Mother-to-child transmission network (created automatically).</li>
+<li><strong>MSM networks</strong>: men-who-have-sex-with-men contact, with several matching strategies — see <a href="../../user_guide/networks/msm.html">MSM networks</a>.</li>
+<li><strong><code>sti.PriorPartners</code></strong>: Stores former partners for contact tracing. Add it alongside an MF network and set <code>recall_prior=True</code>.</li>
 </ul>
 
 
@@ -1216,8 +1284,8 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../../user_guide/networks/msm.html" class="pagination-link" aria-label="MSM networks">
-        <span class="nav-page-text">MSM networks</span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../../user_guide/networks/matching.html" class="pagination-link" aria-label="Pair matching">
+        <span class="nav-page-text">Pair matching</span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>
@@ -1228,7 +1296,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.5.6 (2026-06-02).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.5.7 (2026-06-15).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">

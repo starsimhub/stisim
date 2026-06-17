@@ -82,9 +82,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-de63f62b328812d8e578a4d74e282472.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-fd1f6cbdafbf99fa1cd16ea34f28c7d8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-76aae80bb79b6e78359000ef1b30f63f.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-fd1f6cbdafbf99fa1cd16ea34f28c7d8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-d583026f9b0ef0925622aad6f62ce451.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-89e3c27e96d96616de92a086d0ca516a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-d583026f9b0ef0925622aad6f62ce451.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -609,36 +609,47 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
   <li><a href="#stisim.analyzers.NetworkDegree.step" id="toc-stisim.analyzers.NetworkDegree.step" class="nav-link" data-scroll-target="#stisim.analyzers.NetworkDegree.step">step</a></li>
   </ul></li>
   </ul></li>
+  <li><a href="#stisim.analyzers.PartnershipFormationAnalyzer" id="toc-stisim.analyzers.PartnershipFormationAnalyzer" class="nav-link" data-scroll-target="#stisim.analyzers.PartnershipFormationAnalyzer">PartnershipFormationAnalyzer</a>
+  <ul class="collapse">
+  <li><a href="#parameters-2" id="toc-parameters-2" class="nav-link" data-scroll-target="#parameters-2">Parameters</a></li>
+  <li><a href="#methods-2" id="toc-methods-2" class="nav-link" data-scroll-target="#methods-2">Methods</a>
+  <ul class="collapse">
+  <li><a href="#stisim.analyzers.PartnershipFormationAnalyzer.finalize" id="toc-stisim.analyzers.PartnershipFormationAnalyzer.finalize" class="nav-link" data-scroll-target="#stisim.analyzers.PartnershipFormationAnalyzer.finalize">finalize</a></li>
+  <li><a href="#stisim.analyzers.PartnershipFormationAnalyzer.get_n_partnerships_formed" id="toc-stisim.analyzers.PartnershipFormationAnalyzer.get_n_partnerships_formed" class="nav-link" data-scroll-target="#stisim.analyzers.PartnershipFormationAnalyzer.get_n_partnerships_formed">get_n_partnerships_formed</a></li>
+  <li><a href="#stisim.analyzers.PartnershipFormationAnalyzer.get_n_partnerships_formed_per_agent" id="toc-stisim.analyzers.PartnershipFormationAnalyzer.get_n_partnerships_formed_per_agent" class="nav-link" data-scroll-target="#stisim.analyzers.PartnershipFormationAnalyzer.get_n_partnerships_formed_per_agent">get_n_partnerships_formed_per_agent</a></li>
+  <li><a href="#stisim.analyzers.PartnershipFormationAnalyzer.get_unique_partners_active_per_agent" id="toc-stisim.analyzers.PartnershipFormationAnalyzer.get_unique_partners_active_per_agent" class="nav-link" data-scroll-target="#stisim.analyzers.PartnershipFormationAnalyzer.get_unique_partners_active_per_agent">get_unique_partners_active_per_agent</a></li>
+  </ul></li>
+  </ul></li>
   <li><a href="#stisim.analyzers.RelationshipDurations" id="toc-stisim.analyzers.RelationshipDurations" class="nav-link" data-scroll-target="#stisim.analyzers.RelationshipDurations">RelationshipDurations</a>
   <ul class="collapse">
-  <li><a href="#methods-2" id="toc-methods-2" class="nav-link" data-scroll-target="#methods-2">Methods</a>
+  <li><a href="#methods-3" id="toc-methods-3" class="nav-link" data-scroll-target="#methods-3">Methods</a>
   <ul class="collapse">
   <li><a href="#stisim.analyzers.RelationshipDurations.get_relationship_durations" id="toc-stisim.analyzers.RelationshipDurations.get_relationship_durations" class="nav-link" data-scroll-target="#stisim.analyzers.RelationshipDurations.get_relationship_durations">get_relationship_durations</a></li>
   </ul></li>
   </ul></li>
   <li><a href="#stisim.analyzers.TimeBetweenRelationships" id="toc-stisim.analyzers.TimeBetweenRelationships" class="nav-link" data-scroll-target="#stisim.analyzers.TimeBetweenRelationships">TimeBetweenRelationships</a>
   <ul class="collapse">
-  <li><a href="#methods-3" id="toc-methods-3" class="nav-link" data-scroll-target="#methods-3">Methods</a>
+  <li><a href="#methods-4" id="toc-methods-4" class="nav-link" data-scroll-target="#methods-4">Methods</a>
   <ul class="collapse">
   <li><a href="#stisim.analyzers.TimeBetweenRelationships.step" id="toc-stisim.analyzers.TimeBetweenRelationships.step" class="nav-link" data-scroll-target="#stisim.analyzers.TimeBetweenRelationships.step">step</a></li>
   </ul></li>
   </ul></li>
   <li><a href="#stisim.analyzers.art_coverage" id="toc-stisim.analyzers.art_coverage" class="nav-link" data-scroll-target="#stisim.analyzers.art_coverage">art_coverage</a>
   <ul class="collapse">
-  <li><a href="#parameters-2" id="toc-parameters-2" class="nav-link" data-scroll-target="#parameters-2">Parameters</a></li>
-  <li><a href="#methods-4" id="toc-methods-4" class="nav-link" data-scroll-target="#methods-4">Methods</a>
+  <li><a href="#parameters-6" id="toc-parameters-6" class="nav-link" data-scroll-target="#parameters-6">Parameters</a></li>
+  <li><a href="#methods-5" id="toc-methods-5" class="nav-link" data-scroll-target="#methods-5">Methods</a>
   <ul class="collapse">
   <li><a href="#stisim.analyzers.art_coverage.plot" id="toc-stisim.analyzers.art_coverage.plot" class="nav-link" data-scroll-target="#stisim.analyzers.art_coverage.plot">plot</a></li>
   </ul></li>
   </ul></li>
   <li><a href="#stisim.analyzers.coinfection_stats" id="toc-stisim.analyzers.coinfection_stats" class="nav-link" data-scroll-target="#stisim.analyzers.coinfection_stats">coinfection_stats</a>
   <ul class="collapse">
-  <li><a href="#parameters-3" id="toc-parameters-3" class="nav-link" data-scroll-target="#parameters-3">Parameters</a></li>
+  <li><a href="#parameters-7" id="toc-parameters-7" class="nav-link" data-scroll-target="#parameters-7">Parameters</a></li>
   </ul></li>
   <li><a href="#stisim.analyzers.partner_age_diff" id="toc-stisim.analyzers.partner_age_diff" class="nav-link" data-scroll-target="#stisim.analyzers.partner_age_diff">partner_age_diff</a>
   <ul class="collapse">
-  <li><a href="#parameters-4" id="toc-parameters-4" class="nav-link" data-scroll-target="#parameters-4">Parameters</a></li>
-  <li><a href="#methods-5" id="toc-methods-5" class="nav-link" data-scroll-target="#methods-5">Methods</a>
+  <li><a href="#parameters-8" id="toc-parameters-8" class="nav-link" data-scroll-target="#parameters-8">Parameters</a></li>
+  <li><a href="#methods-6" id="toc-methods-6" class="nav-link" data-scroll-target="#methods-6">Methods</a>
   <ul class="collapse">
   <li><a href="#stisim.analyzers.partner_age_diff.init_results" id="toc-stisim.analyzers.partner_age_diff.init_results" class="nav-link" data-scroll-target="#stisim.analyzers.partner_age_diff.init_results">init_results</a></li>
   <li><a href="#stisim.analyzers.partner_age_diff.plot" id="toc-stisim.analyzers.partner_age_diff.plot" class="nav-link" data-scroll-target="#stisim.analyzers.partner_age_diff.plot">plot</a></li>
@@ -648,7 +659,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
   <li><a href="#stisim.analyzers.result_grouper" id="toc-stisim.analyzers.result_grouper" class="nav-link" data-scroll-target="#stisim.analyzers.result_grouper">result_grouper</a></li>
   <li><a href="#stisim.analyzers.sw_stats" id="toc-stisim.analyzers.sw_stats" class="nav-link" data-scroll-target="#stisim.analyzers.sw_stats">sw_stats</a>
   <ul class="collapse">
-  <li><a href="#parameters-5" id="toc-parameters-5" class="nav-link" data-scroll-target="#parameters-5">Parameters</a></li>
+  <li><a href="#parameters-9" id="toc-parameters-9" class="nav-link" data-scroll-target="#parameters-9">Parameters</a></li>
   </ul></li>
   </ul></li>
   </ul></li>
@@ -685,30 +696,34 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <td>Analyze lifetime partner count distributions in a StructuredSexual network.</td>
 </tr>
 <tr class="odd">
+<td><a href="#stisim.analyzers.PartnershipFormationAnalyzer">PartnershipFormationAnalyzer</a></td>
+<td>Track partnership formation per network, gender, and age bin.</td>
+</tr>
+<tr class="even">
 <td><a href="#stisim.analyzers.RelationshipDurations">RelationshipDurations</a></td>
 <td>Analyze relationship durations in a StructuredSexual network.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#stisim.analyzers.TimeBetweenRelationships">TimeBetweenRelationships</a></td>
 <td>Analyzes the time between relationships in a structuredsexual network.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#stisim.analyzers.art_coverage">art_coverage</a></td>
 <td>Track ART coverage (number and proportion) by sex and age bin.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#stisim.analyzers.coinfection_stats">coinfection_stats</a></td>
 <td>Generates stats for the coinfection of two diseases.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#stisim.analyzers.partner_age_diff">partner_age_diff</a></td>
 <td>Analyze age differences between sexual partners.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#stisim.analyzers.result_grouper">result_grouper</a></td>
 <td>Base analyzer providing conditional probability utilities for grouped results.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#stisim.analyzers.sw_stats">sw_stats</a></td>
 <td>Track new infections and transmissions among sex workers and their clients.</td>
 </tr>
@@ -863,13 +878,336 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </section>
 </section>
 </section>
-<section id="stisim.analyzers.RelationshipDurations" class="level3">
-<h3 class="anchored" data-anchor-id="stisim.analyzers.RelationshipDurations">RelationshipDurations</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>analyzers.RelationshipDurations(<span class="op">*</span>args, <span class="op">**</span>kwargs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Analyze relationship durations in a StructuredSexual network.</p>
-<p>Records the mean and median duration of all relationships (stable, casual, etc.) at each timestep, disaggregated by sex. Durations are extracted from the network’s <code>relationship_durs</code> tracking dict.</p>
+<section id="stisim.analyzers.PartnershipFormationAnalyzer" class="level3">
+<h3 class="anchored" data-anchor-id="stisim.analyzers.PartnershipFormationAnalyzer">PartnershipFormationAnalyzer</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>analyzers.PartnershipFormationAnalyzer(</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    age_bins<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    networks<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">*</span>args,</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kwargs,</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Track partnership formation per network, gender, and age bin.</p>
+<p>Works with any analyzer that subclasses stisim BaseNetwork (that does not have class attribute records_all_expirations set to False on purpose. This attribute (when False) explicitly tells PartnershipFormationAnalyzer the network is not configured to work with it (yet)).</p>
+<p>Stores <strong>one row per distinct edge</strong> with its active interval, rather than re-snapshotting the active edge set every timestep. Formation is detected at the step where <code>ti_formed == ti</code>; the end of the interval comes from the network’s <code>expired_this_loop</code> (populated by <code>_on_edge_dissolution</code> when <code>record_expired=True</code>), so <code>step()</code> only touches the per-step <em>flows</em> (newly-formed and newly-expired edges), never the active <em>stock</em>. Each partner’s sex and age-at-formation are read from the edge/people directly, so the analyzer makes no p1=male/p2=female assumption and works for any gender combination (male-female, male-male).</p>
+<p>Recorded state lives in <code>self.results['relationships'][nw]</code>: a list of one mutable row per distinct edge::</p>
+<pre><code>[p1, p2, ti_formed, ti_expired, age_p1, age_p2, female_p1, female_p2]</code></pre>
+<p><code>ti_expired</code> is the timestep at which the edge was observed in <code>expired_this_loop</code> (so its active interval is the half-open <code>[ti_formed, ti_expired)</code>), or <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a> while the edge is still active at the end of the run. Getters map <code>None -&gt; final_ti + 1</code> so an ongoing edge tests active through the last timestep.</p>
+<p>.. warning:: <strong>Single-edge-per-pair-per-timestep assumption.</strong> Edges are keyed by <code>(p1, p2, ti_formed)</code> (see <code>_indicies_of_rels_in_table_for_nw</code>). If a network ever forms <strong>more than one edge between the same pair of agents at the same ti</strong>, those edges collide on this key and <strong>expiry data is corrupted</strong>: only the last-formed colliding edge remains reachable for <code>ti_expired</code> recording, so the others keep <code>ti_expired = None</code> (wrongly treated as active through run end) and their expiry events are dropped. Formation <em>counts</em> are unaffected (every edge is still appended as its own row), so only the active-interval results (<code>get_unique_partners_active_per_agent</code> and any duration computed from <code>ti_expired</code>) are affected. The bundled networks do not do this; the assumption holds as long as a pair forms at most one edge per network per timestep (the no-concurrent-duplicate-edge invariant noted in <code>BaseNetwork.add_pairs</code>). Forming a second edge between the same pair at a <em>different</em> ti is fine (distinct key).</p>
+<p><strong>Duration semantics.</strong> <code>ti_expired</code> is defined as one past the last timestep the edge was present and transmission-capable during the disease transmission step (step 9 of the 16-step integration loop). Any duration reported or computed from this analyzer is therefore::</p>
+<pre><code>duration = ti_expired - ti_formed
+         = number of active transmission steps the relationship existed</code></pre>
+<p>where an “active transmission step” means the edge was present in the network with <strong>both partners alive at step 9</strong> (i.e.&nbsp;structurally available to transmit) – not that a transmission event actually fired (that further depends on beta, acts, condom use, and infection status). This count is consistent regardless of when a relationship formed, when it dissolved, or why it dissolved:</p>
+<ul>
+<li>duration expiry at R: active <code>{F..R-1}</code> -&gt; <code>duration = R - F</code>;</li>
+<li>partner death/removal at T: the dying agent’s <code>alive</code> flag flips at step 10 (<em>after</em> step 9), so the edge is still active at T -&gt; active <code>{F..T}</code>, <code>ti_expired = T+1</code>, <code>duration = (T+1) - F</code>;</li>
+<li>formed and ended-by-death in the same timestep T: active <code>{T}</code> -&gt; <code>duration = 1</code> (never a zero/empty interval);</li>
+<li>still active at run end: active <code>{F..final_ti}</code> -&gt; <code>duration = (final_ti+1) - F</code> (right-censored at the run boundary).</li>
+</ul>
+<p>Note this realized duration can be shorter than the network’s drawn <code>dur</code> parameter (the <em>intended</em> duration) when a partner dies or leaves early; the analyzer records the realized count, not the drawn one.</p>
+<p>Example (<code>self.results</code> layout, network ‘mfnetwork’)::</p>
+<pre><code>ana.results['relationships']['mfnetwork'][0]
+# -&gt; [9, 17, 0, 4, 27.23, 19.62, False, True]
+#    p1=9, p2=17, ti_formed=0, ti_expired=4 (active ti 0..3),
+#    ages at formation, female flags. ti_expired is None if still active
+#    at run end.</code></pre>
+<p>Reporting is via getters (all return <code>{network_name: result}</code>; <code>female</code> selects the subject sex):</p>
+<ul>
+<li><code>get_n_partnerships_formed(female, age_bins=None, window_months=None)</code> – <code>{nw: {age_bin: array}}</code>. With <code>window_months=None</code> the inner array is the full per-timestep series (length <code>n_ti</code>); with an int it is a single trailing-window sum (length 1).</li>
+<li><code>get_n_partnerships_formed_per_agent(female, window_months=None)</code> – <code>{nw: array}</code> of non-unique formation counts per agent over the window.</li>
+<li><code>get_unique_partners_active_per_agent(female, window_months=None)</code> – <code>{nw: array}</code> of unique partners per agent on edges active during the window (half-open interval test).</li>
+</ul>
+<section id="parameters-2" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-2">Parameters</h4>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>age_bins</td>
+<td><a href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</td>
+<td>Age bin strings parsable by <a href="https://docs.starsim.org/api/utils.html#starsim.utils.parse_age_range" title="0"><code>ss.parse_age_range</code></a> (e.g.&nbsp;<code>['0-5', '5-10', ..., '70-75']</code>). Bins may overlap; a partner is counted in every bin containing its age. Defaults to five-year bins from <code>'0-5'</code> through <code>'70-75'</code>.</td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+</tr>
+<tr class="even">
+<td>networks</td>
+<td><a href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a href="https://docs.python.org/3/library/stdtypes.html#str">str</a>] | None</td>
+<td>Network names to track. <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a> (default) tracks every stisim <code>BaseNetwork</code>-derived sexual network in the sim. Named missing networks raise <a href="https://docs.python.org/3/library/exceptions.html#ValueError" title="1"><code>ValueError</code></a>; named networks that are not <code>BaseNetwork</code>-derived warn and are skipped. A network that cannot record all edge expirations (<code>records_all_expirations</code> is False, e.g.&nbsp;<code>MSMScaleFreeNetwork</code>) is <strong>skipped with a warning</strong>, since its active-interval results would be incomplete. The analyzer requires <code>BaseNetwork</code> because it reads BaseNetwork-only edge meta (<code>ti_formed</code>, <code>age_p1</code>, <code>age_p2</code>) and the <code>expired_this_loop</code> buffer, and sets <code>record_expired = True</code> on each tracked network.</td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+</tr>
+</tbody>
+</table>
+</section>
 <section id="methods-2" class="level4">
 <h4 class="anchored" data-anchor-id="methods-2">Methods</h4>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#stisim.analyzers.PartnershipFormationAnalyzer.finalize">finalize</a></td>
+<td>Resolve still-buffered relationships that expired at the end of the simulation.</td>
+</tr>
+<tr class="even">
+<td><a href="#stisim.analyzers.PartnershipFormationAnalyzer.get_n_partnerships_formed">get_n_partnerships_formed</a></td>
+<td>Total count of partnerships formed (non-unique pairings), per network and age bin.</td>
+</tr>
+<tr class="odd">
+<td><a href="#stisim.analyzers.PartnershipFormationAnalyzer.get_n_partnerships_formed_per_agent">get_n_partnerships_formed_per_agent</a></td>
+<td>Partnerships formed (non-unique) per agent over a trailing window, for agents alive at simulation end.</td>
+</tr>
+<tr class="even">
+<td><a href="#stisim.analyzers.PartnershipFormationAnalyzer.get_unique_partners_active_per_agent">get_unique_partners_active_per_agent</a></td>
+<td>Unique partner counts per agent over a trailing window, for agents alive at simulation end.</td>
+</tr>
+</tbody>
+</table>
+<section id="stisim.analyzers.PartnershipFormationAnalyzer.finalize" class="level5">
+<h5 class="anchored" data-anchor-id="stisim.analyzers.PartnershipFormationAnalyzer.finalize">finalize</h5>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>analyzers.PartnershipFormationAnalyzer.finalize()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Resolve still-buffered relationships that expired at the end of the simulation.</p>
+<p>After the loop, the only edges left in a network’s <code>self.expired_this_loop</code> are those removed by death at the <strong>final</strong> step 15 — i.e.&nbsp;after the last <code>step()</code> read. They were active through the disease phase of the final ti (step 9), so they get <code>ti_expired = final_ti + 1</code>. Relationships/edges still active at sim end were never buffered for removal recording, so they keep <code>ti_expired = None</code> (the right-censored marker; getter methods treat <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a> as still-active relationships at simulation end).</p>
+</section>
+<section id="stisim.analyzers.PartnershipFormationAnalyzer.get_n_partnerships_formed" class="level5">
+<h5 class="anchored" data-anchor-id="stisim.analyzers.PartnershipFormationAnalyzer.get_n_partnerships_formed">get_n_partnerships_formed</h5>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>analyzers.PartnershipFormationAnalyzer.get_n_partnerships_formed(</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    female<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    age_bins<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    window_months<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Total count of partnerships formed (non-unique pairings), per network and age bin.</p>
+<p>When window_months is not used (None), one timeseries of partnership formation counts will be returned per age bin. When window_months is an int, N, it will return single-element lists of partnership formation counts during the final N months of the simulation, one single-element list per age bin.</p>
+<section id="parameters-3" class="level6 doc-section doc-section-parameters">
+<h6 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-3">Parameters</h6>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>female</td>
+<td><a href="https://docs.python.org/3/library/functions.html#bool">bool</a></td>
+<td>Subject sex (True=female, False=male).</td>
+<td><a href="https://docs.python.org/3/library/constants.html#False" title="1"><code>False</code></a></td>
+</tr>
+<tr class="even">
+<td>age_bins</td>
+<td><a href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a href="https://docs.python.org/3/library/stdtypes.html#str">str</a>] | None</td>
+<td>Bins to report; <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a> (default) uses the analyzer’s construction bins. A partner is counted in every bin containing its age at formation (overlapping bins each count it); a partner whose age is outside every bin is not counted.</td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+</tr>
+<tr class="odd">
+<td>window_months</td>
+<td><a href="https://docs.python.org/3/library/functions.html#int">int</a> | None</td>
+<td>If <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a> (default), the inner array is the full per-timestep series (length <code>n_ti</code>, indexed by ti). If an int, the inner array is a single trailing-window sum (length 1).</td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="returns" class="level6 doc-section doc-section-returns">
+<h6 class="doc-section doc-section-returns anchored" data-anchor-id="returns">Returns</h6>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 9%">
+<col style="width: 9%">
+<col style="width: 80%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td></td>
+<td></td>
+<td>dict <code>{network_name: {age_bin: ndarray}}</code>. The inner array is</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td>length <code>n_ti</code> when <code>window_months is None</code>, else length 1.</td>
+</tr>
+</tbody>
+</table>
+<p>Example (per timestep, whole run)::</p>
+<pre><code>ana.get_n_partnerships_formed(female=False, age_bins=['15-50', '40-50'])
+# -&gt; {'mfnetwork': {'15-50': array([0, 2, 0, 0, 4]),   # by timestep
+#                   '40-50': array([0, 0, 1, 0, 0])}}</code></pre>
+<p>Example (single trailing-window sum)::</p>
+<pre><code>ana.get_n_partnerships_formed(female=False, age_bins=['15-50', '40-50'],
+                              window_months=12)
+# -&gt; {'mfnetwork': {'15-50': array([6]),   # sum over last 12 steps
+#                   '40-50': array([1])}}</code></pre>
+</section>
+</section>
+<section id="stisim.analyzers.PartnershipFormationAnalyzer.get_n_partnerships_formed_per_agent" class="level5">
+<h5 class="anchored" data-anchor-id="stisim.analyzers.PartnershipFormationAnalyzer.get_n_partnerships_formed_per_agent">get_n_partnerships_formed_per_agent</h5>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>analyzers.PartnershipFormationAnalyzer.get_n_partnerships_formed_per_agent(</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    female<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    window_months<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Partnerships formed (non-unique) per agent over a trailing window, for agents alive at simulation end.</p>
+<p>Equivalent to asking living agents, “How many partnerships have you formed over the last X months?”</p>
+<section id="parameters-4" class="level6 doc-section doc-section-parameters">
+<h6 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-4">Parameters</h6>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>female</td>
+<td><a href="https://docs.python.org/3/library/functions.html#bool">bool</a></td>
+<td>Subject sex.</td>
+<td><a href="https://docs.python.org/3/library/constants.html#False" title="1"><code>False</code></a></td>
+</tr>
+<tr class="even">
+<td>window_months</td>
+<td><a href="https://docs.python.org/3/library/functions.html#int">int</a> | None</td>
+<td>Trailing ti window length for partnership counting, None for whole simulation.</td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="returns-1" class="level6 doc-section doc-section-returns">
+<h6 class="doc-section doc-section-returns anchored" data-anchor-id="returns-1">Returns</h6>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 10%">
+<col style="width: 10%">
+<col style="width: 79%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td></td>
+<td></td>
+<td>dict <code>{network_name: array}</code> indexed like the subject-sex</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td>surviving-agent uids (<code>ana._final_uids['f'\|'m']</code>).</td>
+</tr>
+</tbody>
+</table>
+<p>Example (whole run)::</p>
+<pre><code>ana.get_n_partnerships_formed_per_agent(female=False)
+# -&gt; {'mfnetwork': array([0, 0, 1, 0, 4, ...])}
+#    aligned to ana._final_uids['m']; e.g. that male formed 4
+#    partnerships over the run (non-unique: a re-formed pair counts twice).</code></pre>
+</section>
+</section>
+<section id="stisim.analyzers.PartnershipFormationAnalyzer.get_unique_partners_active_per_agent" class="level5">
+<h5 class="anchored" data-anchor-id="stisim.analyzers.PartnershipFormationAnalyzer.get_unique_partners_active_per_agent">get_unique_partners_active_per_agent</h5>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>analyzers.PartnershipFormationAnalyzer.get_unique_partners_active_per_agent(</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    female<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    window_months<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Unique partner counts per agent over a trailing window, for agents alive at simulation end.</p>
+<p>Equivalent to asking living agents, “How many unique partners have you had over the last X months?”</p>
+<p>An edge counts as active in the trailing window iff it had not expired before the window opened, i.e.&nbsp;<code>ti_expired &gt; win_start</code> (its half-open active interval <code>[ti_formed, ti_expired)</code> overlaps the window). The window always ends at the final timestep, so no upper bound on <code>ti_formed</code> is needed; an ongoing edge carries <code>ti_expired = final_ti + 1</code> and therefore always counts. For <code>window_months=None</code> the window is the whole run (<code>win_start = 0</code>). Sex-general: the partner is the other endpoint regardless of its sex, so this works for same-sex networks too. Dedups by partner uid (a network is assumed not to hold concurrent duplicate edges between the same pair, so unique partners == unique active partnerships).</p>
+<section id="parameters-5" class="level6 doc-section doc-section-parameters">
+<h6 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-5">Parameters</h6>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>female</td>
+<td><a href="https://docs.python.org/3/library/functions.html#bool">bool</a></td>
+<td>Subject sex.</td>
+<td><a href="https://docs.python.org/3/library/constants.html#False" title="1"><code>False</code></a></td>
+</tr>
+<tr class="even">
+<td>window_months</td>
+<td><a href="https://docs.python.org/3/library/functions.html#int">int</a> | None</td>
+<td>Trailing ti window length for partner counting, None for whole simulation.</td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="returns-2" class="level6 doc-section doc-section-returns">
+<h6 class="doc-section doc-section-returns anchored" data-anchor-id="returns-2">Returns</h6>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 10%">
+<col style="width: 10%">
+<col style="width: 79%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td></td>
+<td></td>
+<td>dict <code>{network_name: array}</code> indexed like the subject-sex</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td>surviving-agent uids.</td>
+</tr>
+</tbody>
+</table>
+<p>Example (trailing 12 timesteps)::</p>
+<pre><code>ana.get_unique_partners_active_per_agent(female=False, window_months=12)
+# -&gt; {'mfnetwork': array([1, 0, 2, ...])}
+#    aligned to ana._final_uids['m']; e.g. the male at index 2 had 2
+#    distinct partners across edges active during the last 12 steps.</code></pre>
+</section>
+</section>
+</section>
+</section>
+<section id="stisim.analyzers.RelationshipDurations" class="level3">
+<h3 class="anchored" data-anchor-id="stisim.analyzers.RelationshipDurations">RelationshipDurations</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>analyzers.RelationshipDurations(<span class="op">*</span>args, <span class="op">**</span>kwargs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Analyze relationship durations in a StructuredSexual network.</p>
+<p>Records the mean and median duration of all relationships (stable, casual, etc.) at each timestep, disaggregated by sex. Durations are extracted from the network’s <code>relationship_durs</code> tracking dict.</p>
+<section id="methods-3" class="level4">
+<h4 class="anchored" data-anchor-id="methods-3">Methods</h4>
 <table class="caption-top table">
 <thead>
 <tr class="header">
@@ -886,11 +1224,11 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </table>
 <section id="stisim.analyzers.RelationshipDurations.get_relationship_durations" class="level5">
 <h5 class="anchored" data-anchor-id="stisim.analyzers.RelationshipDurations.get_relationship_durations">get_relationship_durations</h5>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>analyzers.RelationshipDurations.get_relationship_durations()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>analyzers.RelationshipDurations.get_relationship_durations()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Returns the durations of all relationships, separated by sex.</p>
 <p>If include_current is False, return the duration of only relationships that have ended</p>
-<section id="returns" class="level6 doc-section doc-section-returns">
-<h6 class="doc-section doc-section-returns anchored" data-anchor-id="returns">Returns</h6>
+<section id="returns-3" class="level6 doc-section doc-section-returns">
+<h6 class="doc-section doc-section-returns anchored" data-anchor-id="returns-3">Returns</h6>
 <table class="caption-top table">
 <thead>
 <tr class="header">
@@ -918,10 +1256,10 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </section>
 <section id="stisim.analyzers.TimeBetweenRelationships" class="level3">
 <h3 class="anchored" data-anchor-id="stisim.analyzers.TimeBetweenRelationships">TimeBetweenRelationships</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>analyzers.TimeBetweenRelationships(relationship_type<span class="op">=</span><span class="st">'stable'</span>, <span class="op">*</span>args, <span class="op">**</span>kwargs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>analyzers.TimeBetweenRelationships(relationship_type<span class="op">=</span><span class="st">'stable'</span>, <span class="op">*</span>args, <span class="op">**</span>kwargs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Analyzes the time between relationships in a structuredsexual network. Each timestep, for each debuted agent, check if they are in a relationship of the provided type. If not, increment the counter Otherwise, reset the counter to 0 and append the counter to the list of times between relationships for that agent.</p>
-<section id="methods-3" class="level4">
-<h4 class="anchored" data-anchor-id="methods-3">Methods</h4>
+<section id="methods-4" class="level4">
+<h4 class="anchored" data-anchor-id="methods-4">Methods</h4>
 <table class="caption-top table">
 <thead>
 <tr class="header">
@@ -938,18 +1276,18 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </table>
 <section id="stisim.analyzers.TimeBetweenRelationships.step" class="level5">
 <h5 class="anchored" data-anchor-id="stisim.analyzers.TimeBetweenRelationships.step">step</h5>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>analyzers.TimeBetweenRelationships.step()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>analyzers.TimeBetweenRelationships.step()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>For each debuted agent, check if they are in a relationship. If they are not, increment the time since last relationship by 1. If they are and time since last relationship is greater than 0, append the time to the list of times between relationships.</p>
 </section>
 </section>
 </section>
 <section id="stisim.analyzers.art_coverage" class="level3">
 <h3 class="anchored" data-anchor-id="stisim.analyzers.art_coverage">art_coverage</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>analyzers.art_coverage(age_bins<span class="op">=</span><span class="va">None</span>, <span class="op">*</span>args, <span class="op">**</span>kwargs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>analyzers.art_coverage(age_bins<span class="op">=</span><span class="va">None</span>, <span class="op">*</span>args, <span class="op">**</span>kwargs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Track ART coverage (number and proportion) by sex and age bin.</p>
 <p>Results are stored as time series per stratum, accessible via: analyzer.results[‘n_art_f_15_25’] # Women 15-25 on ART (count) analyzer.results[‘p_art_m_25_35’] # Men 25-35 on ART (proportion of infected)</p>
-<section id="parameters-2" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-2">Parameters</h4>
+<section id="parameters-6" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-6">Parameters</h4>
 <table class="caption-top table">
 <thead>
 <tr class="header">
@@ -969,8 +1307,8 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </tbody>
 </table>
 </section>
-<section id="methods-4" class="level4">
-<h4 class="anchored" data-anchor-id="methods-4">Methods</h4>
+<section id="methods-5" class="level4">
+<h4 class="anchored" data-anchor-id="methods-5">Methods</h4>
 <table class="caption-top table">
 <thead>
 <tr class="header">
@@ -987,7 +1325,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </table>
 <section id="stisim.analyzers.art_coverage.plot" class="level5">
 <h5 class="anchored" data-anchor-id="stisim.analyzers.art_coverage.plot">plot</h5>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>analyzers.art_coverage.plot(by_age<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>analyzers.art_coverage.plot(by_age<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Plot ART coverage over time.</p>
 <p>Creates a 2-panel figure: aggregate coverage (left) and by age/sex (right). If by_age=False, only plots aggregate.</p>
 <p>Example::</p>
@@ -998,19 +1336,19 @@ sim.analyzers.art_coverage.plot()</code></pre>
 </section>
 <section id="stisim.analyzers.coinfection_stats" class="level3">
 <h3 class="anchored" data-anchor-id="stisim.analyzers.coinfection_stats">coinfection_stats</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>analyzers.coinfection_stats(</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    disease1,</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    disease2,</span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    disease1_infected_state_name<span class="op">=</span><span class="st">'infected'</span>,</span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    disease2_infected_state_name<span class="op">=</span><span class="st">'infected'</span>,</span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    age_limits<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    denom<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">*</span>args,</span>
-<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kwargs,</span>
-<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>analyzers.coinfection_stats(</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>    disease1,</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    disease2,</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    disease1_infected_state_name<span class="op">=</span><span class="st">'infected'</span>,</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>    disease2_infected_state_name<span class="op">=</span><span class="st">'infected'</span>,</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>    age_limits<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>    denom<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">*</span>args,</span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kwargs,</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Generates stats for the coinfection of two diseases. This is useful for looking at the coinfection of HIV and syphilis, for example.</p>
-<section id="parameters-3" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-3">Parameters</h4>
+<section id="parameters-7" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-7">Parameters</h4>
 <table class="caption-top table">
 <thead>
 <tr class="header">
@@ -1069,17 +1407,17 @@ sim.analyzers.art_coverage.plot()</code></pre>
 </section>
 <section id="stisim.analyzers.partner_age_diff" class="level3">
 <h3 class="anchored" data-anchor-id="stisim.analyzers.partner_age_diff">partner_age_diff</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>analyzers.partner_age_diff(</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    year<span class="op">=</span><span class="dv">2000</span>,</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    age_bins<span class="op">=</span>[<span class="st">'teens'</span>, <span class="st">'young'</span>, <span class="st">'adult'</span>],</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    network<span class="op">=</span><span class="st">'structuredsexual'</span>,</span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">*</span>args,</span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kwargs,</span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>analyzers.partner_age_diff(</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>    year<span class="op">=</span><span class="dv">2000</span>,</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>    age_bins<span class="op">=</span>[<span class="st">'teens'</span>, <span class="st">'young'</span>, <span class="st">'adult'</span>],</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>    network<span class="op">=</span><span class="st">'structuredsexual'</span>,</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">*</span>args,</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kwargs,</span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Analyze age differences between sexual partners.</p>
 <p>Records the mean, median, and standard deviation of male-female age differences (male age minus female age) at each timestep. At a specified year, stores full age-difference distributions disaggregated by female age group for detailed plotting.</p>
-<section id="parameters-4" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-4">Parameters</h4>
+<section id="parameters-8" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-8">Parameters</h4>
 <table class="caption-top table">
 <thead>
 <tr class="header">
@@ -1111,8 +1449,8 @@ sim.analyzers.art_coverage.plot()</code></pre>
 </tbody>
 </table>
 </section>
-<section id="methods-5" class="level4">
-<h4 class="anchored" data-anchor-id="methods-5">Methods</h4>
+<section id="methods-6" class="level4">
+<h4 class="anchored" data-anchor-id="methods-6">Methods</h4>
 <table class="caption-top table">
 <thead>
 <tr class="header">
@@ -1137,34 +1475,34 @@ sim.analyzers.art_coverage.plot()</code></pre>
 </table>
 <section id="stisim.analyzers.partner_age_diff.init_results" class="level5">
 <h5 class="anchored" data-anchor-id="stisim.analyzers.partner_age_diff.init_results">init_results</h5>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>analyzers.partner_age_diff.init_results()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>analyzers.partner_age_diff.init_results()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Initialize the results for the age differences.</p>
 </section>
 <section id="stisim.analyzers.partner_age_diff.plot" class="level5">
 <h5 class="anchored" data-anchor-id="stisim.analyzers.partner_age_diff.plot">plot</h5>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>analyzers.partner_age_diff.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>analyzers.partner_age_diff.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Plot histograms of the age differences between partners.</p>
 </section>
 <section id="stisim.analyzers.partner_age_diff.step" class="level5">
 <h5 class="anchored" data-anchor-id="stisim.analyzers.partner_age_diff.step">step</h5>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>analyzers.partner_age_diff.step()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>analyzers.partner_age_diff.step()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Record the age differences between partners in the specified year.</p>
 </section>
 </section>
 </section>
 <section id="stisim.analyzers.result_grouper" class="level3">
 <h3 class="anchored" data-anchor-id="stisim.analyzers.result_grouper">result_grouper</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>analyzers.result_grouper()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>analyzers.result_grouper()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Base analyzer providing conditional probability utilities for grouped results.</p>
 <p>Provides a <code>cond_prob</code> static method that computes the proportion of a numerator group within a denominator group. Intended as a base class for analyzers that compute stratified prevalence or infection statistics.</p>
 </section>
 <section id="stisim.analyzers.sw_stats" class="level3">
 <h3 class="anchored" data-anchor-id="stisim.analyzers.sw_stats">sw_stats</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>analyzers.sw_stats(diseases<span class="op">=</span><span class="va">None</span>, <span class="op">*</span>args, <span class="op">**</span>kwargs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>analyzers.sw_stats(diseases<span class="op">=</span><span class="va">None</span>, <span class="op">*</span>args, <span class="op">**</span>kwargs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Track new infections and transmissions among sex workers and their clients.</p>
 <p>At each timestep, records the number and share of new infections and transmissions attributable to female sex workers (FSW), clients, and non-sex-worker populations, disaggregated by disease.</p>
-<section id="parameters-5" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-5">Parameters</h4>
+<section id="parameters-9" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-9">Parameters</h4>
 <table class="caption-top table">
 <thead>
 <tr class="header">
@@ -1623,7 +1961,7 @@ sim.analyzers.art_coverage.plot()</code></pre>
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.5.6 (2026-06-02).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.5.7 (2026-06-15).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">

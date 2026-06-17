@@ -1,7 +1,7 @@
 {
   "project": "stisim",
   "version": "0.0.9999",
-  "count": 231,
+  "count": 236,
   "items": [
     {
       "name": "stisim.sim.Sim.init",
@@ -289,6 +289,46 @@
       "role": "class",
       "priority": "1",
       "uri": "api/analyzers.html#stisim.analyzers.NetworkDegree",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers.PartnershipFormationAnalyzer.finalize",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.PartnershipFormationAnalyzer.finalize",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers.PartnershipFormationAnalyzer.get_n_partnerships_formed",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.PartnershipFormationAnalyzer.get_n_partnerships_formed",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers.PartnershipFormationAnalyzer.get_n_partnerships_formed_per_agent",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.PartnershipFormationAnalyzer.get_n_partnerships_formed_per_agent",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers.PartnershipFormationAnalyzer.get_unique_partners_active_per_agent",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.PartnershipFormationAnalyzer.get_unique_partners_active_per_agent",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.analyzers.PartnershipFormationAnalyzer",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.PartnershipFormationAnalyzer",
       "dispname": "-"
     },
     {
@@ -2105,6 +2145,46 @@
       "role": "class",
       "priority": "1",
       "uri": "api/analyzers.html#stisim.analyzers.NetworkDegree",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.PartnershipFormationAnalyzer.finalize",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.PartnershipFormationAnalyzer.finalize",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.PartnershipFormationAnalyzer.get_n_partnerships_formed",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.PartnershipFormationAnalyzer.get_n_partnerships_formed",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.PartnershipFormationAnalyzer.get_n_partnerships_formed_per_agent",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.PartnershipFormationAnalyzer.get_n_partnerships_formed_per_agent",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.PartnershipFormationAnalyzer.get_unique_partners_active_per_agent",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.PartnershipFormationAnalyzer.get_unique_partners_active_per_agent",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.PartnershipFormationAnalyzer",
+      "domain": "py",
+      "role": "class",
+      "priority": "1",
+      "uri": "api/analyzers.html#stisim.analyzers.PartnershipFormationAnalyzer",
       "dispname": "-"
     },
     {

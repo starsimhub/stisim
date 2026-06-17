@@ -80,9 +80,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-de63f62b328812d8e578a4d74e282472.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-fd1f6cbdafbf99fa1cd16ea34f28c7d8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-76aae80bb79b6e78359000ef1b30f63f.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-fd1f6cbdafbf99fa1cd16ea34f28c7d8.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-d583026f9b0ef0925622aad6f62ce451.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-89e3c27e96d96616de92a086d0ca516a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-d583026f9b0ef0925622aad6f62ce451.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -395,7 +395,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <p>This example compares two scenarios — one with the modifier on and one with it off — and shows how it shifts incidence during the pregnancy/postpartum window.</p>
 <section id="setup" class="level2">
 <h2 class="anchored" data-anchor-id="setup">Setup</h2>
-<div id="9f51f6bf" class="cell" data-execution_count="1">
+<div id="64c60a46" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sciris <span class="im">as</span> sc</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> starsim <span class="im">as</span> ss</span>
@@ -408,7 +408,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="tracking-pregnant-fsws" class="level2">
 <h2 class="anchored" data-anchor-id="tracking-pregnant-fsws">Tracking pregnant FSWs</h2>
 <p><code>PregnancyRiskReduction</code> doesn’t publish its own per-timestep results. A small analyzer records the number of agents who are simultaneously pregnant and FSW each step. <code>scale=True</code> on the <code>Result</code> ensures the count is multiplied by <code>sim.pars.pop_scale</code> when reading via <code>sim.results</code> — so the trajectory plot is interpretable as a real population count, not an agent count.</p>
-<div id="7412a0ce" class="cell" data-execution_count="2">
+<div id="b6e0bd22" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> PregnantFswAnalyzer(ss.Analyzer):</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Record number of pregnant FSWs each timestep (population-scaled)."""</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -425,7 +425,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="building-the-sims" class="level2">
 <h2 class="anchored" data-anchor-id="building-the-sims">Building the sims</h2>
 <p>Both scenarios run the same HIV transmission model and same population structure; they differ only in whether <code>PregnancyRiskReduction</code> is included.</p>
-<div id="a56ee2bb" class="cell" data-execution_count="3">
+<div id="df7f0537" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>sim_kwargs <span class="op">=</span> <span class="bu">dict</span>(</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    n_agents<span class="op">=</span><span class="dv">10_000</span>, dur<span class="op">=</span><span class="dv">20</span>, start<span class="op">=</span><span class="dv">2005</span>, verbose<span class="op">=-</span><span class="dv">1</span>, rand_seed<span class="op">=</span><span class="dv">1</span>,</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    networks<span class="op">=</span>[sti.StructuredSexual(), ss.MaternalNet(), ss.BreastfeedingNet()],</span>
@@ -453,86 +453,86 @@ Initializing sim "Modifier on" with 10000 agents
 
   Running "Modifier on": 2005.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
 
-  Running "Modifier off": 2006.01.01 (12/241) (0.75 s)  •——————————————————— 5%
+  Running "Modifier off": 2006.01.01 (12/241) (0.77 s)  •——————————————————— 5%
 
-  Running "Modifier on": 2006.01.01 (12/241) (0.75 s)  •——————————————————— 5%
+  Running "Modifier on": 2006.01.01 (12/241) (0.80 s)  •——————————————————— 5%
 
-  Running "Modifier off": 2007.01.01 (24/241) (1.26 s)  ••—————————————————— 10%
+  Running "Modifier off": 2007.01.01 (24/241) (1.32 s)  ••—————————————————— 10%
 
-  Running "Modifier on": 2007.01.01 (24/241) (1.28 s)  ••—————————————————— 10%
+  Running "Modifier on": 2007.01.01 (24/241) (1.36 s)  ••—————————————————— 10%
 
-  Running "Modifier off": 2008.01.01 (36/241) (1.78 s)  •••————————————————— 15%
+  Running "Modifier off": 2008.01.01 (36/241) (1.86 s)  •••————————————————— 15%
 
-  Running "Modifier on": 2008.01.01 (36/241) (1.80 s)  •••————————————————— 15%
+  Running "Modifier on": 2008.01.01 (36/241) (1.92 s)  •••————————————————— 15%
 
-  Running "Modifier off": 2009.01.01 (48/241) (2.31 s)  ••••———————————————— 20%
+  Running "Modifier off": 2009.01.01 (48/241) (2.41 s)  ••••———————————————— 20%
 
-  Running "Modifier on": 2009.01.01 (48/241) (2.34 s)  ••••———————————————— 20%
+  Running "Modifier on": 2009.01.01 (48/241) (2.49 s)  ••••———————————————— 20%
 
-  Running "Modifier off": 2010.01.01 (60/241) (2.82 s)  •••••——————————————— 25%
+  Running "Modifier off": 2010.01.01 (60/241) (2.94 s)  •••••——————————————— 25%
 
-  Running "Modifier on": 2010.01.01 (60/241) (2.86 s)  •••••——————————————— 25%
+  Running "Modifier on": 2010.01.01 (60/241) (3.04 s)  •••••——————————————— 25%
 
-  Running "Modifier off": 2011.01.01 (72/241) (3.34 s)  ••••••—————————————— 30%
+  Running "Modifier off": 2011.01.01 (72/241) (3.49 s)  ••••••—————————————— 30%
 
-  Running "Modifier on": 2011.01.01 (72/241) (3.40 s)  ••••••—————————————— 30%
+  Running "Modifier on": 2011.01.01 (72/241) (3.60 s)  ••••••—————————————— 30%
 
-  Running "Modifier off": 2012.01.01 (84/241) (3.87 s)  •••••••————————————— 35%
+  Running "Modifier off": 2012.01.01 (84/241) (4.03 s)  •••••••————————————— 35%
 
-  Running "Modifier on": 2012.01.01 (84/241) (3.92 s)  •••••••————————————— 35%
+  Running "Modifier on": 2012.01.01 (84/241) (4.15 s)  •••••••————————————— 35%
 
-  Running "Modifier off": 2013.01.01 (96/241) (4.41 s)  ••••••••———————————— 40%
+  Running "Modifier off": 2013.01.01 (96/241) (4.60 s)  ••••••••———————————— 40%
 
-  Running "Modifier on": 2013.01.01 (96/241) (4.47 s)  ••••••••———————————— 40%
+  Running "Modifier on": 2013.01.01 (96/241) (4.72 s)  ••••••••———————————— 40%
 
-  Running "Modifier off": 2014.01.01 (108/241) (4.93 s)  •••••••••——————————— 45%
+  Running "Modifier off": 2014.01.01 (108/241) (5.15 s)  •••••••••——————————— 45%
 
-  Running "Modifier on": 2014.01.01 (108/241) (5.00 s)  •••••••••——————————— 45%
+  Running "Modifier on": 2014.01.01 (108/241) (5.28 s)  •••••••••——————————— 45%
 
-  Running "Modifier off": 2015.01.01 (120/241) (5.45 s)  ••••••••••—————————— 50%
+  Running "Modifier off": 2015.01.01 (120/241) (5.70 s)  ••••••••••—————————— 50%
 
-  Running "Modifier on": 2015.01.01 (120/241) (5.54 s)  ••••••••••—————————— 50%
+  Running "Modifier on": 2015.01.01 (120/241) (5.85 s)  ••••••••••—————————— 50%
 
-  Running "Modifier off": 2016.01.01 (132/241) (5.99 s)  •••••••••••————————— 55%
+  Running "Modifier off": 2016.01.01 (132/241) (6.26 s)  •••••••••••————————— 55%
 
-  Running "Modifier on": 2016.01.01 (132/241) (6.07 s)  •••••••••••————————— 55%
+  Running "Modifier on": 2016.01.01 (132/241) (6.41 s)  •••••••••••————————— 55%
 
-  Running "Modifier off": 2017.01.01 (144/241) (6.53 s)  ••••••••••••———————— 60%
+  Running "Modifier off": 2017.01.01 (144/241) (6.83 s)  ••••••••••••———————— 60%
 
-  Running "Modifier on": 2017.01.01 (144/241) (6.63 s)  ••••••••••••———————— 60%
+  Running "Modifier on": 2017.01.01 (144/241) (6.98 s)  ••••••••••••———————— 60%
 
-  Running "Modifier off": 2018.01.01 (156/241) (7.06 s)  •••••••••••••——————— 65%
+  Running "Modifier off": 2018.01.01 (156/241) (7.39 s)  •••••••••••••——————— 65%
 
-  Running "Modifier on": 2018.01.01 (156/241) (7.17 s)  •••••••••••••——————— 65%
+  Running "Modifier on": 2018.01.01 (156/241) (7.55 s)  •••••••••••••——————— 65%
 
-  Running "Modifier off": 2019.01.01 (168/241) (7.59 s)  ••••••••••••••—————— 70%
+  Running "Modifier off": 2019.01.01 (168/241) (7.95 s)  ••••••••••••••—————— 70%
 
-  Running "Modifier on": 2019.01.01 (168/241) (7.70 s)  ••••••••••••••—————— 70%
+  Running "Modifier on": 2019.01.01 (168/241) (8.12 s)  ••••••••••••••—————— 70%
 
-  Running "Modifier off": 2020.01.01 (180/241) (8.11 s)  •••••••••••••••————— 75%
+  Running "Modifier off": 2020.01.01 (180/241) (8.51 s)  •••••••••••••••————— 75%
 
-  Running "Modifier on": 2020.01.01 (180/241) (8.26 s)  •••••••••••••••————— 75%
+  Running "Modifier on": 2020.01.01 (180/241) (8.70 s)  •••••••••••••••————— 75%
 
-  Running "Modifier off": 2021.01.01 (192/241) (8.67 s)  ••••••••••••••••———— 80%
+  Running "Modifier off": 2021.01.01 (192/241) (9.11 s)  ••••••••••••••••———— 80%
 
-  Running "Modifier on": 2021.01.01 (192/241) (8.81 s)  ••••••••••••••••———— 80%
+  Running "Modifier on": 2021.01.01 (192/241) (9.28 s)  ••••••••••••••••———— 80%
 
-  Running "Modifier off": 2022.01.01 (204/241) (9.24 s)  •••••••••••••••••——— 85%
+  Running "Modifier off": 2022.01.01 (204/241) (9.72 s)  •••••••••••••••••——— 85%
 
-  Running "Modifier on": 2022.01.01 (204/241) (9.40 s)  •••••••••••••••••——— 85%
+  Running "Modifier on": 2022.01.01 (204/241) (9.88 s)  •••••••••••••••••——— 85%
 
-  Running "Modifier off": 2023.01.01 (216/241) (9.82 s)  ••••••••••••••••••—— 90%
+  Running "Modifier off": 2023.01.01 (216/241) (10.32 s)  ••••••••••••••••••—— 90%
 
-  Running "Modifier on": 2023.01.01 (216/241) (9.99 s)  ••••••••••••••••••—— 90%
+  Running "Modifier on": 2023.01.01 (216/241) (10.49 s)  ••••••••••••••••••—— 90%
 
-  Running "Modifier off": 2024.01.01 (228/241) (10.40 s)  •••••••••••••••••••— 95%
+  Running "Modifier off": 2024.01.01 (228/241) (10.93 s)  •••••••••••••••••••— 95%
 
-  Running "Modifier on": 2024.01.01 (228/241) (10.59 s)  •••••••••••••••••••— 95%
+  Running "Modifier on": 2024.01.01 (228/241) (11.11 s)  •••••••••••••••••••— 95%
 
-  Running "Modifier off": 2025.01.01 (240/241) (11.00 s)  •••••••••••••••••••• 100%
+  Running "Modifier off": 2025.01.01 (240/241) (11.55 s)  •••••••••••••••••••• 100%
 
 
-  Running "Modifier on": 2025.01.01 (240/241) (11.20 s)  •••••••••••••••••••• 100%
+  Running "Modifier on": 2025.01.01 (240/241) (11.74 s)  •••••••••••••••••••• 100%
 </code></pre>
 </div>
 </div>
@@ -540,7 +540,7 @@ Initializing sim "Modifier on" with 10000 agents
 <section id="pregnant-fsws-over-time" class="level2">
 <h2 class="anchored" data-anchor-id="pregnant-fsws-over-time">Pregnant FSWs over time</h2>
 <p>The clearest visual signal: with the modifier off, pregnant FSWs accumulate as the simulation runs (any female agent in her SW window who becomes pregnant remains FSW). With the modifier on, the intervention reversibly toggles <code>paused</code> on those agents and the count stays at zero.</p>
-<div id="95959446" class="cell" data-execution_count="4">
+<div id="3cb10147" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>yearvec <span class="op">=</span> sims[<span class="dv">0</span>].t.yearvec</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="fl">4.5</span>))</span>
@@ -555,7 +555,7 @@ Initializing sim "Modifier on" with 10000 agents
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="pregnancy_risk_modifier_files/figure-html/cell-5-output-1.png" width="869" height="483" class="figure-img"></p>
+<p><img src="pregnancy_risk_modifier_files/figure-html/cell-5-output-1.png" width="868" height="483" class="figure-img"></p>
 </figure>
 </div>
 </div>
@@ -563,7 +563,7 @@ Initializing sim "Modifier on" with 10000 agents
 </section>
 <section id="hiv-incidence-comparison" class="level2">
 <h2 class="anchored" data-anchor-id="hiv-incidence-comparison">HIV incidence comparison</h2>
-<div id="9ac4fe11" class="cell" data-execution_count="5">
+<div id="83caa0b3" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="fl">4.5</span>))</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> label, sim <span class="kw">in</span> results.items():</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    ax.plot(yearvec, sim.results.hiv.new_infections, label<span class="op">=</span>label, lw<span class="op">=</span><span class="dv">2</span>)</span>
@@ -1030,7 +1030,7 @@ Initializing sim "Modifier on" with 10000 agents
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.5.6 (2026-06-02).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.5.7 (2026-06-15).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">
