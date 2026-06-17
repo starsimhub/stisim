@@ -100,7 +100,7 @@ def make_diseases():
     hiv = sti.HIV(init_prev=0.02, beta_m2f=0.03)
     syph = sti.Syphilis(
         init_prev=0.10, beta_m2f=0.25,
-        rel_trans_primary=5, rel_trans_latent=0.1,
+        rel_trans_primary=5,
         eff_condom=0.5,
         dur_primary=ss.constant(v=ss.years(2)),  # Extended for illustration
     )

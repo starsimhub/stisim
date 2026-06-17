@@ -85,9 +85,8 @@ Syphilis in STIsim progresses through exposed, primary, secondary, latent, and t
 | `eff_condom` | 0.0 | Condom efficacy (syphilis transmits via skin contact) |
 | `rel_trans_primary` | 1 | Relative transmissibility during primary stage |
 | `rel_trans_secondary` | 1 | Relative transmissibility during secondary stage |
-| `rel_trans_latent` | 1 | Baseline latent transmissibility (decays exponentially) |
 | `rel_trans_tertiary` | 0.0 | Relative transmissibility during tertiary (non-infectious) |
-| `rel_trans_latent_half_life` | 1 yr | Half-life of latent-stage transmissibility decay |
+| `rel_trans_latent_half_life` | 1 yr | Half-life of latent-stage transmissibility decay (latent starts from the secondary value and decays) |
 
 ### Congenital syphilis
 
