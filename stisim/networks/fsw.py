@@ -203,6 +203,10 @@ class SWNetwork(BaseNetwork):
         also inherit ``MFNetwork.match_pairs`` (e.g. :class:`StructuredSexual`)
         still pick the SW matcher here.
         """
+        # TODO: consider rejecting a (p1, p2) pairing if that pair already has an
+        # active edge in this or any other known network, to enforce the
+        # no-concurrent-duplicate-edge invariant that partner-uniqueness
+        # reporting (e.g. PartnershipFormationAnalyzer) assumes.
         ppl = self.sim.people
 
         try:
@@ -219,7 +223,8 @@ class SWNetwork(BaseNetwork):
         age_p2 = ppl.age[p2]
         edge_types = np.full(match_count, dtype=ss_float, fill_value=self.edge_types['sw'])
 
-        self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types)
+        ti_formed = np.full(match_count, self.ti, dtype=int)
+        self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types, ti_formed=ti_formed)
 
         p1_edges, p1_counts = np.unique(p1, return_counts=True)
         p2_edges, p2_counts = np.unique(p2, return_counts=True)

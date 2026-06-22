@@ -41,6 +41,11 @@ class StructuredSexual(MFNetwork):
         super().__init__(name=name)
         # SW layer
         self.define_pars(**SWPars())
+        # Multiplier on FSW non-sex-work (MF) concurrency: values <1 mean
+        # active sex workers have fewer non-sex-work partners. Default 1.0 =
+        # no effect. Lives here rather than on MFNetwork because StructuredSexual
+        # (MF + SW combined) is the only consumer.
+        self.define_pars(fsw_mf_conc_mult=1.0)
         self.define_states(*_sw_states())
         self.edge_types['sw'] = max(self.edge_types.values()) + 1
         # Apply user pars/kwargs against the full pars dict
@@ -59,9 +64,24 @@ class StructuredSexual(MFNetwork):
     def set_network_states(self, upper_age=None):
         super().set_network_states(upper_age=upper_age)
         self.set_sex_work(upper_age=upper_age)
+        # Scale FSW agents' MF (non-sex-work) concurrency, now that self.fsw is
+        # populated. This affects only sex workers' non-commercial partnerships;
+        # their sex-work edges come from SWNetwork.add_pairs and are untouched.
+        # No-op at default 1.0.
+        mult = self.pars.fsw_mf_conc_mult
+        if mult != 1.0:
+            fsw_uids = self.fsw.uids
+            if len(fsw_uids) > 0:
+                scaled = np.maximum(1, np.round(self.concurrency[fsw_uids] * mult)).astype(int)
+                self.concurrency[fsw_uids] = scaled
         return
 
     def add_pairs(self):
+        # TODO: consider rejecting a (p1, p2) pairing if that pair already has an
+        # active edge in this or any other known network, to enforce the
+        # no-concurrent-duplicate-edge invariant that partner-uniqueness
+        # reporting (e.g. PartnershipFormationAnalyzer) assumes. (Delegates to
+        # MFNetwork/SWNetwork below, so the check could live there instead.)
         MFNetwork.add_pairs(self)
         SWNetwork.add_pairs(self)
         return

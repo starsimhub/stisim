@@ -31,6 +31,11 @@ class SyphilisPlaceholder(ss.Disease):
 
         return
 
+    @property
+    def symptomatic(self):
+        """ Alias for the active state, so connectors share an interface with the full Syphilis module """
+        return self.active
+
     def init_pre(self, sim):
         super().init_pre(sim)
         if not isinstance(self.pars.prevalence, sti.TimeSeries):
@@ -75,7 +80,7 @@ class SyphPars(BaseSTIPars):
         self.dur_exposed = ss.normal(ss.days(50), ss.days(10))  # https://pubmed.ncbi.nlm.nih.gov/9101629/
         self.dur_primary = ss.normal(ss.weeks(6), ss.weeks(1))  # https://pubmed.ncbi.nlm.nih.gov/9101629/
         self.dur_secondary = ss.lognorm_ex(ss.months(3.6), ss.months(1.5))  # https://pubmed.ncbi.nlm.nih.gov/9101629/
-        self.dur_early = ss.uniform(ss.months(12), ss.months(14))  # Assumption
+        self.dur_early = ss.uniform(ss.months(22), ss.months(24))  # Early-latent boundary matches WHO Europe definition (≤2 years post-infection)
         self.p_reactivate = ss.bernoulli(p=0.35)  # Probability of reactivating from latent to secondary
         self.time_to_reactivate = ss.lognorm_ex(ss.years(1), ss.years(1))  # Time to reactivation
         self.p_tertiary = ss.bernoulli(p=0.35)  # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4917057/
@@ -83,12 +88,29 @@ class SyphPars(BaseSTIPars):
         self.p_death = ss.bernoulli(p=0.05)  # probability of dying of tertiary syphilis
         self.time_to_death = ss.lognorm_ex(ss.years(5), ss.years(5))  # Time to death
 
+        # Time from late-latent onset until non-treponemal titre falls below
+        # detection threshold on serological tests
+        self.time_to_undetectable = ss.lognorm_ex(ss.years(15), ss.years(5))
+
+        # Treponemal-test seroconversion + persistence
+        #   - dur_to_trep: time from infection to trep antibody detection
+        #     (window period during which the agent is infected but the
+        #     trep test is still negative; ~2-3 weeks for IgM/IgG)
+        #   - p_trep_persists: 80% of trep-positive agents remain trep+
+        #     for life. The other 20% sero-revert eventually.
+        #   - time_to_trep_revert: timing for the 20% who do sero-revert
+        #     (slow, variable; mean ~10y post-seroconversion)
+        # Agents treated BEFORE ti_trep_start (window-period treatment)
+        # never become trep+ — SyphTx handles that case in change_states.
+        self.dur_to_trep = ss.normal(ss.weeks(3), ss.weeks(1))
+        self.p_trep_persists = ss.bernoulli(p=0.80)
+        self.time_to_trep_revert = ss.normal(ss.years(10), ss.years(5))
+
         # Transmission by stage
         self.beta_m2f = 0.1
         self.eff_condom = 0.0
         self.rel_trans_primary = 1
         self.rel_trans_secondary = 1
-        self.rel_trans_latent = 1  # Baseline level; this decays exponentially with duration of latent infection
         self.rel_trans_tertiary = 0.0
         self.rel_trans_latent_half_life = ss.years(1)
 
@@ -131,8 +153,8 @@ class SyphPars(BaseSTIPars):
 
 class Syphilis(BaseSTI):
 
-    def __init__(self, pars=None, name='syph', init_prev_data=None, init_prev_latent_data=None, **kwargs):
-        super().__init__(name=name)
+    def __init__(self, pars=None, name='syph', init_prev_data=None, init_prev_latent_data=None, age_range=None, **kwargs):
+        super().__init__(name=name, age_range=age_range)
 
         # Define default parameters
         default_pars = SyphPars()
@@ -157,7 +179,9 @@ class Syphilis(BaseSTI):
             ss.BoolState('latent'),       # Can relapse to secondary, remain in latent, or progress to tertiary,
             ss.BoolState('tertiary'),     # Includes complications (cardio/neuro/disfigurement)
             ss.BoolState('immune'),       # After effective treatment people may acquire temp immunity
-            ss.BoolState('ever_exposed'), # Anyone ever exposed - stays true after treatment
+            ss.BoolState('ever_exposed'), # Biological: ever infected (lifetime); used for is_naive/sus_not_naive logic
+            ss.BoolState('trep'),         # Treponemal test positive (matches what a real trep RDT would detect: 80% persist for life, 20% sero-revert eventually)
+            ss.BoolState('nontrep'),      # Non-treponemal (RPR/VDRL) test positive
             ss.IntArr('n_infections', default=0),  # Lifetime infection count (incremented each time infected)
 
             # Symptom visibility — determined at infection/stage entry, reflects anatomical site
@@ -175,6 +199,9 @@ class Syphilis(BaseSTI):
             ss.FloatArr('ti_latent'),
             ss.FloatArr('dur_early'),
             ss.FloatArr('ti_tertiary'),
+            ss.FloatArr('ti_nontrep_end'),  # When non-trep titre drops below test threshold (sero-reversion on RPR/VDRL)
+            ss.FloatArr('ti_trep_start'),   # When trep antibodies appear (post-seroconversion); NaN if treated in window period
+            ss.FloatArr('ti_trep_end'),     # When trep test reverts to negative (NaN for the 80% who persist for life)
             ss.FloatArr('ti_dead'),
             ss.FloatArr('ti_immune'),
             ss.FloatArr('ti_miscarriage'),
@@ -264,14 +291,24 @@ class Syphilis(BaseSTI):
         return self.exposed | self.primary | self.secondary
 
     @property
-    def active(self):
-        """ Active infection includes primary and secondary stages """
-        return self.primary | self.secondary
-
-    @property
     def infectious(self):
         """ Infectious """
-        return self.active | self.latent
+        return self.symptomatic | self.latent
+
+    @property
+    def sexually_transmissible(self):
+        """ Stages during which syphilis is sexually transmissible: primary,
+        secondary, and early latent. Late latent and tertiary are not
+        normally sexually transmissible (late latent can still transmit
+        congenitally at low levels). Matches WHO 'early infectious syphilis'. """
+        return self.primary | self.secondary | self.early
+
+    @property
+    def symptomatic(self):
+        """ Symptomatic stages of syphilis: primary or secondary. Distinct from
+        ``visibly_symptomatic``, which requires that the symptom actually be
+        observable (chancre at a visible site, or rash). """
+        return self.primary | self.secondary
 
     @property
     def ulcerative(self):
@@ -279,8 +316,9 @@ class Syphilis(BaseSTI):
         return self.chancre_visible & self.primary
 
     @property
-    def symptomatic(self):
-        """ Has noticeable symptoms: visible ulcer or visible rash """
+    def visibly_symptomatic(self):
+        """ Has clinically detectable symptoms: visible ulcer or visible rash.
+        Used by care-seeking pathways. """
         return self.ulcerative | (self.rash_visible & self.secondary)
 
     def init_post(self):
@@ -313,10 +351,14 @@ class Syphilis(BaseSTI):
         super().init_results()
         results = [
             ss.Result('n_active', dtype=int, label="Number of active cases", auto_plot=False),
+            ss.Result('trep_prevalence', dtype=float, scale=False, label="Treponemal-test positive (ever-exposed proxy)"),
             ss.Result('pregnant_prevalence', dtype=float, scale=False, label="Pregnant prevalence", auto_plot=False),
             ss.Result('detected_pregnant_prevalence', dtype=float, scale=False, label="ANC prevalence", auto_plot=False),
             ss.Result('delivery_prevalence', dtype=float, scale=False, label="Delivery prevalence", auto_plot=False),
-            ss.Result('active_prevalence', dtype=float, scale=False, label="Active prevalence"),
+            ss.Result('sexually_transmissible_prevalence', dtype=float, scale=False, label="Sexually transmissible (primary + secondary + early latent)"),
+            ss.Result('symptomatic_prevalence', dtype=float, scale=False, label="Symptomatic stage prevalence (primary + secondary)"),
+            ss.Result('primary_prevalence', dtype=float, scale=False, label="Primary stage prevalence"),
+            ss.Result('nontrep_prevalence', dtype=float, scale=False, label="Non-treponemal (RPR) positive"),
             ss.Result('new_nnds', dtype=int, label="Neonatal deaths", auto_plot=False),
             ss.Result('new_stillborns', dtype=int, label="Stillbirths", auto_plot=False),
             ss.Result('new_congenital', dtype=int, label="Congenital cases"),
@@ -339,14 +381,22 @@ class Syphilis(BaseSTI):
             skl = '' if sk == '' else f' ({sk.upper()})'
             if skk != '':
                 results += [
-                    ss.Result(f'active_prevalence{skk}', scale=False, label=f"Active prevalence{skl}", auto_plot=False),
+                    ss.Result(f'trep_prevalence{skk}', scale=False, label=f"Treponemal-test positive{skl}", auto_plot=False),
+                    ss.Result(f'sexually_transmissible_prevalence{skk}', scale=False, label=f"Sexually transmissible prevalence{skl}", auto_plot=False),
+                    ss.Result(f'symptomatic_prevalence{skk}', scale=False, label=f"Symptomatic prevalence{skl}", auto_plot=False),
+                    ss.Result(f'primary_prevalence{skk}', scale=False, label=f"Primary stage prevalence{skl}", auto_plot=False),
+                    ss.Result(f'nontrep_prevalence{skk}', scale=False, label=f"Non-treponemal positive{skl}", auto_plot=False),
                 ]
 
             for ab1,ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
                 ask = f'{skk}_{ab1}_{ab2}'
-                asl = f' ({skl}, {ab2}-{ab2})'
+                asl = f' ({skl}, {ab1}-{ab2})'
                 results += [
-                    ss.Result(f'active_prevalence{ask}', scale=False, label=f"Active prevalence{asl}", auto_plot=False),
+                    ss.Result(f'sexually_transmissible_prevalence{ask}', scale=False, label=f"Sexually transmissible prevalence{asl}", auto_plot=False),
+                    ss.Result(f'symptomatic_prevalence{ask}', scale=False, label=f"Symptomatic prevalence{asl}", auto_plot=False),
+                    ss.Result(f'primary_prevalence{ask}', scale=False, label=f"Primary stage prevalence{asl}", auto_plot=False),
+                    ss.Result(f'trep_prevalence{ask}', scale=False, label=f"Treponemal positive{asl}", auto_plot=False),
+                    ss.Result(f'nontrep_prevalence{ask}', scale=False, label=f"Non-treponemal positive{asl}", auto_plot=False),
                 ]
 
         # Add FSW and clients to results:
@@ -454,6 +504,23 @@ class Syphilis(BaseSTI):
             self.late[is_early] = False
             self.late[is_late] = True
 
+        # Non-trep sero-reversion: non-trep titre falls below test threshold at
+        # the per-agent ti_nontrep_end (drawn from time_to_undetectable in
+        # set_latent_prognoses). Reactivation back to secondary re-sets
+        # nontrep=True in set_secondary_prognoses.
+        becomes_nontrep_neg = self.nontrep & (self.ti_nontrep_end <= ti)
+        if len(becomes_nontrep_neg.uids) > 0:
+            self.nontrep[becomes_nontrep_neg] = False
+
+        # Treponemal seroconversion (post-window-period appearance of trep+)
+        becomes_trep_pos = (~self.trep) & (self.ti_trep_start <= ti)
+        if len(becomes_trep_pos.uids) > 0:
+            self.trep[becomes_trep_pos] = True
+        # Treponemal sero-reversion (for the 20% with ti_trep_end set)
+        becomes_trep_neg = self.trep & (self.ti_trep_end <= ti)
+        if len(becomes_trep_neg.uids) > 0:
+            self.trep[becomes_trep_neg] = False
+
         return
 
     def step_die(self, uids):
@@ -471,6 +538,8 @@ class Syphilis(BaseSTI):
         self.immune[uids] = False
         self.congenital[uids] = False
         self.ever_exposed[uids] = False
+        self.trep[uids] = False
+        self.nontrep[uids] = False
         self.n_infections[uids] = 0
         self.chancre_visible[uids] = False
         self.rash_visible[uids] = False
@@ -483,6 +552,9 @@ class Syphilis(BaseSTI):
         self.ti_latent[uids] = np.nan
         self.ti_tertiary[uids] = np.nan
         self.ti_congenital[uids] = np.nan
+        self.ti_nontrep_end[uids] = np.nan
+        self.ti_trep_start[uids] = np.nan
+        self.ti_trep_end[uids] = np.nan
 
     def update_results(self):
         super().update_results()
@@ -491,12 +563,16 @@ class Syphilis(BaseSTI):
         ppl = self.sim.people
 
         n_active = res['n_primary'][ti] + res['n_secondary'][ti]
-        adults = (ppl.age >= 15) & (ppl.age < 50)
+        adults = (ppl.age >= self.age_range[0]) & (ppl.age < self.age_range[1])
         sexually_active_adults = adults & self.sim.networks.structuredsexual.active(self.sim.people)
 
         # Overwrite prevalence so we're always storing prevalence of syphilis among sexually active adults
         self.results['prevalence'][ti] = cond_prob(self.infected, sexually_active_adults)
-        # self.results['active_prevalence'][ti] = cond_prob(self.active, sexually_active_adults)
+        self.results['trep_prevalence'][ti] = cond_prob(self.trep, sexually_active_adults)
+        self.results['nontrep_prevalence'][ti] = cond_prob(self.nontrep, sexually_active_adults)
+        self.results['sexually_transmissible_prevalence'][ti] = cond_prob(self.sexually_transmissible, sexually_active_adults)
+        self.results['symptomatic_prevalence'][ti] = cond_prob(self.symptomatic, sexually_active_adults)
+        self.results['primary_prevalence'][ti] = cond_prob(self.primary, sexually_active_adults)
         self.results['n_active'][ti] = n_active
 
         # Pregnant women prevalence, if present
@@ -540,11 +616,24 @@ class Syphilis(BaseSTI):
         for pkey, pattr in self.sex_keys.items():
             skk = '' if pkey == '' else f'_{pkey}'
 
-            n_act = self.active & ppl[pattr]
-            self.results[f'active_prevalence{skk}'][ti] = cond_prob(self.active, adults & ppl[pattr])
+            sex_denom = sexually_active_adults & ppl[pattr]
+            if skk != '':
+                self.results[f'prevalence{skk}'][ti] = cond_prob(self.infected, sex_denom)
+                self.results[f'trep_prevalence{skk}'][ti] = cond_prob(self.trep, sex_denom)
+                self.results[f'nontrep_prevalence{skk}'][ti] = cond_prob(self.nontrep, sex_denom)
+                self.results[f'symptomatic_prevalence{skk}'][ti] = cond_prob(self.symptomatic, sex_denom)
+                self.results[f'sexually_transmissible_prevalence{skk}'][ti] = cond_prob(self.sexually_transmissible, sex_denom)
+                self.results[f'primary_prevalence{skk}'][ti] = cond_prob(self.primary, sex_denom)
 
-            # Compute age results
-            age_results = dict(active_prevalence = div(self.agehist(n_act), self.agehist(ppl[pattr])))
+            # Compute age-binned prevalences (denominator = all people of that sex in each age bin)
+            ppl_pattr_hist = self.agehist(ppl[pattr])
+            age_results = dict(
+                sexually_transmissible_prevalence = div(self.agehist(self.sexually_transmissible & ppl[pattr]), ppl_pattr_hist),
+                symptomatic_prevalence = div(self.agehist(self.symptomatic & ppl[pattr]), ppl_pattr_hist),
+                primary_prevalence = div(self.agehist(self.primary & ppl[pattr]), ppl_pattr_hist),
+                trep_prevalence = div(self.agehist(self.trep & ppl[pattr]), ppl_pattr_hist),
+                nontrep_prevalence = div(self.agehist(self.nontrep & ppl[pattr]), ppl_pattr_hist),
+            )
 
             # Store age results
             for akey, ares in age_results.items():
@@ -576,7 +665,8 @@ class Syphilis(BaseSTI):
         dur_latent = ti - self.ti_latent[self.latent]
         hl = self.pars.rel_trans_latent_half_life
         decay_rate = np.log(2) / hl if ~np.isnan(hl) else 0.
-        latent_trans = self.pars.rel_trans_latent * np.exp(-decay_rate * dur_latent)
+        starting = self.pars.rel_trans_secondary
+        latent_trans = starting * np.exp(-decay_rate * dur_latent)
         self.rel_trans[self.latent] = latent_trans
         return
 
@@ -607,6 +697,18 @@ class Syphilis(BaseSTI):
         self.ti_exposed[uids] = ti
         self.ti_infected[uids] = ti
 
+        # Treponemal seroconversion: trep+ appears ~3 weeks post-infection,
+        # so during the window period agents are infected but trep-negative.
+        # 80% remain trep+ for life; the other 20% sero-revert ~10y later.
+        dur_to_trep = self.pars.dur_to_trep.rvs(uids)
+        self.ti_trep_start[uids] = self.ti_exposed[uids] + rr(dur_to_trep)
+        persists = self.pars.p_trep_persists.rvs(uids)
+        reverters = uids[~persists]
+        if len(reverters) > 0:
+            revert_delay = self.pars.time_to_trep_revert.rvs(reverters)
+            self.ti_trep_end[reverters] = self.ti_trep_start[reverters] + rr(revert_delay)
+        # Persisters keep ti_trep_end at default NaN (never reverts)
+
         # Exposed to primary
         dur_exposed = self.pars.dur_exposed.rvs(uids)
         self.ti_primary[uids] = self.ti_exposed[uids] + rr(dur_exposed)
@@ -630,9 +732,19 @@ class Syphilis(BaseSTI):
         """ Set prognoses for people who have just progressed to secondary infection """
         dur_secondary = self.pars.dur_secondary.rvs(uids)
         self.ti_latent[uids] = self.ti_secondary[uids] + rr(dur_secondary)
+        # Non-treponemal titre rises by secondary; RPR becomes positive.
+        # Also covers reactivation from late latent (titre climbs again).
+        self.nontrep[uids] = True
         return
 
     def set_latent_prognoses(self, uids):
+        # Late-latent non-trep sero-reversion: draw the time at which
+        # non-trep titre is expected to fall below test threshold.
+        # ti_nontrep_end is measured from the *start of late latent* =
+        # ti_latent + dur_early.
+        late_start = self.ti_latent[uids] + self.dur_early[uids]
+        self.ti_nontrep_end[uids] = late_start + rr(self.pars.time_to_undetectable.rvs(uids))
+
         # Reactivators
         will_reactivate = self.pars.p_reactivate.rvs(uids)
         reactivate_uids = uids[will_reactivate]
