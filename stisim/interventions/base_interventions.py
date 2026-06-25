@@ -1033,8 +1033,9 @@ class PartnerNotification(ss.Intervention):
     Each contact is offered notification with probability ``p_notify_<scope>``;
     notified contacts attend follow-up with probability ``p_attends_<scope>``.
     Attendees are scheduled for the supplied ``test`` intervention on the next
-    timestep. Index cases are not notified about themselves; partners reachable
-    via both channels are not double-notified.
+    timestep. Index cases partnered with each other are not notified as
+    partners — they are already in the cascade, so re-notifying is redundant.
+    Partners reachable via both channels are not double-notified.
 
     Args:
         eligibility: Callable ``f(sim) -> uids`` returning index cases (e.g.
@@ -1138,8 +1139,11 @@ class PartnerNotification(ss.Intervention):
 
     def find_partners(self, nw, index_uids):
         """
-        UIDs of partners of `index_uids` on network `nw`, deduplicated and
-        excluding any index case from being notified about themselves.
+        Unique UIDs of partners of ``index_uids`` on network ``nw``. Partner
+        UIDs that are themselves index cases are dropped: index cases
+        partnered with each other are not notified as partners (they are
+        already in the cascade). Used for the prior-partner channel, which
+        does not stratify by edge type.
         """
         in_p1 = np.isin(nw.p1, index_uids)
         in_p2 = np.isin(nw.p2, index_uids)
@@ -1151,29 +1155,34 @@ class PartnerNotification(ss.Intervention):
         return ss.uids(partners)
 
     def _build_partner_edges(self, nw, index_uids):
-        """Return dict {partner_uid: [edge_type_int, ...]} for current-channel
-        edges where one endpoint is an index case. Edges that connect two
-        index cases are excluded — index cases are not notified about
-        themselves.
+        """Return ``{partner_uid: [edge_type_int, ...]}`` for current-channel
+        edges with one endpoint in ``index_uids``. Partner UIDs that are
+        themselves index cases are dropped: index cases partnered with each
+        other are not notified as partners (they are already in the cascade).
+        A partner reachable via several index cases gets one list entry per
+        edge, so the :func:`stisim.pn_rates` helper can sum per-edge rates.
 
-        Edge-type info is exposed via ``self.current_partner_edges`` so that
-        callables passed to ``p_notify_current.p`` / ``p_attends_current.p``
-        can return per-UID probabilities stratified by edge type (see the
-        :func:`stisim.pn_rates` helper).
+        Every stisim network carries an ``edge_type`` column (set on the
+        network base ``meta``), so this is safe for any current network; the
+        edge-type ints map to names via ``nw.edge_types``.
+
+        The result is exposed via ``self.current_partner_edges`` so callables
+        passed to ``p_notify_current.p`` / ``p_attends_current.p`` can return
+        per-UID probabilities stratified by edge type.
         """
         in_p1 = np.isin(nw.p1, index_uids)
         in_p2 = np.isin(nw.p2, index_uids)
         partner_uids = np.concatenate([nw.p2[in_p1], nw.p1[in_p2]])
         edge_types = np.concatenate([nw.edges.edge_type[in_p1],
                                      nw.edges.edge_type[in_p2]])
-        # Drop index-from-index edges
+        # Drop partners that are themselves index cases (index-index edges).
         keep = ~np.isin(partner_uids, index_uids)
         partner_uids = partner_uids[keep]
         edge_types = edge_types[keep]
 
         partner_edges = defaultdict(list)
-        for uid, et in zip(partner_uids, edge_types):
-            partner_edges[int(uid)].append(int(et))
+        for uid, edge_type in zip(partner_uids, edge_types):
+            partner_edges[int(uid)].append(int(edge_type))
         return partner_edges
 
     def step(self):
@@ -1181,19 +1190,21 @@ class PartnerNotification(ss.Intervention):
         if len(index_uids) == 0:
             return
 
-        # Current-partner channel: walk edges, group edge_types by partner uid.
-        # Callables on p_notify_current.p / p_attends_current.p can read
-        # `self.current_partner_edges` to stratify by edge type.
+        # Current-partner channel: walk edges, grouping edge types by partner
+        # uid. A callable on p_notify_current.p / p_attends_current.p (e.g. one
+        # built by the pn_rates helper) can read `self.current_partner_edges`
+        # to stratify the probability by edge type.
         self.current_partner_edges = self._build_partner_edges(self._cur_nw, index_uids)
         cur_partners = ss.uids(sorted(self.current_partner_edges))
 
         cur_notified = self.pars.p_notify_current.filter(cur_partners)
         cur_attending = self.pars.p_attends_current.filter(cur_notified)
 
-        # Prior-partner channel (skip partners already notified as current).
-        # Edge-type stratification is not currently supported for the prior
-        # channel; pn_rates helpers passed here would see an empty
-        # current_partner_edges and return zeros.
+        # Prior-partner channel. Partners already in the current channel this
+        # step are removed first, so no one is notified twice in a single step
+        # (this is within-step cross-channel dedup, not across timesteps).
+        # Edge-type stratification is current-channel only: a pn_rates callable
+        # passed here sees an empty current_partner_edges and returns zeros.
         if self._use_previous:
             prev_partners = self.find_partners(self._prev_nw, index_uids)
             prev_partners = ss.uids(prev_partners[~np.isin(prev_partners, cur_partners)])
@@ -1267,34 +1278,31 @@ def pn_rates(rates):
                 )
 
     def func(module, sim, uids):
+        # current_partner_edges is populated by PartnerNotification.step() for
+        # the current channel only; absent/empty on the prior channel -> all 0.
         partner_edges = getattr(module, 'current_partner_edges', None) or {}
         if not partner_edges:
             return np.zeros(len(uids))
-        # Resolve edge_type int -> name once per call.
-        nw = module._cur_nw
-        int_to_name = {int(v): k for k, v in nw.edge_types.items()}
+        # Map edge-type int -> name once per call (rates is keyed by name).
+        edge_type_to_name = {int(v): k for k, v in module._cur_nw.edge_types.items()}
         if sex_dependent:
             female = sim.people.female
-        out = np.zeros(len(uids))
-        for i, u in enumerate(uids):
-            uid = int(u)
-            edge_types = partner_edges.get(uid, ())
-            if not edge_types:
-                continue
-            total = 0.0
-            if sex_dependent:
-                sex_key = 'f' if female[uid] else 'm'
-            for et in edge_types:
-                name = int_to_name.get(int(et))
+        probs = np.zeros(len(uids))
+        for i, uid in enumerate(uids):
+            uid = int(uid)
+            partner_edge_types = partner_edges.get(uid, ())
+            if not partner_edge_types:
+                continue  # not reached on the current channel this step -> 0
+            sex_key = ('f' if female[uid] else 'm') if sex_dependent else None
+            prob = 0.0
+            for edge_type in partner_edge_types:
+                name = edge_type_to_name.get(int(edge_type))
                 if name is None or name not in rates:
-                    continue
-                spec = rates[name]
-                if sex_dependent:
-                    total += float(spec.get(sex_key, 0.0))
-                else:
-                    total += float(spec)
-            out[i] = min(total, 1.0)
-        return out
+                    continue  # edge type not in `rates` contributes 0
+                rate = rates[name]
+                prob += float(rate.get(sex_key, 0.0)) if sex_dependent else float(rate)
+            probs[i] = min(prob, 1.0)  # cap summed multi-edge probability at 1
+        return probs
 
     return func
 

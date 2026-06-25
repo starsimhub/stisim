@@ -556,6 +556,93 @@ def test_pn():
     return n_dx_no_pn, n_dx_with_pn
 
 
+def test_pn_rates():
+    """ pn_rates: edge-type and partner-sex stratification of the probability callable """
+    sc.heading('Testing pn_rates stratification...')
+
+    def evaluate(rates, partner_edges, edge_types, uids, female=None):
+        """ Run a pn_rates callable against stubbed module/sim state. """
+        nw = sc.dictobj(edge_types=edge_types)
+        module = sc.dictobj(current_partner_edges=partner_edges, _cur_nw=nw)
+        sim = sc.dictobj(people=sc.dictobj(female=female))
+        return sti.pn_rates(rates)(module, sim, ss.uids(uids))
+
+    # Single edge type: matched partner gets its rate, non-partner gets 0
+    one = {'stable': 0}
+    assert np.allclose(evaluate({'stable': 0.2}, {1: [0]}, one, [1, 2]), [0.2, 0.0])
+
+    # Two edge types, incl. a partner reachable via both edges (rates summed)
+    two = {'stable': 0, 'casual': 1}
+    assert np.allclose(evaluate({'stable': 0.2, 'casual': 0.1}, {1: [0], 2: [1], 3: [0, 1]}, two, [1, 2, 3]),
+                       [0.2, 0.1, 0.3])
+
+    # Multi-edge probabilities sum but cap at 1
+    assert np.allclose(evaluate({'stable': 0.8}, {1: [0, 0]}, one, [1]), [1.0])
+
+    # Edge type absent from `rates` contributes 0 (the "pn_rates 0" case)
+    assert np.allclose(evaluate({'stable': 0.5}, {1: [2]}, {'stable': 0, 'onetime': 2}, [1]), [0.0])
+
+    # Empty current_partner_edges (e.g. the prior channel) -> all zeros
+    assert np.allclose(evaluate({'stable': 0.5}, {}, one, [1, 2]), [0.0, 0.0])
+
+    # Per-sex rates resolve by partner sex (uid 1 female, uid 2 male)
+    female = np.array([False, True, False])
+    assert np.allclose(evaluate({'stable': {'f': 0.8, 'm': 0.5}}, {1: [0], 2: [0]}, one, [1, 2], female),
+                       [0.8, 0.5])
+
+    # Mixing scalar and per-sex specs raises
+    try:
+        sti.pn_rates({'stable': {'f': 0.8, 'm': 0.5}, 'casual': 0.1})
+        raise AssertionError('Expected ValueError for mixed scalar/dict spec')
+    except ValueError:
+        pass
+    return
+
+
+def test_pn_rates_sim():
+    """ pn_rates through PartnerNotification.step() across one and two networks """
+    sc.heading('Testing pn_rates in a running sim...')
+
+    def newly_diagnosed(sim):
+        hiv = sim.diseases.hiv
+        return (hiv.ti_diagnosed == hiv.ti).uids
+
+    def make_sim(current_rates, use_prior=False):
+        # Notify/attend probs are deterministic (matched edge -> 1, else 0),
+        # so current notifications reflect exactly which partners matched.
+        hiv_test = sti.HIVTest(name='hiv_test', test_prob_data=0.3)
+        pn = sti.PartnerNotification(
+            eligibility=newly_diagnosed, test=hiv_test,
+            p_notify_current=ss.bernoulli(p=sti.pn_rates(current_rates)),
+            p_attends_current=ss.bernoulli(p=1.0),
+            p_notify_previous=ss.bernoulli(p=0.5 if use_prior else 0.0),
+            p_attends_previous=ss.bernoulli(p=1.0),
+            name='pn',
+        )
+        networks = [sti.StructuredSexual(recall_prior=use_prior)]
+        if use_prior:
+            networks.append(sti.PriorPartners(dur_recall=ss.years(0.5)))
+        return hivsim.demo('simple', run=False, plot=False, n_agents=n_agents,
+                           dur=5, rand_seed=1, verbose=-1,
+                           networks=networks, interventions=[hiv_test, pn])
+
+    edge_types = sti.StructuredSexual().edge_types
+
+    # Single network: matching rates notify partners; an unmatched edge type notifies none
+    match = make_sim({k: 1.0 for k in edge_types}); match.run()
+    none  = make_sim({'no_such_edge_type': 1.0});   none.run()
+    n_match = int(match.results.pn.new_notified_current.sum())
+    assert n_match > 0, f'Expected current notifications with matching rates, got {n_match}'
+    assert int(none.results.pn.new_notified_current.sum()) == 0, 'Unmatched edge type should notify nobody'
+
+    # Two networks: with a prior network also configured, the current channel
+    # still notifies via pn_rates. The prior channel is current-channel-blind:
+    # pn_rates returns 0 there (covered deterministically in test_pn_rates).
+    both = make_sim({k: 1.0 for k in edge_types}, use_prior=True); both.run()
+    assert int(both.results.pn.new_notified_current.sum()) > 0, 'Expected current-channel notifications'
+    return n_match
+
+
 if __name__ == '__main__':
     do_plot = True
     sc.options(interactive=do_plot)
@@ -573,6 +660,8 @@ if __name__ == '__main__':
     r10 = test_art_parameter_sensitivity(do_plot=do_plot)
     r11 = test_art_duration(do_plot=do_plot)
     r12 = test_pn()
+    r13 = test_pn_rates()
+    r14 = test_pn_rates_sim()
 
     T.toc()
 
