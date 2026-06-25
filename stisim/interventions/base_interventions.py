@@ -2,6 +2,8 @@
 Define interventions for STIsim
 """
 
+from collections import defaultdict
+
 import starsim as ss
 import numpy as np
 import sciris as sc
@@ -11,7 +13,7 @@ from stisim.utils import count
 
 
 # %% Base classes
-__all__ = ["STIDx", "STITest", "SymptomaticTesting", "SyndromicManagement", "ANCTest", "STITreatment", "PartnerNotification", "ProductMix"]
+__all__ = ["STIDx", "STITest", "SymptomaticTesting", "SyndromicManagement", "ANCTest", "STITreatment", "PartnerNotification", "ProductMix", "pn_rates"]
 
 
 class STIDx(ss.Product):
@@ -1031,8 +1033,9 @@ class PartnerNotification(ss.Intervention):
     Each contact is offered notification with probability ``p_notify_<scope>``;
     notified contacts attend follow-up with probability ``p_attends_<scope>``.
     Attendees are scheduled for the supplied ``test`` intervention on the next
-    timestep. Index cases are not notified about themselves; partners reachable
-    via both channels are not double-notified.
+    timestep. Index cases partnered with each other are not notified as
+    partners — they are already in the cascade, so re-notifying is redundant.
+    Partners reachable via both channels are not double-notified.
 
     Args:
         eligibility: Callable ``f(sim) -> uids`` returning index cases (e.g.
@@ -1136,8 +1139,11 @@ class PartnerNotification(ss.Intervention):
 
     def find_partners(self, nw, index_uids):
         """
-        UIDs of partners of `index_uids` on network `nw`, deduplicated and
-        excluding any index case from being notified about themselves.
+        Unique UIDs of partners of ``index_uids`` on network ``nw``. Partner
+        UIDs that are themselves index cases are dropped: index cases
+        partnered with each other are not notified as partners (they are
+        already in the cascade). Used for the prior-partner channel, which
+        does not stratify by edge type.
         """
         in_p1 = np.isin(nw.p1, index_uids)
         in_p2 = np.isin(nw.p2, index_uids)
@@ -1148,17 +1154,57 @@ class PartnerNotification(ss.Intervention):
         partners = partners[~np.isin(partners, index_uids)]
         return ss.uids(partners)
 
+    def _build_partner_edges(self, nw, index_uids):
+        """Return ``{partner_uid: [edge_type_int, ...]}`` for current-channel
+        edges with one endpoint in ``index_uids``. Partner UIDs that are
+        themselves index cases are dropped: index cases partnered with each
+        other are not notified as partners (they are already in the cascade).
+        A partner reachable via several index cases gets one list entry per
+        edge, so the :func:`stisim.pn_rates` helper can sum per-edge rates.
+
+        Every stisim network carries an ``edge_type`` column (set on the
+        network base ``meta``), so this is safe for any current network; the
+        edge-type ints map to names via ``nw.edge_types``.
+
+        The result is exposed via ``self.current_partner_edges`` so callables
+        passed to ``p_notify_current.p`` / ``p_attends_current.p`` can return
+        per-UID probabilities stratified by edge type.
+        """
+        in_p1 = np.isin(nw.p1, index_uids)
+        in_p2 = np.isin(nw.p2, index_uids)
+        partner_uids = np.concatenate([nw.p2[in_p1], nw.p1[in_p2]])
+        edge_types = np.concatenate([nw.edges.edge_type[in_p1],
+                                     nw.edges.edge_type[in_p2]])
+        # Drop partners that are themselves index cases (index-index edges).
+        keep = ~np.isin(partner_uids, index_uids)
+        partner_uids = partner_uids[keep]
+        edge_types = edge_types[keep]
+
+        partner_edges = defaultdict(list)
+        for uid, edge_type in zip(partner_uids, edge_types):
+            partner_edges[int(uid)].append(int(edge_type))
+        return partner_edges
+
     def step(self):
         index_uids = self.eligibility(self.sim)
         if len(index_uids) == 0:
             return
 
-        # Current-partner channel
-        cur_partners = self.find_partners(self._cur_nw, index_uids)
+        # Current-partner channel: walk edges, grouping edge types by partner
+        # uid. A callable on p_notify_current.p / p_attends_current.p (e.g. one
+        # built by the pn_rates helper) can read `self.current_partner_edges`
+        # to stratify the probability by edge type.
+        self.current_partner_edges = self._build_partner_edges(self._cur_nw, index_uids)
+        cur_partners = ss.uids(sorted(self.current_partner_edges))
+
         cur_notified = self.pars.p_notify_current.filter(cur_partners)
         cur_attending = self.pars.p_attends_current.filter(cur_notified)
 
-        # Prior-partner channel (skip partners already notified as current)
+        # Prior-partner channel. Partners already in the current channel this
+        # step are removed first, so no one is notified twice in a single step
+        # (this is within-step cross-channel dedup, not across timesteps).
+        # Edge-type stratification is current-channel only: a pn_rates callable
+        # passed here sees an empty current_partner_edges and returns zeros.
         if self._use_previous:
             prev_partners = self.find_partners(self._prev_nw, index_uids)
             prev_partners = ss.uids(prev_partners[~np.isin(prev_partners, cur_partners)])
@@ -1180,6 +1226,85 @@ class PartnerNotification(ss.Intervention):
         self.results['new_notified'][ti] = len(cur_notified) + len(prev_notified)
         self.results['new_attending'][ti] = len(all_attending)
         return
+
+
+def pn_rates(rates):
+    """
+    Build a per-UID probability callable for :class:`PartnerNotification`.
+
+    Stratifies notification or attendance rates by partnership edge type
+    (and optionally partner sex). The returned callable is suitable as the
+    ``p`` argument of ``ss.bernoulli`` passed as ``p_notify_current`` or
+    ``p_attends_current`` on a ``PartnerNotification`` instance.
+
+    Args:
+        rates: dict mapping edge-type name to a probability OR to a per-sex
+            dict. Two supported shapes:
+
+            - ``{edge_name: prob}`` — notification or attendance rate that
+              does not depend on partner sex. Example::
+
+                  {'stable': 0.20, 'casual': 0.10}
+
+            - ``{edge_name: {'f': prob, 'm': prob}}`` — rate that depends
+              on partner sex. Example::
+
+                  {'stable': {'f': 0.80, 'm': 0.50},
+                   'casual': {'f': 0.50, 'm': 0.25}}
+
+            Edge names must match the active network's
+            ``edge_types`` keys. Edges whose type is not in ``rates`` get
+            probability 0.
+
+    Returns:
+        callable f(module, sim, uids) -> ndarray of probabilities, one per
+        UID. If a partner is reachable via multiple current-channel edges
+        (e.g. notified by two distinct index cases on the same step), the
+        per-edge probabilities are **summed and capped at 1**.
+
+    The callable looks up ``module.current_partner_edges``, populated by
+    ``PartnerNotification.step()``. It returns zeros if that mapping is
+    empty (e.g. when called from the previous-partner channel).
+    """
+    # Detect format from a sample value
+    sample = next(iter(rates.values()), None)
+    sex_dependent = isinstance(sample, dict)
+    if sex_dependent:
+        for k, v in rates.items():
+            if not isinstance(v, dict):
+                raise ValueError(
+                    f"pn_rates: inconsistent rates spec; key '{k}' has "
+                    f"non-dict value while another key is a dict."
+                )
+
+    def func(module, sim, uids):
+        # current_partner_edges is populated by PartnerNotification.step() for
+        # the current channel only; absent/empty on the prior channel -> all 0.
+        partner_edges = getattr(module, 'current_partner_edges', None) or {}
+        if not partner_edges:
+            return np.zeros(len(uids))
+        # Map edge-type int -> name once per call (rates is keyed by name).
+        edge_type_to_name = {int(v): k for k, v in module._cur_nw.edge_types.items()}
+        if sex_dependent:
+            female = sim.people.female
+        probs = np.zeros(len(uids))
+        for i, uid in enumerate(uids):
+            uid = int(uid)
+            partner_edge_types = partner_edges.get(uid, ())
+            if not partner_edge_types:
+                continue  # not reached on the current channel this step -> 0
+            sex_key = ('f' if female[uid] else 'm') if sex_dependent else None
+            prob = 0.0
+            for edge_type in partner_edge_types:
+                name = edge_type_to_name.get(int(edge_type))
+                if name is None or name not in rates:
+                    continue  # edge type not in `rates` contributes 0
+                rate = rates[name]
+                prob += float(rate.get(sex_key, 0.0)) if sex_dependent else float(rate)
+            probs[i] = min(prob, 1.0)  # cap summed multi-edge probability at 1
+        return probs
+
+    return func
 
 
 class ProductMix(ss.Product):
