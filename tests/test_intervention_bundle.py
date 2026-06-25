@@ -11,11 +11,14 @@ import sys
 from pathlib import Path
 
 import stisim as sti
+from stisim import ProductCategory, DeliveryMode
 
 from stisim.intervention_bundle import InterventionBundle
+from stisim.interventions.supplied_prep import SuppliedPrep
 from stisim.logistics.product import Product
 from stisim.logistics.supplies import Supplies
 from stisim.logistics.supply import Supply
+from tests.hiv_natural_history_analyzers import PrepCoverageAnalyzer
 
 tests_directory = Path(__file__).resolve().parent
 sys.path.append(str(tests_directory))
@@ -30,7 +33,7 @@ verbose = False
 do_plot = False
 sc.options(interactive=False)
 
-shot_1y_perfect = Product(name='test-shot', type='prep', delivery_mode='shot', cost=10, eff_by_ti=[1.0] * 12)
+shot_1y_perfect = Product(name='test-shot', category=ProductCategory.PREP, delivery_mode=DeliveryMode.SHOT, cost=10, eff_by_ti=[1.0] * 12)
 
 
 def infinite_prep(product):
