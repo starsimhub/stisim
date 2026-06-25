@@ -14,13 +14,13 @@ def test_msm_network(n_agents=500):
     hiv = sti.HIV(beta_m2m=0.1, init_prev=0.05)
     pregnancy = ss.Pregnancy(fertility_rate=10)
     death = ss.Deaths(death_rate=10)
-    msm = sti.AgeMatchedMSM()
+    msm = sti.AgeMatchedMSM(p_msm=ss.bernoulli(p=0.3))
     sim = sti.Sim(
         start=1990,
         dur=10,
         n_agents=n_agents,
         diseases=hiv,
-        networks=msm,
+        networks=[msm],
         demographics=[pregnancy, death],
     )
     sim.run(verbose=1/12)

@@ -15,7 +15,6 @@ def _mf_states():
         ss.FloatArr('risk_group'),
         ss.FloatArr('concurrency'),
         ss.FloatArr('partners', default=0),
-        ss.FloatArr('partners_12', default=0),
         ss.FloatArr('lifetime_partners', default=0),
         ss.FloatArr('casual_partners', default=0),
         ss.FloatArr('stable_partners', default=0),
@@ -199,7 +198,7 @@ class MFNetwork(BaseNetwork):
         in_age_lim = (people.age < upper_age)
         uids = in_age_lim.uids
 
-        lam = np.full(uids.shape, fill_value=np.nan, dtype=ss_float)
+        mu = np.full(uids.shape, fill_value=np.nan, dtype=ss_float)
         for rg in range(self.pars.n_risk_groups):
             f_conc = self.pars[f'f{rg}_conc']
             m_conc = self.pars[f'm{rg}_conc']
@@ -207,11 +206,28 @@ class MFNetwork(BaseNetwork):
             in_group = in_risk_group & in_age_lim
             f_in = (people.female & in_group)[uids]
             m_in = (people.male   & in_group)[uids]
-            if f_in.any(): lam[f_in] = f_conc
-            if m_in.any(): lam[m_in] = m_conc
+            if f_in.any(): mu[f_in] = f_conc
+            if m_in.any(): mu[m_in] = m_conc
 
-        self.pars.concurrency_dist.set(lam=lam)
-        self.concurrency[uids] = self.pars.concurrency_dist.rvs(uids) + 1
+        # Note: the FSW-specific multiplier (fsw_mf_conc_mult) is applied in
+        # StructuredSexual.set_network_states post-hoc, because set_sex_work
+        # populates self.fsw AFTER set_concurrency runs in the MF flow.
+
+        # `mu` is the target *mean* concurrency, but the two supported dists
+        # are parameterized differently: ss.poisson takes the mean directly as
+        # `lam`, whereas ss.nbinom takes (n, p) and must be reparameterized from
+        # the mean at fixed dispersion n via p = n/(n+mu). Calling .set(lam=...)
+        # on an nbinom is silently ignored (it has no `lam` parameter), so we
+        # branch on the dist type to avoid a no-op that would leave the dist at
+        # its construction default.
+        dist = self.pars.concurrency_dist
+        if isinstance(dist, ss.nbinom):
+            n = dist.pars['n']
+            p = n / (n + mu)
+            dist.set(n=n, p=p)
+        else:
+            dist.set(lam=mu)
+        self.concurrency[uids] = dist.rvs(uids) + 1
 
         return
 
@@ -248,6 +264,10 @@ class MFNetwork(BaseNetwork):
 
     def add_pairs(self):
         """ Match and add stable/casual/onetime partnerships for this timestep. Assigns relationship type, duration, and acts based on risk group and age, and updates partner counts. """
+        # TODO: consider rejecting a (p1, p2) pairing if that pair already has an
+        # active edge in this or any other known network, to enforce the
+        # no-concurrent-duplicate-edge invariant that partner-uniqueness
+        # reporting (e.g. PartnershipFormationAnalyzer) assumes.
         ppl = self.sim.people
 
         try:
@@ -305,7 +325,8 @@ class MFNetwork(BaseNetwork):
             pair = (min(a,b), max(a,b))
             self.relationship_durs[pair].append({'start': self.ti, 'dur': reldur, 'edge_type': int(etype)}) # set dur to intended duration. When the relationship actually ends, this will be updated
 
-        self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types)
+        ti_formed = np.full(match_count, self.ti, dtype=int)
+        self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types, ti_formed=ti_formed)
 
         # Checks
         if (self.sim.people.female[p1].any() or self.sim.people.male[p2].any()) and (self.name == 'structuredsexual'):
@@ -331,7 +352,14 @@ class MFNetwork(BaseNetwork):
         return
 
     def _on_edge_dissolution(self, active):
-        """Record dissolved partnerships and decrement partner counts."""
+        """Record dissolved partnerships and decrement partner counts.
+
+        Calls ``super()`` first so BaseNetwork's expired-edge recording (used by
+        ``PartnershipFormationAnalyzer`` when ``record_expired`` is True) still
+        fires — overriding this hook without ``super()`` would silently disable
+        expiration tracking for MFNetwork and its subclasses.
+        """
+        super()._on_edge_dissolution(active)
         self._record_prior_partners(active)
         self._decrement_partners(active)
 

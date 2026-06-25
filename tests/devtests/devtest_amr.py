@@ -48,7 +48,7 @@ def test_gon(n_agents=500, dt=1/12, start=2000, dur=40):
     ct_tx = sti.STITreatment(diseases='ct', name='ct_tx', label='ct_tx')
     metro = sti.STITreatment(diseases=['tv', 'bv'], name='metro', label='metro')
     syndromic = sti.SymptomaticTesting(
-        diseases=[ng, tv, ct, vd],
+        diseases=['ng', 'tv', 'ct', 'bv'],
         eligibility=seeking_care_discharge,
         treatments=[ng_tx, ct_tx, metro],
         disease_treatment_map={'ng': ng_tx, 'ct': ct_tx, 'tv': metro, 'bv': metro}
