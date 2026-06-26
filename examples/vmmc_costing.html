@@ -68,6 +68,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../">
+<link href="../examples/pregnancy_risk_modifier.html" rel="next">
+<link href="../examples/partner_notification.html" rel="prev">
 <link href="..//assets/favicon.ico" rel="icon">
 <script src="../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
@@ -152,7 +154,7 @@ window.Quarto = {
 <link rel="stylesheet" href="../assets/styles.css">
 </head>
 
-<body class="nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+<body class="nav-sidebar floating nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
     const toggleBodyColorMode = (bsSheetEl) => {
       const mode = bsSheetEl.getAttribute("data-mode");
       const bodyEl = window.document.querySelector("body");
@@ -333,7 +335,7 @@ window.Quarto = {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link" href="../index.html"> 
+    <a class="nav-link active" href="../index.html" aria-current="page"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
@@ -375,10 +377,303 @@ window.Quarto = {
 </div>
       </div> <!-- /container-fluid -->
     </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../examples/index.html"><strong>Examples</strong></a></li><li class="breadcrumb-item"><a href="../examples/vmmc_costing.html">Costing VMMC and computing an ICER</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
 </header>
 <!-- content -->
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><strong>Home</strong></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../whatsnew.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><strong>What’s new</strong></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><strong>API reference</strong></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text"><strong>Tutorials</strong></span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../tutorials/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Overview</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../tutorials/tut_intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Getting started with STIsim</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../tutorials/tut_cotransmission.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Co-transmitting STIs</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../tutorials/tut_results.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Results and plotting</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../tutorials/tut_interventions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Interventions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../tutorials/tut_calibration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Calibration</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text"><strong>User guide</strong></span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Overview</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/hivsim.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">HIVsim</span></a>
+  </div>
+</li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Diseases</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/diseases/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Overview</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/diseases/hiv.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">HIV</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/diseases/syphilis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Syphilis</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/diseases/chlamydia.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Chlamydia</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/diseases/gonorrhea.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Gonorrhea</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/diseases/trichomoniasis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Trichomoniasis</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/diseases/bv.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Bacterial vaginosis (BV)</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/diseases/gud.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Genital ulcer disease (GUD)</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Networks</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/networks/structured_sexual.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Structured sexual network</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/networks/matching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Pair matching</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/networks/msm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">MSM networks</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
+ <span class="menu-text">Interventions</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/interventions/interventions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Interventions</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/analyzers.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Analyzers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/care_seeking.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Care-seeking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/connectors.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Coinfection connectors</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/calibration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Calibration</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true">
+ <span class="menu-text"><strong>Examples</strong></span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Overview</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/art_interruptions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Modeling ART interruptions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/dynamic_debut.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Time-varying age at sexual debut</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/partner_notification.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Partner notification</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/vmmc_costing.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Costing VMMC and computing an ICER</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/pregnancy_risk_modifier.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Switching sexual-risk behaviour during pregnancy</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../code_of_conduct.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><strong>Code of conduct</strong></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../contributing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><strong>Contributing</strong></span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
         <nav id="TOC" role="doc-toc" class="toc-active" data-toc-expanded="99">
@@ -404,7 +699,7 @@ window.Quarto = {
 <main class="content" id="quarto-document-content">
 
 
-<header id="title-block-header" class="quarto-title-block default">
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../examples/index.html"><strong>Examples</strong></a></li><li class="breadcrumb-item"><a href="../examples/vmmc_costing.html">Costing VMMC and computing an ICER</a></li></ol></nav>
 <div class="quarto-title">
 <h1 class="title">Costing VMMC and computing an ICER</h1>
 </div>
@@ -428,7 +723,7 @@ window.Quarto = {
 <p>This example shows how to run a much-simplified version of that kind of analysis in STIsim: build with-/without-VMMC scenarios, attach unit costs, discount, and compute an incremental cost-effectiveness ratio (ICER). We then compare our ballpark to the published range. The same recipe works for any STIsim intervention.</p>
 <section id="setup" class="level2">
 <h2 class="anchored" data-anchor-id="setup">Setup</h2>
-<div id="57a9e069" class="cell" data-execution_count="1">
+<div id="6677a86a" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sciris <span class="im">as</span> sc</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> starsim <span class="im">as</span> ss</span>
@@ -442,7 +737,7 @@ window.Quarto = {
 <section id="costing-assumptions" class="level2">
 <h2 class="anchored" data-anchor-id="costing-assumptions">Costing assumptions</h2>
 <p>Matched to Bansi-Matharu et al.&nbsp;where possible. The lifetime HIV cost is a stand-in for the DALY-weighted health and treatment burden of an infection and is used only as a back-of-envelope cost-saving benchmark.</p>
-<div id="94e7bf36" class="cell" data-execution_count="2">
+<div id="f7b21742" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>unit_cost_vmmc      <span class="op">=</span> <span class="dv">90</span>     <span class="co"># USD per procedure (Bansi-Matharu et al. 2022)</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>unit_cost_infection <span class="op">=</span> <span class="dv">3_000</span>  <span class="co"># USD per averted HIV infection (illustrative)</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>discount_rate       <span class="op">=</span> <span class="fl">0.03</span>   <span class="co"># 3% per year (standard)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -451,7 +746,7 @@ window.Quarto = {
 <section id="building-the-sims" class="level2">
 <h2 class="anchored" data-anchor-id="building-the-sims">Building the sims</h2>
 <p>We use the <code>hivsim</code> simple demo with <code>StructuredSexual</code> (heterosexual network with FSW/clients) so HIV transmission is sustained. The paper compares “continue VMMC for 5 more years” against “no further VMMC” starting from existing coverage; we approximate this by scaling VMMC from 0 to 60% coverage over the simulation window in the intervention scenario, and zero coverage in the comparator.</p>
-<div id="86d2b217" class="cell" data-execution_count="3">
+<div id="21ae03e1" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>sim_kwargs <span class="op">=</span> <span class="bu">dict</span>(</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    n_agents<span class="op">=</span><span class="dv">5_000</span>, dur<span class="op">=</span><span class="dv">20</span>, start<span class="op">=</span><span class="dv">2005</span>, verbose<span class="op">=-</span><span class="dv">1</span>,</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    init_prev<span class="op">=</span><span class="fl">0.05</span>, beta_m2f<span class="op">=</span><span class="fl">0.05</span>,</span>
@@ -475,7 +770,7 @@ window.Quarto = {
 </section>
 <section id="running-scenarios" class="level2">
 <h2 class="anchored" data-anchor-id="running-scenarios">Running scenarios</h2>
-<div id="0b630ca8" class="cell" data-execution_count="4">
+<div id="cc2ea7c9" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>sims <span class="op">=</span> ss.parallel([make_sim(use_vmmc<span class="op">=</span><span class="va">False</span>), make_sim(use_vmmc<span class="op">=</span><span class="va">True</span>)]).sims</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> {sim.label: sim <span class="cf">for</span> sim <span class="kw">in</span> sims}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -486,86 +781,86 @@ Initializing sim "With VMMC" with 5000 agents
 
   Running "With VMMC": 2005.01.01 ( 0/241) (0.00 s)  ———————————————————— 0%
 
-  Running "No VMMC": 2006.01.01 (12/241) (0.63 s)  •——————————————————— 5%
+  Running "No VMMC": 2006.01.01 (12/241) (0.59 s)  •——————————————————— 5%
 
-  Running "With VMMC": 2006.01.01 (12/241) (0.62 s)  •——————————————————— 5%
+  Running "With VMMC": 2006.01.01 (12/241) (0.59 s)  •——————————————————— 5%
 
-  Running "No VMMC": 2007.01.01 (24/241) (1.04 s)  ••—————————————————— 10%
+  Running "No VMMC": 2007.01.01 (24/241) (0.96 s)  ••—————————————————— 10%
 
-  Running "With VMMC": 2007.01.01 (24/241) (1.04 s)  ••—————————————————— 10%
+  Running "With VMMC": 2007.01.01 (24/241) (0.97 s)  ••—————————————————— 10%
 
-  Running "No VMMC": 2008.01.01 (36/241) (1.43 s)  •••————————————————— 15%
+  Running "No VMMC": 2008.01.01 (36/241) (1.33 s)  •••————————————————— 15%
 
-  Running "With VMMC": 2008.01.01 (36/241) (1.44 s)  •••————————————————— 15%
+  Running "With VMMC": 2008.01.01 (36/241) (1.34 s)  •••————————————————— 15%
 
-  Running "No VMMC": 2009.01.01 (48/241) (1.83 s)  ••••———————————————— 20%
+  Running "No VMMC": 2009.01.01 (48/241) (1.70 s)  ••••———————————————— 20%
 
-  Running "With VMMC": 2009.01.01 (48/241) (1.85 s)  ••••———————————————— 20%
+  Running "With VMMC": 2009.01.01 (48/241) (1.72 s)  ••••———————————————— 20%
 
-  Running "No VMMC": 2010.01.01 (60/241) (2.23 s)  •••••——————————————— 25%
+  Running "No VMMC": 2010.01.01 (60/241) (2.06 s)  •••••——————————————— 25%
 
-  Running "With VMMC": 2010.01.01 (60/241) (2.26 s)  •••••——————————————— 25%
+  Running "With VMMC": 2010.01.01 (60/241) (2.09 s)  •••••——————————————— 25%
 
-  Running "No VMMC": 2011.01.01 (72/241) (2.62 s)  ••••••—————————————— 30%
+  Running "No VMMC": 2011.01.01 (72/241) (2.43 s)  ••••••—————————————— 30%
 
-  Running "With VMMC": 2011.01.01 (72/241) (2.67 s)  ••••••—————————————— 30%
+  Running "With VMMC": 2011.01.01 (72/241) (2.47 s)  ••••••—————————————— 30%
 
-  Running "No VMMC": 2012.01.01 (84/241) (3.03 s)  •••••••————————————— 35%
+  Running "No VMMC": 2012.01.01 (84/241) (2.80 s)  •••••••————————————— 35%
 
-  Running "With VMMC": 2012.01.01 (84/241) (3.09 s)  •••••••————————————— 35%
+  Running "With VMMC": 2012.01.01 (84/241) (2.84 s)  •••••••————————————— 35%
 
-  Running "No VMMC": 2013.01.01 (96/241) (3.44 s)  ••••••••———————————— 40%
+  Running "No VMMC": 2013.01.01 (96/241) (3.17 s)  ••••••••———————————— 40%
 
-  Running "With VMMC": 2013.01.01 (96/241) (3.49 s)  ••••••••———————————— 40%
+  Running "With VMMC": 2013.01.01 (96/241) (3.22 s)  ••••••••———————————— 40%
 
-  Running "No VMMC": 2014.01.01 (108/241) (3.84 s)  •••••••••——————————— 45%
+  Running "No VMMC": 2014.01.01 (108/241) (3.53 s)  •••••••••——————————— 45%
 
-  Running "With VMMC": 2014.01.01 (108/241) (3.88 s)  •••••••••——————————— 45%
+  Running "With VMMC": 2014.01.01 (108/241) (3.58 s)  •••••••••——————————— 45%
 
-  Running "No VMMC": 2015.01.01 (120/241) (4.24 s)  ••••••••••—————————— 50%
+  Running "No VMMC": 2015.01.01 (120/241) (3.89 s)  ••••••••••—————————— 50%
 
-  Running "With VMMC": 2015.01.01 (120/241) (4.28 s)  ••••••••••—————————— 50%
+  Running "With VMMC": 2015.01.01 (120/241) (3.95 s)  ••••••••••—————————— 50%
 
-  Running "No VMMC": 2016.01.01 (132/241) (4.64 s)  •••••••••••————————— 55%
+  Running "No VMMC": 2016.01.01 (132/241) (4.26 s)  •••••••••••————————— 55%
 
-  Running "With VMMC": 2016.01.01 (132/241) (4.69 s)  •••••••••••————————— 55%
+  Running "With VMMC": 2016.01.01 (132/241) (4.32 s)  •••••••••••————————— 55%
 
-  Running "No VMMC": 2017.01.01 (144/241) (5.04 s)  ••••••••••••———————— 60%
+  Running "No VMMC": 2017.01.01 (144/241) (4.63 s)  ••••••••••••———————— 60%
 
-  Running "With VMMC": 2017.01.01 (144/241) (5.10 s)  ••••••••••••———————— 60%
+  Running "With VMMC": 2017.01.01 (144/241) (4.70 s)  ••••••••••••———————— 60%
 
-  Running "No VMMC": 2018.01.01 (156/241) (5.43 s)  •••••••••••••——————— 65%
+  Running "No VMMC": 2018.01.01 (156/241) (5.00 s)  •••••••••••••——————— 65%
 
-  Running "With VMMC": 2018.01.01 (156/241) (5.50 s)  •••••••••••••——————— 65%
+  Running "With VMMC": 2018.01.01 (156/241) (5.08 s)  •••••••••••••——————— 65%
 
-  Running "No VMMC": 2019.01.01 (168/241) (5.83 s)  ••••••••••••••—————— 70%
+  Running "No VMMC": 2019.01.01 (168/241) (5.36 s)  ••••••••••••••—————— 70%
 
-  Running "With VMMC": 2019.01.01 (168/241) (5.91 s)  ••••••••••••••—————— 70%
+  Running "With VMMC": 2019.01.01 (168/241) (5.45 s)  ••••••••••••••—————— 70%
 
-  Running "No VMMC": 2020.01.01 (180/241) (6.24 s)  •••••••••••••••————— 75%
+  Running "No VMMC": 2020.01.01 (180/241) (5.74 s)  •••••••••••••••————— 75%
 
-  Running "With VMMC": 2020.01.01 (180/241) (6.33 s)  •••••••••••••••————— 75%
+  Running "With VMMC": 2020.01.01 (180/241) (5.82 s)  •••••••••••••••————— 75%
 
-  Running "No VMMC": 2021.01.01 (192/241) (6.63 s)  ••••••••••••••••———— 80%
+  Running "No VMMC": 2021.01.01 (192/241) (6.11 s)  ••••••••••••••••———— 80%
 
-  Running "With VMMC": 2021.01.01 (192/241) (6.73 s)  ••••••••••••••••———— 80%
+  Running "With VMMC": 2021.01.01 (192/241) (6.19 s)  ••••••••••••••••———— 80%
 
-  Running "No VMMC": 2022.01.01 (204/241) (7.04 s)  •••••••••••••••••——— 85%
+  Running "No VMMC": 2022.01.01 (204/241) (6.50 s)  •••••••••••••••••——— 85%
 
-  Running "With VMMC": 2022.01.01 (204/241) (7.14 s)  •••••••••••••••••——— 85%
+  Running "With VMMC": 2022.01.01 (204/241) (6.58 s)  •••••••••••••••••——— 85%
 
-  Running "No VMMC": 2023.01.01 (216/241) (7.46 s)  ••••••••••••••••••—— 90%
+  Running "No VMMC": 2023.01.01 (216/241) (6.89 s)  ••••••••••••••••••—— 90%
 
-  Running "With VMMC": 2023.01.01 (216/241) (7.57 s)  ••••••••••••••••••—— 90%
+  Running "With VMMC": 2023.01.01 (216/241) (6.98 s)  ••••••••••••••••••—— 90%
 
-  Running "No VMMC": 2024.01.01 (228/241) (7.88 s)  •••••••••••••••••••— 95%
+  Running "No VMMC": 2024.01.01 (228/241) (7.29 s)  •••••••••••••••••••— 95%
 
-  Running "With VMMC": 2024.01.01 (228/241) (8.00 s)  •••••••••••••••••••— 95%
+  Running "With VMMC": 2024.01.01 (228/241) (7.38 s)  •••••••••••••••••••— 95%
 
-  Running "No VMMC": 2025.01.01 (240/241) (8.32 s)  •••••••••••••••••••• 100%
+  Running "No VMMC": 2025.01.01 (240/241) (7.70 s)  •••••••••••••••••••• 100%
 
 
-  Running "With VMMC": 2025.01.01 (240/241) (8.43 s)  •••••••••••••••••••• 100%
+  Running "With VMMC": 2025.01.01 (240/241) (7.79 s)  •••••••••••••••••••• 100%
 </code></pre>
 </div>
 </div>
@@ -573,7 +868,7 @@ Initializing sim "With VMMC" with 5000 agents
 <section id="per-timestep-counts" class="level2">
 <h2 class="anchored" data-anchor-id="per-timestep-counts">Per-timestep counts</h2>
 <p>VMMC publishes <code>new_circumcisions</code> each timestep; HIV publishes <code>new_infections</code>. Those are the only quantities we need.</p>
-<div id="e66b5558" class="cell" data-execution_count="5">
+<div id="4dcceb5b" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>vmmc_sim <span class="op">=</span> results[<span class="st">'With VMMC'</span>]</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>yearvec  <span class="op">=</span> vmmc_sim.t.yearvec</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>new_circ <span class="op">=</span> vmmc_sim.results.vmmc.new_circumcisions</span>
@@ -584,22 +879,22 @@ Initializing sim "With VMMC" with 5000 agents
 <span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'New HIV infections, With VMMC:  </span><span class="sc">{</span><span class="bu">int</span>(new_inf[<span class="st">"With VMMC"</span>].<span class="bu">sum</span>())<span class="sc">:n}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Total VMMCs:                    3597
-New HIV infections, No VMMC:    685
-New HIV infections, With VMMC:  597</code></pre>
+New HIV infections, No VMMC:    690
+New HIV infections, With VMMC:  604</code></pre>
 </div>
 </div>
 </section>
 <section id="discounting" class="level2">
 <h2 class="anchored" data-anchor-id="discounting">Discounting</h2>
 <p>A 3% annual discount rate gives a per-timestep weight of <code>1 / (1 + r) ** (year - year0)</code>.</p>
-<div id="c5c24f11" class="cell" data-execution_count="6">
+<div id="cf1b34d5" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>year0 <span class="op">=</span> yearvec[<span class="dv">0</span>]</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>discount <span class="op">=</span> <span class="dv">1</span> <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> discount_rate) <span class="op">**</span> (yearvec <span class="op">-</span> year0)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="costs-and-effects" class="level2">
 <h2 class="anchored" data-anchor-id="costs-and-effects">Costs and effects</h2>
-<div id="fc633a79" class="cell" data-execution_count="7">
+<div id="73458b86" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Costs: VMMC procedures only (the HIV cost is captured through the effect side)</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>cost_vmmc_programme <span class="op">=</span> <span class="bu">float</span>(np.<span class="bu">sum</span>(new_circ <span class="op">*</span> unit_cost_vmmc <span class="op">*</span> discount))</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -612,7 +907,7 @@ New HIV infections, With VMMC:  597</code></pre>
 <span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Discounted infections averted:  </span><span class="sc">{</span>infections_averted<span class="sc">:.1f}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Discounted VMMC cost:           $254449
-Discounted infections averted:  60.0</code></pre>
+Discounted infections averted:  59.3</code></pre>
 </div>
 </div>
 </section>
@@ -620,20 +915,20 @@ Discounted infections averted:  60.0</code></pre>
 <h2 class="anchored" data-anchor-id="icer">ICER</h2>
 <p>The incremental cost-effectiveness ratio is the incremental cost divided by the incremental effect:</p>
 <p><span class="math display">\[\text{ICER} = \frac{\Delta\text{Cost}}{\Delta\text{Infections averted}}\]</span></p>
-<div id="23a79536" class="cell" data-execution_count="8">
+<div id="32e20e69" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> infections_averted <span class="op">&gt;</span> <span class="dv">0</span>:</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    icer <span class="op">=</span> cost_vmmc_programme <span class="op">/</span> infections_averted</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'ICER: $</span><span class="sc">{</span><span class="bu">int</span>(icer)<span class="sc">:n}</span><span class="ss"> per HIV infection averted'</span>)</span>
 <span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span>:</span>
 <span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">'No infections averted in this run — increase n_agents, duration, or coverage.'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>ICER: $4238 per HIV infection averted</code></pre>
+<pre><code>ICER: $4288 per HIV infection averted</code></pre>
 </div>
 </div>
 </section>
 <section id="visualizing-the-cascade" class="level2">
 <h2 class="anchored" data-anchor-id="visualizing-the-cascade">Visualizing the cascade</h2>
-<div id="ba392be0" class="cell" data-execution_count="9">
+<div id="cf01539e" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>fig, (ax0, ax1, ax2) <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">13</span>, <span class="dv">4</span>))</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Left: cumulative VMMCs</span></span>
@@ -1112,6 +1407,18 @@ Discounted infections averted:  60.0</code></pre>
     }
   });
   </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../examples/partner_notification.html" class="pagination-link" aria-label="Partner notification">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Partner notification</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../examples/pregnancy_risk_modifier.html" class="pagination-link" aria-label="Switching sexual-risk behaviour during pregnancy">
+        <span class="nav-page-text">Switching sexual-risk behaviour during pregnancy</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
 </div> <!-- /content -->
 <footer class="footer">
   <div class="nav-footer">
@@ -1119,7 +1426,7 @@ Discounted infections averted:  60.0</code></pre>
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.5.7 (2026-06-15).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.5.8 (2026-06-25).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">
@@ -1136,7 +1443,7 @@ Discounted infections averted:  60.0</code></pre>
     </a>
   </li>  
     <li class="nav-item compact">
-    <a class="nav-link" href="https://starsim-idm.slack.com">
+    <a class="nav-link" href="https://starsimhub.slack.com">
       <i class="bi bi-slack" role="img">
 </i> 
     </a>

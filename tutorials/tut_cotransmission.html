@@ -558,6 +558,18 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
   </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../user_guide/analyzers.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Analyzers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/care_seeking.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Care-seeking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../user_guide/connectors.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Coinfection connectors</span></a>
   </div>
@@ -595,6 +607,24 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
   <div class="sidebar-item-container"> 
   <a href="../examples/dynamic_debut.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Time-varying age at sexual debut</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/partner_notification.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Partner notification</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/vmmc_costing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Costing VMMC and computing an ICER</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/pregnancy_risk_modifier.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Switching sexual-risk behaviour during pregnancy</span></a>
   </div>
 </li>
       </ul>
@@ -662,7 +692,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="multiple-stis-on-a-shared-network" class="level2">
 <h2 class="anchored" data-anchor-id="multiple-stis-on-a-shared-network">Multiple STIs on a shared network</h2>
 <p>When you pass multiple diseases to a sim, they all transmit on the same <code>StructuredSexual</code> network. Each disease has its own transmission probability, natural history, and clearance dynamics – but the partnerships are shared.</p>
-<div id="ed6b9402" class="cell" data-execution_count="1">
+<div id="a2372440" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> stisim <span class="im">as</span> sti</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> sti.Sim(</span>
@@ -690,7 +720,7 @@ Figure(768x576)</code></pre>
 <section id="customizing-disease-parameters" class="level2">
 <h2 class="anchored" data-anchor-id="customizing-disease-parameters">Customizing disease parameters</h2>
 <p>Use <code>sti_pars</code> to override defaults for each disease:</p>
-<div id="f3660a45" class="cell" data-execution_count="2">
+<div id="5a1647da" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> sti.Sim(</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    diseases<span class="op">=</span>[<span class="st">'ng'</span>, <span class="st">'ct'</span>, <span class="st">'tv'</span>],</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    sti_pars<span class="op">=</span><span class="bu">dict</span>(</span>
@@ -721,7 +751,7 @@ Figure(768x576)</code></pre>
 <h2 class="anchored" data-anchor-id="adding-hiv-with-connectors">Adding HIV with connectors</h2>
 <p>When diseases interact biologically – for example, having an STI increases susceptibility to HIV – you model this with <strong>connectors</strong>. STIsim provides connectors for HIV-STI coinfection interactions.</p>
 <p>Connectors modify <code>rel_sus</code> (relative susceptibility) and <code>rel_trans</code> (relative transmissibility) for coinfected agents at each timestep. For example, <code>hiv_ng</code> increases HIV susceptibility for agents who have gonorrhea.</p>
-<div id="ec40205f" class="cell" data-execution_count="3">
+<div id="1af0dd4a" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create disease modules</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>hiv <span class="op">=</span> sti.HIV(init_prev<span class="op">=</span><span class="fl">0.10</span>)</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>ng <span class="op">=</span> sti.Gonorrhea(init_prev<span class="op">=</span><span class="fl">0.03</span>)</span>
@@ -748,7 +778,7 @@ Figure(768x576)</code></pre>
 <pre><code>Initializing sim with 2000 agents</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>/opt/hostedtoolcache/Python/3.13.14/x64/lib/python3.13/site-packages/starsim/arrays.py:486: RuntimeWarning: 
+<pre><code>/opt/hostedtoolcache/Python/3.13.14/x64/lib/python3.13/site-packages/starsim/arrays.py:490: RuntimeWarning: 
 Trying to access non-initialized Arr object; in most cases, Arr objects need to be initialized with a Sim object, but set skip_init=True if this is intentional.
   ss.warn('Trying to access non-initialized Arr object; in most cases, Arr objects need to be initialized with a Sim object, but set skip_init=True if this is intentional.')</code></pre>
 </div>
@@ -770,7 +800,7 @@ Trying to access non-initialized Arr object; in most cases, Arr objects need to 
 <p>To see the effect of coinfection interactions, we compare HIV and syphilis co-transmission with and without an <code>hiv_syph</code> connector.</p>
 <p>In reality, syphilis epidemics are sustained by cycles of treatment and reinfection – people with symptomatic (active) syphilis seek treatment, clearing the infection but leaving them susceptible to reinfection. Without treatment, most cases quickly progress to the latent stage, where they are far less infectious and the connector has little effect.</p>
 <p>To make the connector’s impact visible without adding treatment interventions, we artificially extend the primary stage duration. This keeps more agents in the active (primary + secondary) stages where the connector amplifies HIV susceptibility.</p>
-<div id="fb417e70" class="cell" data-execution_count="4">
+<div id="73e4997d" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> starsim <span class="im">as</span> ss</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -813,7 +843,7 @@ Trying to access non-initialized Arr object; in most cases, Arr objects need to 
 Initializing sim with 5000 agents</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>/opt/hostedtoolcache/Python/3.13.14/x64/lib/python3.13/site-packages/starsim/arrays.py:486: RuntimeWarning: 
+<pre><code>/opt/hostedtoolcache/Python/3.13.14/x64/lib/python3.13/site-packages/starsim/arrays.py:490: RuntimeWarning: 
 Trying to access non-initialized Arr object; in most cases, Arr objects need to be initialized with a Sim object, but set skip_init=True if this is intentional.
   ss.warn('Trying to access non-initialized Arr object; in most cases, Arr objects need to be initialized with a Sim object, but set skip_init=True if this is intentional.')</code></pre>
 </div>
@@ -1323,7 +1353,7 @@ Trying to access non-initialized Arr object; in most cases, Arr objects need to 
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.5.7 (2026-06-15).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.5.8 (2026-06-25).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">
@@ -1340,7 +1370,7 @@ Trying to access non-initialized Arr object; in most cases, Arr objects need to 
     </a>
   </li>  
     <li class="nav-item compact">
-    <a class="nav-link" href="https://starsim-idm.slack.com">
+    <a class="nav-link" href="https://starsimhub.slack.com">
       <i class="bi bi-slack" role="img">
 </i> 
     </a>

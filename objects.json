@@ -1,7 +1,7 @@
 {
   "project": "stisim",
   "version": "0.0.9999",
-  "count": 236,
+  "count": 237,
   "items": [
     {
       "name": "stisim.sim.Sim.init",
@@ -1553,6 +1553,14 @@
       "role": "class",
       "priority": "1",
       "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.SyndromicManagement",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.base_interventions.pn_rates",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.pn_rates",
       "dispname": "-"
     },
     {
@@ -3377,6 +3385,14 @@
       "role": "class",
       "priority": "1",
       "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.SyndromicManagement",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.base_interventions.pn_rates",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.base_interventions.html#stisim.interventions.base_interventions.pn_rates",
       "dispname": "-"
     },
     {

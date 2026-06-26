@@ -68,7 +68,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../../">
-<link href="../../user_guide/connectors.html" rel="next">
+<link href="../../user_guide/analyzers.html" rel="next">
 <link href="../../user_guide/networks/msm.html" rel="prev">
 <link href="../..//assets/favicon.ico" rel="icon">
 <script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
@@ -558,6 +558,18 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
   </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../../user_guide/analyzers.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Analyzers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../user_guide/care_seeking.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Care-seeking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../../user_guide/connectors.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Coinfection connectors</span></a>
   </div>
@@ -595,6 +607,24 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
   <div class="sidebar-item-container"> 
   <a href="../../examples/dynamic_debut.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Time-varying age at sexual debut</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../examples/partner_notification.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Partner notification</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../examples/vmmc_costing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Costing VMMC and computing an ICER</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../examples/pregnancy_risk_modifier.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Switching sexual-risk behaviour during pregnancy</span></a>
   </div>
 </li>
       </ul>
@@ -642,6 +672,10 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
   <li><a href="#vmmc" id="toc-vmmc" class="nav-link" data-scroll-target="#vmmc">VMMC</a></li>
   <li><a href="#prep" id="toc-prep" class="nav-link" data-scroll-target="#prep">PrEP</a></li>
   </ul></li>
+  <li><a href="#syndromic-management" id="toc-syndromic-management" class="nav-link" data-scroll-target="#syndromic-management">Syndromic management</a></li>
+  <li><a href="#antenatal-and-infant-screening-pmtct" id="toc-antenatal-and-infant-screening-pmtct" class="nav-link" data-scroll-target="#antenatal-and-infant-screening-pmtct">Antenatal and infant screening (PMTCT)</a></li>
+  <li><a href="#partner-notification" id="toc-partner-notification" class="nav-link" data-scroll-target="#partner-notification">Partner notification</a></li>
+  <li><a href="#pregnancy-driven-risk-reduction" id="toc-pregnancy-driven-risk-reduction" class="nav-link" data-scroll-target="#pregnancy-driven-risk-reduction">Pregnancy-driven risk reduction</a></li>
   <li><a href="#combining-interventions" id="toc-combining-interventions" class="nav-link" data-scroll-target="#combining-interventions">Combining interventions</a></li>
   </ul></li>
   </ul>
@@ -1047,13 +1081,149 @@ hiv.ti_diagnosed = ti         │
 </table>
 </section>
 </section>
+<section id="syndromic-management" class="level2">
+<h2 class="anchored" data-anchor-id="syndromic-management">Syndromic management</h2>
+<p><code>SyndromicManagement</code> treats vaginal/urethral discharge syndromes presumptively, without a confirmatory lab test: symptomatic care-seekers are routed to treatment based on the syndrome rather than a diagnosis. Use it for bacterial STIs in settings where point-of-care diagnostics are unavailable.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>sm <span class="op">=</span> sti.SyndromicManagement(</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    diseases<span class="op">=</span>[<span class="st">'ng'</span>, <span class="st">'ct'</span>, <span class="st">'tv'</span>],      <span class="co"># diseases by NAME (resolved against sim.diseases)</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    treatments<span class="op">=</span>[ng_tx, ct_tx, metro],</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    outcome_tx_map<span class="op">=</span>{<span class="st">'discharge'</span>: [ng_tx, ct_tx]},</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 45%">
+<col style="width: 54%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>diseases</code></td>
+<td>Disease names presenting as the syndrome (e.g.&nbsp;<code>['ng','ct']</code>). Passed as names, not module objects.</td>
+</tr>
+<tr class="even">
+<td><code>cervical_diseases</code></td>
+<td>Subset checked via the cervical-symptom path.</td>
+</tr>
+<tr class="odd">
+<td><code>treatments</code> / <code>outcome_tx_map</code></td>
+<td>Treatment interventions and the syndrome → treatment routing.</td>
+</tr>
+<tr class="even">
+<td><code>treat_prob_data</code></td>
+<td>Probability a symptomatic care-seeker is managed.</td>
+</tr>
+</tbody>
+</table>
+<blockquote class="blockquote">
+<p><strong>Stub</strong> — expand with the symptom-detection logic and a worked discharge example. See <a href="#symptomatictesting"><code>SymptomaticTesting</code></a> for the test-and-treat variant, and the API reference for <a href="../../api/interventions.base_interventions.html"><code>interventions.base_interventions</code></a>.</p>
+</blockquote>
+</section>
+<section id="antenatal-and-infant-screening-pmtct" class="level2">
+<h2 class="anchored" data-anchor-id="antenatal-and-infant-screening-pmtct">Antenatal and infant screening (PMTCT)</h2>
+<p>STIsim supports single-visit antenatal care (ANC) screening that auto-schedules newborn/infant follow-up, used for preventing mother-to-child transmission (PMTCT) of HIV and congenital syphilis.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>anc <span class="op">=</span> sti.ANCTest(</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    disease_names<span class="op">=</span>[<span class="st">'hiv'</span>, <span class="st">'syphilis'</span>],   <span class="co"># auto-detects HIV + syphilis</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    visit_prob<span class="op">=</span><span class="fl">0.9</span>,                      <span class="co"># ANC attendance probability</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    disease_treatment_map<span class="op">=</span>{<span class="st">'hiv'</span>: art, <span class="st">'syphilis'</span>: syph_tx},</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    newborn_tests<span class="op">=</span>[sti.InfantHIVTest(test_prob<span class="op">=</span><span class="fl">0.8</span>)],</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 53%">
+<col style="width: 46%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Class</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>sti.ANCTest</code></td>
+<td>Multi-disease ANC visit testing, scheduled once per pregnancy; per-disease sensitivity; routes positives to treatment.</td>
+</tr>
+<tr class="even">
+<td><code>sti.InfantHIVTest</code></td>
+<td>HIV test for infants born to mothers diagnosed in pregnancy (scheduled by <code>ANCTest</code> or <code>HIVTest</code> via the maternal network).</td>
+</tr>
+<tr class="odd">
+<td><code>sti.ANCSyphTest</code></td>
+<td>Syphilis-specific ANC screening with a diagnostic product; can schedule a newborn test.</td>
+</tr>
+<tr class="even">
+<td><code>sti.NewbornSyphTest</code></td>
+<td>Syphilis test for newborns of mothers diagnosed in pregnancy.</td>
+</tr>
+<tr class="odd">
+<td><code>sti.NewbornTreatment</code></td>
+<td>Treatment for congenital syphilis in newborns.</td>
+</tr>
+</tbody>
+</table>
+<blockquote class="blockquote">
+<p><strong>Stub</strong> — expand with the ANC → treatment → newborn-test cascade, sensitivity defaults, and a PMTCT worked example. Requires a <code>Pregnancy</code> module (and <code>MaternalNet</code>/<code>BreastfeedingNet</code> for infant scheduling). See <a href="../../api/interventions.hiv_interventions.html"><code>interventions.hiv_interventions</code></a> and <a href="../../api/interventions.syphilis_interventions.html"><code>interventions.syphilis_interventions</code></a>.</p>
+</blockquote>
+</section>
+<section id="partner-notification" class="level2">
+<h2 class="anchored" data-anchor-id="partner-notification">Partner notification</h2>
+<p><code>PartnerNotification</code> reaches the sexual partners of newly diagnosed index cases and offers them follow-up testing. It works over two channels — the current sexual network and an optional prior-partner recall network — each with separate notification and attendance probabilities.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>pn <span class="op">=</span> sti.PartnerNotification(</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    eligibility<span class="op">=</span><span class="kw">lambda</span> sim: sim.diseases.hiv.ti_diagnosed <span class="op">==</span> sim.ti,  <span class="co"># index cases</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    test<span class="op">=</span>sti.HIVTest(test_prob_data<span class="op">=</span><span class="fl">1.0</span>),                            <span class="co"># offered to attendees</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    pars<span class="op">=</span><span class="bu">dict</span>(p_notify_current<span class="op">=</span><span class="fl">0.6</span>, p_attends_current<span class="op">=</span><span class="fl">0.5</span>),</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Parameter</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>eligibility</code></td>
+<td><code>f(sim) -&gt; uids</code> returning index cases (e.g.&nbsp;those diagnosed this step).</td>
+</tr>
+<tr class="even">
+<td><a href="https://docs.python.org/3/library/test.html#module-test" title="1"><code>test</code></a></td>
+<td>Testing intervention scheduled for partners who attend follow-up.</td>
+</tr>
+<tr class="odd">
+<td><code>p_notify_*</code> / <code>p_attends_*</code></td>
+<td>Per-channel (current/prior) notification × attendance probabilities; may be callables for edge-type stratification (see <code>sti.pn_rates</code>).</td>
+</tr>
+</tbody>
+</table>
+<blockquote class="blockquote">
+<p><strong>Stub</strong> — expand with the two-channel cascade and per-channel result tracking. See the gallery example <a href="../../examples/partner_notification.html">Partner notification</a>.</p>
+</blockquote>
+</section>
+<section id="pregnancy-driven-risk-reduction" class="level2">
+<h2 class="anchored" data-anchor-id="pregnancy-driven-risk-reduction">Pregnancy-driven risk reduction</h2>
+<p><code>PregnancyRiskReduction</code> lowers sexual-risk behaviour during pregnancy and restores it afterwards — useful when behaviour change during pregnancy materially affects transmission.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>prr <span class="op">=</span> sti.PregnancyRiskReduction(pars<span class="op">=</span><span class="bu">dict</span>(</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    fsw_redux<span class="op">=</span><span class="va">True</span>,          <span class="co"># clear FSW status while pregnant</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    high_risk_redux<span class="op">=</span><span class="va">True</span>,    <span class="co"># drop high-risk-group membership</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    concurrency_redux<span class="op">=</span><span class="va">True</span>,  <span class="co"># zero concurrency</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>During pregnancy the module optionally clears FSW status, drops high-risk-group membership to <code>default_risk_group</code>, and/or zeros concurrency; each agent’s prior state is restored once the pregnancy ends.</p>
+<blockquote class="blockquote">
+<p><strong>Stub</strong> — expand with parameter semantics and the gallery example <a href="../../examples/pregnancy_risk_modifier.html">Pregnancy risk modifier</a>.</p>
+</blockquote>
+</section>
 <section id="combining-interventions" class="level2">
 <h2 class="anchored" data-anchor-id="combining-interventions">Combining interventions</h2>
 <p>Interventions are passed to the sim as a list:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> sti.Sim(</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    diseases<span class="op">=</span><span class="st">'ng'</span>,</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    interventions<span class="op">=</span>[test, treatment],</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> sti.Sim(</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    diseases<span class="op">=</span><span class="st">'ng'</span>,</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    interventions<span class="op">=</span>[test, treatment],</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>For a complete worked example, see the <a href="../../tutorials/tut_interventions.html">Interventions tutorial</a>.</p>
 
 
@@ -1481,8 +1651,8 @@ hiv.ti_diagnosed = ti         │
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../../user_guide/connectors.html" class="pagination-link" aria-label="Coinfection connectors">
-        <span class="nav-page-text">Coinfection connectors</span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../../user_guide/analyzers.html" class="pagination-link" aria-label="Analyzers">
+        <span class="nav-page-text">Analyzers</span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>
@@ -1493,7 +1663,7 @@ hiv.ti_diagnosed = ti         │
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.5.7 (2026-06-15).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.5.8 (2026-06-25).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">
@@ -1510,7 +1680,7 @@ hiv.ti_diagnosed = ti         │
     </a>
   </li>  
     <li class="nav-item compact">
-    <a class="nav-link" href="https://starsim-idm.slack.com">
+    <a class="nav-link" href="https://starsimhub.slack.com">
       <i class="bi bi-slack" role="img">
 </i> 
     </a>

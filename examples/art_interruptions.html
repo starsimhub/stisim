@@ -558,6 +558,18 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
   </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../user_guide/analyzers.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Analyzers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/care_seeking.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Care-seeking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../user_guide/connectors.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Coinfection connectors</span></a>
   </div>
@@ -595,6 +607,24 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
   <div class="sidebar-item-container"> 
   <a href="../examples/dynamic_debut.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Time-varying age at sexual debut</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/partner_notification.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Partner notification</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/vmmc_costing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Costing VMMC and computing an ICER</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/pregnancy_risk_modifier.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Switching sexual-risk behaviour during pregnancy</span></a>
   </div>
 </li>
       </ul>
@@ -665,7 +695,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="setup" class="level2">
 <h2 class="anchored" data-anchor-id="setup">Setup</h2>
 <p>We’ll use a simplified model with 2,000 agents running from 2000 to 2035. In a real analysis you’d use more agents and location-specific demographic data.</p>
-<div id="f58a7dfb" class="cell" data-execution_count="1">
+<div id="8508228b" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sciris <span class="im">as</span> sc</span>
@@ -678,7 +708,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="building-baseline-coverage" class="level2">
 <h2 class="anchored" data-anchor-id="building-baseline-coverage">Building baseline coverage</h2>
 <p>First, let’s create a realistic ART scale-up trajectory. In practice you’d load this from a CSV, but we’ll build it programmatically here.</p>
-<div id="6669fdbf" class="cell" data-execution_count="2">
+<div id="8e63a25b" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Historical ART numbers (absolute counts) representing scale-up in a</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># population of ~2,000 with ~15% HIV prevalence (~300 PLHIV).</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"># By 2023, ~650 on ART (accounting for population growth over 23 years).</span></span>
@@ -714,7 +744,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="defining-interruption-scenarios" class="level2">
 <h2 class="anchored" data-anchor-id="defining-interruption-scenarios">Defining interruption scenarios</h2>
 <p>Now let’s define a helper that modifies the coverage DataFrame to simulate a temporary ART interruption — a period where ART coverage drops by some fraction.</p>
-<div id="9d5f6fa8" class="cell" data-execution_count="3">
+<div id="637f7fb0" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_interruption(base_df, shock_year, reduction, duration):</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">    Create a coverage DataFrame with an ART interruption.</span></span>
@@ -738,7 +768,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>                df.loc[year, <span class="st">'p_art'</span>] <span class="op">*=</span> (<span class="dv">1</span> <span class="op">-</span> reduction)</span>
 <span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> df</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="1a12fac1" class="cell" data-execution_count="4">
+<div id="1a6ca5d8" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define scenarios: baseline + three interruption severities</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>scenarios <span class="op">=</span> {</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Baseline'</span>:          baseline_df,</span>
@@ -751,7 +781,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="running-the-scenarios" class="level2">
 <h2 class="anchored" data-anchor-id="running-the-scenarios">Running the scenarios</h2>
 <p>We run each scenario using <code>hivsim.demo</code> with the same random seed so differences are due to the intervention, not stochastic variation.</p>
-<div id="5be8a736" class="cell" data-execution_count="5">
+<div id="99829b0b" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> {}</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>seed <span class="op">=</span> <span class="dv">42</span></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -772,300 +802,300 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 
   Running 2000.01.01 ( 0/421) (0.00 s)  ———————————————————— 0%
 
-  Running 2001.01.01 (12/421) (0.60 s)  ———————————————————— 3%
+  Running 2001.01.01 (12/421) (0.56 s)  ———————————————————— 3%
 
-  Running 2002.01.01 (24/421) (0.83 s)  •——————————————————— 6%
+  Running 2002.01.01 (24/421) (0.75 s)  •——————————————————— 6%
 
-  Running 2003.01.01 (36/421) (1.06 s)  •——————————————————— 9%
+  Running 2003.01.01 (36/421) (0.96 s)  •——————————————————— 9%
 
-  Running 2004.01.01 (48/421) (1.29 s)  ••—————————————————— 12%
+  Running 2004.01.01 (48/421) (1.16 s)  ••—————————————————— 12%
 
-  Running 2005.01.01 (60/421) (1.52 s)  ••—————————————————— 14%
+  Running 2005.01.01 (60/421) (1.36 s)  ••—————————————————— 14%
 
-  Running 2006.01.01 (72/421) (1.75 s)  •••————————————————— 17%
+  Running 2006.01.01 (72/421) (1.56 s)  •••————————————————— 17%
 
-  Running 2007.01.01 (84/421) (1.97 s)  ••••———————————————— 20%
+  Running 2007.01.01 (84/421) (1.76 s)  ••••———————————————— 20%
 
-  Running 2008.01.01 (96/421) (2.20 s)  ••••———————————————— 23%
+  Running 2008.01.01 (96/421) (1.96 s)  ••••———————————————— 23%
 
-  Running 2009.01.01 (108/421) (2.43 s)  •••••——————————————— 26%
+  Running 2009.01.01 (108/421) (2.16 s)  •••••——————————————— 26%
 
-  Running 2010.01.01 (120/421) (2.66 s)  •••••——————————————— 29%
+  Running 2010.01.01 (120/421) (2.36 s)  •••••——————————————— 29%
 
-  Running 2011.01.01 (132/421) (2.88 s)  ••••••—————————————— 32%
+  Running 2011.01.01 (132/421) (2.56 s)  ••••••—————————————— 32%
 
-  Running 2012.01.01 (144/421) (3.11 s)  ••••••—————————————— 34%
+  Running 2012.01.01 (144/421) (2.77 s)  ••••••—————————————— 34%
 
-  Running 2013.01.01 (156/421) (3.34 s)  •••••••————————————— 37%
+  Running 2013.01.01 (156/421) (2.97 s)  •••••••————————————— 37%
 
-  Running 2014.01.01 (168/421) (3.57 s)  ••••••••———————————— 40%
+  Running 2014.01.01 (168/421) (3.17 s)  ••••••••———————————— 40%
 
-  Running 2015.01.01 (180/421) (3.79 s)  ••••••••———————————— 43%
+  Running 2015.01.01 (180/421) (3.38 s)  ••••••••———————————— 43%
 
-  Running 2016.01.01 (192/421) (4.02 s)  •••••••••——————————— 46%
+  Running 2016.01.01 (192/421) (3.58 s)  •••••••••——————————— 46%
 
-  Running 2017.01.01 (204/421) (4.24 s)  •••••••••——————————— 49%
+  Running 2017.01.01 (204/421) (3.78 s)  •••••••••——————————— 49%
 
-  Running 2018.01.01 (216/421) (4.47 s)  ••••••••••—————————— 52%
+  Running 2018.01.01 (216/421) (3.99 s)  ••••••••••—————————— 52%
 
-  Running 2019.01.01 (228/421) (4.70 s)  ••••••••••—————————— 54%
+  Running 2019.01.01 (228/421) (4.19 s)  ••••••••••—————————— 54%
 
-  Running 2020.01.01 (240/421) (4.94 s)  •••••••••••————————— 57%
+  Running 2020.01.01 (240/421) (4.40 s)  •••••••••••————————— 57%
 
-  Running 2021.01.01 (252/421) (5.17 s)  ••••••••••••———————— 60%
+  Running 2021.01.01 (252/421) (4.61 s)  ••••••••••••———————— 60%
 
-  Running 2022.01.01 (264/421) (5.40 s)  ••••••••••••———————— 63%
+  Running 2022.01.01 (264/421) (4.82 s)  ••••••••••••———————— 63%
 
-  Running 2023.01.01 (276/421) (5.63 s)  •••••••••••••——————— 66%
+  Running 2023.01.01 (276/421) (5.02 s)  •••••••••••••——————— 66%
 
-  Running 2024.01.01 (288/421) (5.87 s)  •••••••••••••——————— 69%
+  Running 2024.01.01 (288/421) (5.24 s)  •••••••••••••——————— 69%
 
-  Running 2025.01.01 (300/421) (6.10 s)  ••••••••••••••—————— 71%
+  Running 2025.01.01 (300/421) (5.46 s)  ••••••••••••••—————— 71%
 
-  Running 2026.01.01 (312/421) (6.34 s)  ••••••••••••••—————— 74%
+  Running 2026.01.01 (312/421) (5.68 s)  ••••••••••••••—————— 74%
 
-  Running 2027.01.01 (324/421) (6.58 s)  •••••••••••••••————— 77%
+  Running 2027.01.01 (324/421) (5.89 s)  •••••••••••••••————— 77%
 
-  Running 2028.01.01 (336/421) (6.82 s)  ••••••••••••••••———— 80%
+  Running 2028.01.01 (336/421) (6.10 s)  ••••••••••••••••———— 80%
 
-  Running 2029.01.01 (348/421) (7.06 s)  ••••••••••••••••———— 83%
+  Running 2029.01.01 (348/421) (6.32 s)  ••••••••••••••••———— 83%
 
-  Running 2030.01.01 (360/421) (7.29 s)  •••••••••••••••••——— 86%
+  Running 2030.01.01 (360/421) (6.53 s)  •••••••••••••••••——— 86%
 
-  Running 2031.01.01 (372/421) (7.53 s)  •••••••••••••••••——— 89%
+  Running 2031.01.01 (372/421) (6.74 s)  •••••••••••••••••——— 89%
 
-  Running 2032.01.01 (384/421) (7.77 s)  ••••••••••••••••••—— 91%
+  Running 2032.01.01 (384/421) (6.95 s)  ••••••••••••••••••—— 91%
 
-  Running 2033.01.01 (396/421) (8.01 s)  ••••••••••••••••••—— 94%
+  Running 2033.01.01 (396/421) (7.17 s)  ••••••••••••••••••—— 94%
 
-  Running 2034.01.01 (408/421) (8.25 s)  •••••••••••••••••••— 97%
+  Running 2034.01.01 (408/421) (7.38 s)  •••••••••••••••••••— 97%
 
-  Running 2035.01.01 (420/421) (8.49 s)  •••••••••••••••••••• 100%
+  Running 2035.01.01 (420/421) (7.60 s)  •••••••••••••••••••• 100%
 
 Baseline: 45 on ART at end
 Initializing sim with 2000 agents
 
   Running 2000.01.01 ( 0/421) (0.00 s)  ———————————————————— 0%
 
-  Running 2001.01.01 (12/421) (0.23 s)  ———————————————————— 3%
+  Running 2001.01.01 (12/421) (0.20 s)  ———————————————————— 3%
 
-  Running 2002.01.01 (24/421) (0.45 s)  •——————————————————— 6%
+  Running 2002.01.01 (24/421) (0.40 s)  •——————————————————— 6%
 
-  Running 2003.01.01 (36/421) (0.68 s)  •——————————————————— 9%
+  Running 2003.01.01 (36/421) (0.61 s)  •——————————————————— 9%
 
-  Running 2004.01.01 (48/421) (0.91 s)  ••—————————————————— 12%
+  Running 2004.01.01 (48/421) (0.82 s)  ••—————————————————— 12%
 
-  Running 2005.01.01 (60/421) (1.14 s)  ••—————————————————— 14%
+  Running 2005.01.01 (60/421) (1.02 s)  ••—————————————————— 14%
 
-  Running 2006.01.01 (72/421) (1.36 s)  •••————————————————— 17%
+  Running 2006.01.01 (72/421) (1.23 s)  •••————————————————— 17%
 
-  Running 2007.01.01 (84/421) (1.59 s)  ••••———————————————— 20%
+  Running 2007.01.01 (84/421) (1.44 s)  ••••———————————————— 20%
 
-  Running 2008.01.01 (96/421) (1.81 s)  ••••———————————————— 23%
+  Running 2008.01.01 (96/421) (1.65 s)  ••••———————————————— 23%
 
-  Running 2009.01.01 (108/421) (2.04 s)  •••••——————————————— 26%
+  Running 2009.01.01 (108/421) (1.86 s)  •••••——————————————— 26%
 
-  Running 2010.01.01 (120/421) (2.27 s)  •••••——————————————— 29%
+  Running 2010.01.01 (120/421) (2.07 s)  •••••——————————————— 29%
 
-  Running 2011.01.01 (132/421) (2.50 s)  ••••••—————————————— 32%
+  Running 2011.01.01 (132/421) (2.28 s)  ••••••—————————————— 32%
 
-  Running 2012.01.01 (144/421) (2.72 s)  ••••••—————————————— 34%
+  Running 2012.01.01 (144/421) (2.48 s)  ••••••—————————————— 34%
 
-  Running 2013.01.01 (156/421) (2.95 s)  •••••••————————————— 37%
+  Running 2013.01.01 (156/421) (2.68 s)  •••••••————————————— 37%
 
-  Running 2014.01.01 (168/421) (3.18 s)  ••••••••———————————— 40%
+  Running 2014.01.01 (168/421) (2.89 s)  ••••••••———————————— 40%
 
-  Running 2015.01.01 (180/421) (3.40 s)  ••••••••———————————— 43%
+  Running 2015.01.01 (180/421) (3.09 s)  ••••••••———————————— 43%
 
-  Running 2016.01.01 (192/421) (3.63 s)  •••••••••——————————— 46%
+  Running 2016.01.01 (192/421) (3.30 s)  •••••••••——————————— 46%
 
-  Running 2017.01.01 (204/421) (3.86 s)  •••••••••——————————— 49%
+  Running 2017.01.01 (204/421) (3.50 s)  •••••••••——————————— 49%
 
-  Running 2018.01.01 (216/421) (4.09 s)  ••••••••••—————————— 52%
+  Running 2018.01.01 (216/421) (3.70 s)  ••••••••••—————————— 52%
 
-  Running 2019.01.01 (228/421) (4.32 s)  ••••••••••—————————— 54%
+  Running 2019.01.01 (228/421) (3.91 s)  ••••••••••—————————— 54%
 
-  Running 2020.01.01 (240/421) (4.55 s)  •••••••••••————————— 57%
+  Running 2020.01.01 (240/421) (4.12 s)  •••••••••••————————— 57%
 
-  Running 2021.01.01 (252/421) (4.78 s)  ••••••••••••———————— 60%
+  Running 2021.01.01 (252/421) (4.33 s)  ••••••••••••———————— 60%
 
-  Running 2022.01.01 (264/421) (5.01 s)  ••••••••••••———————— 63%
+  Running 2022.01.01 (264/421) (4.53 s)  ••••••••••••———————— 63%
 
-  Running 2023.01.01 (276/421) (5.24 s)  •••••••••••••——————— 66%
+  Running 2023.01.01 (276/421) (4.75 s)  •••••••••••••——————— 66%
 
-  Running 2024.01.01 (288/421) (5.48 s)  •••••••••••••——————— 69%
+  Running 2024.01.01 (288/421) (4.97 s)  •••••••••••••——————— 69%
 
-  Running 2025.01.01 (300/421) (5.71 s)  ••••••••••••••—————— 71%
+  Running 2025.01.01 (300/421) (5.17 s)  ••••••••••••••—————— 71%
 
-  Running 2026.01.01 (312/421) (5.95 s)  ••••••••••••••—————— 74%
+  Running 2026.01.01 (312/421) (5.38 s)  ••••••••••••••—————— 74%
 
-  Running 2027.01.01 (324/421) (6.19 s)  •••••••••••••••————— 77%
+  Running 2027.01.01 (324/421) (5.59 s)  •••••••••••••••————— 77%
 
-  Running 2028.01.01 (336/421) (6.43 s)  ••••••••••••••••———— 80%
+  Running 2028.01.01 (336/421) (5.80 s)  ••••••••••••••••———— 80%
 
-  Running 2029.01.01 (348/421) (6.67 s)  ••••••••••••••••———— 83%
+  Running 2029.01.01 (348/421) (6.02 s)  ••••••••••••••••———— 83%
 
-  Running 2030.01.01 (360/421) (6.90 s)  •••••••••••••••••——— 86%
+  Running 2030.01.01 (360/421) (6.23 s)  •••••••••••••••••——— 86%
 
-  Running 2031.01.01 (372/421) (7.15 s)  •••••••••••••••••——— 89%
+  Running 2031.01.01 (372/421) (6.44 s)  •••••••••••••••••——— 89%
 
-  Running 2032.01.01 (384/421) (7.39 s)  ••••••••••••••••••—— 91%
+  Running 2032.01.01 (384/421) (6.65 s)  ••••••••••••••••••—— 91%
 
-  Running 2033.01.01 (396/421) (7.63 s)  ••••••••••••••••••—— 94%
+  Running 2033.01.01 (396/421) (6.87 s)  ••••••••••••••••••—— 94%
 
-  Running 2034.01.01 (408/421) (7.87 s)  •••••••••••••••••••— 97%
+  Running 2034.01.01 (408/421) (7.08 s)  •••••••••••••••••••— 97%
 
-  Running 2035.01.01 (420/421) (8.11 s)  •••••••••••••••••••• 100%
+  Running 2035.01.01 (420/421) (7.30 s)  •••••••••••••••••••• 100%
 
 20% drop, 2 years: 45 on ART at end
 Initializing sim with 2000 agents
 
   Running 2000.01.01 ( 0/421) (0.00 s)  ———————————————————— 0%
 
-  Running 2001.01.01 (12/421) (0.23 s)  ———————————————————— 3%
+  Running 2001.01.01 (12/421) (0.20 s)  ———————————————————— 3%
 
-  Running 2002.01.01 (24/421) (0.45 s)  •——————————————————— 6%
+  Running 2002.01.01 (24/421) (0.39 s)  •——————————————————— 6%
 
-  Running 2003.01.01 (36/421) (0.68 s)  •——————————————————— 9%
+  Running 2003.01.01 (36/421) (0.60 s)  •——————————————————— 9%
 
-  Running 2004.01.01 (48/421) (0.91 s)  ••—————————————————— 12%
+  Running 2004.01.01 (48/421) (0.80 s)  ••—————————————————— 12%
 
-  Running 2005.01.01 (60/421) (1.14 s)  ••—————————————————— 14%
+  Running 2005.01.01 (60/421) (0.99 s)  ••—————————————————— 14%
 
-  Running 2006.01.01 (72/421) (1.37 s)  •••————————————————— 17%
+  Running 2006.01.01 (72/421) (1.19 s)  •••————————————————— 17%
 
-  Running 2007.01.01 (84/421) (1.60 s)  ••••———————————————— 20%
+  Running 2007.01.01 (84/421) (1.39 s)  ••••———————————————— 20%
 
-  Running 2008.01.01 (96/421) (1.82 s)  ••••———————————————— 23%
+  Running 2008.01.01 (96/421) (1.59 s)  ••••———————————————— 23%
 
-  Running 2009.01.01 (108/421) (2.05 s)  •••••——————————————— 26%
+  Running 2009.01.01 (108/421) (1.79 s)  •••••——————————————— 26%
 
-  Running 2010.01.01 (120/421) (2.28 s)  •••••——————————————— 29%
+  Running 2010.01.01 (120/421) (2.00 s)  •••••——————————————— 29%
 
-  Running 2011.01.01 (132/421) (2.51 s)  ••••••—————————————— 32%
+  Running 2011.01.01 (132/421) (2.20 s)  ••••••—————————————— 32%
 
-  Running 2012.01.01 (144/421) (2.74 s)  ••••••—————————————— 34%
+  Running 2012.01.01 (144/421) (2.40 s)  ••••••—————————————— 34%
 
-  Running 2013.01.01 (156/421) (2.96 s)  •••••••————————————— 37%
+  Running 2013.01.01 (156/421) (2.60 s)  •••••••————————————— 37%
 
-  Running 2014.01.01 (168/421) (3.19 s)  ••••••••———————————— 40%
+  Running 2014.01.01 (168/421) (2.80 s)  ••••••••———————————— 40%
 
-  Running 2015.01.01 (180/421) (3.41 s)  ••••••••———————————— 43%
+  Running 2015.01.01 (180/421) (3.00 s)  ••••••••———————————— 43%
 
-  Running 2016.01.01 (192/421) (3.64 s)  •••••••••——————————— 46%
+  Running 2016.01.01 (192/421) (3.20 s)  •••••••••——————————— 46%
 
-  Running 2017.01.01 (204/421) (3.87 s)  •••••••••——————————— 49%
+  Running 2017.01.01 (204/421) (3.40 s)  •••••••••——————————— 49%
 
-  Running 2018.01.01 (216/421) (4.10 s)  ••••••••••—————————— 52%
+  Running 2018.01.01 (216/421) (3.61 s)  ••••••••••—————————— 52%
 
-  Running 2019.01.01 (228/421) (4.33 s)  ••••••••••—————————— 54%
+  Running 2019.01.01 (228/421) (3.82 s)  ••••••••••—————————— 54%
 
-  Running 2020.01.01 (240/421) (4.56 s)  •••••••••••————————— 57%
+  Running 2020.01.01 (240/421) (4.02 s)  •••••••••••————————— 57%
 
-  Running 2021.01.01 (252/421) (4.79 s)  ••••••••••••———————— 60%
+  Running 2021.01.01 (252/421) (4.23 s)  ••••••••••••———————— 60%
 
-  Running 2022.01.01 (264/421) (5.02 s)  ••••••••••••———————— 63%
+  Running 2022.01.01 (264/421) (4.44 s)  ••••••••••••———————— 63%
 
-  Running 2023.01.01 (276/421) (5.27 s)  •••••••••••••——————— 66%
+  Running 2023.01.01 (276/421) (4.65 s)  •••••••••••••——————— 66%
 
-  Running 2024.01.01 (288/421) (5.51 s)  •••••••••••••——————— 69%
+  Running 2024.01.01 (288/421) (4.86 s)  •••••••••••••——————— 69%
 
-  Running 2025.01.01 (300/421) (5.74 s)  ••••••••••••••—————— 71%
+  Running 2025.01.01 (300/421) (5.07 s)  ••••••••••••••—————— 71%
 
-  Running 2026.01.01 (312/421) (5.98 s)  ••••••••••••••—————— 74%
+  Running 2026.01.01 (312/421) (5.28 s)  ••••••••••••••—————— 74%
 
-  Running 2027.01.01 (324/421) (6.21 s)  •••••••••••••••————— 77%
+  Running 2027.01.01 (324/421) (5.49 s)  •••••••••••••••————— 77%
 
-  Running 2028.01.01 (336/421) (6.44 s)  ••••••••••••••••———— 80%
+  Running 2028.01.01 (336/421) (5.70 s)  ••••••••••••••••———— 80%
 
-  Running 2029.01.01 (348/421) (6.68 s)  ••••••••••••••••———— 83%
+  Running 2029.01.01 (348/421) (5.91 s)  ••••••••••••••••———— 83%
 
-  Running 2030.01.01 (360/421) (6.92 s)  •••••••••••••••••——— 86%
+  Running 2030.01.01 (360/421) (6.12 s)  •••••••••••••••••——— 86%
 
-  Running 2031.01.01 (372/421) (7.16 s)  •••••••••••••••••——— 89%
+  Running 2031.01.01 (372/421) (6.34 s)  •••••••••••••••••——— 89%
 
-  Running 2032.01.01 (384/421) (7.40 s)  ••••••••••••••••••—— 91%
+  Running 2032.01.01 (384/421) (6.55 s)  ••••••••••••••••••—— 91%
 
-  Running 2033.01.01 (396/421) (7.64 s)  ••••••••••••••••••—— 94%
+  Running 2033.01.01 (396/421) (6.76 s)  ••••••••••••••••••—— 94%
 
-  Running 2034.01.01 (408/421) (7.88 s)  •••••••••••••••••••— 97%
+  Running 2034.01.01 (408/421) (6.98 s)  •••••••••••••••••••— 97%
 
-  Running 2035.01.01 (420/421) (8.12 s)  •••••••••••••••••••• 100%
+  Running 2035.01.01 (420/421) (7.19 s)  •••••••••••••••••••• 100%
 
 50% drop, 2 years: 46 on ART at end
 Initializing sim with 2000 agents
 
   Running 2000.01.01 ( 0/421) (0.00 s)  ———————————————————— 0%
 
-  Running 2001.01.01 (12/421) (0.23 s)  ———————————————————— 3%
+  Running 2001.01.01 (12/421) (0.20 s)  ———————————————————— 3%
 
-  Running 2002.01.01 (24/421) (0.45 s)  •——————————————————— 6%
+  Running 2002.01.01 (24/421) (0.40 s)  •——————————————————— 6%
 
-  Running 2003.01.01 (36/421) (0.69 s)  •——————————————————— 9%
+  Running 2003.01.01 (36/421) (0.60 s)  •——————————————————— 9%
 
-  Running 2004.01.01 (48/421) (0.92 s)  ••—————————————————— 12%
+  Running 2004.01.01 (48/421) (0.81 s)  ••—————————————————— 12%
 
-  Running 2005.01.01 (60/421) (1.15 s)  ••—————————————————— 14%
+  Running 2005.01.01 (60/421) (1.00 s)  ••—————————————————— 14%
 
-  Running 2006.01.01 (72/421) (1.37 s)  •••————————————————— 17%
+  Running 2006.01.01 (72/421) (1.21 s)  •••————————————————— 17%
 
-  Running 2007.01.01 (84/421) (1.60 s)  ••••———————————————— 20%
+  Running 2007.01.01 (84/421) (1.41 s)  ••••———————————————— 20%
 
-  Running 2008.01.01 (96/421) (1.83 s)  ••••———————————————— 23%
+  Running 2008.01.01 (96/421) (1.61 s)  ••••———————————————— 23%
 
-  Running 2009.01.01 (108/421) (2.06 s)  •••••——————————————— 26%
+  Running 2009.01.01 (108/421) (1.82 s)  •••••——————————————— 26%
 
-  Running 2010.01.01 (120/421) (2.29 s)  •••••——————————————— 29%
+  Running 2010.01.01 (120/421) (2.02 s)  •••••——————————————— 29%
 
-  Running 2011.01.01 (132/421) (2.52 s)  ••••••—————————————— 32%
+  Running 2011.01.01 (132/421) (2.22 s)  ••••••—————————————— 32%
 
-  Running 2012.01.01 (144/421) (2.75 s)  ••••••—————————————— 34%
+  Running 2012.01.01 (144/421) (2.42 s)  ••••••—————————————— 34%
 
-  Running 2013.01.01 (156/421) (2.98 s)  •••••••————————————— 37%
+  Running 2013.01.01 (156/421) (2.62 s)  •••••••————————————— 37%
 
-  Running 2014.01.01 (168/421) (3.21 s)  ••••••••———————————— 40%
+  Running 2014.01.01 (168/421) (2.83 s)  ••••••••———————————— 40%
 
-  Running 2015.01.01 (180/421) (3.44 s)  ••••••••———————————— 43%
+  Running 2015.01.01 (180/421) (3.03 s)  ••••••••———————————— 43%
 
-  Running 2016.01.01 (192/421) (3.67 s)  •••••••••——————————— 46%
+  Running 2016.01.01 (192/421) (3.23 s)  •••••••••——————————— 46%
 
-  Running 2017.01.01 (204/421) (3.90 s)  •••••••••——————————— 49%
+  Running 2017.01.01 (204/421) (3.43 s)  •••••••••——————————— 49%
 
-  Running 2018.01.01 (216/421) (4.13 s)  ••••••••••—————————— 52%
+  Running 2018.01.01 (216/421) (3.63 s)  ••••••••••—————————— 52%
 
-  Running 2019.01.01 (228/421) (4.36 s)  ••••••••••—————————— 54%
+  Running 2019.01.01 (228/421) (3.84 s)  ••••••••••—————————— 54%
 
-  Running 2020.01.01 (240/421) (4.60 s)  •••••••••••————————— 57%
+  Running 2020.01.01 (240/421) (4.05 s)  •••••••••••————————— 57%
 
-  Running 2021.01.01 (252/421) (4.83 s)  ••••••••••••———————— 60%
+  Running 2021.01.01 (252/421) (4.27 s)  ••••••••••••———————— 60%
 
-  Running 2022.01.01 (264/421) (5.07 s)  ••••••••••••———————— 63%
+  Running 2022.01.01 (264/421) (4.48 s)  ••••••••••••———————— 63%
 
-  Running 2023.01.01 (276/421) (5.30 s)  •••••••••••••——————— 66%
+  Running 2023.01.01 (276/421) (4.69 s)  •••••••••••••——————— 66%
 
-  Running 2024.01.01 (288/421) (5.54 s)  •••••••••••••——————— 69%
+  Running 2024.01.01 (288/421) (4.90 s)  •••••••••••••——————— 69%
 
-  Running 2025.01.01 (300/421) (5.77 s)  ••••••••••••••—————— 71%
+  Running 2025.01.01 (300/421) (5.11 s)  ••••••••••••••—————— 71%
 
-  Running 2026.01.01 (312/421) (6.01 s)  ••••••••••••••—————— 74%
+  Running 2026.01.01 (312/421) (5.32 s)  ••••••••••••••—————— 74%
 
-  Running 2027.01.01 (324/421) (6.24 s)  •••••••••••••••————— 77%
+  Running 2027.01.01 (324/421) (5.54 s)  •••••••••••••••————— 77%
 
-  Running 2028.01.01 (336/421) (6.48 s)  ••••••••••••••••———— 80%
+  Running 2028.01.01 (336/421) (5.75 s)  ••••••••••••••••———— 80%
 
-  Running 2029.01.01 (348/421) (6.72 s)  ••••••••••••••••———— 83%
+  Running 2029.01.01 (348/421) (5.97 s)  ••••••••••••••••———— 83%
 
-  Running 2030.01.01 (360/421) (6.95 s)  •••••••••••••••••——— 86%
+  Running 2030.01.01 (360/421) (6.18 s)  •••••••••••••••••——— 86%
 
-  Running 2031.01.01 (372/421) (7.20 s)  •••••••••••••••••——— 89%
+  Running 2031.01.01 (372/421) (6.40 s)  •••••••••••••••••——— 89%
 
-  Running 2032.01.01 (384/421) (7.43 s)  ••••••••••••••••••—— 91%
+  Running 2032.01.01 (384/421) (6.61 s)  ••••••••••••••••••—— 91%
 
-  Running 2033.01.01 (396/421) (7.68 s)  ••••••••••••••••••—— 94%
+  Running 2033.01.01 (396/421) (6.83 s)  ••••••••••••••••••—— 94%
 
-  Running 2034.01.01 (408/421) (7.93 s)  •••••••••••••••••••— 97%
+  Running 2034.01.01 (408/421) (7.05 s)  •••••••••••••••••••— 97%
 
-  Running 2035.01.01 (420/421) (8.17 s)  •••••••••••••••••••• 100%
+  Running 2035.01.01 (420/421) (7.27 s)  •••••••••••••••••••• 100%
 
 50% drop, 5 years: 46 on ART at end</code></pre>
 </div>
@@ -1074,7 +1104,7 @@ Initializing sim with 2000 agents
 <section id="comparing-outcomes" class="level2">
 <h2 class="anchored" data-anchor-id="comparing-outcomes">Comparing outcomes</h2>
 <p>Let’s visualize the impact of ART interruptions on treatment numbers and new infections.</p>
-<div id="c7eedb51" class="cell" data-execution_count="6">
+<div id="122eec90" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>colors <span class="op">=</span> sc.gridcolors(<span class="dv">4</span>)</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> sc.options.with_style(<span class="st">'fancy'</span>):</span>
@@ -1557,7 +1587,7 @@ Initializing sim with 2000 agents
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.5.7 (2026-06-15).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.5.8 (2026-06-25).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">
@@ -1574,7 +1604,7 @@ Initializing sim with 2000 agents
     </a>
   </li>  
     <li class="nav-item compact">
-    <a class="nav-link" href="https://starsim-idm.slack.com">
+    <a class="nav-link" href="https://starsimhub.slack.com">
       <i class="bi bi-slack" role="img">
 </i> 
     </a>

@@ -68,6 +68,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../">
+<link href="../examples/vmmc_costing.html" rel="next">
+<link href="../examples/dynamic_debut.html" rel="prev">
 <link href="..//assets/favicon.ico" rel="icon">
 <script src="../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
@@ -123,7 +125,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <link rel="stylesheet" href="../assets/styles.css">
 </head>
 
-<body class="nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+<body class="nav-sidebar floating nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
     const toggleBodyColorMode = (bsSheetEl) => {
       const mode = bsSheetEl.getAttribute("data-mode");
       const bodyEl = window.document.querySelector("body");
@@ -304,7 +306,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link" href="../index.html"> 
+    <a class="nav-link active" href="../index.html" aria-current="page"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
@@ -346,10 +348,303 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </div>
       </div> <!-- /container-fluid -->
     </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../examples/index.html"><strong>Examples</strong></a></li><li class="breadcrumb-item"><a href="../examples/partner_notification.html">Partner notification</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
 </header>
 <!-- content -->
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><strong>Home</strong></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../whatsnew.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><strong>What’s new</strong></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><strong>API reference</strong></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text"><strong>Tutorials</strong></span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../tutorials/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Overview</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../tutorials/tut_intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Getting started with STIsim</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../tutorials/tut_cotransmission.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Co-transmitting STIs</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../tutorials/tut_results.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Results and plotting</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../tutorials/tut_interventions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Interventions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../tutorials/tut_calibration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Calibration</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text"><strong>User guide</strong></span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Overview</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/hivsim.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">HIVsim</span></a>
+  </div>
+</li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Diseases</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/diseases/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Overview</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/diseases/hiv.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">HIV</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/diseases/syphilis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Syphilis</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/diseases/chlamydia.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Chlamydia</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/diseases/gonorrhea.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Gonorrhea</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/diseases/trichomoniasis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Trichomoniasis</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/diseases/bv.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Bacterial vaginosis (BV)</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/diseases/gud.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Genital ulcer disease (GUD)</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Networks</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/networks/structured_sexual.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Structured sexual network</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/networks/matching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Pair matching</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/networks/msm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">MSM networks</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
+ <span class="menu-text">Interventions</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/interventions/interventions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Interventions</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/analyzers.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Analyzers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/care_seeking.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Care-seeking</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/connectors.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Coinfection connectors</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../user_guide/calibration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Calibration</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true">
+ <span class="menu-text"><strong>Examples</strong></span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Overview</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/art_interruptions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Modeling ART interruptions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/dynamic_debut.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Time-varying age at sexual debut</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/partner_notification.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Partner notification</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/vmmc_costing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Costing VMMC and computing an ICER</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../examples/pregnancy_risk_modifier.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Switching sexual-risk behaviour during pregnancy</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../code_of_conduct.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><strong>Code of conduct</strong></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../contributing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><strong>Contributing</strong></span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
         <nav id="TOC" role="doc-toc" class="toc-active" data-toc-expanded="99">
@@ -370,7 +665,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <main class="content" id="quarto-document-content">
 
 
-<header id="title-block-header" class="quarto-title-block default">
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../examples/index.html"><strong>Examples</strong></a></li><li class="breadcrumb-item"><a href="../examples/partner_notification.html">Partner notification</a></li></ol></nav>
 <div class="quarto-title">
 <h1 class="title">Partner notification</h1>
 </div>
@@ -399,7 +694,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <p>This example builds a small HIV sim and compares HIV diagnoses with and without PN.</p>
 <section id="setup" class="level2">
 <h2 class="anchored" data-anchor-id="setup">Setup</h2>
-<div id="f662c5d8" class="cell" data-execution_count="1">
+<div id="4645cd9d" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sciris <span class="im">as</span> sc</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> starsim <span class="im">as</span> ss</span>
@@ -413,7 +708,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="index-cases-who-triggers-pn" class="level2">
 <h2 class="anchored" data-anchor-id="index-cases-who-triggers-pn">Index cases: who triggers PN?</h2>
 <p>PN runs every timestep against an <code>eligibility</code> callback that returns the UIDs of “index cases” — typically agents who just tested positive. Here we use the standard HIV testing pipeline and treat any newly-diagnosed agent as an index case.</p>
-<div id="ce679418" class="cell" data-execution_count="2">
+<div id="b7f4aad0" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> newly_diagnosed(sim):</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Index cases = agents whose HIV diagnosis fires this timestep."""</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    hiv <span class="op">=</span> sim.diseases.hiv</span>
@@ -423,7 +718,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="building-the-sim" class="level2">
 <h2 class="anchored" data-anchor-id="building-the-sim">Building the sim</h2>
 <p>The active sexual network needs <code>recall_prior=True</code> so dissolved partnerships are pushed into the :class:<code>~stisim.PriorPartners</code> recall network. We set the lookback to 6 months — typical of real-world PN programs that ask about partners from the past 3–12 months.</p>
-<div id="225aecf2" class="cell" data-execution_count="3">
+<div id="edc863d7" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_sim(use_pn<span class="op">=</span><span class="va">False</span>, rand_seed<span class="op">=</span><span class="dv">1</span>):</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    hiv_test <span class="op">=</span> sti.HIVTest(name<span class="op">=</span><span class="st">'hiv_test'</span>, test_prob_data<span class="op">=</span><span class="fl">0.3</span>)</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    interventions <span class="op">=</span> [hiv_test]</span>
@@ -457,7 +752,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </section>
 <section id="running-scenarios" class="level2">
 <h2 class="anchored" data-anchor-id="running-scenarios">Running scenarios</h2>
-<div id="8099af73" class="cell" data-execution_count="4">
+<div id="790cc8bb" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>sims <span class="op">=</span> ss.parallel([make_sim(use_pn<span class="op">=</span><span class="va">False</span>), make_sim(use_pn<span class="op">=</span><span class="va">True</span>)]).sims</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> {sim.label: sim <span class="cf">for</span> sim <span class="kw">in</span> sims}</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -472,46 +767,46 @@ Initializing sim "With PN" with 2000 agents
 
   Running "With PN": 2000.01.01 ( 0/121) (0.00 s)  ———————————————————— 1%
 
-  Running "No PN": 2001.01.01 (12/121) (0.92 s)  ••—————————————————— 11%
+  Running "No PN": 2001.01.01 (12/121) (0.88 s)  ••—————————————————— 11%
 
-  Running "With PN": 2001.01.01 (12/121) (0.93 s)  ••—————————————————— 11%
+  Running "With PN": 2001.01.01 (12/121) (0.89 s)  ••—————————————————— 11%
 
-  Running "No PN": 2002.01.01 (24/121) (1.19 s)  ••••———————————————— 21%
+  Running "No PN": 2002.01.01 (24/121) (1.11 s)  ••••———————————————— 21%
 
-  Running "With PN": 2002.01.01 (24/121) (1.22 s)  ••••———————————————— 21%
+  Running "With PN": 2002.01.01 (24/121) (1.13 s)  ••••———————————————— 21%
 
-  Running "No PN": 2003.01.01 (36/121) (1.47 s)  ••••••—————————————— 31%
+  Running "No PN": 2003.01.01 (36/121) (1.35 s)  ••••••—————————————— 31%
 
-  Running "With PN": 2003.01.01 (36/121) (1.51 s)  ••••••—————————————— 31%
+  Running "With PN": 2003.01.01 (36/121) (1.39 s)  ••••••—————————————— 31%
 
-  Running "No PN": 2004.01.01 (48/121) (1.75 s)  ••••••••———————————— 40%
+  Running "No PN": 2004.01.01 (48/121) (1.58 s)  ••••••••———————————— 40%
 
-  Running "With PN": 2004.01.01 (48/121) (1.80 s)  ••••••••———————————— 40%
+  Running "With PN": 2004.01.01 (48/121) (1.63 s)  ••••••••———————————— 40%
 
-  Running "No PN": 2005.01.01 (60/121) (2.04 s)  ••••••••••—————————— 50%
+  Running "No PN": 2005.01.01 (60/121) (1.82 s)  ••••••••••—————————— 50%
 
-  Running "With PN": 2005.01.01 (60/121) (2.09 s)  ••••••••••—————————— 50%
+  Running "With PN": 2005.01.01 (60/121) (1.88 s)  ••••••••••—————————— 50%
 
-  Running "No PN": 2006.01.01 (72/121) (2.32 s)  ••••••••••••———————— 60%
+  Running "No PN": 2006.01.01 (72/121) (2.05 s)  ••••••••••••———————— 60%
 
-  Running "With PN": 2006.01.01 (72/121) (2.38 s)  ••••••••••••———————— 60%
+  Running "With PN": 2006.01.01 (72/121) (2.12 s)  ••••••••••••———————— 60%
 
-  Running "No PN": 2007.01.01 (84/121) (2.61 s)  ••••••••••••••—————— 70%
+  Running "No PN": 2007.01.01 (84/121) (2.28 s)  ••••••••••••••—————— 70%
 
-  Running "With PN": 2007.01.01 (84/121) (2.66 s)  ••••••••••••••—————— 70%
+  Running "With PN": 2007.01.01 (84/121) (2.36 s)  ••••••••••••••—————— 70%
 
-  Running "No PN": 2008.01.01 (96/121) (2.89 s)  ••••••••••••••••———— 80%
+  Running "No PN": 2008.01.01 (96/121) (2.51 s)  ••••••••••••••••———— 80%
 
-  Running "With PN": 2008.01.01 (96/121) (2.96 s)  ••••••••••••••••———— 80%
+  Running "With PN": 2008.01.01 (96/121) (2.60 s)  ••••••••••••••••———— 80%
 
-  Running "No PN": 2009.01.01 (108/121) (3.16 s)  ••••••••••••••••••—— 90%
+  Running "No PN": 2009.01.01 (108/121) (2.74 s)  ••••••••••••••••••—— 90%
 
-  Running "With PN": 2009.01.01 (108/121) (3.26 s)  ••••••••••••••••••—— 90%
+  Running "With PN": 2009.01.01 (108/121) (2.84 s)  ••••••••••••••••••—— 90%
 
-  Running "No PN": 2010.01.01 (120/121) (3.45 s)  •••••••••••••••••••• 100%
+  Running "No PN": 2010.01.01 (120/121) (2.96 s)  •••••••••••••••••••• 100%
 
 
-  Running "With PN": 2010.01.01 (120/121) (3.53 s)  •••••••••••••••••••• 100%
+  Running "With PN": 2010.01.01 (120/121) (3.07 s)  •••••••••••••••••••• 100%
 
      No PN:   238 HIV diagnoses
    With PN:   419 HIV diagnoses</code></pre>
@@ -521,7 +816,7 @@ Initializing sim "With PN" with 2000 agents
 <section id="inspecting-pn-outputs" class="level2">
 <h2 class="anchored" data-anchor-id="inspecting-pn-outputs">Inspecting PN outputs</h2>
 <p>The PN intervention exposes per-timestep counts of partners notified and attending, broken down by channel.</p>
-<div id="44641ab0" class="cell" data-execution_count="5">
+<div id="4d9b2685" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>pn_res <span class="op">=</span> results[<span class="st">'With PN'</span>].results.pn</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>total_notified <span class="op">=</span> <span class="bu">int</span>(pn_res.new_notified.<span class="bu">sum</span>())</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>total_attending <span class="op">=</span> <span class="bu">int</span>(pn_res.new_attending.<span class="bu">sum</span>())</span>
@@ -538,7 +833,7 @@ Attending: 246</code></pre>
 </section>
 <section id="comparing-outcomes" class="level2">
 <h2 class="anchored" data-anchor-id="comparing-outcomes">Comparing outcomes</h2>
-<div id="5ef6013c" class="cell" data-execution_count="6">
+<div id="62e5a23c" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">11</span>, <span class="fl">4.5</span>))</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Left: HIV diagnoses over time</span></span>
@@ -997,6 +1292,18 @@ Attending: 246</code></pre>
     }
   });
   </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../examples/dynamic_debut.html" class="pagination-link" aria-label="Time-varying age at sexual debut">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Time-varying age at sexual debut</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../examples/vmmc_costing.html" class="pagination-link" aria-label="Costing VMMC and computing an ICER">
+        <span class="nav-page-text">Costing VMMC and computing an ICER</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
 </div> <!-- /content -->
 <footer class="footer">
   <div class="nav-footer">
@@ -1004,7 +1311,7 @@ Attending: 246</code></pre>
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.5.7 (2026-06-15).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.5.8 (2026-06-25).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">
@@ -1021,7 +1328,7 @@ Attending: 246</code></pre>
     </a>
   </li>  
     <li class="nav-item compact">
-    <a class="nav-link" href="https://starsim-idm.slack.com">
+    <a class="nav-link" href="https://starsimhub.slack.com">
       <i class="bi bi-slack" role="img">
 </i> 
     </a>
