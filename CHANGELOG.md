@@ -2,6 +2,23 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.5.8 (2026-06-25)
+
+### Logistics
+- Add a `stisim.logistics` package for supply-constrained interventions: `Product` (cost, delivery mode, time-varying efficacy), `Supply`/`Supplies` (quantities and accrued cost), `ProductCategory`/`DeliveryMode` enums, and the abstract `SuppliedIntervention` base that distributes a product across eligible agents subject to available supply. (#492)
+
+### Interventions
+- `PartnerNotification`: optional edge-type / partner-sex stratification. `step()` now walks current-channel edges preserving edge-type info and exposes `current_partner_edges` (`{partner_uid: [edge_type_int, ...]}`) to callables on `p_notify_current.p` / `p_attends_current.p`. New `sti.pn_rates(rates)` helper builds such a callable from a dict spec — either `{'stable': 0.20, 'casual': 0.10}` or per-partner-sex `{'stable': {'f': 0.80, 'm': 0.50}, ...}`. Per-edge probabilities for multiply-reached partners are summed and capped at 1. Scalar `p_notify_current` / `p_attends_current` Bernoullis are unchanged (backward compatible). (#505)
+
+### Documentation
+- New user-guide pages for analyzers (`docs/user_guide/analyzers.md`) and care-seeking (`docs/user_guide/care_seeking.md`).
+- Expand the interventions user guide with syndromic management, antenatal/infant (PMTCT) screening, partner notification, and pregnancy-driven risk reduction.
+- List all gallery examples in the sidebar; fix syphilis API drift that broke the docs build.
+
+### Tests
+- Add `pn_rates` stratification tests.
+- Regenerate `baseline.yaml` / `benchmark.yaml` for starsim 3.4.0 (`n_female`).
+
 ## Version 1.5.7 (2026-06-15)
 
 ### Diseases

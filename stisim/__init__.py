@@ -6,6 +6,7 @@ from .connectors    import *
 from .diseases      import *
 from .demographics  import *
 from .interventions import *
+from .logistics     import *
 from .networks      import *
 from .utils         import *
 from .analyzers     import *

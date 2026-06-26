@@ -224,6 +224,106 @@ prep = sti.Prep(coverage=[0, 0.5], years=[2020, 2025])
 | `eff_prep` | 0.8 | Efficacy (80% reduction in HIV acquisition risk) |
 | `eligibility` | HIV-negative FSWs not on PrEP | Optional function to override default targeting |
 
+## Syndromic management
+
+`SyndromicManagement` treats vaginal/urethral discharge syndromes presumptively,
+without a confirmatory lab test: symptomatic care-seekers are routed to treatment
+based on the syndrome rather than a diagnosis. Use it for bacterial STIs in
+settings where point-of-care diagnostics are unavailable.
+
+```python
+sm = sti.SyndromicManagement(
+    diseases=['ng', 'ct', 'tv'],      # diseases by NAME (resolved against sim.diseases)
+    treatments=[ng_tx, ct_tx, metro],
+    outcome_tx_map={'discharge': [ng_tx, ct_tx]},
+)
+```
+
+| Parameter | Description |
+|-----------|-------------|
+| `diseases` | Disease names presenting as the syndrome (e.g. `['ng','ct']`). Passed as names, not module objects. |
+| `cervical_diseases` | Subset checked via the cervical-symptom path. |
+| `treatments` / `outcome_tx_map` | Treatment interventions and the syndrome → treatment routing. |
+| `treat_prob_data` | Probability a symptomatic care-seeker is managed. |
+
+> **Stub** — expand with the symptom-detection logic and a worked discharge example.
+> See [`SymptomaticTesting`](#symptomatictesting) for the test-and-treat variant, and
+> the API reference for [`interventions.base_interventions`](../../api/interventions.base_interventions.qmd).
+
+## Antenatal and infant screening (PMTCT)
+
+STIsim supports single-visit antenatal care (ANC) screening that auto-schedules
+newborn/infant follow-up, used for preventing mother-to-child transmission (PMTCT)
+of HIV and congenital syphilis.
+
+```python
+anc = sti.ANCTest(
+    disease_names=['hiv', 'syphilis'],   # auto-detects HIV + syphilis
+    visit_prob=0.9,                      # ANC attendance probability
+    disease_treatment_map={'hiv': art, 'syphilis': syph_tx},
+    newborn_tests=[sti.InfantHIVTest(test_prob=0.8)],
+)
+```
+
+| Class | Role |
+|-------|------|
+| `sti.ANCTest` | Multi-disease ANC visit testing, scheduled once per pregnancy; per-disease sensitivity; routes positives to treatment. |
+| `sti.InfantHIVTest` | HIV test for infants born to mothers diagnosed in pregnancy (scheduled by `ANCTest` or `HIVTest` via the maternal network). |
+| `sti.ANCSyphTest` | Syphilis-specific ANC screening with a diagnostic product; can schedule a newborn test. |
+| `sti.NewbornSyphTest` | Syphilis test for newborns of mothers diagnosed in pregnancy. |
+| `sti.NewbornTreatment` | Treatment for congenital syphilis in newborns. |
+
+> **Stub** — expand with the ANC → treatment → newborn-test cascade, sensitivity
+> defaults, and a PMTCT worked example. Requires a `Pregnancy` module (and
+> `MaternalNet`/`BreastfeedingNet` for infant scheduling). See
+> [`interventions.hiv_interventions`](../../api/interventions.hiv_interventions.qmd) and
+> [`interventions.syphilis_interventions`](../../api/interventions.syphilis_interventions.qmd).
+
+## Partner notification
+
+`PartnerNotification` reaches the sexual partners of newly diagnosed index cases
+and offers them follow-up testing. It works over two channels — the current sexual
+network and an optional prior-partner recall network — each with separate
+notification and attendance probabilities.
+
+```python
+pn = sti.PartnerNotification(
+    eligibility=lambda sim: sim.diseases.hiv.ti_diagnosed == sim.ti,  # index cases
+    test=sti.HIVTest(test_prob_data=1.0),                            # offered to attendees
+    pars=dict(p_notify_current=0.6, p_attends_current=0.5),
+)
+```
+
+| Parameter | Description |
+|-----------|-------------|
+| `eligibility` | `f(sim) -> uids` returning index cases (e.g. those diagnosed this step). |
+| `test` | Testing intervention scheduled for partners who attend follow-up. |
+| `p_notify_*` / `p_attends_*` | Per-channel (current/prior) notification × attendance probabilities; may be callables for edge-type stratification (see `sti.pn_rates`). |
+
+> **Stub** — expand with the two-channel cascade and per-channel result tracking.
+> See the gallery example [Partner notification](../../examples/partner_notification.qmd).
+
+## Pregnancy-driven risk reduction
+
+`PregnancyRiskReduction` lowers sexual-risk behaviour during pregnancy and restores
+it afterwards — useful when behaviour change during pregnancy materially affects
+transmission.
+
+```python
+prr = sti.PregnancyRiskReduction(pars=dict(
+    fsw_redux=True,          # clear FSW status while pregnant
+    high_risk_redux=True,    # drop high-risk-group membership
+    concurrency_redux=True,  # zero concurrency
+))
+```
+
+During pregnancy the module optionally clears FSW status, drops high-risk-group
+membership to `default_risk_group`, and/or zeros concurrency; each agent's prior
+state is restored once the pregnancy ends.
+
+> **Stub** — expand with parameter semantics and the gallery example
+> [Pregnancy risk modifier](../../examples/pregnancy_risk_modifier.qmd).
+
 ## Combining interventions
 
 Interventions are passed to the sim as a list:
