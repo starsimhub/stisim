@@ -111,6 +111,8 @@ website:
             - section: "Interventions"
               contents:
                 - user_guide/interventions/interventions.md
+            - user_guide/analyzers.md
+            - user_guide/care_seeking.md
             - user_guide/connectors.md
             - user_guide/calibration.md
         - section: "**Examples**"
@@ -119,6 +121,9 @@ website:
               text: "Overview"
             - examples/art_interruptions.qmd
             - examples/dynamic_debut.qmd
+            - examples/partner_notification.qmd
+            - examples/vmmc_costing.qmd
+            - examples/pregnancy_risk_modifier.qmd
         - href: code_of_conduct.md
           text: "**Code of conduct**"
         - href: contributing.md
