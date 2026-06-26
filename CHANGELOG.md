@@ -2,7 +2,7 @@
 
 All notable changes to the codebase are documented in this file.
 
-## Version 1.5.8 (TBC)
+## Version 1.5.8 (2026-06-25)
 
 ### Logistics
 - Add a `stisim.logistics` package for supply-constrained interventions: `Product` (cost, delivery mode, time-varying efficacy), `Supply`/`Supplies` (quantities and accrued cost), `ProductCategory`/`DeliveryMode` enums, and the abstract `SuppliedIntervention` base that distributes a product across eligible agents subject to available supply. (#492)
