@@ -4,6 +4,9 @@ All notable changes to the codebase are documented in this file.
 
 ## Version 1.5.9 (TBC)
 
+### Diseases
+- Syphilis: fix `new_nnds` and `new_stillborns` (and the derived `new_congenital_deaths` / `cum_congenital_deaths`) always reading 0. `step_state` cleared `ti_nnd` / `ti_stillborn` to `nan` when scheduling the deaths, so the `== ti` check in `update_results` (which runs after) never matched. Mirror the existing `_new_congenital_count` pattern: stash the counts before clearing and read from the stash in `update_results`.
+
 ## Version 1.5.8 (2026-06-25)
 
 ### Logistics

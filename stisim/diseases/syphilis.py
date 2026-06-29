@@ -474,6 +474,10 @@ class Syphilis(BaseSTI):
         # Congenital syphilis deaths
         nnd = (self.ti_nnd <= ti).uids
         stillborn = (self.ti_stillborn <= ti).uids
+        # Store counts for update_results: ti_nnd / ti_stillborn are cleared
+        # below so an `== ti` check in update_results would always read 0.
+        self._new_nnd_count = len(nnd)
+        self._new_stillborn_count = len(stillborn)
         if len(nnd):
             self.sim.people.request_death(nnd)
             self.ti_nnd[nnd] = np.nan  # Clear after firing
@@ -583,9 +587,10 @@ class Syphilis(BaseSTI):
             deliv_prev = cond_prob(self.infected, ppl.pregnancy.ti_delivery == ti)
             self.results['delivery_prevalence'][ti] = deliv_prev
 
-        # Congenital results
-        self.results['new_nnds'][ti]       = np.count_nonzero(self.ti_nnd == ti)
-        self.results['new_stillborns'][ti] = np.count_nonzero(self.ti_stillborn == ti)
+        # Congenital results: read from stashes set in step_state before
+        # ti_nnd / ti_stillborn / ti_congenital were cleared to nan.
+        self.results['new_nnds'][ti]       = getattr(self, '_new_nnd_count', 0)
+        self.results['new_stillborns'][ti] = getattr(self, '_new_stillborn_count', 0)
         self.results['new_congenital'][ti] = getattr(self, '_new_congenital_count', 0)
         self.results['new_congenital_deaths'][ti] = self.results['new_nnds'][ti] + self.results['new_stillborns'][ti]
         self.results['new_deaths'][ti] = np.count_nonzero(self.ti_dead == ti)
