@@ -1,0 +1,86 @@
+{
+    "bundle_name": "clinic",
+    "events": [
+        {
+            "name": "enter clinic",
+            "eligibilities": [
+                "all women aged [15, 50) who are not currently diagnosed as HIV positive"
+            ],
+            "coverages": [
+                0.25
+            ],
+            "link_result": {
+                "true": "queue for hiv test",
+                "false": ""
+            }
+        },
+        {
+            "name": "queue for hiv test",
+            "supplies":  {"hiv_test": 1},
+            "link_result": {
+                "true": "take hiv test",
+                "false": ""
+            }
+        },
+        {
+            "name": "take hiv test",
+            "link_result": {
+                "true": "art uptake choice",
+                "false": "prep uptake choice"
+            }
+        },
+        {
+            "name": "art uptake choice",
+            "link_result": {
+                "true": "initiate art",
+                "false": ""
+            }
+        },
+        {
+            "name": "initiate art",
+            "supplies":  {"dolutegravir": 1},
+            "link_result": {
+                "all": "set art return"
+            }
+        },
+        {
+            "name": "set art return"
+        },
+
+        {
+            "name": "prep uptake choice",
+            "link_result": {
+                "true": "initiate prep",
+                "false": "condoms uptake choice"
+            }
+        },
+        {
+            "name": "initiate prep",
+            "supplies":  {"oral": 1},
+            "link_result": {
+                "all": "set prep return"
+            }
+        },
+        {
+            "name": "set prep return"
+        },
+
+        {
+            "name": "condoms uptake choice",
+            "link_result": {
+                "true": "initiate condoms",
+                "false": ""
+            }
+        },
+        {
+            "name": "initiate condoms",
+            "supplies":  {"condoms": 25},
+            "link_result": {
+                "all": "set condoms return"
+            }
+        },
+        {
+            "name": "set condoms return"
+        }
+    ]
+}

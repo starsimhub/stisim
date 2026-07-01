@@ -2,6 +2,7 @@
 import abc
 from typing import Callable
 
+import numpy as np
 import starsim as ss
 
 from stisim.logistics.supplies import Supplies
@@ -184,7 +185,7 @@ class SuppliedIntervention(ss.Intervention, metaclass=abc.ABCMeta):
             max_supply_dist = [0] * len(coverage_gaps)  # nothing to distribute, all target coverages met
         return max_supply_dist
 
-    def distribute(self, offer_pools, cur_coverages, target_coverages, n_eligibles, n_supply, dist_func):
+    def distribute(self, offer_pools, cur_coverages, target_coverages, n_eligibles, n_supply, dist_func, product_name, product_quantity_per_agent):
         """
         Select recipients across the offer pools and apply the intervention's effect to them.
 
@@ -206,7 +207,7 @@ class SuppliedIntervention(ss.Intervention, metaclass=abc.ABCMeta):
                 setting state, flipping on_intervention) and is expected to draw down supply via self.use().
 
         Returns:
-            ss.uids of all agents selected across all offer pools.
+            ss.uids of all agents selected by offer pool and their results, both coindexed with offer_pools.
         """
         import random  # TODO: change this to use a ss-based selection
 
@@ -215,12 +216,37 @@ class SuppliedIntervention(ss.Intervention, metaclass=abc.ABCMeta):
                                                      cur_coverages=cur_coverages, target_coverages=target_coverages,
                                                      n_eligibles=n_eligibles, n_supply=n_supply)
 
-        all_selected = ss.arrays.uids()
+        # all_selected = ss.arrays.uids()
+        all_selected = []
+        all_results = []
         for i, offer_pool in enumerate(offer_pools):
             selected = random.sample(population=list(offer_pool), k=supply_dists[i])
             selected = ss.arrays.uids(selected)
 
             if len(selected) > 0:
-                dist_func(uptakers=selected)
-                all_selected = all_selected.union(selected)
-        return all_selected
+                results = dist_func(uptakers=selected, product_name=product_name, product_quantity_per_agent=product_quantity_per_agent)
+            else:
+                results = []
+            all_selected.append(selected)
+            all_results.append(results)
+        return all_selected, all_results
+
+    def event(self,
+              offer_pools: list[ss.uids],
+              n_eligibles: list[int],
+              dist_func: Callable,
+              cur_coverages: list[float] = None,
+              target_coverages: list[float] = None,
+              product_name: str = None,
+              product_quantity_per_agent: int = None):
+        """lists are co-indexed, length being the number of offer pools"""
+        # defaulting current and target coverage to effectively disable coverage limits.
+        cur_coverages = [0.0 for _ in range(len(offer_pools))] if cur_coverages is None else cur_coverages
+        target_coverages = [1.0 for _ in range(len(offer_pools))] if target_coverages is None else target_coverages
+
+        quantity = np.inf if product_name is None else self.supplies.get_supply(prod_name=product_name).quantity
+        selected, results = self.distribute(offer_pools=offer_pools, cur_coverages=cur_coverages,
+                                            target_coverages=target_coverages, n_eligibles=n_eligibles,
+                                            n_supply=quantity, dist_func=dist_func,
+                                            product_name=product_name, product_quantity_per_agent=product_quantity_per_agent)
+        return selected, results

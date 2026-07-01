@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 950 730" width="950" height="730">
+
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#555"/>
+    </marker>
+  </defs>
+
+  <style>
+    .node        { fill: #d0e8f5; stroke: #1a6a8a; stroke-width: 1.5; }
+    .node-name   { font-family: monospace; font-size: 11px; text-anchor: middle; font-weight: bold; fill: #1a1a1a; }
+    .node-supply { font-family: monospace; font-size: 10px; text-anchor: middle; fill: #8a4a00; }
+    .node-elig   { font-family: sans-serif; font-size: 9px; text-anchor: middle; fill: #1a3a8a; font-style: italic; }
+    .node-cov    { font-family: sans-serif; font-size: 9px; text-anchor: middle; fill: #8a4a00; }
+    .sep         { stroke: #1a6a8a; stroke-width: 0.75; opacity: 0.4; }
+    .edge        { stroke: #555; stroke-width: 1.5; fill: none; marker-end: url(#arr); }
+    .edge-label  { font-family: sans-serif; font-size: 10px; text-anchor: middle; fill: #444; }
+  </style>
+
+  <!-- ================================================================
+       NODES
+       Standard nodes: 170 × 50, rx=5
+         single-line: name at top+30
+         two-line:    name at top+19, supply at top+37
+       enter_clinic:  170 × 90, rx=5  (extra height for elig + coverage)
+  ================================================================ -->
+
+  <!-- enter_clinic  top=(405,20)  h=90  bottom-center=(490,110) -->
+  <rect x="405" y="20" width="170" height="90" rx="5" class="node"/>
+  <text x="490" y="38"  class="node-name">enter_clinic</text>
+  <line x1="410" y1="45" x2="570" y2="45" class="sep"/>
+  <text x="490" y="58"  class="node-elig">all women aged [15, 50)</text>
+  <text x="490" y="71"  class="node-elig">not HIV diagnosed</text>
+  <text x="490" y="86"  class="node-cov">coverage: 0.25</text>
+
+  <!-- queue_for_hiv_test  top=(405,150)  bottom-center=(490,200) -->
+  <rect x="405" y="150" width="170" height="50" rx="5" class="node"/>
+  <text x="490" y="169" class="node-name">queue_for_hiv_test</text>
+  <text x="490" y="187" class="node-supply">hiv_test: 1</text>
+
+  <!-- take_hiv_test  top=(405,240)  bottom-center=(490,290) -->
+  <rect x="405" y="240" width="170" height="50" rx="5" class="node"/>
+  <text x="490" y="270" class="node-name">take_hiv_test</text>
+
+  <!-- art_uptake_choice  top=(115,350)  bottom-center=(200,400) -->
+  <rect x="115" y="350" width="170" height="50" rx="5" class="node"/>
+  <text x="200" y="380" class="node-name">art_uptake_choice</text>
+
+  <!-- initiate_art  top=(115,450)  bottom-center=(200,500) -->
+  <rect x="115" y="450" width="170" height="50" rx="5" class="node"/>
+  <text x="200" y="469" class="node-name">initiate_art</text>
+  <text x="200" y="487" class="node-supply">dolutegravir: 1</text>
+
+  <!-- set_art_return  top=(115,550)  bottom-center=(200,600) -->
+  <rect x="115" y="550" width="170" height="50" rx="5" class="node"/>
+  <text x="200" y="580" class="node-name">set_art_return</text>
+
+  <!-- prep_uptake_choice  top=(555,350)  bottom-center=(640,400) -->
+  <rect x="555" y="350" width="170" height="50" rx="5" class="node"/>
+  <text x="640" y="380" class="node-name">prep_uptake_choice</text>
+
+  <!-- initiate_prep  top=(555,450)  bottom-center=(640,500) -->
+  <rect x="555" y="450" width="170" height="50" rx="5" class="node"/>
+  <text x="640" y="469" class="node-name">initiate_prep</text>
+  <text x="640" y="487" class="node-supply">oral: 1</text>
+
+  <!-- set_prep_return  top=(555,550)  bottom-center=(640,600) -->
+  <rect x="555" y="550" width="170" height="50" rx="5" class="node"/>
+  <text x="640" y="580" class="node-name">set_prep_return</text>
+
+  <!-- condoms_uptake_choice  top=(755,450)  bottom-center=(840,500) -->
+  <rect x="755" y="450" width="170" height="50" rx="5" class="node"/>
+  <text x="840" y="480" class="node-name">condoms_uptake_choice</text>
+
+  <!-- initiate_condoms  top=(755,550)  bottom-center=(840,600) -->
+  <rect x="755" y="550" width="170" height="50" rx="5" class="node"/>
+  <text x="840" y="569" class="node-name">initiate_condoms</text>
+  <text x="840" y="587" class="node-supply">condoms: 25</text>
+
+  <!-- set_condoms_return  top=(755,660)  bottom-center=(840,710) -->
+  <rect x="755" y="660" width="170" height="50" rx="5" class="node"/>
+  <text x="840" y="690" class="node-name">set_condoms_return</text>
+
+  <!-- ================================================================
+       EDGES
+  ================================================================ -->
+
+  <!-- 1. enter_clinic → queue_for_hiv_test   true -->
+  <path d="M490,110 L490,150" class="edge"/>
+  <text x="502" y="135" class="edge-label">true</text>
+
+  <!-- 2. queue_for_hiv_test → take_hiv_test   true -->
+  <path d="M490,200 L490,240" class="edge"/>
+  <text x="502" y="225" class="edge-label">true</text>
+
+  <!-- 3. take_hiv_test → art_uptake_choice   true -->
+  <path d="M490,290 L490,325 L200,325 L200,350" class="edge"/>
+  <text x="343" y="319" class="edge-label">true</text>
+
+  <!-- 4. take_hiv_test → prep_uptake_choice   false -->
+  <path d="M490,290 L490,325 L640,325 L640,350" class="edge"/>
+  <text x="567" y="319" class="edge-label">false</text>
+
+  <!-- 5. art_uptake_choice → initiate_art   true -->
+  <path d="M200,400 L200,450" class="edge"/>
+  <text x="212" y="429" class="edge-label">true</text>
+
+  <!-- 6. initiate_art → set_art_return   all -->
+  <path d="M200,500 L200,550" class="edge"/>
+  <text x="212" y="529" class="edge-label">all</text>
+
+  <!-- 7. prep_uptake_choice → initiate_prep   true -->
+  <path d="M640,400 L640,450" class="edge"/>
+  <text x="652" y="429" class="edge-label">true</text>
+
+  <!-- 8. prep_uptake_choice → condoms_uptake_choice   false -->
+  <path d="M640,400 L640,428 L840,428 L840,450" class="edge"/>
+  <text x="742" y="422" class="edge-label">false</text>
+
+  <!-- 9. initiate_prep → set_prep_return   all -->
+  <path d="M640,500 L640,550" class="edge"/>
+  <text x="652" y="529" class="edge-label">all</text>
+
+  <!-- 10. condoms_uptake_choice → initiate_condoms   true -->
+  <path d="M840,500 L840,550" class="edge"/>
+  <text x="852" y="529" class="edge-label">true</text>
+
+  <!-- 11. initiate_condoms → set_condoms_return   all -->
+  <path d="M840,600 L840,660" class="edge"/>
+  <text x="852" y="634" class="edge-label">all</text>
+
+</svg>

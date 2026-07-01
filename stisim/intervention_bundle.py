@@ -7,15 +7,17 @@ class InterventionBundle(ss.Intervention):
     InterventionBundle, they know for sure the order involved and can more easily setup conditional effects during
     execution of the interventions.
     """
-    def __init__(self, interventions: list, states: list[str] = None, pars=None, *args, **kwargs):
+    def __init__(self, name: str, interventions: list, states: list = None, pars=None, *args, **kwargs):
         """
 
         Args:
             interventions: a list of ss.Intervention objects to be contained
-            states: a list of state names that will be defined on the bundle for inter-intervention communication.
+            states: a list of ss.State objects to be defined on the bundle for inter-intervention communication.
+                Callers construct and pass state objects directly (e.g. ss.BoolState('name')).
             pars: standard starsim pars
         """
         super().__init__(*args, **kwargs)
+        self.name = name
         self.interventions = interventions
         for intv in self.interventions:
             intv.parent = self
@@ -23,7 +25,7 @@ class InterventionBundle(ss.Intervention):
         self.update_pars(pars, **kwargs)
 
         states = [] if states is None else states
-        states = [ss.BoolState(name=name) for name in states]
+        self._state_names = [state.name for state in states]
         self.define_states(*states)
 
     def init_pre(self, sim):
@@ -49,6 +51,10 @@ class InterventionBundle(ss.Intervention):
         super().finish_step()
         for intervention in self.interventions:
             intervention.finish_step()
+        # Truncating existing inter-intervention communication states to save memory.
+        for name in self._state_names:
+            val = getattr(self, name)
+            setattr(self, name, type(val)())
 
     def update_results(self):
         super().update_results()

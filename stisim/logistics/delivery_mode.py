@@ -15,3 +15,5 @@ class DeliveryMode(Enum):
     PILL = 'pill'
     TOPICAL = 'topical'
     EDUCATIONAL = 'educational'
+    GIVE = 'give'
+    RAPID_TEST = 'rapid_test'

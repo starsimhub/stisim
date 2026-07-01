@@ -14,3 +14,4 @@ class ProductCategory(Enum):
     PREP = 'prep'
     ART = 'art'
     BARRIER = 'barrier'
+    DIAGNOSTIC = 'diagnostic'

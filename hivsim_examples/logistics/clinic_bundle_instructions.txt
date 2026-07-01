@@ -1,0 +1,65 @@
+Initial instructions: examine this file but do not create code. Ask questions to help define the plan of code generation
+and clarify any missing gaps in these instructions. When given the go-ahead, then code is created.
+
+Input json file: hivsim_examples/logistics/clinic.json
+New subclasses folder: hivsim_examples/logistics/clinic/
+Event template: hivsim_examples/logistics/event_template.py
+Eligibility function template: hivsim_examples/logistics/eligibility_function_template.py
+
+Examine the "Input json file" . It is intended to represent a directed acyclic graph (DAG) of events.
+- events are located as entries in the "events" value list.
+- event keys and interpretation:
+-- "name": the name of the event for visual identification and for linking events
+--- Define template variable: "event_name_downcased" as downcased/underscore version of event["name"]
+-- "link_result": Define entries: "result" -> "event name" . When "result" occurs as an outcome for agent uids in input offer pools of an event, they are passed as input to the event with "name" equal to the entry "event name". Interpret "event name" equal to "" as no linked event (nothing happens in this case). All "link_result" input and output maintain the offer_pool structure that organizes agent uids.
+--- Define template variable: "link_value" as "result "in the event that precedes a given event in the DAG.
+--- Define template variable: "link_event_name_downcased" as the downcased/underscore version of "event name" in the event that precedes a given event in the DAG.
+-- "supplies": Define entries: "product name" -> "amount used per agent uid". Determines any supplies that will need to be updated per input agent that successfully completes this event. If there is sufficient supply for all input agents of all "product name" supplies, then all input agents will have a result generated successfully. If there is insufficient supply of one or more "product name" for all input agents, then as many agents as possible are passed through the event successfully, while not exceeding the available supplies. The method that calculates how many agents (per offer pool) will have successful results generated is SuppliedIntervention.calc_supply_distribution . This is called by SuppliedIntervention.distribute, which does the appropriate selection of agents and application of the distribution function if supplies are limited.
+--- Define template variable: "product_name" as list(event["supplies"].keys())[0], default is a python None.
+--- Define template variable: "product_quantity" as list(event["supplies"].values())[0], default is 0.
+-- "eligibilities" key tells how to construct callables for the "eligibilities" arg passed during creation of the subclass instance. Each entry will be an English string that describes how to create the callable, which will be followed during code creation step. "" means all agents.
+-- "coverages" key tells how to construct the "eligibilities" co-indexed ""coverages" arg passed during creation of the subclass instance. If not present, all coverages default to [1.0].
+- There should be no "link_result" "event name" references that are not within the specified json file. Claude should alert the user when trying to generate code from json with such an error.
+- Warn and tell a user before code generation if existing ProductCategory or DeliveryMode do not have appropriate available values for use.
+- "bundle_name" top-level entry defines the InterventionBundle instance name with its value (define value as "bname_value").
+-- Define template variable: "bundle_name" as "bname_value"
+- Map any "true" or "false" strings (any case) to python True and False, respectively.
+- When using .format() to fill template variables, use repr() for each variable value that is not used as a literal attribute
+-- E.g. use repr(): product_quantity = {product_quanity -> product_quantity = 2  (if "product_quantity" variable is "2")
+-- E.g. no repr(): sim.interventions.{bundle_name} -> sim.interventions.clinic (if "bundle_name" variable value is "clinic")
+
+-------------------------------------------------------------------------------
+
+Utilizing the information from the input json file specified above, create new subclasses of SuppliedIntervention to represent the events in the DAG:
+- One subclass per event. Fewer subclasses can be created (and reused) if obvious reuse is possible in the "Input json file" DAG.
+- Subclasses are created in separate .py files in "New subclasses folder", with a downcased filename.
+- Eligibility functions are created from the "Eligibility function template" by python string .format() replacement of variables derived from the "Input json file".
+- Use all templates as-is without question unless asked to, e.g., debug the templates.
+- Also do not question the way the templates link selected and results unless asked to, e.g., debug the templates.
+
+-------------------------------------------------------------------------------
+
+Create an InterventionBundle instance in "New subclasses folder"/intervention.py
+- Create the InterventionBundle instance
+-- InterventionBundle instance created in intervention.py will be created with the necessary states passed to its constructor.
+-- Default type is "ss.BoolState" for states added to the parent InterventionBundle. Add a User note in intervention.py next to where states are created indicating the types should be updated as needed.
+-- It is expected that the states created will behave differently from normal starsim states. Keep as-is.
+-- Do not omit any terminal event state writing, even if you believe nothing is reading them (e.g. analyzers might read them).
+- Create instances of the created subclasses as needed for DAG representation.
+- Create eligibility functions
+-- eligibility callable for first event (instance of a subclass) is simply the following, but with a "User note" added to adjust as needed:
+--- lambda sim: sim.people.alive
+-- All other eligibility functions are created from the "Eligibility function template" by python string .format() replacement of variables derived from the "Input json file".
+- Create and pass in a Supplies object that contains a Supply of each Product mentioned in the input json file. Default available product quantity is np.inf .
+- Create Product objects as needed to satisfy the needs of the instance of the new subclasses.
+-- Use best judgement to set product categories and delivery modes, prompting the user with choices made in a table for evaluation before generating code.
+-- Prompt user with suggested callables representing the "eligibilities" in the "Input json file" that were specified for interpretation, prompting the user with the proposed callables code before generating it.
+-- Default values of cost=0 and eff_by_ti=[1.0] with a note to the user "User note" on each to set the actual values.
+- Order the new python file such that:
+-- each eligibility function is defined immediately before use by events (interleaving eligibility functions with event instances)
+-- products and supplies are defined before events
+
+Generate a svg file (dag.svg, in directory "New subclasses folder") depicting the directed acyclic graph in "Input json file" .
+- Use single direction arrows (link from -> link to) for connectors, labeling each connector with the value related to the linkage.
+- Label each DAG node with the name of the event. Add to DAG node labels any product usages and amounts (per agent).
+- If an event has "eligibilities" or "coverage" defined, specify both in the event node.
