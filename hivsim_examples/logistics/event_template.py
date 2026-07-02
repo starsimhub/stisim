@@ -64,7 +64,7 @@ class SuppliedInterventionSubclass(SuppliedIntervention):
                                                    dist_func=self.distribute_event,
                                                    cur_coverages=cur_coverages, target_coverages=target_coverages)
 
-        self.parent.{event_name_downcased}_selected = event_selected   # TODO: update to use setattr to allow consistent use of repr() in .format() call
-        self.parent.{event_name_downcased}_results = event_results  # TODO: update to use setattr to allow consistent use of repr() in .format() call
+        self.parent.{event_name_downcased}_selected = event_selected
+        self.parent.{event_name_downcased}_results = event_results
         return
         # End template.

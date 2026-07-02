@@ -7,9 +7,11 @@
 # bundle_name: {bundle_name}
 
 def {event_name_downcased}_eligibilities(sim):
-    selected = sim.interventions.{bundle_name}.{link_event_name_downcased}_selected  # TODO: update to use getattr to allow consistent use of repr() in .format() call
-    results = sim.interventions.{bundle_name}.{link_event_name_downcased}_results  # TODO: update to use getattr to allow consistent use of repr() in .format() call
+    bundle = getattr(sim.interventions, {bundle_name})
+    selected = getattr(bundle, {link_event_name_downcased} + '_selected')
+    results = getattr(bundle, {link_event_name_downcased} + '_results')
     link_value = {link_value}
+
     eligibilities = []
     for s, r in zip(selected, results):
         if link_value == "all":

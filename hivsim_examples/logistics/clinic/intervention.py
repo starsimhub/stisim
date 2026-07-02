@@ -99,9 +99,11 @@ enter_clinic = EnterClinic(
 # bundle_name: clinic
 
 def queue_for_hiv_test_eligibilities(sim):
-    selected = sim.interventions.clinic.enter_clinic_selected
-    results = sim.interventions.clinic.enter_clinic_results
+    bundle = getattr(sim.interventions, 'clinic')
+    selected = getattr(bundle, 'enter_clinic' + '_selected')
+    results = getattr(bundle, 'enter_clinic' + '_results')
     link_value = True
+
     eligibilities = []
     for s, r in zip(selected, results):
         if link_value == "all":
@@ -130,9 +132,11 @@ queue_for_hiv_test = QueueForHivTest(
 # bundle_name: clinic
 
 def take_hiv_test_eligibilities(sim):
-    selected = sim.interventions.clinic.queue_for_hiv_test_selected
-    results = sim.interventions.clinic.queue_for_hiv_test_results
+    bundle = getattr(sim.interventions, 'clinic')
+    selected = getattr(bundle, 'queue_for_hiv_test' + '_selected')
+    results = getattr(bundle, 'queue_for_hiv_test' + '_results')
     link_value = True
+
     eligibilities = []
     for s, r in zip(selected, results):
         if link_value == "all":
@@ -161,9 +165,11 @@ take_hiv_test = TakeHivTest(
 # bundle_name: clinic
 
 def art_uptake_choice_eligibilities(sim):
-    selected = sim.interventions.clinic.take_hiv_test_selected
-    results = sim.interventions.clinic.take_hiv_test_results
+    bundle = getattr(sim.interventions, 'clinic')
+    selected = getattr(bundle, 'take_hiv_test' + '_selected')
+    results = getattr(bundle, 'take_hiv_test' + '_results')
     link_value = True
+
     eligibilities = []
     for s, r in zip(selected, results):
         if link_value == "all":
@@ -192,9 +198,11 @@ art_uptake_choice = ArtUptakeChoice(
 # bundle_name: clinic
 
 def initiate_art_eligibilities(sim):
-    selected = sim.interventions.clinic.art_uptake_choice_selected
-    results = sim.interventions.clinic.art_uptake_choice_results
+    bundle = getattr(sim.interventions, 'clinic')
+    selected = getattr(bundle, 'art_uptake_choice' + '_selected')
+    results = getattr(bundle, 'art_uptake_choice' + '_results')
     link_value = True
+
     eligibilities = []
     for s, r in zip(selected, results):
         if link_value == "all":
@@ -223,9 +231,11 @@ initiate_art = InitiateArt(
 # bundle_name: clinic
 
 def set_art_return_eligibilities(sim):
-    selected = sim.interventions.clinic.initiate_art_selected
-    results = sim.interventions.clinic.initiate_art_results
+    bundle = getattr(sim.interventions, 'clinic')
+    selected = getattr(bundle, 'initiate_art' + '_selected')
+    results = getattr(bundle, 'initiate_art' + '_results')
     link_value = 'all'
+
     eligibilities = []
     for s, r in zip(selected, results):
         if link_value == "all":
@@ -254,9 +264,11 @@ set_art_return = SetArtReturn(
 # bundle_name: clinic
 
 def prep_uptake_choice_eligibilities(sim):
-    selected = sim.interventions.clinic.take_hiv_test_selected
-    results = sim.interventions.clinic.take_hiv_test_results
+    bundle = getattr(sim.interventions, 'clinic')
+    selected = getattr(bundle, 'take_hiv_test' + '_selected')
+    results = getattr(bundle, 'take_hiv_test' + '_results')
     link_value = False
+
     eligibilities = []
     for s, r in zip(selected, results):
         if link_value == "all":
@@ -285,9 +297,11 @@ prep_uptake_choice = PrepUptakeChoice(
 # bundle_name: clinic
 
 def initiate_prep_eligibilities(sim):
-    selected = sim.interventions.clinic.prep_uptake_choice_selected
-    results = sim.interventions.clinic.prep_uptake_choice_results
+    bundle = getattr(sim.interventions, 'clinic')
+    selected = getattr(bundle, 'prep_uptake_choice' + '_selected')
+    results = getattr(bundle, 'prep_uptake_choice' + '_results')
     link_value = True
+
     eligibilities = []
     for s, r in zip(selected, results):
         if link_value == "all":
@@ -316,9 +330,11 @@ initiate_prep = InitiatePrep(
 # bundle_name: clinic
 
 def set_prep_return_eligibilities(sim):
-    selected = sim.interventions.clinic.initiate_prep_selected
-    results = sim.interventions.clinic.initiate_prep_results
+    bundle = getattr(sim.interventions, 'clinic')
+    selected = getattr(bundle, 'initiate_prep' + '_selected')
+    results = getattr(bundle, 'initiate_prep' + '_results')
     link_value = 'all'
+
     eligibilities = []
     for s, r in zip(selected, results):
         if link_value == "all":
@@ -347,9 +363,11 @@ set_prep_return = SetPrepReturn(
 # bundle_name: clinic
 
 def condoms_uptake_choice_eligibilities(sim):
-    selected = sim.interventions.clinic.prep_uptake_choice_selected
-    results = sim.interventions.clinic.prep_uptake_choice_results
+    bundle = getattr(sim.interventions, 'clinic')
+    selected = getattr(bundle, 'prep_uptake_choice' + '_selected')
+    results = getattr(bundle, 'prep_uptake_choice' + '_results')
     link_value = False
+
     eligibilities = []
     for s, r in zip(selected, results):
         if link_value == "all":
@@ -378,9 +396,11 @@ condoms_uptake_choice = CondomsUptakeChoice(
 # bundle_name: clinic
 
 def initiate_condoms_eligibilities(sim):
-    selected = sim.interventions.clinic.condoms_uptake_choice_selected
-    results = sim.interventions.clinic.condoms_uptake_choice_results
+    bundle = getattr(sim.interventions, 'clinic')
+    selected = getattr(bundle, 'condoms_uptake_choice' + '_selected')
+    results = getattr(bundle, 'condoms_uptake_choice' + '_results')
     link_value = True
+
     eligibilities = []
     for s, r in zip(selected, results):
         if link_value == "all":
@@ -409,9 +429,11 @@ initiate_condoms = InitiateCondoms(
 # bundle_name: clinic
 
 def set_condoms_return_eligibilities(sim):
-    selected = sim.interventions.clinic.initiate_condoms_selected
-    results = sim.interventions.clinic.initiate_condoms_results
+    bundle = getattr(sim.interventions, 'clinic')
+    selected = getattr(bundle, 'initiate_condoms' + '_selected')
+    results = getattr(bundle, 'initiate_condoms' + '_results')
     link_value = 'all'
+
     eligibilities = []
     for s, r in zip(selected, results):
         if link_value == "all":
