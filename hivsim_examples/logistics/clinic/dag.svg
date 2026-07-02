@@ -38,9 +38,9 @@
   <text x="490" y="169" class="node-name">queue_for_hiv_test</text>
   <text x="490" y="187" class="node-supply">hiv_test: 1</text>
 
-  <!-- take_hiv_test  top=(405,240)  bottom-center=(490,290) -->
+  <!-- hiv_test  top=(405,240)  bottom-center=(490,290) -->
   <rect x="405" y="240" width="170" height="50" rx="5" class="node"/>
-  <text x="490" y="270" class="node-name">take_hiv_test</text>
+  <text x="490" y="270" class="node-name">hiv_test</text>
 
   <!-- art_uptake_choice  top=(115,350)  bottom-center=(200,400) -->
   <rect x="115" y="350" width="170" height="50" rx="5" class="node"/>
@@ -89,15 +89,15 @@
   <path d="M490,110 L490,150" class="edge"/>
   <text x="502" y="135" class="edge-label">true</text>
 
-  <!-- 2. queue_for_hiv_test → take_hiv_test   true -->
+  <!-- 2. queue_for_hiv_test → hiv_test   true -->
   <path d="M490,200 L490,240" class="edge"/>
   <text x="502" y="225" class="edge-label">true</text>
 
-  <!-- 3. take_hiv_test → art_uptake_choice   true -->
+  <!-- 3. hiv_test → art_uptake_choice   true -->
   <path d="M490,290 L490,325 L200,325 L200,350" class="edge"/>
   <text x="343" y="319" class="edge-label">true</text>
 
-  <!-- 4. take_hiv_test → prep_uptake_choice   false -->
+  <!-- 4. hiv_test → prep_uptake_choice   false -->
   <path d="M490,290 L490,325 L640,325 L640,350" class="edge"/>
   <text x="567" y="319" class="edge-label">false</text>
 

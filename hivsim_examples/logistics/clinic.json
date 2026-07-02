@@ -8,79 +8,79 @@
             ],
             "coverages": [
                 0.25
-            ],
-            "link_result": {
-                "true": "queue for hiv test",
-                "false": ""
-            }
+            ]
         },
         {
             "name": "queue for hiv test",
-            "supplies":  {"hiv_test": 1},
             "link_result": {
-                "true": "take hiv test",
-                "false": ""
+                "enter clinic": "true"
             }
         },
         {
-            "name": "take hiv test",
+            "name": "hiv test",
+            "supplies":  {"hiv_test": 1},
             "link_result": {
-                "true": "art uptake choice",
-                "false": "prep uptake choice"
+                "queue for hiv test": "true"
             }
         },
         {
             "name": "art uptake choice",
             "link_result": {
-                "true": "initiate art",
-                "false": ""
+                "hiv test": "true"
             }
         },
         {
             "name": "initiate art",
             "supplies":  {"dolutegravir": 1},
             "link_result": {
-                "all": "set art return"
+                "art uptake choice": "true"
             }
         },
         {
-            "name": "set art return"
-        },
+            "name": "set art return",
+            "link_result": {
+                "initiate art": "all"
+            }
 
+        },
         {
             "name": "prep uptake choice",
             "link_result": {
-                "true": "initiate prep",
-                "false": "condoms uptake choice"
+                "hiv test": "false"
             }
         },
         {
             "name": "initiate prep",
             "supplies":  {"oral": 1},
             "link_result": {
-                "all": "set prep return"
+                "prep uptake choice": "true"
             }
         },
         {
-            "name": "set prep return"
+            "name": "set prep return",
+            "link_result": {
+                "initiate prep": "all"
+            }
         },
 
         {
             "name": "condoms uptake choice",
             "link_result": {
-                "true": "initiate condoms",
-                "false": ""
+                "prep uptake choice": "false"
             }
         },
         {
             "name": "initiate condoms",
             "supplies":  {"condoms": 25},
             "link_result": {
-                "all": "set condoms return"
+                "condoms uptake choice": "true"
             }
         },
         {
-            "name": "set condoms return"
+            "name": "set condoms return",
+            "link_result": {
+                "initiate condoms": "all"
+            }
         }
     ]
 }

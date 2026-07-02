@@ -6,7 +6,7 @@ from stisim.logistics import Product, ProductCategory, DeliveryMode, Supply, Sup
 
 from hivsim_examples.logistics.clinic.enter_clinic import EnterClinic
 from hivsim_examples.logistics.clinic.queue_for_hiv_test import QueueForHivTest
-from hivsim_examples.logistics.clinic.take_hiv_test import TakeHivTest
+from hivsim_examples.logistics.clinic.hiv_test import HivTest
 from hivsim_examples.logistics.clinic.art_uptake_choice import ArtUptakeChoice
 from hivsim_examples.logistics.clinic.initiate_art import InitiateArt
 from hivsim_examples.logistics.clinic.set_art_return import SetArtReturn
@@ -120,18 +120,18 @@ queue_for_hiv_test = QueueForHivTest(
 
 
 # ---------------------------------------------------------------------------
-# Event 3: take_hiv_test
+# Event 3: hiv_test
 # ---------------------------------------------------------------------------
 
 # template variables and their settings
 # product_name: None
 # product_quantity: 0
-# event_name_downcased: take_hiv_test
+# event_name_downcased: hiv_test
 # link_value: True
 # link_event_name_downcased: queue_for_hiv_test
 # bundle_name: clinic
 
-def take_hiv_test_eligibilities(sim):
+def hiv_test_eligibilities(sim):
     bundle = getattr(sim.interventions, 'clinic')
     selected = getattr(bundle, 'queue_for_hiv_test' + '_selected')
     results = getattr(bundle, 'queue_for_hiv_test' + '_results')
@@ -145,9 +145,9 @@ def take_hiv_test_eligibilities(sim):
             eligibilities.append(s[r == link_value])
     return eligibilities
 
-take_hiv_test = TakeHivTest(
-    name='take_hiv_test',
-    eligibilities=[take_hiv_test_eligibilities],
+hiv_test = HivTest(
+    name='hiv_test',
+    eligibilities=[hiv_test_eligibilities],
     supplies=supplies,
 )
 
@@ -161,13 +161,13 @@ take_hiv_test = TakeHivTest(
 # product_quantity: 0
 # event_name_downcased: art_uptake_choice
 # link_value: True
-# link_event_name_downcased: take_hiv_test
+# link_event_name_downcased: hiv_test
 # bundle_name: clinic
 
 def art_uptake_choice_eligibilities(sim):
     bundle = getattr(sim.interventions, 'clinic')
-    selected = getattr(bundle, 'take_hiv_test' + '_selected')
-    results = getattr(bundle, 'take_hiv_test' + '_results')
+    selected = getattr(bundle, 'hiv_test' + '_selected')
+    results = getattr(bundle, 'hiv_test' + '_results')
     link_value = True
 
     eligibilities = []
@@ -260,13 +260,13 @@ set_art_return = SetArtReturn(
 # product_quantity: 0
 # event_name_downcased: prep_uptake_choice
 # link_value: False
-# link_event_name_downcased: take_hiv_test
+# link_event_name_downcased: hiv_test
 # bundle_name: clinic
 
 def prep_uptake_choice_eligibilities(sim):
     bundle = getattr(sim.interventions, 'clinic')
-    selected = getattr(bundle, 'take_hiv_test' + '_selected')
-    results = getattr(bundle, 'take_hiv_test' + '_results')
+    selected = getattr(bundle, 'hiv_test' + '_selected')
+    results = getattr(bundle, 'hiv_test' + '_results')
     link_value = False
 
     eligibilities = []
@@ -459,8 +459,8 @@ states = [
     ss.BoolState('enter_clinic_results'),
     ss.BoolState('queue_for_hiv_test_selected'),
     ss.BoolState('queue_for_hiv_test_results'),
-    ss.BoolState('take_hiv_test_selected'),
-    ss.BoolState('take_hiv_test_results'),
+    ss.BoolState('hiv_test_selected'),
+    ss.BoolState('hiv_test_results'),
     ss.BoolState('art_uptake_choice_selected'),
     ss.BoolState('art_uptake_choice_results'),
     ss.BoolState('initiate_art_selected'),
@@ -490,7 +490,7 @@ clinic = InterventionBundle(
     interventions=[
         enter_clinic,
         queue_for_hiv_test,
-        take_hiv_test,
+        hiv_test,
         art_uptake_choice,
         initiate_art,
         set_art_return,
