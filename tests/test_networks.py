@@ -133,15 +133,20 @@ def test_partner_seeking_rates():
     Test the partner seeking rates in the structured sexual network.
     """
 
-    # Create a structured sexual network with default parameters
-    network = sti.StructuredSexual()
+    # Contrast a low vs high pair-formation probability. The mean gap between
+    # relationships is dominated by (long) relationship durations, so the default
+    # 0.5-vs-0.9 contrast was swamped by noise and flipped sign ~50% of the time.
+    # A wide 0.1-vs-0.9 contrast, a shared rand_seed (common random numbers pair
+    # the two arms and cancel most between-sim variance), and 1000 agents keep the
+    # effect well above noise. Note each sim needs its own analyzer instance.
+    low_p_pair_form  = sti.StructuredSexual(pars={'p_pair_form': ss.bernoulli(p=0.1)})
     high_p_pair_form = sti.StructuredSexual(pars={'p_pair_form': ss.bernoulli(p=0.9)})
-    analyzer = sti.TimeBetweenRelationships()
     pregnancy = ss.Pregnancy(fertility_rate=10)
     death = ss.Deaths(death_rate=10)
 
-    s1 = sti.Sim(networks=[network], analyzers=[analyzer], demographics=[death, pregnancy], stop=2040)
-    s2 = sti.Sim(networks=[high_p_pair_form], analyzers=[analyzer], demographics=[death, pregnancy], stop=2040)
+    kw = dict(demographics=[death, pregnancy], stop=2040, n_agents=1000, rand_seed=0)
+    s1 = sti.Sim(networks=[low_p_pair_form],  analyzers=[sti.TimeBetweenRelationships()], **kw)
+    s2 = sti.Sim(networks=[high_p_pair_form], analyzers=[sti.TimeBetweenRelationships()], **kw)
 
     # Run the simulation
     ss.parallel(s1, s2, debug=True)
@@ -156,7 +161,7 @@ def test_partner_seeking_rates():
     s1_mean = np.mean(s1_consolidated)
     s2_mean = np.mean(s2_consolidated)
 
-    assert s2_mean < s1_mean, f"Mean time between relationships should be lower in high p_pair_form scenario ({s2_mean}) than in default ({s1_mean})"
+    assert s2_mean < s1_mean, f"Mean time between relationships should be lower in high p_pair_form scenario ({s2_mean}) than in low ({s1_mean})"
 
     
 def test_debut_age():
