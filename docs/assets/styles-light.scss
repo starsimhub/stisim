@@ -1,3 +1,20 @@
+/*-- scss:defaults --*/
+
+// Starsim parchment theme: mirrors stisim.org's light palette for continuity
+$body-bg: #f2e9d3;
+$body-color: #2c2313;
+$link-color: #0e7c86;
+$link-hover-color: #0a5a62;
+
+$footer-bg: #ecdfc0;
+$navbar-bg: #ecdfc0;
+
+$border-color: #ddcda1;
+$text-muted: #6b5a3d;
+
+$code-color: #0a5a62;
+$code-bg: #e8d9b3;
+
 /*-- scss:rules --*/
 
 .navbar-logo {

@@ -5,10 +5,10 @@
 }
 
 .navbar {
-    background-color: rgb(52, 52, 52);
+    background-color: #121e23;
 }
 
-/*-- From https://github.com/quarto-dev/quarto-web/blob/main/theme-dark.scss --*/
+/*-- Starsim dark theme: mirrors stisim.org's dark palette for continuity --*/
 
 /*-- scss:defaults --*/
 
@@ -17,8 +17,8 @@ $red: #D44000;
 $orange: #EE6331;
 $yellow: #E7B10A;
 $green: #72994E;
-$teal: #419599;
-$cyan: #75A8D9;
+$teal: #33a7b0;
+$cyan: #6cc9cf;
 $black: #000;
 $white: #fff;
 $gray: #404041;
@@ -42,19 +42,17 @@ $danger: $red;
 
 
 
-// Base document colors
-$body-bg: $gray-900;
-$body-color: $gray-100;
-$link-color: $cyan;
+// Base document colors -- matches stisim.org tokens.css dark theme
+$body-bg: #0c1418;
+$body-color: #e9efee;
+$link-color: #33a7b0;
 
 $light: rgb(32.4,32.4,34.2);
 
 // Navigation element colors
-/*$footer-bg: shade-color($gray-800, 30%);*/
-/*$navbar-bg: shade-color($gray-800, 30%);*/
-$footer-bg: $gray-900;
-$navbar-bg: shade-color($gray-800, 10%);
- 
+$footer-bg: #0f191d;
+$navbar-bg: #121e23;
+
 
 // Code blocks
 $code-block-bg-alpha: -.9;
@@ -71,18 +69,18 @@ $dropdown-link-hover-bg: $gray-600;
 $dropdown-link-hover-color: #eee;
 $nav-tabs-link-hover-border-color: rgb(80, 80, 80);
 
-$border-color: rgba($gray-800, 0.5);
+$border-color: #223037;
 
 $mono-background-color: rgba(0,0,0,0);
-$code-color: rgb(192, 128, 216);
+$code-color: #6cc9cf;
 $nav-tabs-link-active-color: $body-color;
-$toc-inactive-border: rgba($gray-800, 0.5);
+$toc-inactive-border: #223037;
 $input-text-background-color: $gray-800;
 $input-group-addon-bg: $gray-800;
 $carousel-dark-caption-color: $body-color;
 $pagination-disabled-bg: rgb(24,24,24);
 
-$text-muted: lighten(#6a737b, 20%);
+$text-muted: #90a2a8;
 
 /*-- scss:rules --*/
 

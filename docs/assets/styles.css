@@ -1,7 +1,18 @@
-/* Global font settings */
+/* Global font settings -- matches stisim.org's type system for continuity */
 body, p {
-  font-family: "Raleway", "Montserrat", "Lato", "Open Sans", sans-serif;
+  font-family: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
   font-size: 1.0em;
+}
+
+h1, h2, h3, h4, h5, h6,
+.navbar-brand, .navbar-title,
+.sidebar-title, .quarto-title h1 {
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  letter-spacing: -.01em;
+}
+
+code, pre, kbd, samp, .font-monospace {
+  font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
 }
 
 /* Prevent excessive spacing in terminal output -- need a better solution for when ansi codes are present */

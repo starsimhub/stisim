@@ -32,7 +32,7 @@ website:
       - icon: slack
         href: https://starsimhub.slack.com
       - icon: globe
-        href: https://starsim.org/
+        href: https://stisim.org/
 
   navbar:
     logo: /assets/starsim-logo.png
@@ -47,7 +47,7 @@ website:
       - icon: slack
         href: https://starsim-idm.slack.com
       - icon: globe
-        href: https://starsim.org
+        href: https://stisim.org
 
     left:
       - href: index.md
@@ -233,6 +233,11 @@ format:
       light: [cosmo, ./assets/styles-light.scss]
       dark: [cosmo, ./assets/styles-dark.scss]
     css: ./assets/styles.css
+    include-in-header:
+      text: |
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Hanken+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
     toc: true
     toc-expand: true
     toc-depth: 5
