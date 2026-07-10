@@ -126,6 +126,31 @@ def test_vmmc_specs(do_plot=do_plot):
 
 
 @sc.timer()
+def test_vmmc_hits_target(do_plot=do_plot):
+    """ VMMC coverage is a prevalence (stock) target: the realized circumcision
+    prevalence among males should converge to the target, NOT ratchet toward
+    100%. Guards against the per-step-hazard regression where coverage was
+    applied to the remaining-uncircumcised pool each step. """
+    sc.heading('Testing VMMC converges to its coverage target...')
+
+    target = 0.3
+    sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=20)
+    sim.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.1),
+                              sti.VMMC(coverage=target)]
+    sim.run()
+
+    ppl = sim.people
+    male_alive = ppl.male & ppl.alive
+    prev = (male_alive & sim.interventions.vmmc.circumcised).count() / male_alive.count()
+    print(f'Realized male circumcision prevalence: {prev:.3f} (target {target})')
+    assert 0.2 < prev < 0.45, (
+        f'Expected circumcision prevalence near {target}, got {prev:.3f}. '
+        'A value near 1.0 indicates the per-step-hazard overshoot regression.'
+    )
+    return prev
+
+
+@sc.timer()
 def test_art_stratified_coverage(do_plot=do_plot):
     """ Check that age/sex stratified coverage data is parsed and applied """
     sc.heading('Testing stratified ART coverage...')
@@ -651,6 +676,7 @@ if __name__ == '__main__':
     r1  = test_art_specs(do_plot=do_plot)
     r2  = test_art_mixed_coverage(do_plot=do_plot)
     r3  = test_vmmc_specs(do_plot=do_plot)
+    r3b = test_vmmc_hits_target(do_plot=do_plot)
     r4  = test_art_stratified_coverage(do_plot=do_plot)
     r5  = test_art_effects(do_plot=do_plot)
     r6  = test_art_no_pregnancy(do_plot=do_plot)

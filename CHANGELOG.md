@@ -2,6 +2,14 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Unreleased
+
+### Bug fixes
+- **`VMMC` now hits its coverage as a prevalence (stock) target, not a per-step hazard.** The 1.5.6 rewrite computed the per-timestep target over the *uncircumcised* pool and only in aggregate, so `coverage` behaved as a per-step uptake rate on the remaining-uncircumcised men: realised circumcision coverage ratcheted toward ~100% regardless of the target, and the age/sex stratification in the input data was ignored (all ages converged to the same level). `VMMC.step()` now tops up to `coverage × (all eligible males)` per `(age, sex)` stratum each step — the denominator includes already-circumcised men, matching cross-sectional survey definitions — and never removes (circumcision is irreversible). Realised coverage converges to the target and preserves the input age gradient. Models calibrated against 1.5.6–1.5.8 VMMC behaviour will need recalibration. (#XXX)
+
+### Tests
+- Add `test_vmmc_hits_target`, asserting realised male circumcision prevalence converges to the coverage target. The existing `test_vmmc_specs` only checked that some circumcisions occurred, which is why the overshoot regression went undetected.
+
 ## Version 1.5.8 (2026-06-25)
 
 ### Logistics
