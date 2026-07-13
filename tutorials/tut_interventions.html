@@ -689,7 +689,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="simple-sti-treatment" class="level2">
 <h2 class="anchored" data-anchor-id="simple-sti-treatment">Simple STI treatment</h2>
 <p>The simplest intervention pattern is a treatment with an eligibility function that determines who gets treated. Here we treat gonorrhea patients when they seek care for symptoms:</p>
-<div id="d8d19b22" class="cell" data-execution_count="1">
+<div id="6c540a4f" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> stisim <span class="im">as</span> sti</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> starsim <span class="im">as</span> ss</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
@@ -701,13 +701,14 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>sim_base.run(verbose<span class="op">=</span><span class="dv">0</span>)</span>
 <span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co"># With treatment: symptomatic care-seekers get treated</span></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>ng <span class="op">=</span> sti.Gonorrhea(init_prev<span class="op">=</span><span class="fl">0.01</span>)</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>ng_tx <span class="op">=</span> sti.GonorrheaTreatment(</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span><span class="st">'ng_tx'</span>,</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    eligibility<span class="op">=</span><span class="kw">lambda</span> sim: sim.diseases.ng.symptomatic <span class="op">&amp;</span> (sim.diseases.ng.ti_seeks_care <span class="op">==</span> sim.ti),</span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>sim_intv <span class="op">=</span> sti.Sim(diseases<span class="op">=</span>ng, interventions<span class="op">=</span>[ng_tx], n_agents<span class="op">=</span><span class="dv">2000</span>, start<span class="op">=</span><span class="dv">2010</span>, stop<span class="op">=</span><span class="dv">2030</span>)</span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>sim_intv.run(verbose<span class="op">=</span><span class="dv">0</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co"># ti_seeks_care is the time when an agent seeks care</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>ng <span class="op">=</span> sti.Gonorrhea(init_prev<span class="op">=</span><span class="fl">0.01</span>)</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>ng_tx <span class="op">=</span> sti.GonorrheaTreatment(</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span><span class="st">'ng_tx'</span>,</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    eligibility<span class="op">=</span><span class="kw">lambda</span> sim: sim.diseases.ng.symptomatic <span class="op">&amp;</span> (sim.diseases.ng.ti_seeks_care <span class="op">==</span> sim.ti),</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>sim_intv <span class="op">=</span> sti.Sim(diseases<span class="op">=</span>ng, interventions<span class="op">=</span>[ng_tx], n_agents<span class="op">=</span><span class="dv">2000</span>, start<span class="op">=</span><span class="dv">2010</span>, stop<span class="op">=</span><span class="dv">2030</span>)</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>sim_intv.run(verbose<span class="op">=</span><span class="dv">0</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Initializing sim with 2000 agents
 Initializing sim with 2000 agents</code></pre>
@@ -716,7 +717,7 @@ Initializing sim with 2000 agents</code></pre>
 <pre><code>Sim(n=2000; 2010—2030; networks=structuredsexual, maternalnet; diseases=ng; interventions=ng_tx)</code></pre>
 </div>
 </div>
-<div id="bfdefa1b" class="cell" data-execution_count="2">
+<div id="47076300" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots()</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>ax.plot(sim_base.timevec, sim_base.results.ng.prevalence, label<span class="op">=</span><span class="st">'No treatment'</span>)</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>ax.plot(sim_intv.timevec, sim_intv.results.ng.prevalence, label<span class="op">=</span><span class="st">'Treatment for care-seekers'</span>)</span>
@@ -724,18 +725,12 @@ Initializing sim with 2000 agents</code></pre>
 <span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'NG prevalence'</span>)</span>
 <span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'Effect of treatment on gonorrhea'</span>)</span>
 <span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>ax.legend()</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>fig</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="2">
-<div>
-<figure class="figure">
-<p><img src="tut_interventions_files/figure-html/cell-3-output-1.png" width="607" height="469" class="figure-img"></p>
-</figure>
-</div>
-</div>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="tut_interventions_files/figure-html/cell-3-output-2.png" width="607" height="469" class="figure-img"></p>
+<p><img src="tut_interventions_files/figure-html/cell-3-output-1.png" width="607" height="469" class="figure-img"></p>
 </figure>
 </div>
 </div>
@@ -745,7 +740,7 @@ Initializing sim with 2000 agents</code></pre>
 <h2 class="anchored" data-anchor-id="hiv-testing-and-art">HIV testing and ART</h2>
 <p>HIV interventions follow a specific pipeline: <strong>testing → diagnosis → ART initiation</strong>. Agents must be diagnosed by <code>HIVTest</code> before they can start ART.</p>
 <p>Key things to know: - <code>test_prob_data</code> is a <strong>per-year</strong> probability, automatically scaled by timestep. With monthly dt, <code>test_prob_data=0.1</code> means ~0.83% per month (~10% per year). - <code>ART(coverage=0.8)</code> will force-fit 80% of infected onto ART. <code>ART()</code> with no coverage treats everyone who is diagnosed. - <code>art_initiation</code> (default 90%) controls how many newly diagnosed agents are willing to start ART.</p>
-<div id="8d6c09f1" class="cell" data-execution_count="3">
+<div id="897871ce" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> hivsim</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Simplest approach: use hivsim.demo which includes testing + ART by default</span></span>
@@ -776,7 +771,7 @@ Initializing sim with 3000 agents</code></pre>
 <pre><code>Sim(n=3000; 2000—2020.0; demographics=pregnancy, deaths; networks=mfnetwork, maternalnet, breastfeedingnet; diseases=hiv; interventions=hiv_test, art)</code></pre>
 </div>
 </div>
-<div id="f6b8483c" class="cell" data-execution_count="4">
+<div id="89e7ed06" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">14</span>, <span class="dv">4</span>))</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].plot(sim_base.timevec, sim_base.results.hiv.prevalence_15_49, label<span class="op">=</span><span class="st">'No interventions'</span>, alpha<span class="op">=</span><span class="fl">0.7</span>)</span>
@@ -796,18 +791,11 @@ Initializing sim with 3000 agents</code></pre>
 <span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">2</span>].set_title(<span class="st">'ART uptake'</span>)</span>
 <span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>fig</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="4">
-<div>
-<figure class="figure">
-<p><img src="tut_interventions_files/figure-html/cell-5-output-1.png" width="1338" height="393" class="figure-img"></p>
-</figure>
-</div>
-</div>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="tut_interventions_files/figure-html/cell-5-output-2.png" width="1338" height="393" class="figure-img"></p>
+<p><img src="tut_interventions_files/figure-html/cell-5-output-1.png" width="1338" height="393" class="figure-img"></p>
 </figure>
 </div>
 </div>
@@ -816,7 +804,7 @@ Initializing sim with 3000 agents</code></pre>
 <section id="targeting-interventions" class="level2">
 <h2 class="anchored" data-anchor-id="targeting-interventions">Targeting interventions</h2>
 <p>Use the <code>eligibility</code> parameter to target interventions to specific populations. For example, FSW-targeted testing:</p>
-<div id="a5a32500" class="cell" data-execution_count="5">
+<div id="8cd4cad2" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Higher testing rate for FSWs</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>fsw_test <span class="op">=</span> sti.HIVTest(</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    test_prob_data<span class="op">=</span><span class="fl">0.3</span>,</span>
@@ -858,7 +846,7 @@ Figure(768x576)</code></pre>
 <section id="art-coverage-formats-and-monitoring" class="level2">
 <h2 class="anchored" data-anchor-id="art-coverage-formats-and-monitoring">ART coverage formats and monitoring</h2>
 <p>ART accepts coverage data in several formats. You can also use the <code>art_coverage</code> analyzer to track coverage by age and sex, and verify that the model matches your targets.</p>
-<div id="3a7d2834" class="cell" data-execution_count="6">
+<div id="d2a213b5" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Different coverage formats</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>art_const <span class="op">=</span> sti.ART(coverage<span class="op">=</span><span class="fl">0.8</span>)                                                     <span class="co"># Constant proportion</span></span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>art_dict  <span class="op">=</span> sti.ART(coverage<span class="op">=</span>{<span class="st">'year'</span>: [<span class="dv">2000</span>, <span class="dv">2010</span>, <span class="dv">2025</span>], <span class="st">'value'</span>: [<span class="dv">0</span>, <span class="fl">0.5</span>, <span class="fl">0.9</span>]})   <span class="co"># Time-varying</span></span>
@@ -887,9 +875,19 @@ Figure(768x576)</code></pre>
 <span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>df.head()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Initializing sim with 5000 agents
-Final overall ART coverage: 76.2%
-Final coverage, women 25-35: 64.3%
-Final coverage, men 25-35:   86.7%
+Figure(1536x480)</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="tut_interventions_files/figure-html/cell-7-output-2.png" width="1531" height="470" class="figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Final overall ART coverage: 76.6%
+Final coverage, women 25-35: 81.8%
+Final coverage, men 25-35:   42.9%
 
 DataFrame shape: (241, 23)</code></pre>
 </div>
@@ -945,21 +943,21 @@ DataFrame shape: (241, 23)</code></pre>
 <td>0.0</td>
 <td>0.0</td>
 <td>0.0</td>
-<td>0.000000</td>
+<td>0.0</td>
 <td>0.0</td>
 <td>0.000000</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">1</th>
 <td>2000-01-31</td>
-<td>1.0</td>
-<td>0.004000</td>
-<td>1.0</td>
 <td>0.0</td>
-<td>0.008000</td>
 <td>0.000000</td>
-<td>1.0</td>
-<td>0.047619</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.000000</td>
+<td>0.000000</td>
+<td>0.0</td>
+<td>0.000000</td>
 <td>0.0</td>
 <td>...</td>
 <td>0.0</td>
@@ -969,21 +967,21 @@ DataFrame shape: (241, 23)</code></pre>
 <td>0.0</td>
 <td>0.0</td>
 <td>0.0</td>
-<td>0.000000</td>
+<td>0.0</td>
 <td>0.0</td>
 <td>0.000000</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">2</th>
 <td>2000-03-02</td>
-<td>2.0</td>
-<td>0.008032</td>
-<td>2.0</td>
-<td>0.0</td>
-<td>0.016129</td>
-<td>0.000000</td>
 <td>1.0</td>
-<td>0.047619</td>
+<td>0.004367</td>
+<td>0.0</td>
+<td>1.0</td>
+<td>0.000000</td>
+<td>0.008333</td>
+<td>0.0</td>
+<td>0.000000</td>
 <td>0.0</td>
 <td>...</td>
 <td>0.0</td>
@@ -992,22 +990,22 @@ DataFrame shape: (241, 23)</code></pre>
 <td>0.0</td>
 <td>0.0</td>
 <td>0.0</td>
-<td>1.0</td>
-<td>0.029412</td>
 <td>0.0</td>
-<td>0.000000</td>
+<td>0.0</td>
+<td>1.0</td>
+<td>0.027027</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">3</th>
 <td>2000-04-02</td>
-<td>3.0</td>
-<td>0.012146</td>
 <td>2.0</td>
-<td>1.0</td>
-<td>0.016260</td>
-<td>0.008065</td>
-<td>1.0</td>
-<td>0.047619</td>
+<td>0.008734</td>
+<td>0.0</td>
+<td>2.0</td>
+<td>0.000000</td>
+<td>0.016667</td>
+<td>0.0</td>
+<td>0.000000</td>
 <td>0.0</td>
 <td>...</td>
 <td>0.0</td>
@@ -1016,22 +1014,22 @@ DataFrame shape: (241, 23)</code></pre>
 <td>0.0</td>
 <td>0.0</td>
 <td>0.0</td>
-<td>1.0</td>
-<td>0.030303</td>
-<td>1.0</td>
-<td>0.033333</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>2.0</td>
+<td>0.054054</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">4</th>
 <td>2000-05-02</td>
-<td>4.0</td>
-<td>0.016194</td>
-<td>2.0</td>
-<td>2.0</td>
-<td>0.016260</td>
-<td>0.016129</td>
+<td>3.0</td>
+<td>0.013100</td>
 <td>1.0</td>
-<td>0.047619</td>
+<td>2.0</td>
+<td>0.009174</td>
+<td>0.016667</td>
+<td>1.0</td>
+<td>0.071429</td>
 <td>0.0</td>
 <td>...</td>
 <td>0.0</td>
@@ -1040,22 +1038,15 @@ DataFrame shape: (241, 23)</code></pre>
 <td>0.0</td>
 <td>0.0</td>
 <td>0.0</td>
-<td>1.0</td>
-<td>0.030303</td>
+<td>0.0</td>
+<td>0.0</td>
 <td>2.0</td>
-<td>0.066667</td>
+<td>0.054054</td>
 </tr>
 </tbody>
 </table>
 
 <p>5 rows × 23 columns</p>
-</div>
-</div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="tut_interventions_files/figure-html/cell-7-output-3.png" width="1531" height="470" class="figure-img"></p>
-</figure>
 </div>
 </div>
 </div>
@@ -1505,7 +1496,7 @@ DataFrame shape: (241, 23)</code></pre>
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.5.8 (2026-06-25).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.5.9 (2026-07-13).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">
