@@ -2,6 +2,21 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.5.9 (2026-07-13)
+
+### Bug fixes
+- **`VMMC` now hits its coverage as a prevalence (stock) target, not a per-step hazard.** The 1.5.6 rewrite computed the per-timestep target over the *uncircumcised* pool and only in aggregate, so `coverage` behaved as a per-step uptake rate on the remaining-uncircumcised men: realised circumcision coverage ratcheted toward ~100% regardless of the target, and the age/sex stratification in the input data was ignored (all ages converged to the same level). `VMMC.step()` now tops up to `coverage × (all eligible males)` per `(age, sex)` stratum each step — the denominator includes already-circumcised men, matching cross-sectional survey definitions — and never removes (circumcision is irreversible). Realised coverage converges to the target and preserves the input age gradient. Models calibrated against 1.5.6–1.5.8 VMMC behaviour will need recalibration. (#535)
+- **`HIV.set_prognoses` now calls `super()`, fixing `ss.infection_log()` for HIV.** HIV overrode `Disease.set_prognoses()` entirely for its natural-history setup and never called `super()`, so the infection log's append hook never fired for HIV specifically (other diseases such as SEIS-based Gonorrhea were unaffected). Infection log entries for a 1000-agent HIV sim went from 0 to 259 after the fix, restoring source/target transmission tracking (e.g. attributing onward transmission to a source subgroup). (#536)
+- `GonorrheaTreatment.set_treat_eff` now defends against NaN `rel_treat`: a small fraction of agents allocated but inactive at `sim.init` keep an uninitialized slot and read back as NaN when reactivated, which previously propagated to `treat_eff` and made those agents always fail treatment. NaN entries are now replaced with the declared default (1) before computing `treat_eff`. (#528)
+- `art_coverage` analyzer plotting no longer produces two identical plots. (#530)
+
+### Tests
+- Add `test_vmmc_hits_target`, asserting realised male circumcision prevalence converges to the coverage target. The existing `test_vmmc_specs` only checked that some circumcisions occurred, which is why the overshoot regression went undetected.
+- Regenerate `baseline.yaml` / `benchmark.yaml` for starsim 3.5.1 (CRN hash-based random number generation changed the exact values of agent-indexed draws; results are statistically equivalent per starsim's changelog). `test_shorter_sw` now uses `rand_seed=2` — `rand_seed=1` drew zero FSW-sourced HIV transmissions in both arms from the small FSW pool (~9/2000 agents) under the new CRN scheme, making the comparison degenerate.
+
+### Diseases
+- Syphilis: clear `early` / `late` sub-flags when a mother exits the latent state (reactivation to secondary, or progression to tertiary). Previously these BoolStates persisted, so `set_congenital`'s outcome loop `for state in ['mat_active', 'early', 'late']` would overwrite the correct `mat_active` draw with the (now-stale) `early` / `late` table draw — biasing MTCT outcomes for reactivating mothers toward `normal` (the late table is 80% normal vs mat_active's 25%). Empirical impact in a hot-seed ANC screening sim: untreated-secondary MTCTs read 67% normal instead of the expected 25%. (#538)
+
 ## Version 1.5.8 (2026-06-25)
 
 ### Logistics
