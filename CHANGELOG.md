@@ -2,6 +2,8 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.5.9 (TBC)
+
 ## Version 1.5.8 (2026-06-25)
 
 ### Logistics

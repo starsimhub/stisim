@@ -46,7 +46,9 @@ class GonorrheaTreatment(STITreatment):
         )
 
     def set_treat_eff(self, uids):
-        new_treat_eff = self.rel_treat[uids] * self.pars.base_treat_eff
+        rt = self.rel_treat[uids]
+        rt = np.where(np.isnan(rt), 1.0, rt)  # default for agents whose slot was inactive at init
+        new_treat_eff = rt * self.pars.base_treat_eff
         self.pars.treat_eff.set(new_treat_eff)
         return
 
