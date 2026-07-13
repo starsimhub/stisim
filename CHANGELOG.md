@@ -4,6 +4,9 @@ All notable changes to the codebase are documented in this file.
 
 ## Version 1.5.9 (TBC)
 
+### Diseases
+- Syphilis: clear `early` / `late` sub-flags when a mother exits the latent state (reactivation to secondary, or progression to tertiary). Previously these BoolStates persisted, so `set_congenital`'s outcome loop `for state in ['mat_active', 'early', 'late']` would overwrite the correct `mat_active` draw with the (now-stale) `early` / `late` table draw — biasing MTCT outcomes for reactivating mothers toward `normal` (the late table is 80% normal vs mat_active's 25%). Empirical impact in a hot-seed ANC screening sim: untreated-secondary MTCTs read 67% normal instead of the expected 25%.
+
 ## Version 1.5.8 (2026-06-25)
 
 ### Logistics

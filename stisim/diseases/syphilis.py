@@ -450,6 +450,11 @@ class Syphilis(BaseSTI):
         if len(secondary_from_latent.uids) > 0:
             self.secondary[secondary_from_latent] = True
             self.latent[secondary_from_latent] = False
+            # early/late are sub-flags of latent; clear them so set_congenital's
+            # outcome loop doesn't overwrite the mat_active-table draw with the
+            # (now-stale) early/late-table draw.
+            self.early[secondary_from_latent] = False
+            self.late[secondary_from_latent] = False
             self.set_secondary_prognoses(secondary_from_latent.uids)
             self._set_rash_visible(secondary_from_latent.uids)
 
@@ -465,6 +470,8 @@ class Syphilis(BaseSTI):
         tertiary = self.latent & (self.ti_tertiary <= ti)
         self.tertiary[tertiary] = True
         self.latent[tertiary] = False
+        self.early[tertiary] = False
+        self.late[tertiary] = False
 
         # Trigger deaths
         deaths = (self.ti_dead <= ti).uids
