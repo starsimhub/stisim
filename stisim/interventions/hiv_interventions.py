@@ -222,6 +222,11 @@ class ART(ss.Intervention):
                           to HIV (default 0.96). Applied to both prenatal (MaternalNet)
                           and postnatal (BreastfeedingNet) transmission. Set to 1.0 for
                           complete protection (previous default behavior).
+        p_effective_art:  probability that a newly-initiated agent achieves viral
+                          suppression (effective ART) rather than non-suppressive ART
+                          (default: ss.bernoulli(p=1.0), i.e. always effective). Forwarded
+                          to HIV.start_art(); see HIVPars.p_effective_art for the default
+                          used if ART is not present in the sim at all.
         smoothness:       interpolation smoothness (0=linear, default)
         format_priority:  when both n_art and p_art are non-NaN, prefer this format
                           ('n' or 'p', default 'n')
@@ -230,6 +235,9 @@ class ART(ss.Intervention):
 
         # Simple: 80% of infected on ART
         art = sti.ART(coverage=0.8)
+
+        # 70% of newly-initiated agents achieve viral suppression
+        art = sti.ART(coverage=0.8, p_effective_art=0.7)
 
         # Time-varying coverage
         art = sti.ART(coverage={'year': [2000, 2010, 2025], 'value': [0, 0.5, 0.9]})
@@ -255,6 +263,7 @@ class ART(ss.Intervention):
             pmtct_efficacy=0.96,  # How much maternal ART reduces infant susceptibility
                                    # to HIV via MaternalNet (prenatal) and BreastfeedingNet
                                    # (postnatal). Conceptually like infant PrEP.
+            p_effective_art=ss.bernoulli(p=1.0),  # Probability a newly-initiated agent achieves viral suppression
         )
         self.update_pars(pars, **kwargs)
 
@@ -400,7 +409,7 @@ class ART(ss.Intervention):
             choices = np.argsort(weights)[:n]
             start_uids = awaiting_art_uids[choices]
 
-        hiv.start_art(start_uids)
+        hiv.start_art(start_uids, p_effective_art=self.pars.p_effective_art)
 
         return
 

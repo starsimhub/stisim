@@ -59,8 +59,10 @@ class HIVPars(BaseSTIPars):
 
         # Treatment effects
         self.art_cd4_growth = 0.1  # Unitless parameter defining how CD4 reconstitutes after starting ART - used in a logistic growth function
-        self.art_efficacy = 0.96  # Efficacy of ART
+        self.effective_art_efficacy = 0.96  # Transmission efficacy of effective (virally-suppressive) ART
+        self.nonsupp_art_efficacy = 0.35  # Transmission efficacy of non-suppressive ART
         self.time_to_art_efficacy = ss.months(6)  # Time to reach full ART efficacy (in months) - linear increase in efficacy
+        self.p_effective_art = ss.bernoulli(p=1.0)  # Probability that a newly-initiated agent achieves viral suppression (vs. non-suppressive ART)
         self.art_cd4_pars = dict(cd4_max=1000, cd4_healthy=500)
         self.dur_on_art = ss.lognorm_ex(ss.years(3), ss.years(1.5))  # Base ART duration (scaled by rel_dur_on_art and trend)
         self.rel_dur_on_art = 1.0  # Calibratable scalar that scales ART duration
@@ -115,8 +117,11 @@ class HIV(BaseSTI):
             # Care and treatment states
             ss.FloatArr('baseline_care_seeking'),
             ss.FloatArr('care_seeking'),
-            ss.BoolState('never_art', default=True),
-            ss.BoolState('on_art'),
+            ss.BoolState('art_naive', default=True),        # Never initiated ART
+            ss.BoolState('on_art'),                          # Currently on ART (effective or non-suppressive)
+            ss.BoolState('on_effective_art'),                # Currently on ART and virally suppressed
+            ss.BoolState('on_nonsuppressive_art'),           # Currently on ART but not virally suppressed
+            ss.BoolState('art_discontinued'),                # Previously on ART, currently off
             ss.FloatArr('ti_art'),
             ss.FloatArr('ti_stop_art'),
 
@@ -362,8 +367,8 @@ class HIV(BaseSTI):
             self.cd4[art_uids] = self.cd4_increase(art_uids)
 
         # Adjust CD4 counts for people who have gone off treatment - linear decline
-        if (~self.on_art & ~self.never_art).any():
-            off_art_uids = (~self.on_art & ~self.never_art).uids
+        if self.art_discontinued.any():
+            off_art_uids = self.art_discontinued.uids
             self.cd4[off_art_uids] = self.post_art_decline(off_art_uids)
 
         # Update states for people who have never been on ART (ART removes these)
@@ -422,8 +427,11 @@ class HIV(BaseSTI):
         self.latent[uids] = False
         self.falling[uids] = False
         self.post_art[uids] = False
-        self.never_art[uids] = False
+        self.art_naive[uids] = False
         self.on_art[uids] = False
+        self.on_effective_art[uids] = False
+        self.on_nonsuppressive_art[uids] = False
+        self.art_discontinued[uids] = False
         self.diagnosed[uids] = False
 
         # Clear time states except for ti_dead
@@ -484,15 +492,16 @@ class HIV(BaseSTI):
         self.rel_trans[self.aids] *= self.pars.rel_trans_falling.rvs(self.aids.uids)
 
         # Update transmission for agents on ART
-        # When agents start ART, determine the reduction of transmission (linearly decreasing over 6 months)
+        # When agents start ART, determine the reduction of transmission (linearly decreasing over 6 months).
+        # Efficacy depends on whether the agent is virally suppressed (effective ART) or not (non-suppressive ART).
         if self.on_art.any():
-            full_eff = self.pars.art_efficacy
             time_to_full_eff = self.pars.time_to_art_efficacy
             art_uids = self.on_art.uids
+            full_eff = np.where(self.on_effective_art[art_uids], self.pars.effective_art_efficacy, self.pars.nonsupp_art_efficacy)
             timesteps_on_art = ti - self.ti_art[art_uids]
             new_on_art = timesteps_on_art < time_to_full_eff/self.dt
-            efficacy_to_date = np.full_like(art_uids, fill_value=full_eff, dtype=float)
-            efficacy_to_date[new_on_art] = timesteps_on_art[new_on_art]*full_eff/time_to_full_eff.value
+            efficacy_to_date = full_eff.copy()
+            efficacy_to_date[new_on_art] = timesteps_on_art[new_on_art]*full_eff[new_on_art]/time_to_full_eff.value
             self.rel_trans[art_uids] *= 1 - efficacy_to_date
 
         return
@@ -574,6 +583,11 @@ class HIV(BaseSTI):
         dur_falling = self.pars.dur_falling.rvs(uids)
         self.ti_zero[uids] = self.ti_falling[uids] + dur_falling.astype(int)
 
+        # Record source/target for ss.infection_log() -- HIV overrides the base
+        # Disease.set_prognoses() entirely for its natural-history setup above, so
+        # without this call the infection log's append hook never fires for HIV.
+        super().set_prognoses(uids, sources)
+
         return
 
     def set_congenital(self, uids, sources):
@@ -583,17 +597,41 @@ class HIV(BaseSTI):
         return
 
     # Treatment-related changes
-    def start_art(self, uids):
+    def start_art(self, uids, p_effective_art=None):
         """
         Check who is ready to start ART treatment and put them on ART
+
+        Args:
+            uids: agents starting ART treatment
+            p_effective_art (float/ss.Dist, optional): probability that each agent
+                achieves viral suppression (effective ART) rather than non-suppressive
+                ART. Pass a float to override `self.pars.p_effective_art`'s probability,
+                or an already-initialized `ss.Dist` (e.g. an intervention's own par) to
+                use it directly. Defaults to `self.pars.p_effective_art`
+                (default: always effective).
         """
         ti = self.ti
 
         self.on_art[uids] = True
-        newly_treated = uids[self.never_art[uids]]
-        self.never_art[newly_treated] = False
+        self.art_discontinued[uids] = False
+        newly_treated = uids[self.art_naive[uids]]
+        self.art_naive[newly_treated] = False
         self.ti_art[uids] = ti
         self.cd4_preart[uids] = self.cd4[uids]
+
+        # Determine whether each agent achieves viral suppression (effective ART) or
+        # remains non-suppressive, e.g. due to poor adherence or drug resistance
+        if isinstance(p_effective_art, ss.Dist):
+            effective_uids = p_effective_art.filter(uids)
+        else:
+            if p_effective_art is not None:
+                self.pars.p_effective_art.set(p=p_effective_art)
+            effective_uids = self.pars.p_effective_art.filter(uids)
+        nonsupp_uids = uids.remove(effective_uids)
+        self.on_effective_art[effective_uids] = True
+        self.on_nonsuppressive_art[effective_uids] = False
+        self.on_effective_art[nonsupp_uids] = False
+        self.on_nonsuppressive_art[nonsupp_uids] = True
 
         # Determine when agents goes off ART
         dur_on_art = self.pars.dur_on_art.rvs(uids)
@@ -642,6 +680,9 @@ class HIV(BaseSTI):
         # Remove agents from ART
         if uids is None: uids = self.on_art & (self.ti_stop_art <= ti)
         self.on_art[uids] = False
+        self.on_effective_art[uids] = False
+        self.on_nonsuppressive_art[uids] = False
+        self.art_discontinued[uids] = True
         self.ti_stop_art[uids] = ti
         self.cd4_postart[uids] = sc.dcp(self.cd4[uids])
 

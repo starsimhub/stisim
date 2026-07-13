@@ -639,9 +639,9 @@ def test_par_ranges(n_agents=1000):
 
     # [lo, hi, result_key, dur] — higher par values should produce higher result values
     par_effects = dict(
-        beta_m2f     = [0.01,  0.2,  'cum_infections', 10],
-        init_prev    = [0.01,  0.1,  'cum_infections', 10],
-        art_efficacy = [0.96,  0.5,  'cum_deaths',     10],
+        beta_m2f              = [0.01,  0.2,  'cum_infections', 10],
+        init_prev              = [0.01,  0.1,  'cum_infections', 10],
+        effective_art_efficacy = [0.96,  0.5,  'cum_deaths',     10],
     )
 
     # Build all sims and run in one parallel call
