@@ -574,6 +574,11 @@ class HIV(BaseSTI):
         dur_falling = self.pars.dur_falling.rvs(uids)
         self.ti_zero[uids] = self.ti_falling[uids] + dur_falling.astype(int)
 
+        # Record source/target for ss.infection_log() -- HIV overrides the base
+        # Disease.set_prognoses() entirely for its natural-history setup above, so
+        # without this call the infection log's append hook never fires for HIV.
+        super().set_prognoses(uids, sources)
+
         return
 
     def set_congenital(self, uids, sources):
