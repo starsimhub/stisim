@@ -275,7 +275,11 @@ Now include this analyzer when creating your sim, and add the corresponding colu
 
 ```python
 # Add the analyzer to your sim
-sim = make_sim(analyzers=[CoinfectionPrev()])
+sim = sti.Sim(
+    diseases=[sti.HIV(), sti.Syphilis()],
+    n_agents=500, start=2010, stop=2030, verbose=-1,
+    analyzers=[CoinfectionPrev()],
+)
 
 # Your data CSV just needs a matching column:
 #
@@ -316,7 +320,7 @@ A complete calibration analysis typically has three scripts:
 
 ```python
 # 1. run_calibrations.py -- find best parameters
-sim = make_sim(verbose=-1)
+sim = sti.Sim(diseases=sti.Gonorrhea(), n_agents=500, start=2010, stop=2030, verbose=-1)
 data = pd.read_csv('data/calibration_targets.csv')
 
 calib = sti.Calibration(
@@ -336,17 +340,21 @@ calib.save('results/calib.obj')
 ```python
 # 2. run_msim.py -- run top parameter sets with full results
 pars_df = sc.load('results/calib_pars.df')
+sim = sti.Sim(diseases=sti.Gonorrhea(), n_agents=500, start=2010, stop=2030, verbose=-1)
 msim = sti.make_calib_sims(
-    calib_pars=pars_df, sim=make_sim(), n_parsets=200,
+    calib_pars=pars_df, sim=sim, n_parsets=3,
 )
 ```
 
 ```python
 # 3. run_scenarios.py -- compare interventions
 for scenario in ['baseline', 'intervention']:
+    interventions = [sti.ART(coverage=0.9)] if scenario == 'intervention' else []
+    sim = sti.Sim(diseases=sti.Gonorrhea(), n_agents=500, start=2010, stop=2030,
+                  verbose=-1, interventions=interventions)
     msim = sti.make_calib_sims(
-        calib_pars=pars_df, sim=make_sim(scenario=scenario),
-        n_parsets=10, seeds_per_par=5,
+        calib_pars=pars_df, sim=sim,
+        n_parsets=3, seeds_per_par=2,
     )
 ```
 
