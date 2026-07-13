@@ -750,7 +750,7 @@ class art_coverage(ss.Analyzer):
                 ax.legend(frameon=False, fontsize=9)
 
         pl.tight_layout()
-        return fig
+        return ss.return_fig(fig)
 
 
 class PartnershipFormationAnalyzer(ss.Analyzer):
