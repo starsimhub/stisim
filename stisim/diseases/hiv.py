@@ -595,6 +595,7 @@ class HIV(BaseSTI):
         ti = self.ti
 
         self.on_art[uids] = True
+        self.post_art[uids] = False  # Re-starting ART clears the post-ART flag
         newly_treated = uids[self.never_art[uids]]
         self.never_art[newly_treated] = False
         self.ti_art[uids] = ti
@@ -647,6 +648,7 @@ class HIV(BaseSTI):
         # Remove agents from ART
         if uids is None: uids = self.on_art & (self.ti_stop_art <= ti)
         self.on_art[uids] = False
+        self.post_art[uids] = True
         self.ti_stop_art[uids] = ti
         self.cd4_postart[uids] = sc.dcp(self.cd4[uids])
 

@@ -134,7 +134,7 @@ class SyphPars(BaseSTIPars):
         #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5973824/)
         #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2819963/
         self.birth_outcomes = sc.objdict(
-            mat_active=ss.choice(a=5, p=np.array([0.00, 0.10, 0.20, 0.45, 0.25])),  # Outcomes for babies born to mothers with primary or secondary infection
+            mat_active=ss.choice(a=5, p=np.array([0.00, 0.25, 0.25, 0.45, 0.05])),  # Outcomes for babies born to mothers with primary or secondary infection
             early=ss.choice(a=5, p=np.array([0.00, 0.05, 0.10, 0.40, 0.45])),  # Outcomes for babies born to mothers with early latent infection
             late=ss.choice(a=5, p=np.array([0.00, 0.00, 0.10, 0.10, 0.80])),  # Outcomes for babies born to mothers with late latent infection
         )
