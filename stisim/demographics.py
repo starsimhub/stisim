@@ -22,10 +22,14 @@ class Migration(ss.Demographics):
 
     Args:
         pars (dict): Parameter overrides (e.g. ``migration_propensity``,
-            ``slot_scale``, ``min_slots``).
+            ``slot_scale``, ``min_slots``, ``rel_migration``).
         migration_data (DataFrame): Must contain ``'Time'`` and ``'Value'``
             columns giving the net number of migrants per year.
         **kwargs: Additional parameter overrides.
+
+    Pars:
+        rel_migration: constant used to scale the net number of migrants
+            (both immigration and emigration), analogous to ``rel_death``.
     """
     def __init__(self, pars=None, migration_data=None, **kwargs):
         super().__init__()
@@ -35,6 +39,7 @@ class Migration(ss.Demographics):
             migration_propensity = ss.normal(loc=1, scale=0.1),  # Propensity to emigrate
             slot_scale = 5, # Random slots will be assigned to newborn agents between min=n_agents and max=slot_scale*n_agents
             min_slots  = 100, # Minimum number of slots, useful if the population size is very small
+            rel_migration = 1, # Scale factor for net migration (both immigration and emigration)
         )
         self.update_pars(pars, **kwargs)
         self.define_states(
@@ -92,7 +97,7 @@ class Migration(ss.Demographics):
             n_migrants = mrd.loc[nearest_year].Value
         elif sc.isnumber(mrd):
             n_migrants = mrd
-        scaled_migrants = int(n_migrants*self.t.dt_year/self.sim.pars.pop_scale)
+        scaled_migrants = int(n_migrants*self.t.dt_year/self.sim.pars.pop_scale*self.pars.rel_migration)
         return scaled_migrants
 
     def make_immigrants(self, twin_uids):
