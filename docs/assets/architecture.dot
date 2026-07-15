@@ -1,0 +1,199 @@
+// Starsim ecosystem architecture
+// Regenerate: dot -Tsvg architecture.dot > architecture.svg && dot -Tpng -Gdpi=200 architecture.dot > architecture.png
+
+digraph ecosystem {
+    rankdir=BT;
+    bgcolor="white";
+    compound=true;
+    newrank=true;
+    ranksep=0.55;
+    nodesep=0.30;
+    splines=true;
+    graph [fontname="Helvetica", fontsize=18, labelloc="t",
+           label=<<b>The Starsim ecosystem</b><br/><font point-size="12">Starsim is the engine. STIsim is the sexual-health package. HIVsim is a thin defaults wrapper inside STIsim.</font>>];
+    node  [fontname="Helvetica", fontsize=10, shape=box, style="filled,rounded", fillcolor="#f5f5f5", color="#888888", margin="0.15,0.08"];
+    edge  [fontname="Helvetica", fontsize=9, color="#888888"];
+
+    // ========================================================================
+    // ENGINE row (bottom)
+    // ========================================================================
+    subgraph cluster_engine {
+        label=<<b>starsim</b>  ·  ABM engine (disease-agnostic)>;
+        style="filled,rounded";
+        fillcolor="#e8eef4";
+        color="#4a6f8f";
+        fontname="Helvetica";
+        fontsize=12;
+        engine_sim     [label="Sim"];
+        engine_people  [label="People"];
+        engine_bases   [label="base classes:\nDisease · Network · Intervention\nConnector · Analyzer · Demographics"];
+        { rank=same; engine_sim; engine_people; engine_bases; }
+        engine_sim -> engine_people [style=invis];
+        engine_people -> engine_bases [style=invis];
+    }
+
+    // ========================================================================
+    // DISEASE PACKAGES row (each = 3 compartments: Modules / Ctor / Tools)
+    // ========================================================================
+    subgraph cluster_stisim {
+        label=<<b>stisim</b>>;
+        style="filled,rounded";
+        fillcolor="#fdecea"; color="#b34a3f"; fontname="Helvetica"; fontsize=12;
+        sti_modules [label=<<b>Modules</b><br align="left"/>Diseases: HIV · syphilis · chlamydia · gonorrhoea<br align="left"/>  trich · BV · GUD<br align="left"/>Networks: StructuredSexual · MF · MSM · FSW<br align="left"/>Testing/tx: HIVTest · ART · VMMC · PrEP<br align="left"/>  syndromic mgmt · ANC/infant PMTCT screening<br align="left"/>  partner notification · pregnancy risk redux<br align="left"/>Logistics: Product · Supply · SuppliedIntervention<br align="left"/>Connectors: HIV–STI · GUD–syphilis<br align="left"/>>,
+                     fillcolor="#fff5f3"];
+        sti_ctor    [label=<<b>Sim constructor</b><br/>sti.Sim(...)>, fillcolor="#fff5f3"];
+        sti_tools   [label=<<b>Calibration &amp; tools</b><br/>CalibComponent, plotting>, fillcolor="#fff5f3"];
+        sti_modules -> sti_ctor [style=invis];
+        sti_ctor -> sti_tools [style=invis];
+
+        // HIVsim inset (sub-cluster inside STIsim)
+        subgraph cluster_hivsim {
+            label=<<b>hivsim</b>  ·  thin Sim constructor>;
+            labelloc="t";
+            style="filled,rounded";
+            fillcolor="#fff4b8"; color="#a07c00"; fontname="Helvetica"; fontsize=11;
+            hivsim_note [label=<wires up STIsim defaults<br align="left"/>(HIV + sexual/maternal nets<br align="left"/>+ HIVTest/ART/VMMC/PrEP)<br align="left"/>>,
+                         fillcolor="#fffceb", color="#a07c00", fontsize=9, shape=note];
+        }
+        // Visible arrow showing HIVsim wraps the STIsim modules
+        hivsim_note -> sti_modules [label="wraps", color="#a07c00", fontcolor="#a07c00", fontsize=10, style=dashed, constraint=false];
+    }
+
+    subgraph cluster_covasim {
+        label=<<b>covasim</b>>;
+        style="filled,rounded"; fillcolor="#eaf4fd"; color="#3f73b3"; fontname="Helvetica"; fontsize=12;
+        cov_modules [label=<<b>Modules</b><br align="left"/>SARS-CoV-2<br align="left"/>Household · work · school<br align="left"/>community<br align="left"/>Testing · contact tracing<br align="left"/>vaccination<br align="left"/>>, fillcolor="#f5faff"];
+        cov_ctor    [label=<<b>Sim constructor</b><br/>cv.Sim(...)>, fillcolor="#f5faff"];
+        cov_tools   [label=<<b>Calibration &amp; tools</b>>, fillcolor="#f5faff"];
+        cov_modules -> cov_ctor [style=invis];
+        cov_ctor -> cov_tools [style=invis];
+    }
+
+    subgraph cluster_hpvsim {
+        label=<<b>hpvsim</b>>;
+        style="filled,rounded"; fillcolor="#eafde9"; color="#3f9b48"; fontname="Helvetica"; fontsize=12;
+        hpv_modules [label=<<b>Modules</b><br align="left"/>HPV genotypes<br align="left"/>cervical disease<br align="left"/>Age-structured sexual nets<br align="left"/>Screening · vaccination<br align="left"/>>, fillcolor="#f5fef4"];
+        hpv_ctor    [label=<<b>Sim constructor</b><br/>hpv.Sim(...)>, fillcolor="#f5fef4"];
+        hpv_tools   [label=<<b>Calibration &amp; tools</b>>, fillcolor="#f5fef4"];
+        hpv_modules -> hpv_ctor [style=invis];
+        hpv_ctor -> hpv_tools [style=invis];
+    }
+
+    subgraph cluster_fpsim {
+        label=<<b>fpsim</b>>;
+        style="filled,rounded"; fillcolor="#fdf7ea"; color="#b39148"; fontname="Helvetica"; fontsize=12;
+        fp_modules [label=<<b>Modules</b><br align="left"/>Fertility · contraception<br align="left"/>Partnership + maternal nets<br align="left"/>Method-mix interventions<br align="left"/>>, fillcolor="#fefbf3"];
+        fp_ctor    [label=<<b>Sim constructor</b><br/>fp.Sim(...)>, fillcolor="#fefbf3"];
+        fp_tools   [label=<<b>Calibration &amp; tools</b>>, fillcolor="#fefbf3"];
+        fp_modules -> fp_ctor [style=invis];
+        fp_ctor -> fp_tools [style=invis];
+    }
+
+    subgraph cluster_tbsim {
+        label=<<b>tbsim</b>>;
+        style="filled,rounded"; fillcolor="#f4eafd"; color="#7548b3"; fontname="Helvetica"; fontsize=12;
+        tb_modules [label=<<b>Modules</b><br align="left"/>Tuberculosis<br align="left"/>Household · congregate nets<br align="left"/>Screening · treatment<br align="left"/>prevention<br align="left"/>>, fillcolor="#faf5fe"];
+        tb_ctor    [label=<<b>Sim constructor</b><br/>tb.Sim(...)>, fillcolor="#faf5fe"];
+        tb_tools   [label=<<b>Calibration &amp; tools</b>>, fillcolor="#faf5fe"];
+        tb_modules -> tb_ctor [style=invis];
+        tb_ctor -> tb_tools [style=invis];
+    }
+
+    // Pin the disease packages on the same row (use the ctor row as the anchor)
+    { rank=same; sti_ctor; cov_ctor; hpv_ctor; fp_ctor; tb_ctor; }
+
+    // Anchor disease packages above the engine
+    sti_modules -> engine_bases [style=invis, weight=10];
+    cov_modules -> engine_bases [style=invis, weight=10];
+    hpv_modules -> engine_bases [style=invis, weight=10];
+    fp_modules  -> engine_bases [style=invis, weight=10];
+    tb_modules  -> engine_bases [style=invis, weight=10];
+
+    // ========================================================================
+    // CODE EQUIVALENCE CALLOUT (sits next to STIsim, same rank)
+    // ========================================================================
+    code_callout [
+        shape=note,
+        style="filled",
+        fillcolor="#fffceb",
+        color="#a07c00",
+        fontname="Courier",
+        fontsize=9,
+        label=<<table border="0" cellspacing="0" cellpadding="1" align="left">
+<tr><td align="left"><font face="Helvetica-Bold" point-size="10">These two are identical:</font></td></tr>
+<tr><td align="left">&nbsp;</td></tr>
+<tr><td align="left"><font face="Helvetica-Oblique" color="#666666"># Manual via sti.Sim:</font></td></tr>
+<tr><td align="left">sim = sti.Sim(</td></tr>
+<tr><td align="left">    diseases='hiv',</td></tr>
+<tr><td align="left">    networks=[sti.StructuredSexual(),</td></tr>
+<tr><td align="left">              ss.MaternalNet(),</td></tr>
+<tr><td align="left">              ss.BreastfeedingNet()],</td></tr>
+<tr><td align="left">    interventions=[sti.HIVTest(),</td></tr>
+<tr><td align="left">                   sti.ART(),</td></tr>
+<tr><td align="left">                   sti.VMMC(),</td></tr>
+<tr><td align="left">                   sti.Prep()],</td></tr>
+<tr><td align="left">    demographics=[ss.Pregnancy(),</td></tr>
+<tr><td align="left">                  ss.Deaths()])</td></tr>
+<tr><td align="left">&nbsp;</td></tr>
+<tr><td align="left"><font face="Helvetica-Oblique" color="#666666"># Same thing, via HIVsim:</font></td></tr>
+<tr><td align="left">sim = hivsim.Sim()</td></tr>
+</table>>
+    ];
+    { rank=same; tb_ctor; code_callout; }
+    tb_modules -> code_callout [style=invis, weight=20];
+
+    // ========================================================================
+    // LOCALIZATIONS row (above STIsim only)
+    // ========================================================================
+    subgraph cluster_localizations {
+        label=<<b>Localizations</b>  ·  country/context parameters, data, customised modules>;
+        style="filled,rounded"; fillcolor="#fff6f5"; color="#b34a3f"; fontname="Helvetica"; fontsize=11;
+        loc_kenya  [label="hiv_kenya", fillcolor="white"];
+        loc_zam    [label="hiv_zambia", fillcolor="white"];
+        loc_zim_sd [label="syph_dx_zim", fillcolor="white"];
+        loc_zim_vd [label="stisim_vddx_zim", fillcolor="white"];
+        loc_esw    [label="hivsim_eswatini", fillcolor="white"];
+        loc_za_vmb [label="hiv_vmb_southafrica", fillcolor="white"];
+        { rank=same; loc_kenya; loc_zam; loc_zim_sd; loc_zim_vd; loc_esw; loc_za_vmb; }
+        loc_kenya -> loc_zam [style=invis];
+        loc_zam -> loc_zim_sd [style=invis];
+        loc_zim_sd -> loc_zim_vd [style=invis];
+        loc_zim_vd -> loc_esw [style=invis];
+        loc_esw -> loc_za_vmb [style=invis];
+    }
+
+    // Anchor localizations above stisim
+    sti_tools -> loc_zim_sd [style=invis, weight=10];
+
+    // ========================================================================
+    // ANALYSES row (top, above localizations)
+    // ========================================================================
+    subgraph cluster_analyses {
+        label=<<b>Analyses</b>  ·  a specific research question on top of a localization>;
+        style="filled,rounded"; fillcolor="#fffdf5"; color="#a07c00"; fontname="Helvetica"; fontsize=11;
+        an_anc  [label="anc_sti_screening", fillcolor="white"];
+        an_prep [label="hivsim_eswatini_prep", fillcolor="white"];
+        { rank=same; an_anc; an_prep; }
+        an_anc -> an_prep [style=invis];
+    }
+    loc_zim_sd -> an_anc [style=invis, weight=10];
+    loc_esw -> an_prep [style=invis, weight=10];
+
+    // ========================================================================
+    // ANNOTATION STRIP (right side)
+    // ========================================================================
+    subgraph cluster_legend {
+        label=<<b>Each *sim package contains:</b>>;
+        style="filled,rounded"; fillcolor="#f5f5f5"; color="#666666"; fontname="Helvetica"; fontsize=11;
+        legend_1 [label=<<b>1. Modules</b><br align="left"/>diseases · networks<br align="left"/>interventions · connectors<br align="left"/>>, shape=box, fillcolor="white", fontname="Helvetica", fontsize=10];
+        legend_2 [label=<<b>2. Sim constructor</b><br align="left"/>sensible defaults<br align="left"/>for the field<br align="left"/>>, shape=box, fillcolor="white", fontname="Helvetica", fontsize=10];
+        legend_3 [label=<<b>3. Calibration &amp; tools</b><br align="left"/>tuned to typical<br align="left"/>field data<br align="left"/>>, shape=box, fillcolor="white", fontname="Helvetica", fontsize=10];
+        legend_4 [label=<<i>All extendable —</i><br/><i>pass custom modules</i><br/><i>to any *sim.Sim()</i>>, shape=plaintext, fillcolor="none", fontname="Helvetica", fontsize=10];
+        // BT direction reverses visual order — reverse the edges so 1/2/3 read top-to-bottom
+        legend_4 -> legend_3 [style=invis];
+        legend_3 -> legend_2 [style=invis];
+        legend_2 -> legend_1 [style=invis];
+    }
+    // Pin legend at engine height (right side)
+    { rank=same; engine_bases; legend_4; }
+}
