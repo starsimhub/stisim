@@ -29,6 +29,12 @@ class HIVPars(BaseSTIPars):
         self.dur_latent = ss.lognorm_ex(ss.years(10), ss.years(3))  # Duration of latent, untreated HIV infection
         self.dur_falling = ss.lognorm_ex(ss.years(3), ss.years(1))  # Duration of late-stage HIV when CD4 counts fall
         self.p_hiv_death = ss.bernoulli(p=0)  # Death from HIV-related complications; set by make_p_hiv_death()
+        # CD4-stratified per-year mortality (Marston 2007, Todd 2007). Bins are
+        # upper edges of a descending CD4 ladder.
+        self.cd4_death_bins = np.array([1000, 500, 350, 200, 50, 0])
+        self.cd4_death_rates = np.array([0.003, 0.003, 0.005, 0.01, 0.05, 0.30])
+        self.rel_death = 1.0          # Scales HIV death rate for all infected agents
+        self.rel_death_on_art = 0.5   # Additional scale for on-ART agents; Marston 2007 / Kranzer 2013 African ART cohorts show ~30-50% of untreated mortality. Set to 0 to disable on-ART deaths.
         self.include_aids_deaths = True
 
         # Transmission
@@ -306,12 +312,12 @@ class HIV(BaseSTI):
         """
         Calculate per-timestep HIV death probability based on current CD4 count.
 
-        Uses CD4-stratified annual mortality rates, digitized into bins. Rates are
-        converted from per-year to per-timestep probabilities.
+        Reads the CD4 bin edges and per-year mortality rates from
+        ``self.pars.cd4_death_bins`` / ``self.pars.cd4_death_rates``, then
+        converts to per-timestep probabilities.
         """
-        cd4_bins = np.array([1000, 500, 350, 200, 50, 0])
-        p_hiv_death = ss.peryear(np.array([0.003, 0.003, 0.005, 0.01, 0.05, 0.300])).to_prob(self.dt)
-        return p_hiv_death[np.digitize(self.cd4[uids], cd4_bins)]
+        p_hiv_death = ss.peryear(self.pars.cd4_death_rates).to_prob(self.dt)
+        return p_hiv_death[np.digitize(self.cd4[uids], self.pars.cd4_death_bins)]
 
     @staticmethod
     def _interpolate(vals: list, t):
@@ -397,11 +403,15 @@ class HIV(BaseSTI):
 
         # Update deaths. We capture deaths from AIDS (i.e., when CD4 count drops to ~0) as well as deaths from
         # serious HIV-related illnesses, which can occur throughout HIV.
-        off_art = (self.infected & ~self.on_art).uids
-        p_death = self.make_p_hiv_death(uids=off_art)
+        eligible = self.infected.uids
+        p_death = self.make_p_hiv_death(uids=eligible)
+        # Scale: rel_death for everyone, additionally rel_death_on_art for on-ART agents
+        p_death = p_death * self.pars.rel_death
+        on_art_mask = self.on_art[eligible]
+        p_death[on_art_mask] = p_death[on_art_mask] * self.pars.rel_death_on_art
         self.pars.p_hiv_death.set(0)
         self.pars.p_hiv_death.set(p_death)  # Set the death probability function
-        hiv_deaths = self.pars.p_hiv_death.filter(off_art)
+        hiv_deaths = self.pars.p_hiv_death.filter(eligible)
         if len(hiv_deaths):
             self.ti_dead[hiv_deaths] = ti
             self.sim.people.request_death(hiv_deaths)

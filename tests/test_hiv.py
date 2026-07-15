@@ -765,6 +765,46 @@ def test_mtct_rates_in_range():
     return dict(p_no_art=p_no_art, p_pmtct=p_pmtct)
 
 
+@sc.timer()
+def test_rel_death_scales_hiv_mortality(n_agents=3000):
+    """rel_death and rel_death_on_art both scale HIV mortality monotonically.
+
+    Sanity check that the exposed scalars route through to the death
+    probability computed in HIV.step. Runs a small sim under three settings
+    of each scalar and checks cumulative HIV deaths are monotonic in each.
+    """
+    sc.heading("Ensuring rel_death and rel_death_on_art scale HIV deaths")
+
+    def _deaths(rel_death=1.0, rel_death_on_art=0.5):
+        test_intv = sti.HIVTest(test_prob_data=1, dt_scale=False)
+        art = sti.ART(art_initiation=1.0)
+        hiv = sti.HIV(init_prev=1.0, beta_m2f=0.0,
+                      rel_death=rel_death, rel_death_on_art=rel_death_on_art,
+                      dur_on_art=ss.constant(v=ss.years(50)))
+        sim = build_testing_sim(n_agents=n_agents, duration=15,
+                                pregnancy=None, death=None,
+                                diseases=[hiv], interventions=[test_intv, art])
+        sim.run()
+        return int(sim.diseases.hiv.results.new_deaths.sum())
+
+    # rel_death monotonically increases total deaths
+    d1 = _deaths(rel_death=0.5)
+    d2 = _deaths(rel_death=1.0)
+    d3 = _deaths(rel_death=2.0)
+    assert d1 < d2 < d3, (
+        f'rel_death should scale HIV deaths monotonically; got {d1}, {d2}, {d3}'
+    )
+
+    # rel_death_on_art monotonically increases total deaths (via the on-ART
+    # subset). rel_death=1 fixed; only the on-ART scale varies.
+    z0 = _deaths(rel_death_on_art=0.0)
+    z1 = _deaths(rel_death_on_art=1.0)
+    z2 = _deaths(rel_death_on_art=3.0)
+    assert z0 < z1 < z2, (
+        f'rel_death_on_art should scale on-ART HIV deaths monotonically; got {z0}, {z1}, {z2}'
+    )
+
+
 if __name__ == '__main__':
     do_plot = True
     sc.options(interactive=do_plot)
@@ -792,6 +832,7 @@ if __name__ == '__main__':
     test_cd4_falls_after_ART_dropout()
     test_rel_trans_rises_after_ART_dropout()
     test_rel_sus_age()
+    test_rel_death_scales_hiv_mortality()
 
     sc.heading("Total:")
     timer.toc()
