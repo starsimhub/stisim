@@ -14,13 +14,13 @@ HIV in STIsim is modeled with CD4-based disease progression through acute, laten
                                ▼
                         ┌─────────────┐
                         │    Acute    │  CD4 declines from ~800 to ~500
-                        │  (~3 mo)   │  Transmissibility: 6x baseline
+                        │  (~3 mo)    │  Transmissibility: 6x baseline
                         └──────┬──────┘
                                │
                                ▼
                         ┌─────────────┐
                         │   Latent    │  CD4 stable at ~500
-                        │  (~10 yr)  │  Transmissibility: 1x baseline
+                        │  (~10 yr)   │  Transmissibility: 1x baseline
                         └──────┬──────┘
                                │
                     ┌──────────┴──────────┐
@@ -98,9 +98,59 @@ HIV in STIsim is modeled with CD4-based disease progression through acute, laten
      │     50–200:    1.0%/yr                  │
      │     0–50:      5.0%/yr                  │
      │     ~0:       30.0%/yr                  │
-     │   (untreated agents only)               │
+     │   (untreated agents only --             │
+     │    on-ART agents can also die here if   │
+     │    use_art_mortality_table=True, see    │
+     │    "ART mortality: two selectable       │
+     │    modes" below)                        │
      └─────────────────────────────────────────┘
 ```
+
+## ART mortality: two selectable modes
+
+This section zooms into a single box from the diagram above: **On ART**. In that diagram, "On ART" has exactly one way out — ART dropout, into Post-ART — because by default agents cannot die from HIV while `on_art = True`; only the off-ART CD4-based hazard (bottom box, "AIDS death") applies, and only once they've dropped out. `HIVPars.use_art_mortality_table` (default `False`) controls whether that's still true, i.e. whether "On ART" gains a **second** way out, straight to AIDS death, alongside the existing dropout path:
+
+```
+                        ┌─────────────────┐
+                        │     On ART      │  (from the diagram above)
+                        └───┬─────────┬───┘
+             always: ART    │         │  only if use_art_mortality_table=True:
+             dropout        │         │  ARTMortalityTable-style hazard, every timestep
+                            ▼         ▼
+                  ┌─────────────┐ ┌─────────────┐
+                  │  Post-ART   │ │ AIDS death  │
+                  └─────────────┘ └─────────────┘
+```
+
+Everything else in the diagram above (Falling, Post-ART, the AIDS-death CD4 hazard table) is unaffected by this toggle either way — it only changes whether "On ART" itself is a possible source of death, and if so, how that risk is computed:
+
+```
+                     ┌─────────────────────────┐
+                     │  On ART (on_art = True) │
+                     └───────────┬─────────────┘
+                                 │
+                      use_art_mortality_table?
+              ┌──────────────────┴──────────────────┐
+              │                                     │
+            False (default)                         True
+              │                                     │
+              ▼                                     ▼
+┌─────────────────────────────┐       ┌────────────────────────────────────┐
+│ "Simple" mode               │       │ ARTMortalityTable mode             │
+│                             │       │                                    │
+│ Mortality = 0 while on ART. │       │ get_art_mortality_hazard():        │
+│ Only the off-ART CD4-based  │       │ look up annual hazard by:          │
+│ hazard (see diagram above)  │       │   - age          (4 bins)          │
+│ ever applies.               │       │   - sex          (m / f)           │
+└─────────────────────────────┘       │   - adherence    (effective /      │
+                                      │                   non-suppressive) │
+                                      │   - duration since ti_art          │
+                                      │                   (5 bins)         │
+                                      │   - CURRENT cd4  (7 bins)          │
+                                      └────────────────────────────────────┘
+```
+
+The ARTMortalityTable-mode lookup uses the agent's **current** CD4 count (not frozen at ART initiation) — since STIsim already recomputes CD4 every timestep for the reconstitution curve, there's no reason to freeze it the way EMOD does (see `art_implementation_notes.md` section 9 for the rationale). The default table's numbers (both effective- and non-suppressive-ART variants, by sex) ship from the EMOD-HIV campaign example in `HIVSim_notes/art.md`; pass your own `art_mortality_table` dict of the same shape to use different data. EMOD's "terminal failing window" (a temporary loss of transmission suppression in the months before an ART-mortality-table-scheduled death) is not modeled in either mode.
 
 ### Notes on ART
 
@@ -109,14 +159,16 @@ HIV in STIsim is modeled with CD4-based disease progression through acute, laten
 - ART duration is drawn per-agent: `dur_on_art ~ LogNormal(3yr, 1.5yr) × rel_dur_on_art`
   - `rel_dur_on_art` is a calibrated scalar (range 1–20) that stretches mean duration
 - After dropout, `ti_zero` is redrawn based on CD4 at dropout and `cd4_potential`
-- **No age or sex dependence** anywhere in natural history, mortality, or ART effects
+- **No age or sex dependence** in natural history or ART dropout timing. Mortality *while on ART* is age/sex-dependent only if `use_art_mortality_table=True` (see above); it's otherwise zero regardless of age or sex.
 
 ### What is not modeled
 
 - Viral load / viral suppression (ART = fully suppressed, binary)
-- Age-varying progression rates or mortality
+- Age-varying progression rates (natural history is age-independent regardless of ART-mortality mode)
+- Age/sex-varying mortality while on ART, unless `use_art_mortality_table=True` (see above)
 - Sex-varying natural history
 - Re-infection or superinfection
+- EMOD's "terminal failing window" (see above)
 
 ## Parameters
 
@@ -159,6 +211,8 @@ HIV in STIsim is modeled with CD4-based disease progression through acute, laten
 | `time_to_art_efficacy` | 6 months | Time to reach full ART efficacy (linear ramp) |
 | `art_cd4_growth` | 0.1 | Logistic growth rate for CD4 reconstitution on ART |
 | `dur_on_art` | lognorm(3 yr, 1.5 yr) | Duration on ART before dropout |
+| `use_art_mortality_table` | False | If True, apply the ARTMortalityTable-style age/sex/adherence/duration-stratified hazard to on-ART agents instead of zero mortality (see "ART mortality: two selectable modes" above) |
+| `art_mortality_table` | EMOD example table | Age/sex/adherence/duration/CD4-stratified annual hazard table used when `use_art_mortality_table=True`; pass your own dict of the same shape to override |
 
 ### Care seeking
 
