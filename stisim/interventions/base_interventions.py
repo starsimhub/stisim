@@ -205,8 +205,8 @@ class STITest(ss.Intervention):
         """
         # Select UIDs for testing based on eligibility and test_prob
         accept_uids = ss.uids()
-        if callable(self.eligibility):
-            eligible_uids = self.check_eligibility()  # Apply eligiblity - uses base class from ss.Intervention
+        if self.eligibility is None or callable(self.eligibility):
+            eligible_uids = self.check_eligibility()  # Apply eligiblity - uses base class from ss.Intervention; None -> everyone
         else:
             eligible_uids = self.eligibility
         if len(eligible_uids):

@@ -66,6 +66,40 @@ syndromic = sti.SymptomaticTesting(
 )
 ```
 
+### SyphTest
+
+Base class for syphilis testing (`ANCSyphTest` and `NewbornSyphTest` subclass it). In addition to the scalar/array/`TimeSeries` forms `test_prob_data` accepts everywhere else, `SyphTest` also accepts a long-format `DataFrame` stratified by risk group, sex, and sex-work status -- one row per `(year, risk_group, sex, sw)` combination:
+
+```python
+import pandas as pd
+
+test_prob_data = pd.DataFrame([
+    {'year': 2000, 'risk_group': 0, 'sex': 'female', 'sw': 0, 'symp_test_prob': 0.15},
+    {'year': 2000, 'risk_group': 1, 'sex': 'female', 'sw': 0, 'symp_test_prob': 0.15},
+    {'year': 2000, 'risk_group': 2, 'sex': 'female', 'sw': 0, 'symp_test_prob': 0.38},
+    {'year': 2000, 'risk_group': 0, 'sex': 'female', 'sw': 1, 'symp_test_prob': 0.45},
+    {'year': 2000, 'risk_group': 0, 'sex': 'male',   'sw': 0, 'symp_test_prob': 0.10},
+    {'year': 2024, 'risk_group': 0, 'sex': 'female', 'sw': 0, 'symp_test_prob': 0.20},
+    # ... one row per (year, risk_group, sex, sw) stratum
+])
+
+symp_test = sti.SyphTest(
+    product=syph_dx,
+    test_prob_data=test_prob_data,
+    start=2000,
+)
+```
+
+| Column | Description |
+|--------|-------------|
+| `year` | Calendar year; strata are interpolated onto the sim's timestep grid. |
+| `risk_group` | Integer risk-group index, `0` .. `n_risk_groups - 1` (set by the sexual network, default 3). |
+| `sex` | `'female'` or `'male'`. |
+| `sw` | `1` for sex workers and their clients, `0` otherwise. |
+| `symp_test_prob` | Testing probability for that stratum-year (annualized, then scaled per-timestep like `STITest`). |
+
+Every `(risk_group, sex, sw)` combination present in the sim must have a row for every `year`, or the missing strata will have no scheduled tests.
+
 ## Treatment
 
 ### STITreatment
