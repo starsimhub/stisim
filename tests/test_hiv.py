@@ -43,7 +43,7 @@ def test_cd4_counts_decline_untreated():
     sim = build_testing_sim(analyzers=[analyzer],
                             maternal_network=None, prior_network=None, sexual_network=None,
                             pregnancy=None, death=None,
-                            n_agents=5, duration=5)
+                            n_agents=100, duration=5)
     sim.run()
     results = sim.results[analyzer.name][analyzer.result_name]
 
@@ -131,7 +131,7 @@ def test_acute_transmission_higher_than_latent():
 def test_aids_transmission_is_higher_than_latent():
     sc.heading("Checking HIV transmission ratio AIDS > latent.")
 
-    sim = build_testing_sim(analyzers=[RelativeInfectivityTracker(states=['aids'])], n_agents=25, duration=10)
+    sim = build_testing_sim(analyzers=[RelativeInfectivityTracker(states=['aids'])], n_agents=500, duration=10)
     sim.run()
     aids_ratios = sim.results['relativeinfectivitytracker']['hiv.aids_rel_trans']
     aids_ratios = list(set(chain(*aids_ratios)))
@@ -758,6 +758,39 @@ def test_mtct_rates_in_range():
     return dict(p_no_art=p_no_art, p_pmtct=p_pmtct)
 
 
+@sc.timer()
+def test_rel_death_scales_hiv_mortality(n_agents=3000):
+    """rel_death scales HIV mortality monotonically, off- and on-ART alike."""
+    sc.heading("Ensuring rel_death scales HIV deaths")
+
+    def _deaths(rel_death=1.0, art_initiation=1.0):
+        test_intv = HIVTest(test_prob_data=1, dt_scale=False)
+        art = ART(art_initiation=art_initiation)
+        hiv = sti.HIV(init_prev=1.0, beta_m2f=0.0, rel_death=rel_death,
+                      dur_on_art=ss.constant(v=ss.years(50)))
+        sim = build_testing_sim(n_agents=n_agents, duration=15,
+                                pregnancy=None, death=None,
+                                diseases=[hiv], interventions=[test_intv, art])
+        sim.run()
+        return int(sim.diseases.hiv.results.new_deaths.sum())
+
+    # Off-ART: nobody initiates ART, so all deaths come from make_p_hiv_death
+    d1 = _deaths(rel_death=0.5, art_initiation=0.0)
+    d2 = _deaths(rel_death=1.0, art_initiation=0.0)
+    d3 = _deaths(rel_death=2.0, art_initiation=0.0)
+    assert d1 < d2 < d3, (
+        f'rel_death should scale off-ART HIV deaths monotonically; got {d1}, {d2}, {d3}'
+    )
+
+    # On-ART: everyone initiates ART immediately, so deaths come from get_art_mortality_hazard
+    z1 = _deaths(rel_death=0.5, art_initiation=1.0)
+    z2 = _deaths(rel_death=1.0, art_initiation=1.0)
+    z3 = _deaths(rel_death=2.0, art_initiation=1.0)
+    assert z1 < z2 < z3, (
+        f'rel_death should scale on-ART HIV deaths monotonically; got {z1}, {z2}, {z3}'
+    )
+
+
 if __name__ == '__main__':
     do_plot = True
     sc.options(interactive=do_plot)
@@ -785,6 +818,7 @@ if __name__ == '__main__':
     test_cd4_falls_after_ART_dropout()
     test_rel_trans_rises_after_ART_dropout()
     test_rel_sus_age()
+    test_rel_death_scales_hiv_mortality()
 
     sc.heading("Total:")
     timer.toc()

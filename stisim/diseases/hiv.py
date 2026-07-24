@@ -11,117 +11,6 @@ from stisim.diseases.sti import BaseSTI, BaseSTIPars
 __all__ = ['HIV', 'HIVPars']
 
 
-# Default ARTMortalityTable-style dataset: annual HIV mortality hazard for
-# agents on ART, stratified by ART duration bin x age bin x CD4 bin, separately
-# for males/females and effective/non-suppressive ART. Transcribed from the
-# EMOD-HIV campaign example in HIVSim_notes/art.md (art_implementation_notes.md
-# section 7 has a discussion of what these numbers mean). Each table has shape
-# (n_dur_bins, n_age_bins, n_cd4_bins) = (5, 4, 7), matching the bin edges below.
-_ART_MORTALITY_AGE_BINS = np.array([25, 35, 45, 125])  # years; upper edges of <25/25-35/35-45/45+
-_ART_MORTALITY_DUR_BINS = np.array([182, 365, 730, 1095, 45625])  # days since ART initiation
-_ART_MORTALITY_CD4_BINS = np.array([0, 25, 74.5, 149.5, 274.5, 424.5, 624.5])  # CD4 count
-
-_ART_MORTALITY_EFFECTIVE_MALE = np.array([
-    [[0.2015, 0.2015, 0.1128, 0.0625, 0.0312, 0.0206, 0.0162],
-     [0.2176, 0.2176, 0.1219, 0.0675, 0.0337, 0.0223, 0.0175],
-     [0.2350, 0.2350, 0.1316, 0.0729, 0.0364, 0.0240, 0.0189],
-     [0.2538, 0.2538, 0.1421, 0.0787, 0.0393, 0.0260, 0.0205]],
-    [[0.0875, 0.0875, 0.0490, 0.0271, 0.0136, 0.0062, 0.0041],
-     [0.0945, 0.0945, 0.0529, 0.0293, 0.0146, 0.0067, 0.0044],
-     [0.1021, 0.1021, 0.0572, 0.0316, 0.0158, 0.0073, 0.0047],
-     [0.1102, 0.1102, 0.0617, 0.0342, 0.0171, 0.0079, 0.0051]],
-    [[0.0255, 0.0255, 0.0181, 0.0128, 0.0085, 0.0058, 0.0038],
-     [0.0288, 0.0288, 0.0204, 0.0145, 0.0096, 0.0065, 0.0043],
-     [0.0326, 0.0326, 0.0231, 0.0164, 0.0108, 0.0074, 0.0049],
-     [0.0368, 0.0368, 0.0261, 0.0185, 0.0123, 0.0084, 0.0055]],
-    [[0.0164, 0.0164, 0.0116, 0.0083, 0.0055, 0.0037, 0.0025],
-     [0.0186, 0.0186, 0.0131, 0.0093, 0.0062, 0.0042, 0.0042],
-     [0.0210, 0.0210, 0.0148, 0.0106, 0.0070, 0.0048, 0.0048],
-     [0.0237, 0.0237, 0.0168, 0.0119, 0.0079, 0.0054, 0.0054]],
-    [[0.0119, 0.0119, 0.0081, 0.0066, 0.0033, 0.0033, 0.0033],
-     [0.0135, 0.0135, 0.0092, 0.0074, 0.0037, 0.0037, 0.0037],
-     [0.0152, 0.0152, 0.0103, 0.0084, 0.0042, 0.0042, 0.0042],
-     [0.0172, 0.0172, 0.0117, 0.0095, 0.0047, 0.0047, 0.0047]],
-])
-
-_ART_MORTALITY_NONSUPP_MALE = np.array([
-    [[0.2015, 0.2015, 0.1128, 0.0625, 0.0312, 0.0206, 0.0162],
-     [0.2176, 0.2176, 0.1219, 0.0675, 0.0337, 0.0223, 0.0175],
-     [0.2350, 0.2350, 0.1316, 0.0729, 0.0364, 0.0240, 0.0189],
-     [0.2538, 0.2538, 0.1421, 0.0787, 0.0393, 0.0260, 0.0205]],
-    [[0.1715, 0.1715, 0.5600, 0.3100, 0.1550, 0.0713, 0.0465],
-     [0.1852, 0.1852, 0.6048, 0.3348, 0.1674, 0.0770, 0.0502],
-     [0.2000, 0.2000, 0.6532, 0.3616, 0.1808, 0.0832, 0.0542],
-     [0.2160, 0.2160, 0.7054, 0.3905, 0.1953, 0.0898, 0.0586]],
-    [[0.0532, 0.0532, 0.0362, 0.0293, 0.0171, 0.0116, 0.0095],
-     [0.0601, 0.0601, 0.0409, 0.0331, 0.0193, 0.0131, 0.0107],
-     [0.0679, 0.0679, 0.0462, 0.0374, 0.0218, 0.0148, 0.0121],
-     [0.0768, 0.0768, 0.0522, 0.0422, 0.0246, 0.0168, 0.0137]],
-    [[0.0335, 0.0335, 0.0228, 0.0184, 0.0108, 0.0073, 0.0060],
-     [0.0379, 0.0379, 0.0258, 0.0208, 0.0122, 0.0083, 0.0068],
-     [0.0428, 0.0428, 0.0291, 0.0235, 0.0137, 0.0094, 0.0076],
-     [0.0484, 0.0484, 0.0329, 0.0266, 0.0155, 0.0106, 0.0086]],
-    [[0.0234, 0.0234, 0.0159, 0.0129, 0.0091, 0.0069, 0.0064],
-     [0.0265, 0.0265, 0.0180, 0.0145, 0.0103, 0.0077, 0.0073],
-     [0.0299, 0.0299, 0.0203, 0.0164, 0.0116, 0.0088, 0.0082],
-     [0.0338, 0.0338, 0.0230, 0.0186, 0.0131, 0.0099, 0.0093]],
-])
-
-_ART_MORTALITY_EFFECTIVE_FEMALE = np.array([
-    [[0.2015, 0.2015, 0.0993, 0.0518, 0.0259, 0.0171, 0.0135],
-     [0.2156, 0.2156, 0.1062, 0.0554, 0.0277, 0.0183, 0.0144],
-     [0.2307, 0.2307, 0.1137, 0.0593, 0.0296, 0.0196, 0.0154],
-     [0.2468, 0.2468, 0.1216, 0.0634, 0.0317, 0.0209, 0.0165]],
-    [[0.0875, 0.0875, 0.0431, 0.0225, 0.0112, 0.0052, 0.0034],
-     [0.0936, 0.0936, 0.0461, 0.0241, 0.0120, 0.0055, 0.0036],
-     [0.1002, 0.1002, 0.0494, 0.0257, 0.0129, 0.0059, 0.0039],
-     [0.1072, 0.1072, 0.0528, 0.0276, 0.0138, 0.0063, 0.0041]],
-    [[0.0241, 0.0241, 0.0166, 0.0135, 0.0067, 0.0044, 0.0044],
-     [0.0262, 0.0262, 0.0181, 0.0147, 0.0073, 0.0048, 0.0048],
-     [0.0286, 0.0286, 0.0197, 0.0160, 0.0080, 0.0052, 0.0052],
-     [0.0312, 0.0312, 0.0215, 0.0175, 0.0087, 0.0057, 0.0057]],
-    [[0.0149, 0.0149, 0.0103, 0.0084, 0.0042, 0.0042, 0.0042],
-     [0.0163, 0.0163, 0.0112, 0.0091, 0.0046, 0.0046, 0.0046],
-     [0.0177, 0.0177, 0.0122, 0.0099, 0.0050, 0.0050, 0.0050],
-     [0.0193, 0.0193, 0.0133, 0.0108, 0.0054, 0.0054, 0.0054]],
-    [[0.0084, 0.0084, 0.0057, 0.0046, 0.0023, 0.0023, 0.0023],
-     [0.0092, 0.0092, 0.0062, 0.0051, 0.0025, 0.0025, 0.0025],
-     [0.0100, 0.0100, 0.0068, 0.0055, 0.0028, 0.0028, 0.0028],
-     [0.0109, 0.0109, 0.0074, 0.0060, 0.0030, 0.0030, 0.0030]],
-])
-
-_ART_MORTALITY_NONSUPP_FEMALE = np.array([
-    [[0.2015, 0.2015, 0.1128, 0.0625, 0.0312, 0.0206, 0.0162],
-     [0.2176, 0.2176, 0.1219, 0.0675, 0.0337, 0.0223, 0.0175],
-     [0.2350, 0.2350, 0.1316, 0.0729, 0.0364, 0.0240, 0.0189],
-     [0.2538, 0.2538, 0.1421, 0.0787, 0.0393, 0.0260, 0.0205]],
-    [[0.1837, 0.1837, 0.0845, 0.0441, 0.0220, 0.0101, 0.0066],
-     [0.1965, 0.1965, 0.0904, 0.0472, 0.0236, 0.0108, 0.0071],
-     [0.2103, 0.2103, 0.0967, 0.0505, 0.0252, 0.0116, 0.0076],
-     [0.2250, 0.2250, 0.1035, 0.0540, 0.0270, 0.0124, 0.0081]],
-    [[0.0461, 0.0461, 0.0318, 0.0258, 0.0151, 0.0103, 0.0084],
-     [0.0502, 0.0502, 0.0346, 0.0281, 0.0164, 0.0113, 0.0091],
-     [0.0547, 0.0547, 0.0378, 0.0306, 0.0179, 0.0123, 0.0100],
-     [0.0596, 0.0596, 0.0412, 0.0334, 0.0195, 0.0134, 0.0109]],
-    [[0.0286, 0.0286, 0.0197, 0.0160, 0.0113, 0.0086, 0.0080],
-     [0.0311, 0.0311, 0.0215, 0.0174, 0.0124, 0.0094, 0.0087],
-     [0.0339, 0.0339, 0.0234, 0.0190, 0.0135, 0.0102, 0.0095],
-     [0.0370, 0.0370, 0.0255, 0.0207, 0.0147, 0.0111, 0.0104]],
-    [[0.0161, 0.0161, 0.0110, 0.0089, 0.0063, 0.0047, 0.0044],
-     [0.0176, 0.0176, 0.0119, 0.0097, 0.0068, 0.0052, 0.0048],
-     [0.0192, 0.0192, 0.0130, 0.0105, 0.0075, 0.0056, 0.0053],
-     [0.0209, 0.0209, 0.0142, 0.0115, 0.0081, 0.0061, 0.0057]],
-])
-
-_DEFAULT_ART_MORTALITY_TABLE = dict(
-    age_bins=_ART_MORTALITY_AGE_BINS,
-    dur_bins=_ART_MORTALITY_DUR_BINS,
-    cd4_bins=_ART_MORTALITY_CD4_BINS,
-    effective=dict(m=_ART_MORTALITY_EFFECTIVE_MALE, f=_ART_MORTALITY_EFFECTIVE_FEMALE),
-    nonsuppressive=dict(m=_ART_MORTALITY_NONSUPP_MALE, f=_ART_MORTALITY_NONSUPP_FEMALE),
-)
-
-
 class HIVPars(BaseSTIPars):
     """
     Parameters for the HIV disease module.
@@ -141,6 +30,9 @@ class HIVPars(BaseSTIPars):
         self.dur_falling = ss.lognorm_ex(ss.years(3), ss.years(1))  # Duration of late-stage HIV when CD4 counts fall
         self.p_hiv_death = ss.bernoulli(p=0)  # Death from HIV-related complications; set by make_p_hiv_death()
         self.include_aids_deaths = True
+        self.cd4_death_bins = np.array([1000, 500, 350, 200, 50, 0])  # Off-ART CD4-stratified mortality (descending)
+        self.cd4_death_rates = np.array([0.003, 0.003, 0.005, 0.01, 0.05, 0.30])  # Annual rate per bin
+        self.rel_death = 1.0  # Scales all HIV death probabilities (off- and on-ART)
 
         # Transmission
         self.beta = 0  # Placeholder, replaced by network-specific betas
@@ -181,17 +73,30 @@ class HIVPars(BaseSTIPars):
         self.dur_post_art = ss.normal()  # Note defined in years!
         self.dur_post_art_scale_factor = 0.1
 
-        # ARTMortalityTable-style differential ART mortality (art.md step 4). Off by
-        # default: with use_art_mortality_table=False, on-ART agents keep the original
-        # zero-HIV-mortality-while-on-ART behavior (make_p_hiv_death only applies to
-        # off-ART agents). Setting it True looks up a nonzero, age/sex/adherence/
-        # duration-since-initiation-stratified hazard for on-ART agents instead (see
-        # HIV.get_art_mortality_hazard). art_mortality_table ships with the example
-        # values from HIVSim_notes/art.md's EMOD campaign excerpt; pass your own dict
-        # of the same shape (age_bins/dur_bins/cd4_bins + effective/nonsuppressive
-        # tables keyed by 'm'/'f') to use different data.
-        self.use_art_mortality_table = False
-        self.art_mortality_table = sc.dcp(_DEFAULT_ART_MORTALITY_TABLE)
+        # On-ART mortality (fit from EMOD's ARTMortalityTable, age/cd4-marginalized over
+        # ART duration; see get_art_mortality_hazard). Set art_death_rate=0 to disable;
+        # set rel_death_unsupp/rel_death_f=1 for no adherence/sex difference.
+        self.art_death_rate = 0.00554  # Annual rate, male, suppressed, age<25, healthiest CD4
+        self.rel_death_unsupp = 2.03  # Multiplier for non-suppressive ART
+        self.rel_death_f = 0.74  # Multiplier for females, on ART
+        self.art_death_age = [  # (age_lo, age_hi, mult), like rel_sus_age
+            (0, 25, 1.0),
+            (25, 35, 1.10),
+            (35, 45, 1.21),
+            (45, 125, 1.32),
+        ]
+        self.art_death_cd4 = [  # (cd4_lo, cd4_hi, mult)
+            (0, 25, 7.12),
+            (25, 74.5, 4.81),
+            (74.5, 149.5, 3.28),
+            (149.5, 274.5, 1.82),
+            (274.5, 424.5, 1.22),
+            (424.5, np.inf, 1.0),
+        ]
+        self.art_death_dur = None  # (dur_lo, dur_hi, mult) list, days since ti_art; None = no-op.
+        # To restore EMOD's original duration-since-ART-initiation effect (understated by
+        # CD4 alone, see docs), set art_death_rate=0.00204 and:
+        # art_death_dur = [(0, 182, 7.82), (182, 365, 5.55), (365, 730, 2.24), (730, 1095, 1.52), (1095, np.inf, 1.0)]
 
         self.update(kwargs)
         return
@@ -434,50 +339,36 @@ class HIV(BaseSTI):
         """
         Calculate per-timestep HIV death probability based on current CD4 count.
 
-        Uses CD4-stratified annual mortality rates, digitized into bins. Rates are
-        converted from per-year to per-timestep probabilities.
+        Reads bins/rates from pars.cd4_death_bins/cd4_death_rates, scales by
+        pars.rel_death, then converts from per-year to per-timestep probabilities.
         """
-        cd4_bins = np.array([1000, 500, 350, 200, 50, 0])
-        p_hiv_death = ss.peryear(np.array([0.003, 0.003, 0.005, 0.01, 0.05, 0.300])).to_prob(self.dt)
-        return p_hiv_death[np.digitize(self.cd4[uids], cd4_bins)]
+        p_hiv_death = ss.peryear(self.pars.cd4_death_rates * self.pars.rel_death).to_prob(self.dt)
+        return p_hiv_death[np.digitize(self.cd4[uids], self.pars.cd4_death_bins)]
 
     def get_art_mortality_hazard(self, uids):
         """
-        ARTMortalityTable-style per-timestep HIV death probability for agents
-        currently on ART (`pars.use_art_mortality_table=True` only).
+        Per-timestep HIV death probability for agents currently on ART.
 
-        Looks up an annual mortality hazard stratified by age, sex, ART
-        adherence category (effective vs. non-suppressive), and duration
-        since ART initiation, from `pars.art_mortality_table`. Unlike EMOD's
-        ARTMortalityTable, which freezes age/CD4 at the moment of initiation
-        (a simplification specific to EMOD's one-time survival-draw design),
-        this looks up the agent's CURRENT CD4 every time it's called, since
-        STIsim already recomputes CD4 continuously for other purposes (see
-        art_implementation_notes.md section 9 for the rationale).
+        rate = rel_death * art_death_rate * rel_death_unsupp? * rel_death_f? * age_mult * cd4_mult
         """
-        table = self.pars.art_mortality_table
-        age_bins = table['age_bins']
-        dur_bins = table['dur_bins']
-        cd4_bins = table['cd4_bins']
-
-        age_idx = np.clip(np.digitize(self.sim.people.age[uids], age_bins), 0, len(age_bins) - 1)
-        dur_days = (self.ti - self.ti_art[uids]) * self.dt.days
-        dur_idx = np.clip(np.digitize(dur_days, dur_bins), 0, len(dur_bins) - 1)
-        cd4_idx = np.clip(np.digitize(self.cd4[uids], cd4_bins), 0, len(cd4_bins) - 1)
-
         male = self.sim.people.male[uids]
         effective = self.on_effective_art[uids]
+        age = self.sim.people.age[uids]
+        cd4 = self.cd4[uids]
 
-        annual_rate = np.empty(len(uids))
-        for adherence_key, adherence_mask in (('effective', effective), ('nonsuppressive', ~effective)):
-            for sex_key, sex_mask in (('m', male), ('f', ~male)):
-                mask = adherence_mask & sex_mask
-                if not mask.any():
-                    continue
-                mtable = table[adherence_key][sex_key]  # shape (n_dur, n_age, n_cd4)
-                annual_rate[mask] = mtable[dur_idx[mask], age_idx[mask], cd4_idx[mask]]
+        rate = np.full(len(uids), self.pars.rel_death * self.pars.art_death_rate)
+        rate[~effective] *= self.pars.rel_death_unsupp
+        rate[~male] *= self.pars.rel_death_f
+        for age_lo, age_hi, mult in self.pars.art_death_age:
+            rate[(age >= age_lo) & (age < age_hi)] *= mult
+        for cd4_lo, cd4_hi, mult in self.pars.art_death_cd4:
+            rate[(cd4 >= cd4_lo) & (cd4 < cd4_hi)] *= mult
+        if self.pars.art_death_dur is not None:
+            dur_days = (self.ti - self.ti_art[uids]) * self.dt.days
+            for dur_lo, dur_hi, mult in self.pars.art_death_dur:
+                rate[(dur_days >= dur_lo) & (dur_days < dur_hi)] *= mult
 
-        return ss.peryear(annual_rate).to_prob(self.dt)
+        return ss.peryear(rate).to_prob(self.dt)
 
     @staticmethod
     def _interpolate(vals: list, t):
@@ -569,18 +460,15 @@ class HIV(BaseSTI):
         self.pars.p_hiv_death.set(p_death)  # Set the death probability function
         hiv_deaths = self.pars.p_hiv_death.filter(off_art)
 
-        # ARTMortalityTable-style hazard: opt-in (pars.use_art_mortality_table), gives
-        # on-ART agents a nonzero, age/sex/adherence/duration-stratified mortality risk
-        # instead of the default (off-ART-only hazard, i.e. zero mortality while on ART)
-        if self.pars.use_art_mortality_table:
-            on_art = (self.infected & self.on_art).uids
-            if len(on_art):
-                p_death_on_art = self.get_art_mortality_hazard(on_art)
-                self.pars.p_hiv_death.set(0)
-                self.pars.p_hiv_death.set(p_death_on_art)
-                on_art_deaths = self.pars.p_hiv_death.filter(on_art)
-                if len(on_art_deaths):
-                    hiv_deaths = ss.uids(np.concatenate([hiv_deaths, on_art_deaths]))
+        # On-ART agents also face a nonzero, age/sex/adherence/CD4-stratified mortality risk
+        on_art = (self.infected & self.on_art).uids
+        if len(on_art):
+            p_death_on_art = self.get_art_mortality_hazard(on_art)
+            self.pars.p_hiv_death.set(0)
+            self.pars.p_hiv_death.set(p_death_on_art)
+            on_art_deaths = self.pars.p_hiv_death.filter(on_art)
+            if len(on_art_deaths):
+                hiv_deaths = ss.uids(np.concatenate([hiv_deaths, on_art_deaths]))
 
         if len(hiv_deaths):
             self.ti_dead[hiv_deaths] = ti
