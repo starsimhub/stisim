@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.38">
+<meta name="generator" content="quarto-1.10.18">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -12,10 +12,13 @@
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
 */
-code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
 div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
 ul.task-list{list-style: none;}
 ul.task-list li input[type="checkbox"] {
@@ -42,14 +45,14 @@ ul.task-list li input[type="checkbox"] {
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-de63f62b328812d8e578a4d74e282472.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark-6b6957c917596b414ec0b78690761e87.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-de63f62b328812d8e578a4d74e282472.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-bb62276ab45c84d9efd712f51ff97b5a.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark-5a1953863e1f72ef3b996ef827f01ca7.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-bb62276ab45c84d9efd712f51ff97b5a.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-d583026f9b0ef0925622aad6f62ce451.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="site_libs/bootstrap/bootstrap-dark-89e3c27e96d96616de92a086d0ca516a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="site_libs/bootstrap/bootstrap-d583026f9b0ef0925622aad6f62ce451.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-7bcd1175e8f736ed7e3439be2e8c2145.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-2b30f22a5a4f864f0b03b2d42f42f868.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="site_libs/bootstrap/bootstrap-7bcd1175e8f736ed7e3439be2e8c2145.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -618,22 +621,31 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
   <ul>
   <li><a href="#whats-new" id="toc-whats-new" class="nav-link active" data-scroll-target="#whats-new">What’s new</a>
   <ul>
-  <li><a href="#version-1.5.9-2026-07-13" id="toc-version-1.5.9-2026-07-13" class="nav-link" data-scroll-target="#version-1.5.9-2026-07-13">Version 1.5.9 (2026-07-13)</a>
+  <li><a href="#version-1.5.10-2026-07-24" id="toc-version-1.5.10-2026-07-24" class="nav-link" data-scroll-target="#version-1.5.10-2026-07-24">Version 1.5.10 (2026-07-24)</a>
   <ul>
   <li><a href="#bug-fixes" id="toc-bug-fixes" class="nav-link" data-scroll-target="#bug-fixes">Bug fixes</a></li>
-  <li><a href="#tests" id="toc-tests" class="nav-link" data-scroll-target="#tests">Tests</a></li>
   <li><a href="#diseases" id="toc-diseases" class="nav-link" data-scroll-target="#diseases">Diseases</a></li>
+  <li><a href="#demographics" id="toc-demographics" class="nav-link" data-scroll-target="#demographics">Demographics</a></li>
+  <li><a href="#documentation" id="toc-documentation" class="nav-link" data-scroll-target="#documentation">Documentation</a></li>
+  <li><a href="#tests" id="toc-tests" class="nav-link" data-scroll-target="#tests">Tests</a></li>
+  </ul></li>
+  <li><a href="#version-1.5.9-2026-07-13" id="toc-version-1.5.9-2026-07-13" class="nav-link" data-scroll-target="#version-1.5.9-2026-07-13">Version 1.5.9 (2026-07-13)</a>
+  <ul>
+  <li><a href="#bug-fixes-1" id="toc-bug-fixes-1" class="nav-link" data-scroll-target="#bug-fixes-1">Bug fixes</a></li>
+  <li><a href="#tests-1" id="toc-tests-1" class="nav-link" data-scroll-target="#tests-1">Tests</a></li>
+  <li><a href="#diseases-1" id="toc-diseases-1" class="nav-link" data-scroll-target="#diseases-1">Diseases</a></li>
+  <li><a href="#diseases-2" id="toc-diseases-2" class="nav-link" data-scroll-target="#diseases-2">Diseases</a></li>
   </ul></li>
   <li><a href="#version-1.5.8-2026-06-25" id="toc-version-1.5.8-2026-06-25" class="nav-link" data-scroll-target="#version-1.5.8-2026-06-25">Version 1.5.8 (2026-06-25)</a>
   <ul>
   <li><a href="#logistics" id="toc-logistics" class="nav-link" data-scroll-target="#logistics">Logistics</a></li>
   <li><a href="#interventions" id="toc-interventions" class="nav-link" data-scroll-target="#interventions">Interventions</a></li>
-  <li><a href="#documentation" id="toc-documentation" class="nav-link" data-scroll-target="#documentation">Documentation</a></li>
-  <li><a href="#tests-1" id="toc-tests-1" class="nav-link" data-scroll-target="#tests-1">Tests</a></li>
+  <li><a href="#documentation-1" id="toc-documentation-1" class="nav-link" data-scroll-target="#documentation-1">Documentation</a></li>
+  <li><a href="#tests-2" id="toc-tests-2" class="nav-link" data-scroll-target="#tests-2">Tests</a></li>
   </ul></li>
   <li><a href="#version-1.5.7-2026-06-15" id="toc-version-1.5.7-2026-06-15" class="nav-link" data-scroll-target="#version-1.5.7-2026-06-15">Version 1.5.7 (2026-06-15)</a>
   <ul>
-  <li><a href="#diseases-1" id="toc-diseases-1" class="nav-link" data-scroll-target="#diseases-1">Diseases</a></li>
+  <li><a href="#diseases-3" id="toc-diseases-3" class="nav-link" data-scroll-target="#diseases-3">Diseases</a></li>
   <li><a href="#networks" id="toc-networks" class="nav-link" data-scroll-target="#networks">Networks</a></li>
   <li><a href="#interventions-1" id="toc-interventions-1" class="nav-link" data-scroll-target="#interventions-1">Interventions</a></li>
   <li><a href="#analyzers" id="toc-analyzers" class="nav-link" data-scroll-target="#analyzers">Analyzers</a></li>
@@ -643,15 +655,15 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
   <ul>
   <li><a href="#networks-1" id="toc-networks-1" class="nav-link" data-scroll-target="#networks-1">Networks</a></li>
   <li><a href="#interventions-2" id="toc-interventions-2" class="nav-link" data-scroll-target="#interventions-2">Interventions</a></li>
-  <li><a href="#documentation-1" id="toc-documentation-1" class="nav-link" data-scroll-target="#documentation-1">Documentation</a></li>
-  <li><a href="#tests-2" id="toc-tests-2" class="nav-link" data-scroll-target="#tests-2">Tests</a></li>
+  <li><a href="#documentation-2" id="toc-documentation-2" class="nav-link" data-scroll-target="#documentation-2">Documentation</a></li>
+  <li><a href="#tests-3" id="toc-tests-3" class="nav-link" data-scroll-target="#tests-3">Tests</a></li>
   </ul></li>
   <li><a href="#version-1.5.5-2026-05-15" id="toc-version-1.5.5-2026-05-15" class="nav-link" data-scroll-target="#version-1.5.5-2026-05-15">Version 1.5.5 (2026-05-15)</a>
   <ul>
   <li><a href="#sim-parameter-routing" id="toc-sim-parameter-routing" class="nav-link" data-scroll-target="#sim-parameter-routing">Sim / parameter routing</a></li>
   <li><a href="#interventions-3" id="toc-interventions-3" class="nav-link" data-scroll-target="#interventions-3">Interventions</a></li>
   <li><a href="#hiv" id="toc-hiv" class="nav-link" data-scroll-target="#hiv">HIV</a></li>
-  <li><a href="#documentation-2" id="toc-documentation-2" class="nav-link" data-scroll-target="#documentation-2">Documentation</a></li>
+  <li><a href="#documentation-3" id="toc-documentation-3" class="nav-link" data-scroll-target="#documentation-3">Documentation</a></li>
   </ul></li>
   <li><a href="#version-1.5.4-2026-05-04" id="toc-version-1.5.4-2026-05-04" class="nav-link" data-scroll-target="#version-1.5.4-2026-05-04">Version 1.5.4 (2026-05-04)</a>
   <ul>
@@ -659,32 +671,32 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
   <li><a href="#interventions-4" id="toc-interventions-4" class="nav-link" data-scroll-target="#interventions-4">Interventions</a></li>
   <li><a href="#hiv-1" id="toc-hiv-1" class="nav-link" data-scroll-target="#hiv-1">HIV</a></li>
   <li><a href="#sim-parameter-routing-1" id="toc-sim-parameter-routing-1" class="nav-link" data-scroll-target="#sim-parameter-routing-1">Sim / parameter routing</a></li>
-  <li><a href="#bug-fixes-1" id="toc-bug-fixes-1" class="nav-link" data-scroll-target="#bug-fixes-1">Bug fixes</a></li>
-  <li><a href="#documentation-3" id="toc-documentation-3" class="nav-link" data-scroll-target="#documentation-3">Documentation</a></li>
-  <li><a href="#tests-3" id="toc-tests-3" class="nav-link" data-scroll-target="#tests-3">Tests</a></li>
+  <li><a href="#bug-fixes-2" id="toc-bug-fixes-2" class="nav-link" data-scroll-target="#bug-fixes-2">Bug fixes</a></li>
+  <li><a href="#documentation-4" id="toc-documentation-4" class="nav-link" data-scroll-target="#documentation-4">Documentation</a></li>
+  <li><a href="#tests-4" id="toc-tests-4" class="nav-link" data-scroll-target="#tests-4">Tests</a></li>
   </ul></li>
   <li><a href="#version-1.5.3-2026-04-17" id="toc-version-1.5.3-2026-04-17" class="nav-link" data-scroll-target="#version-1.5.3-2026-04-17">Version 1.5.3 (2026-04-17)</a>
   <ul>
   <li><a href="#interventions-5" id="toc-interventions-5" class="nav-link" data-scroll-target="#interventions-5">Interventions</a></li>
   <li><a href="#hiv-mtct" id="toc-hiv-mtct" class="nav-link" data-scroll-target="#hiv-mtct">HIV / MTCT</a></li>
-  <li><a href="#bug-fixes-2" id="toc-bug-fixes-2" class="nav-link" data-scroll-target="#bug-fixes-2">Bug fixes</a></li>
-  <li><a href="#documentation-4" id="toc-documentation-4" class="nav-link" data-scroll-target="#documentation-4">Documentation</a></li>
-  <li><a href="#tests-4" id="toc-tests-4" class="nav-link" data-scroll-target="#tests-4">Tests</a></li>
+  <li><a href="#bug-fixes-3" id="toc-bug-fixes-3" class="nav-link" data-scroll-target="#bug-fixes-3">Bug fixes</a></li>
+  <li><a href="#documentation-5" id="toc-documentation-5" class="nav-link" data-scroll-target="#documentation-5">Documentation</a></li>
+  <li><a href="#tests-5" id="toc-tests-5" class="nav-link" data-scroll-target="#tests-5">Tests</a></li>
   </ul></li>
   <li><a href="#version-1.5.2-2026-04-06" id="toc-version-1.5.2-2026-04-06" class="nav-link" data-scroll-target="#version-1.5.2-2026-04-06">Version 1.5.2 (2026-04-06)</a>
   <ul>
-  <li><a href="#bug-fixes-3" id="toc-bug-fixes-3" class="nav-link" data-scroll-target="#bug-fixes-3">Bug fixes</a></li>
+  <li><a href="#bug-fixes-4" id="toc-bug-fixes-4" class="nav-link" data-scroll-target="#bug-fixes-4">Bug fixes</a></li>
   <li><a href="#improvements" id="toc-improvements" class="nav-link" data-scroll-target="#improvements">Improvements</a></li>
-  <li><a href="#tests-5" id="toc-tests-5" class="nav-link" data-scroll-target="#tests-5">Tests</a></li>
-  <li><a href="#documentation-5" id="toc-documentation-5" class="nav-link" data-scroll-target="#documentation-5">Documentation</a></li>
+  <li><a href="#tests-6" id="toc-tests-6" class="nav-link" data-scroll-target="#tests-6">Tests</a></li>
+  <li><a href="#documentation-6" id="toc-documentation-6" class="nav-link" data-scroll-target="#documentation-6">Documentation</a></li>
   </ul></li>
   <li><a href="#version-1.5.1-2026-03-27" id="toc-version-1.5.1-2026-03-27" class="nav-link" data-scroll-target="#version-1.5.1-2026-03-27">Version 1.5.1 (2026-03-27)</a>
   <ul>
-  <li><a href="#bug-fixes-4" id="toc-bug-fixes-4" class="nav-link" data-scroll-target="#bug-fixes-4">Bug fixes</a></li>
+  <li><a href="#bug-fixes-5" id="toc-bug-fixes-5" class="nav-link" data-scroll-target="#bug-fixes-5">Bug fixes</a></li>
   <li><a href="#parameter-handling" id="toc-parameter-handling" class="nav-link" data-scroll-target="#parameter-handling">Parameter handling</a></li>
   <li><a href="#other-changes" id="toc-other-changes" class="nav-link" data-scroll-target="#other-changes">Other changes</a></li>
-  <li><a href="#tests-6" id="toc-tests-6" class="nav-link" data-scroll-target="#tests-6">Tests</a></li>
-  <li><a href="#documentation-6" id="toc-documentation-6" class="nav-link" data-scroll-target="#documentation-6">Documentation</a></li>
+  <li><a href="#tests-7" id="toc-tests-7" class="nav-link" data-scroll-target="#tests-7">Tests</a></li>
+  <li><a href="#documentation-7" id="toc-documentation-7" class="nav-link" data-scroll-target="#documentation-7">Documentation</a></li>
   </ul></li>
   <li><a href="#version-1.5.0-2026-03-13" id="toc-version-1.5.0-2026-03-13" class="nav-link" data-scroll-target="#version-1.5.0-2026-03-13">Version 1.5.0 (2026-03-13)</a>
   <ul>
@@ -692,8 +704,8 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
   <li><a href="#hiv-2" id="toc-hiv-2" class="nav-link" data-scroll-target="#hiv-2">HIV</a></li>
   <li><a href="#syphilis-dynamics" id="toc-syphilis-dynamics" class="nav-link" data-scroll-target="#syphilis-dynamics">Syphilis dynamics</a></li>
   <li><a href="#calibration-api" id="toc-calibration-api" class="nav-link" data-scroll-target="#calibration-api">Calibration API</a></li>
-  <li><a href="#documentation-7" id="toc-documentation-7" class="nav-link" data-scroll-target="#documentation-7">Documentation</a></li>
-  <li><a href="#tests-7" id="toc-tests-7" class="nav-link" data-scroll-target="#tests-7">Tests</a></li>
+  <li><a href="#documentation-8" id="toc-documentation-8" class="nav-link" data-scroll-target="#documentation-8">Documentation</a></li>
+  <li><a href="#tests-8" id="toc-tests-8" class="nav-link" data-scroll-target="#tests-8">Tests</a></li>
   </ul></li>
   <li><a href="#version-1.4.9-2026-02-24" id="toc-version-1.4.9-2026-02-24" class="nav-link" data-scroll-target="#version-1.4.9-2026-02-24">Version 1.4.9 (2026-02-24)</a></li>
   <li><a href="#version-1.4.8-2026-02-23" id="toc-version-1.4.8-2026-02-23" class="nav-link" data-scroll-target="#version-1.4.8-2026-02-23">Version 1.4.8 (2026-02-23)</a></li>
@@ -732,10 +744,49 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="whats-new" class="level1">
 <h1>What’s new</h1>
 <p>All notable changes to the codebase are documented in this file.</p>
-<section id="version-1.5.9-2026-07-13" class="level2">
-<h2 class="anchored" data-anchor-id="version-1.5.9-2026-07-13">Version 1.5.9 (2026-07-13)</h2>
+<section id="version-1.5.10-2026-07-24" class="level2">
+<h2 class="anchored" data-anchor-id="version-1.5.10-2026-07-24">Version 1.5.10 (2026-07-24)</h2>
 <section id="bug-fixes" class="level3">
 <h3 class="anchored" data-anchor-id="bug-fixes">Bug fixes</h3>
+<ul>
+<li><strong><code>HIV.stop_art</code> now actually sets <code>post_art=True</code>.</strong> The <code>post_art</code> <code>BoolState</code> was defined but only ever cleared to <a href="https://docs.python.org/3/library/constants.html#False" title="1"><code>False</code></a> in <code>clear_infection</code>, so downstream cascade-stage attribution (e.g.&nbsp;transmission-source-by-ART-status analyzers) couldn’t distinguish “never on ART” from “on ART, now interrupted”. <code>start_art</code> also clears <code>post_art</code> when re-enrolling a previously-interrupted agent. (#544, #541)</li>
+<li><strong><code>STITest</code>/<code>SyphTest</code> no longer crash with the default <code>eligibility=None</code>.</strong> <code>get_testers</code> treated <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a> as a non-callable UID list instead of falling back to <code>check_eligibility()</code> (which already handles <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a> → everyone), so any test intervention without an explicit <code>eligibility</code> function crashed on its first step. (#537, #562)</li>
+<li>Syphilis: fix <code>new_nnds</code> / <code>new_stillborns</code> (and derived <code>new_congenital_deaths</code> / <code>cum_congenital_deaths</code>) always reading 0 — <code>step_state</code> cleared <code>ti_nnd</code> / <code>ti_stillborn</code> to NaN before <code>update_results</code> could match them against the current timestep. Counts are now stashed before clearing, mirroring the existing <code>_new_congenital_count</code> pattern. (#560)</li>
+<li><code>ANCTest</code>: fixed a crash under current starsim (<code>ss.dur(1, 'month')</code> → <code>'months'</code>) and a bug where <code>active_diseases</code> was resolved after <code>super().init_pre(sim)</code> had already called <code>init_results()</code>, so per-disease results (<code>n_&lt;disease&gt;_positive</code>) were never created. <code>ANCTest</code> had zero test coverage before this. (#324, #546)</li>
+</ul>
+</section>
+<section id="diseases" class="level3">
+<h3 class="anchored" data-anchor-id="diseases">Diseases</h3>
+<ul>
+<li>Syphilis: rebalance the <code>mat_active</code> (primary/secondary maternal infection) birth-outcome distribution — miscarriage probability raised (0.10→0.25 early, 0.20→0.25 late) and neonatal death lowered (0.25→0.05) — to better match Gomez 2013 / Cooper 2016, which put most adverse outcomes earlier in pregnancy rather than post-partum. (#543, #541)</li>
+<li>Syphilis: expose per-fetus <code>mtct_from_{mat_active,early,late}</code> flags recording the mother’s disease stage at the moment of mother-to-child transmission, so downstream analyzers can bucket congenital outcomes by maternal stage without reconstructing mother/fetus linkage. (#548)</li>
+</ul>
+</section>
+<section id="demographics" class="level3">
+<h3 class="anchored" data-anchor-id="demographics">Demographics</h3>
+<ul>
+<li><a href="./api/demographics.html#stisim.demographics.Migration" title="0"><code>sti.Migration</code></a> gains <code>rel_migration</code> (default 1), analogous to <code>ss.Deaths.rel_death</code>: scales both immigration and emigration each timestep. (#542, #545)</li>
+</ul>
+</section>
+<section id="documentation" class="level3">
+<h3 class="anchored" data-anchor-id="documentation">Documentation</h3>
+<ul>
+<li>Fill in the “Antenatal and infant screening (PMTCT)” stub in the interventions user guide (ANC → ART → newborn-test cascade, <code>maternal_care_scale</code> cross-reference) and add a new gallery example, <code>pmtct_scenario.qmd</code>, comparing MTCT infections and pregnant-women diagnosis rates with/without ANC testing. (#324, #546)</li>
+<li>Document the <code>risk_group</code>/<code>sex</code>/<code>sw</code>-stratified DataFrame format accepted by <code>SyphTest.test_prob_data</code>. (#537, #562)</li>
+</ul>
+</section>
+<section id="tests" class="level3">
+<h3 class="anchored" data-anchor-id="tests">Tests</h3>
+<ul>
+<li>Add <code>tests/test_anc_test.py</code> (smoke test, immediate-ART-scheduling invariant, newborn-test scheduling) and <code>tests/test_sti_interventions.py</code> (default-eligibility regression, stratified <code>test_prob_data</code>) — both interventions had zero coverage before this.</li>
+<li>Add <code>tests/test_demographics.py</code> covering <code>rel_migration</code>.</li>
+</ul>
+</section>
+</section>
+<section id="version-1.5.9-2026-07-13" class="level2">
+<h2 class="anchored" data-anchor-id="version-1.5.9-2026-07-13">Version 1.5.9 (2026-07-13)</h2>
+<section id="bug-fixes-1" class="level3">
+<h3 class="anchored" data-anchor-id="bug-fixes-1">Bug fixes</h3>
 <ul>
 <li><strong><code>VMMC</code> now hits its coverage as a prevalence (stock) target, not a per-step hazard.</strong> The 1.5.6 rewrite computed the per-timestep target over the <em>uncircumcised</em> pool and only in aggregate, so <code>coverage</code> behaved as a per-step uptake rate on the remaining-uncircumcised men: realised circumcision coverage ratcheted toward ~100% regardless of the target, and the age/sex stratification in the input data was ignored (all ages converged to the same level). <code>VMMC.step()</code> now tops up to <code>coverage × (all eligible males)</code> per <code>(age, sex)</code> stratum each step — the denominator includes already-circumcised men, matching cross-sectional survey definitions — and never removes (circumcision is irreversible). Realised coverage converges to the target and preserves the input age gradient. Models calibrated against 1.5.6–1.5.8 VMMC behaviour will need recalibration. (#535)</li>
 <li><strong><code>HIV.set_prognoses</code> now calls <a href="https://docs.python.org/3/library/functions.html#super" title="1"><code>super()</code></a>, fixing <a href="https://docs.starsim.org/api/analyzers.html#starsim.analyzers.infection_log" title="0"><code>ss.infection_log()</code></a> for HIV.</strong> HIV overrode <code>Disease.set_prognoses()</code> entirely for its natural-history setup and never called <a href="https://docs.python.org/3/library/functions.html#super" title="1"><code>super()</code></a>, so the infection log’s append hook never fired for HIV specifically (other diseases such as SEIS-based Gonorrhea were unaffected). Infection log entries for a 1000-agent HIV sim went from 0 to 259 after the fix, restoring source/target transmission tracking (e.g.&nbsp;attributing onward transmission to a source subgroup). (#536)</li>
@@ -743,17 +794,23 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <li><code>art_coverage</code> analyzer plotting no longer produces two identical plots. (#530)</li>
 </ul>
 </section>
-<section id="tests" class="level3">
-<h3 class="anchored" data-anchor-id="tests">Tests</h3>
+<section id="tests-1" class="level3">
+<h3 class="anchored" data-anchor-id="tests-1">Tests</h3>
 <ul>
 <li>Add <code>test_vmmc_hits_target</code>, asserting realised male circumcision prevalence converges to the coverage target. The existing <code>test_vmmc_specs</code> only checked that some circumcisions occurred, which is why the overshoot regression went undetected.</li>
 <li>Regenerate <code>baseline.yaml</code> / <code>benchmark.yaml</code> for starsim 3.5.1 (CRN hash-based random number generation changed the exact values of agent-indexed draws; results are statistically equivalent per starsim’s changelog). <code>test_shorter_sw</code> now uses <code>rand_seed=2</code> — <code>rand_seed=1</code> drew zero FSW-sourced HIV transmissions in both arms from the small FSW pool (~9/2000 agents) under the new CRN scheme, making the comparison degenerate.</li>
 </ul>
 </section>
-<section id="diseases" class="level3">
-<h3 class="anchored" data-anchor-id="diseases">Diseases</h3>
+<section id="diseases-1" class="level3">
+<h3 class="anchored" data-anchor-id="diseases-1">Diseases</h3>
 <ul>
 <li>Syphilis: clear <code>early</code> / <code>late</code> sub-flags when a mother exits the latent state (reactivation to secondary, or progression to tertiary). Previously these BoolStates persisted, so <code>set_congenital</code>’s outcome loop <code>for state in ['mat_active', 'early', 'late']</code> would overwrite the correct <code>mat_active</code> draw with the (now-stale) <code>early</code> / <code>late</code> table draw — biasing MTCT outcomes for reactivating mothers toward <code>normal</code> (the late table is 80% normal vs mat_active’s 25%). Empirical impact in a hot-seed ANC screening sim: untreated-secondary MTCTs read 67% normal instead of the expected 25%. (#538)</li>
+</ul>
+</section>
+<section id="diseases-2" class="level3">
+<h3 class="anchored" data-anchor-id="diseases-2">Diseases</h3>
+<ul>
+<li>Syphilis: fix <code>new_nnds</code> and <code>new_stillborns</code> (and the derived <code>new_congenital_deaths</code> / <code>cum_congenital_deaths</code>) always reading 0. <code>step_state</code> cleared <code>ti_nnd</code> / <code>ti_stillborn</code> to <code>nan</code> when scheduling the deaths, so the <code>== ti</code> check in <code>update_results</code> (which runs after) never matched. Mirror the existing <code>_new_congenital_count</code> pattern: stash the counts before clearing and read from the stash in <code>update_results</code>.</li>
 </ul>
 </section>
 </section>
@@ -771,16 +828,16 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <li><code>PartnerNotification</code>: optional edge-type / partner-sex stratification. <code>step()</code> now walks current-channel edges preserving edge-type info and exposes <code>current_partner_edges</code> (<code>{partner_uid: [edge_type_int, ...]}</code>) to callables on <code>p_notify_current.p</code> / <code>p_attends_current.p</code>. New <code>sti.pn_rates(rates)</code> helper builds such a callable from a dict spec — either <code>{'stable': 0.20, 'casual': 0.10}</code> or per-partner-sex <code>{'stable': {'f': 0.80, 'm': 0.50}, ...}</code>. Per-edge probabilities for multiply-reached partners are summed and capped at 1. Scalar <code>p_notify_current</code> / <code>p_attends_current</code> Bernoullis are unchanged (backward compatible). (#505)</li>
 </ul>
 </section>
-<section id="documentation" class="level3">
-<h3 class="anchored" data-anchor-id="documentation">Documentation</h3>
+<section id="documentation-1" class="level3">
+<h3 class="anchored" data-anchor-id="documentation-1">Documentation</h3>
 <ul>
 <li>New user-guide pages for analyzers (<code>docs/user_guide/analyzers.md</code>) and care-seeking (<code>docs/user_guide/care_seeking.md</code>).</li>
 <li>Expand the interventions user guide with syndromic management, antenatal/infant (PMTCT) screening, partner notification, and pregnancy-driven risk reduction.</li>
 <li>List all gallery examples in the sidebar; fix syphilis API drift that broke the docs build.</li>
 </ul>
 </section>
-<section id="tests-1" class="level3">
-<h3 class="anchored" data-anchor-id="tests-1">Tests</h3>
+<section id="tests-2" class="level3">
+<h3 class="anchored" data-anchor-id="tests-2">Tests</h3>
 <ul>
 <li>Add <code>pn_rates</code> stratification tests.</li>
 <li>Regenerate <code>baseline.yaml</code> / <code>benchmark.yaml</code> for starsim 3.4.0 (<code>n_female</code>).</li>
@@ -789,8 +846,8 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </section>
 <section id="version-1.5.7-2026-06-15" class="level2">
 <h2 class="anchored" data-anchor-id="version-1.5.7-2026-06-15">Version 1.5.7 (2026-06-15)</h2>
-<section id="diseases-1" class="level3">
-<h3 class="anchored" data-anchor-id="diseases-1">Diseases</h3>
+<section id="diseases-3" class="level3">
+<h3 class="anchored" data-anchor-id="diseases-3">Diseases</h3>
 <ul>
 <li>Syphilis: add treponemal (<code>trep</code>) and non-treponemal (<code>nontrep</code>) serology states with seroconversion/reversion dynamics (window period, ~80% lifelong trep persistence, non-trep titre decline + post-treatment reversion). New <code>trep_prevalence</code>/<code>nontrep_prevalence</code> results (overall, by sex, by age×sex) plus <code>sexually_transmissible</code>/<code>symptomatic</code>/<code>primary</code> stage prevalences. Consolidated the duplicate <code>active</code> property into <code>symptomatic</code> (removed <code>active_prevalence</code> and the <code>*_prevalence_15_64</code> results). Prevalence denominator age band is now configurable via <code>age_range</code>, exposed as a <code>BaseSTI</code> constructor argument. (#500)</li>
 </ul>
@@ -837,14 +894,14 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <li>Add <code>sti.PregnancyRiskReduction</code>: during pregnancy, optionally clears FSW status (<code>fsw_redux</code>), drops high-risk-group membership to <code>default_risk_group</code> (<code>high_risk_redux</code>), and/or zeros concurrency (<code>concurrency_redux</code>). Ported from <code>syph_dx_zim</code>. (#482, #484)</li>
 </ul>
 </section>
-<section id="documentation-1" class="level3">
-<h3 class="anchored" data-anchor-id="documentation-1">Documentation</h3>
+<section id="documentation-2" class="level3">
+<h3 class="anchored" data-anchor-id="documentation-2">Documentation</h3>
 <ul>
 <li>New ART state diagram in the docs illustrating how ART intersects the HIV mortality cascade. (#471)</li>
 </ul>
 </section>
-<section id="tests-2" class="level3">
-<h3 class="anchored" data-anchor-id="tests-2">Tests</h3>
+<section id="tests-3" class="level3">
+<h3 class="anchored" data-anchor-id="tests-3">Tests</h3>
 <ul>
 <li>Regenerate <code>tests/baseline.yaml</code> for the new default matcher.</li>
 <li>Add <code>tests/update_baseline</code> script (mirroring hpvsim’s pattern) to regenerate both <code>baseline.yaml</code> and <code>benchmark.yaml</code> in one command.</li>
@@ -875,8 +932,8 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <li><code>new_agents_on_art</code> result now gates on <code>on_art</code> (since <code>ti_art</code> may also hold a scheduled future start). (#464)</li>
 </ul>
 </section>
-<section id="documentation-2" class="level3">
-<h3 class="anchored" data-anchor-id="documentation-2">Documentation</h3>
+<section id="documentation-3" class="level3">
+<h3 class="anchored" data-anchor-id="documentation-3">Documentation</h3>
 <ul>
 <li>New gallery example <code>docs/examples/vmmc_costing.qmd</code>: attach unit costs to <code>sim.results</code>, discount, and compute an ICER for VMMC vs no-VMMC, framed as a quick STIsim analog of Bansi-Matharu et al., <a href="https://www.thelancet.com/journals/langlo/article/PIIS2214-109X(22)00515-0/fulltext">Lancet Global Health 2023;11(2):e244–e255</a>. (#455, #465)</li>
 </ul>
@@ -920,22 +977,22 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <li>Remove <code>BreastfeedingNet</code> from <a href="./api/sim.html#stisim.sim.Sim" title="0"><code>sti.Sim</code></a> default networks; only relevant for diseases with postnatal transmission (HIV, syphilis). (#406, #444)</li>
 </ul>
 </section>
-<section id="bug-fixes-1" class="level3">
-<h3 class="anchored" data-anchor-id="bug-fixes-1">Bug fixes</h3>
+<section id="bug-fixes-2" class="level3">
+<h3 class="anchored" data-anchor-id="bug-fixes-2">Bug fixes</h3>
 <ul>
 <li>Fix birth data key mismatches in <code>process_demographics</code> when <code>use_pregnancy=False</code>: <code>'births'</code> → <code>'cbr'</code>/<code>'birth'</code> keys, file path, and metadata columns. (#411, #428)</li>
 </ul>
 </section>
-<section id="documentation-3" class="level3">
-<h3 class="anchored" data-anchor-id="documentation-3">Documentation</h3>
+<section id="documentation-4" class="level3">
+<h3 class="anchored" data-anchor-id="documentation-4">Documentation</h3>
 <ul>
 <li>Switch docs build from MkDocs to Quarto; convert tutorials from <code>.ipynb</code> to <code>.qmd</code>. (#439)</li>
 <li>Documentation audit and uplift via IDM standards plugin (folder READMEs, API reference, navigation polish). (#435)</li>
 <li>Add new publication entry: Stuart et al., “Estimating the value of novel tests for active syphilis in Zimbabwe…” forthcoming in <em>STD</em>. (#447, #448)</li>
 </ul>
 </section>
-<section id="tests-3" class="level3">
-<h3 class="anchored" data-anchor-id="tests-3">Tests</h3>
+<section id="tests-4" class="level3">
+<h3 class="anchored" data-anchor-id="tests-4">Tests</h3>
 <ul>
 <li>Add <code>tests/devtests/devtest_sw_networks.py</code> with 10 integration tests covering MF only, SW only, MF+SW modular, <code>StructuredSexual</code>, implicit-SW thresholds, windowed entry/exit, and all <a href="./api/sim.html#stisim.sim.Sim" title="0"><code>sti.Sim</code></a> / <code>hivsim.Sim</code> / <code>hivsim.demo</code> creation patterns. (#445)</li>
 <li>Add <code>test_shorter_sw</code>: shorter SW participation window → fewer FSW-attributable transmissions. (#445)</li>
@@ -970,16 +1027,16 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <li>Include BreastfeedingNet in <code>hivsim.Sim</code> defaults (conditional on Pregnancy module)</li>
 </ul>
 </section>
-<section id="bug-fixes-2" class="level3">
-<h3 class="anchored" data-anchor-id="bug-fixes-2">Bug fixes</h3>
+<section id="bug-fixes-3" class="level3">
+<h3 class="anchored" data-anchor-id="bug-fixes-3">Bug fixes</h3>
 <ul>
 <li>Fix chlamydia <code>eff_condom</code> default: updated to 0.4 based on linked citation (#391)</li>
 <li>Fix <code>hivsim.Sim</code>: conditionally add BreastfeedingNet only when Pregnancy is present (#413)</li>
 <li>Fix disease count assertion in <code>test_sim_creation</code> (#413)</li>
 </ul>
 </section>
-<section id="documentation-4" class="level3">
-<h3 class="anchored" data-anchor-id="documentation-4">Documentation</h3>
+<section id="documentation-5" class="level3">
+<h3 class="anchored" data-anchor-id="documentation-5">Documentation</h3>
 <ul>
 <li>Add examples gallery with first entry: Modeling ART interruptions (#394)</li>
 <li>Add PMTCT section to HIV user guide (ANC testing, prenatal/postnatal protection)</li>
@@ -987,8 +1044,8 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <li>Add docstrings across interventions, diseases, networks, and analyzers (#409)</li>
 </ul>
 </section>
-<section id="tests-4" class="level3">
-<h3 class="anchored" data-anchor-id="tests-4">Tests</h3>
+<section id="tests-5" class="level3">
+<h3 class="anchored" data-anchor-id="tests-5">Tests</h3>
 <ul>
 <li>Add <code>test_pmtct</code>: 8-sim combinatorial test for ANC testing, PMTCT efficacy, and breastfeeding duration</li>
 <li>Add <code>test_mtct</code>: prenatal + postnatal MTCT consistency checks</li>
@@ -997,8 +1054,8 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </section>
 <section id="version-1.5.2-2026-04-06" class="level2">
 <h2 class="anchored" data-anchor-id="version-1.5.2-2026-04-06">Version 1.5.2 (2026-04-06)</h2>
-<section id="bug-fixes-3" class="level3">
-<h3 class="anchored" data-anchor-id="bug-fixes-3">Bug fixes</h3>
+<section id="bug-fixes-4" class="level3">
+<h3 class="anchored" data-anchor-id="bug-fixes-4">Bug fixes</h3>
 <ul>
 <li>Fix <code>default_build_fn</code> to apply <code>rand_seed</code> when <code>reseed=True</code>, so each calibration trial uses its own seed</li>
 <li>Fix timepar handling in data loaders (remove unnecessary <code>TimePar</code> catch)</li>
@@ -1012,8 +1069,8 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <li>Pin <code>starsim&gt;=3.3.1</code> and <code>sciris&gt;=3.2.9</code></li>
 </ul>
 </section>
-<section id="tests-5" class="level3">
-<h3 class="anchored" data-anchor-id="tests-5">Tests</h3>
+<section id="tests-6" class="level3">
+<h3 class="anchored" data-anchor-id="tests-6">Tests</h3>
 <ul>
 <li>Add baseline regression test and benchmark test using Zimbabwe HIV example</li>
 <li>Refactor test suite with clear file responsibilities: <code>test_sim.py</code> (constructor/routing), <code>test_hiv.py</code> (HIV scientific validation), <code>test_stis.py</code> (non-HIV STI validation), <code>test_networks.py</code> (network dynamics)</li>
@@ -1025,8 +1082,8 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <li>Merge <code>test_examples.py</code> into <code>test_sim.py</code></li>
 </ul>
 </section>
-<section id="documentation-5" class="level3">
-<h3 class="anchored" data-anchor-id="documentation-5">Documentation</h3>
+<section id="documentation-6" class="level3">
+<h3 class="anchored" data-anchor-id="documentation-6">Documentation</h3>
 <ul>
 <li>Fix calibration tutorial to use disease instances instead of strings</li>
 <li>Add note about <code>scikit-learn</code> requirement for <code>plot_param_importances</code></li>
@@ -1035,8 +1092,8 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </section>
 <section id="version-1.5.1-2026-03-27" class="level2">
 <h2 class="anchored" data-anchor-id="version-1.5.1-2026-03-27">Version 1.5.1 (2026-03-27)</h2>
-<section id="bug-fixes-4" class="level3">
-<h3 class="anchored" data-anchor-id="bug-fixes-4">Bug fixes</h3>
+<section id="bug-fixes-5" class="level3">
+<h3 class="anchored" data-anchor-id="bug-fixes-5">Bug fixes</h3>
 <ul>
 <li>Fix VMMC eligibility: pass <code>eligibility</code> to parent class and use <code>check_eligibility()</code> in <code>step()</code>, so user-supplied eligibility functions are no longer silently ignored (#353)</li>
 <li>Fix starsim compatibility: convert <code>ss.years</code>/<a href="https://docs.starsim.org/api/time.html#starsim.time.date" title="0"><code>ss.date</code></a> to <a href="https://docs.python.org/3/library/functions.html#int" title="1"><code>int</code></a> in <code>get_age_distribution()</code> for newer starsim <code>__len__</code> behavior</li>
@@ -1061,8 +1118,8 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <li>Comment out unused <code>dt</code> parameter in Migration</li>
 </ul>
 </section>
-<section id="tests-6" class="level3">
-<h3 class="anchored" data-anchor-id="tests-6">Tests</h3>
+<section id="tests-7" class="level3">
+<h3 class="anchored" data-anchor-id="tests-7">Tests</h3>
 <ul>
 <li>Add VMMC tests: reduces male infections, male-only targeting, eligibility targeting (#251, #355)</li>
 <li>Add ART dropout tests: CD4 decline and rel_trans increase after stopping ART (#244)</li>
@@ -1071,8 +1128,8 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <li>Add no-HIV-without-seeding test (#271)</li>
 </ul>
 </section>
-<section id="documentation-6" class="level3">
-<h3 class="anchored" data-anchor-id="documentation-6">Documentation</h3>
+<section id="documentation-7" class="level3">
+<h3 class="anchored" data-anchor-id="documentation-7">Documentation</h3>
 <ul>
 <li>Fix <code>sti.Pregnancy</code> → <a href="https://docs.starsim.org/api/demographics.html#starsim.demographics.Pregnancy" title="0"><code>ss.Pregnancy</code></a> in Getting Started tutorial (#343)</li>
 <li>Fix tutorials and user guide nav nesting</li>
@@ -1125,8 +1182,8 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <li>No custom <code>build_fn</code> needed – <code>default_build_fn</code> handles all module types automatically</li>
 </ul>
 </section>
-<section id="documentation-7" class="level3">
-<h3 class="anchored" data-anchor-id="documentation-7">Documentation</h3>
+<section id="documentation-8" class="level3">
+<h3 class="anchored" data-anchor-id="documentation-8">Documentation</h3>
 <ul>
 <li>Add calibration tutorial with ABC philosophy, custom analyzer fitting, production workflow</li>
 <li>Update co-transmission tutorial: HIV-syphilis example with epidemiological explanation of connector effects</li>
@@ -1134,8 +1191,8 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <li>Cross-link calibration and results tutorials</li>
 </ul>
 </section>
-<section id="tests-7" class="level3">
-<h3 class="anchored" data-anchor-id="tests-7">Tests</h3>
+<section id="tests-8" class="level3">
+<h3 class="anchored" data-anchor-id="tests-8">Tests</h3>
 <ul>
 <li>Add HIV natural history verification test suite: CD4 decline, transmission doubling, MTCT, AIDS property (#178, #226, #227, #228, #237, #238, #295)</li>
 <li>Add HIV intervention tests: ART coverage formats, duration, effects, parameter sensitivity</li>
@@ -1768,7 +1825,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.5.9 (2026-07-13).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.5.10 (2026-07-24).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">

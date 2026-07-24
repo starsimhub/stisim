@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>demographics – STIsim</title>
+<title>PMTCT via ANC testing – STIsim</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -71,8 +71,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../">
-<link href="../api/analyzers.html" rel="next">
-<link href="../api/networks.html" rel="prev">
 <link href="..//assets/favicon.ico" rel="icon">
 <script src="../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
@@ -128,7 +126,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <link rel="stylesheet" href="../assets/styles.css">
 </head>
 
-<body class="nav-sidebar floating nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+<body class="nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
     const toggleBodyColorMode = (bsSheetEl) => {
       const mode = bsSheetEl.getAttribute("data-mode");
       const bodyEl = window.document.querySelector("body");
@@ -309,7 +307,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link active" href="../index.html" aria-current="page"> 
+    <a class="nav-link" href="../index.html"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
@@ -351,407 +349,236 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </div>
       </div> <!-- /container-fluid -->
     </nav>
-  <nav class="quarto-secondary-nav">
-    <div class="container-fluid d-flex">
-      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
-        <i class="bi bi-layout-text-sidebar-reverse"></i>
-      </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../api/sim.html"><strong>Core</strong></a></li><li class="breadcrumb-item"><a href="../api/demographics.html">demographics</a></li></ol></nav>
-        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
-        </a>
-    </div>
-  </nav>
 </header>
 <!-- content -->
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
-  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
-    <div class="sidebar-menu-container"> 
-    <ul class="list-unstyled mt-1">
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><strong>Home</strong></span></a>
-  </div>
-</li>
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api/index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><strong>API reference</strong></span></a>
-  </div>
-</li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
- <span class="menu-text"><strong>Core</strong></span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api/sim.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">sim</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api/parameters.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">parameters</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api/networks.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">networks</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api/demographics.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text">demographics</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api/analyzers.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">analyzers</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api/calibration.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">calibration</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api/care_seeking.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">care_seeking</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api/utils.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">utils</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
- <span class="menu-text"><strong>Diseases</strong></span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api/diseases.sti.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">sti</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api/diseases.hiv.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">hiv</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api/diseases.syphilis.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">syphilis</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api/diseases.chlamydia.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">chlamydia</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api/diseases.gonorrhea.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">gonorrhea</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api/diseases.trichomoniasis.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">trichomoniasis</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api/diseases.bv.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">bv</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api/diseases.gud.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">gud</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
- <span class="menu-text"><strong>Interventions</strong></span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api/interventions.base_interventions.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">base_interventions</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api/interventions.bv_interventions.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">bv_interventions</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api/interventions.gonorrhea_interventions.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">gonorrhea_interventions</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api/interventions.hiv_interventions.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">hiv_interventions</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api/interventions.syphilis_interventions.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">syphilis_interventions</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
- <span class="menu-text"><strong>Connectors</strong></span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api/connectors.hiv_sti.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">connectors.hiv_sti</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api/connectors.gud_syph.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">connectors.gud_syph</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
- <span class="menu-text"><strong>HIVsim</strong></span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../api/hivsim/sim.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">sim</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
-    </ul>
-    </div>
-</nav>
-<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
         <nav id="TOC" role="doc-toc" class="toc-active" data-toc-expanded="99">
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#stisim.demographics" id="toc-stisim.demographics" class="nav-link active" data-scroll-target="#stisim.demographics">demographics</a>
-  <ul>
-  <li><a href="#classes" id="toc-classes" class="nav-link" data-scroll-target="#classes">Classes</a>
-  <ul>
-  <li><a href="#stisim.demographics.Migration" id="toc-stisim.demographics.Migration" class="nav-link" data-scroll-target="#stisim.demographics.Migration">Migration</a>
-  <ul class="collapse">
-  <li><a href="#parameters" id="toc-parameters" class="nav-link" data-scroll-target="#parameters">Parameters</a></li>
-  <li><a href="#pars" id="toc-pars" class="nav-link" data-scroll-target="#pars">Pars</a></li>
-  <li><a href="#methods" id="toc-methods" class="nav-link" data-scroll-target="#methods">Methods</a>
-  <ul class="collapse">
-  <li><a href="#stisim.demographics.Migration.get_migrants" id="toc-stisim.demographics.Migration.get_migrants" class="nav-link" data-scroll-target="#stisim.demographics.Migration.get_migrants">get_migrants</a></li>
-  <li><a href="#stisim.demographics.Migration.init_migration_propensity" id="toc-stisim.demographics.Migration.init_migration_propensity" class="nav-link" data-scroll-target="#stisim.demographics.Migration.init_migration_propensity">init_migration_propensity</a></li>
-  <li><a href="#stisim.demographics.Migration.make_immigrants" id="toc-stisim.demographics.Migration.make_immigrants" class="nav-link" data-scroll-target="#stisim.demographics.Migration.make_immigrants">make_immigrants</a></li>
-  <li><a href="#stisim.demographics.Migration.remove_emigrants" id="toc-stisim.demographics.Migration.remove_emigrants" class="nav-link" data-scroll-target="#stisim.demographics.Migration.remove_emigrants">remove_emigrants</a></li>
-  <li><a href="#stisim.demographics.Migration.step" id="toc-stisim.demographics.Migration.step" class="nav-link" data-scroll-target="#stisim.demographics.Migration.step">step</a></li>
-  <li><a href="#stisim.demographics.Migration.step_migration" id="toc-stisim.demographics.Migration.step_migration" class="nav-link" data-scroll-target="#stisim.demographics.Migration.step_migration">step_migration</a></li>
-  </ul></li>
-  </ul></li>
-  </ul></li>
-  </ul></li>
+  <li><a href="#setup" id="toc-setup" class="nav-link active" data-scroll-target="#setup">Setup</a></li>
+  <li><a href="#building-the-sims" id="toc-building-the-sims" class="nav-link" data-scroll-target="#building-the-sims">Building the sims</a></li>
+  <li><a href="#comparing-outcomes" id="toc-comparing-outcomes" class="nav-link" data-scroll-target="#comparing-outcomes">Comparing outcomes</a></li>
+  <li><a href="#why-immediate-art-matters-here" id="toc-why-immediate-art-matters-here" class="nav-link" data-scroll-target="#why-immediate-art-matters-here">Why immediate ART matters here</a></li>
+  <li><a href="#retention-through-delivery" id="toc-retention-through-delivery" class="nav-link" data-scroll-target="#retention-through-delivery">Retention through delivery</a></li>
+  <li><a href="#key-takeaways" id="toc-key-takeaways" class="nav-link" data-scroll-target="#key-takeaways">Key takeaways</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></nav>
     </div>
 <!-- main -->
-<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../api/sim.html"><strong>Core</strong></a></li><li class="breadcrumb-item"><a href="../api/demographics.html">demographics</a></li></ol></nav></header>
+<main class="content" id="quarto-document-content">
+
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">PMTCT via ANC testing</h1>
+</div>
 
 
 
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
 
 
-<section id="stisim.demographics" class="level1">
-<h1>demographics</h1>
-<p><code>demographics</code></p>
-<p>Define demographic modules used within STIsim</p>
-<section id="classes" class="level2">
-<h2 class="anchored" data-anchor-id="classes">Classes</h2>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>Name</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><a href="#stisim.demographics.Migration">Migration</a></td>
-<td>Demographic module that adds and removes migrants each timestep.</td>
-</tr>
-</tbody>
-</table>
-<section id="stisim.demographics.Migration" class="level3">
-<h3 class="anchored" data-anchor-id="stisim.demographics.Migration">Migration</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>demographics.Migration(pars<span class="op">=</span><span class="va">None</span>, migration_data<span class="op">=</span><span class="va">None</span>, <span class="op">**</span>kwargs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Demographic module that adds and removes migrants each timestep.</p>
-<p>Reads a migration data source specifying the net number of migrants per year. Positive values add immigrants (cloned from existing agents with matching age/sex); negative values remove emigrants chosen by a per-agent migration propensity score.</p>
-<section id="parameters" class="level4 doc-section doc-section-parameters">
-<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters">Parameters</h4>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>Name</th>
-<th>Type</th>
-<th>Description</th>
-<th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>pars</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></td>
-<td>Parameter overrides (e.g.&nbsp;<code>migration_propensity</code>, <code>slot_scale</code>, <code>min_slots</code>, <code>rel_migration</code>).</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
-</tr>
-<tr class="even">
-<td>migration_data</td>
-<td><code>DataFrame</code></td>
-<td>Must contain <code>'Time'</code> and <code>'Value'</code> columns giving the net number of migrants per year.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
-</tr>
-<tr class="odd">
-<td>**kwargs</td>
-<td></td>
-<td>Additional parameter overrides.</td>
-<td><code>{}</code></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="pars" class="level4 doc-section doc-section-pars">
-<h4 class="doc-section doc-section-pars anchored" data-anchor-id="pars">Pars</h4>
-<p>rel_migration: constant used to scale the net number of migrants (both immigration and emigration), analogous to <code>rel_death</code>.</p>
-</section>
-<section id="methods" class="level4">
-<h4 class="anchored" data-anchor-id="methods">Methods</h4>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>Name</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><a href="#stisim.demographics.Migration.get_migrants">get_migrants</a></td>
-<td>Get the number of migrants for this timestep</td>
-</tr>
-<tr class="even">
-<td><a href="#stisim.demographics.Migration.init_migration_propensity">init_migration_propensity</a></td>
-<td>Set individual’s propensity to migrate</td>
-</tr>
-<tr class="odd">
-<td><a href="#stisim.demographics.Migration.make_immigrants">make_immigrants</a></td>
-<td>Make immigrants by making copies of existing agents</td>
-</tr>
-<tr class="even">
-<td><a href="#stisim.demographics.Migration.remove_emigrants">remove_emigrants</a></td>
-<td>Remove people who’ve decided to emigrate this timestep</td>
-</tr>
-<tr class="odd">
-<td><a href="#stisim.demographics.Migration.step">step</a></td>
-<td>Perform all updates</td>
-</tr>
-<tr class="even">
-<td><a href="#stisim.demographics.Migration.step_migration">step_migration</a></td>
-<td>Select people to migrate</td>
-</tr>
-</tbody>
-</table>
-<section id="stisim.demographics.Migration.get_migrants" class="level5">
-<h5 class="anchored" data-anchor-id="stisim.demographics.Migration.get_migrants">get_migrants</h5>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>demographics.Migration.get_migrants()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Get the number of migrants for this timestep</p>
-</section>
-<section id="stisim.demographics.Migration.init_migration_propensity" class="level5">
-<h5 class="anchored" data-anchor-id="stisim.demographics.Migration.init_migration_propensity">init_migration_propensity</h5>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>demographics.Migration.init_migration_propensity()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Set individual’s propensity to migrate This is currently a random variable but could be defined as a function of age/sex/other properties</p>
-</section>
-<section id="stisim.demographics.Migration.make_immigrants" class="level5">
-<h5 class="anchored" data-anchor-id="stisim.demographics.Migration.make_immigrants">make_immigrants</h5>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>demographics.Migration.make_immigrants(twin_uids)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Make immigrants by making copies of existing agents</p>
-</section>
-<section id="stisim.demographics.Migration.remove_emigrants" class="level5">
-<h5 class="anchored" data-anchor-id="stisim.demographics.Migration.remove_emigrants">remove_emigrants</h5>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>demographics.Migration.remove_emigrants()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Remove people who’ve decided to emigrate this timestep</p>
-</section>
-<section id="stisim.demographics.Migration.step" class="level5">
-<h5 class="anchored" data-anchor-id="stisim.demographics.Migration.step">step</h5>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>demographics.Migration.step()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Perform all updates</p>
-</section>
-<section id="stisim.demographics.Migration.step_migration" class="level5">
-<h5 class="anchored" data-anchor-id="stisim.demographics.Migration.step_migration">step_migration</h5>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>demographics.Migration.step_migration()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Select people to migrate</p>
+</header>
 
 
+<p>Prevention of mother-to-child transmission (PMTCT) programs identify HIV-positive pregnant women during antenatal care (ANC) and start them on ART immediately, so both the mother and her unborn/breastfeeding child are protected. STIsim models this with three cooperating pieces:</p>
+<ul>
+<li><strong><code>sti.ANCTest</code></strong> — schedules a single ANC visit per pregnancy (gestational months 1–7) and tests attendees for HIV (and syphilis, if present). Positives are diagnosed and have ART scheduled for the <em>same</em> timestep — no diagnosis-to-treatment delay.</li>
+<li><strong><code>sti.ART</code></strong> — passive; picks up anyone scheduled (<code>ti_art == ti</code>) and, once on treatment, reduces both maternal infectivity and (via <code>pmtct_efficacy</code>) the child’s susceptibility over <code>MaternalNet</code> and <code>BreastfeedingNet</code>.</li>
+<li><strong><code>sti.InfantHIVTest</code></strong> — scheduled by <code>ANCTest</code> for the newborn of any mother who tested positive, firing at the modeled delivery timestep.</li>
+</ul>
+<p>This example compares two scenarios that differ only in whether ANC testing is added on top of routine population-level HIV testing.</p>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<div id="47e3af47" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sciris <span class="im">as</span> sc</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> starsim <span class="im">as</span> ss</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> stisim <span class="im">as</span> sti</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>sc.options(dpi<span class="op">=</span><span class="dv">110</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
 </section>
+<section id="building-the-sims" class="level2">
+<h2 class="anchored" data-anchor-id="building-the-sims">Building the sims</h2>
+<p>Both scenarios share the same routine <code>HIVTest</code> (a modest 8%/year testing rate, deliberately low so the ANC-specific effect is visible) and <code>ART</code> (60% coverage target). The ANC scenario layers <code>ANCTest</code> + <code>InfantHIVTest</code> on top — <code>ART</code> is unchanged and simply treats whoever gets scheduled, regardless of which testing pathway diagnosed them.</p>
+<div id="58eb4f8c" class="cell" data-execution_count="2">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_sim(use_anc, rand_seed<span class="op">=</span><span class="dv">1</span>):</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    hiv_test <span class="op">=</span> sti.HIVTest(name<span class="op">=</span><span class="st">'hiv_test'</span>, test_prob_data<span class="op">=</span><span class="fl">0.08</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    art <span class="op">=</span> sti.ART(coverage<span class="op">=</span><span class="fl">0.6</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    interventions <span class="op">=</span> [hiv_test, art]</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> use_anc:</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        infant_hiv <span class="op">=</span> sti.InfantHIVTest(name<span class="op">=</span><span class="st">'infant_hiv'</span>)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        anc <span class="op">=</span> sti.ANCTest(visit_prob<span class="op">=</span><span class="fl">0.9</span>, newborn_tests<span class="op">=</span>{<span class="st">'hiv'</span>: infant_hiv})</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        <span class="co"># anc/infant_hiv must precede art so same-step diagnoses can start ART</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        interventions <span class="op">=</span> [hiv_test, anc, infant_hiv, art]</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    hiv <span class="op">=</span> sti.HIV(init_prev<span class="op">=</span><span class="fl">0.1</span>, beta_m2f<span class="op">=</span><span class="fl">0.05</span>, beta_m2c<span class="op">=</span><span class="fl">0.1</span>)</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    sim <span class="op">=</span> sti.Sim(</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>        diseases<span class="op">=</span>[hiv],</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        demographics<span class="op">=</span>[ss.Pregnancy(), ss.Deaths()],</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        networks<span class="op">=</span>[sti.StructuredSexual(), ss.MaternalNet(), ss.BreastfeedingNet()],</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        interventions<span class="op">=</span>interventions,</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>        n_agents<span class="op">=</span><span class="dv">5_000</span>, dur<span class="op">=</span><span class="dv">15</span>, start<span class="op">=</span><span class="dv">2005</span>, verbose<span class="op">=-</span><span class="dv">1</span>, rand_seed<span class="op">=</span>rand_seed,</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    sim.label <span class="op">=</span> <span class="st">'With ANC testing'</span> <span class="cf">if</span> use_anc <span class="cf">else</span> <span class="st">'No ANC testing'</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> sim</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>sims <span class="op">=</span> ss.parallel([make_sim(<span class="va">False</span>), make_sim(<span class="va">True</span>)]).sims</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> {sim.label: sim <span class="cf">for</span> sim <span class="kw">in</span> sims}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Initializing sim "No ANC testing" with 5000 agents
+Initializing sim "With ANC testing" with 5000 agents
+
+  Running "No ANC testing": 2005 ( 0/181) (0.00 s)  ———————————————————— 1%
+
+  Running "With ANC testing": 2005 ( 0/181) (0.00 s)  ———————————————————— 1%
+
+  Running "No ANC testing": 2006 (12/181) (0.38 s)  •——————————————————— 7%
+
+  Running "With ANC testing": 2006 (12/181) (0.39 s)  •——————————————————— 7%
+
+  Running "No ANC testing": 2007 (24/181) (0.75 s)  ••—————————————————— 14%
+
+  Running "With ANC testing": 2007 (24/181) (0.79 s)  ••—————————————————— 14%
+
+  Running "No ANC testing": 2008 (36/181) (1.12 s)  ••••———————————————— 20%
+
+  Running "With ANC testing": 2008 (36/181) (1.19 s)  ••••———————————————— 20%
+
+  Running "No ANC testing": 2009 (48/181) (1.50 s)  •••••——————————————— 27%
+
+  Running "With ANC testing": 2009 (48/181) (1.58 s)  •••••——————————————— 27%
+
+  Running "No ANC testing": 2010 (60/181) (1.86 s)  ••••••—————————————— 34%
+
+  Running "With ANC testing": 2010 (60/181) (1.97 s)  ••••••—————————————— 34%
+
+  Running "No ANC testing": 2011 (72/181) (2.23 s)  ••••••••———————————— 40%
+
+  Running "With ANC testing": 2011 (72/181) (2.36 s)  ••••••••———————————— 40%
+
+  Running "No ANC testing": 2012 (84/181) (2.60 s)  •••••••••——————————— 47%
+
+  Running "With ANC testing": 2012 (84/181) (2.77 s)  •••••••••——————————— 47%
+
+  Running "No ANC testing": 2013 (96/181) (2.99 s)  ••••••••••—————————— 54%
+
+  Running "With ANC testing": 2013 (96/181) (3.16 s)  ••••••••••—————————— 54%
+
+  Running "No ANC testing": 2014 (108/181) (3.35 s)  ••••••••••••———————— 60%
+
+  Running "With ANC testing": 2014 (108/181) (3.55 s)  ••••••••••••———————— 60%
+
+  Running "No ANC testing": 2015 (120/181) (3.74 s)  •••••••••••••——————— 67%
+
+  Running "With ANC testing": 2015 (120/181) (3.95 s)  •••••••••••••——————— 67%
+
+  Running "No ANC testing": 2016 (132/181) (4.11 s)  ••••••••••••••—————— 73%
+
+  Running "With ANC testing": 2016 (132/181) (4.34 s)  ••••••••••••••—————— 73%
+
+  Running "No ANC testing": 2017 (144/181) (4.47 s)  ••••••••••••••••———— 80%
+
+  Running "No ANC testing": 2018 (156/181) (4.83 s)  •••••••••••••••••——— 87%
+
+  Running "With ANC testing": 2017 (144/181) (4.74 s)  ••••••••••••••••———— 80%
+
+  Running "No ANC testing": 2019 (168/181) (5.19 s)  ••••••••••••••••••—— 93%
+
+  Running "With ANC testing": 2018 (156/181) (5.12 s)  •••••••••••••••••——— 87%
+
+  Running "No ANC testing": 2020 (180/181) (5.57 s)  •••••••••••••••••••• 100%
+
+
+  Running "With ANC testing": 2019 (168/181) (5.53 s)  ••••••••••••••••••—— 93%
+
+  Running "With ANC testing": 2020 (180/181) (5.92 s)  •••••••••••••••••••• 100%
+</code></pre>
+</div>
+</div>
 </section>
+<section id="comparing-outcomes" class="level2">
+<h2 class="anchored" data-anchor-id="comparing-outcomes">Comparing outcomes</h2>
+<div id="ff0571da" class="cell" data-execution_count="3">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> label, sim <span class="kw">in</span> results.items():</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    mtct <span class="op">=</span> <span class="bu">int</span>(sim.results.hiv.new_infections_mtct.<span class="bu">sum</span>())</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    p_dx <span class="op">=</span> sim.results.hiv.p_diagnosed_pregnant[<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'</span><span class="sc">{</span>label<span class="sc">:&gt;17s}</span><span class="ss">: </span><span class="sc">{</span>mtct<span class="sc">:4d}</span><span class="ss"> MTCT infections, '</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>          <span class="ss">f'</span><span class="sc">{</span>p_dx<span class="sc">:.0%}</span><span class="ss"> of pregnant HIV+ women diagnosed by end of sim'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   No ANC testing:  195 MTCT infections, 38% of pregnant HIV+ women diagnosed by end of sim
+ With ANC testing:   97 MTCT infections, 77% of pregnant HIV+ women diagnosed by end of sim</code></pre>
+</div>
+</div>
+<div id="d1b5cb7d" class="cell" data-execution_count="4">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>yearvec <span class="op">=</span> sims[<span class="dv">0</span>].t.yearvec</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">11</span>, <span class="fl">4.5</span>))</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Left: proportion of HIV+ pregnant women diagnosed</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> label, sim <span class="kw">in</span> results.items():</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    axes[<span class="dv">0</span>].plot(yearvec, sim.results.hiv.p_diagnosed_pregnant, label<span class="op">=</span>label, lw<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_xlabel(<span class="st">'Year'</span>)</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_ylabel(<span class="st">'Proportion of HIV+ pregnant women diagnosed'</span>)</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">'ANC testing closes the diagnosis gap early'</span>)</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].legend()</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Right: cumulative mother-to-child transmission</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> label, sim <span class="kw">in</span> results.items():</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    axes[<span class="dv">1</span>].plot(yearvec, np.cumsum(sim.results.hiv.new_infections_mtct), label<span class="op">=</span>label, lw<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_xlabel(<span class="st">'Year'</span>)</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_ylabel(<span class="st">'Cumulative MTCT infections'</span>)</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">'Cumulative mother-to-child transmission'</span>)</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].legend()</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>sc.figlayout()</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="pmtct_scenario_files/figure-html/cell-5-output-1.png" width="1198" height="484" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><code>p_diagnosed_pregnant</code> separates early — ANC testing catches most HIV+ pregnant women within their own pregnancy, whereas routine testing only catches up gradually as background testing accumulates. That earlier diagnosis translates directly into fewer MTCT infections over the run.</p>
 </section>
+<section id="why-immediate-art-matters-here" class="level2">
+<h2 class="anchored" data-anchor-id="why-immediate-art-matters-here">Why immediate ART matters here</h2>
+<p><code>ANCTest</code> sets <code>hiv.ti_art = ti</code> (the current timestep) for anyone it diagnoses who isn’t already on ART — the same no-delay behavior <code>HIVTest</code> gets from its <code>dur_dx2tx=ss.constant(0)</code> default. This matters because a mother is only protected (and only protects her fetus/infant) once she’s actually on treatment: the diagnosis event itself does nothing without an <code>ART</code> intervention in <code>sim.interventions</code> to act on the schedule.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># HIV positives are diagnosed and scheduled the same way regardless of route:</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>hiv.diagnosed[pos_uids]    <span class="op">=</span> <span class="va">True</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>hiv.ti_diagnosed[pos_uids] <span class="op">=</span> ti</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>hiv.ti_art[to_schedule]    <span class="op">=</span> ti   <span class="co"># to_schedule = pos_uids not already on ART</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Non-HIV diseases (e.g.&nbsp;syphilis) route through <code>disease_treatment_map</code> instead — HIV bypasses that map entirely.</p>
 </section>
+<section id="retention-through-delivery" class="level2">
+<h2 class="anchored" data-anchor-id="retention-through-delivery">Retention through delivery</h2>
+<p>Once a mother starts ART, <code>maternal_care_scale</code> (default 2) doubles her care-seeking behaviour for the duration of pregnancy, making her much less likely to default off treatment before delivery — see the <a href="../user_guide/diseases/hiv.html#care-seeking">HIV disease page</a> for details. <code>pmtct_efficacy</code> (default 0.96, on <code>ART</code>) then determines how much her being on treatment reduces her child’s susceptibility, applied via both <code>MaternalNet</code> (prenatal) and <code>BreastfeedingNet</code> (postnatal).</p>
+</section>
+<section id="key-takeaways" class="level2">
+<h2 class="anchored" data-anchor-id="key-takeaways">Key takeaways</h2>
+<ul>
+<li><code>ANCTest</code> auto-detects which diseases to test for from <code>sim.diseases</code> (HIV and syphilis) unless you pass <code>disease_names</code> explicitly.</li>
+<li><code>newborn_tests</code> is a <strong>dict</strong> keyed by disease name (<code>{'hiv': infant_hiv}</code>), not a list — one newborn test per disease you want to follow up on.</li>
+<li>Intervention order matters: <code>ANCTest</code> (and <code>InfantHIVTest</code>, if scheduled standalone via <code>HIVTest.newborn_test=</code>) must appear before <code>ART</code> in the <code>interventions</code> list so same-step diagnoses can start treatment immediately.</li>
+<li><code>ANCTest</code> requires <a href="https://docs.starsim.org/api/demographics.html#starsim.demographics.Pregnancy" title="0"><code>ss.Pregnancy</code></a> and <a href="https://docs.starsim.org/api/networks.html#starsim.networks.MaternalNet" title="0"><code>ss.MaternalNet</code></a> in the sim (add <a href="https://docs.starsim.org/api/networks.html#starsim.networks.BreastfeedingNet" title="0"><code>ss.BreastfeedingNet</code></a> too if you want postnatal protection modeled).</li>
+</ul>
+
+
 </section>
 
 </main> <!-- /main -->
@@ -1168,18 +995,6 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
     }
   });
   </script>
-<nav class="page-navigation">
-  <div class="nav-page nav-page-previous">
-      <a href="../api/networks.html" class="pagination-link" aria-label="networks">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">networks</span>
-      </a>          
-  </div>
-  <div class="nav-page nav-page-next">
-      <a href="../api/analyzers.html" class="pagination-link" aria-label="analyzers">
-        <span class="nav-page-text">analyzers</span> <i class="bi bi-arrow-right-short"></i>
-      </a>
-  </div>
-</nav>
 </div> <!-- /content -->
 <footer class="footer">
   <div class="nav-footer">

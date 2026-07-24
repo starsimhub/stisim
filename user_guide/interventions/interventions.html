@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.38">
+<meta name="generator" content="quarto-1.10.18">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -12,10 +12,13 @@
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
 */
-code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
 div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
 ul.task-list{list-style: none;}
 ul.task-list li input[type="checkbox"] {
@@ -77,14 +80,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-de63f62b328812d8e578a4d74e282472.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-6b6957c917596b414ec0b78690761e87.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-de63f62b328812d8e578a4d74e282472.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-bb62276ab45c84d9efd712f51ff97b5a.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-5a1953863e1f72ef3b996ef827f01ca7.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-bb62276ab45c84d9efd712f51ff97b5a.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-d583026f9b0ef0925622aad6f62ce451.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../../site_libs/bootstrap/bootstrap-dark-89e3c27e96d96616de92a086d0ca516a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../../site_libs/bootstrap/bootstrap-d583026f9b0ef0925622aad6f62ce451.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-7bcd1175e8f736ed7e3439be2e8c2145.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-dark-2b30f22a5a4f864f0b03b2d42f42f868.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../../site_libs/bootstrap/bootstrap-7bcd1175e8f736ed7e3439be2e8c2145.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -659,6 +662,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
   <li><a href="#stitest" id="toc-stitest" class="nav-link" data-scroll-target="#stitest">STITest</a></li>
   <li><a href="#hivtest" id="toc-hivtest" class="nav-link" data-scroll-target="#hivtest">HIVTest</a></li>
   <li><a href="#symptomatictesting" id="toc-symptomatictesting" class="nav-link" data-scroll-target="#symptomatictesting">SymptomaticTesting</a></li>
+  <li><a href="#syphtest" id="toc-syphtest" class="nav-link" data-scroll-target="#syphtest">SyphTest</a></li>
   </ul></li>
   <li><a href="#treatment" id="toc-treatment" class="nav-link" data-scroll-target="#treatment">Treatment</a>
   <ul>
@@ -774,17 +778,73 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    disease_treatment_map<span class="op">=</span>{<span class="st">'ng'</span>: ng_tx, <span class="st">'ct'</span>: ct_tx, <span class="st">'tv'</span>: metro},</span>
 <span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
+<section id="syphtest" class="level3">
+<h3 class="anchored" data-anchor-id="syphtest">SyphTest</h3>
+<p>Base class for syphilis testing (<code>ANCSyphTest</code> and <code>NewbornSyphTest</code> subclass it). In addition to the scalar/array/<code>TimeSeries</code> forms <code>test_prob_data</code> accepts everywhere else, <code>SyphTest</code> also accepts a long-format <code>DataFrame</code> stratified by risk group, sex, and sex-work status – one row per <code>(year, risk_group, sex, sw)</code> combination:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>test_prob_data <span class="op">=</span> pd.DataFrame([</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    {<span class="st">'year'</span>: <span class="dv">2000</span>, <span class="st">'risk_group'</span>: <span class="dv">0</span>, <span class="st">'sex'</span>: <span class="st">'female'</span>, <span class="st">'sw'</span>: <span class="dv">0</span>, <span class="st">'symp_test_prob'</span>: <span class="fl">0.15</span>},</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    {<span class="st">'year'</span>: <span class="dv">2000</span>, <span class="st">'risk_group'</span>: <span class="dv">1</span>, <span class="st">'sex'</span>: <span class="st">'female'</span>, <span class="st">'sw'</span>: <span class="dv">0</span>, <span class="st">'symp_test_prob'</span>: <span class="fl">0.15</span>},</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    {<span class="st">'year'</span>: <span class="dv">2000</span>, <span class="st">'risk_group'</span>: <span class="dv">2</span>, <span class="st">'sex'</span>: <span class="st">'female'</span>, <span class="st">'sw'</span>: <span class="dv">0</span>, <span class="st">'symp_test_prob'</span>: <span class="fl">0.38</span>},</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    {<span class="st">'year'</span>: <span class="dv">2000</span>, <span class="st">'risk_group'</span>: <span class="dv">0</span>, <span class="st">'sex'</span>: <span class="st">'female'</span>, <span class="st">'sw'</span>: <span class="dv">1</span>, <span class="st">'symp_test_prob'</span>: <span class="fl">0.45</span>},</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    {<span class="st">'year'</span>: <span class="dv">2000</span>, <span class="st">'risk_group'</span>: <span class="dv">0</span>, <span class="st">'sex'</span>: <span class="st">'male'</span>,   <span class="st">'sw'</span>: <span class="dv">0</span>, <span class="st">'symp_test_prob'</span>: <span class="fl">0.10</span>},</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    {<span class="st">'year'</span>: <span class="dv">2024</span>, <span class="st">'risk_group'</span>: <span class="dv">0</span>, <span class="st">'sex'</span>: <span class="st">'female'</span>, <span class="st">'sw'</span>: <span class="dv">0</span>, <span class="st">'symp_test_prob'</span>: <span class="fl">0.20</span>},</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ... one row per (year, risk_group, sex, sw) stratum</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>])</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>symp_test <span class="op">=</span> sti.SyphTest(</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    product<span class="op">=</span>syph_dx,</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    test_prob_data<span class="op">=</span>test_prob_data,</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    start<span class="op">=</span><span class="dv">2000</span>,</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 38%">
+<col style="width: 61%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Column</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>year</code></td>
+<td>Calendar year; strata are interpolated onto the sim’s timestep grid.</td>
+</tr>
+<tr class="even">
+<td><code>risk_group</code></td>
+<td>Integer risk-group index, <code>0</code> .. <code>n_risk_groups - 1</code> (set by the sexual network, default 3).</td>
+</tr>
+<tr class="odd">
+<td><code>sex</code></td>
+<td><code>'female'</code> or <code>'male'</code>.</td>
+</tr>
+<tr class="even">
+<td><code>sw</code></td>
+<td><code>1</code> for sex workers and their clients, <code>0</code> otherwise.</td>
+</tr>
+<tr class="odd">
+<td><code>symp_test_prob</code></td>
+<td>Testing probability for that stratum-year (annualized, then scaled per-timestep like <code>STITest</code>).</td>
+</tr>
+</tbody>
+</table>
+<p>Every <code>(risk_group, sex, sw)</code> combination present in the sim must have a row for every <code>year</code>, or the missing strata will have no scheduled tests.</p>
+</section>
 </section>
 <section id="treatment" class="level2">
 <h2 class="anchored" data-anchor-id="treatment">Treatment</h2>
 <section id="stitreatment" class="level3">
 <h3 class="anchored" data-anchor-id="stitreatment">STITreatment</h3>
 <p>The base treatment class. Clears infection for eligible agents with a given efficacy.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>ct_tx <span class="op">=</span> sti.STITreatment(</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    diseases<span class="op">=</span><span class="st">'ct'</span>,         <span class="co"># Which disease(s) to treat</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    treat_eff<span class="op">=</span><span class="fl">0.95</span>,        <span class="co"># 95% efficacy</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span><span class="st">'ct_tx'</span>,</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>ct_tx <span class="op">=</span> sti.STITreatment(</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    diseases<span class="op">=</span><span class="st">'ct'</span>,         <span class="co"># Which disease(s) to treat</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    treat_eff<span class="op">=</span><span class="fl">0.95</span>,        <span class="co"># 95% efficacy</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span><span class="st">'ct_tx'</span>,</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Key parameters:</p>
 <table class="caption-top table">
 <thead>
@@ -890,15 +950,15 @@ hiv.ti_diagnosed = ti         │
 </ul>
 <section id="hivtest-1" class="level3">
 <h3 class="anchored" data-anchor-id="hivtest-1">HIVTest</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test 20% of undiagnosed agents per year</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>hiv_test <span class="op">=</span> sti.HIVTest(test_prob_data<span class="op">=</span><span class="fl">0.2</span>, start<span class="op">=</span><span class="dv">2000</span>, name<span class="op">=</span><span class="st">'hiv_test'</span>)</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Higher rate for FSWs</span></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>fsw_test <span class="op">=</span> sti.HIVTest(</span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    test_prob_data<span class="op">=</span><span class="fl">0.5</span>,</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span><span class="st">'fsw_test'</span>,</span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    eligibility<span class="op">=</span><span class="kw">lambda</span> sim: sim.networks.structuredsexual.fsw <span class="op">&amp;</span> <span class="op">~</span>sim.diseases.hiv.diagnosed,</span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test 20% of undiagnosed agents per year</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>hiv_test <span class="op">=</span> sti.HIVTest(test_prob_data<span class="op">=</span><span class="fl">0.2</span>, start<span class="op">=</span><span class="dv">2000</span>, name<span class="op">=</span><span class="st">'hiv_test'</span>)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Higher rate for FSWs</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>fsw_test <span class="op">=</span> sti.HIVTest(</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    test_prob_data<span class="op">=</span><span class="fl">0.5</span>,</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span><span class="st">'fsw_test'</span>,</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    eligibility<span class="op">=</span><span class="kw">lambda</span> sim: sim.networks.structuredsexual.fsw <span class="op">&amp;</span> <span class="op">~</span>sim.diseases.hiv.diagnosed,</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 33%">
@@ -934,32 +994,32 @@ hiv.ti_diagnosed = ti         │
 <section id="art" class="level3">
 <h3 class="anchored" data-anchor-id="art">ART</h3>
 <p>ART accepts coverage in multiple formats:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># No coverage target — 90% of newly diagnosed initiate ART (default)</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>art <span class="op">=</span> sti.ART()</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Treat ALL diagnosed, no coverage constraint</span></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>art <span class="op">=</span> sti.ART(art_initiation<span class="op">=</span><span class="dv">1</span>)</span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Constant proportion of infected</span></span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>art <span class="op">=</span> sti.ART(coverage<span class="op">=</span><span class="fl">0.8</span>)</span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Time-varying proportion</span></span>
-<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>art <span class="op">=</span> sti.ART(coverage<span class="op">=</span>{<span class="st">'year'</span>: [<span class="dv">2000</span>, <span class="dv">2010</span>, <span class="dv">2025</span>], <span class="st">'value'</span>: [<span class="dv">0</span>, <span class="fl">0.5</span>, <span class="fl">0.9</span>]})</span>
-<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a><span class="co"># From a DataFrame (absolute numbers)</span></span>
-<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>art <span class="op">=</span> sti.ART(coverage<span class="op">=</span>pd.read_csv(<span class="st">'art_data.csv'</span>).set_index(<span class="st">'year'</span>))</span>
-<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Historical absolute numbers then projected proportions (mixed n/p format)</span></span>
-<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'n_art.csv'</span>).set_index(<span class="st">'year'</span>)</span>
-<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'p_art'</span>] <span class="op">=</span> np.nan</span>
-<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>df.loc[<span class="dv">2023</span>:, <span class="st">'p_art'</span>] <span class="op">=</span> <span class="fl">0.90</span></span>
-<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>art <span class="op">=</span> sti.ART(coverage<span class="op">=</span>df)</span>
-<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a><span class="co"># Age/sex stratified (columns: Year, Gender/Sex, AgeBin, + value)</span></span>
-<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>art <span class="op">=</span> sti.ART(coverage<span class="op">=</span>stratified_df)</span>
-<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Smoother interpolation (default 0 = linear)</span></span>
-<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>art <span class="op">=</span> sti.ART(coverage<span class="op">=</span>{<span class="st">'year'</span>: [<span class="dv">2000</span>, <span class="dv">2025</span>], <span class="st">'value'</span>: [<span class="dv">0</span>, <span class="fl">0.9</span>]}, smoothness<span class="op">=</span><span class="dv">5</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># No coverage target — 90% of newly diagnosed initiate ART (default)</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>art <span class="op">=</span> sti.ART()</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Treat ALL diagnosed, no coverage constraint</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>art <span class="op">=</span> sti.ART(art_initiation<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Constant proportion of infected</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>art <span class="op">=</span> sti.ART(coverage<span class="op">=</span><span class="fl">0.8</span>)</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Time-varying proportion</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>art <span class="op">=</span> sti.ART(coverage<span class="op">=</span>{<span class="st">'year'</span>: [<span class="dv">2000</span>, <span class="dv">2010</span>, <span class="dv">2025</span>], <span class="st">'value'</span>: [<span class="dv">0</span>, <span class="fl">0.5</span>, <span class="fl">0.9</span>]})</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a><span class="co"># From a DataFrame (absolute numbers)</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>art <span class="op">=</span> sti.ART(coverage<span class="op">=</span>pd.read_csv(<span class="st">'art_data.csv'</span>).set_index(<span class="st">'year'</span>))</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Historical absolute numbers then projected proportions (mixed n/p format)</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'n_art.csv'</span>).set_index(<span class="st">'year'</span>)</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'p_art'</span>] <span class="op">=</span> np.nan</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>df.loc[<span class="dv">2023</span>:, <span class="st">'p_art'</span>] <span class="op">=</span> <span class="fl">0.90</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>art <span class="op">=</span> sti.ART(coverage<span class="op">=</span>df)</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a><span class="co"># Age/sex stratified (columns: Year, Gender/Sex, AgeBin, + value)</span></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>art <span class="op">=</span> sti.ART(coverage<span class="op">=</span>stratified_df)</span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Smoother interpolation (default 0 = linear)</span></span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>art <span class="op">=</span> sti.ART(coverage<span class="op">=</span>{<span class="st">'year'</span>: [<span class="dv">2000</span>, <span class="dv">2025</span>], <span class="st">'value'</span>: [<span class="dv">0</span>, <span class="fl">0.9</span>]}, smoothness<span class="op">=</span><span class="dv">5</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 33%">
@@ -1005,8 +1065,8 @@ hiv.ti_diagnosed = ti         │
 <section id="vmmc" class="level3">
 <h3 class="anchored" data-anchor-id="vmmc">VMMC</h3>
 <p>Voluntary medical male circumcision. Targets all males by default; reduces susceptibility to HIV acquisition by 60%.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>vmmc <span class="op">=</span> sti.VMMC(coverage<span class="op">=</span><span class="fl">0.3</span>)</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>vmmc <span class="op">=</span> sti.VMMC(coverage<span class="op">=</span>{<span class="st">'year'</span>: [<span class="dv">2010</span>, <span class="dv">2025</span>], <span class="st">'value'</span>: [<span class="dv">0</span>, <span class="fl">0.4</span>]})</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>vmmc <span class="op">=</span> sti.VMMC(coverage<span class="op">=</span><span class="fl">0.3</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>vmmc <span class="op">=</span> sti.VMMC(coverage<span class="op">=</span>{<span class="st">'year'</span>: [<span class="dv">2010</span>, <span class="dv">2025</span>], <span class="st">'value'</span>: [<span class="dv">0</span>, <span class="fl">0.4</span>]})</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 33%">
@@ -1042,7 +1102,7 @@ hiv.ti_diagnosed = ti         │
 <section id="prep" class="level3">
 <h3 class="anchored" data-anchor-id="prep">PrEP</h3>
 <p>Pre-exposure prophylaxis. By default targets HIV-negative FSWs (female sex workers) who are not already on PrEP. Use the <code>eligibility</code> parameter to target a different population.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>prep <span class="op">=</span> sti.Prep(coverage<span class="op">=</span>[<span class="dv">0</span>, <span class="fl">0.5</span>], years<span class="op">=</span>[<span class="dv">2020</span>, <span class="dv">2025</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>prep <span class="op">=</span> sti.Prep(coverage<span class="op">=</span>[<span class="dv">0</span>, <span class="fl">0.5</span>], years<span class="op">=</span>[<span class="dv">2020</span>, <span class="dv">2025</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 33%">
@@ -1084,11 +1144,11 @@ hiv.ti_diagnosed = ti         │
 <section id="syndromic-management" class="level2">
 <h2 class="anchored" data-anchor-id="syndromic-management">Syndromic management</h2>
 <p><code>SyndromicManagement</code> treats vaginal/urethral discharge syndromes presumptively, without a confirmatory lab test: symptomatic care-seekers are routed to treatment based on the syndrome rather than a diagnosis. Use it for bacterial STIs in settings where point-of-care diagnostics are unavailable.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>sm <span class="op">=</span> sti.SyndromicManagement(</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    diseases<span class="op">=</span>[<span class="st">'ng'</span>, <span class="st">'ct'</span>, <span class="st">'tv'</span>],      <span class="co"># diseases by NAME (resolved against sim.diseases)</span></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    treatments<span class="op">=</span>[ng_tx, ct_tx, metro],</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    outcome_tx_map<span class="op">=</span>{<span class="st">'discharge'</span>: [ng_tx, ct_tx]},</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>sm <span class="op">=</span> sti.SyndromicManagement(</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    diseases<span class="op">=</span>[<span class="st">'ng'</span>, <span class="st">'ct'</span>, <span class="st">'tv'</span>],      <span class="co"># diseases by NAME (resolved against sim.diseases)</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    treatments<span class="op">=</span>[ng_tx, ct_tx, metro],</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    outcome_tx_map<span class="op">=</span>{<span class="st">'discharge'</span>: [ng_tx, ct_tx]},</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 45%">
@@ -1125,13 +1185,20 @@ hiv.ti_diagnosed = ti         │
 </section>
 <section id="antenatal-and-infant-screening-pmtct" class="level2">
 <h2 class="anchored" data-anchor-id="antenatal-and-infant-screening-pmtct">Antenatal and infant screening (PMTCT)</h2>
-<p>STIsim supports single-visit antenatal care (ANC) screening that auto-schedules newborn/infant follow-up, used for preventing mother-to-child transmission (PMTCT) of HIV and congenital syphilis.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>anc <span class="op">=</span> sti.ANCTest(</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    disease_names<span class="op">=</span>[<span class="st">'hiv'</span>, <span class="st">'syphilis'</span>],   <span class="co"># auto-detects HIV + syphilis</span></span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    visit_prob<span class="op">=</span><span class="fl">0.9</span>,                      <span class="co"># ANC attendance probability</span></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    disease_treatment_map<span class="op">=</span>{<span class="st">'hiv'</span>: art, <span class="st">'syphilis'</span>: syph_tx},</span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    newborn_tests<span class="op">=</span>[sti.InfantHIVTest(test_prob<span class="op">=</span><span class="fl">0.8</span>)],</span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>STIsim supports single-visit antenatal care (ANC) screening that auto-schedules newborn/infant follow-up, used for preventing mother-to-child transmission (PMTCT) of HIV and congenital syphilis. Requires an <a href="https://docs.starsim.org/api/demographics.html#starsim.demographics.Pregnancy" title="0"><code>ss.Pregnancy</code></a> demographics module (and <a href="https://docs.starsim.org/api/networks.html#starsim.networks.MaternalNet" title="0"><code>ss.MaternalNet</code></a> — plus <a href="https://docs.starsim.org/api/networks.html#starsim.networks.BreastfeedingNet" title="0"><code>ss.BreastfeedingNet</code></a> for postnatal protection — for infant scheduling).</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>infant_hiv <span class="op">=</span> sti.InfantHIVTest(name<span class="op">=</span><span class="st">'infant_hiv'</span>)   <span class="co"># HIV test for newborns</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>anc <span class="op">=</span> sti.ANCTest(</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    visit_prob<span class="op">=</span><span class="fl">0.9</span>,                       <span class="co"># ANC attendance probability</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    newborn_tests<span class="op">=</span>{<span class="st">'hiv'</span>: infant_hiv},    <span class="co"># disease name -&gt; newborn test intervention</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># disease_names left unset -&gt; auto-detects HIV and/or syphilis if present in sim.diseases</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>art <span class="op">=</span> sti.ART(coverage<span class="op">=</span><span class="fl">0.6</span>)               <span class="co"># picks up ANC-diagnosed mothers automatically</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> sti.Sim(diseases<span class="op">=</span>[sti.HIV()], demographics<span class="op">=</span>[ss.Pregnancy(), ss.Deaths()],</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>              networks<span class="op">=</span>[sti.StructuredSexual(), ss.MaternalNet(), ss.BreastfeedingNet()],</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>              interventions<span class="op">=</span>[anc, infant_hiv, art])   <span class="co"># anc/infant_hiv before art</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 53%">
@@ -1166,18 +1233,24 @@ hiv.ti_diagnosed = ti         │
 </tr>
 </tbody>
 </table>
-<blockquote class="blockquote">
-<p><strong>Stub</strong> — expand with the ANC → treatment → newborn-test cascade, sensitivity defaults, and a PMTCT worked example. Requires a <code>Pregnancy</code> module (and <code>MaternalNet</code>/<code>BreastfeedingNet</code> for infant scheduling). See <a href="../../api/interventions.hiv_interventions.html"><code>interventions.hiv_interventions</code></a> and <a href="../../api/interventions.syphilis_interventions.html"><code>interventions.syphilis_interventions</code></a>.</p>
-</blockquote>
+<p><strong>The ANC → ART → newborn-test cascade:</strong></p>
+<ol type="1">
+<li>When a woman becomes pregnant, <code>ANCTest</code> schedules one ANC visit at a random gestational month (1–7); <code>visit_prob</code> gates whether she actually attends.</li>
+<li>At the visit, she is tested for every disease in <code>ANCTest.active_diseases</code> (HIV and syphilis auto-detected from <code>sim.diseases</code> unless <code>disease_names</code> is given explicitly), each with its own <code>test_sensitivity</code> (default 1.0).</li>
+<li><strong>HIV positives are handled specially</strong>: <code>ANCTest</code> sets <code>hiv.diagnosed</code> and schedules <code>hiv.ti_art = ti</code> — immediate ART start, no delay — the same mechanism <code>HIVTest</code> uses via its <code>dur_dx2tx</code> parameter (default <code>ss.constant(0)</code>). Any <code>ART</code> intervention present in the sim’s <code>interventions</code> list picks these agents up passively; HIV is <strong>not</strong> routed through <code>disease_treatment_map</code> (that map is only consulted for non-HIV diseases such as syphilis).</li>
+<li>If <code>newborn_tests</code> includes an entry for a disease the mother tested positive for, the corresponding test (e.g.&nbsp;<code>InfantHIVTest</code>) is scheduled for her unborn child at the modeled delivery timestep, via the <a href="https://docs.starsim.org/api/networks.html#starsim.networks.MaternalNet" title="0"><code>ss.MaternalNet</code></a> edge.</li>
+<li>Once a mother is on ART, <code>maternal_care_scale</code> (default 2, see the <a href="../../user_guide/diseases/hiv.html#care-seeking">HIV disease page</a>) doubles her care-seeking behaviour for the duration of pregnancy, making her much less likely to default off treatment before delivery.</li>
+</ol>
+<p>See the <a href="../../examples/pmtct_scenario.html">PMTCT worked example</a> for a full runnable comparison of MTCT infections with and without ANC testing, and the API reference for <a href="../../api/interventions.hiv_interventions.html"><code>interventions.hiv_interventions</code></a> and <a href="../../api/interventions.syphilis_interventions.html"><code>interventions.syphilis_interventions</code></a>.</p>
 </section>
 <section id="partner-notification" class="level2">
 <h2 class="anchored" data-anchor-id="partner-notification">Partner notification</h2>
 <p><code>PartnerNotification</code> reaches the sexual partners of newly diagnosed index cases and offers them follow-up testing. It works over two channels — the current sexual network and an optional prior-partner recall network — each with separate notification and attendance probabilities.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>pn <span class="op">=</span> sti.PartnerNotification(</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    eligibility<span class="op">=</span><span class="kw">lambda</span> sim: sim.diseases.hiv.ti_diagnosed <span class="op">==</span> sim.ti,  <span class="co"># index cases</span></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    test<span class="op">=</span>sti.HIVTest(test_prob_data<span class="op">=</span><span class="fl">1.0</span>),                            <span class="co"># offered to attendees</span></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    pars<span class="op">=</span><span class="bu">dict</span>(p_notify_current<span class="op">=</span><span class="fl">0.6</span>, p_attends_current<span class="op">=</span><span class="fl">0.5</span>),</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>pn <span class="op">=</span> sti.PartnerNotification(</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    eligibility<span class="op">=</span><span class="kw">lambda</span> sim: sim.diseases.hiv.ti_diagnosed <span class="op">==</span> sim.ti,  <span class="co"># index cases</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    test<span class="op">=</span>sti.HIVTest(test_prob_data<span class="op">=</span><span class="fl">1.0</span>),                            <span class="co"># offered to attendees</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    pars<span class="op">=</span><span class="bu">dict</span>(p_notify_current<span class="op">=</span><span class="fl">0.6</span>, p_attends_current<span class="op">=</span><span class="fl">0.5</span>),</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <table class="caption-top table">
 <thead>
 <tr class="header">
@@ -1207,11 +1280,11 @@ hiv.ti_diagnosed = ti         │
 <section id="pregnancy-driven-risk-reduction" class="level2">
 <h2 class="anchored" data-anchor-id="pregnancy-driven-risk-reduction">Pregnancy-driven risk reduction</h2>
 <p><code>PregnancyRiskReduction</code> lowers sexual-risk behaviour during pregnancy and restores it afterwards — useful when behaviour change during pregnancy materially affects transmission.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>prr <span class="op">=</span> sti.PregnancyRiskReduction(pars<span class="op">=</span><span class="bu">dict</span>(</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    fsw_redux<span class="op">=</span><span class="va">True</span>,          <span class="co"># clear FSW status while pregnant</span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    high_risk_redux<span class="op">=</span><span class="va">True</span>,    <span class="co"># drop high-risk-group membership</span></span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    concurrency_redux<span class="op">=</span><span class="va">True</span>,  <span class="co"># zero concurrency</span></span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>prr <span class="op">=</span> sti.PregnancyRiskReduction(pars<span class="op">=</span><span class="bu">dict</span>(</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    fsw_redux<span class="op">=</span><span class="va">True</span>,          <span class="co"># clear FSW status while pregnant</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    high_risk_redux<span class="op">=</span><span class="va">True</span>,    <span class="co"># drop high-risk-group membership</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    concurrency_redux<span class="op">=</span><span class="va">True</span>,  <span class="co"># zero concurrency</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>During pregnancy the module optionally clears FSW status, drops high-risk-group membership to <code>default_risk_group</code>, and/or zeros concurrency; each agent’s prior state is restored once the pregnancy ends.</p>
 <blockquote class="blockquote">
 <p><strong>Stub</strong> — expand with parameter semantics and the gallery example <a href="../../examples/pregnancy_risk_modifier.html">Pregnancy risk modifier</a>.</p>
@@ -1220,10 +1293,10 @@ hiv.ti_diagnosed = ti         │
 <section id="combining-interventions" class="level2">
 <h2 class="anchored" data-anchor-id="combining-interventions">Combining interventions</h2>
 <p>Interventions are passed to the sim as a list:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> sti.Sim(</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    diseases<span class="op">=</span><span class="st">'ng'</span>,</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    interventions<span class="op">=</span>[test, treatment],</span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> sti.Sim(</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    diseases<span class="op">=</span><span class="st">'ng'</span>,</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    interventions<span class="op">=</span>[test, treatment],</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>For a complete worked example, see the <a href="../../tutorials/tut_interventions.html">Interventions tutorial</a>.</p>
 
 
@@ -1663,7 +1736,7 @@ hiv.ti_diagnosed = ti         │
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.5.9 (2026-07-13).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.5.10 (2026-07-24).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">
