@@ -191,6 +191,9 @@ class Syphilis(BaseSTI):
             # Congenital syphilis states
             ss.BoolState('congenital'),
             ss.FloatArr('cs_outcome'),
+            ss.BoolArr('mtct_from_mat_active'),  # For maternal transmission, track the mother's stage when transmission occurs
+            ss.BoolArr('mtct_from_early'),  # For maternal transmission, track the mother's stage when transmission occurs
+            ss.BoolArr('mtct_from_late'),  # For maternal transmission, track the mother's stage when transmission occurs
 
             # Timestep of state changes
             ss.FloatArr('ti_exposed'),
@@ -804,6 +807,12 @@ class Syphilis(BaseSTI):
                 assigned_outcomes = birth_outcomes.rvs(uids)
                 self.cs_outcome[uids] = assigned_outcomes
                 timesteps_til_delivery = self.sim.demographics.pregnancy.ti_delivery - self.ti
+
+                # Flag mother's stage at MTCT (per-fetus, for downstream analysis)
+                mat_stage = f'mtct_from_{state}'
+                mat_flag = getattr(self, mat_stage)
+                mat_flag[uids] = True
+                self.setattribute(mat_stage, mat_flag)
 
                 # Schedule events
                 for oi, outcome in enumerate(self.pars.birth_outcome_keys):
