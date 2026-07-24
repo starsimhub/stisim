@@ -205,8 +205,8 @@ class STITest(ss.Intervention):
         """
         # Select UIDs for testing based on eligibility and test_prob
         accept_uids = ss.uids()
-        if callable(self.eligibility):
-            eligible_uids = self.check_eligibility()  # Apply eligiblity - uses base class from ss.Intervention
+        if self.eligibility is None or callable(self.eligibility):
+            eligible_uids = self.check_eligibility()  # Apply eligiblity - uses base class from ss.Intervention; None -> everyone
         else:
             eligible_uids = self.eligibility
         if len(eligible_uids):
@@ -725,12 +725,9 @@ class ANCTest(ss.Intervention):
         return
 
     def init_pre(self, sim):
-        super().init_pre(sim)
-        if self.start is None:
-            self.start = sim.t.yearvec[0]
-        if self.stop is None:
-            self.stop = sim.t.yearvec[-1]
-
+        # active_diseases must be resolved before super().init_pre(sim), since
+        # the base Module.init_pre() calls self.init_results() internally, and
+        # our init_results() override reads self.active_diseases.
         if self.disease_names is not None:
             unknown = [d for d in self.disease_names if d not in sim.diseases]
             if unknown:
@@ -739,6 +736,12 @@ class ANCTest(ss.Intervention):
             self.active_diseases = list(self.disease_names)
         else:
             self.active_diseases = [d for d in self.auto_detect if d in sim.diseases]
+
+        super().init_pre(sim)
+        if self.start is None:
+            self.start = sim.t.yearvec[0]
+        if self.stop is None:
+            self.stop = sim.t.yearvec[-1]
         return
 
     def init_results(self):
@@ -762,7 +765,7 @@ class ANCTest(ss.Intervention):
         if pregnancy is not None:
             newly_preg = (pregnancy.ti_pregnant == ti).uids
             attendees  = self.visit_prob_dist.filter(newly_preg)
-            months_dt  = ss.dur(1, 'month') / sim.t.dt   # timesteps per month
+            months_dt  = ss.dur(1, 'months') / sim.t.dt   # timesteps per month
             offsets    = self.visit_timing.randround(self.visit_timing.rvs(attendees) * months_dt)
             self.ti_visit[attendees] = ti + offsets
 

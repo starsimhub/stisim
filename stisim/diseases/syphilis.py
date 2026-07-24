@@ -134,7 +134,7 @@ class SyphPars(BaseSTIPars):
         #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5973824/)
         #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2819963/
         self.birth_outcomes = sc.objdict(
-            mat_active=ss.choice(a=5, p=np.array([0.00, 0.10, 0.20, 0.45, 0.25])),  # Outcomes for babies born to mothers with primary or secondary infection
+            mat_active=ss.choice(a=5, p=np.array([0.00, 0.25, 0.25, 0.45, 0.05])),  # Outcomes for babies born to mothers with primary or secondary infection
             early=ss.choice(a=5, p=np.array([0.00, 0.05, 0.10, 0.40, 0.45])),  # Outcomes for babies born to mothers with early latent infection
             late=ss.choice(a=5, p=np.array([0.00, 0.00, 0.10, 0.10, 0.80])),  # Outcomes for babies born to mothers with late latent infection
         )
@@ -191,6 +191,9 @@ class Syphilis(BaseSTI):
             # Congenital syphilis states
             ss.BoolState('congenital'),
             ss.FloatArr('cs_outcome'),
+            ss.BoolArr('mtct_from_mat_active'),  # For maternal transmission, track the mother's stage when transmission occurs
+            ss.BoolArr('mtct_from_early'),  # For maternal transmission, track the mother's stage when transmission occurs
+            ss.BoolArr('mtct_from_late'),  # For maternal transmission, track the mother's stage when transmission occurs
 
             # Timestep of state changes
             ss.FloatArr('ti_exposed'),
@@ -481,6 +484,10 @@ class Syphilis(BaseSTI):
         # Congenital syphilis deaths
         nnd = (self.ti_nnd <= ti).uids
         stillborn = (self.ti_stillborn <= ti).uids
+        # Store counts for update_results: ti_nnd / ti_stillborn are cleared
+        # below so an `== ti` check in update_results would always read 0.
+        self._new_nnd_count = len(nnd)
+        self._new_stillborn_count = len(stillborn)
         if len(nnd):
             self.sim.people.request_death(nnd)
             self.ti_nnd[nnd] = np.nan  # Clear after firing
@@ -590,9 +597,10 @@ class Syphilis(BaseSTI):
             deliv_prev = cond_prob(self.infected, ppl.pregnancy.ti_delivery == ti)
             self.results['delivery_prevalence'][ti] = deliv_prev
 
-        # Congenital results
-        self.results['new_nnds'][ti]       = np.count_nonzero(self.ti_nnd == ti)
-        self.results['new_stillborns'][ti] = np.count_nonzero(self.ti_stillborn == ti)
+        # Congenital results: read from stashes set in step_state before
+        # ti_nnd / ti_stillborn / ti_congenital were cleared to nan.
+        self.results['new_nnds'][ti]       = getattr(self, '_new_nnd_count', 0)
+        self.results['new_stillborns'][ti] = getattr(self, '_new_stillborn_count', 0)
         self.results['new_congenital'][ti] = getattr(self, '_new_congenital_count', 0)
         self.results['new_congenital_deaths'][ti] = self.results['new_nnds'][ti] + self.results['new_stillborns'][ti]
         self.results['new_deaths'][ti] = np.count_nonzero(self.ti_dead == ti)
@@ -804,6 +812,12 @@ class Syphilis(BaseSTI):
                 assigned_outcomes = birth_outcomes.rvs(uids)
                 self.cs_outcome[uids] = assigned_outcomes
                 timesteps_til_delivery = self.sim.demographics.pregnancy.ti_delivery - self.ti
+
+                # Flag mother's stage at MTCT (per-fetus, for downstream analysis)
+                mat_stage = f'mtct_from_{state}'
+                mat_flag = getattr(self, mat_stage)
+                mat_flag[uids] = True
+                self.setattribute(mat_stage, mat_flag)
 
                 # Schedule events
                 for oi, outcome in enumerate(self.pars.birth_outcome_keys):

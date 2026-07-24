@@ -66,6 +66,40 @@ syndromic = sti.SymptomaticTesting(
 )
 ```
 
+### SyphTest
+
+Base class for syphilis testing (`ANCSyphTest` and `NewbornSyphTest` subclass it). In addition to the scalar/array/`TimeSeries` forms `test_prob_data` accepts everywhere else, `SyphTest` also accepts a long-format `DataFrame` stratified by risk group, sex, and sex-work status -- one row per `(year, risk_group, sex, sw)` combination:
+
+```python
+import pandas as pd
+
+test_prob_data = pd.DataFrame([
+    {'year': 2000, 'risk_group': 0, 'sex': 'female', 'sw': 0, 'symp_test_prob': 0.15},
+    {'year': 2000, 'risk_group': 1, 'sex': 'female', 'sw': 0, 'symp_test_prob': 0.15},
+    {'year': 2000, 'risk_group': 2, 'sex': 'female', 'sw': 0, 'symp_test_prob': 0.38},
+    {'year': 2000, 'risk_group': 0, 'sex': 'female', 'sw': 1, 'symp_test_prob': 0.45},
+    {'year': 2000, 'risk_group': 0, 'sex': 'male',   'sw': 0, 'symp_test_prob': 0.10},
+    {'year': 2024, 'risk_group': 0, 'sex': 'female', 'sw': 0, 'symp_test_prob': 0.20},
+    # ... one row per (year, risk_group, sex, sw) stratum
+])
+
+symp_test = sti.SyphTest(
+    product=syph_dx,
+    test_prob_data=test_prob_data,
+    start=2000,
+)
+```
+
+| Column | Description |
+|--------|-------------|
+| `year` | Calendar year; strata are interpolated onto the sim's timestep grid. |
+| `risk_group` | Integer risk-group index, `0` .. `n_risk_groups - 1` (set by the sexual network, default 3). |
+| `sex` | `'female'` or `'male'`. |
+| `sw` | `1` for sex workers and their clients, `0` otherwise. |
+| `symp_test_prob` | Testing probability for that stratum-year (annualized, then scaled per-timestep like `STITest`). |
+
+Every `(risk_group, sex, sw)` combination present in the sim must have a row for every `year`, or the missing strata will have no scheduled tests.
+
 ## Treatment
 
 ### STITreatment
@@ -254,15 +288,24 @@ sm = sti.SyndromicManagement(
 
 STIsim supports single-visit antenatal care (ANC) screening that auto-schedules
 newborn/infant follow-up, used for preventing mother-to-child transmission (PMTCT)
-of HIV and congenital syphilis.
+of HIV and congenital syphilis. Requires an `ss.Pregnancy` demographics module
+(and `ss.MaternalNet` — plus `ss.BreastfeedingNet` for postnatal protection —
+for infant scheduling).
 
 ```python
+infant_hiv = sti.InfantHIVTest(name='infant_hiv')   # HIV test for newborns
+
 anc = sti.ANCTest(
-    disease_names=['hiv', 'syphilis'],   # auto-detects HIV + syphilis
-    visit_prob=0.9,                      # ANC attendance probability
-    disease_treatment_map={'hiv': art, 'syphilis': syph_tx},
-    newborn_tests=[sti.InfantHIVTest(test_prob=0.8)],
+    visit_prob=0.9,                       # ANC attendance probability
+    newborn_tests={'hiv': infant_hiv},    # disease name -> newborn test intervention
+    # disease_names left unset -> auto-detects HIV and/or syphilis if present in sim.diseases
 )
+
+art = sti.ART(coverage=0.6)               # picks up ANC-diagnosed mothers automatically
+
+sim = sti.Sim(diseases=[sti.HIV()], demographics=[ss.Pregnancy(), ss.Deaths()],
+              networks=[sti.StructuredSexual(), ss.MaternalNet(), ss.BreastfeedingNet()],
+              interventions=[anc, infant_hiv, art])   # anc/infant_hiv before art
 ```
 
 | Class | Role |
@@ -273,11 +316,34 @@ anc = sti.ANCTest(
 | `sti.NewbornSyphTest` | Syphilis test for newborns of mothers diagnosed in pregnancy. |
 | `sti.NewbornTreatment` | Treatment for congenital syphilis in newborns. |
 
-> **Stub** — expand with the ANC → treatment → newborn-test cascade, sensitivity
-> defaults, and a PMTCT worked example. Requires a `Pregnancy` module (and
-> `MaternalNet`/`BreastfeedingNet` for infant scheduling). See
-> [`interventions.hiv_interventions`](../../api/interventions.hiv_interventions.qmd) and
-> [`interventions.syphilis_interventions`](../../api/interventions.syphilis_interventions.qmd).
+**The ANC → ART → newborn-test cascade:**
+
+1. When a woman becomes pregnant, `ANCTest` schedules one ANC visit at a random
+   gestational month (1–7); `visit_prob` gates whether she actually attends.
+2. At the visit, she is tested for every disease in `ANCTest.active_diseases`
+   (HIV and syphilis auto-detected from `sim.diseases` unless `disease_names`
+   is given explicitly), each with its own `test_sensitivity` (default 1.0).
+3. **HIV positives are handled specially**: `ANCTest` sets `hiv.diagnosed` and
+   schedules `hiv.ti_art = ti` — immediate ART start, no delay — the same
+   mechanism `HIVTest` uses via its `dur_dx2tx` parameter (default
+   `ss.constant(0)`). Any `ART` intervention present in the sim's
+   `interventions` list picks these agents up passively; HIV is **not**
+   routed through `disease_treatment_map` (that map is only consulted for
+   non-HIV diseases such as syphilis).
+4. If `newborn_tests` includes an entry for a disease the mother tested
+   positive for, the corresponding test (e.g. `InfantHIVTest`) is scheduled
+   for her unborn child at the modeled delivery timestep, via the
+   `ss.MaternalNet` edge.
+5. Once a mother is on ART, `maternal_care_scale` (default 2, see the
+   [HIV disease page](../diseases/hiv.md#care-seeking)) doubles her
+   care-seeking behaviour for the duration of pregnancy, making her much
+   less likely to default off treatment before delivery.
+
+See the [PMTCT worked example](../../examples/pmtct_scenario.qmd) for a full
+runnable comparison of MTCT infections with and without ANC testing, and the
+API reference for
+[`interventions.hiv_interventions`](../../api/interventions.hiv_interventions.qmd) and
+[`interventions.syphilis_interventions`](../../api/interventions.syphilis_interventions.qmd).
 
 ## Partner notification
 
