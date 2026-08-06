@@ -73,30 +73,29 @@ class HIVPars(BaseSTIPars):
         self.dur_post_art = ss.normal()  # Note defined in years!
         self.dur_post_art_scale_factor = 0.1
 
-        # On-ART mortality (fit from EMOD's ARTMortalityTable, age/cd4-marginalized over
-        # ART duration; see get_art_mortality_hazard). Set art_death_rate=0 to disable;
-        # set rel_death_unsupp/rel_death_f=1 for no adherence/sex difference.
-        self.art_death_rate = 0.00554  # Annual rate, male, suppressed, age<25, healthiest CD4
-        self.rel_death_unsupp = 2.03  # Multiplier for non-suppressive ART
-        self.rel_death_f = 0.74  # Multiplier for females, on ART
+        # On-ART mortality: expressed RELATIVE to the off-ART CD4-based hazard above
+        # (cd4_death_bins/cd4_death_rates), rather than as an independent baseline +
+        # CD4 table -- this guarantees, by construction, that being on ART is never
+        # modeled as MORE dangerous than being off ART at the same CD4 count (see
+        # get_art_mortality_hazard). Set rel_art_mortality_effective/unsupp=1 for no
+        # ART survival benefit; =0 to disable on-ART mortality entirely.
+        self.rel_art_mortality_effective = 0.25  # Fraction of off-ART CD4-based mortality retained on effective (suppressive) ART
+        self.rel_art_mortality_unsupp = 0.7  # Fraction of off-ART CD4-based mortality retained on non-suppressive ART
+        self.rel_death_f = 0.74  # Additional multiplier for females, on ART
         self.art_death_age = [  # (age_lo, age_hi, mult), like rel_sus_age
             (0, 25, 1.0),
             (25, 35, 1.10),
             (35, 45, 1.21),
             (45, 125, 1.32),
         ]
-        self.art_death_cd4 = [  # (cd4_lo, cd4_hi, mult)
-            (0, 25, 7.12),
-            (25, 74.5, 4.81),
-            (74.5, 149.5, 3.28),
-            (149.5, 274.5, 1.82),
-            (274.5, 424.5, 1.22),
-            (424.5, np.inf, 1.0),
-        ]
         self.art_death_dur = None  # (dur_lo, dur_hi, mult) list, days since ti_art; None = no-op.
-        # To restore EMOD's original duration-since-ART-initiation effect (understated by
-        # CD4 alone, see docs), set art_death_rate=0.00204 and:
-        # art_death_dur = [(0, 182, 7.82), (182, 365, 5.55), (365, 730, 2.24), (730, 1095, 1.52), (1095, np.inf, 1.0)]
+        # NB: the defaults above are chosen so rel_art_mortality_unsupp * (largest
+        # art_death_age multiplier) = 0.7 * 1.32 = 0.924, comfortably under 1 -- i.e.
+        # the on-ART-never-exceeds-off-ART invariant holds for every age/sex/adherence
+        # combination as shipped. If you override art_death_age/art_death_dur (or add
+        # multipliers > 1), re-check that rel_art_mortality_unsupp times the product of
+        # your largest multipliers stays <= 1, or the invariant can break again for the
+        # highest-risk cells.
 
         self.update(kwargs)
         return
@@ -349,24 +348,41 @@ class HIV(BaseSTI):
         """
         Per-timestep HIV death probability for agents currently on ART.
 
-        rate = rel_death * art_death_rate * rel_death_unsupp? * rel_death_f? * age_mult * cd4_mult
+        Anchored to the off-ART CD4-based hazard (same cd4_death_bins/
+        cd4_death_rates/rel_death used by make_p_hiv_death, at the agent's
+        CURRENT CD4) rather than an independent baseline + CD4 table:
+
+            rate = off_art_rate(cd4) * rel_art_mortality[effective?] * age_mult(age) * rel_death_f?
+
+        Anchoring to off_art_rate guarantees, by construction, that on-ART
+        mortality can never exceed off-ART mortality at the same CD4 count
+        -- as long as rel_art_mortality_effective/unsupp times the largest
+        age/sex/duration multiplier stays <= 1 (true for the shipped
+        defaults; see the note by those pars in HIVPars).
         """
         male = self.sim.people.male[uids]
         effective = self.on_effective_art[uids]
         age = self.sim.people.age[uids]
         cd4 = self.cd4[uids]
 
-        rate = np.full(len(uids), self.pars.rel_death * self.pars.art_death_rate)
-        rate[~effective] *= self.pars.rel_death_unsupp
+        off_art_rate = self.pars.cd4_death_rates[np.digitize(cd4, self.pars.cd4_death_bins)] * self.pars.rel_death
+
+        rate = off_art_rate.copy()
+        rate[effective] *= self.pars.rel_art_mortality_effective
+        rate[~effective] *= self.pars.rel_art_mortality_unsupp
         rate[~male] *= self.pars.rel_death_f
+
+        age_mult = np.ones(len(uids))
         for age_lo, age_hi, mult in self.pars.art_death_age:
-            rate[(age >= age_lo) & (age < age_hi)] *= mult
-        for cd4_lo, cd4_hi, mult in self.pars.art_death_cd4:
-            rate[(cd4 >= cd4_lo) & (cd4 < cd4_hi)] *= mult
+            age_mult[(age >= age_lo) & (age < age_hi)] *= mult
+        rate = rate * age_mult
+
         if self.pars.art_death_dur is not None:
             dur_days = (self.ti - self.ti_art[uids]) * self.dt.days
+            dur_mult = np.ones(len(uids))
             for dur_lo, dur_hi, mult in self.pars.art_death_dur:
-                rate[(dur_days >= dur_lo) & (dur_days < dur_hi)] *= mult
+                dur_mult[(dur_days >= dur_lo) & (dur_days < dur_hi)] *= mult
+            rate = rate * dur_mult
 
         return ss.peryear(rate).to_prob(self.dt)
 

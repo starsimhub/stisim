@@ -107,15 +107,15 @@ HIV in STIsim is modeled with CD4-based disease progression through acute, laten
 
 ## On-ART mortality
 
-Agents on ART are not immune to HIV death. `get_art_mortality_hazard()` computes a per-timestep hazard as:
+Agents on ART are not immune to HIV death. `get_art_mortality_hazard()` computes a per-timestep hazard **anchored to the off-ART CD4-based hazard above** (same `cd4_death_bins`/`cd4_death_rates`/`rel_death`, looked up at the agent's CURRENT CD4 — not frozen at ART initiation, since STIsim already recomputes CD4 every timestep for the reconstitution curve):
 
 ```
-rate = rel_death * art_death_rate * rel_death_unsupp? * rel_death_f? * age_mult(age) * cd4_mult(cd4)
+rate = off_art_rate(cd4) * rel_art_mortality[effective?] * age_mult(age) * rel_death_f?
 ```
 
-where the `?` terms only apply for non-suppressive ART / female agents respectively, and `age_mult`/`cd4_mult` come from small `(lo, hi, mult)` bin lists (`HIVPars.art_death_age`, `HIVPars.art_death_cd4`), the same style as `rel_sus_age`. `cd4` is the agent's **current** CD4 (not frozen at ART initiation), since STIsim already recomputes CD4 every timestep for the reconstitution curve. `rel_death` is a global scalar that also multiplies the off-ART CD4-based hazard below, for overall calibration.
+`rel_art_mortality_effective`/`rel_art_mortality_unsupp` are the fraction of the off-ART rate retained on effective vs. non-suppressive ART; `age_mult` comes from a small `(lo, hi, mult)` bin list (`HIVPars.art_death_age`), the same style as `rel_sus_age`. Anchoring to `off_art_rate` (rather than an independent baseline + CD4 table, as in an earlier version of this function) guarantees, **by construction**, that on-ART mortality can never exceed off-ART mortality at the same CD4 count — as long as `rel_art_mortality_unsupp` times the largest age/sex/duration multiplier stays ≤ 1 (true for the shipped defaults: `0.7 * 1.32 = 0.924`). If you override `art_death_age`/`art_death_dur` with multipliers large enough to break that, the invariant can be violated again.
 
-These values were fit from EMOD-HIV's ARTMortalityTable (age x CD4 x duration-on-ART x sex x adherence), dropping the duration-on-ART axis: STIsim's own CD4-reconstitution curve already makes CD4 fall with time-on-ART, so it reproduces the *direction* of the duration effect, but only ~15-30% of its *magnitude* — this model understates excess mortality in the first 1-2 years on ART relative to the EMOD source data. Set `art_death_rate=0` to disable on-ART mortality entirely; set `rel_death_unsupp`/`rel_death_f=1` to remove the adherence/sex difference.
+These values were fit from EMOD-HIV's ARTMortalityTable (age x CD4 x duration-on-ART x sex x adherence), dropping the duration-on-ART axis: STIsim's own CD4-reconstitution curve already makes CD4 fall with time-on-ART, so it reproduces the *direction* of the duration effect but not its full *magnitude* — this model still understates excess mortality in the first 1-2 years on ART relative to the EMOD source data. Set `rel_art_mortality_effective`/`rel_art_mortality_unsupp=0` to disable on-ART mortality entirely; set them `=1` (with `rel_death_f=1`) to remove the ART survival benefit / sex difference.
 
 ### Notes on ART
 
@@ -181,11 +181,11 @@ These values were fit from EMOD-HIV's ARTMortalityTable (age x CD4 x duration-on
 | `p_effective_art` | bernoulli(1.0) | Probability a newly-initiated agent achieves viral suppression |
 | `art_cd4_growth` | 0.1 | Logistic growth rate for CD4 reconstitution on ART |
 | `dur_on_art` | lognorm(3 yr, 1.5 yr) | Duration on ART before dropout |
-| `art_death_rate` | 0.0186 | Annual on-ART mortality rate, male/suppressed/age<25/healthiest CD4 (see "On-ART mortality" above) |
-| `rel_death_unsupp` | 2.03 | Multiplier for non-suppressive ART |
-| `rel_death_f` | 0.74 | Multiplier for females, on ART |
+| `rel_art_mortality_effective` | 0.25 | Fraction of the off-ART CD4-based rate retained on effective ART (see "On-ART mortality" above) |
+| `rel_art_mortality_unsupp` | 0.7 | Fraction of the off-ART CD4-based rate retained on non-suppressive ART |
+| `rel_death_f` | 0.74 | Additional multiplier for females, on ART |
 | `art_death_age` | 4 age bins | `(age_lo, age_hi, mult)` list |
-| `art_death_cd4` | 6 CD4 bins | `(cd4_lo, cd4_hi, mult)` list |
+| `art_death_dur` | None | Optional `(dur_lo, dur_hi, mult)` list, days since `ti_art`; off by default |
 
 ### Care seeking
 
