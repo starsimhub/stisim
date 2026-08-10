@@ -79,9 +79,12 @@ class HIVPars(BaseSTIPars):
         # modeled as MORE dangerous than being off ART at the same CD4 count (see
         # get_art_mortality_hazard). Set rel_art_mortality_effective/unsupp=1 for no
         # ART survival benefit; =0 to disable on-ART mortality entirely.
-        self.rel_art_mortality_effective = 0.25  # Fraction of off-ART CD4-based mortality retained on effective (suppressive) ART
-        self.rel_art_mortality_unsupp = 0.7  # Fraction of off-ART CD4-based mortality retained on non-suppressive ART
-        self.rel_death_f = 0.74  # Additional multiplier for females, on ART
+        self.rel_art_mortality_effective = 0.25  # Fraction of off-ART CD4-based mortality retained on effective (suppressive) ART (both sexes)
+        self.rel_art_mortality_unsupp_m = 0.7  # Fraction of off-ART CD4-based mortality retained on non-suppressive ART, males
+        self.rel_art_mortality_unsupp_f = 0.35  # ...females. Chosen so the non-suppressive/effective MORTALITY RATIO is 2x
+        # higher for men than for women (0.7/0.25=2.8 vs. 0.35/0.25=1.4) -- rel_death_f below is a separate, adherence-independent
+        # sex multiplier that cancels out of this ratio, so it doesn't affect the 2x relationship.
+        self.rel_death_f = 0.74  # Additional multiplier for females, on ART (applies equally to effective and non-suppressive)
         self.art_death_age = [  # (age_lo, age_hi, mult), like rel_sus_age
             (0, 25, 1.0),
             (25, 35, 1.10),
@@ -89,12 +92,13 @@ class HIVPars(BaseSTIPars):
             (45, 125, 1.32),
         ]
         self.art_death_dur = None  # (dur_lo, dur_hi, mult) list, days since ti_art; None = no-op.
-        # NB: the defaults above are chosen so rel_art_mortality_unsupp * (largest
-        # art_death_age multiplier) = 0.7 * 1.32 = 0.924, comfortably under 1 -- i.e.
-        # the on-ART-never-exceeds-off-ART invariant holds for every age/sex/adherence
-        # combination as shipped. If you override art_death_age/art_death_dur (or add
-        # multipliers > 1), re-check that rel_art_mortality_unsupp times the product of
-        # your largest multipliers stays <= 1, or the invariant can break again for the
+        # NB: the defaults above are chosen so rel_art_mortality_unsupp_m (the larger of the
+        # two sex-specific values) * (largest art_death_age multiplier) = 0.7 * 1.32 = 0.924,
+        # comfortably under 1 -- i.e. the on-ART-never-exceeds-off-ART invariant holds for
+        # every age/sex/adherence combination as shipped. If you override
+        # rel_art_mortality_unsupp_m/f/art_death_age/art_death_dur (or add multipliers > 1),
+        # re-check that the largest rel_art_mortality_unsupp_* times the product of your
+        # largest multipliers stays <= 1, or the invariant can break again for the
         # highest-risk cells.
 
         self.update(kwargs)
@@ -352,13 +356,17 @@ class HIV(BaseSTI):
         cd4_death_rates/rel_death used by make_p_hiv_death, at the agent's
         CURRENT CD4) rather than an independent baseline + CD4 table:
 
-            rate = off_art_rate(cd4) * rel_art_mortality[effective?] * age_mult(age) * rel_death_f?
+            rate = off_art_rate(cd4) * rel_art_mortality[effective? / sex] * age_mult(age) * rel_death_f?
 
-        Anchoring to off_art_rate guarantees, by construction, that on-ART
-        mortality can never exceed off-ART mortality at the same CD4 count
-        -- as long as rel_art_mortality_effective/unsupp times the largest
-        age/sex/duration multiplier stays <= 1 (true for the shipped
-        defaults; see the note by those pars in HIVPars).
+        rel_art_mortality_unsupp is sex-specific (rel_art_mortality_unsupp_m/f)
+        so the non-suppressive/effective mortality RATIO can differ by sex
+        (currently 2x higher for men than women); rel_art_mortality_effective
+        and rel_death_f are not adherence-specific, so they don't affect that
+        ratio. Anchoring to off_art_rate guarantees, by construction, that
+        on-ART mortality can never exceed off-ART mortality at the same CD4
+        count -- as long as rel_art_mortality_effective/unsupp_m/unsupp_f
+        times the largest age/duration multiplier stays <= 1 (true for the
+        shipped defaults; see the note by those pars in HIVPars).
         """
         male = self.sim.people.male[uids]
         effective = self.on_effective_art[uids]
@@ -369,7 +377,8 @@ class HIV(BaseSTI):
 
         rate = off_art_rate.copy()
         rate[effective] *= self.pars.rel_art_mortality_effective
-        rate[~effective] *= self.pars.rel_art_mortality_unsupp
+        rate[~effective & male] *= self.pars.rel_art_mortality_unsupp_m
+        rate[~effective & ~male] *= self.pars.rel_art_mortality_unsupp_f
         rate[~male] *= self.pars.rel_death_f
 
         age_mult = np.ones(len(uids))
