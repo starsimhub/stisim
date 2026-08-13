@@ -98,77 +98,54 @@ HIV in STIsim is modeled with CD4-based disease progression through acute, laten
      │     50–200:    1.0%/yr                  │
      │     0–50:      5.0%/yr                  │
      │     ~0:       30.0%/yr                  │
-     │   (untreated agents only --             │
-     │    on-ART agents can also die here if   │
-     │    use_art_mortality_table=True, see    │
-     │    "ART mortality: two selectable       │
-     │    modes" below)                        │
+     │   (untreated agents; on-ART agents      │
+     │    also die here via a separate,        │
+     │    smaller age/sex/adherence/CD4-       │
+     │    stratified rate, see below)          │
      └─────────────────────────────────────────┘
 ```
 
-## ART mortality: two selectable modes
+## On-ART mortality
 
-This section zooms into a single box from the diagram above: **On ART**. In that diagram, "On ART" has exactly one way out — ART dropout, into Post-ART — because by default agents cannot die from HIV while `on_art = True`; only the off-ART CD4-based hazard (bottom box, "AIDS death") applies, and only once they've dropped out. `HIVPars.use_art_mortality_table` (default `False`) controls whether that's still true, i.e. whether "On ART" gains a **second** way out, straight to AIDS death, alongside the existing dropout path:
+Agents on ART are not immune to HIV death, and that risk is not uniform. **On-ART mortality depends on age, sex, CD4 count, and ART adherence status** (effective/virally-suppressive vs. non-suppressive ART), in the following directions:
 
-```
-                        ┌─────────────────┐
-                        │     On ART      │  (from the diagram above)
-                        └───┬─────────┬───┘
-             always: ART    │         │  only if use_art_mortality_table=True:
-             dropout        │         │  ARTMortalityTable-style hazard, every timestep
-                            ▼         ▼
-                  ┌─────────────┐ ┌─────────────┐
-                  │  Post-ART   │ │ AIDS death  │
-                  └─────────────┘ └─────────────┘
-```
+- **Lower CD4 → higher mortality.** On-ART mortality is anchored to the same off-ART CD4-based hazard used below (`cd4_death_bins`/`cd4_death_rates`), so it rises sharply as CD4 falls, exactly like the off-ART hazard does.
+- **Older age → higher mortality.** `art_death_age` scales mortality up with age, from 1.0x (under 25) to 1.32x (45+).
+- **Non-suppressive ART → higher mortality than effective ART.** Failing to achieve viral suppression carries a mortality penalty on top of the CD4-based risk.
+- **Men on non-suppressive ART → higher mortality than women on non-suppressive ART** Failing treatment carries a proportionally worse mortality penalty for men than for women. The non-suppressive/effective mortality ratio is roughly 2x higher for men than for women by default (2.8x vs. 1.4x).
 
-Everything else in the diagram above (Falling, Post-ART, the AIDS-death CD4 hazard table) is unaffected by this toggle either way — it only changes whether "On ART" itself is a possible source of death, and if so, how that risk is computed:
+`get_art_mortality_hazard()` computes a per-timestep hazard **bounded from above by the off-ART CD4-based hazard** for the same age/sex/cd4 count demographic subgroup:
 
 ```
-                     ┌─────────────────────────┐
-                     │  On ART (on_art = True) │
-                     └───────────┬─────────────┘
-                                 │
-                      use_art_mortality_table?
-              ┌──────────────────┴──────────────────┐
-              │                                     │
-            False (default)                         True
-              │                                     │
-              ▼                                     ▼
-┌─────────────────────────────┐       ┌────────────────────────────────────┐
-│ "Simple" mode               │       │ ARTMortalityTable mode             │
-│                             │       │                                    │
-│ Mortality = 0 while on ART. │       │ get_art_mortality_hazard():        │
-│ Only the off-ART CD4-based  │       │ look up annual hazard by:          │
-│ hazard (see diagram above)  │       │   - age          (4 bins)          │
-│ ever applies.               │       │   - sex          (m / f)           │
-└─────────────────────────────┘       │   - adherence    (effective /      │
-                                      │                   non-suppressive) │
-                                      │   - duration since ti_art          │
-                                      │                   (5 bins)         │
-                                      │   - CURRENT cd4  (7 bins)          │
-                                      └────────────────────────────────────┘
+rate = off_art_rate(cd4) * rel_art_mortality[effective? / sex] * age_mult(age) * rel_death_f?
 ```
+On-ART mortality is bounded by `off_art_rate` such that someone who is on ART will never have mortality hazard higher than if they were off ART.
 
-The ARTMortalityTable-mode lookup uses the agent's **current** CD4 count (not frozen at ART initiation) — since STIsim already recomputes CD4 every timestep for the reconstitution curve, there's no reason to freeze it the way EMOD does (see `art_implementation_notes.md` section 9 for the rationale). The default table's numbers (both effective- and non-suppressive-ART variants, by sex) ship from the EMOD-HIV campaign example in `HIVSim_notes/art.md`; pass your own `art_mortality_table` dict of the same shape to use different data. EMOD's "terminal failing window" (a temporary loss of transmission suppression in the months before an ART-mortality-table-scheduled death) is not modeled in either mode.
+`rel_art_mortality_effective` (default 0.25) is the fraction of off-ART mortality rate while on effective ART - a 75% mortality reduction relative to being off ART for both male and female. For individuals on non-suppressive ART, there is an additional parameter – `rel_art_mortality_unsupp_m` (default 0.7) for males or `rel_art_mortality_unsupp_f` (default 0.35) for females - which parameterizes how nonsuppressed males are at higher mortality risk than nonsuppressed females.
 
-### Notes on ART
+## On-ART transmission
+
+ART adherence status also affects transmission. Individuals who achieve viral load suppression on effective ART have lower transmission rates than individuals on non-suppressive ART. (That is to say, "undetectable = untransmissible.") 
+
+In `HIV.update_transmission()`, `rel_trans` for an on-ART agent ramps linearly (over `time_to_art_efficacy`, default 6 months, starting from `ti_art`) down to `1 - efficacy`, where `efficacy` is `effective_art_efficacy` (default 0.96, i.e. a 96% reduction — near-complete suppression) for virally-suppressed agents, or `nonsupp_art_efficacy` (default 0.35, i.e. only a 35% reduction) for non-suppressive agents. In other words: a non-suppressive agent remains substantially infectious despite nominally being "on ART," at roughly `0.65/0.04 ≈ 16x` the transmissibility of an effective-ART agent once both are fully ramped. This mirrors the mortality story above — both mortality and transmission risk are much closer to untreated levels for agents who fail to achieve viral suppression, even though they're recorded as being on ART.
+
+### Other Notes on ART
 
 - ART can be initiated from **any** infected stage (Acute, Latent, or Falling)
 - On initiation: all pending stage transitions (`ti_latent`, `ti_falling`, `ti_zero`) are cleared for future events
 - ART duration is drawn per-agent: `dur_on_art ~ LogNormal(3yr, 1.5yr) × rel_dur_on_art`
   - `rel_dur_on_art` is a calibrated scalar (range 1–20) that stretches mean duration
 - After dropout, `ti_zero` is redrawn based on CD4 at dropout and `cd4_potential`
-- **No age or sex dependence** in natural history or ART dropout timing. Mortality *while on ART* is age/sex-dependent only if `use_art_mortality_table=True` (see above); it's otherwise zero regardless of age or sex.
+- **No age or sex dependence** in natural history or ART dropout timing. Mortality and transmission *while on ART* are age/sex/CD4/adherence-dependent (see "On-ART mortality"/"On-ART transmission" above); other stages are not.
 
 ### What is not modeled
 
-- Viral load / viral suppression (ART = fully suppressed, binary)
-- Age-varying progression rates (natural history is age-independent regardless of ART-mortality mode)
-- Age/sex-varying mortality while on ART, unless `use_art_mortality_table=True` (see above)
-- Sex-varying natural history
+- Viral load / viral suppression (ART = binary effective/non-suppressive, not a continuous measure)
+- Age-varying progression rates (natural history is age-independent; only on-ART mortality varies by age)
+- Sex-varying natural history (only on-ART mortality varies by sex)
 - Re-infection or superinfection
-- EMOD's "terminal failing window" (see above)
+- Duration-since-ART-initiation effects on mortality beyond what's mediated through CD4 (see "On-ART mortality" above)
+- EMOD's "terminal failing window" (a temporary loss of transmission suppression in the months before an ART-mortality-table-scheduled death)
 
 ## Parameters
 
@@ -182,6 +159,9 @@ The ARTMortalityTable-mode lookup uses the agent's **current** CD4 count (not fr
 | `dur_latent` | lognorm(10 yr, 3 yr) | Duration of latent infection (untreated) |
 | `dur_falling` | lognorm(3 yr, 1 yr) | Duration of late-stage CD4 decline |
 | `include_aids_deaths` | True | Whether to include AIDS mortality |
+| `cd4_death_bins` | [1000,500,350,200,50,0] | Off-ART CD4-stratified mortality bin edges (descending) |
+| `cd4_death_rates` | [.003,.003,.005,.01,.05,.30] | Off-ART annual mortality rate per CD4 bin |
+| `rel_death` | 1.0 | Scales all HIV death probabilities, off- and on-ART |
 
 ### Transmission
 
@@ -207,12 +187,18 @@ The ARTMortalityTable-mode lookup uses the agent's **current** CD4 count (not fr
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `art_efficacy` | 0.96 | ART efficacy at reducing transmission |
+| `effective_art_efficacy` | 0.96 | Transmission efficacy of effective (virally-suppressive) ART |
+| `nonsupp_art_efficacy` | 0.35 | Transmission efficacy of non-suppressive ART |
 | `time_to_art_efficacy` | 6 months | Time to reach full ART efficacy (linear ramp) |
+| `p_effective_art` | bernoulli(1.0) | Probability a newly-initiated agent achieves viral suppression |
 | `art_cd4_growth` | 0.1 | Logistic growth rate for CD4 reconstitution on ART |
 | `dur_on_art` | lognorm(3 yr, 1.5 yr) | Duration on ART before dropout |
-| `use_art_mortality_table` | False | If True, apply the ARTMortalityTable-style age/sex/adherence/duration-stratified hazard to on-ART agents instead of zero mortality (see "ART mortality: two selectable modes" above) |
-| `art_mortality_table` | EMOD example table | Age/sex/adherence/duration/CD4-stratified annual hazard table used when `use_art_mortality_table=True`; pass your own dict of the same shape to override |
+| `rel_art_mortality_effective` | 0.25 | Fraction of the off-ART CD4-based rate retained on effective ART, both sexes (see "On-ART mortality" above) |
+| `rel_art_mortality_unsupp_m` | 0.7 | Fraction of the off-ART CD4-based rate retained on non-suppressive ART, males |
+| `rel_art_mortality_unsupp_f` | 0.35 | ...females — chosen so the non-suppressive/effective mortality ratio is ~2x higher for men (2.8x) than women (1.4x) |
+| `rel_death_f` | 0.74 | Additional multiplier for females, on ART (applies equally to effective and non-suppressive; doesn't affect the ratio above) |
+| `art_death_age` | 4 age bins | `(age_lo, age_hi, mult)` list |
+| `art_death_dur` | None | Optional `(dur_lo, dur_hi, mult)` list, days since `ti_art`; off by default |
 
 ### Care seeking
 
