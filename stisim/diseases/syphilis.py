@@ -449,7 +449,7 @@ class Syphilis(BaseSTI):
             self._set_rash_visible(secondary_from_primary.uids)
 
         # Secondary reactivation from latent
-        secondary_from_latent = self.latent & (self.ti_latent >= ti) & (self.ti_secondary <= ti)
+        secondary_from_latent = self.latent & (self.ti_secondary <= ti)
         if len(secondary_from_latent.uids) > 0:
             self.secondary[secondary_from_latent] = True
             self.latent[secondary_from_latent] = False
