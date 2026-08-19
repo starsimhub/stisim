@@ -23,6 +23,7 @@ sim_base = sti.Sim(diseases='ng', n_agents=2000, start=2010, stop=2030)
 sim_base.run(verbose=0)
 
 # With treatment: symptomatic care-seekers get treated
+# ti_seeks_care is the time when an agent seeks care
 ng = sti.Gonorrhea(init_prev=0.01)
 ng_tx = sti.GonorrheaTreatment(
     name='ng_tx',
@@ -40,7 +41,8 @@ ax.set_xlabel('Year')
 ax.set_ylabel('NG prevalence')
 ax.set_title('Effect of treatment on gonorrhea')
 ax.legend()
-fig
+
+plt.show()
 ```
 
 ## HIV testing and ART
@@ -96,7 +98,7 @@ axes[2].set_ylabel('Number on ART')
 axes[2].set_title('ART uptake')
 
 plt.tight_layout()
-fig
+plt.show()
 ```
 
 ## Targeting interventions

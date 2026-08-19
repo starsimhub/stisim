@@ -2,6 +2,49 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.5.11 (TBC)
+
+## Version 1.5.10 (2026-07-24)
+
+### Bug fixes
+- **`HIV.stop_art` now actually sets `post_art=True`.** The `post_art` `BoolState` was defined but only ever cleared to `False` in `clear_infection`, so downstream cascade-stage attribution (e.g. transmission-source-by-ART-status analyzers) couldn't distinguish "never on ART" from "on ART, now interrupted". `start_art` also clears `post_art` when re-enrolling a previously-interrupted agent. (#544, #541)
+- **`STITest`/`SyphTest` no longer crash with the default `eligibility=None`.** `get_testers` treated `None` as a non-callable UID list instead of falling back to `check_eligibility()` (which already handles `None` → everyone), so any test intervention without an explicit `eligibility` function crashed on its first step. (#537, #562)
+- Syphilis: fix `new_nnds` / `new_stillborns` (and derived `new_congenital_deaths` / `cum_congenital_deaths`) always reading 0 — `step_state` cleared `ti_nnd` / `ti_stillborn` to NaN before `update_results` could match them against the current timestep. Counts are now stashed before clearing, mirroring the existing `_new_congenital_count` pattern. (#560)
+- `ANCTest`: fixed a crash under current starsim (`ss.dur(1, 'month')` → `'months'`) and a bug where `active_diseases` was resolved after `super().init_pre(sim)` had already called `init_results()`, so per-disease results (`n_<disease>_positive`) were never created. `ANCTest` had zero test coverage before this. (#324, #546)
+
+### Diseases
+- Syphilis: rebalance the `mat_active` (primary/secondary maternal infection) birth-outcome distribution — miscarriage probability raised (0.10→0.25 early, 0.20→0.25 late) and neonatal death lowered (0.25→0.05) — to better match Gomez 2013 / Cooper 2016, which put most adverse outcomes earlier in pregnancy rather than post-partum. (#543, #541)
+- Syphilis: expose per-fetus `mtct_from_{mat_active,early,late}` flags recording the mother's disease stage at the moment of mother-to-child transmission, so downstream analyzers can bucket congenital outcomes by maternal stage without reconstructing mother/fetus linkage. (#548)
+
+### Demographics
+- `sti.Migration` gains `rel_migration` (default 1), analogous to `ss.Deaths.rel_death`: scales both immigration and emigration each timestep. (#542, #545)
+
+### Documentation
+- Fill in the "Antenatal and infant screening (PMTCT)" stub in the interventions user guide (ANC → ART → newborn-test cascade, `maternal_care_scale` cross-reference) and add a new gallery example, `pmtct_scenario.qmd`, comparing MTCT infections and pregnant-women diagnosis rates with/without ANC testing. (#324, #546)
+- Document the `risk_group`/`sex`/`sw`-stratified DataFrame format accepted by `SyphTest.test_prob_data`. (#537, #562)
+
+### Tests
+- Add `tests/test_anc_test.py` (smoke test, immediate-ART-scheduling invariant, newborn-test scheduling) and `tests/test_sti_interventions.py` (default-eligibility regression, stratified `test_prob_data`) — both interventions had zero coverage before this.
+- Add `tests/test_demographics.py` covering `rel_migration`.
+
+## Version 1.5.9 (2026-07-13)
+
+### Bug fixes
+- **`VMMC` now hits its coverage as a prevalence (stock) target, not a per-step hazard.** The 1.5.6 rewrite computed the per-timestep target over the *uncircumcised* pool and only in aggregate, so `coverage` behaved as a per-step uptake rate on the remaining-uncircumcised men: realised circumcision coverage ratcheted toward ~100% regardless of the target, and the age/sex stratification in the input data was ignored (all ages converged to the same level). `VMMC.step()` now tops up to `coverage × (all eligible males)` per `(age, sex)` stratum each step — the denominator includes already-circumcised men, matching cross-sectional survey definitions — and never removes (circumcision is irreversible). Realised coverage converges to the target and preserves the input age gradient. Models calibrated against 1.5.6–1.5.8 VMMC behaviour will need recalibration. (#535)
+- **`HIV.set_prognoses` now calls `super()`, fixing `ss.infection_log()` for HIV.** HIV overrode `Disease.set_prognoses()` entirely for its natural-history setup and never called `super()`, so the infection log's append hook never fired for HIV specifically (other diseases such as SEIS-based Gonorrhea were unaffected). Infection log entries for a 1000-agent HIV sim went from 0 to 259 after the fix, restoring source/target transmission tracking (e.g. attributing onward transmission to a source subgroup). (#536)
+- `GonorrheaTreatment.set_treat_eff` now defends against NaN `rel_treat`: a small fraction of agents allocated but inactive at `sim.init` keep an uninitialized slot and read back as NaN when reactivated, which previously propagated to `treat_eff` and made those agents always fail treatment. NaN entries are now replaced with the declared default (1) before computing `treat_eff`. (#528)
+- `art_coverage` analyzer plotting no longer produces two identical plots. (#530)
+
+### Tests
+- Add `test_vmmc_hits_target`, asserting realised male circumcision prevalence converges to the coverage target. The existing `test_vmmc_specs` only checked that some circumcisions occurred, which is why the overshoot regression went undetected.
+- Regenerate `baseline.yaml` / `benchmark.yaml` for starsim 3.5.1 (CRN hash-based random number generation changed the exact values of agent-indexed draws; results are statistically equivalent per starsim's changelog). `test_shorter_sw` now uses `rand_seed=2` — `rand_seed=1` drew zero FSW-sourced HIV transmissions in both arms from the small FSW pool (~9/2000 agents) under the new CRN scheme, making the comparison degenerate.
+
+### Diseases
+- Syphilis: clear `early` / `late` sub-flags when a mother exits the latent state (reactivation to secondary, or progression to tertiary). Previously these BoolStates persisted, so `set_congenital`'s outcome loop `for state in ['mat_active', 'early', 'late']` would overwrite the correct `mat_active` draw with the (now-stale) `early` / `late` table draw — biasing MTCT outcomes for reactivating mothers toward `normal` (the late table is 80% normal vs mat_active's 25%). Empirical impact in a hot-seed ANC screening sim: untreated-secondary MTCTs read 67% normal instead of the expected 25%. (#538)
+
+### Diseases
+- Syphilis: fix `new_nnds` and `new_stillborns` (and the derived `new_congenital_deaths` / `cum_congenital_deaths`) always reading 0. `step_state` cleared `ti_nnd` / `ti_stillborn` to `nan` when scheduling the deaths, so the `== ti` check in `update_results` (which runs after) never matched. Mirror the existing `_new_congenital_count` pattern: stash the counts before clearing and read from the stash in `update_results`.
+
 ## Version 1.5.8 (2026-06-25)
 
 ### Logistics

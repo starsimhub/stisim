@@ -140,7 +140,6 @@ plt.tight_layout()
 fig
 ```
 
-<a id="custom-results"></a>
 ## Custom results
 
 STIsim's built-in results cover the most common quantities (prevalence, incidence, counts by sex and age group). But you'll often need something specific to your analysis -- coinfection prevalence in a subgroup, treatment coverage by pathway, network contact rates, etc.

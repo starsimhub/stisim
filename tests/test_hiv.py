@@ -5,28 +5,21 @@ VMMC, diagnosis timing, and natural history progression.
 All HIV-specific biological/clinical validation lives here. Intervention
 mechanics (coverage formats, stratification) live in test_hiv_interventions.py.
 """
-
-import matplotlib.pyplot as plt
-import pytest
-import sciris as sc
 import sys
-
 from itertools import chain
-from pathlib import Path
-from statistics import mean
+import pytest
+
+import numpy as np
+import sciris as sc
+import matplotlib.pyplot as plt
 
 import starsim as ss
 import stisim as sti
 import hivsim
 
-from stisim import ART, HIVTest, VMMC
-
-tests_directory = Path(__file__).resolve().parent
-sys.path.append(str(tests_directory))
-
-from hiv_natural_history_analyzers import CD4ByUIDTracker, RelativeInfectivityTracker, TimeToAIDSTracker, \
-    SexualTransmissionCountTracker, MTCTransmissionCountTracker, RelativeInfectivityByUIDTracker
-
+# The analyzers and testlib helpers live alongside this file
+sys.path.append(str(sc.thisdir(__file__)))
+import hiv_natural_history_analyzers as nha
 from testlib import build_testing_sim
 
 
@@ -34,16 +27,28 @@ verbose = False
 do_plot = False
 sc.options(interactive=False)
 
+# Standard population sizes, chosen so each test's assertions fail <5% of the time
+# from stochastic noise while keeping runtimes small.
+tiny_pop   = 10
+small_pop  = 100
+medium_pop = 1000
+large_pop  = 4000
+
 
 @sc.timer()
 def test_cd4_counts_decline_untreated():
     sc.heading("Ensuring CD4 counts decline without treatment")
 
-    analyzer = CD4ByUIDTracker(subpop=CD4ByUIDTracker.INFECTED)
-    sim = build_testing_sim(analyzers=[analyzer],
+    # With no networks the only infections come from init_prev, so the default
+    # 0.05 left a 5-agent sim with (usually) zero infections. Seed everyone
+    # (init_prev=1.0) so all tiny_pop agents are infected and at least one is
+    # guaranteed to show a CD4 decline over the run.
+    analyzer = nha.CD4ByUIDTracker(subpop=nha.CD4ByUIDTracker.INFECTED)
+    hiv = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=1.0)
+    sim = build_testing_sim(analyzers=[analyzer], diseases=[hiv],
                             maternal_network=None, prior_network=None, sexual_network=None,
                             pregnancy=None, death=None,
-                            n_agents=100, duration=5)
+                            n_agents=tiny_pop, duration=5)
     sim.run()
     results = sim.results[analyzer.name][analyzer.result_name]
 
@@ -74,7 +79,7 @@ def test_time_from_infection_to_aids_untreated():
     # spread of ~12% across seeds — far too noisy for 3% tolerance. 4000 × 15 yields
     # ~900 samples and means within ~0.7% across seeds; the fixed rand_seed makes the
     # test deterministic.
-    sim = build_testing_sim(analyzers=[TimeToAIDSTracker()], n_agents=4000, duration=15)
+    sim = build_testing_sim(analyzers=[nha.TimeToAIDSTracker()], n_agents=large_pop, duration=15)
     sim.pars.rand_seed = 0
     sim.run()
     results = sim.results
@@ -83,7 +88,7 @@ def test_time_from_infection_to_aids_untreated():
     # ensure we have at least ONE agent that progressed to AIDS before computing and checking mean
     assert len(times_to_aids) > 0, "Failed to generate at least one HIV infection for testing"
 
-    mean_time = mean(times_to_aids)
+    mean_time = np.mean(times_to_aids)
     expected_mean = 121.02083587646484  # months, from 10k agents, 25 years 5% prevalence
     if verbose:
         print(f"{len(times_to_aids)} agents progressed to AIDS.")
@@ -101,7 +106,7 @@ def test_time_from_infection_to_aids_untreated():
 def test_latent_transmission_ratio_is_1():
     sc.heading("Ensuring latent HIV transmission ratio is always 1.")
 
-    sim = build_testing_sim(analyzers=[RelativeInfectivityTracker(states=['latent'])], n_agents=100, duration=1)
+    sim = build_testing_sim(analyzers=[nha.RelativeInfectivityTracker(states=['latent'])], n_agents=small_pop, duration=1)
     sim.run()
     latent_ratios = sim.results['relativeinfectivitytracker']['hiv.latent_rel_trans']
     latent_ratios = list(set(chain(*latent_ratios)))
@@ -116,7 +121,7 @@ def test_latent_transmission_ratio_is_1():
 def test_acute_transmission_higher_than_latent():
     sc.heading("Checking HIV transmission ratio acute > latent.")
 
-    sim = build_testing_sim(analyzers=[RelativeInfectivityTracker(states=['acute'])], n_agents=1000, duration=3)
+    sim = build_testing_sim(analyzers=[nha.RelativeInfectivityTracker(states=['acute'])], n_agents=medium_pop, duration=3)
     sim.run()
     acute_ratios = sim.results['relativeinfectivitytracker']['hiv.acute_rel_trans']
     acute_ratios = list(set(chain(*acute_ratios)))
@@ -131,7 +136,9 @@ def test_acute_transmission_higher_than_latent():
 def test_aids_transmission_is_higher_than_latent():
     sc.heading("Checking HIV transmission ratio AIDS > latent.")
 
-    sim = build_testing_sim(analyzers=[RelativeInfectivityTracker(states=['aids'])], n_agents=500, duration=10)
+    # 25 agents frequently produced no AIDS-stage transmission at all; small_pop
+    # sustains the epidemic long enough for agents to progress to AIDS.
+    sim = build_testing_sim(analyzers=[nha.RelativeInfectivityTracker(states=['aids'])], n_agents=small_pop, duration=10)
     sim.run()
     aids_ratios = sim.results['relativeinfectivitytracker']['hiv.aids_rel_trans']
     aids_ratios = list(set(chain(*aids_ratios)))
@@ -146,8 +153,8 @@ def test_aids_transmission_is_higher_than_latent():
 def test_no_sexual_transmission_without_network():
     sc.heading("Ensuring no sexual transmission if there is no sexual network.")
 
-    analyzer = SexualTransmissionCountTracker()
-    sim = build_testing_sim(analyzers=[analyzer], sexual_network=None, n_agents=100, duration=1)
+    analyzer = nha.SexualTransmissionCountTracker()
+    sim = build_testing_sim(analyzers=[analyzer], sexual_network=None, n_agents=small_pop, duration=1)
     sim.run()
     n_hiv_transmissions = sum(sim.results[analyzer.name][analyzer.result_name])
 
@@ -158,9 +165,9 @@ def test_no_sexual_transmission_without_network():
 def _run_beta_test(baseline_m2f, baseline_m2c, mode: str, multiplier=2, result_tolerance=0.16,
                    n_agents=50000, duration=1, init_prev=0.2, fertility=10, rand_seed=1):
     if mode == 'sexual':
-        analyzer = SexualTransmissionCountTracker()
+        analyzer = nha.SexualTransmissionCountTracker()
     elif mode == 'mtc':
-        analyzer = MTCTransmissionCountTracker()
+        analyzer = nha.MTCTransmissionCountTracker()
     else:
         raise ValueError(f'Unknown beta test mode: {mode}')
 
@@ -175,9 +182,9 @@ def _run_beta_test(baseline_m2f, baseline_m2c, mode: str, multiplier=2, result_t
     sim_baseline.label = 'baseline'
 
     if mode == 'sexual':
-        analyzer_test = SexualTransmissionCountTracker()
+        analyzer_test = nha.SexualTransmissionCountTracker()
     else:
-        analyzer_test = MTCTransmissionCountTracker()
+        analyzer_test = nha.MTCTransmissionCountTracker()
 
     test_hiv = sti.HIV(beta_m2f=multiplier * baseline_m2f, beta_m2c=multiplier * baseline_m2c, init_prev=init_prev)
     sim_test = build_testing_sim(diseases=[test_hiv], pregnancy=ss.Pregnancy(fertility_rate=fertility),
@@ -216,7 +223,7 @@ def test_doubling_hiv_maternal_beta_doubles_transmissions():
 
     # High fertility + prevalence to generate enough births/transmissions with fewer agents
     _run_beta_test(baseline_m2f=0, baseline_m2c=0.0025, mode='mtc', multiplier=2, fertility=1000,
-                   duration=10, n_agents=1000, init_prev=1.0, result_tolerance=0.25)
+                   duration=10, n_agents=medium_pop, init_prev=1.0, result_tolerance=0.25)
 
 
 @sc.timer()
@@ -225,7 +232,7 @@ def test_mtct(do_plot=do_plot):
     sc.heading('Testing MTCT (prenatal + postnatal)...')
 
     # High fertility + high breastfeeding beta to ensure both transmission routes
-    sim = hivsim.demo('simple', run=False, plot=False, n_agents=1_000, dur=10,
+    sim = hivsim.demo('simple', run=False, plot=False, n_agents=medium_pop, dur=10,
                       beta_breastfeed=ss.permonth(0.1), init_prev=0.3)
     sim.run()
 
@@ -325,16 +332,16 @@ def test_cd4_rises_on_ART():
     sc.heading("Ensuring that agent CD4 levels rise when on ART (monotonically in a short test)")
 
     # To keep test small, infect everyone with HIV and put everyone on ART immediately
-    analyzer = CD4ByUIDTracker(subpop=CD4ByUIDTracker.ONART)
-    test_intervention = HIVTest(test_prob_data=1.0, dt_scale=False)  # everyone tests, first timestep
-    initial_art_intervention = ART(art_initiation=1.0)  # everyone diagnosed starts ART.
+    analyzer = nha.CD4ByUIDTracker(subpop=nha.CD4ByUIDTracker.ONART)
+    test_intervention = sti.HIVTest(test_prob_data=1.0, dt_scale=False)  # everyone tests, first timestep
+    initial_art_intervention = sti.ART(art_initiation=1.0)  # everyone diagnosed starts ART.
 
     duration = 1  # years
     hiv = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=1.0, dur_on_art=ss.constant(v=ss.years(duration)))
     sim = build_testing_sim(analyzers=[analyzer], diseases=[hiv],
                             death=None, maternal_network=None, prior_network=None, sexual_network=None,
                             interventions=[test_intervention, initial_art_intervention],
-                            n_agents=5, duration=duration)
+                            n_agents=tiny_pop, duration=duration)
     sim.run()
     cd4_ts_by_uid = sim.results[analyzer.name][analyzer.result_name]
 
@@ -353,8 +360,8 @@ def test_cd4_rises_on_ART():
 def test_art_increases_longevity():
     sc.heading("Ensuring that untreated HIV always kills and ART can prevent this (to some degree).")
 
-    test_intervention = HIVTest(test_prob_data=1, dt_scale=False)  # everyone tests first timestep
-    initial_art_intervention = ART(art_initiation=0.5)  # 50% of diagnosed agents uptake ART
+    test_intervention = sti.HIVTest(test_prob_data=1, dt_scale=False)  # everyone tests first timestep
+    initial_art_intervention = sti.ART(art_initiation=0.5)  # 50% of diagnosed agents uptake ART
     interventions = [test_intervention, initial_art_intervention]
 
     # infect everyone immediately
@@ -363,7 +370,7 @@ def test_art_increases_longevity():
     duration = 20  # years by default
     disease = sti.HIV(init_prev=1.0, dur_on_art=ss.constant(v=ss.years(duration*100)))
 
-    sim = build_testing_sim(n_agents=10, duration=duration, pregnancy=None, death=None,
+    sim = build_testing_sim(n_agents=tiny_pop, duration=duration, pregnancy=None, death=None,
                             interventions=interventions, diseases=[disease])
     sim.run()
 
@@ -389,7 +396,7 @@ def test_no_hiv_with_no_outbreaks():
     sc.heading("Ensuring that HIV infections remains zero without any seeding infections/events.")
 
     disease = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=0)
-    sim = build_testing_sim(n_agents=1000, duration=3, diseases=[disease])
+    sim = build_testing_sim(n_agents=medium_pop, duration=3, diseases=[disease])
     sim.run()
 
     # HIV infections should be 0 at all timesteps
@@ -408,9 +415,9 @@ def test_cd4_falls_after_ART_dropout():
 
     # To keep test small, infect everyone with HIV and put everyone on ART immediately.
     # ART will be given to the agents for half of the simulation duration, after which all discontinue.
-    analyzer = CD4ByUIDTracker(subpop=CD4ByUIDTracker.INFECTED)
-    test_intervention = HIVTest(test_prob_data=1.0, dt_scale=False)  # everyone tests, first timestep
-    initial_art_intervention = ART(art_initiation=1.0)  # everyone diagnosed starts ART.
+    analyzer = nha.CD4ByUIDTracker(subpop=nha.CD4ByUIDTracker.INFECTED)
+    test_intervention = sti.HIVTest(test_prob_data=1.0, dt_scale=False)  # everyone tests, first timestep
+    initial_art_intervention = sti.ART(art_initiation=1.0)  # everyone diagnosed starts ART.
 
     duration = 2  # years
     art_duration = ss.years(duration / 2)
@@ -418,7 +425,7 @@ def test_cd4_falls_after_ART_dropout():
     sim = build_testing_sim(analyzers=[analyzer], diseases=[hiv],
                             death=None, maternal_network=None, prior_network=None, sexual_network=None,
                             interventions=[test_intervention, initial_art_intervention],
-                            n_agents=5, duration=duration)
+                            n_agents=tiny_pop, duration=duration)
     sim.run()
     cd4_ts_by_uid = sim.results[analyzer.name][analyzer.result_name]
 
@@ -445,9 +452,9 @@ def test_rel_trans_rises_after_ART_dropout():
 
     # To keep test small, infect everyone with HIV and put everyone on ART immediately.
     # ART will be given to the agents for half of the simulation duration, after which all discontinue.
-    analyzer = RelativeInfectivityByUIDTracker(subpop=RelativeInfectivityByUIDTracker.INFECTED)
-    test_intervention = HIVTest(test_prob_data=1.0, dt_scale=False)  # everyone tests, first timestep
-    initial_art_intervention = ART(art_initiation=1.0)  # everyone diagnosed starts ART.
+    analyzer = nha.RelativeInfectivityByUIDTracker(subpop=nha.RelativeInfectivityByUIDTracker.INFECTED)
+    test_intervention = sti.HIVTest(test_prob_data=1.0, dt_scale=False)  # everyone tests, first timestep
+    initial_art_intervention = sti.ART(art_initiation=1.0)  # everyone diagnosed starts ART.
 
     duration = 1  # years
     art_duration = ss.years(duration / 2)
@@ -455,7 +462,7 @@ def test_rel_trans_rises_after_ART_dropout():
     sim = build_testing_sim(analyzers=[analyzer], diseases=[hiv],
                             death=None, maternal_network=None, prior_network=None, sexual_network=None,
                             interventions=[test_intervention, initial_art_intervention],
-                            n_agents=5, duration=duration)
+                            n_agents=tiny_pop, duration=duration)
     sim.run()
     rel_trans_by_uid = sim.results[analyzer.name][analyzer.result_name]
 
@@ -482,11 +489,11 @@ def test_increased_testing_speeds_diagnosis():
     sc.heading("Ensuring that increased testing diagnoses agents more quickly (short test to prevent conflating HIV deaths)")
 
     base_prob = 0.05
-    base_testing = HIVTest(test_prob_data=base_prob, dt_scale=False)
+    base_testing = sti.HIVTest(test_prob_data=base_prob, dt_scale=False)
     higher_prob = base_prob * 2
-    higher_testing = HIVTest(test_prob_data=higher_prob, dt_scale=False)
+    higher_testing = sti.HIVTest(test_prob_data=higher_prob, dt_scale=False)
 
-    n_agents = 100
+    n_agents = small_pop
     duration = 1  # years by default
     disease = sti.HIV(init_prev=1.0)
 
@@ -525,18 +532,18 @@ def test_increased_testing_speeds_diagnosis():
 def test_vmmc_reduces_male_infections():
     sc.heading("Ensuring that VMMC intervention reduces cumulative infections in males + eff_circ works properly.")
 
-    n_agents = 1000
+    n_agents = medium_pop
     duration = 1  # years
 
     # base, no VMMC comparison sim
     sim_baseline = build_testing_sim(n_agents=n_agents, duration=duration, pregnancy=None, death=None)
 
     # applying VMMC to all males
-    vmmc = VMMC(coverage=1.0)
+    vmmc = sti.VMMC(coverage=1.0)
     sim_vmmc = build_testing_sim(n_agents=n_agents, duration=duration, interventions=[vmmc], pregnancy=None, death=None)
 
     # applying more effective VMMC to all males
-    vmmc_eff = VMMC(coverage=1.0, eff_circ=0.8)
+    vmmc_eff = sti.VMMC(coverage=1.0, eff_circ=0.8)
     sim_vmmc_eff = build_testing_sim(n_agents=n_agents, duration=duration, interventions=[vmmc_eff], pregnancy=None, death=None)
 
     sims = [sim_baseline, sim_vmmc, sim_vmmc_eff]
@@ -565,8 +572,8 @@ def test_vmmc_reduces_male_infections():
 def test_vmmc_is_male_only():
     sc.heading("Ensuring that VMMC intervention does not circumcise females.")
 
-    vmmc = VMMC(coverage=1.0)  # targeting all males
-    sim = build_testing_sim(n_agents=10, duration=1, interventions=[vmmc], pregnancy=None, death=None)
+    vmmc = sti.VMMC(coverage=1.0)  # targeting all males
+    sim = build_testing_sim(n_agents=tiny_pop, duration=1, interventions=[vmmc], pregnancy=None, death=None)
     sim.run()
 
     n_vmmc_female = len((sim.people.vmmc.circumcised & sim.people.female).uids)
@@ -586,15 +593,18 @@ def test_vmmc_targeting():
     # Target all males [20, 25) — eligibility is checked dynamically at each timestep,
     # so agents who turn 20 during the sim will also be circumcised
     vmmc_eligible = lambda sim: sim.people.male & (sim.people.age >= min_age) & (sim.people.age < max_age)
-    vmmc = VMMC(coverage=1.0, eligibility=vmmc_eligible)
+    vmmc = sti.VMMC(coverage=1.0, eligibility=vmmc_eligible)
 
-    sim = build_testing_sim(n_agents=1000, duration=duration, interventions=[vmmc], pregnancy=None, death=None)
+    sim = build_testing_sim(n_agents=medium_pop, duration=duration, interventions=[vmmc], pregnancy=None, death=None)
     sim.run()
 
     people = sim.people
     # Agents eligible at any point during the sim had ages in [min_age, max_age) at some timestep,
-    # so by the end their ages span [min_age, max_age + duration)
-    correct_ages = (people.age >= min_age) & (people.age < (max_age + duration))
+    # so by the end their ages span [min_age, max_age + total aging). Over the run agents age
+    # duration + one dt (Starsim applies an aging step each timestep, including the final one),
+    # so an agent circumcised just under max_age can finish just above max_age + duration.
+    max_aging = duration + float(sim.t.dt)  # years of aging accrued over the whole sim
+    correct_ages = (people.age >= min_age) & (people.age < (max_age + max_aging))
 
     n_incorrect_circ = len(( people.vmmc.circumcised    & (~correct_ages)            ).uids)
     n_correct_circ =   len(( people.vmmc.circumcised    & correct_ages    & people.male ).uids)
@@ -627,7 +637,7 @@ def test_vmmc_targeting():
 
 
 @sc.timer()
-def test_par_ranges(n_agents=1000):
+def test_par_ranges(n_agents=medium_pop):
     """
     Test that HIV parameters affect dynamics in the expected direction.
 
@@ -672,7 +682,6 @@ def test_rel_sus_age(n_agents=3000):
     Higher rel_sus_age multiplier for young women should produce more infections
     in that group relative to a sim with uniform susceptibility.
     """
-    import numpy as np
     hiv_age = sti.HIV(
         rel_sus_age=[(15, 25, 'f', 3.0), (25, np.inf, 'f', 1.0)],
         init_prev=0.1,
@@ -727,8 +736,6 @@ def test_mtct_rates_in_range():
     Uses analytical calculation from beta values, not simulation, to avoid
     stochastic noise while still validating the parameterisation.
     """
-    import numpy as np
-
     pars = sti.HIVPars()
     beta_prenatal  = pars.beta_m2c.value        # rate per month (ss.permonth object)
     beta_postnatal = pars.beta_breastfeed.value  # rate per month

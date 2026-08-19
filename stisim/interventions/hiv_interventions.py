@@ -566,34 +566,57 @@ class VMMC(ss.Intervention):
         )
         return
 
-    def _get_n_to_circ(self, eligible_uids):
-        """Get the target number of circumcisions this timestep."""
-        return compute_coverage_target(
-            self.coverage, self.coverage_format, self.age_bins, self.sex_keys,
-            self.ti, eligible_uids, self.sim,
-        )
+    def _circumcise_to_target(self, pool, target):
+        """Top ``pool`` (a male BoolArr) up to ``target`` circumcised, choosing
+        the highest-willingness uncircumcised men. Never removes (circumcision
+        is irreversible). Returns the number of new circumcisions."""
+        n_add = int(target) - (pool & self.circumcised).count()
+        if n_add <= 0:
+            return 0
+        candidates = (pool & ~self.circumcised).uids
+        if len(candidates) == 0:
+            return 0
+        n_add = min(n_add, len(candidates))
+        new_circs = candidates[np.argsort(-self.willingness[candidates])[:n_add]]
+        self.circumcised[new_circs] = True
+        self.ti_circumcised[new_circs] = self.ti
+        return len(new_circs)
 
     def step(self):
         sim = self.sim
-        
-        # Get eligible people by combining user-specified eligibility function with male & uncircumcised
-        eligible_uids = self.check_eligibility()
-        eligible_uids = ((sim.people.male & ~self.circumcised) & eligible_uids).uids
+        ppl = sim.people
 
-        n_to_circ = self._get_n_to_circ(eligible_uids)
+        # Coverage is a circumcision *prevalence* (stock) target, matching
+        # cross-sectional survey data: the denominator is ALL eligible males
+        # (already-circumcised included), and each step we top up to the target
+        # rather than circumcising a fraction of the remaining uncircumcised
+        # (which would ratchet coverage toward 100% regardless of the target).
+        # Stratified coverage is corrected per (age, sex) stratum so age/sex
+        # differentials in the input data are preserved.
+        pool = (ppl.male & ppl.alive) & self.check_eligibility()
 
-        if n_to_circ is not None and n_to_circ > 0:
-            weights = self.willingness[eligible_uids]
-            choices = np.argsort(-weights)[:n_to_circ]
-            new_circs = eligible_uids[choices]
+        n_new = 0
+        if self.coverage is not None:
+            stratum_targets = compute_stratum_targets(
+                self.coverage, self.coverage_format, self.age_bins, self.sex_keys,
+                self.ti, pool.uids, sim,
+            )
+            if stratum_targets is not None:
+                for key, target in stratum_targets.items():
+                    ab, sex = (key[0], key[1]) if isinstance(key, tuple) else (key, 1)
+                    n_new += self._circumcise_to_target(pool & age_sex_mask(ab, sex, ppl), target)
+            else:
+                total = compute_coverage_target(
+                    self.coverage, self.coverage_format, self.age_bins, self.sex_keys,
+                    self.ti, pool.uids, sim,
+                )
+                if total is not None:
+                    n_new += self._circumcise_to_target(pool, total)
 
-            self.circumcised[new_circs] = True
-            self.ti_circumcised[new_circs] = self.ti
-
-        self.results['new_circumcisions'][self.ti] = n_to_circ or 0
+        self.results['new_circumcisions'][self.ti] = n_new
         self.results['n_circumcised'][self.ti] = count(self.circumcised)
 
-        # Reduce rel_sus
+        # Reduce rel_sus (HIV resets rel_sus to 1 each step, so re-applied here)
         sim.diseases.hiv.rel_sus[self.circumcised] *= 1 - self.pars.eff_circ
 
         return
