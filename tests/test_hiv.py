@@ -771,8 +771,8 @@ def test_rel_death_scales_hiv_mortality(n_agents=3000):
     sc.heading("Ensuring rel_death scales HIV deaths")
 
     def _deaths(rel_death=1.0, art_initiation=1.0):
-        test_intv = HIVTest(test_prob_data=1, dt_scale=False)
-        art = ART(art_initiation=art_initiation)
+        test_intv = sti.HIVTest(test_prob_data=1, dt_scale=False)
+        art = sti.ART(art_initiation=art_initiation)
         hiv = sti.HIV(init_prev=1.0, beta_m2f=0.0, rel_death=rel_death,
                       dur_on_art=ss.constant(v=ss.years(50)))
         sim = build_testing_sim(n_agents=n_agents, duration=15,
