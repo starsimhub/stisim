@@ -141,7 +141,7 @@ def test_vmmc_hits_target(do_plot=do_plot):
 
     ppl = sim.people
     male_alive = ppl.male & ppl.alive
-    prev = (male_alive & sim.interventions.vmmc.circumcised).count() / male_alive.count()
+    prev = (male_alive & sim.diseases.hiv.circumcised).count() / male_alive.count()
     print(f'Realized male circumcision prevalence: {prev:.3f} (target {target})')
     assert 0.2 < prev < 0.45, (
         f'Expected circumcision prevalence near {target}, got {prev:.3f}. '

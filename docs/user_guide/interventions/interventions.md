@@ -240,8 +240,9 @@ vmmc = sti.VMMC(coverage={'year': [2010, 2025], 'value': [0, 0.4]})
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `coverage` | None (does nothing without coverage data) | Coverage target (same formats as ART). Required for VMMC to have any effect. |
-| `eff_circ` | 0.6 | Efficacy (60% reduction in HIV acquisition risk) |
 | `eligibility` | all males | Optional function to further restrict who is eligible |
+
+Circumcision status (`circumcised`/`circ_traditional`/`ti_circumcised`) and efficacy (`eff_circ`, `eff_circ_traditional`) change parameters carried by the `HIV` disease module, not on `VMMC` — set them via `sti.HIV(eff_circ=0.7)`. This lets other circumcision sources (e.g. non-program/traditional circumcision) share the same state as program VMMC.
 
 ### PrEP
 

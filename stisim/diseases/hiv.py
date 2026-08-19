@@ -45,6 +45,8 @@ class HIVPars(BaseSTIPars):
         # so values are ceteris-paribus differences, not absolute susceptibilities.
         # Example: [(15, 25, 'f', 1.7), (25, 50, 'f', 1.0), (15, 50, 'm', 1.0)]
         self.eff_condom = 0.9
+        self.eff_circ = 0.6              # Program (medical) VMMC: reduction in HIV acquisition susceptibility
+        self.eff_circ_traditional = 0.6  # Traditional (non-program) circumcision: reduction in HIV acquisition susceptibility
 
         # Initialization
         self.init_prev = ss.bernoulli(p=0.05)
@@ -132,6 +134,11 @@ class HIV(BaseSTI):
             # Knowledge of HIV status
             ss.BoolState('diagnosed'),
             ss.FloatArr('ti_diagnosed'),
+
+            # Circumcision (VMMC)
+            ss.BoolState('circumcised'),
+            ss.BoolState('circ_traditional', default=False),  # True=traditional (non-program), False=program (medical) VMMC
+            ss.FloatArr('ti_circumcised'),
         )
 
         return
@@ -425,6 +432,8 @@ class HIV(BaseSTI):
         self.never_art[uids] = False
         self.on_art[uids] = False
         self.diagnosed[uids] = False
+        self.circumcised[uids] = False
+        self.circ_traditional[uids] = False
 
         # Clear time states except for ti_dead
         self.ti_infected[uids] = np.nan
@@ -435,6 +444,7 @@ class HIV(BaseSTI):
         self.ti_art[uids] = np.nan
         self.ti_stop_art[uids] = np.nan
         self.ti_diagnosed[uids] = np.nan
+        self.ti_circumcised[uids] = np.nan
 
         # Clear CD4 states
         self.cd4[uids] = np.nan
@@ -478,6 +488,15 @@ class HIV(BaseSTI):
                 else:            sex_mask = ppl.alive
                 in_bin = sex_mask & (ppl.age >= age_lo) & (ppl.age < age_hi)
                 self.rel_sus[in_bin] *= mult
+
+        # Circumcision: reduces acquisition susceptibility. Magnitude depends on
+        # circ_traditional (set by whichever pathway called self.circumcise()), not
+        # on which intervention is present -- see HIVPars.eff_circ/eff_circ_traditional.
+        if self.circumcised.any():
+            program = self.circumcised & ~self.circ_traditional
+            traditional = self.circumcised & self.circ_traditional
+            self.rel_sus[program] *= 1 - self.pars.eff_circ
+            self.rel_sus[traditional] *= 1 - self.pars.eff_circ_traditional
 
         # Update rel_trans to account for acute and late-stage infection
         self.rel_trans[self.acute] *= self.pars.rel_trans_acute.rvs(self.acute.uids)
@@ -664,6 +683,22 @@ class HIV(BaseSTI):
             raise ValueError(errormsg)
         self.ti_zero[uids] = ti + dur_post_art.astype(int)
 
+        return
+
+    def circumcise(self, uids, traditional=False):
+        """
+        Mark agents as circumcised. Idempotent: already-circumcised agents in
+        ``uids`` keep their original ``circ_traditional``/``ti_circumcised``, so a
+        traditional-MC pass can't overwrite someone circumcised by a program.
+
+        Args:
+            uids: agents to circumcise
+            traditional: False=program (medical) VMMC (default), True=traditional (non-program)
+        """
+        uids = uids[~self.circumcised[uids]]
+        self.circumcised[uids] = True
+        self.circ_traditional[uids] = traditional
+        self.ti_circumcised[uids] = self.ti
         return
 
 
