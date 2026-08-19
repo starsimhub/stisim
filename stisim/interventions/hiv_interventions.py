@@ -222,11 +222,15 @@ class ART(ss.Intervention):
                           to HIV (default 0.96). Applied to both prenatal (MaternalNet)
                           and postnatal (BreastfeedingNet) transmission. Set to 1.0 for
                           complete protection (previous default behavior).
-        p_effective_art:  probability that a newly-initiated agent achieves viral
-                          suppression (effective ART) rather than non-suppressive ART
-                          (default: ss.bernoulli(p=1.0), i.e. always effective). Forwarded
-                          to HIV.start_art(); see HIVPars.p_effective_art for the default
-                          used if ART is not present in the sim at all.
+        vls_coverage:     fraction of newly-initiated agents who achieve viral
+                          suppression (effective ART) rather than non-suppressive ART.
+                          Accepts the same formats as ``coverage`` (scalar, time-varying
+                          dict, DataFrame, or age/sex-stratified DataFrame) — see
+                          :func:`parse_coverage`, though values must be proportions
+                          (0-1), not absolute counts. Default ``None`` means 100%
+                          of initiators achieve viral suppression. Any stratum not
+                          covered by a stratified ``vls_coverage`` also defaults to
+                          100%. Forwarded to HIV.start_art() at initiation.
         smoothness:       interpolation smoothness (0=linear, default)
         format_priority:  when both n_art and p_art are non-NaN, prefer this format
                           ('n' or 'p', default 'n')
@@ -237,7 +241,19 @@ class ART(ss.Intervention):
         art = sti.ART(coverage=0.8)
 
         # 70% of newly-initiated agents achieve viral suppression
-        art = sti.ART(coverage=0.8, p_effective_art=0.7)
+        art = sti.ART(coverage=0.8, vls_coverage=0.7)
+
+        # Time-varying VLS coverage
+        art = sti.ART(coverage=0.8, vls_coverage={'year': [2000, 2010, 2025], 'value': [0.5, 0.7, 0.9]})
+
+        # Age/sex-stratified VLS coverage — e.g. lower suppression in young men
+        vls_df = pd.DataFrame({
+            'Year':    [2020, 2020, 2020, 2020],
+            'AgeBin':  ['[15,25)', '[15,25)', '[25,100)', '[25,100)'],
+            'Gender':  ['m', 'f', 'm', 'f'],
+            'p_vls':   [0.5, 0.7, 0.75, 0.85],
+        })
+        art = sti.ART(coverage=0.8, vls_coverage=vls_df)
 
         # Time-varying coverage
         art = sti.ART(coverage={'year': [2000, 2010, 2025], 'value': [0, 0.5, 0.9]})
@@ -255,7 +271,7 @@ class ART(ss.Intervention):
         art = sti.ART(coverage=df)
     """
 
-    def __init__(self, pars=None, coverage=None, smoothness=0, format_priority='n', **kwargs):
+    def __init__(self, pars=None, coverage=None, vls_coverage=None, smoothness=0, format_priority='n', **kwargs):
         super().__init__()
 
         self.define_pars(
@@ -263,17 +279,22 @@ class ART(ss.Intervention):
             pmtct_efficacy=0.96,  # How much maternal ART reduces infant susceptibility
                                    # to HIV via MaternalNet (prenatal) and BreastfeedingNet
                                    # (postnatal). Conceptually like infant PrEP.
-            p_effective_art=ss.bernoulli(p=1.0),  # Probability a newly-initiated agent achieves viral suppression
+            p_effective_art=ss.bernoulli(self.make_vls_prob_fn),  # Probability a newly-initiated agent achieves viral suppression
         )
         self.update_pars(pars, **kwargs)
 
-        self._raw_coverage    = coverage
-        self._smoothness      = smoothness
-        self._format_priority = format_priority
-        self.coverage         = None  # Set in init_pre
-        self.coverage_format  = None  # 'n', 'p', or per-timestep array
-        self.age_bins         = None  # For stratified coverage
-        self.sex_keys         = None  # For stratified coverage
+        self._raw_coverage     = coverage
+        self._raw_vls_coverage = vls_coverage
+        self._smoothness       = smoothness
+        self._format_priority  = format_priority
+        self.coverage          = None  # Set in init_pre
+        self.coverage_format   = None  # 'n', 'p', or per-timestep array
+        self.age_bins          = None  # For stratified coverage
+        self.sex_keys          = None  # For stratified coverage
+        self.vls_coverage      = None  # Set in init_pre
+        self.vls_format        = None  # 'p' or per-timestep array
+        self.vls_age_bins      = None  # For stratified VLS coverage
+        self.vls_sex_keys      = None  # For stratified VLS coverage
         return
 
     def init_pre(self, sim):
@@ -293,8 +314,51 @@ class ART(ss.Intervention):
             self._raw_coverage, valid_names=['n_art', 'p_art'], yearvec=self.t.yearvec,
             smoothness=self._smoothness, format_priority=self._format_priority,
         )
+
+        # Parse VLS coverage data (fraction achieving viral suppression at initiation)
+        self.vls_coverage, self.vls_format, self.vls_age_bins, self.vls_sex_keys = parse_coverage(
+            self._raw_vls_coverage, valid_names=['p_vls'], yearvec=self.t.yearvec,
+            smoothness=self._smoothness,
+        )
+        if self.vls_format is not None:
+            fmts = self.vls_format if isinstance(self.vls_format, np.ndarray) else np.array([self.vls_format])
+            if np.any(fmts == 'n'):
+                errormsg = 'vls_coverage must be a proportion (0-1) of ART initiators achieving viral suppression, not an absolute count.'
+                raise ValueError(errormsg)
+
         self.initialized = True
         return
+
+    def make_vls_prob_fn(self, sim, uids):
+        """
+        Per-agent probability of achieving viral suppression (effective ART)
+        at initiation, derived from vls_coverage.
+
+        Any agent not covered by an explicit vls_coverage stratum (or when
+        vls_coverage is unset entirely) defaults to 100% — i.e. always
+        effective, matching the previous behavior.
+        """
+        probs = np.ones(len(uids))
+        if self.vls_coverage is None:
+            return probs
+
+        if isinstance(self.vls_coverage, dict):
+            # Stratified by (age_bin, sex) or age_bin alone
+            for ab in self.vls_age_bins:
+                for sex in (self.vls_sex_keys or [None]):
+                    key = (ab, sex) if sex is not None else ab
+                    mask = age_sex_mask(ab, sex, sim.people)[uids]
+                    if not mask.any():
+                        continue
+                    cov = self.vls_coverage.get(key, np.ones(1))
+                    cov_val = cov[self.ti] if len(cov) > self.ti else cov[-1]
+                    probs[mask] = cov_val
+        else:
+            # Aggregate (possibly time-varying) coverage applied to everyone
+            cov_val = self.vls_coverage[self.ti] if len(self.vls_coverage) > self.ti else self.vls_coverage[-1]
+            probs[:] = cov_val
+
+        return probs
 
     def _get_n_to_treat(self, eligible_uids):
         """
@@ -350,7 +414,7 @@ class ART(ss.Intervention):
 
             if n_to_treat is None:
                 # No coverage target — treat all who initiate
-                hiv.start_art(dx_to_treat)
+                hiv.start_art(dx_to_treat, p_effective_art=self.pars.p_effective_art)
             else:
                 # Coverage target — only treat if spots available
                 on_art = hiv.on_art
