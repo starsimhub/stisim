@@ -107,10 +107,10 @@ HIV in STIsim is modeled with CD4-based disease progression through acute, laten
 
 ## On-ART mortality
 
-Agents on ART are not immune to HIV death, and that risk is not uniform. **On-ART mortality depends on age, sex, CD4 count, and ART adherence status** (effective/virally-suppressive vs. non-suppressive ART), in the following directions:
+Agents on ART may still die from HIV-related causes. Mortality while on ART depends on age, sex, CD4 count, and ART adherence status (effective/virally-suppressive vs. non-suppressive ART), in the following directions:
 
-- **Lower CD4 → higher mortality.** On-ART mortality is anchored to the same off-ART CD4-based hazard used below (`cd4_death_bins`/`cd4_death_rates`), so it rises sharply as CD4 falls, exactly like the off-ART hazard does.
-- **Older age → higher mortality.** `art_death_age` scales mortality up with age, from 1.0x (under 25) to 1.32x (45+).
+- **Lower CD4 → higher mortality.** Even while on ART, lower CD4 count leads to higher mortality. On-ART mortality is anchored to the same off-ART CD4-based hazard used below (`cd4_death_bins`/`cd4_death_rates`), so it rises sharply as CD4 falls, exactly like the off-ART hazard does. By default, mortality is divided into six CD4 count bins: 0-50, 50-200, 200-350, 350-500, 500-1000, 1000+.
+- **Older age → higher mortality.** Older individuals have higher HIV-related mortality than younger individuals. `art_death_age` scales mortality up with age, from 1.0x (under 25) to 1.32x (45+). By default, ART mortality is divided into four age bins: 0-25, 25-35, 35-45, 45+. For `art_death_age` table contains multipliers which modify ART mortality based on age.
 - **Non-suppressive ART → higher mortality than effective ART.** Failing to achieve viral suppression carries a mortality penalty on top of the CD4-based risk.
 - **Men on non-suppressive ART → higher mortality than women on non-suppressive ART** Failing treatment carries a proportionally worse mortality penalty for men than for women. The non-suppressive/effective mortality ratio is roughly 2x higher for men than for women by default (2.8x vs. 1.4x).
 
@@ -193,12 +193,12 @@ In `HIV.update_transmission()`, `rel_trans` for an on-ART agent ramps linearly (
 | `p_effective_art` | bernoulli(1.0) | Probability a newly-initiated agent achieves viral suppression |
 | `art_cd4_growth` | 0.1 | Logistic growth rate for CD4 reconstitution on ART |
 | `dur_on_art` | lognorm(3 yr, 1.5 yr) | Duration on ART before dropout |
-| `rel_art_mortality_effective` | 0.25 | Fraction of the off-ART CD4-based rate retained on effective ART, both sexes (see "On-ART mortality" above) |
+| `rel_art_mortality_effective` | 0.25 | Modifies CD4-based mortality rate while on effective ART, both sexes (see "On-ART mortality" above) |
 | `rel_art_mortality_unsupp_m` | 0.7 | Fraction of the off-ART CD4-based rate retained on non-suppressive ART, males |
 | `rel_art_mortality_unsupp_f` | 0.35 | ...females — chosen so the non-suppressive/effective mortality ratio is ~2x higher for men (2.8x) than women (1.4x) |
 | `rel_death_f` | 0.74 | Additional multiplier for females, on ART (applies equally to effective and non-suppressive; doesn't affect the ratio above) |
-| `art_death_age` | 4 age bins | `(age_lo, age_hi, mult)` list |
-| `art_death_dur` | None | Optional `(dur_lo, dur_hi, mult)` list, days since `ti_art`; off by default |
+| `art_death_age` | 4 age bins: 0-25, 25-35, 35-45, 45+ | No |
+| `art_death_dur` | None | (This parameter is currently unused, may be used in future releases if we want a history-dependent mortality that depends on the time since initiating ART.) |
 
 ### Care seeking
 
