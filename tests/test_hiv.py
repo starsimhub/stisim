@@ -542,9 +542,11 @@ def test_vmmc_reduces_male_infections():
     vmmc = sti.VMMC(coverage=1.0)
     sim_vmmc = build_testing_sim(n_agents=n_agents, duration=duration, interventions=[vmmc], pregnancy=None, death=None)
 
-    # applying more effective VMMC to all males
-    vmmc_eff = sti.VMMC(coverage=1.0, eff_circ=0.8)
-    sim_vmmc_eff = build_testing_sim(n_agents=n_agents, duration=duration, interventions=[vmmc_eff], pregnancy=None, death=None)
+    # applying more effective VMMC to all males (eff_circ lives on HIV, not VMMC)
+    vmmc_eff = sti.VMMC(coverage=1.0)
+    hiv_eff = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=0.05, eff_circ=0.8)
+    sim_vmmc_eff = build_testing_sim(n_agents=n_agents, duration=duration, diseases=[hiv_eff],
+                                      interventions=[vmmc_eff], pregnancy=None, death=None)
 
     sims = [sim_baseline, sim_vmmc, sim_vmmc_eff]
     msim = ss.parallel(*sims)
@@ -557,7 +559,9 @@ def test_vmmc_reduces_male_infections():
         print(f"New male HIV infections, baseline: {baseline_inf} VMMC: {vmmc_inf}, VMMC+: {vmmc_inf_eff}")
 
     # ensuring test validity
-    assert vmmc_eff.pars.eff_circ > vmmc.pars.eff_circ, f"Test setup failure, vmmc_eff: {vmmc_eff.pars.eff_circ} should have a higher eff_circ than vmmc: {vmmc.pars.eff_circ}"
+    eff_circ = sim_vmmc.diseases.hiv.pars.eff_circ
+    eff_circ_higher = sim_vmmc_eff.diseases.hiv.pars.eff_circ
+    assert eff_circ_higher > eff_circ, f"Test setup failure, eff_circ_higher: {eff_circ_higher} should have a higher eff_circ than eff_circ: {eff_circ}"
     assert baseline_inf > 0, f"Expected male HIV infections in sim, found none."
     assert vmmc_inf     > 0, f"Expected male HIV infections in sim, found none."
     assert vmmc_inf_eff > 0, f"Expected male HIV infections in sim, found none."
@@ -576,7 +580,7 @@ def test_vmmc_is_male_only():
     sim = build_testing_sim(n_agents=tiny_pop, duration=1, interventions=[vmmc], pregnancy=None, death=None)
     sim.run()
 
-    n_vmmc_female = len((sim.people.vmmc.circumcised & sim.people.female).uids)
+    n_vmmc_female = len((sim.diseases.hiv.circumcised & sim.people.female).uids)
     assert n_vmmc_female == 0, f"Expected no females to be targeted by VMMC, but {n_vmmc_female} were"
 
     return sim
@@ -599,6 +603,7 @@ def test_vmmc_targeting():
     sim.run()
 
     people = sim.people
+    circumcised = sim.diseases.hiv.circumcised
     # Agents eligible at any point during the sim had ages in [min_age, max_age) at some timestep,
     # so by the end their ages span [min_age, max_age + total aging). Over the run agents age
     # duration + one dt (Starsim applies an aging step each timestep, including the final one),
@@ -606,9 +611,9 @@ def test_vmmc_targeting():
     max_aging = duration + float(sim.t.dt)  # years of aging accrued over the whole sim
     correct_ages = (people.age >= min_age) & (people.age < (max_age + max_aging))
 
-    n_incorrect_circ = len(( people.vmmc.circumcised    & (~correct_ages)            ).uids)
-    n_correct_circ =   len(( people.vmmc.circumcised    & correct_ages    & people.male ).uids)
-    n_missing_circ =   len(( (~people.vmmc.circumcised) & correct_ages    & people.male ).uids)
+    n_incorrect_circ = len(( circumcised    & (~correct_ages)            ).uids)
+    n_correct_circ =   len(( circumcised    & correct_ages    & people.male ).uids)
+    n_missing_circ =   len(( (~circumcised) & correct_ages    & people.male ).uids)
 
     if verbose:
         print(f"Target males [20, 25) : correct circ: {n_correct_circ} mising circ: {n_missing_circ} n_incorrect circ: {n_incorrect_circ}")

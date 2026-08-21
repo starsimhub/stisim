@@ -502,7 +502,7 @@ class VMMC(ss.Intervention):
     """
     Voluntary medical male circumcision.
 
-    Reduces male susceptibility to HIV acquisition by eff_circ (default 60%).
+    Reduces male susceptibility to HIV acquisition (see ``HIVPars.eff_circ``).
     Unlike ART, VMMC does not require diagnosis — it circumcises males up to a
     coverage target, prioritized by willingness (a random per-agent score).
 
@@ -513,25 +513,49 @@ class VMMC(ss.Intervention):
     ``n_vmmc``/``p_vmmc`` column names). Age-only stratification is supported
     (no Gender column required, since VMMC is males-only).
 
+    Circumcision status (``circumcised``/``circ_traditional``/``ti_circumcised``) and
+    efficacy (``eff_circ``) live on :class:`~stisim.diseases.hiv.HIV`, not on
+    this intervention — see ``HIV.circumcise()`` and ``HIVPars.eff_circ``. This
+    lets other circumcision sources (e.g. non-program/traditional circumcision)
+    share the same state and be included in this intervention's "already
+    circumcised" checks without going through VMMC at all.
+
+    In addition to program VMMC (the coverage-target logic above), this class
+    can optionally also model non-program/traditional circumcision.
+
     Args:
-        coverage:         coverage target (default None; VMMC does nothing without data).
-                          See :func:`parse_coverage` for supported formats.
-        eff_circ:         efficacy (default 0.6 = 60% reduction in HIV acquisition)
-        eligibility:      optional function to restrict who is eligible (default: all males)
-        smoothness:       interpolation smoothness (0=linear, default)
-        format_priority:  when both n_vmmc and p_vmmc are non-NaN, prefer this format
+        coverage:          coverage target (default None; program VMMC does nothing
+                           without data). See :func:`parse_coverage` for supported formats.
+        eligibility:       optional function to restrict who is eligible for PROGRAM VMMC
+                           (default: all males); does not affect traditional circumcision.
+        smoothness:        interpolation smoothness (0=linear, default)
+        format_priority:   when both n_vmmc and p_vmmc are non-NaN, prefer this format
+        traditional_prob:  probability (float or ``ss.bernoulli``) that a pre-sexual-debut
+                           male receives traditional circumcision once he reaches
+                           ``traditional_age`` (default 0 = off).
+        traditional_age:   age (years) at which pre-debut males are assessed for
+                           traditional circumcision, once (default 15).
 
     Examples::
 
+        # Program VMMC
         vmmc = sti.VMMC(coverage=0.3)
         vmmc = sti.VMMC(coverage={'year': [2010, 2025], 'value': [0, 0.4]})
+
+        # Traditional circumcision only, no program VMMC
+        trad = sti.VMMC(traditional_prob=0.1, traditional_age=15)
+
+        # Program VMMC for adults + traditional circumcision for boys, combined
+        both = sti.VMMC(coverage=0.3, eligibility=lambda sim: sim.people.age >= 25,
+                        traditional_prob=0.1, traditional_age=15)
     """
 
     def __init__(self, pars=None, coverage=None, eligibility=None, smoothness=0, format_priority='n', **kwargs):
         super().__init__(eligibility=eligibility)
 
         self.define_pars(
-            eff_circ=0.6,
+            traditional_prob=ss.bernoulli(p=0),
+            traditional_age=15,
         )
         self.update_pars(pars, **kwargs)
 
@@ -544,9 +568,8 @@ class VMMC(ss.Intervention):
         self.sex_keys         = None
 
         # States
-        self.willingness     = ss.FloatArr('willingness', default=ss.random())
-        self.circumcised     = ss.BoolArr('circumcised', default=False)
-        self.ti_circumcised  = ss.FloatArr('ti_circumcised')
+        self.willingness = ss.FloatArr('willingness', default=ss.random())
+        self.traditional_assessed = ss.BoolArr('traditional_assessed', default=False)
 
         return
 
@@ -566,25 +589,25 @@ class VMMC(ss.Intervention):
         )
         return
 
-    def _circumcise_to_target(self, pool, target):
+    def _circumcise_to_target(self, hiv, pool, target):
         """Top ``pool`` (a male BoolArr) up to ``target`` circumcised, choosing
         the highest-willingness uncircumcised men. Never removes (circumcision
         is irreversible). Returns the number of new circumcisions."""
-        n_add = int(target) - (pool & self.circumcised).count()
+        n_add = int(target) - (pool & hiv.circumcised).count()
         if n_add <= 0:
             return 0
-        candidates = (pool & ~self.circumcised).uids
+        candidates = (pool & ~hiv.circumcised).uids
         if len(candidates) == 0:
             return 0
         n_add = min(n_add, len(candidates))
         new_circs = candidates[np.argsort(-self.willingness[candidates])[:n_add]]
-        self.circumcised[new_circs] = True
-        self.ti_circumcised[new_circs] = self.ti
+        hiv.circumcise(new_circs)
         return len(new_circs)
 
     def step(self):
         sim = self.sim
         ppl = sim.people
+        hiv = sim.diseases.hiv
 
         # Coverage is a circumcision *prevalence* (stock) target, matching
         # cross-sectional survey data: the denominator is ALL eligible males
@@ -604,20 +627,33 @@ class VMMC(ss.Intervention):
             if stratum_targets is not None:
                 for key, target in stratum_targets.items():
                     ab, sex = (key[0], key[1]) if isinstance(key, tuple) else (key, 1)
-                    n_new += self._circumcise_to_target(pool & age_sex_mask(ab, sex, ppl), target)
+                    n_new += self._circumcise_to_target(hiv, pool & age_sex_mask(ab, sex, ppl), target)
             else:
                 total = compute_coverage_target(
                     self.coverage, self.coverage_format, self.age_bins, self.sex_keys,
                     self.ti, pool.uids, sim,
                 )
                 if total is not None:
-                    n_new += self._circumcise_to_target(pool, total)
+                    n_new += self._circumcise_to_target(hiv, pool, total)
+
+        # Traditional (non-program) circumcision: independent of the coverage-target
+        # logic above and not subject to `eligibility`. A one-time probabilistic
+        # assessment, made when a pre-debut male first reaches traditional_age;
+        # traditional_assessed ensures he's only assessed once even if he doesn't
+        # "pass" (so a p=0.1 draw isn't repeated every step he remains eligible).
+        if self.pars.traditional_prob.pars.p > 0:
+            net = sim.networks.structuredsexual
+            newly_eligible = (ppl.male & ppl.alive & ~hiv.circumcised & ~self.traditional_assessed &
+                              ~net.over_debut & (ppl.age >= self.pars.traditional_age)).uids
+            if len(newly_eligible):
+                self.traditional_assessed[newly_eligible] = True
+                new_trad = self.pars.traditional_prob.filter(newly_eligible)
+                if len(new_trad):
+                    hiv.circumcise(new_trad, traditional=True)
+                    n_new += len(new_trad)
 
         self.results['new_circumcisions'][self.ti] = n_new
-        self.results['n_circumcised'][self.ti] = count(self.circumcised)
-
-        # Reduce rel_sus (HIV resets rel_sus to 1 each step, so re-applied here)
-        sim.diseases.hiv.rel_sus[self.circumcised] *= 1 - self.pars.eff_circ
+        self.results['n_circumcised'][self.ti] = count(hiv.circumcised)
 
         return
 
