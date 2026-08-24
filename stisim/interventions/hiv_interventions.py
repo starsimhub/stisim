@@ -274,6 +274,12 @@ class ART(ss.Intervention):
     def __init__(self, pars=None, coverage=None, vls_coverage=None, smoothness=0, format_priority='n', **kwargs):
         super().__init__()
 
+        # p_effective_art is the legacy pre-vls_coverage override; update_pars would let it
+        # silently clobber the vls_coverage-driven callable below with no warning if both are set
+        if vls_coverage is not None and ('p_effective_art' in kwargs or (pars is not None and 'p_effective_art' in pars)):
+            errormsg = 'Pass either vls_coverage or the legacy p_effective_art, not both — p_effective_art would silently override vls_coverage.'
+            raise ValueError(errormsg)
+
         self.define_pars(
             art_initiation=ss.bernoulli(p=0.9),
             pmtct_efficacy=0.96,  # How much maternal ART reduces infant susceptibility
@@ -315,14 +321,22 @@ class ART(ss.Intervention):
             smoothness=self._smoothness, format_priority=self._format_priority,
         )
 
-        # Parse VLS coverage data (fraction achieving viral suppression at initiation)
+        # Parse VLS coverage data (fraction achieving viral suppression at initiation).
+        # missing_fill=1.0 so strata absent from a stratified vls_coverage default to
+        # 100% suppression, per the documented default (opposite of the 0%-default used
+        # for ART's own enrollment `coverage`, above).
         self.vls_coverage, self.vls_format, self.vls_age_bins, self.vls_sex_keys = parse_coverage(
             self._raw_vls_coverage, valid_names=['p_vls'], yearvec=self.t.yearvec,
-            smoothness=self._smoothness,
+            smoothness=self._smoothness, missing_fill=1.0,
         )
-        if self.vls_format is not None:
-            fmts = self.vls_format if isinstance(self.vls_format, np.ndarray) else np.array([self.vls_format])
-            if np.any(fmts == 'n'):
+        if self.vls_coverage is not None:
+            # Check actual values, not the format tag: parse_coverage always tags scalar
+            # and single-column-DataFrame inputs 'p' regardless of magnitude, so an
+            # out-of-range value (e.g. a percentage instead of a fraction) would slip
+            # past a format=='n' check.
+            vls_values = (np.concatenate(list(self.vls_coverage.values()))
+                          if isinstance(self.vls_coverage, dict) else self.vls_coverage)
+            if np.any(vls_values < 0) or np.any(vls_values > 1):
                 errormsg = 'vls_coverage must be a proportion (0-1) of ART initiators achieving viral suppression, not an absolute count.'
                 raise ValueError(errormsg)
 
