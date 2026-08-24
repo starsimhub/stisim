@@ -222,6 +222,15 @@ class ART(ss.Intervention):
                           to HIV (default 0.96). Applied to both prenatal (MaternalNet)
                           and postnatal (BreastfeedingNet) transmission. Set to 1.0 for
                           complete protection (previous default behavior).
+        vls_coverage:     fraction of newly-initiated agents who achieve viral
+                          suppression (effective ART) rather than non-suppressive ART.
+                          Accepts the same formats as ``coverage`` (scalar, time-varying
+                          dict, DataFrame, or age/sex-stratified DataFrame) — see
+                          :func:`parse_coverage`, though values must be proportions
+                          (0-1), not absolute counts. Default ``None`` means 100%
+                          of initiators achieve viral suppression. Any stratum not
+                          covered by a stratified ``vls_coverage`` also defaults to
+                          100%. Forwarded to HIV.start_art() at initiation.
         smoothness:       interpolation smoothness (0=linear, default)
         format_priority:  when both n_art and p_art are non-NaN, prefer this format
                           ('n' or 'p', default 'n')
@@ -230,6 +239,21 @@ class ART(ss.Intervention):
 
         # Simple: 80% of infected on ART
         art = sti.ART(coverage=0.8)
+
+        # 70% of newly-initiated agents achieve viral suppression
+        art = sti.ART(coverage=0.8, vls_coverage=0.7)
+
+        # Time-varying VLS coverage
+        art = sti.ART(coverage=0.8, vls_coverage={'year': [2000, 2010, 2025], 'value': [0.5, 0.7, 0.9]})
+
+        # Age/sex-stratified VLS coverage — e.g. lower suppression in young men
+        vls_df = pd.DataFrame({
+            'Year':    [2020, 2020, 2020, 2020],
+            'AgeBin':  ['[15,25)', '[15,25)', '[25,100)', '[25,100)'],
+            'Gender':  ['m', 'f', 'm', 'f'],
+            'p_vls':   [0.5, 0.7, 0.75, 0.85],
+        })
+        art = sti.ART(coverage=0.8, vls_coverage=vls_df)
 
         # Time-varying coverage
         art = sti.ART(coverage={'year': [2000, 2010, 2025], 'value': [0, 0.5, 0.9]})
@@ -247,24 +271,36 @@ class ART(ss.Intervention):
         art = sti.ART(coverage=df)
     """
 
-    def __init__(self, pars=None, coverage=None, smoothness=0, format_priority='n', **kwargs):
+    def __init__(self, pars=None, coverage=None, vls_coverage=None, smoothness=0, format_priority='n', **kwargs):
         super().__init__()
+
+        # p_effective_art is the legacy pre-vls_coverage override; update_pars would let it
+        # silently clobber the vls_coverage-driven callable below with no warning if both are set
+        if vls_coverage is not None and ('p_effective_art' in kwargs or (pars is not None and 'p_effective_art' in pars)):
+            errormsg = 'Pass either vls_coverage or the legacy p_effective_art, not both — p_effective_art would silently override vls_coverage.'
+            raise ValueError(errormsg)
 
         self.define_pars(
             art_initiation=ss.bernoulli(p=0.9),
             pmtct_efficacy=0.96,  # How much maternal ART reduces infant susceptibility
                                    # to HIV via MaternalNet (prenatal) and BreastfeedingNet
                                    # (postnatal). Conceptually like infant PrEP.
+            p_effective_art=ss.bernoulli(self.make_vls_prob_fn),  # Probability a newly-initiated agent achieves viral suppression
         )
         self.update_pars(pars, **kwargs)
 
-        self._raw_coverage    = coverage
-        self._smoothness      = smoothness
-        self._format_priority = format_priority
-        self.coverage         = None  # Set in init_pre
-        self.coverage_format  = None  # 'n', 'p', or per-timestep array
-        self.age_bins         = None  # For stratified coverage
-        self.sex_keys         = None  # For stratified coverage
+        self._raw_coverage     = coverage
+        self._raw_vls_coverage = vls_coverage
+        self._smoothness       = smoothness
+        self._format_priority  = format_priority
+        self.coverage          = None  # Set in init_pre
+        self.coverage_format   = None  # 'n', 'p', or per-timestep array
+        self.age_bins          = None  # For stratified coverage
+        self.sex_keys          = None  # For stratified coverage
+        self.vls_coverage      = None  # Set in init_pre
+        self.vls_format        = None  # 'p' or per-timestep array
+        self.vls_age_bins      = None  # For stratified VLS coverage
+        self.vls_sex_keys      = None  # For stratified VLS coverage
         return
 
     def init_pre(self, sim):
@@ -284,8 +320,59 @@ class ART(ss.Intervention):
             self._raw_coverage, valid_names=['n_art', 'p_art'], yearvec=self.t.yearvec,
             smoothness=self._smoothness, format_priority=self._format_priority,
         )
+
+        # Parse VLS coverage data (fraction achieving viral suppression at initiation).
+        # missing_fill=1.0 so strata absent from a stratified vls_coverage default to
+        # 100% suppression, per the documented default (opposite of the 0%-default used
+        # for ART's own enrollment `coverage`, above).
+        self.vls_coverage, self.vls_format, self.vls_age_bins, self.vls_sex_keys = parse_coverage(
+            self._raw_vls_coverage, valid_names=['p_vls'], yearvec=self.t.yearvec,
+            smoothness=self._smoothness, missing_fill=1.0,
+        )
+        if self.vls_coverage is not None:
+            # Check actual values, not the format tag: parse_coverage always tags scalar
+            # and single-column-DataFrame inputs 'p' regardless of magnitude, so an
+            # out-of-range value (e.g. a percentage instead of a fraction) would slip
+            # past a format=='n' check.
+            vls_values = (np.concatenate(list(self.vls_coverage.values()))
+                          if isinstance(self.vls_coverage, dict) else self.vls_coverage)
+            if np.any(vls_values < 0) or np.any(vls_values > 1):
+                errormsg = 'vls_coverage must be a proportion (0-1) of ART initiators achieving viral suppression, not an absolute count.'
+                raise ValueError(errormsg)
+
         self.initialized = True
         return
+
+    def make_vls_prob_fn(self, sim, uids):
+        """
+        Per-agent probability of achieving viral suppression (effective ART)
+        at initiation, derived from vls_coverage.
+
+        Any agent not covered by an explicit vls_coverage stratum (or when
+        vls_coverage is unset entirely) defaults to 100% — i.e. always
+        effective, matching the previous behavior.
+        """
+        probs = np.ones(len(uids))
+        if self.vls_coverage is None:
+            return probs
+
+        if isinstance(self.vls_coverage, dict):
+            # Stratified by (age_bin, sex) or age_bin alone
+            for ab in self.vls_age_bins:
+                for sex in (self.vls_sex_keys or [None]):
+                    key = (ab, sex) if sex is not None else ab
+                    mask = age_sex_mask(ab, sex, sim.people)[uids]
+                    if not mask.any():
+                        continue
+                    cov = self.vls_coverage.get(key, np.ones(1))
+                    cov_val = cov[self.ti] if len(cov) > self.ti else cov[-1]
+                    probs[mask] = cov_val
+        else:
+            # Aggregate (possibly time-varying) coverage applied to everyone
+            cov_val = self.vls_coverage[self.ti] if len(self.vls_coverage) > self.ti else self.vls_coverage[-1]
+            probs[:] = cov_val
+
+        return probs
 
     def _get_n_to_treat(self, eligible_uids):
         """
@@ -341,7 +428,7 @@ class ART(ss.Intervention):
 
             if n_to_treat is None:
                 # No coverage target — treat all who initiate
-                hiv.start_art(dx_to_treat)
+                hiv.start_art(dx_to_treat, p_effective_art=self.pars.p_effective_art)
             else:
                 # Coverage target — only treat if spots available
                 on_art = hiv.on_art
@@ -400,7 +487,7 @@ class ART(ss.Intervention):
             choices = np.argsort(weights)[:n]
             start_uids = awaiting_art_uids[choices]
 
-        hiv.start_art(start_uids)
+        hiv.start_art(start_uids, p_effective_art=self.pars.p_effective_art)
 
         return
 
@@ -493,7 +580,7 @@ class VMMC(ss.Intervention):
     """
     Voluntary medical male circumcision.
 
-    Reduces male susceptibility to HIV acquisition by eff_circ (default 60%).
+    Reduces male susceptibility to HIV acquisition (see ``HIVPars.eff_circ``).
     Unlike ART, VMMC does not require diagnosis — it circumcises males up to a
     coverage target, prioritized by willingness (a random per-agent score).
 
@@ -504,25 +591,49 @@ class VMMC(ss.Intervention):
     ``n_vmmc``/``p_vmmc`` column names). Age-only stratification is supported
     (no Gender column required, since VMMC is males-only).
 
+    Circumcision status (``circumcised``/``circ_traditional``/``ti_circumcised``) and
+    efficacy (``eff_circ``) live on :class:`~stisim.diseases.hiv.HIV`, not on
+    this intervention — see ``HIV.circumcise()`` and ``HIVPars.eff_circ``. This
+    lets other circumcision sources (e.g. non-program/traditional circumcision)
+    share the same state and be included in this intervention's "already
+    circumcised" checks without going through VMMC at all.
+
+    In addition to program VMMC (the coverage-target logic above), this class
+    can optionally also model non-program/traditional circumcision.
+
     Args:
-        coverage:         coverage target (default None; VMMC does nothing without data).
-                          See :func:`parse_coverage` for supported formats.
-        eff_circ:         efficacy (default 0.6 = 60% reduction in HIV acquisition)
-        eligibility:      optional function to restrict who is eligible (default: all males)
-        smoothness:       interpolation smoothness (0=linear, default)
-        format_priority:  when both n_vmmc and p_vmmc are non-NaN, prefer this format
+        coverage:          coverage target (default None; program VMMC does nothing
+                           without data). See :func:`parse_coverage` for supported formats.
+        eligibility:       optional function to restrict who is eligible for PROGRAM VMMC
+                           (default: all males); does not affect traditional circumcision.
+        smoothness:        interpolation smoothness (0=linear, default)
+        format_priority:   when both n_vmmc and p_vmmc are non-NaN, prefer this format
+        traditional_prob:  probability (float or ``ss.bernoulli``) that a pre-sexual-debut
+                           male receives traditional circumcision once he reaches
+                           ``traditional_age`` (default 0 = off).
+        traditional_age:   age (years) at which pre-debut males are assessed for
+                           traditional circumcision, once (default 15).
 
     Examples::
 
+        # Program VMMC
         vmmc = sti.VMMC(coverage=0.3)
         vmmc = sti.VMMC(coverage={'year': [2010, 2025], 'value': [0, 0.4]})
+
+        # Traditional circumcision only, no program VMMC
+        trad = sti.VMMC(traditional_prob=0.1, traditional_age=15)
+
+        # Program VMMC for adults + traditional circumcision for boys, combined
+        both = sti.VMMC(coverage=0.3, eligibility=lambda sim: sim.people.age >= 25,
+                        traditional_prob=0.1, traditional_age=15)
     """
 
     def __init__(self, pars=None, coverage=None, eligibility=None, smoothness=0, format_priority='n', **kwargs):
         super().__init__(eligibility=eligibility)
 
         self.define_pars(
-            eff_circ=0.6,
+            traditional_prob=ss.bernoulli(p=0),
+            traditional_age=15,
         )
         self.update_pars(pars, **kwargs)
 
@@ -535,9 +646,8 @@ class VMMC(ss.Intervention):
         self.sex_keys         = None
 
         # States
-        self.willingness     = ss.FloatArr('willingness', default=ss.random())
-        self.circumcised     = ss.BoolArr('circumcised', default=False)
-        self.ti_circumcised  = ss.FloatArr('ti_circumcised')
+        self.willingness = ss.FloatArr('willingness', default=ss.random())
+        self.traditional_assessed = ss.BoolArr('traditional_assessed', default=False)
 
         return
 
@@ -557,25 +667,25 @@ class VMMC(ss.Intervention):
         )
         return
 
-    def _circumcise_to_target(self, pool, target):
+    def _circumcise_to_target(self, hiv, pool, target):
         """Top ``pool`` (a male BoolArr) up to ``target`` circumcised, choosing
         the highest-willingness uncircumcised men. Never removes (circumcision
         is irreversible). Returns the number of new circumcisions."""
-        n_add = int(target) - (pool & self.circumcised).count()
+        n_add = int(target) - (pool & hiv.circumcised).count()
         if n_add <= 0:
             return 0
-        candidates = (pool & ~self.circumcised).uids
+        candidates = (pool & ~hiv.circumcised).uids
         if len(candidates) == 0:
             return 0
         n_add = min(n_add, len(candidates))
         new_circs = candidates[np.argsort(-self.willingness[candidates])[:n_add]]
-        self.circumcised[new_circs] = True
-        self.ti_circumcised[new_circs] = self.ti
+        hiv.circumcise(new_circs)
         return len(new_circs)
 
     def step(self):
         sim = self.sim
         ppl = sim.people
+        hiv = sim.diseases.hiv
 
         # Coverage is a circumcision *prevalence* (stock) target, matching
         # cross-sectional survey data: the denominator is ALL eligible males
@@ -595,20 +705,33 @@ class VMMC(ss.Intervention):
             if stratum_targets is not None:
                 for key, target in stratum_targets.items():
                     ab, sex = (key[0], key[1]) if isinstance(key, tuple) else (key, 1)
-                    n_new += self._circumcise_to_target(pool & age_sex_mask(ab, sex, ppl), target)
+                    n_new += self._circumcise_to_target(hiv, pool & age_sex_mask(ab, sex, ppl), target)
             else:
                 total = compute_coverage_target(
                     self.coverage, self.coverage_format, self.age_bins, self.sex_keys,
                     self.ti, pool.uids, sim,
                 )
                 if total is not None:
-                    n_new += self._circumcise_to_target(pool, total)
+                    n_new += self._circumcise_to_target(hiv, pool, total)
+
+        # Traditional (non-program) circumcision: independent of the coverage-target
+        # logic above and not subject to `eligibility`. A one-time probabilistic
+        # assessment, made when a pre-debut male first reaches traditional_age;
+        # traditional_assessed ensures he's only assessed once even if he doesn't
+        # "pass" (so a p=0.1 draw isn't repeated every step he remains eligible).
+        if self.pars.traditional_prob.pars.p > 0:
+            net = sim.networks.structuredsexual
+            newly_eligible = (ppl.male & ppl.alive & ~hiv.circumcised & ~self.traditional_assessed &
+                              ~net.over_debut & (ppl.age >= self.pars.traditional_age)).uids
+            if len(newly_eligible):
+                self.traditional_assessed[newly_eligible] = True
+                new_trad = self.pars.traditional_prob.filter(newly_eligible)
+                if len(new_trad):
+                    hiv.circumcise(new_trad, traditional=True)
+                    n_new += len(new_trad)
 
         self.results['new_circumcisions'][self.ti] = n_new
-        self.results['n_circumcised'][self.ti] = count(self.circumcised)
-
-        # Reduce rel_sus (HIV resets rel_sus to 1 each step, so re-applied here)
-        sim.diseases.hiv.rel_sus[self.circumcised] *= 1 - self.pars.eff_circ
+        self.results['n_circumcised'][self.ti] = count(hiv.circumcised)
 
         return
 

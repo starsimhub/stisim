@@ -8,6 +8,7 @@ Tests cover:
 """
 
 import warnings
+import pytest
 import sciris as sc
 import numpy as np
 import pandas as pd
@@ -141,7 +142,7 @@ def test_vmmc_hits_target(do_plot=do_plot):
 
     ppl = sim.people
     male_alive = ppl.male & ppl.alive
-    prev = (male_alive & sim.interventions.vmmc.circumcised).count() / male_alive.count()
+    prev = (male_alive & sim.diseases.hiv.circumcised).count() / male_alive.count()
     print(f'Realized male circumcision prevalence: {prev:.3f} (target {target})')
     assert 0.2 < prev < 0.45, (
         f'Expected circumcision prevalence near {target}, got {prev:.3f}. '
@@ -208,6 +209,44 @@ def test_art_stratified_coverage(do_plot=do_plot):
     assert sim2.results.hiv.n_on_art[-1] > 0, 'Expected people on ART with stratified coverage (string sex values)'
 
     return sim, sim2
+
+
+def test_art_vls_coverage():
+    """ Check vls_coverage: stratum defaults, value validation, and the p_effective_art guard """
+    sc.heading('Testing ART vls_coverage...')
+
+    # Stratified vls_coverage: a stratum missing from the data must default to 100% (not 0%)
+    vls_df = pd.DataFrame({
+        'Year':   [2020, 2020, 2020],
+        'AgeBin': ['[15,25)', '[15,25)', '[25,100)'],
+        'Gender': ['m', 'f', 'm'],
+        'p_vls':  [0.5, 0.7, 0.75],
+    })
+    art = sti.ART(vls_coverage=vls_df, name='art')
+    sim = sti.Sim(diseases='hiv', interventions=[sti.HIVTest(test_prob_data=0.3), art],
+                  n_agents=n_agents, start=2015, stop=2016, verbose=0)
+    sim.init()
+    art = sim.interventions.art  # sti.Sim copies inputs; fetch the initialized instance
+    missing_stratum = art.vls_coverage[('[25,100)', 0)]  # not present in vls_df
+    assert np.all(missing_stratum == 1.0), f'Missing vls_coverage stratum should default to 1.0, got {missing_stratum}'
+
+    # A proportion outside [0, 1] should raise, whether passed as a scalar...
+    with pytest.raises(ValueError):
+        bad_art = sti.ART(vls_coverage=70)
+        sti.Sim(diseases='hiv', interventions=bad_art, n_agents=n_agents, start=2015, stop=2016, verbose=0).init()
+
+    # ...or as a single-column DataFrame (format is inferred from the column name, not magnitude)
+    with pytest.raises(ValueError):
+        bad_df = pd.DataFrame({'p_vls': [75, 80]}, index=[2015, 2020])
+        bad_art = sti.ART(vls_coverage=bad_df)
+        sti.Sim(diseases='hiv', interventions=bad_art, n_agents=n_agents, start=2015, stop=2016, verbose=0).init()
+
+    # Combining vls_coverage with the legacy p_effective_art override should raise at construction,
+    # since p_effective_art would otherwise silently clobber vls_coverage
+    with pytest.raises(ValueError):
+        sti.ART(vls_coverage=0.7, p_effective_art=0.9)
+
+    return sim
 
 
 # %% Functional tests

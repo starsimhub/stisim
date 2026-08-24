@@ -542,9 +542,11 @@ def test_vmmc_reduces_male_infections():
     vmmc = sti.VMMC(coverage=1.0)
     sim_vmmc = build_testing_sim(n_agents=n_agents, duration=duration, interventions=[vmmc], pregnancy=None, death=None)
 
-    # applying more effective VMMC to all males
-    vmmc_eff = sti.VMMC(coverage=1.0, eff_circ=0.8)
-    sim_vmmc_eff = build_testing_sim(n_agents=n_agents, duration=duration, interventions=[vmmc_eff], pregnancy=None, death=None)
+    # applying more effective VMMC to all males (eff_circ lives on HIV, not VMMC)
+    vmmc_eff = sti.VMMC(coverage=1.0)
+    hiv_eff = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=0.05, eff_circ=0.8)
+    sim_vmmc_eff = build_testing_sim(n_agents=n_agents, duration=duration, diseases=[hiv_eff],
+                                      interventions=[vmmc_eff], pregnancy=None, death=None)
 
     sims = [sim_baseline, sim_vmmc, sim_vmmc_eff]
     msim = ss.parallel(*sims)
@@ -557,7 +559,9 @@ def test_vmmc_reduces_male_infections():
         print(f"New male HIV infections, baseline: {baseline_inf} VMMC: {vmmc_inf}, VMMC+: {vmmc_inf_eff}")
 
     # ensuring test validity
-    assert vmmc_eff.pars.eff_circ > vmmc.pars.eff_circ, f"Test setup failure, vmmc_eff: {vmmc_eff.pars.eff_circ} should have a higher eff_circ than vmmc: {vmmc.pars.eff_circ}"
+    eff_circ = sim_vmmc.diseases.hiv.pars.eff_circ
+    eff_circ_higher = sim_vmmc_eff.diseases.hiv.pars.eff_circ
+    assert eff_circ_higher > eff_circ, f"Test setup failure, eff_circ_higher: {eff_circ_higher} should have a higher eff_circ than eff_circ: {eff_circ}"
     assert baseline_inf > 0, f"Expected male HIV infections in sim, found none."
     assert vmmc_inf     > 0, f"Expected male HIV infections in sim, found none."
     assert vmmc_inf_eff > 0, f"Expected male HIV infections in sim, found none."
@@ -576,7 +580,7 @@ def test_vmmc_is_male_only():
     sim = build_testing_sim(n_agents=tiny_pop, duration=1, interventions=[vmmc], pregnancy=None, death=None)
     sim.run()
 
-    n_vmmc_female = len((sim.people.vmmc.circumcised & sim.people.female).uids)
+    n_vmmc_female = len((sim.diseases.hiv.circumcised & sim.people.female).uids)
     assert n_vmmc_female == 0, f"Expected no females to be targeted by VMMC, but {n_vmmc_female} were"
 
     return sim
@@ -599,6 +603,7 @@ def test_vmmc_targeting():
     sim.run()
 
     people = sim.people
+    circumcised = sim.diseases.hiv.circumcised
     # Agents eligible at any point during the sim had ages in [min_age, max_age) at some timestep,
     # so by the end their ages span [min_age, max_age + total aging). Over the run agents age
     # duration + one dt (Starsim applies an aging step each timestep, including the final one),
@@ -606,9 +611,9 @@ def test_vmmc_targeting():
     max_aging = duration + float(sim.t.dt)  # years of aging accrued over the whole sim
     correct_ages = (people.age >= min_age) & (people.age < (max_age + max_aging))
 
-    n_incorrect_circ = len(( people.vmmc.circumcised    & (~correct_ages)            ).uids)
-    n_correct_circ =   len(( people.vmmc.circumcised    & correct_ages    & people.male ).uids)
-    n_missing_circ =   len(( (~people.vmmc.circumcised) & correct_ages    & people.male ).uids)
+    n_incorrect_circ = len(( circumcised    & (~correct_ages)            ).uids)
+    n_correct_circ =   len(( circumcised    & correct_ages    & people.male ).uids)
+    n_missing_circ =   len(( (~circumcised) & correct_ages    & people.male ).uids)
 
     if verbose:
         print(f"Target males [20, 25) : correct circ: {n_correct_circ} mising circ: {n_missing_circ} n_incorrect circ: {n_incorrect_circ}")
@@ -649,9 +654,9 @@ def test_par_ranges(n_agents=medium_pop):
 
     # [lo, hi, result_key, dur] — higher par values should produce higher result values
     par_effects = dict(
-        beta_m2f     = [0.01,  0.2,  'cum_infections', 10],
-        init_prev    = [0.01,  0.1,  'cum_infections', 10],
-        art_efficacy = [0.96,  0.5,  'cum_deaths',     10],
+        beta_m2f              = [0.01,  0.2,  'cum_infections', 10],
+        init_prev              = [0.01,  0.1,  'cum_infections', 10],
+        effective_art_efficacy = [0.96,  0.5,  'cum_deaths',     10],
     )
 
     # Build all sims and run in one parallel call
@@ -765,6 +770,39 @@ def test_mtct_rates_in_range():
     return dict(p_no_art=p_no_art, p_pmtct=p_pmtct)
 
 
+@sc.timer()
+def test_rel_death_scales_hiv_mortality(n_agents=3000):
+    """rel_death scales HIV mortality monotonically, off- and on-ART alike."""
+    sc.heading("Ensuring rel_death scales HIV deaths")
+
+    def _deaths(rel_death=1.0, art_initiation=1.0):
+        test_intv = sti.HIVTest(test_prob_data=1, dt_scale=False)
+        art = sti.ART(art_initiation=art_initiation)
+        hiv = sti.HIV(init_prev=1.0, beta_m2f=0.0, rel_death=rel_death,
+                      dur_on_art=ss.constant(v=ss.years(50)))
+        sim = build_testing_sim(n_agents=n_agents, duration=15,
+                                pregnancy=None, death=None,
+                                diseases=[hiv], interventions=[test_intv, art])
+        sim.run()
+        return int(sim.diseases.hiv.results.new_deaths.sum())
+
+    # Off-ART: nobody initiates ART, so all deaths come from make_p_hiv_death
+    d1 = _deaths(rel_death=0.5, art_initiation=0.0)
+    d2 = _deaths(rel_death=1.0, art_initiation=0.0)
+    d3 = _deaths(rel_death=2.0, art_initiation=0.0)
+    assert d1 < d2 < d3, (
+        f'rel_death should scale off-ART HIV deaths monotonically; got {d1}, {d2}, {d3}'
+    )
+
+    # On-ART: everyone initiates ART immediately, so deaths come from get_art_mortality_hazard
+    z1 = _deaths(rel_death=0.5, art_initiation=1.0)
+    z2 = _deaths(rel_death=1.0, art_initiation=1.0)
+    z3 = _deaths(rel_death=2.0, art_initiation=1.0)
+    assert z1 < z2 < z3, (
+        f'rel_death should scale on-ART HIV deaths monotonically; got {z1}, {z2}, {z3}'
+    )
+
+
 if __name__ == '__main__':
     do_plot = True
     sc.options(interactive=do_plot)
@@ -792,6 +830,7 @@ if __name__ == '__main__':
     test_cd4_falls_after_ART_dropout()
     test_rel_trans_rises_after_ART_dropout()
     test_rel_sus_age()
+    test_rel_death_scales_hiv_mortality()
 
     sc.heading("Total:")
     timer.toc()
