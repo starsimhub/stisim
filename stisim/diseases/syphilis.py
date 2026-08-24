@@ -770,6 +770,9 @@ class Syphilis(BaseSTI):
         # Latent to tertiary
         nonreactivate_uids = uids[~will_reactivate]
         if len(nonreactivate_uids) > 0:
+            # Invalidate the stale ti_secondary from the primary/reactivation transition that
+            # led here, so secondary_from_latent doesn't misfire on these agents next step
+            self.ti_secondary[nonreactivate_uids] = np.nan
             is_tertiary = self.pars.p_tertiary.rvs(nonreactivate_uids)
             tertiary_uids = nonreactivate_uids[is_tertiary]
             if len(tertiary_uids) > 0:
