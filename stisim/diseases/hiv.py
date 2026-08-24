@@ -171,6 +171,19 @@ class HIV(BaseSTI):
             ss.BoolState('diagnosed'),
             ss.FloatArr('ti_diagnosed'),
 
+            # PrEP. Efficacy/duration/adherence are specified directly on whichever
+            # Prep intervention enrolls someone (no fixed named "varieties" here) --
+            # prep_eff is the REALIZED efficacy for this person's current course
+            # (i.e. eff*adherence, already computed at enrollment), and prep_source
+            # identifies which Prep instance enrolled them (for that instance's own
+            # coverage-target accounting; see Prep._source_id).
+            ss.BoolState('prep_naive', default=True),   # never started PrEP, from any source (mirrors never_art)
+            ss.BoolState('on_prep'),
+            ss.BoolState('prep_discontinued'),           # currently off after a course ended (mirrors post_art)
+            ss.FloatArr('prep_eff'),       # realized rel_sus multiplier reduction for the current course
+            ss.FloatArr('prep_source'),    # id of the enrolling Prep instance; NaN=not on PrEP
+            ss.FloatArr('ti_prep_start'),
+            ss.FloatArr('ti_prep_stop'),   # scheduled course expiry (renewal/lapse), like ti_stop_art
             # Circumcision (VMMC)
             ss.BoolState('circumcised'),
             ss.BoolState('circ_traditional', default=False),  # True=traditional (non-program), False=program (medical) VMMC
@@ -528,6 +541,9 @@ class HIV(BaseSTI):
         self.on_nonsuppressive_art[uids] = False
         self.art_discontinued[uids] = False
         self.diagnosed[uids] = False
+        self.prep_naive[uids] = False
+        self.on_prep[uids] = False
+        self.prep_discontinued[uids] = False
         self.circumcised[uids] = False
         self.circ_traditional[uids] = False
 
@@ -540,6 +556,10 @@ class HIV(BaseSTI):
         self.ti_art[uids] = np.nan
         self.ti_stop_art[uids] = np.nan
         self.ti_diagnosed[uids] = np.nan
+        self.prep_eff[uids] = np.nan
+        self.prep_source[uids] = np.nan
+        self.ti_prep_start[uids] = np.nan
+        self.ti_prep_stop[uids] = np.nan
         self.ti_circumcised[uids] = np.nan
 
         # Clear CD4 states
@@ -585,6 +605,12 @@ class HIV(BaseSTI):
                 in_bin = sex_mask & (ppl.age >= age_lo) & (ppl.age < age_hi)
                 self.rel_sus[in_bin] *= mult
 
+        # PrEP: reduces acquisition susceptibility. prep_eff is the REALIZED
+        # per-person efficacy (already includes whatever adherence scaling the
+        # enrolling Prep instance applied), set by start_prep() -- there's no
+        # fixed set of named "varieties" here, so no branching by type.
+        if self.on_prep.any():
+            self.rel_sus[self.on_prep] *= 1 - self.prep_eff[self.on_prep]
         # Circumcision: reduces acquisition susceptibility. Magnitude depends on
         # circ_traditional (set by whichever pathway called self.circumcise()), not
         # on which intervention is present -- see HIVPars.eff_circ/eff_circ_traditional.
@@ -807,6 +833,51 @@ class HIV(BaseSTI):
 
         return
 
+    def start_prep(self, uids, eff, dur, source_id, adh=1.0):
+        """
+        Start a PrEP course for uids not already on PrEP
+
+        Args:
+            uids: agents to start
+            eff: base efficacy (0-1) of this course when fully adherent
+            dur: course duration (an ss.dur/Time value) before renewal is needed
+            source_id: numeric id of the enrolling Prep instance (for that
+                instance's own coverage-target accounting)
+            adh: adherence level (0-1), multiplied into eff to get the realized
+                efficacy (default 1.0 = fully adherent, i.e. realized eff == eff)
+
+        Returns:
+            The subset of uids actually started (already-on-PrEP agents excluded).
+        """
+        uids = uids[~self.on_prep[uids]]
+        if len(uids) == 0:
+            return uids
+
+        ti = self.ti
+        self.on_prep[uids] = True
+        self.prep_discontinued[uids] = False  # Re-starting PrEP clears the discontinued flag
+        newly_started = uids[self.prep_naive[uids]]
+        self.prep_naive[newly_started] = False
+        self.prep_eff[uids] = eff * adh
+        self.prep_source[uids] = source_id
+        self.ti_prep_start[uids] = ti
+        self.ti_prep_stop[uids] = ti + int(dur / self.dt)
+        return uids
+
+    def stop_prep(self, uids=None):
+        """
+        Stop PrEP for uids, or (if None) everyone whose current course has expired.
+        """
+        if uids is None:
+            uids = (self.on_prep & (self.ti_prep_stop <= self.ti)).uids
+        self.on_prep[uids] = False
+        self.prep_discontinued[uids] = True
+        self.prep_eff[uids] = np.nan
+        self.prep_source[uids] = np.nan
+        self.ti_prep_start[uids] = np.nan
+        self.ti_prep_stop[uids] = np.nan
+        return uids
+      
     def circumcise(self, uids, traditional=False):
         """
         Mark agents as circumcised. Idempotent: already-circumcised agents in

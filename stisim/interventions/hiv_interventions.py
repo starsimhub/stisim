@@ -740,27 +740,38 @@ class Prep(ss.Intervention):
     """
     Pre-exposure prophylaxis (PrEP).
 
-    Reduces HIV susceptibility by ``eff_prep`` (default 80%) among eligible agents.
-    Coverage ramps up over time via ``parse_coverage`` (same flexible inputs as
-    ART/VMMC). Uses a per-agent probability model (coverage = probability of being
-    on PrEP each step) rather than a target-count model like ART/VMMC.
+    Any PrEP product (oral or injectable) is specified as a combination of 
+    three parameters: efficacy (``prep_eff``), adherence (``prep_adh``), 
+    and duration (``prep_dur``). ``prep_adh`` is a continuous multiplier 
+    which reduces the base efficacy (``prep_eff``), ranges from [0-1],
+    default value is 1.0.
 
-    The ``eligibility`` callable defines the target population. It receives the
-    ``Sim`` object and should return a boolean array over all agents. HIV-negative
-    and not-already-on-PrEP filters are always applied on top, so eligibility only
-    needs to express *who to target*, not the clinical preconditions.
+    The state of the intervention (``on_prep``/``prep_eff``/``prep_source``/`
+    `ti_prep_start``/``ti_prep_stop``) lives on :class:`~stisim.diseases.hiv.HIV`.
+    This excludes people from enrolling on multiple PrEP products at once.
+    
+    The ``eligibility`` callable defines the target population. It receives
+    the ``Sim`` object and should return a boolean array over all agents.
+    HIV-negative and not-already-on-PrEP filters are always applied on top,
+    so eligibility only needs to express *who to target*, not the clinical
+    preconditions.
 
     Args:
-        coverage:    coverage level(s); any format accepted by parse_coverage,
-                     or legacy (years, coverage) list pairs via pars
-        eff_prep:    efficacy (default 0.8 = 80% reduction in acquisition)
-        smoothness:  interpolation smoothness (0=linear, default)
-        eligibility: callable ``(sim) -> BoolArr`` defining the target population;
-                     defaults to FSW (``sim.networks.structuredsexual.fsw``)
+        prep_eff:         base efficacy (0-1) when fully adherent (default 0.8)
+        prep_dur:         course duration before renewal is needed, an
+                          ``ss.dur``/Time value (default ``ss.months(3)``)
+        prep_adh:         adherence level (0-1), multiplied into prep_eff to get
+                          the realized efficacy (default 1.0 = fully adherent)
+        coverage:         coverage target; any format accepted by parse_coverage.
+                          Defaults to a modest historical ramp-up.
+        eligibility:      callable ``(sim) -> BoolArr`` defining the target population;
+                          defaults to FSW (``sim.networks.structuredsexual.fsw``)
+        smoothness:       interpolation smoothness (0=linear, default)
+        format_priority:  when both n_prep and p_prep are non-NaN, prefer this format
 
     Examples::
 
-        # Default: FSW at time-varying coverage
+        # Default: oral-like PrEP for FSW, ramping up over time
         prep = sti.Prep(coverage={'year': [2020, 2025], 'value': [0, 0.5]})
 
         # AGYW targeting
@@ -768,17 +779,35 @@ class Prep(ss.Intervention):
             coverage=0.4,
             eligibility=lambda sim: sim.people.female & (sim.people.age < 25),
         )
+
+        # A long-acting product alongside oral PrEP (distinct names required)
+        interventions = [
+            sti.Prep(prep_eff=0.75, prep_dur=ss.months(3), prep_adh=1.0,
+                     coverage=0.3, name='prep_oral'),
+                     # source: doi/full/10.1056/NEJMoa1108524
+            sti.Prep(prep_eff=0.95, prep_dur=ss.months(12), prep_adh=1.0,
+                     coverage=0.1, name='prep_cab_la'),
+                     # source: doi.org/10.1016/S0140-6736(22)00538-4
+        ]
     """
 
     @staticmethod
     def _default_eligibility(sim):
         return sim.networks.structuredsexual.fsw
 
-    def __init__(self, pars=None, coverage=None, eligibility=None, smoothness=0, **kwargs):
+    _source_counter = 0  # class-level counter; each instance gets a unique id
+
+    def __init__(self, pars=None, prep_eff=0.8, prep_dur=None, prep_adh=1.0,
+                 coverage=None, eligibility=None, smoothness=0, format_priority='n', **kwargs):
         super().__init__()
+
+        Prep._source_counter += 1
+        self._source_id = Prep._source_counter
+
         self.define_pars(
-            coverage_dist=ss.bernoulli(p=0),
-            eff_prep=0.8,
+            prep_eff=prep_eff,
+            prep_dur=prep_dur if prep_dur is not None else ss.months(3),
+            prep_adh=prep_adh,
         )
         # Pop legacy years= before update_pars rejects it as an unrecognised par
         years = kwargs.pop('years', None)
@@ -786,34 +815,99 @@ class Prep(ss.Intervention):
             coverage = {'year': years, 'value': coverage}
         self.update_pars(pars, **kwargs)
         self.eligibility = eligibility if eligibility is not None else self._default_eligibility
-        self._smoothness = smoothness
-        self._coverage_arr = None  # Set in init_pre
+        self._smoothness      = smoothness
+        self._format_priority = format_priority
+        self.coverage         = None
+        self.coverage_format  = None
+        self.age_bins         = None
+        self.sex_keys         = None
 
         if coverage is None:
             coverage = {'year': [2004, 2005, 2015, 2025], 'value': [0, 0.01, 0.5, 0.8]}
         self._raw_coverage = coverage
 
-        self.define_states(
-            ss.BoolArr('on_prep', label='On PrEP'),
-        )
+        # States
+        self.willingness = ss.FloatArr('willingness', default=ss.random())
+
         return
 
     def init_pre(self, sim):
         super().init_pre(sim)
-        self._coverage_arr, _, _, _ = parse_coverage(
-            self._raw_coverage, valid_names=['p_prep'], yearvec=self.t.yearvec,
-            smoothness=self._smoothness,
+        self.coverage, self.coverage_format, self.age_bins, self.sex_keys = parse_coverage(
+            self._raw_coverage, valid_names=['n_prep', 'p_prep'], yearvec=self.t.yearvec,
+            smoothness=self._smoothness, format_priority=self._format_priority,
         )
         return
 
+    def init_results(self):
+        super().init_results()
+        self.define_results(
+            ss.Result('new_prep',  dtype=int, label='New PrEP starts', auto_plot=False),
+            ss.Result('n_on_prep', dtype=int, label='Number on PrEP',  auto_plot=False),
+        )
+        return
+
+    def _add_to_target(self, hiv, pool, target):
+        """Top ``pool`` up to ``target`` on THIS instance's product, choosing
+        the highest-willingness people not already on any PrEP. Returns the
+        number of new starts."""
+        on_mine = hiv.on_prep & (hiv.prep_source == self._source_id)
+        n_add = int(target) - (pool & on_mine).count()
+        if n_add <= 0:
+            return 0
+        candidates = (pool & ~hiv.on_prep).uids  # excludes ANY product -- mutual exclusivity
+        if len(candidates) == 0:
+            return 0
+        n_add = min(n_add, len(candidates))
+        new_uids = candidates[np.argsort(-self.willingness[candidates])[:n_add]]
+        started = hiv.start_prep(new_uids, eff=self.pars.prep_eff, dur=self.pars.prep_dur,
+                                  source_id=self._source_id, adh=self.pars.prep_adh)
+        return len(started)
+
     def step(self):
         sim = self.sim
-        cov_val = self._coverage_arr[self.ti]
-        if cov_val > 0:
-            self.pars.coverage_dist.set(p=cov_val)
-            eligible = self.eligibility(sim) & ~sim.diseases.hiv.infected & ~self.on_prep
-            new_on_prep = self.pars.coverage_dist.filter(eligible)
-            sim.diseases.hiv.rel_sus[new_on_prep] *= 1 - self.pars.eff_prep
+        ppl = sim.people
+        hiv = sim.diseases.hiv
+
+        # Expire courses whose duration has elapsed, for THIS instance's
+        # enrollees only -- each Prep instance is responsible for its own.
+        expiring = hiv.on_prep & (hiv.prep_source == self._source_id) & (hiv.ti_prep_stop <= self.ti)
+        if expiring.any():
+            hiv.stop_prep(expiring.uids)
+
+        # Coverage is a PrEP *prevalence* (stock) target, matching how PrEP
+        # programs report coverage ("X% of AGYW on PrEP"): the denominator is
+        # ALL eligible people (already on this product included), and each step
+        # we top up to the target rather than adding a fraction of the
+        # remaining pool (which would ratchet toward 100% regardless of the
+        # target). Stratified coverage is corrected per (age, sex) stratum.
+        pool = ppl.alive & ~hiv.infected & self.eligibility(sim)
+
+        n_new = 0
+        if self.coverage is not None:
+            stratum_targets = compute_stratum_targets(
+                self.coverage, self.coverage_format, self.age_bins, self.sex_keys,
+                self.ti, pool.uids, sim,
+            )
+            if stratum_targets is not None:
+                for key, target in stratum_targets.items():
+                    # Age-only stratification (no Gender column) means "don't filter by sex" —
+                    # the pool's own eligibility already determines who's targeted. VMMC copies
+                    # this same pattern but defaults to sex=1 (male), which is wrong here since
+                    # Prep's default/typical eligibility (FSW, AGYW) is female.
+                    ab, sex = (key[0], key[1]) if isinstance(key, tuple) else (key, None)
+                    n_new += self._add_to_target(hiv, pool & age_sex_mask(ab, sex, ppl), target)
+            else:
+                total = compute_coverage_target(
+                    self.coverage, self.coverage_format, self.age_bins, self.sex_keys,
+                    self.ti, pool.uids, sim,
+                )
+                if total is not None:
+                    n_new += self._add_to_target(hiv, pool, total)
+
+        self.results['new_prep'][self.ti] = n_new
+        self.results['n_on_prep'][self.ti] = (hiv.on_prep & (hiv.prep_source == self._source_id)).count()
+
         return
 
 

@@ -248,15 +248,41 @@ Circumcision status (`circumcised`/`circ_traditional`/`ti_circumcised`) and effi
 
 Pre-exposure prophylaxis. By default targets HIV-negative FSWs (female sex workers) who are not already on PrEP. Use the `eligibility` parameter to target a different population.
 
+PrEP is parameterized through three parameters: 
+
+* Efficacy (``prep_eff``) - protective efficacy given perfect adherence
+* Adherence (``prep_adh``) - ``prep_adh`` is a continuous multiplier which reduces the base efficacy (``prep_eff``), ranges from [0-1], default value is 1.0.
+* Duration (``prep_dur``) - time spent on PrEP before discontinuing.
+
+Two examples of how to parameterize PrEP:
+
+| Product (illustrative) | `prep_eff` | `prep_dur` | `prep_adh` | Source |
+|---|---|---|---|---|
+| Daily oral (adherence-sensitive) | 0.75 | 3 months | 1.0 | [DOI:10.1056/NEJMoa1108524](https://doi.org/10.1056/NEJMoa1108524) |
+| Long-acting cabotegravir (CAB-LA) | 0.95 | 12 months | 1.0 | [DOI:10.1016/S0140-6736(22)00538-4](https://doi.org/10.1016/S0140-6736(22)00538-4) |
+
+State (`prep_naive`/`on_prep`/`prep_discontinued`/`prep_eff`/`prep_source`/`ti_prep_start`/`ti_prep_stop`) lives on the `HIV` disease module. This lets multiple `Prep` instances (one per product) share the same PrEP history, so a person on one product is automatically excluded from starting another, and their history (naive/on/discontinued) is tracked consistently no matter which product they used.
+
+`prep_naive` flips to `False` once, permanently, on first-ever enrollment; `prep_discontinued` clears if a course is later restarted. `prep_discontinued` allows a user to target individuals who have already used PrEP for additional future PrEP initiation. `prep_source` is a per-agent number recording of which instance of `Prep` enrolled this agent.
+
+Coverage is a *prevalence* (stock) target, like VMMC and ART.
+
 ```python
 prep = sti.Prep(coverage=[0, 0.5], years=[2020, 2025])
+
+# A long-acting product alongside oral PrEP (distinct names required)
+interventions = [
+    sti.Prep(prep_eff=0.8, prep_dur=ss.months(3), prep_adh=0.7, coverage=0.3, name='prep_oral'),
+    sti.Prep(prep_eff=0.9, prep_dur=ss.months(12), prep_adh=1.0, coverage=0.1, name='prep_cab_la'),
+]
 ```
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `coverage` | [0, 0.01, 0.5, 0.8] | Coverage values at each year (linearly interpolated between years) |
-| `years` | [2004, 2005, 2015, 2025] | Calendar years corresponding to coverage values |
-| `eff_prep` | 0.8 | Efficacy (80% reduction in HIV acquisition risk) |
+| `prep_eff` | 0.8 | Base efficacy (0-1) when fully adherent |
+| `prep_dur` | 3 months | Course duration before renewal is needed (an `ss.dur`/Time value) |
+| `prep_adh` | 1.0 | Adherence level (0-1), multiplied into `prep_eff` to get realized efficacy |
+| `coverage` | [0, 0.01, 0.5, 0.8] over 2004-2025 | Coverage target (same stock-target formats as ART/VMMC: scalar, dict, DataFrame with `n_prep`/`p_prep` columns) |
 | `eligibility` | HIV-negative FSWs not on PrEP | Optional function to override default targeting |
 
 ## Syndromic management

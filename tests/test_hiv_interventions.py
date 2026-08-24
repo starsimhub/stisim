@@ -151,6 +151,31 @@ def test_vmmc_hits_target(do_plot=do_plot):
     return prev
 
 
+def test_prep_age_only_stratified_coverage():
+    """ Age-only stratified coverage (no Gender column) must not implicitly restrict
+    to males: Prep's default/typical eligibility (FSW, AGYW) is female, so an
+    age-only stratum should enroll against whatever sex the eligibility pool
+    already selects, not silently default to male like VMMC's age-only stratify. """
+    sc.heading('Testing Prep age-only stratified coverage enrolls its (female) eligible pool...')
+
+    cov_df = pd.DataFrame({
+        'Year':   [2015, 2015],
+        'AgeBin': ['[15,25)', '[25,100)'],
+        'p_prep': [0.5, 0.3],
+    })
+    prep = sti.Prep(coverage=cov_df, name='prep')
+    sim = sti.Sim(diseases='hiv', interventions=prep, n_agents=20_000, start=2015, stop=2018, verbose=0)
+    sim.run()
+
+    n_on_prep = np.array(sim.interventions.prep.results.n_on_prep)
+    assert n_on_prep[-5:].sum() > 0, (
+        f'Expected nonzero PrEP enrollment with age-only stratified coverage, got {n_on_prep}. '
+        'A sex=1 (male) default for the missing Gender column would silently zero out '
+        'Prep enrollment, since its eligible pool (FSW) is female.'
+    )
+    return sim
+
+
 @sc.timer()
 def test_art_stratified_coverage(do_plot=do_plot):
     """ Check that age/sex stratified coverage data is parsed and applied """
