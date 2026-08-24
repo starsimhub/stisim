@@ -272,7 +272,7 @@ prep = sti.Prep(coverage=[0, 0.5], years=[2020, 2025])
 # A long-acting product alongside oral PrEP (distinct names required)
 interventions = [
     sti.Prep(prep_eff=0.8, prep_dur=ss.months(3), prep_adh=0.7, coverage=0.3, name='prep_oral'),
-    sti.Prep(prep_eff=0.9, prep_dur=ss.months(2), prep_adh=1.0, coverage=0.1, name='prep_cab_la'),
+    sti.Prep(prep_eff=0.9, prep_dur=ss.months(12), prep_adh=1.0, coverage=0.1, name='prep_cab_la'),
 ]
 ```
 

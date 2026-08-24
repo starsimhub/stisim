@@ -620,8 +620,8 @@ class Prep(ss.Intervention):
     Any PrEP product (oral or injectable) is specified as a combination of 
     three parameters: efficacy (``prep_eff``), adherence (``prep_adh``), 
     and duration (``prep_dur``). ``prep_adh`` is a continuous multiplier 
-    which reduces the base efficacy (``prep_eff``), ranges from [0-1], 
-    efault value is 1.0.
+    which reduces the base efficacy (``prep_eff``), ranges from [0-1],
+    default value is 1.0.
 
     The state of the intervention (``on_prep``/``prep_eff``/``prep_source``/`
     `ti_prep_start``/``ti_prep_stop``) lives on :class:`~stisim.diseases.hiv.HIV`.
@@ -768,7 +768,11 @@ class Prep(ss.Intervention):
             )
             if stratum_targets is not None:
                 for key, target in stratum_targets.items():
-                    ab, sex = (key[0], key[1]) if isinstance(key, tuple) else (key, 1)
+                    # Age-only stratification (no Gender column) means "don't filter by sex" —
+                    # the pool's own eligibility already determines who's targeted. VMMC copies
+                    # this same pattern but defaults to sex=1 (male), which is wrong here since
+                    # Prep's default/typical eligibility (FSW, AGYW) is female.
+                    ab, sex = (key[0], key[1]) if isinstance(key, tuple) else (key, None)
                     n_new += self._add_to_target(hiv, pool & age_sex_mask(ab, sex, ppl), target)
             else:
                 total = compute_coverage_target(

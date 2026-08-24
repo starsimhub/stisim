@@ -730,7 +730,7 @@ class HIV(BaseSTI):
         Stop PrEP for uids, or (if None) everyone whose current course has expired.
         """
         if uids is None:
-            uids = self.on_prep & (self.ti_prep_stop <= self.ti)
+            uids = (self.on_prep & (self.ti_prep_stop <= self.ti)).uids
         self.on_prep[uids] = False
         self.prep_discontinued[uids] = True
         self.prep_eff[uids] = np.nan
