@@ -803,6 +803,70 @@ def test_rel_death_scales_hiv_mortality(n_agents=3000):
     )
 
 
+def test_on_art_mortality_invariant_enforced():
+    """ On-ART mortality is anchored to the off-ART CD4-based hazard so it can never
+    exceed it, by construction -- but only if rel_art_mortality_effective/unsupp_m/f
+    times the largest age/duration multiplier stays <= 1. This must be validated at
+    init, since calibrating any of those pars past the threshold would otherwise
+    silently invert the treatment effect with no error. """
+    sc.heading('Testing on-ART mortality invariant is enforced at init')
+
+    def _init(**kwargs):
+        hiv = sti.HIV(**kwargs)
+        sim = ss.Sim(diseases=hiv, networks=sti.StructuredSexual(), n_agents=tiny_pop,
+                     start=2015, stop=2016, verbose=0)
+        sim.init()
+
+    _init()  # Default pars must pass
+
+    # rel_art_mortality_unsupp_m=0.9 * art_death_age max (1.32) = 1.188 > 1
+    with pytest.raises(ValueError):
+        _init(rel_art_mortality_unsupp_m=0.9)
+
+    # A too-large art_death_dur multiplier should also be caught
+    with pytest.raises(ValueError):
+        _init(art_death_dur=[(0, 1e9, 2.0)])
+
+
+def test_art_efficacy_ramp_stays_in_bounds():
+    """ rel_trans for on-ART agents ramps from 1 down to (1 - full_eff) over
+    time_to_art_efficacy; this must hold regardless of dt, not just at the
+    default monthly resolution (time_to_art_efficacy is authored in months and
+    must be converted to timesteps via dt, not used as a raw timestep count).
+
+    Checks rel_trans right after update_transmission() runs each step (via a
+    class-level wrap), rather than via an end-of-timestep Analyzer: some of the
+    agents that briefly go out of bounds are later excluded from on_art by ART's
+    own coverage-matching logic within the same timestep, which would hide the
+    violation from a same-timestep results/Analyzer snapshot despite it having
+    been real and used for transmission that step. """
+    sc.heading('Testing ART efficacy ramp stays within bounds at non-monthly dt')
+
+    mins = []
+    orig = sti.HIV.update_transmission
+    def wrapped(self):
+        orig(self)
+        art_uids = self.on_art.uids
+        if len(art_uids):
+            mins.append(self.rel_trans[art_uids].min())
+    sti.HIV.update_transmission = wrapped
+    try:
+        hiv = sti.HIV(init_prev=0.5, dt=ss.weeks(1))
+        sim = ss.Sim(diseases=hiv, networks=sti.StructuredSexual(),
+                     interventions=[sti.HIVTest(test_prob_data=0.9), sti.ART(coverage=0.9)],
+                     n_agents=small_pop, start=2015, stop=2017, verbose=0)
+        sim.run()
+    finally:
+        sti.HIV.update_transmission = orig
+
+    min_rel_trans = min(mins)
+    min_possible = 1 - max(hiv.pars.effective_art_efficacy, hiv.pars.nonsupp_art_efficacy)
+    assert min_rel_trans >= min_possible - 1e-9, (
+        f'rel_trans for on-ART agents should never drop below 1-full_eff={min_possible}, '
+        f'got min {min_rel_trans} over the run. A dt/unit mismatch in the efficacy ramp would let this go negative.'
+    )
+
+
 if __name__ == '__main__':
     do_plot = True
     sc.options(interactive=do_plot)

@@ -250,6 +250,27 @@ class HIV(BaseSTI):
 
         return
 
+    def init_pre(self, sim):
+        super().init_pre(sim)
+        # On-ART mortality is anchored to the off-ART CD4-based hazard specifically so it can
+        # never exceed it by construction (see get_art_mortality_hazard) -- but that only holds
+        # if the largest combination of multipliers stays <= 1. Catch a violation here rather
+        # than let a calibration silently invert the treatment effect.
+        age_mult = max(mult for *_, mult in self.pars.art_death_age) if self.pars.art_death_age else 1.0
+        dur_mult = max(mult for *_, mult in self.pars.art_death_dur) if self.pars.art_death_dur else 1.0
+        worst = max(self.pars.rel_art_mortality_effective,
+                    self.pars.rel_art_mortality_unsupp_m,
+                    self.pars.rel_art_mortality_unsupp_f) * age_mult * dur_mult
+        if worst > 1:
+            errormsg = (
+                f'On-ART mortality can exceed off-ART mortality at the same CD4 count: '
+                f'max(rel_art_mortality_effective, rel_art_mortality_unsupp_m, rel_art_mortality_unsupp_f) '
+                f'* max(art_death_age mult) * max(art_death_dur mult) = {worst:.3f} > 1. '
+                'Reduce these pars so the product stays <= 1.'
+            )
+            raise ValueError(errormsg)
+        return
+
     def init_post(self):
         """ Set states """
         ss.Module.init_post(self)  # Skip the disease init_post() since we create infections in a different way
@@ -628,13 +649,17 @@ class HIV(BaseSTI):
         # When agents start ART, determine the reduction of transmission (linearly decreasing over 6 months).
         # Efficacy depends on whether the agent is virally suppressed (effective ART) or not (non-suppressive ART).
         if self.on_art.any():
-            time_to_full_eff = self.pars.time_to_art_efficacy
             art_uids = self.on_art.uids
             full_eff = np.where(self.on_effective_art[art_uids], self.pars.effective_art_efficacy, self.pars.nonsupp_art_efficacy)
             timesteps_on_art = ti - self.ti_art[art_uids]
-            new_on_art = timesteps_on_art < time_to_full_eff/self.dt
+            # time_to_art_efficacy is in its own declared unit (months by default); convert to
+            # timesteps via self.dt (like the mask below) rather than using .value directly, which
+            # is only correct when dt happens to equal that unit (e.g. breaks at non-monthly dt,
+            # letting efficacy_to_date exceed 1 and rel_trans go negative).
+            timesteps_to_full_eff = self.pars.time_to_art_efficacy / self.dt
+            new_on_art = timesteps_on_art < timesteps_to_full_eff
             efficacy_to_date = full_eff.copy()
-            efficacy_to_date[new_on_art] = timesteps_on_art[new_on_art]*full_eff[new_on_art]/time_to_full_eff.value
+            efficacy_to_date[new_on_art] = timesteps_on_art[new_on_art]*full_eff[new_on_art]/timesteps_to_full_eff
             self.rel_trans[art_uids] *= 1 - efficacy_to_date
 
         return
