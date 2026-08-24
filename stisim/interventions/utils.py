@@ -46,7 +46,7 @@ def _interp_by_format(years, values, formats, yearvec, smoothness=0, **interp_kw
     return arr, fmt_arr
 
 
-def parse_coverage(data, valid_names=None, yearvec=None, smoothness=0, format_priority='n', **interp_kw):
+def parse_coverage(data, valid_names=None, yearvec=None, smoothness=0, format_priority='n', missing_fill=0.0, **interp_kw):
     """
     Parse coverage data into a per-timestep array.
 
@@ -89,6 +89,8 @@ def parse_coverage(data, valid_names=None, yearvec=None, smoothness=0, format_pr
         smoothness:       interpolation smoothness (0=linear, higher=smoother S-curves);
                           passed to sc.smoothinterp
         format_priority:  when both n_* and p_* are non-NaN, prefer this format ('n' or 'p')
+        missing_fill:     value assigned to strata absent from a stratified DataFrame
+                          (default 0.0; only used by the stratified-DataFrame path)
         **interp_kw:      additional keyword arguments passed to sc.smoothinterp
                           (e.g. method='nearest', growth=0.1)
     """
@@ -123,13 +125,14 @@ def parse_coverage(data, valid_names=None, yearvec=None, smoothness=0, format_pr
 
     # DataFrame — check for stratified vs single-column
     if isinstance(data, pd.DataFrame):
-        return _parse_coverage_df(data, valid_names, yearvec, smoothness=smoothness, format_priority=format_priority, **interp_kw)
+        return _parse_coverage_df(data, valid_names, yearvec, smoothness=smoothness, format_priority=format_priority,
+                                   missing_fill=missing_fill, **interp_kw)
 
     errormsg = f'Coverage data format not recognized: {type(data)}. Expected None, number, dict, or DataFrame.'
     raise ValueError(errormsg)
 
 
-def _parse_coverage_df(data, valid_names, yearvec, smoothness=0, format_priority='n', **interp_kw):
+def _parse_coverage_df(data, valid_names, yearvec, smoothness=0, format_priority='n', missing_fill=0.0, **interp_kw):
     """
     Parse a DataFrame of coverage data.
 
@@ -145,7 +148,7 @@ def _parse_coverage_df(data, valid_names, yearvec, smoothness=0, format_priority
     has_agebin = 'agebin' in col_lower or 'age_bin' in col_lower or 'age' in col_lower
 
     if has_year and has_agebin:  # Gender/Sex column is optional
-        return _parse_stratified_df(data, yearvec, smoothness=smoothness, **interp_kw)
+        return _parse_stratified_df(data, yearvec, smoothness=smoothness, missing_fill=missing_fill, **interp_kw)
 
     # Check for dual-column format (both n_* and p_* columns)
     n_cols = [c for c in data.columns if c in valid_names and c.startswith('n_')]
@@ -293,7 +296,7 @@ def _normalize_stratified_cols(data):
     return df
 
 
-def _parse_stratified_df(data, yearvec, smoothness=0, **interp_kw):
+def _parse_stratified_df(data, yearvec, smoothness=0, missing_fill=0.0, **interp_kw):
     """
     Parse a stratified coverage DataFrame.
 
@@ -303,6 +306,12 @@ def _parse_stratified_df(data, yearvec, smoothness=0, **interp_kw):
 
     The value column is detected as the first numeric column that's not a
     metadata column (Year, Gender, AgeBin, Count, lb, ub).
+
+    age_bins/sex_keys are the union of values seen anywhere in the data, so
+    every (age_bin, sex) combination gets a dict entry — combinations with no
+    matching rows are filled with missing_fill rather than left absent, so
+    callers relying on a non-zero default for uncovered strata must pass it
+    here (a .get(key, default) at lookup time won't see a missing key).
 
     Returns (coverage_dict, format, age_bins, sex_keys) where sex_keys is None
     if no Gender column is present.
@@ -339,7 +348,7 @@ def _parse_stratified_df(data, yearvec, smoothness=0, **interp_kw):
                 key = ab
 
             if len(subset) == 0:
-                coverage[key] = np.zeros(len(yearvec))
+                coverage[key] = np.full(len(yearvec), missing_fill)
             else:
                 years = subset['Year'].values.astype(float)
                 vals  = subset[val_col].values.astype(float)
