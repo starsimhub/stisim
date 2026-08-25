@@ -64,8 +64,18 @@ class HIVPars(BaseSTIPars):
 
         # Treatment effects
         self.art_cd4_growth = 0.1  # Unitless parameter defining how CD4 reconstitutes after starting ART - used in a logistic growth function
-        self.effective_art_efficacy = 0.96  # Transmission efficacy of effective (virally-suppressive) ART
-        self.nonsupp_art_efficacy = 0.35  # Transmission efficacy of non-suppressive ART
+        self.effective_art_efficacy = 0.99  # Transmission efficacy of effective (virally-suppressive) ART. PARTNER/PARTNER2/
+        # Opposites Attract found zero linked transmissions from virally suppressed partners across thousands of couple-years
+        # ("U=U"); 0.99 (not 1.0) leaves a small residual for the small fraction of time near a viral blip/imperfect
+        # suppression, rather than treating effective ART as literally 100% non-infectious.
+        self.nonsupp_art_efficacy = 0.35  # Transmission efficacy of non-suppressive ART. Anchored to a Quinn (Rakai 2000,
+        # ~2.45x transmission risk per +1 log10 viral load) hazard-ratio calculation applied to an assumed
+        # non-suppressed viral load distribution of log10(VL) ~ N(3.75, 0.8^2), relative to untreated chronic
+        # infection at ~4.5 log10: 2.45^(3.75-4.5) * exp(ln(2.45)^2 * 0.8^2 / 2) = 0.51 * 1.29 ~= 0.66 relative
+        # infectiousness -> efficacy ~= 1-0.66 = 0.34, close to the shipped 0.35. The exp(...) term is a Jensen
+        # correction: the hazard is exponential in log10(VL), so integrating over the assumed distribution differs
+        # from evaluating at its mean. This is sensitive to the assumed distribution (e.g. mean 4.0 -> ~0.16,
+        # mean 3.5 -> ~0.47), so treat 0.35 as anchored-but-revisitable, not a hard empirical estimate.
         self.time_to_art_efficacy = ss.months(6)  # Time to reach full ART efficacy (in months) - linear increase in efficacy
         self.p_effective_art = ss.bernoulli(p=1.0)  # Probability that a newly-initiated agent achieves viral suppression (vs. non-suppressive ART)
         self.art_cd4_pars = dict(cd4_max=1000, cd4_healthy=500)
@@ -84,9 +94,10 @@ class HIVPars(BaseSTIPars):
         self.rel_art_mortality_effective = 0.25  # Fraction of off-ART CD4-based mortality retained on effective (suppressive) ART (both sexes)
         self.rel_art_mortality_unsupp_m = 0.7  # Fraction of off-ART CD4-based mortality retained on non-suppressive ART, males
         self.rel_art_mortality_unsupp_f = 0.35  # ...females. Chosen so the non-suppressive/effective MORTALITY RATIO is 2x
-        # higher for men than for women (0.7/0.25=2.8 vs. 0.35/0.25=1.4) -- rel_death_f below is a separate, adherence-independent
-        # sex multiplier that cancels out of this ratio, so it doesn't affect the 2x relationship.
-        self.rel_death_f = 0.74  # Additional multiplier for females, on ART (applies equally to effective and non-suppressive)
+        # higher for men than for women (0.7/0.25=2.8 vs. 0.35/0.25=1.4) -- rel_death_f below is folded into the
+        # shared off-ART baseline (see make_p_hiv_death/get_art_mortality_hazard) so it applies equally on- and
+        # off-ART and cancels out of this ratio, rather than being an ART-specific adherence effect.
+        self.rel_death_f = 0.74  # Additional mortality multiplier for females, on- and off-ART alike
         self.art_death_age = [  # (age_lo, age_hi, mult), like rel_sus_age
             (0, 25, 1.0),
             (25, 35, 1.10),
@@ -250,6 +261,27 @@ class HIV(BaseSTI):
 
         return
 
+    def init_pre(self, sim):
+        super().init_pre(sim)
+        # On-ART mortality is anchored to the off-ART CD4-based hazard specifically so it can
+        # never exceed it by construction (see get_art_mortality_hazard) -- but that only holds
+        # if the largest combination of multipliers stays <= 1. Catch a violation here rather
+        # than let a calibration silently invert the treatment effect.
+        age_mult = max(mult for *_, mult in self.pars.art_death_age) if self.pars.art_death_age else 1.0
+        dur_mult = max(mult for *_, mult in self.pars.art_death_dur) if self.pars.art_death_dur else 1.0
+        worst = max(self.pars.rel_art_mortality_effective,
+                    self.pars.rel_art_mortality_unsupp_m,
+                    self.pars.rel_art_mortality_unsupp_f) * age_mult * dur_mult
+        if worst > 1:
+            errormsg = (
+                f'On-ART mortality can exceed off-ART mortality at the same CD4 count: '
+                f'max(rel_art_mortality_effective, rel_art_mortality_unsupp_m, rel_art_mortality_unsupp_f) '
+                f'* max(art_death_age mult) * max(art_death_dur mult) = {worst:.3f} > 1. '
+                'Reduce these pars so the product stays <= 1.'
+            )
+            raise ValueError(errormsg)
+        return
+
     def init_post(self):
         """ Set states """
         ss.Module.init_post(self)  # Skip the disease init_post() since we create infections in a different way
@@ -363,30 +395,36 @@ class HIV(BaseSTI):
         Calculate per-timestep HIV death probability based on current CD4 count.
 
         Reads bins/rates from pars.cd4_death_bins/cd4_death_rates, scales by
-        pars.rel_death, then converts from per-year to per-timestep probabilities.
+        pars.rel_death and pars.rel_death_f (females), then converts from
+        per-year to per-timestep probabilities. This is the same off-ART
+        baseline that get_art_mortality_hazard anchors on-ART mortality to.
         """
-        p_hiv_death = ss.peryear(self.pars.cd4_death_rates * self.pars.rel_death).to_prob(self.dt)
-        return p_hiv_death[np.digitize(self.cd4[uids], self.pars.cd4_death_bins)]
+        rate = self.pars.cd4_death_rates[np.digitize(self.cd4[uids], self.pars.cd4_death_bins)] * self.pars.rel_death
+        rate[~self.sim.people.male[uids]] *= self.pars.rel_death_f
+        return ss.peryear(rate).to_prob(self.dt)
 
     def get_art_mortality_hazard(self, uids):
         """
         Per-timestep HIV death probability for agents currently on ART.
 
         Anchored to the off-ART CD4-based hazard (same cd4_death_bins/
-        cd4_death_rates/rel_death used by make_p_hiv_death, at the agent's
-        CURRENT CD4) rather than an independent baseline + CD4 table:
+        cd4_death_rates/rel_death/rel_death_f used by make_p_hiv_death, at the
+        agent's CURRENT CD4) rather than an independent baseline + CD4 table:
 
-            rate = off_art_rate(cd4) * rel_art_mortality[effective? / sex] * age_mult(age) * rel_death_f?
+            rate = off_art_rate(cd4, sex) * rel_art_mortality[effective? / sex] * age_mult(age)
 
         rel_art_mortality_unsupp is sex-specific (rel_art_mortality_unsupp_m/f)
         so the non-suppressive/effective mortality RATIO can differ by sex
         (currently 2x higher for men than women); rel_art_mortality_effective
         and rel_death_f are not adherence-specific, so they don't affect that
-        ratio. Anchoring to off_art_rate guarantees, by construction, that
-        on-ART mortality can never exceed off-ART mortality at the same CD4
-        count -- as long as rel_art_mortality_effective/unsupp_m/unsupp_f
-        times the largest age/duration multiplier stays <= 1 (true for the
-        shipped defaults; see the note by those pars in HIVPars).
+        ratio -- rel_death_f is folded into off_art_rate itself (shared with
+        make_p_hiv_death), so it applies equally on- and off-ART and cancels
+        out of the ratio. Anchoring to off_art_rate guarantees, by
+        construction, that on-ART mortality can never exceed off-ART
+        mortality at the same CD4 count -- as long as
+        rel_art_mortality_effective/unsupp_m/unsupp_f times the largest
+        age/duration multiplier stays <= 1 (true for the shipped defaults;
+        see the note by those pars in HIVPars).
         """
         male = self.sim.people.male[uids]
         effective = self.on_effective_art[uids]
@@ -394,12 +432,12 @@ class HIV(BaseSTI):
         cd4 = self.cd4[uids]
 
         off_art_rate = self.pars.cd4_death_rates[np.digitize(cd4, self.pars.cd4_death_bins)] * self.pars.rel_death
+        off_art_rate[~male] *= self.pars.rel_death_f
 
         rate = off_art_rate.copy()
         rate[effective] *= self.pars.rel_art_mortality_effective
         rate[~effective & male] *= self.pars.rel_art_mortality_unsupp_m
         rate[~effective & ~male] *= self.pars.rel_art_mortality_unsupp_f
-        rate[~male] *= self.pars.rel_death_f
 
         age_mult = np.ones(len(uids))
         for age_lo, age_hi, mult in self.pars.art_death_age:
@@ -628,13 +666,17 @@ class HIV(BaseSTI):
         # When agents start ART, determine the reduction of transmission (linearly decreasing over 6 months).
         # Efficacy depends on whether the agent is virally suppressed (effective ART) or not (non-suppressive ART).
         if self.on_art.any():
-            time_to_full_eff = self.pars.time_to_art_efficacy
             art_uids = self.on_art.uids
             full_eff = np.where(self.on_effective_art[art_uids], self.pars.effective_art_efficacy, self.pars.nonsupp_art_efficacy)
             timesteps_on_art = ti - self.ti_art[art_uids]
-            new_on_art = timesteps_on_art < time_to_full_eff/self.dt
+            # time_to_art_efficacy is in its own declared unit (months by default); convert to
+            # timesteps via self.dt (like the mask below) rather than using .value directly, which
+            # is only correct when dt happens to equal that unit (e.g. breaks at non-monthly dt,
+            # letting efficacy_to_date exceed 1 and rel_trans go negative).
+            timesteps_to_full_eff = self.pars.time_to_art_efficacy / self.dt
+            new_on_art = timesteps_on_art < timesteps_to_full_eff
             efficacy_to_date = full_eff.copy()
-            efficacy_to_date[new_on_art] = timesteps_on_art[new_on_art]*full_eff[new_on_art]/time_to_full_eff.value
+            efficacy_to_date[new_on_art] = timesteps_on_art[new_on_art]*full_eff[new_on_art]/timesteps_to_full_eff
             self.rel_trans[art_uids] *= 1 - efficacy_to_date
 
         return
