@@ -85,9 +85,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-bb62276ab45c84d9efd712f51ff97b5a.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-7bcd1175e8f736ed7e3439be2e8c2145.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-2b30f22a5a4f864f0b03b2d42f42f868.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-7bcd1175e8f736ed7e3439be2e8c2145.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-f79c51ff5e30854ac28238745b8bb7a4.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-f82da039d528b6d641c3350d1714121e.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-f79c51ff5e30854ac28238745b8bb7a4.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -600,6 +600,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
   <li><a href="#methods" id="toc-methods" class="nav-link" data-scroll-target="#methods">Methods</a>
   <ul class="collapse">
   <li><a href="#stisim.interventions.hiv_interventions.ART.art_coverage_correction" id="toc-stisim.interventions.hiv_interventions.ART.art_coverage_correction" class="nav-link" data-scroll-target="#stisim.interventions.hiv_interventions.ART.art_coverage_correction">art_coverage_correction</a></li>
+  <li><a href="#stisim.interventions.hiv_interventions.ART.make_vls_prob_fn" id="toc-stisim.interventions.hiv_interventions.ART.make_vls_prob_fn" class="nav-link" data-scroll-target="#stisim.interventions.hiv_interventions.ART.make_vls_prob_fn">make_vls_prob_fn</a></li>
   <li><a href="#stisim.interventions.hiv_interventions.ART.prioritize_art" id="toc-stisim.interventions.hiv_interventions.ART.prioritize_art" class="nav-link" data-scroll-target="#stisim.interventions.hiv_interventions.ART.prioritize_art">prioritize_art</a></li>
   <li><a href="#stisim.interventions.hiv_interventions.ART.step" id="toc-stisim.interventions.hiv_interventions.ART.step" class="nav-link" data-scroll-target="#stisim.interventions.hiv_interventions.ART.step">step</a></li>
   </ul></li>
@@ -681,10 +682,11 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>interventions.hiv_interventions.ART(</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    pars<span class="op">=</span><span class="va">None</span>,</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    coverage<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    smoothness<span class="op">=</span><span class="dv">0</span>,</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    format_priority<span class="op">=</span><span class="st">'n'</span>,</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kwargs,</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    vls_coverage<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    smoothness<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    format_priority<span class="op">=</span><span class="st">'n'</span>,</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kwargs,</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Antiretroviral therapy intervention.</p>
 <p>Requires HIVTest (or equivalent) to diagnose agents first — ART only initiates agents who have hiv.diagnosed=True. A warning is raised if no HIVTest is found in the sim.</p>
 <section id="processing-flow-each-timestep" class="level4 doc-section doc-section-processing-flow-each-timestep">
@@ -731,12 +733,18 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <td><em>required</em></td>
 </tr>
 <tr class="even">
+<td>vls_coverage</td>
+<td></td>
+<td>fraction of newly-initiated agents who achieve viral suppression (effective ART) rather than non-suppressive ART. Accepts the same formats as <code>coverage</code> (scalar, time-varying dict, DataFrame, or age/sex-stratified DataFrame) — see :func:<code>parse_coverage</code>, though values must be proportions (0-1), not absolute counts. Default <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a> means 100% of initiators achieve viral suppression. Any stratum not covered by a stratified <code>vls_coverage</code> also defaults to 100%. Forwarded to HIV.start_art() at initiation.</td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+</tr>
+<tr class="odd">
 <td>smoothness</td>
 <td></td>
 <td>interpolation smoothness (0=linear, default)</td>
 <td><code>0</code></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>format_priority</td>
 <td></td>
 <td>when both n_art and p_art are non-NaN, prefer this format (‘n’ or ‘p’, default ‘n’)</td>
@@ -747,6 +755,21 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <p>Examples::</p>
 <pre><code># Simple: 80% of infected on ART
 art = sti.ART(coverage=0.8)
+
+# 70% of newly-initiated agents achieve viral suppression
+art = sti.ART(coverage=0.8, vls_coverage=0.7)
+
+# Time-varying VLS coverage
+art = sti.ART(coverage=0.8, vls_coverage={'year': [2000, 2010, 2025], 'value': [0.5, 0.7, 0.9]})
+
+# Age/sex-stratified VLS coverage — e.g. lower suppression in young men
+vls_df = pd.DataFrame({
+    'Year':    [2020, 2020, 2020, 2020],
+    'AgeBin':  ['[15,25)', '[15,25)', '[25,100)', '[25,100)'],
+    'Gender':  ['m', 'f', 'm', 'f'],
+    'p_vls':   [0.5, 0.7, 0.75, 0.85],
+})
+art = sti.ART(coverage=0.8, vls_coverage=vls_df)
 
 # Time-varying coverage
 art = sti.ART(coverage={'year': [2000, 2010, 2025], 'value': [0, 0.5, 0.9]})
@@ -778,10 +801,14 @@ art = sti.ART(coverage=df)</code></pre>
 <td>Adjust ART coverage to match data.</td>
 </tr>
 <tr class="even">
+<td><a href="#stisim.interventions.hiv_interventions.ART.make_vls_prob_fn">make_vls_prob_fn</a></td>
+<td>Per-agent probability of achieving viral suppression (effective ART)</td>
+</tr>
+<tr class="odd">
 <td><a href="#stisim.interventions.hiv_interventions.ART.prioritize_art">prioritize_art</a></td>
 <td>Prioritize ART to n agents among those awaiting treatment</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#stisim.interventions.hiv_interventions.ART.step">step</a></td>
 <td>Apply ART at each timestep: stop ART for those scheduled, initiate for newly diagnosed,</td>
 </tr>
@@ -797,25 +824,31 @@ art = sti.ART(coverage=df)</code></pre>
 <p>Adjust ART coverage to match data.</p>
 <p>If <code>stratum_targets</code> is supplied, correction is done independently within each <code>(age_bin, sex)</code> stratum so that age/sex differentials in the input data are preserved. Otherwise, correction is done globally against <code>target_coverage</code>.</p>
 </section>
+<section id="stisim.interventions.hiv_interventions.ART.make_vls_prob_fn" class="level5">
+<h5 class="anchored" data-anchor-id="stisim.interventions.hiv_interventions.ART.make_vls_prob_fn">make_vls_prob_fn</h5>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>interventions.hiv_interventions.ART.make_vls_prob_fn(sim, uids)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Per-agent probability of achieving viral suppression (effective ART) at initiation, derived from vls_coverage.</p>
+<p>Any agent not covered by an explicit vls_coverage stratum (or when vls_coverage is unset entirely) defaults to 100% — i.e.&nbsp;always effective, matching the previous behavior.</p>
+</section>
 <section id="stisim.interventions.hiv_interventions.ART.prioritize_art" class="level5">
 <h5 class="anchored" data-anchor-id="stisim.interventions.hiv_interventions.ART.prioritize_art">prioritize_art</h5>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>interventions.hiv_interventions.ART.prioritize_art(</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    sim,</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    n<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    awaiting_art_uids<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>interventions.hiv_interventions.ART.prioritize_art(</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    sim,</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    n<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    awaiting_art_uids<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Prioritize ART to n agents among those awaiting treatment</p>
 </section>
 <section id="stisim.interventions.hiv_interventions.ART.step" class="level5">
 <h5 class="anchored" data-anchor-id="stisim.interventions.hiv_interventions.ART.step">step</h5>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>interventions.hiv_interventions.ART.step()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>interventions.hiv_interventions.ART.step()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Apply ART at each timestep: stop ART for those scheduled, initiate for newly diagnosed, and correct coverage to match targets (per-stratum when stratified data is supplied, otherwise against the aggregate total).</p>
 </section>
 </section>
 </section>
 <section id="stisim.interventions.hiv_interventions.HIVDx" class="level3">
 <h3 class="anchored" data-anchor-id="stisim.interventions.hiv_interventions.HIVDx">HIVDx</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>interventions.hiv_interventions.HIVDx(<span class="op">*</span>args, <span class="op">**</span>kwargs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>interventions.hiv_interventions.HIVDx(<span class="op">*</span>args, <span class="op">**</span>kwargs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>HIV diagnostic product used by :class:<code>HIVTest</code>.</p>
 <p>A simple perfect-sensitivity test that classifies agents as positive (infected) or negative (susceptible) based on their current HIV state.</p>
 <section id="parameters-1" class="level4 doc-section doc-section-parameters">
@@ -848,18 +881,18 @@ art = sti.ART(coverage=df)</code></pre>
 </section>
 <section id="stisim.interventions.hiv_interventions.HIVTest" class="level3">
 <h3 class="anchored" data-anchor-id="stisim.interventions.hiv_interventions.HIVTest">HIVTest</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>interventions.hiv_interventions.HIVTest(</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    product<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    pars<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    test_prob_data<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    years<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    start<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    eligibility<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    label<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    newborn_test<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kwargs,</span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>interventions.hiv_interventions.HIVTest(</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    product<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    pars<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    test_prob_data<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    years<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    start<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    eligibility<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    label<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    newborn_test<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kwargs,</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>HIV-specific testing intervention.</p>
 <p>Tests eligible agents for HIV; positive results set hiv.diagnosed=True, which is a prerequisite for ART initiation. By default, only undiagnosed agents are eligible.</p>
 <p>The testing → diagnosis → ART pipeline works as follows:</p>
@@ -970,12 +1003,12 @@ anc_test = sti.HIVTest(
 </section>
 <section id="stisim.interventions.hiv_interventions.InfantHIVTest" class="level3">
 <h3 class="anchored" data-anchor-id="stisim.interventions.hiv_interventions.InfantHIVTest">InfantHIVTest</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>interventions.hiv_interventions.InfantHIVTest(</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    test_prob<span class="op">=</span><span class="fl">1.0</span>,</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    label<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kwargs,</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>interventions.hiv_interventions.InfantHIVTest(</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    test_prob<span class="op">=</span><span class="fl">1.0</span>,</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    label<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kwargs,</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>HIV test for infants born to mothers diagnosed during pregnancy.</p>
 <p>Scheduled by :class:<code>HIVTest</code> (via <code>newborn_test=</code>) or :class:<code>ANCTest</code> when the mother tests positive. Fires only at the scheduled timestep. A positive result sets <code>hiv.diagnosed</code> on the infant, enabling ART linkage.</p>
 <section id="parameters-3" class="level4 doc-section doc-section-parameters">
@@ -1008,15 +1041,20 @@ anc_test = sti.HIVTest(
 </section>
 <section id="stisim.interventions.hiv_interventions.Prep" class="level3">
 <h3 class="anchored" data-anchor-id="stisim.interventions.hiv_interventions.Prep">Prep</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>interventions.hiv_interventions.Prep(</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    pars<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    coverage<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    eligibility<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    smoothness<span class="op">=</span><span class="dv">0</span>,</span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kwargs,</span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>interventions.hiv_interventions.Prep(</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    pars<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    prep_eff<span class="op">=</span><span class="fl">0.8</span>,</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    prep_dur<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    prep_adh<span class="op">=</span><span class="fl">1.0</span>,</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    coverage<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    eligibility<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    smoothness<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    format_priority<span class="op">=</span><span class="st">'n'</span>,</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kwargs,</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Pre-exposure prophylaxis (PrEP).</p>
-<p>Reduces HIV susceptibility by <code>eff_prep</code> (default 80%) among eligible agents. Coverage ramps up over time via <code>parse_coverage</code> (same flexible inputs as ART/VMMC). Uses a per-agent probability model (coverage = probability of being on PrEP each step) rather than a target-count model like ART/VMMC.</p>
+<p>Any PrEP product (oral or injectable) is specified as a combination of three parameters: efficacy (<code>prep_eff</code>), adherence (<code>prep_adh</code>), and duration (<code>prep_dur</code>). <code>prep_adh</code> is a continuous multiplier which reduces the base efficacy (<code>prep_eff</code>), ranges from [0-1], default value is 1.0.</p>
+<p>The state of the intervention (<code>on_prep</code>/<code>prep_eff</code>/<code>prep_source</code>/<code></code>ti_prep_start<code>/</code>ti_prep_stop`<code>) lives on :class:</code>~stisim.diseases.hiv.HIV`. This excludes people from enrolling on multiple PrEP products at once.</p>
 <p>The <code>eligibility</code> callable defines the target population. It receives the <code>Sim</code> object and should return a boolean array over all agents. HIV-negative and not-already-on-PrEP filters are always applied on top, so eligibility only needs to express <em>who to target</em>, not the clinical preconditions.</p>
 <section id="parameters-4" class="level4 doc-section doc-section-parameters">
 <h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-4">Parameters</h4>
@@ -1031,56 +1069,86 @@ anc_test = sti.HIVTest(
 </thead>
 <tbody>
 <tr class="odd">
-<td>coverage</td>
+<td>prep_eff</td>
 <td></td>
-<td>coverage level(s); any format accepted by parse_coverage, or legacy (years, coverage) list pairs via pars</td>
+<td>base efficacy (0-1) when fully adherent (default 0.8)</td>
+<td><code>0.8</code></td>
+</tr>
+<tr class="even">
+<td>prep_dur</td>
+<td></td>
+<td>course duration before renewal is needed, an <a href="https://docs.starsim.org/api/time.html#starsim.time.dur" title="0"><code>ss.dur</code></a>/Time value (default <code>ss.months(3)</code>)</td>
 <td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
-<tr class="even">
-<td>eff_prep</td>
+<tr class="odd">
+<td>prep_adh</td>
 <td></td>
-<td>efficacy (default 0.8 = 80% reduction in acquisition)</td>
-<td><em>required</em></td>
+<td>adherence level (0-1), multiplied into prep_eff to get the realized efficacy (default 1.0 = fully adherent)</td>
+<td><code>1.0</code></td>
+</tr>
+<tr class="even">
+<td>coverage</td>
+<td></td>
+<td>coverage target; any format accepted by parse_coverage. Defaults to a modest historical ramp-up.</td>
+<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="odd">
-<td>smoothness</td>
-<td></td>
-<td>interpolation smoothness (0=linear, default)</td>
-<td><code>0</code></td>
-</tr>
-<tr class="even">
 <td>eligibility</td>
 <td></td>
 <td>callable <code>(sim) -&gt; BoolArr</code> defining the target population; defaults to FSW (<code>sim.networks.structuredsexual.fsw</code>)</td>
 <td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
+<tr class="even">
+<td>smoothness</td>
+<td></td>
+<td>interpolation smoothness (0=linear, default)</td>
+<td><code>0</code></td>
+</tr>
+<tr class="odd">
+<td>format_priority</td>
+<td></td>
+<td>when both n_prep and p_prep are non-NaN, prefer this format</td>
+<td><code>'n'</code></td>
+</tr>
 </tbody>
 </table>
 <p>Examples::</p>
-<pre><code># Default: FSW at time-varying coverage
+<pre><code># Default: oral-like PrEP for FSW, ramping up over time
 prep = sti.Prep(coverage={'year': [2020, 2025], 'value': [0, 0.5]})
 
 # AGYW targeting
 prep = sti.Prep(
     coverage=0.4,
     eligibility=lambda sim: sim.people.female &amp; (sim.people.age &lt; 25),
-)</code></pre>
+)
+
+# A long-acting product alongside oral PrEP (distinct names required)
+interventions = [
+    sti.Prep(prep_eff=0.75, prep_dur=ss.months(3), prep_adh=1.0,
+             coverage=0.3, name='prep_oral'),
+             # source: doi/full/10.1056/NEJMoa1108524
+    sti.Prep(prep_eff=0.95, prep_dur=ss.months(12), prep_adh=1.0,
+             coverage=0.1, name='prep_cab_la'),
+             # source: doi.org/10.1016/S0140-6736(22)00538-4
+]</code></pre>
 </section>
 </section>
 <section id="stisim.interventions.hiv_interventions.VMMC" class="level3">
 <h3 class="anchored" data-anchor-id="stisim.interventions.hiv_interventions.VMMC">VMMC</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>interventions.hiv_interventions.VMMC(</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    pars<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    coverage<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    eligibility<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    smoothness<span class="op">=</span><span class="dv">0</span>,</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    format_priority<span class="op">=</span><span class="st">'n'</span>,</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kwargs,</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>interventions.hiv_interventions.VMMC(</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    pars<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    coverage<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    eligibility<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    smoothness<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    format_priority<span class="op">=</span><span class="st">'n'</span>,</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">**</span>kwargs,</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Voluntary medical male circumcision.</p>
-<p>Reduces male susceptibility to HIV acquisition by eff_circ (default 60%). Unlike ART, VMMC does not require diagnosis — it circumcises males up to a coverage target, prioritized by willingness (a random per-agent score).</p>
+<p>Reduces male susceptibility to HIV acquisition (see <code>HIVPars.eff_circ</code>). Unlike ART, VMMC does not require diagnosis — it circumcises males up to a coverage target, prioritized by willingness (a random per-agent score).</p>
 <p>If no coverage is specified, VMMC does nothing. Coverage must be provided explicitly via the coverage parameter.</p>
 <p>Coverage is parsed by :func:<code>parse_coverage</code> (same formats as ART, using <code>n_vmmc</code>/<code>p_vmmc</code> column names). Age-only stratification is supported (no Gender column required, since VMMC is males-only).</p>
+<p>Circumcision status (<code>circumcised</code>/<code>circ_traditional</code>/<code>ti_circumcised</code>) and efficacy (<code>eff_circ</code>) live on :class:<a href="../api/diseases.hiv.html#stisim.diseases.hiv.HIV" title="0"><code>~stisim.diseases.hiv.HIV</code></a>, not on this intervention — see <code>HIV.circumcise()</code> and <code>HIVPars.eff_circ</code>. This lets other circumcision sources (e.g.&nbsp;non-program/traditional circumcision) share the same state and be included in this intervention’s “already circumcised” checks without going through VMMC at all.</p>
+<p>In addition to program VMMC (the coverage-target logic above), this class can optionally also model non-program/traditional circumcision.</p>
 <section id="parameters-5" class="level4 doc-section doc-section-parameters">
 <h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-5">Parameters</h4>
 <table class="caption-top table">
@@ -1096,38 +1164,52 @@ prep = sti.Prep(
 <tr class="odd">
 <td>coverage</td>
 <td></td>
-<td>coverage target (default None; VMMC does nothing without data). See :func:<code>parse_coverage</code> for supported formats.</td>
+<td>coverage target (default None; program VMMC does nothing without data). See :func:<code>parse_coverage</code> for supported formats.</td>
 <td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
-<td>eff_circ</td>
-<td></td>
-<td>efficacy (default 0.6 = 60% reduction in HIV acquisition)</td>
-<td><em>required</em></td>
-</tr>
-<tr class="odd">
 <td>eligibility</td>
 <td></td>
-<td>optional function to restrict who is eligible (default: all males)</td>
+<td>optional function to restrict who is eligible for PROGRAM VMMC (default: all males); does not affect traditional circumcision.</td>
 <td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>smoothness</td>
 <td></td>
 <td>interpolation smoothness (0=linear, default)</td>
 <td><code>0</code></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>format_priority</td>
 <td></td>
 <td>when both n_vmmc and p_vmmc are non-NaN, prefer this format</td>
 <td><code>'n'</code></td>
 </tr>
+<tr class="odd">
+<td>traditional_prob</td>
+<td></td>
+<td>probability (float or <a href="https://docs.starsim.org/api/distributions.html#starsim.distributions.bernoulli" title="0"><code>ss.bernoulli</code></a>) that a pre-sexual-debut male receives traditional circumcision once he reaches <code>traditional_age</code> (default 0 = off).</td>
+<td><em>required</em></td>
+</tr>
+<tr class="even">
+<td>traditional_age</td>
+<td></td>
+<td>age (years) at which pre-debut males are assessed for traditional circumcision, once (default 15).</td>
+<td><em>required</em></td>
+</tr>
 </tbody>
 </table>
 <p>Examples::</p>
-<pre><code>vmmc = sti.VMMC(coverage=0.3)
-vmmc = sti.VMMC(coverage={'year': [2010, 2025], 'value': [0, 0.4]})</code></pre>
+<pre><code># Program VMMC
+vmmc = sti.VMMC(coverage=0.3)
+vmmc = sti.VMMC(coverage={'year': [2010, 2025], 'value': [0, 0.4]})
+
+# Traditional circumcision only, no program VMMC
+trad = sti.VMMC(traditional_prob=0.1, traditional_age=15)
+
+# Program VMMC for adults + traditional circumcision for boys, combined
+both = sti.VMMC(coverage=0.3, eligibility=lambda sim: sim.people.age &gt;= 25,
+                traditional_prob=0.1, traditional_age=15)</code></pre>
 
 
 </section>
@@ -1568,7 +1650,7 @@ vmmc = sti.VMMC(coverage={'year': [2010, 2025], 'value': [0, 0.4]})</code></pre>
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.5.10 (2026-07-24).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.5.11 (2026-08-24).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">

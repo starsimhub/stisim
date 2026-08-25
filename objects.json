@@ -1,7 +1,7 @@
 {
   "project": "stisim",
   "version": "0.0.9999",
-  "count": 237,
+  "count": 242,
   "items": [
     {
       "name": "stisim.sim.Sim.init",
@@ -868,11 +868,27 @@
       "dispname": "-"
     },
     {
+      "name": "stisim.diseases.hiv.HIV.circumcise",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.circumcise",
+      "dispname": "-"
+    },
+    {
       "name": "stisim.diseases.hiv.HIV.falling_decline",
       "domain": "py",
       "role": "function",
       "priority": "1",
       "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.falling_decline",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.hiv.HIV.get_art_mortality_hazard",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.get_art_mortality_hazard",
       "dispname": "-"
     },
     {
@@ -948,6 +964,14 @@
       "dispname": "-"
     },
     {
+      "name": "stisim.diseases.hiv.HIV.start_prep",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.start_prep",
+      "dispname": "-"
+    },
+    {
       "name": "stisim.diseases.hiv.HIV.step_die",
       "domain": "py",
       "role": "function",
@@ -969,6 +993,14 @@
       "role": "function",
       "priority": "1",
       "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.stop_art",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.diseases.hiv.HIV.stop_prep",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.stop_prep",
       "dispname": "-"
     },
     {
@@ -1633,6 +1665,14 @@
       "role": "function",
       "priority": "1",
       "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.ART.art_coverage_correction",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.hiv_interventions.ART.make_vls_prob_fn",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.ART.make_vls_prob_fn",
       "dispname": "-"
     },
     {
@@ -2700,11 +2740,27 @@
       "dispname": "-"
     },
     {
+      "name": "stisim.hiv.HIV.circumcise",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.circumcise",
+      "dispname": "-"
+    },
+    {
       "name": "stisim.hiv.HIV.falling_decline",
       "domain": "py",
       "role": "function",
       "priority": "1",
       "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.falling_decline",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv.HIV.get_art_mortality_hazard",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.get_art_mortality_hazard",
       "dispname": "-"
     },
     {
@@ -2780,6 +2836,14 @@
       "dispname": "-"
     },
     {
+      "name": "stisim.hiv.HIV.start_prep",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.start_prep",
+      "dispname": "-"
+    },
+    {
       "name": "stisim.hiv.HIV.step_die",
       "domain": "py",
       "role": "function",
@@ -2801,6 +2865,14 @@
       "role": "function",
       "priority": "1",
       "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.stop_art",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv.HIV.stop_prep",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/diseases.hiv.html#stisim.diseases.hiv.HIV.stop_prep",
       "dispname": "-"
     },
     {
@@ -3465,6 +3537,14 @@
       "role": "function",
       "priority": "1",
       "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.ART.art_coverage_correction",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv_interventions.ART.make_vls_prob_fn",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.ART.make_vls_prob_fn",
       "dispname": "-"
     },
     {

@@ -85,9 +85,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-bb62276ab45c84d9efd712f51ff97b5a.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-7bcd1175e8f736ed7e3439be2e8c2145.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../../site_libs/bootstrap/bootstrap-dark-2b30f22a5a4f864f0b03b2d42f42f868.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../../site_libs/bootstrap/bootstrap-7bcd1175e8f736ed7e3439be2e8c2145.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-f79c51ff5e30854ac28238745b8bb7a4.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-dark-f82da039d528b6d641c3350d1714121e.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../../site_libs/bootstrap/bootstrap-f79c51ff5e30854ac28238745b8bb7a4.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -1087,28 +1087,62 @@ hiv.ti_diagnosed = ti         │
 <td>Coverage target (same formats as ART). Required for VMMC to have any effect.</td>
 </tr>
 <tr class="even">
-<td><code>eff_circ</code></td>
-<td>0.6</td>
-<td>Efficacy (60% reduction in HIV acquisition risk)</td>
-</tr>
-<tr class="odd">
 <td><code>eligibility</code></td>
 <td>all males</td>
 <td>Optional function to further restrict who is eligible</td>
 </tr>
 </tbody>
 </table>
+<p>Circumcision status (<code>circumcised</code>/<code>circ_traditional</code>/<code>ti_circumcised</code>) and efficacy (<code>eff_circ</code>, <code>eff_circ_traditional</code>) change parameters carried by the <code>HIV</code> disease module, not on <code>VMMC</code> — set them via <code>sti.HIV(eff_circ=0.7)</code>. This lets other circumcision sources (e.g.&nbsp;non-program/traditional circumcision) share the same state as program VMMC.</p>
 </section>
 <section id="prep" class="level3">
 <h3 class="anchored" data-anchor-id="prep">PrEP</h3>
 <p>Pre-exposure prophylaxis. By default targets HIV-negative FSWs (female sex workers) who are not already on PrEP. Use the <code>eligibility</code> parameter to target a different population.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>prep <span class="op">=</span> sti.Prep(coverage<span class="op">=</span>[<span class="dv">0</span>, <span class="fl">0.5</span>], years<span class="op">=</span>[<span class="dv">2020</span>, <span class="dv">2025</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>PrEP is parameterized through three parameters:</p>
+<ul>
+<li>Efficacy (<code>prep_eff</code>) - protective efficacy given perfect adherence</li>
+<li>Adherence (<code>prep_adh</code>) - <code>prep_adh</code> is a continuous multiplier which reduces the base efficacy (<code>prep_eff</code>), ranges from [0-1], default value is 1.0.</li>
+<li>Duration (<code>prep_dur</code>) - time spent on PrEP before discontinuing.</li>
+</ul>
+<p>Two examples of how to parameterize PrEP:</p>
 <table class="caption-top table">
-<colgroup>
-<col style="width: 33%">
-<col style="width: 27%">
-<col style="width: 39%">
-</colgroup>
+<thead>
+<tr class="header">
+<th>Product (illustrative)</th>
+<th><code>prep_eff</code></th>
+<th><code>prep_dur</code></th>
+<th><code>prep_adh</code></th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Daily oral (adherence-sensitive)</td>
+<td>0.75</td>
+<td>3 months</td>
+<td>1.0</td>
+<td><a href="https://doi.org/10.1056/NEJMoa1108524">DOI:10.1056/NEJMoa1108524</a></td>
+</tr>
+<tr class="even">
+<td>Long-acting cabotegravir (CAB-LA)</td>
+<td>0.95</td>
+<td>12 months</td>
+<td>1.0</td>
+<td><a href="https://doi.org/10.1016/S0140-6736(22)00538-4">DOI:10.1016/S0140-6736(22)00538-4</a></td>
+</tr>
+</tbody>
+</table>
+<p>State (<code>prep_naive</code>/<code>on_prep</code>/<code>prep_discontinued</code>/<code>prep_eff</code>/<code>prep_source</code>/<code>ti_prep_start</code>/<code>ti_prep_stop</code>) lives on the <code>HIV</code> disease module. This lets multiple <code>Prep</code> instances (one per product) share the same PrEP history, so a person on one product is automatically excluded from starting another, and their history (naive/on/discontinued) is tracked consistently no matter which product they used.</p>
+<p><code>prep_naive</code> flips to <a href="https://docs.python.org/3/library/constants.html#False" title="1"><code>False</code></a> once, permanently, on first-ever enrollment; <code>prep_discontinued</code> clears if a course is later restarted. <code>prep_discontinued</code> allows a user to target individuals who have already used PrEP for additional future PrEP initiation. <code>prep_source</code> is a per-agent number recording of which instance of <code>Prep</code> enrolled this agent.</p>
+<p>Coverage is a <em>prevalence</em> (stock) target, like VMMC and ART.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>prep <span class="op">=</span> sti.Prep(coverage<span class="op">=</span>[<span class="dv">0</span>, <span class="fl">0.5</span>], years<span class="op">=</span>[<span class="dv">2020</span>, <span class="dv">2025</span>])</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co"># A long-acting product alongside oral PrEP (distinct names required)</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>interventions <span class="op">=</span> [</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    sti.Prep(prep_eff<span class="op">=</span><span class="fl">0.8</span>, prep_dur<span class="op">=</span>ss.months(<span class="dv">3</span>), prep_adh<span class="op">=</span><span class="fl">0.7</span>, coverage<span class="op">=</span><span class="fl">0.3</span>, name<span class="op">=</span><span class="st">'prep_oral'</span>),</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    sti.Prep(prep_eff<span class="op">=</span><span class="fl">0.9</span>, prep_dur<span class="op">=</span>ss.months(<span class="dv">12</span>), prep_adh<span class="op">=</span><span class="fl">1.0</span>, coverage<span class="op">=</span><span class="fl">0.1</span>, name<span class="op">=</span><span class="st">'prep_cab_la'</span>),</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="caption-top table">
 <thead>
 <tr class="header">
 <th>Parameter</th>
@@ -1118,21 +1152,26 @@ hiv.ti_diagnosed = ti         │
 </thead>
 <tbody>
 <tr class="odd">
-<td><code>coverage</code></td>
-<td>[0, 0.01, 0.5, 0.8]</td>
-<td>Coverage values at each year (linearly interpolated between years)</td>
+<td><code>prep_eff</code></td>
+<td>0.8</td>
+<td>Base efficacy (0-1) when fully adherent</td>
 </tr>
 <tr class="even">
-<td><code>years</code></td>
-<td>[2004, 2005, 2015, 2025]</td>
-<td>Calendar years corresponding to coverage values</td>
+<td><code>prep_dur</code></td>
+<td>3 months</td>
+<td>Course duration before renewal is needed (an <a href="https://docs.starsim.org/api/time.html#starsim.time.dur" title="0"><code>ss.dur</code></a>/Time value)</td>
 </tr>
 <tr class="odd">
-<td><code>eff_prep</code></td>
-<td>0.8</td>
-<td>Efficacy (80% reduction in HIV acquisition risk)</td>
+<td><code>prep_adh</code></td>
+<td>1.0</td>
+<td>Adherence level (0-1), multiplied into <code>prep_eff</code> to get realized efficacy</td>
 </tr>
 <tr class="even">
+<td><code>coverage</code></td>
+<td>[0, 0.01, 0.5, 0.8] over 2004-2025</td>
+<td>Coverage target (same stock-target formats as ART/VMMC: scalar, dict, DataFrame with <code>n_prep</code>/<code>p_prep</code> columns)</td>
+</tr>
+<tr class="odd">
 <td><code>eligibility</code></td>
 <td>HIV-negative FSWs not on PrEP</td>
 <td>Optional function to override default targeting</td>
@@ -1736,7 +1775,7 @@ hiv.ti_diagnosed = ti         │
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.5.10 (2026-07-24).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.5.11 (2026-08-24).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">
