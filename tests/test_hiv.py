@@ -542,9 +542,11 @@ def test_vmmc_reduces_male_infections():
     vmmc = sti.VMMC(coverage=1.0)
     sim_vmmc = build_testing_sim(n_agents=n_agents, duration=duration, interventions=[vmmc], pregnancy=None, death=None)
 
-    # applying more effective VMMC to all males
-    vmmc_eff = sti.VMMC(coverage=1.0, eff_circ=0.8)
-    sim_vmmc_eff = build_testing_sim(n_agents=n_agents, duration=duration, interventions=[vmmc_eff], pregnancy=None, death=None)
+    # applying more effective VMMC to all males (eff_circ lives on HIV, not VMMC)
+    vmmc_eff = sti.VMMC(coverage=1.0)
+    hiv_eff = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=0.05, eff_circ=0.8)
+    sim_vmmc_eff = build_testing_sim(n_agents=n_agents, duration=duration, diseases=[hiv_eff],
+                                      interventions=[vmmc_eff], pregnancy=None, death=None)
 
     sims = [sim_baseline, sim_vmmc, sim_vmmc_eff]
     msim = ss.parallel(*sims)
@@ -557,7 +559,9 @@ def test_vmmc_reduces_male_infections():
         print(f"New male HIV infections, baseline: {baseline_inf} VMMC: {vmmc_inf}, VMMC+: {vmmc_inf_eff}")
 
     # ensuring test validity
-    assert vmmc_eff.pars.eff_circ > vmmc.pars.eff_circ, f"Test setup failure, vmmc_eff: {vmmc_eff.pars.eff_circ} should have a higher eff_circ than vmmc: {vmmc.pars.eff_circ}"
+    eff_circ = sim_vmmc.diseases.hiv.pars.eff_circ
+    eff_circ_higher = sim_vmmc_eff.diseases.hiv.pars.eff_circ
+    assert eff_circ_higher > eff_circ, f"Test setup failure, eff_circ_higher: {eff_circ_higher} should have a higher eff_circ than eff_circ: {eff_circ}"
     assert baseline_inf > 0, f"Expected male HIV infections in sim, found none."
     assert vmmc_inf     > 0, f"Expected male HIV infections in sim, found none."
     assert vmmc_inf_eff > 0, f"Expected male HIV infections in sim, found none."
@@ -576,7 +580,7 @@ def test_vmmc_is_male_only():
     sim = build_testing_sim(n_agents=tiny_pop, duration=1, interventions=[vmmc], pregnancy=None, death=None)
     sim.run()
 
-    n_vmmc_female = len((sim.people.vmmc.circumcised & sim.people.female).uids)
+    n_vmmc_female = len((sim.diseases.hiv.circumcised & sim.people.female).uids)
     assert n_vmmc_female == 0, f"Expected no females to be targeted by VMMC, but {n_vmmc_female} were"
 
     return sim
@@ -599,6 +603,7 @@ def test_vmmc_targeting():
     sim.run()
 
     people = sim.people
+    circumcised = sim.diseases.hiv.circumcised
     # Agents eligible at any point during the sim had ages in [min_age, max_age) at some timestep,
     # so by the end their ages span [min_age, max_age + total aging). Over the run agents age
     # duration + one dt (Starsim applies an aging step each timestep, including the final one),
@@ -606,9 +611,9 @@ def test_vmmc_targeting():
     max_aging = duration + float(sim.t.dt)  # years of aging accrued over the whole sim
     correct_ages = (people.age >= min_age) & (people.age < (max_age + max_aging))
 
-    n_incorrect_circ = len(( people.vmmc.circumcised    & (~correct_ages)            ).uids)
-    n_correct_circ =   len(( people.vmmc.circumcised    & correct_ages    & people.male ).uids)
-    n_missing_circ =   len(( (~people.vmmc.circumcised) & correct_ages    & people.male ).uids)
+    n_incorrect_circ = len(( circumcised    & (~correct_ages)            ).uids)
+    n_correct_circ =   len(( circumcised    & correct_ages    & people.male ).uids)
+    n_missing_circ =   len(( (~circumcised) & correct_ages    & people.male ).uids)
 
     if verbose:
         print(f"Target males [20, 25) : correct circ: {n_correct_circ} mising circ: {n_missing_circ} n_incorrect circ: {n_incorrect_circ}")
@@ -649,9 +654,9 @@ def test_par_ranges(n_agents=medium_pop):
 
     # [lo, hi, result_key, dur] — higher par values should produce higher result values
     par_effects = dict(
-        beta_m2f     = [0.01,  0.2,  'cum_infections', 10],
-        init_prev    = [0.01,  0.1,  'cum_infections', 10],
-        art_efficacy = [0.96,  0.5,  'cum_deaths',     10],
+        beta_m2f              = [0.01,  0.2,  'cum_infections', 10],
+        init_prev              = [0.01,  0.1,  'cum_infections', 10],
+        effective_art_efficacy = [0.96,  0.5,  'cum_deaths',     10],
     )
 
     # Build all sims and run in one parallel call
@@ -765,6 +770,136 @@ def test_mtct_rates_in_range():
     return dict(p_no_art=p_no_art, p_pmtct=p_pmtct)
 
 
+@sc.timer()
+def test_rel_death_scales_hiv_mortality(n_agents=3000):
+    """rel_death scales HIV mortality monotonically, off- and on-ART alike."""
+    sc.heading("Ensuring rel_death scales HIV deaths")
+
+    def _deaths(rel_death=1.0, art_initiation=1.0):
+        test_intv = sti.HIVTest(test_prob_data=1, dt_scale=False)
+        art = sti.ART(art_initiation=art_initiation)
+        hiv = sti.HIV(init_prev=1.0, beta_m2f=0.0, rel_death=rel_death,
+                      dur_on_art=ss.constant(v=ss.years(50)))
+        sim = build_testing_sim(n_agents=n_agents, duration=15,
+                                pregnancy=None, death=None,
+                                diseases=[hiv], interventions=[test_intv, art])
+        sim.run()
+        return int(sim.diseases.hiv.results.new_deaths.sum())
+
+    # Off-ART: nobody initiates ART, so all deaths come from make_p_hiv_death
+    d1 = _deaths(rel_death=0.5, art_initiation=0.0)
+    d2 = _deaths(rel_death=1.0, art_initiation=0.0)
+    d3 = _deaths(rel_death=2.0, art_initiation=0.0)
+    assert d1 < d2 < d3, (
+        f'rel_death should scale off-ART HIV deaths monotonically; got {d1}, {d2}, {d3}'
+    )
+
+    # On-ART: everyone initiates ART immediately, so deaths come from get_art_mortality_hazard
+    z1 = _deaths(rel_death=0.5, art_initiation=1.0)
+    z2 = _deaths(rel_death=1.0, art_initiation=1.0)
+    z3 = _deaths(rel_death=2.0, art_initiation=1.0)
+    assert z1 < z2 < z3, (
+        f'rel_death should scale on-ART HIV deaths monotonically; got {z1}, {z2}, {z3}'
+    )
+
+
+def test_rel_death_f_applies_off_art_too(n_agents=3000):
+    """ rel_death_f is folded into the shared off-ART baseline (make_p_hiv_death), so it
+    should give women the same mortality benefit off ART as on ART -- not just on ART,
+    which was the behavior prior to this fix. """
+    sc.heading('Testing rel_death_f applies to off-ART mortality')
+
+    captured = []
+    orig = sti.HIV.make_p_hiv_death
+    def wrapped(self, uids=None):
+        p = orig(self, uids=uids)
+        female = ~self.sim.people.male[uids]
+        captured.append((sc.dcp(female), sc.dcp(p)))
+        return p
+    sti.HIV.make_p_hiv_death = wrapped
+    try:
+        hiv = sti.HIV(init_prev=1.0, beta_m2f=0.0)
+        art = sti.ART(art_initiation=0.0)  # nobody goes on ART -- isolates off-ART mortality
+        sim = ss.Sim(diseases=hiv, networks=sti.StructuredSexual(), demographics=None,
+                     interventions=[sti.HIVTest(test_prob_data=0.5), art],
+                     n_agents=n_agents, start=2015, stop=2016, verbose=0)
+        sim.run()
+    finally:
+        sti.HIV.make_p_hiv_death = orig
+
+    all_female = np.concatenate([f for f, p in captured])
+    all_p = np.concatenate([p for f, p in captured])
+    ratio = all_p[all_female].mean() / all_p[~all_female].mean()
+    expected = hiv.pars.rel_death_f
+    assert abs(ratio - expected) < 0.02, (
+        f'Expected off-ART female:male mortality ratio ~= rel_death_f ({expected}), got {ratio:.3f}'
+    )
+
+
+def test_on_art_mortality_invariant_enforced():
+    """ On-ART mortality is anchored to the off-ART CD4-based hazard so it can never
+    exceed it, by construction -- but only if rel_art_mortality_effective/unsupp_m/f
+    times the largest age/duration multiplier stays <= 1. This must be validated at
+    init, since calibrating any of those pars past the threshold would otherwise
+    silently invert the treatment effect with no error. """
+    sc.heading('Testing on-ART mortality invariant is enforced at init')
+
+    def _init(**kwargs):
+        hiv = sti.HIV(**kwargs)
+        sim = ss.Sim(diseases=hiv, networks=sti.StructuredSexual(), n_agents=tiny_pop,
+                     start=2015, stop=2016, verbose=0)
+        sim.init()
+
+    _init()  # Default pars must pass
+
+    # rel_art_mortality_unsupp_m=0.9 * art_death_age max (1.32) = 1.188 > 1
+    with pytest.raises(ValueError):
+        _init(rel_art_mortality_unsupp_m=0.9)
+
+    # A too-large art_death_dur multiplier should also be caught
+    with pytest.raises(ValueError):
+        _init(art_death_dur=[(0, 1e9, 2.0)])
+
+
+def test_art_efficacy_ramp_stays_in_bounds():
+    """ rel_trans for on-ART agents ramps from 1 down to (1 - full_eff) over
+    time_to_art_efficacy; this must hold regardless of dt, not just at the
+    default monthly resolution (time_to_art_efficacy is authored in months and
+    must be converted to timesteps via dt, not used as a raw timestep count).
+
+    Checks rel_trans right after update_transmission() runs each step (via a
+    class-level wrap), rather than via an end-of-timestep Analyzer: some of the
+    agents that briefly go out of bounds are later excluded from on_art by ART's
+    own coverage-matching logic within the same timestep, which would hide the
+    violation from a same-timestep results/Analyzer snapshot despite it having
+    been real and used for transmission that step. """
+    sc.heading('Testing ART efficacy ramp stays within bounds at non-monthly dt')
+
+    mins = []
+    orig = sti.HIV.update_transmission
+    def wrapped(self):
+        orig(self)
+        art_uids = self.on_art.uids
+        if len(art_uids):
+            mins.append(self.rel_trans[art_uids].min())
+    sti.HIV.update_transmission = wrapped
+    try:
+        hiv = sti.HIV(init_prev=0.5, dt=ss.weeks(1))
+        sim = ss.Sim(diseases=hiv, networks=sti.StructuredSexual(),
+                     interventions=[sti.HIVTest(test_prob_data=0.9), sti.ART(coverage=0.9)],
+                     n_agents=small_pop, start=2015, stop=2017, verbose=0)
+        sim.run()
+    finally:
+        sti.HIV.update_transmission = orig
+
+    min_rel_trans = min(mins)
+    min_possible = 1 - max(hiv.pars.effective_art_efficacy, hiv.pars.nonsupp_art_efficacy)
+    assert min_rel_trans >= min_possible - 1e-9, (
+        f'rel_trans for on-ART agents should never drop below 1-full_eff={min_possible}, '
+        f'got min {min_rel_trans} over the run. A dt/unit mismatch in the efficacy ramp would let this go negative.'
+    )
+
+
 if __name__ == '__main__':
     do_plot = True
     sc.options(interactive=do_plot)
@@ -792,6 +927,7 @@ if __name__ == '__main__':
     test_cd4_falls_after_ART_dropout()
     test_rel_trans_rises_after_ART_dropout()
     test_rel_sus_age()
+    test_rel_death_scales_hiv_mortality()
 
     sc.heading("Total:")
     timer.toc()

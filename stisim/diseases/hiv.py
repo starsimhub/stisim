@@ -30,6 +30,9 @@ class HIVPars(BaseSTIPars):
         self.dur_falling = ss.lognorm_ex(ss.years(3), ss.years(1))  # Duration of late-stage HIV when CD4 counts fall
         self.p_hiv_death = ss.bernoulli(p=0)  # Death from HIV-related complications; set by make_p_hiv_death()
         self.include_aids_deaths = True
+        self.cd4_death_bins = np.array([1000, 500, 350, 200, 50, 0])  # Off-ART CD4-stratified mortality (descending)
+        self.cd4_death_rates = np.array([0.003, 0.003, 0.005, 0.01, 0.05, 0.30])  # Annual rate per bin
+        self.rel_death = 1.0  # Scales all HIV death probabilities (off- and on-ART)
 
         # Transmission
         self.beta = 0  # Placeholder, replaced by network-specific betas
@@ -45,6 +48,8 @@ class HIVPars(BaseSTIPars):
         # so values are ceteris-paribus differences, not absolute susceptibilities.
         # Example: [(15, 25, 'f', 1.7), (25, 50, 'f', 1.0), (15, 50, 'm', 1.0)]
         self.eff_condom = 0.9
+        self.eff_circ = 0.6              # Program (medical) VMMC: reduction in HIV acquisition susceptibility
+        self.eff_circ_traditional = 0.6  # Traditional (non-program) circumcision: reduction in HIV acquisition susceptibility
 
         # Initialization
         self.init_prev = ss.bernoulli(p=0.05)
@@ -59,14 +64,55 @@ class HIVPars(BaseSTIPars):
 
         # Treatment effects
         self.art_cd4_growth = 0.1  # Unitless parameter defining how CD4 reconstitutes after starting ART - used in a logistic growth function
-        self.art_efficacy = 0.96  # Efficacy of ART
+        self.effective_art_efficacy = 0.99  # Transmission efficacy of effective (virally-suppressive) ART. PARTNER/PARTNER2/
+        # Opposites Attract found zero linked transmissions from virally suppressed partners across thousands of couple-years
+        # ("U=U"); 0.99 (not 1.0) leaves a small residual for the small fraction of time near a viral blip/imperfect
+        # suppression, rather than treating effective ART as literally 100% non-infectious.
+        self.nonsupp_art_efficacy = 0.35  # Transmission efficacy of non-suppressive ART. Anchored to a Quinn (Rakai 2000,
+        # ~2.45x transmission risk per +1 log10 viral load) hazard-ratio calculation applied to an assumed
+        # non-suppressed viral load distribution of log10(VL) ~ N(3.75, 0.8^2), relative to untreated chronic
+        # infection at ~4.5 log10: 2.45^(3.75-4.5) * exp(ln(2.45)^2 * 0.8^2 / 2) = 0.51 * 1.29 ~= 0.66 relative
+        # infectiousness -> efficacy ~= 1-0.66 = 0.34, close to the shipped 0.35. The exp(...) term is a Jensen
+        # correction: the hazard is exponential in log10(VL), so integrating over the assumed distribution differs
+        # from evaluating at its mean. This is sensitive to the assumed distribution (e.g. mean 4.0 -> ~0.16,
+        # mean 3.5 -> ~0.47), so treat 0.35 as anchored-but-revisitable, not a hard empirical estimate.
         self.time_to_art_efficacy = ss.months(6)  # Time to reach full ART efficacy (in months) - linear increase in efficacy
+        self.p_effective_art = ss.bernoulli(p=1.0)  # Probability that a newly-initiated agent achieves viral suppression (vs. non-suppressive ART)
         self.art_cd4_pars = dict(cd4_max=1000, cd4_healthy=500)
         self.dur_on_art = ss.lognorm_ex(ss.years(3), ss.years(1.5))  # Base ART duration (scaled by rel_dur_on_art and trend)
         self.rel_dur_on_art = 1.0  # Calibratable scalar that scales ART duration
         self.dur_on_art_trend = None  # Optional time-varying scale, e.g. sc.objdict(years=np.array([2004, 2015, 2030]), vals=np.array([0.5, 1.0, 1.5]))
         self.dur_post_art = ss.normal()  # Note defined in years!
         self.dur_post_art_scale_factor = 0.1
+
+        # On-ART mortality: expressed RELATIVE to the off-ART CD4-based hazard above
+        # (cd4_death_bins/cd4_death_rates), rather than as an independent baseline +
+        # CD4 table -- this guarantees, by construction, that being on ART is never
+        # modeled as MORE dangerous than being off ART at the same CD4 count (see
+        # get_art_mortality_hazard). Set rel_art_mortality_effective/unsupp=1 for no
+        # ART survival benefit; =0 to disable on-ART mortality entirely.
+        self.rel_art_mortality_effective = 0.25  # Fraction of off-ART CD4-based mortality retained on effective (suppressive) ART (both sexes)
+        self.rel_art_mortality_unsupp_m = 0.7  # Fraction of off-ART CD4-based mortality retained on non-suppressive ART, males
+        self.rel_art_mortality_unsupp_f = 0.35  # ...females. Chosen so the non-suppressive/effective MORTALITY RATIO is 2x
+        # higher for men than for women (0.7/0.25=2.8 vs. 0.35/0.25=1.4) -- rel_death_f below is folded into the
+        # shared off-ART baseline (see make_p_hiv_death/get_art_mortality_hazard) so it applies equally on- and
+        # off-ART and cancels out of this ratio, rather than being an ART-specific adherence effect.
+        self.rel_death_f = 0.74  # Additional mortality multiplier for females, on- and off-ART alike
+        self.art_death_age = [  # (age_lo, age_hi, mult), like rel_sus_age
+            (0, 25, 1.0),
+            (25, 35, 1.10),
+            (35, 45, 1.21),
+            (45, 125, 1.32),
+        ]
+        self.art_death_dur = None  # (dur_lo, dur_hi, mult) list, days since ti_art; None = no-op.
+        # NB: the defaults above are chosen so rel_art_mortality_unsupp_m (the larger of the
+        # two sex-specific values) * (largest art_death_age multiplier) = 0.7 * 1.32 = 0.924,
+        # comfortably under 1 -- i.e. the on-ART-never-exceeds-off-ART invariant holds for
+        # every age/sex/adherence combination as shipped. If you override
+        # rel_art_mortality_unsupp_m/f/art_death_age/art_death_dur (or add multipliers > 1),
+        # re-check that the largest rel_art_mortality_unsupp_* times the product of your
+        # largest multipliers stays <= 1, or the invariant can break again for the
+        # highest-risk cells.
 
         self.update(kwargs)
         return
@@ -108,15 +154,17 @@ class HIV(BaseSTI):
             ss.BoolState('latent'),
             ss.FloatArr('ti_falling'),
             ss.BoolState('falling'),
-            ss.BoolState('post_art'),  # After stopping ART, CD4 falls linearly until death
             ss.FloatArr('ti_zero'),  # Time of zero CD4 count - generally corresponds to AIDS death
             ss.FloatArr('ti_dead'),  # Time of HIV/AIDS death
 
             # Care and treatment states
             ss.FloatArr('baseline_care_seeking'),
             ss.FloatArr('care_seeking'),
-            ss.BoolState('never_art', default=True),
-            ss.BoolState('on_art'),
+            ss.BoolState('art_naive', default=True),        # Never initiated ART
+            ss.BoolState('on_art'),                          # Currently on ART (effective or non-suppressive)
+            ss.BoolState('on_effective_art'),                # Currently on ART and virally suppressed
+            ss.BoolState('on_nonsuppressive_art'),           # Currently on ART but not virally suppressed
+            ss.BoolState('art_discontinued'),                # Previously on ART, currently off
             ss.FloatArr('ti_art'),
             ss.FloatArr('ti_stop_art'),
 
@@ -132,6 +180,24 @@ class HIV(BaseSTI):
             # Knowledge of HIV status
             ss.BoolState('diagnosed'),
             ss.FloatArr('ti_diagnosed'),
+
+            # PrEP. Efficacy/duration/adherence are specified directly on whichever
+            # Prep intervention enrolls someone (no fixed named "varieties" here) --
+            # prep_eff is the REALIZED efficacy for this person's current course
+            # (i.e. eff*adherence, already computed at enrollment), and prep_source
+            # identifies which Prep instance enrolled them (for that instance's own
+            # coverage-target accounting; see Prep._source_id).
+            ss.BoolState('prep_naive', default=True),   # never started PrEP, from any source (mirrors never_art)
+            ss.BoolState('on_prep'),
+            ss.BoolState('prep_discontinued'),           # currently off after a course ended (mirrors post_art)
+            ss.FloatArr('prep_eff'),       # realized rel_sus multiplier reduction for the current course
+            ss.FloatArr('prep_source'),    # id of the enrolling Prep instance; NaN=not on PrEP
+            ss.FloatArr('ti_prep_start'),
+            ss.FloatArr('ti_prep_stop'),   # scheduled course expiry (renewal/lapse), like ti_stop_art
+            # Circumcision (VMMC)
+            ss.BoolState('circumcised'),
+            ss.BoolState('circ_traditional', default=False),  # True=traditional (non-program), False=program (medical) VMMC
+            ss.FloatArr('ti_circumcised'),
         )
 
         return
@@ -192,6 +258,27 @@ class HIV(BaseSTI):
 
         self.define_results(*results)
 
+        return
+
+    def init_pre(self, sim):
+        super().init_pre(sim)
+        # On-ART mortality is anchored to the off-ART CD4-based hazard specifically so it can
+        # never exceed it by construction (see get_art_mortality_hazard) -- but that only holds
+        # if the largest combination of multipliers stays <= 1. Catch a violation here rather
+        # than let a calibration silently invert the treatment effect.
+        age_mult = max(mult for *_, mult in self.pars.art_death_age) if self.pars.art_death_age else 1.0
+        dur_mult = max(mult for *_, mult in self.pars.art_death_dur) if self.pars.art_death_dur else 1.0
+        worst = max(self.pars.rel_art_mortality_effective,
+                    self.pars.rel_art_mortality_unsupp_m,
+                    self.pars.rel_art_mortality_unsupp_f) * age_mult * dur_mult
+        if worst > 1:
+            errormsg = (
+                f'On-ART mortality can exceed off-ART mortality at the same CD4 count: '
+                f'max(rel_art_mortality_effective, rel_art_mortality_unsupp_m, rel_art_mortality_unsupp_f) '
+                f'* max(art_death_age mult) * max(art_death_dur mult) = {worst:.3f} > 1. '
+                'Reduce these pars so the product stays <= 1.'
+            )
+            raise ValueError(errormsg)
         return
 
     def init_post(self):
@@ -306,12 +393,64 @@ class HIV(BaseSTI):
         """
         Calculate per-timestep HIV death probability based on current CD4 count.
 
-        Uses CD4-stratified annual mortality rates, digitized into bins. Rates are
-        converted from per-year to per-timestep probabilities.
+        Reads bins/rates from pars.cd4_death_bins/cd4_death_rates, scales by
+        pars.rel_death and pars.rel_death_f (females), then converts from
+        per-year to per-timestep probabilities. This is the same off-ART
+        baseline that get_art_mortality_hazard anchors on-ART mortality to.
         """
-        cd4_bins = np.array([1000, 500, 350, 200, 50, 0])
-        p_hiv_death = ss.peryear(np.array([0.003, 0.003, 0.005, 0.01, 0.05, 0.300])).to_prob(self.dt)
-        return p_hiv_death[np.digitize(self.cd4[uids], cd4_bins)]
+        rate = self.pars.cd4_death_rates[np.digitize(self.cd4[uids], self.pars.cd4_death_bins)] * self.pars.rel_death
+        rate[~self.sim.people.male[uids]] *= self.pars.rel_death_f
+        return ss.peryear(rate).to_prob(self.dt)
+
+    def get_art_mortality_hazard(self, uids):
+        """
+        Per-timestep HIV death probability for agents currently on ART.
+
+        Anchored to the off-ART CD4-based hazard (same cd4_death_bins/
+        cd4_death_rates/rel_death/rel_death_f used by make_p_hiv_death, at the
+        agent's CURRENT CD4) rather than an independent baseline + CD4 table:
+
+            rate = off_art_rate(cd4, sex) * rel_art_mortality[effective? / sex] * age_mult(age)
+
+        rel_art_mortality_unsupp is sex-specific (rel_art_mortality_unsupp_m/f)
+        so the non-suppressive/effective mortality RATIO can differ by sex
+        (currently 2x higher for men than women); rel_art_mortality_effective
+        and rel_death_f are not adherence-specific, so they don't affect that
+        ratio -- rel_death_f is folded into off_art_rate itself (shared with
+        make_p_hiv_death), so it applies equally on- and off-ART and cancels
+        out of the ratio. Anchoring to off_art_rate guarantees, by
+        construction, that on-ART mortality can never exceed off-ART
+        mortality at the same CD4 count -- as long as
+        rel_art_mortality_effective/unsupp_m/unsupp_f times the largest
+        age/duration multiplier stays <= 1 (true for the shipped defaults;
+        see the note by those pars in HIVPars).
+        """
+        male = self.sim.people.male[uids]
+        effective = self.on_effective_art[uids]
+        age = self.sim.people.age[uids]
+        cd4 = self.cd4[uids]
+
+        off_art_rate = self.pars.cd4_death_rates[np.digitize(cd4, self.pars.cd4_death_bins)] * self.pars.rel_death
+        off_art_rate[~male] *= self.pars.rel_death_f
+
+        rate = off_art_rate.copy()
+        rate[effective] *= self.pars.rel_art_mortality_effective
+        rate[~effective & male] *= self.pars.rel_art_mortality_unsupp_m
+        rate[~effective & ~male] *= self.pars.rel_art_mortality_unsupp_f
+
+        age_mult = np.ones(len(uids))
+        for age_lo, age_hi, mult in self.pars.art_death_age:
+            age_mult[(age >= age_lo) & (age < age_hi)] *= mult
+        rate = rate * age_mult
+
+        if self.pars.art_death_dur is not None:
+            dur_days = (self.ti - self.ti_art[uids]) * self.dt.days
+            dur_mult = np.ones(len(uids))
+            for dur_lo, dur_hi, mult in self.pars.art_death_dur:
+                dur_mult[(dur_days >= dur_lo) & (dur_days < dur_hi)] *= mult
+            rate = rate * dur_mult
+
+        return ss.peryear(rate).to_prob(self.dt)
 
     @staticmethod
     def _interpolate(vals: list, t):
@@ -362,8 +501,8 @@ class HIV(BaseSTI):
             self.cd4[art_uids] = self.cd4_increase(art_uids)
 
         # Adjust CD4 counts for people who have gone off treatment - linear decline
-        if (~self.on_art & ~self.never_art).any():
-            off_art_uids = (~self.on_art & ~self.never_art).uids
+        if self.art_discontinued.any():
+            off_art_uids = self.art_discontinued.uids
             self.cd4[off_art_uids] = self.post_art_decline(off_art_uids)
 
         # Update states for people who have never been on ART (ART removes these)
@@ -402,6 +541,17 @@ class HIV(BaseSTI):
         self.pars.p_hiv_death.set(0)
         self.pars.p_hiv_death.set(p_death)  # Set the death probability function
         hiv_deaths = self.pars.p_hiv_death.filter(off_art)
+
+        # On-ART agents also face a nonzero, age/sex/adherence/CD4-stratified mortality risk
+        on_art = (self.infected & self.on_art).uids
+        if len(on_art):
+            p_death_on_art = self.get_art_mortality_hazard(on_art)
+            self.pars.p_hiv_death.set(0)
+            self.pars.p_hiv_death.set(p_death_on_art)
+            on_art_deaths = self.pars.p_hiv_death.filter(on_art)
+            if len(on_art_deaths):
+                hiv_deaths = ss.uids(np.concatenate([hiv_deaths, on_art_deaths]))
+
         if len(hiv_deaths):
             self.ti_dead[hiv_deaths] = ti
             self.sim.people.request_death(hiv_deaths)
@@ -421,10 +571,17 @@ class HIV(BaseSTI):
         self.acute[uids] = False
         self.latent[uids] = False
         self.falling[uids] = False
-        self.post_art[uids] = False
-        self.never_art[uids] = False
+        self.art_naive[uids] = False
         self.on_art[uids] = False
+        self.on_effective_art[uids] = False
+        self.on_nonsuppressive_art[uids] = False
+        self.art_discontinued[uids] = False
         self.diagnosed[uids] = False
+        self.prep_naive[uids] = False
+        self.on_prep[uids] = False
+        self.prep_discontinued[uids] = False
+        self.circumcised[uids] = False
+        self.circ_traditional[uids] = False
 
         # Clear time states except for ti_dead
         self.ti_infected[uids] = np.nan
@@ -435,6 +592,11 @@ class HIV(BaseSTI):
         self.ti_art[uids] = np.nan
         self.ti_stop_art[uids] = np.nan
         self.ti_diagnosed[uids] = np.nan
+        self.prep_eff[uids] = np.nan
+        self.prep_source[uids] = np.nan
+        self.ti_prep_start[uids] = np.nan
+        self.ti_prep_stop[uids] = np.nan
+        self.ti_circumcised[uids] = np.nan
 
         # Clear CD4 states
         self.cd4[uids] = np.nan
@@ -479,20 +641,40 @@ class HIV(BaseSTI):
                 in_bin = sex_mask & (ppl.age >= age_lo) & (ppl.age < age_hi)
                 self.rel_sus[in_bin] *= mult
 
+        # PrEP: reduces acquisition susceptibility. prep_eff is the REALIZED
+        # per-person efficacy (already includes whatever adherence scaling the
+        # enrolling Prep instance applied), set by start_prep() -- there's no
+        # fixed set of named "varieties" here, so no branching by type.
+        if self.on_prep.any():
+            self.rel_sus[self.on_prep] *= 1 - self.prep_eff[self.on_prep]
+        # Circumcision: reduces acquisition susceptibility. Magnitude depends on
+        # circ_traditional (set by whichever pathway called self.circumcise()), not
+        # on which intervention is present -- see HIVPars.eff_circ/eff_circ_traditional.
+        if self.circumcised.any():
+            program = self.circumcised & ~self.circ_traditional
+            traditional = self.circumcised & self.circ_traditional
+            self.rel_sus[program] *= 1 - self.pars.eff_circ
+            self.rel_sus[traditional] *= 1 - self.pars.eff_circ_traditional
+
         # Update rel_trans to account for acute and late-stage infection
         self.rel_trans[self.acute] *= self.pars.rel_trans_acute.rvs(self.acute.uids)
         self.rel_trans[self.aids] *= self.pars.rel_trans_falling.rvs(self.aids.uids)
 
         # Update transmission for agents on ART
-        # When agents start ART, determine the reduction of transmission (linearly decreasing over 6 months)
+        # When agents start ART, determine the reduction of transmission (linearly decreasing over 6 months).
+        # Efficacy depends on whether the agent is virally suppressed (effective ART) or not (non-suppressive ART).
         if self.on_art.any():
-            full_eff = self.pars.art_efficacy
-            time_to_full_eff = self.pars.time_to_art_efficacy
             art_uids = self.on_art.uids
+            full_eff = np.where(self.on_effective_art[art_uids], self.pars.effective_art_efficacy, self.pars.nonsupp_art_efficacy)
             timesteps_on_art = ti - self.ti_art[art_uids]
-            new_on_art = timesteps_on_art < time_to_full_eff/self.dt
-            efficacy_to_date = np.full_like(art_uids, fill_value=full_eff, dtype=float)
-            efficacy_to_date[new_on_art] = timesteps_on_art[new_on_art]*full_eff/time_to_full_eff.value
+            # time_to_art_efficacy is in its own declared unit (months by default); convert to
+            # timesteps via self.dt (like the mask below) rather than using .value directly, which
+            # is only correct when dt happens to equal that unit (e.g. breaks at non-monthly dt,
+            # letting efficacy_to_date exceed 1 and rel_trans go negative).
+            timesteps_to_full_eff = self.pars.time_to_art_efficacy / self.dt
+            new_on_art = timesteps_on_art < timesteps_to_full_eff
+            efficacy_to_date = full_eff.copy()
+            efficacy_to_date[new_on_art] = timesteps_on_art[new_on_art]*full_eff[new_on_art]/timesteps_to_full_eff
             self.rel_trans[art_uids] *= 1 - efficacy_to_date
 
         return
@@ -588,18 +770,41 @@ class HIV(BaseSTI):
         return
 
     # Treatment-related changes
-    def start_art(self, uids):
+    def start_art(self, uids, p_effective_art=None):
         """
         Check who is ready to start ART treatment and put them on ART
+
+        Args:
+            uids: agents starting ART treatment
+            p_effective_art (float/ss.Dist, optional): probability that each agent
+                achieves viral suppression (effective ART) rather than non-suppressive
+                ART. Pass a float to override `self.pars.p_effective_art`'s probability,
+                or an already-initialized `ss.Dist` (e.g. an intervention's own par) to
+                use it directly. Defaults to `self.pars.p_effective_art`
+                (default: always effective).
         """
         ti = self.ti
 
         self.on_art[uids] = True
-        self.post_art[uids] = False  # Re-starting ART clears the post-ART flag
-        newly_treated = uids[self.never_art[uids]]
-        self.never_art[newly_treated] = False
+        self.art_discontinued[uids] = False
+        newly_treated = uids[self.art_naive[uids]]
+        self.art_naive[newly_treated] = False
         self.ti_art[uids] = ti
         self.cd4_preart[uids] = self.cd4[uids]
+
+        # Determine whether each agent achieves viral suppression (effective ART) or
+        # remains non-suppressive, e.g. due to poor adherence or drug resistance
+        if isinstance(p_effective_art, ss.Dist):
+            effective_uids = p_effective_art.filter(uids)
+        else:
+            if p_effective_art is not None:
+                self.pars.p_effective_art.set(p=p_effective_art)
+            effective_uids = self.pars.p_effective_art.filter(uids)
+        nonsupp_uids = uids.remove(effective_uids)
+        self.on_effective_art[effective_uids] = True
+        self.on_nonsuppressive_art[effective_uids] = False
+        self.on_effective_art[nonsupp_uids] = False
+        self.on_nonsuppressive_art[nonsupp_uids] = True
 
         # Determine when agents goes off ART
         dur_on_art = self.pars.dur_on_art.rvs(uids)
@@ -648,7 +853,9 @@ class HIV(BaseSTI):
         # Remove agents from ART
         if uids is None: uids = self.on_art & (self.ti_stop_art <= ti)
         self.on_art[uids] = False
-        self.post_art[uids] = True
+        self.on_effective_art[uids] = False
+        self.on_nonsuppressive_art[uids] = False
+        self.art_discontinued[uids] = True
         self.ti_stop_art[uids] = ti
         self.cd4_postart[uids] = sc.dcp(self.cd4[uids])
 
@@ -664,6 +871,67 @@ class HIV(BaseSTI):
             raise ValueError(errormsg)
         self.ti_zero[uids] = ti + dur_post_art.astype(int)
 
+        return
+
+    def start_prep(self, uids, eff, dur, source_id, adh=1.0):
+        """
+        Start a PrEP course for uids not already on PrEP
+
+        Args:
+            uids: agents to start
+            eff: base efficacy (0-1) of this course when fully adherent
+            dur: course duration (an ss.dur/Time value) before renewal is needed
+            source_id: numeric id of the enrolling Prep instance (for that
+                instance's own coverage-target accounting)
+            adh: adherence level (0-1), multiplied into eff to get the realized
+                efficacy (default 1.0 = fully adherent, i.e. realized eff == eff)
+
+        Returns:
+            The subset of uids actually started (already-on-PrEP agents excluded).
+        """
+        uids = uids[~self.on_prep[uids]]
+        if len(uids) == 0:
+            return uids
+
+        ti = self.ti
+        self.on_prep[uids] = True
+        self.prep_discontinued[uids] = False  # Re-starting PrEP clears the discontinued flag
+        newly_started = uids[self.prep_naive[uids]]
+        self.prep_naive[newly_started] = False
+        self.prep_eff[uids] = eff * adh
+        self.prep_source[uids] = source_id
+        self.ti_prep_start[uids] = ti
+        self.ti_prep_stop[uids] = ti + int(dur / self.dt)
+        return uids
+
+    def stop_prep(self, uids=None):
+        """
+        Stop PrEP for uids, or (if None) everyone whose current course has expired.
+        """
+        if uids is None:
+            uids = (self.on_prep & (self.ti_prep_stop <= self.ti)).uids
+        self.on_prep[uids] = False
+        self.prep_discontinued[uids] = True
+        self.prep_eff[uids] = np.nan
+        self.prep_source[uids] = np.nan
+        self.ti_prep_start[uids] = np.nan
+        self.ti_prep_stop[uids] = np.nan
+        return uids
+      
+    def circumcise(self, uids, traditional=False):
+        """
+        Mark agents as circumcised. Idempotent: already-circumcised agents in
+        ``uids`` keep their original ``circ_traditional``/``ti_circumcised``, so a
+        traditional-MC pass can't overwrite someone circumcised by a program.
+
+        Args:
+            uids: agents to circumcise
+            traditional: False=program (medical) VMMC (default), True=traditional (non-program)
+        """
+        uids = uids[~self.circumcised[uids]]
+        self.circumcised[uids] = True
+        self.circ_traditional[uids] = traditional
+        self.ti_circumcised[uids] = self.ti
         return
 
 

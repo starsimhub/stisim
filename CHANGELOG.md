@@ -2,6 +2,36 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.5.11 (2026-08-24)
+
+### Breaking changes
+- **On-ART mortality is now nonzero by default.** Previously, agents on ART had zero HIV-specific mortality; on-ART death now follows an age/sex/CD4/adherence-adjusted rate anchored to (and always ≤) the off-ART CD4-based hazard. Models calibrated against 1.5.10 or earlier will need recalibration. (#556, #561)
+- **Circumcision state moved from `VMMC` to `HIV`.** `VMMC.circumcised`/`VMMC.pars.eff_circ` no longer exist — use `HIV.circumcise()`/`HIVPars.eff_circ`/`eff_circ_traditional`. Any `VMMC` subclass reading those attributes directly will break. (#576)
+- **`HIV.never_art` renamed to `art_naive`**, and ART status is now one of four mutually-exclusive states: `art_naive`, `on_effective_art`, `on_nonsuppressive_art`, `art_discontinued`. (#556)
+
+### Diseases
+- HIV: new ART adherence model. `p_effective_art` (default 1.0) determines what fraction of newly-initiated agents achieve viral suppression (`on_effective_art`) vs. non-suppressive ART (`on_nonsuppressive_art`); adherence status now affects both mortality (`rel_art_mortality_effective`/`unsupp_m`/`unsupp_f`, `art_death_age`) and transmission (`effective_art_efficacy`, `nonsupp_art_efficacy`, ramping in over `time_to_art_efficacy`). On-ART mortality is anchored to the off-ART CD4-based hazard so it can never exceed it at the same CD4 count — now enforced by an assertion at init rather than a docstring note. (#556, #561, #583)
+- HIV: `rel_death_f` (the female mortality multiplier) now applies off-ART as well as on-ART; previously it only applied on ART, with no documented reason for the asymmetry. (#583)
+- HIV: circumcision (`circumcised`/`circ_traditional`/`eff_circ`/`eff_circ_traditional`) moved from `VMMC` onto `HIV` so multiple circumcision pathways can share the same state. `VMMC` gains an independent traditional (non-program) circumcision pathway (`traditional_prob`, `traditional_age`) alongside program VMMC — both write through the same `HIV.circumcise()` sink, so someone circumcised by either pathway is automatically excluded from the other. (#576)
+- Syphilis: fix a reactivation-from-latent bug where the previous fix for "reactivation never happens" caused the opposite failure — *every* latent agent flipped back to secondary the timestep after entering latency, regardless of the reactivation draw, collapsing latency to a ~1-timestep blip and effectively disabling tertiary progression. (#569)
+- Removed the dead `post_art` state: it was declared and cleared on infection-clear, but nothing ever set it `True` (superseded by `art_discontinued`, which everything else already reads); `hiv_n_post_art` was silently always 0.
+
+### Interventions
+- `ART` gains `vls_coverage`: the fraction of newly-initiated agents achieving viral suppression, accepting the same scalar / time-varying / age-sex-stratified DataFrame formats as `coverage` (replaces the scalar-only `p_effective_art` kwarg). (#577)
+- `Prep` (PrEP) reimplemented as a stock-target intervention parameterized by `prep_eff`/`prep_dur`/`prep_adh`. State (`prep_naive`/`on_prep`/`prep_discontinued`/etc.) now lives on `HIV`, so multiple `Prep` instances (e.g. oral + long-acting) share enrollment history and are mutually exclusive. (#581)
+
+### Bug fixes
+- `vls_coverage`: a stratum missing from a stratified DataFrame silently defaulted to 0% suppression instead of the documented 100%; scalar/single-column inputs outside [0, 1] weren't validated; the legacy `p_effective_art` kwarg could silently override `vls_coverage` with no warning. (#577)
+- `Prep`: age-only stratified coverage (no `Gender` column) defaulted to males only, silently enrolling nobody for Prep's typical (female) target populations. (#581)
+- The ART transmission-efficacy ramp divided by a raw month count instead of converting to timesteps via `dt` — only correct at the default monthly resolution. At other `dt` (e.g. weekly), the ramp could overshoot and drive `rel_trans` negative. (#583)
+
+### Documentation
+- Rewrote the HIV user guide's "On-ART mortality" and "On-ART transmission" sections for the new adherence model, including a worked derivation of `nonsupp_art_efficacy` (a Quinn/Rakai viral-load hazard-ratio calculation) and updating `effective_art_efficacy` to 0.99 ("U=U" — PARTNER/PARTNER2/Opposites Attract found zero linked transmissions from virally suppressed partners across thousands of couple-years). (#582, #583)
+- Document PrEP's new parameterization and multi-product usage in the interventions user guide. (#581)
+
+### Tests
+- Add regression tests for the on-ART mortality invariant, the efficacy-ramp `dt` bug, `rel_death_f` applying off-ART, `vls_coverage`'s missing-stratum default and value validation, and Prep's age-only stratified coverage. (#577, #581, #583)
+
 ## Version 1.5.10 (2026-07-24)
 
 ### Bug fixes
