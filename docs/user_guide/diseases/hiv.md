@@ -127,7 +127,15 @@ On-ART mortality is bounded by `off_art_rate` such that someone who is on ART wi
 
 ART adherence status also affects transmission. Individuals who achieve viral load suppression on effective ART have lower transmission rates than individuals on non-suppressive ART. (That is to say, "undetectable = untransmissible.") 
 
-In `HIV.update_transmission()`, `rel_trans` for an on-ART agent ramps linearly (over `time_to_art_efficacy`, default 6 months, starting from `ti_art`) down to `1 - efficacy`, where `efficacy` is `effective_art_efficacy` (default 0.96, i.e. a 96% reduction — near-complete suppression) for virally-suppressed agents, or `nonsupp_art_efficacy` (default 0.35, i.e. only a 35% reduction) for non-suppressive agents. In other words: a non-suppressive agent remains substantially infectious despite nominally being "on ART," at roughly `0.65/0.04 ≈ 16x` the transmissibility of an effective-ART agent once both are fully ramped. This mirrors the mortality story above — both mortality and transmission risk are much closer to untreated levels for agents who fail to achieve viral suppression, even though they're recorded as being on ART.
+In `HIV.update_transmission()`, `rel_trans` for an on-ART agent ramps linearly (over `time_to_art_efficacy`, default 6 months, starting from `ti_art`) down to `1 - efficacy`, where `efficacy` is `effective_art_efficacy` (default 0.99, i.e. a 99% reduction — consistent with "U=U": PARTNER/PARTNER2/Opposites Attract found zero linked transmissions from virally suppressed partners across thousands of couple-years) for virally-suppressed agents, or `nonsupp_art_efficacy` (default 0.35, i.e. only a 35% reduction) for non-suppressive agents. In other words: a non-suppressive agent remains substantially infectious despite nominally being "on ART," at roughly `0.65/0.01 = 65x` the transmissibility of an effective-ART agent once both are fully ramped. This mirrors the mortality story above — both mortality and transmission risk are much closer to untreated levels for agents who fail to achieve viral suppression, even though they're recorded as being on ART.
+
+**Where does `nonsupp_art_efficacy = 0.35` come from?** It's anchored to a viral-load-based estimate rather than measured directly (there's no equivalent trial data for "non-suppressive ART" the way PARTNER/PARTNER2 give us "suppressive ART"). Using the Quinn (Rakai 2000) hazard ratio of ~2.45x transmission risk per +1 log10 viral load, and assuming a non-suppressed viral load distribution of log10(VL) ~ N(3.75, 0.8²) relative to untreated chronic infection at ~4.5 log10:
+
+```
+2.45^(3.75 - 4.5) * exp(ln(2.45)² * 0.8² / 2) ≈ 0.51 * 1.29 ≈ 0.66
+```
+
+giving a relative infectiousness of ~0.66, i.e. efficacy ≈ 1 - 0.66 = 0.34 — close to the shipped 0.35. The `exp(...)` term is a Jensen correction (the hazard is exponential in log10(VL), so integrating over the assumed distribution differs materially from evaluating at its mean). This estimate is sensitive to the assumed VL distribution — a mean of 4.0 gives ~0.16, a mean of 3.5 gives ~0.47 — so `nonsupp_art_efficacy` should be treated as anchored-but-revisitable rather than a hard empirical estimate, and is a reasonable target for recalibration or sensitivity analysis.
 
 ### Other Notes on ART
 
@@ -187,7 +195,7 @@ In `HIV.update_transmission()`, `rel_trans` for an on-ART agent ramps linearly (
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `effective_art_efficacy` | 0.96 | Transmission efficacy of effective (virally-suppressive) ART |
+| `effective_art_efficacy` | 0.99 | Transmission efficacy of effective (virally-suppressive) ART |
 | `nonsupp_art_efficacy` | 0.35 | Transmission efficacy of non-suppressive ART |
 | `time_to_art_efficacy` | 6 months | Time to reach full ART efficacy (linear ramp) |
 | `p_effective_art` | bernoulli(1.0) | Probability a newly-initiated agent achieves viral suppression |

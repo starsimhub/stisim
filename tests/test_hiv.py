@@ -803,6 +803,39 @@ def test_rel_death_scales_hiv_mortality(n_agents=3000):
     )
 
 
+def test_rel_death_f_applies_off_art_too(n_agents=3000):
+    """ rel_death_f is folded into the shared off-ART baseline (make_p_hiv_death), so it
+    should give women the same mortality benefit off ART as on ART -- not just on ART,
+    which was the behavior prior to this fix. """
+    sc.heading('Testing rel_death_f applies to off-ART mortality')
+
+    captured = []
+    orig = sti.HIV.make_p_hiv_death
+    def wrapped(self, uids=None):
+        p = orig(self, uids=uids)
+        female = ~self.sim.people.male[uids]
+        captured.append((sc.dcp(female), sc.dcp(p)))
+        return p
+    sti.HIV.make_p_hiv_death = wrapped
+    try:
+        hiv = sti.HIV(init_prev=1.0, beta_m2f=0.0)
+        art = sti.ART(art_initiation=0.0)  # nobody goes on ART -- isolates off-ART mortality
+        sim = ss.Sim(diseases=hiv, networks=sti.StructuredSexual(), demographics=None,
+                     interventions=[sti.HIVTest(test_prob_data=0.5), art],
+                     n_agents=n_agents, start=2015, stop=2016, verbose=0)
+        sim.run()
+    finally:
+        sti.HIV.make_p_hiv_death = orig
+
+    all_female = np.concatenate([f for f, p in captured])
+    all_p = np.concatenate([p for f, p in captured])
+    ratio = all_p[all_female].mean() / all_p[~all_female].mean()
+    expected = hiv.pars.rel_death_f
+    assert abs(ratio - expected) < 0.02, (
+        f'Expected off-ART female:male mortality ratio ~= rel_death_f ({expected}), got {ratio:.3f}'
+    )
+
+
 def test_on_art_mortality_invariant_enforced():
     """ On-ART mortality is anchored to the off-ART CD4-based hazard so it can never
     exceed it, by construction -- but only if rel_art_mortality_effective/unsupp_m/f
