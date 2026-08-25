@@ -2,6 +2,8 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.5.12 (TBC)
+
 ## Version 1.5.11 (2026-08-24)
 
 ### Breaking changes
