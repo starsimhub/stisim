@@ -154,7 +154,6 @@ class HIV(BaseSTI):
             ss.BoolState('latent'),
             ss.FloatArr('ti_falling'),
             ss.BoolState('falling'),
-            ss.BoolState('post_art'),  # After stopping ART, CD4 falls linearly until death
             ss.FloatArr('ti_zero'),  # Time of zero CD4 count - generally corresponds to AIDS death
             ss.FloatArr('ti_dead'),  # Time of HIV/AIDS death
 
@@ -572,7 +571,6 @@ class HIV(BaseSTI):
         self.acute[uids] = False
         self.latent[uids] = False
         self.falling[uids] = False
-        self.post_art[uids] = False
         self.art_naive[uids] = False
         self.on_art[uids] = False
         self.on_effective_art[uids] = False
