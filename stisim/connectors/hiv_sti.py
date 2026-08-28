@@ -105,7 +105,9 @@ class hiv_tv(ss.Connector):
         return
 
     def step(self):
-        tv = self.tv.infected
+        # Keyed off `infectious` rather than `infected`: the inflammation that raises HIV risk
+        # accompanies an established infection, not the pre-patent latent period.
+        tv = self.tv.infectious
         self.hiv.rel_sus[tv] *= self.pars.rel_sus_hiv_tv
         return
 
@@ -137,7 +139,7 @@ class hiv_ng(ss.Connector):
         return
 
     def step(self):
-        ng = self.ng.infected
+        ng = self.ng.infectious  # As hiv_tv: established infection, not the latent period
         self.hiv.rel_sus[ng] *= self.pars.rel_sus_hiv_ng
         self.hiv.rel_trans[ng] *= self.pars.rel_trans_hiv_ng
         return
@@ -170,7 +172,7 @@ class hiv_ct(ss.Connector):
         return
 
     def step(self):
-        ct = self.ct.infected
+        ct = self.ct.infectious  # As hiv_tv: established infection, not the latent period
         self.hiv.rel_sus[ct] *= self.pars.rel_sus_hiv_ct
         return
 
