@@ -534,7 +534,7 @@ def test_art_duration(do_plot=do_plot):
     # Everyone started ART at ti~0, so mean duration should approximate run_years
     on_art = hiv.on_art.uids
     ti_start = hiv.ti_art[on_art]
-    durations_years = (sim.t.ti - ti_start) * float(sim.pars.dt)
+    durations_years = (sim.t.ti - ti_start) * sim.pars.dt.years
     mean_dur = float(np.nanmean(durations_years))
     assert np.isclose(mean_dur, run_years, atol=0.5), f'Expected mean ART duration ~{run_years} years, got {mean_dur:.1f}'
 
@@ -577,7 +577,7 @@ def test_art_dx2tx_delay(do_plot=do_plot):
     n_alive = len(sim.people.alive.uids)
     assert len(dx_uids) == n_alive, 'Expected all living agents diagnosed'
 
-    delay_ti = int(round(delay_years / float(sim.pars.dt)))
+    delay_ti = int(round(delay_years / sim.pars.dt.years))
     expected = hiv.ti_diagnosed[dx_uids] + delay_ti
     on_art_uids = hiv.on_art.uids
     assert np.allclose(hiv.ti_art[on_art_uids], expected[np.isin(dx_uids, on_art_uids)]), \

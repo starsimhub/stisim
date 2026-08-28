@@ -195,8 +195,7 @@ class Syphilis(BaseSTI):
             ss.BoolArr('mtct_from_early'),  # For maternal transmission, track the mother's stage when transmission occurs
             ss.BoolArr('mtct_from_late'),  # For maternal transmission, track the mother's stage when transmission occurs
 
-            # Timestep of state changes
-            ss.FloatArr('ti_exposed'),
+            # Timestep of state changes (`ti_exposed` is inherited from BaseSTI)
             ss.FloatArr('ti_primary'),
             ss.FloatArr('ti_secondary'),
             ss.FloatArr('ti_latent'),
@@ -677,9 +676,9 @@ class Syphilis(BaseSTI):
 
     def set_latent_trans(self, ti=None):
         if ti is None: ti = self.ti
-        dur_latent = ti - self.ti_latent[self.latent]
+        dur_latent = ti - self.ti_latent[self.latent] # In timesteps, so the half-life must be too
         hl = self.pars.rel_trans_latent_half_life
-        decay_rate = np.log(2) / hl if ~np.isnan(hl) else 0.
+        decay_rate = np.log(2) / hl.to_dt() if ~np.isnan(hl) else 0.
         starting = self.pars.rel_trans_secondary
         latent_trans = starting * np.exp(-decay_rate * dur_latent)
         self.rel_trans[self.latent] = latent_trans

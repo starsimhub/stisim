@@ -1259,6 +1259,12 @@ def pn_rates(rates):
             ``edge_types`` keys. Edges whose type is not in ``rates`` get
             probability 0.
 
+            Despite the name, these are plain per-notification-event
+            probabilities in [0, 1], not per-unit-time rates: each is applied
+            once to a partner reached on the step their index case is
+            notified. Pass plain numbers, not ``ss.Rate`` timepars — a timepar
+            has no meaning here and will raise.
+
     Returns:
         callable f(module, sim, uids) -> ndarray of probabilities, one per
         UID. If a partner is reachable via multiple current-channel edges

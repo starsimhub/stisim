@@ -40,8 +40,8 @@ def test_init_pre_converts_durs_to_steps():
     sim = _make_sim(net=net)
     sim.init()
     sim_net = sim.networks[0]
-    assert sim_net._target_mean_dur_steps == int(round(2.0 / float(sim_net.t.dt)))
-    assert sim_net._max_edge_dur_steps == int(round(10.0 / float(sim_net.t.dt)))
+    assert sim_net._target_mean_dur_steps == int(round(ss.years(2).to_dt(sim_net.t.dt)))
+    assert sim_net._max_edge_dur_steps == int(round(ss.years(10).to_dt(sim_net.t.dt)))
 
 
 @sc.timer()
@@ -263,7 +263,7 @@ def test_target_mean_dur_honoured():
     # Age = max_edge_dur_steps - dur.
     dur_remaining = np.asarray(sim_net.edges.dur, dtype=float)
     age_steps = float(sim_net._max_edge_dur_steps) - dur_remaining.mean()
-    steps_per_yr = 1.0 / float(sim_net.t.dt)
+    steps_per_yr = 1.0 / sim_net.t.dt.years
     realised_yrs = age_steps / steps_per_yr
     max_yrs = float(sim_net._max_edge_dur_steps) / steps_per_yr
     assert 0.5 * target_yrs <= realised_yrs <= max_yrs, \

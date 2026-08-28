@@ -2,7 +2,26 @@
 
 All notable changes to the codebase are documented in this file.
 
-## Version 1.5.12 (TBC)
+## Version 1.6.0 (TBC)
+
+A minor rather than patch release: it requires `starsim>=3.6.0`, and three long-standing bugs found while migrating to it change simulated epidemiology enough that gonorrhea, trichomoniasis and syphilis calibrations all need redoing.
+
+### Breaking changes
+- **Gonorrhea and trichomoniasis over-reported incidence by ~1.9x.** `BaseSTI.update_results` counted new infections as `ti_infected == ti`, but `SEIS` writes `ti_infected` twice: `set_exposure()` schedules the exposed->infectious time, then `step_state()` overwrites it with the realized one. With `dur_exp = 0` (the default for both diseases) those fall on different timesteps, so each infection was counted twice. Incidence is now counted at acquisition via `ti_exposed`, which is written exactly once and never rewritten, so the test is correct by construction; `ti_exposed` moved up to `BaseSTI`, and `ti_infected` again means only "became infectious". Against a direct count of `set_prognoses()` calls, the two diseases reported 1.93x and 1.86x the true infections and now report 1.00x. All incidence-derived results were affected; transmission dynamics were not. *Regression*: both were calibrated to roughly double the true incidence. Chlamydia's totals are unchanged but shift one timestep earlier.
+- **The syphilis latent transmissibility half-life had no effect.** `set_latent_trans()` computed `np.exp(-np.log(2)/pars.rel_trans_latent_half_life * dur_latent)`; under starsim < 3.6.0 the ufunc discarded the rate's denominator, so every half-life gave identical decay and latent `rel_trans` halved every timestep regardless. The half-life is now converted to timesteps with `to_dt()`, making decay 12x slower at monthly `dt`. *Regression*: over a 5000-agent/20-year sim, endpoint prevalence rose from 0.142 to 0.202 and cumulative infections from 493 to 674 (mean of 3 seeds); syphilis calibrations need redoing.
+- **Trichomoniasis "persistent" female infections lasted 8.3 years instead of 100.** `set_duration` added `pars.dur_persist` (`ss.years(100)`) to a timestep index without converting to the module's `dt`, so the bare magnitude was used — 100 months at monthly `dt`. Realized persistence is now 1200 timesteps rather than 100. *Regression*: female prevalence rises substantially in runs longer than ~8 years.
+
+### Starsim 3.6.0
+- Require `starsim>=3.6.0` (previously `>=3.3.3`, with a much looser `>=3.0.0` runtime check in `stisim/__init__.py`) — the version the baselines were regenerated against.
+- **`float()` on an `ss.TimePar` now raises `TypeError`**, as do single-input ufuncs on an `ss.Rate`, instead of silently returning the bare magnitude — previously `ss.years(1)`, `ss.months(1)` and `ss.days(1)` all floated to `1.0`. Sites wanting timesteps now use `TimePar.to_dt()` (more robust than `float(x.to(dt))`: it handles `ss.datedur`, and a `dt` whose magnitude is not 1); sites wanting years use `TimePar.years`.
+- `results.cum_deaths` (from `ss.People`) is now a true cumulative sum satisfying `cum_deaths == np.cumsum(new_deaths)`; starsim fixed an off-by-one that excluded the current timestep. STIsim's own `hiv.cum_deaths` was already correct.
+- `ss.Infection.set_prognoses()` now accumulates `results.new_infections` itself, excluding seeds as prevalent rather than incident. `BaseSTI.update_results` overwrites this to include seeds, keeping `new_infections` consistent with the stratified `new_infections_*` results.
+- `Migration.slot_scale` raised from 5 to 100, matching starsim's 3.5.0 change to `ss.Pregnancy`: a wider slot range reduces collisions between new agents, and costs nothing under hash-based CRN. *Regression*: changes results for any model using `sti.Migration`.
+- `ss.Infection.infectious` is now an alias rather than a property; `Syphilis.infectious` and `HIV.symptomatic` still override it, so no change was needed.
+
+### Tests
+- Regenerate `baseline.yaml` / `benchmark.yaml` for starsim 3.6.0: the baseline moves with the `cum_deaths` fix and the `slot_scale` change, and the old benchmark predated 3.6.0's speedups so it could no longer flag a regression.
+
 
 ## Version 1.5.11 (2026-08-24)
 

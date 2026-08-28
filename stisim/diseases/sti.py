@@ -129,6 +129,12 @@ class BaseSTI(ss.Infection):
         self.update_pars(pars, **kwargs)
 
         self.define_states(
+            # Time of acquisition: S->E, or S->I for diseases with no exposed compartment.
+            # Written exactly once per infection and never rewritten, which is what makes
+            # `ti_exposed == ti` a correct one-shot test for incidence. `ti_infected` cannot be
+            # used for that: it is the time of becoming *infectious*, which `SEIS.step_state()`
+            # snaps forward to the realized transition step.
+            ss.FloatArr('ti_exposed'),
             ss.FloatArr('ti_transmitted_sex'),
             ss.FloatArr('ti_transmitted_mtc'),
             ss.FloatArr('ti_transmitted'),
@@ -347,12 +353,18 @@ class BaseSTI(ss.Infection):
 
         adults = (self.sim.people.age >= self.age_range[0]) & (self.sim.people.age <= self.age_range[1])
 
-        # Main results, looping over people keys and attributes
+        # Incidence is counted at acquisition. The skk == '' pass deliberately overwrites the
+        # `new_infections` result that `ss.Infection.set_prognoses()` accumulates (starsim >=
+        # 3.6.0), which excludes seed infections as prevalent rather than incident; STIsim counts
+        # them, so that `new_infections` agrees with the stratified `new_infections_*` results.
+        newly_infected = self.ti_exposed == ti
+
+        # Main results, looping over people keys and attributes.
         for pkey, pattr in self.sex_keys.items():
             skk = '' if pkey == '' else f'_{pkey}'
 
             # Collate results
-            new_inf = (self.ti_infected == ti) & ppl[pattr]
+            new_inf = newly_infected & ppl[pattr]
             n_sus = self.susceptible & ppl[pattr]
             n_inf = self.infected & ppl[pattr]
 
@@ -382,7 +394,7 @@ class BaseSTI(ss.Infection):
         # they came from (stored in infection_net by set_outcomes).
         # TODO: refactor once starsim tracks transmission route natively
         #   (see https://github.com/starsimhub/starsim/issues/1232)
-        new_this_ti = self.ti_infected == ti
+        new_this_ti = newly_infected
         n_prenatal = 0
         n_postnatal = 0
         n_horizontal = 0
@@ -413,6 +425,16 @@ class SEIS(BaseSTI):
     PID complications in females, and natural clearance. Used as the base class
     for chlamydia, gonorrhea, and trichomoniasis.
 
+    Naming follows starsim's ``ss.SEIR`` convention: ``exposed`` and ``infected`` are the literal
+    E and I compartments, so ``infected`` (and hence ``infectious``, which ``ss.Infection`` aliases
+    to it, plus ``n_infected`` and ``prevalence``) means "currently transmitting", not merely
+    "carrying the infection". Read ``ti_infected`` as the time of *entering I*, i.e. of becoming
+    infectious; ``ti_exposed`` is the time of acquisition. The two differ by ``dur_exp``, and only
+    ``ti_exposed`` is written exactly once per infection, so incidence is counted off that
+    (see ``BaseSTI.update_results``). Unlike ``ss.SEIR``, ``step_state()`` below snaps
+    ``ti_infected`` forward to the timestep the transition actually happens, so it stays a truthful
+    record of onset even when ``dur_exp`` is a fraction of a timestep.
+
     Args:
         pars (dict): Override default parameters from ``STIPars``.
         name (str): Module name used for results and parameter routing.
@@ -437,7 +459,6 @@ class SEIS(BaseSTI):
             ss.BoolState('pid'),
             ss.BoolState('seeking_care'),
             ss.FloatArr('dur_inf'),
-            ss.FloatArr('ti_exposed'),
             ss.FloatArr('ti_symptomatic'),
             ss.FloatArr('ti_symp_clear'),
             ss.FloatArr('ti_seeks_care'),
@@ -603,8 +624,8 @@ class SEIS(BaseSTI):
         elif len(par[0]) > 1:
             arr = np.full((len(uids), 2), np.nan)
             for idx in range(2):
-                arr[self.sim.people.female[uids], idx] = par[0][idx].to(self.dt) if isinstance(par[0][idx], ss.TimePar) else par[0][idx]
-                arr[self.sim.people.male[uids], idx] = par[1][idx].to(self.dt) if isinstance(par[1][idx], ss.TimePar) else par[1][idx]
+                arr[self.sim.people.female[uids], idx] = par[0][idx].to_dt() if isinstance(par[0][idx], ss.TimePar) else par[0][idx]
+                arr[self.sim.people.male[uids], idx] = par[1][idx].to_dt() if isinstance(par[1][idx], ss.TimePar) else par[1][idx]
         return arr
 
     def set_symptoms(self, p, uids):
