@@ -608,7 +608,7 @@ def test_vmmc_targeting():
     # so by the end their ages span [min_age, max_age + total aging). Over the run agents age
     # duration + one dt (Starsim applies an aging step each timestep, including the final one),
     # so an agent circumcised just under max_age can finish just above max_age + duration.
-    max_aging = duration + float(sim.t.dt)  # years of aging accrued over the whole sim
+    max_aging = duration + sim.t.dt.years  # years of aging accrued over the whole sim
     correct_ages = (people.age >= min_age) & (people.age < (max_age + max_aging))
 
     n_incorrect_circ = len(( circumcised    & (~correct_ages)            ).uids)

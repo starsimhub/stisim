@@ -37,7 +37,7 @@ class Migration(ss.Demographics):
             # Migration parameters
             # dt = ss.years(1),  # Unit of time for migration data # TODO: not implemented
             migration_propensity = ss.normal(loc=1, scale=0.1),  # Propensity to emigrate
-            slot_scale = 5, # Random slots will be assigned to newborn agents between min=n_agents and max=slot_scale*n_agents
+            slot_scale = 100, # Random slots will be assigned to new agents between min=n_agents and max=slot_scale*n_agents; larger reduces slot collisions, and (since starsim 3.5.0's hash-based CRN) no longer costs extra random draws
             min_slots  = 100, # Minimum number of slots, useful if the population size is very small
             rel_migration = 1, # Scale factor for net migration (both immigration and emigration)
         )

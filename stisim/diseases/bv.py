@@ -724,6 +724,7 @@ class BV(BaseSTI):
         """
         Set initial prognoses for newly infected males
         """
+        self.ti_exposed[uids] = self.ti
         self.ti_infected[uids] = self.ti
         self.infected[uids] = True
         self.susceptible[uids] = False
@@ -743,6 +744,7 @@ class BV(BaseSTI):
         self.cst[uids] = new_cst
         self.ti_cst_change[uids] = self.ti
         if new_cst == 4:
+            self.ti_exposed[uids] = self.ti
             self.ti_infected[uids] = self.ti
             self.infected[uids] = True
             self.susceptible[uids] = False

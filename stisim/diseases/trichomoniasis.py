@@ -79,5 +79,9 @@ class Trichomoniasis(SEIS):
         # Next, overwrite time of clearance for a subset of asymptomatic women
         potential_persist = asymp[self.sim.people.female[asymp]]
         _, f_persist = p.p_clear.split(potential_persist)
-        self.ti_clearance[f_persist] = self.ti_infected[f_persist] + self.pars.dur_persist
+        # Convert to timesteps before adding: ti_infectious is an index, so the duration has to
+        # be expressed in timesteps, not years. The base class does this via set_pars(); this
+        # override has to do it explicitly.
+        dur_persist = self.pars.dur_persist.to_dt()
+        self.ti_clearance[f_persist] = self.ti_infectious[f_persist] + dur_persist
         return

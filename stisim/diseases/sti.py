@@ -129,6 +129,12 @@ class BaseSTI(ss.Infection):
         self.update_pars(pars, **kwargs)
 
         self.define_states(
+            # Time of acquisition: S->E, or S->I for diseases with no exposed compartment.
+            # Written exactly once per infection and never rewritten, which is what makes
+            # `ti_exposed == ti` a correct one-shot test for incidence. In `SEIS` the time of
+            # becoming infectious is `ti_infectious`, which `step_state()` snaps forward to the
+            # realized transition step, so it cannot be used for that.
+            ss.FloatArr('ti_exposed'),
             ss.FloatArr('ti_transmitted_sex'),
             ss.FloatArr('ti_transmitted_mtc'),
             ss.FloatArr('ti_transmitted'),
@@ -347,12 +353,18 @@ class BaseSTI(ss.Infection):
 
         adults = (self.sim.people.age >= self.age_range[0]) & (self.sim.people.age <= self.age_range[1])
 
-        # Main results, looping over people keys and attributes
+        # Incidence is counted at acquisition. The skk == '' pass deliberately overwrites the
+        # `new_infections` result that `ss.Infection.set_prognoses()` accumulates (starsim >=
+        # 3.6.0), which excludes seed infections as prevalent rather than incident; STIsim counts
+        # them, so that `new_infections` agrees with the stratified `new_infections_*` results.
+        newly_infected = self.ti_exposed == ti
+
+        # Main results, looping over people keys and attributes.
         for pkey, pattr in self.sex_keys.items():
             skk = '' if pkey == '' else f'_{pkey}'
 
             # Collate results
-            new_inf = (self.ti_infected == ti) & ppl[pattr]
+            new_inf = newly_infected & ppl[pattr]
             n_sus = self.susceptible & ppl[pattr]
             n_inf = self.infected & ppl[pattr]
 
@@ -382,7 +394,7 @@ class BaseSTI(ss.Infection):
         # they came from (stored in infection_net by set_outcomes).
         # TODO: refactor once starsim tracks transmission route natively
         #   (see https://github.com/starsimhub/starsim/issues/1232)
-        new_this_ti = self.ti_infected == ti
+        new_this_ti = newly_infected
         n_prenatal = 0
         n_postnatal = 0
         n_horizontal = 0
@@ -413,6 +425,16 @@ class SEIS(BaseSTI):
     PID complications in females, and natural clearance. Used as the base class
     for chlamydia, gonorrhea, and trichomoniasis.
 
+    Naming follows starsim's ``ss.SEIR``: ``exposed`` and ``infectious`` are the literal E and I
+    compartments, and ``infected`` is derived as E plus I, so ``n_infected`` and ``prevalence``
+    count everyone carrying the infection while transmission depends on ``infectious`` alone.
+    Correspondingly, ``ti_exposed`` is the time of acquisition and ``ti_infectious`` the time of
+    becoming infectious; ``ti_infected`` is not defined, since it is too easily confused with
+    ``ti_infectious``. Only ``ti_exposed`` is written exactly once per infection, so incidence is
+    counted off that (see ``BaseSTI.update_results``). Unlike ``ss.SEIR``, ``step_state()`` below
+    snaps ``ti_infectious`` forward to the timestep the transition actually happens, so it stays a
+    truthful record of onset even when ``dur_exp`` is a fraction of a timestep.
+
     Args:
         pars (dict): Override default parameters from ``STIPars``.
         name (str): Module name used for results and parameter routing.
@@ -429,20 +451,24 @@ class SEIS(BaseSTI):
         self.update_pars(pars, **kwargs)
 
         self.define_states(
-            # Natural history
-            ss.BoolState('exposed'),
-            # ss.BoolState('infected'), # Inherited from ss.Infection
+            # Natural history. As ss.SEIR, the I compartment is `infectious` and `infected` is
+            # derived as E plus I; `ti_infected` is dropped in favour of `ti_exposed` (defined in
+            # BaseSTI) and `ti_infectious`.
+            ss.BoolState('exposed', label='Exposed'),
+            ss.BoolState('infectious', label='Infectious'),
             ss.BoolState('asymptomatic'),
             ss.BoolState('symptomatic'),
             ss.BoolState('pid'),
             ss.BoolState('seeking_care'),
             ss.FloatArr('dur_inf'),
-            ss.FloatArr('ti_exposed'),
+            ss.FloatArr('ti_infectious', label='Time of becoming infectious'),
             ss.FloatArr('ti_symptomatic'),
             ss.FloatArr('ti_symp_clear'),
             ss.FloatArr('ti_seeks_care'),
             ss.FloatArr('ti_pid'),
             ss.FloatArr('ti_clearance'),
+            reset = ['infected', 'infectious', 'ti_infected'],
+            infected = lambda self: self.exposed | self.infectious, # Derived: E and I are both infected
         )
 
         self.age_range = [15, 65]  # Age range for main results e.g. prevalence
@@ -450,10 +476,8 @@ class SEIS(BaseSTI):
 
         return
 
-    @property
-    def treatable(self):
-        """ Active bacterial presence -- includes exposed and infected, and responds to treatment """
-        return self.exposed | self.infected
+    # `treatable` is inherited from BaseSTI: `infected` is now E plus I, which is exactly the
+    # active bacterial presence that responds to treatment.
 
     def init_results(self):
         """ Initialize results """
@@ -488,7 +512,7 @@ class SEIS(BaseSTI):
 
     def clear_infection(self, uids):
         self.exposed[uids] = False
-        self.infected[uids] = False
+        self.infectious[uids] = False
         self.symptomatic[uids] = False
         self.asymptomatic[uids] = False
         self.pid[uids] = False
@@ -497,7 +521,7 @@ class SEIS(BaseSTI):
         past_care_seekers = uids[(self.ti_seeks_care[uids] < self.ti).nonzero()[-1]]
         self.ti_seeks_care[past_care_seekers] = np.nan
         self.ti_clearance[uids] = self.ti
-        self.dur_inf[uids] = self.ti - self.ti_infected[uids]
+        self.dur_inf[uids] = self.ti - self.ti_infectious[uids]
 
     def step_state(self):
         """ Updates for this timestep """
@@ -507,12 +531,12 @@ class SEIS(BaseSTI):
         self.rel_sus[:] = 1
         self.rel_trans[:] = 1
 
-        # Exposed -> infected
-        new_infected = (self.exposed & (self.ti_infected <= ti)).uids
-        if len(new_infected):
-            self.exposed[new_infected] = False
-            self.infected[new_infected] = True
-            self.ti_infected[new_infected] = ti
+        # Exposed -> infectious
+        new_infectious = (self.exposed & (self.ti_infectious <= ti)).uids
+        if len(new_infectious):
+            self.exposed[new_infectious] = False
+            self.infectious[new_infectious] = True
+            self.ti_infectious[new_infectious] = ti
 
         # Presymptomatic -> symptomatic
         new_symptomatic = (self.asymptomatic & (self.ti_symptomatic <= ti)).uids
@@ -522,7 +546,7 @@ class SEIS(BaseSTI):
             self.ti_symptomatic[new_symptomatic] = ti
 
         # Clear infections
-        new_cleared = (self.infected & (self.ti_clearance <= ti)).uids
+        new_cleared = (self.infectious & (self.ti_clearance <= ti)).uids
         self.clear_infection(new_cleared)
 
         # Progress PID
@@ -534,7 +558,7 @@ class SEIS(BaseSTI):
         old_seekers = (self.seeking_care).uids
         self.seeking_care[old_seekers] = False
         self.ti_seeks_care[old_seekers] = np.nan  # Remove the old
-        new_seekers = (self.infected & (self.ti_seeks_care <= ti)).uids
+        new_seekers = (self.infectious & (self.ti_seeks_care <= ti)).uids
         self.seeking_care[new_seekers] = True
         self.ti_seeks_care[new_seekers] = ti
         # If we don't update this results here, it's possible that someone could seek care,
@@ -588,7 +612,7 @@ class SEIS(BaseSTI):
         self.asymptomatic[uids] = True
         self.ti_exposed[uids] = self.ti
         dur_exp = self.pars.dur_exp.rvs(uids)
-        self.ti_infected[uids] = self.ti + dur_exp
+        self.ti_infectious[uids] = self.ti + dur_exp
         return
 
     def set_pars(self, par, uids):
@@ -603,8 +627,8 @@ class SEIS(BaseSTI):
         elif len(par[0]) > 1:
             arr = np.full((len(uids), 2), np.nan)
             for idx in range(2):
-                arr[self.sim.people.female[uids], idx] = par[0][idx].to(self.dt) if isinstance(par[0][idx], ss.TimePar) else par[0][idx]
-                arr[self.sim.people.male[uids], idx] = par[1][idx].to(self.dt) if isinstance(par[1][idx], ss.TimePar) else par[1][idx]
+                arr[self.sim.people.female[uids], idx] = par[0][idx].to_dt() if isinstance(par[0][idx], ss.TimePar) else par[0][idx]
+                arr[self.sim.people.male[uids], idx] = par[1][idx].to_dt() if isinstance(par[1][idx], ss.TimePar) else par[1][idx]
         return arr
 
     def set_symptoms(self, p, uids):
@@ -617,7 +641,7 @@ class SEIS(BaseSTI):
         dur_presymp_vals = self.set_pars(p.dur_presymp, symp)
         p.dur_presymp_dist.set(mean=dur_presymp_vals[:,0], std=dur_presymp_vals[:,1])
         dur_presymp = self.pars.dur_presymp_dist.rvs(symp)
-        self.ti_symptomatic[symp] = self.ti_infected[symp] + dur_presymp
+        self.ti_symptomatic[symp] = self.ti_infectious[symp] + dur_presymp
         return symp, asymp
 
     def set_care_seeking(self, p, symp):
@@ -636,13 +660,13 @@ class SEIS(BaseSTI):
     def set_pid(self, p, f_uids):
         pid = p.p_pid.filter(f_uids)
         dur_prepid = p.dur_prepid.rvs(pid)
-        self.ti_pid[pid] = self.ti_infected[pid] + dur_prepid
+        self.ti_pid[pid] = self.ti_infectious[pid] + dur_prepid
         return pid
 
     def set_pid_care_seeking(self, p, pid):
         pid_care = p.p_pid_care.filter(pid)
         dur_pid2care = p.dur_pid2care.rvs(pid_care)
-        self.ti_seeks_care[pid_care] = np.minimum(self.ti_seeks_care[pid_care], self.ti_infected[pid_care] + dur_pid2care)
+        self.ti_seeks_care[pid_care] = np.minimum(self.ti_seeks_care[pid_care], self.ti_infectious[pid_care] + dur_pid2care)
         return
 
     def set_duration(self, p, symp, asymp, pid):
@@ -654,7 +678,7 @@ class SEIS(BaseSTI):
         dur_asymp2clear_vals = self.set_pars(p.dur_asymp2clear, asymp)
         p.dur_asymp2clear_dist.set(mean=dur_asymp2clear_vals[:, 0], std=dur_asymp2clear_vals[:, 1])
         dur_asymp2clear = p.dur_asymp2clear_dist.rvs(asymp)
-        self.ti_clearance[asymp] = self.ti_infected[asymp] + dur_asymp2clear
+        self.ti_clearance[asymp] = self.ti_infectious[asymp] + dur_asymp2clear
 
         dur_inf_pid = p.dur_pid2clear.rvs(pid)
         self.ti_clearance[pid] = np.maximum(self.ti_clearance[pid], dur_inf_pid + self.ti_pid[pid])
@@ -663,7 +687,7 @@ class SEIS(BaseSTI):
     def wipe_dates(self, uids):
         """ Clear all previous dates """
         self.ti_exposed[uids] = np.nan
-        self.ti_infected[uids] = np.nan
+        self.ti_infectious[uids] = np.nan
         self.ti_symptomatic[uids] = np.nan
         self.ti_symp_clear[uids] = np.nan
         self.ti_pid[uids] = np.nan
@@ -692,7 +716,7 @@ class SEIS(BaseSTI):
         self.set_duration(p, symp, asymp, pid)
 
         # Determine overall duration of infection, but don't set until clearance
-        dur_inf = self.ti_clearance[uids] - self.ti_infected[uids]
+        dur_inf = self.ti_clearance[uids] - self.ti_infectious[uids]
 
         if (dur_inf < 0).any():
             errormsg = 'Invalid durations of infection'

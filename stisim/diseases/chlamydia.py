@@ -126,9 +126,10 @@ class ChlamydiaBL(Chlamydia):
     def update_pre(self):
         """ Updates prior to interventions """
         super().update_pre()
-        # Update CT load and scale rel_trans
-        self.update_ct_load(self.infected.uids)
-        self.rel_trans[self.infected] = 2 / (1 + np.exp(-self.pars.ct_beta*np.log10(self.ct_load[self.infected]))) - 1
+        # Update CT load and scale rel_trans. Keyed off `infectious` rather than `infected`:
+        # the load only starts accumulating once the latent period ends.
+        self.update_ct_load(self.infectious.uids)
+        self.rel_trans[self.infectious] = 2 / (1 + np.exp(-self.pars.ct_beta*np.log10(self.ct_load[self.infectious]))) - 1
 
         return
 
@@ -166,7 +167,7 @@ class ChlamydiaBL(Chlamydia):
         self.set_pid(p, f_uids)
 
         # Determine when people recover
-        self.ti_clearance[uids] = self.ti_infected[uids] + self.dur_inf[uids]
+        self.ti_clearance[uids] = self.ti_infectious[uids] + self.dur_inf[uids]
 
         return
 
