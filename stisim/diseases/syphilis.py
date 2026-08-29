@@ -363,6 +363,7 @@ class Syphilis(BaseSTI):
             ss.Result('nontrep_prevalence', dtype=float, scale=False, label="Non-treponemal (RPR) positive"),
             ss.Result('new_nnds', dtype=int, label="Neonatal deaths", auto_plot=False),
             ss.Result('new_stillborns', dtype=int, label="Stillbirths", auto_plot=False),
+            ss.Result('new_miscarriages', dtype=int, label="Miscarriages", auto_plot=False),
             ss.Result('new_congenital', dtype=int, label="Congenital cases"),
             ss.Result('new_congenital_deaths', dtype=int, label="Congenital deaths", auto_plot=False),
             ss.Result('cum_congenital', dtype=int, label="Cumulative congenital cases", auto_plot=False),
@@ -483,16 +484,21 @@ class Syphilis(BaseSTI):
         # Congenital syphilis deaths
         nnd = (self.ti_nnd <= ti).uids
         stillborn = (self.ti_stillborn <= ti).uids
-        # Store counts for update_results: ti_nnd / ti_stillborn are cleared
-        # below so an `== ti` check in update_results would always read 0.
+        miscarriage = (self.ti_miscarriage <= ti).uids
+        # Store counts for update_results: ti_nnd / ti_stillborn / ti_miscarriage
+        # are cleared below so an `== ti` check in update_results would always read 0.
         self._new_nnd_count = len(nnd)
         self._new_stillborn_count = len(stillborn)
+        self._new_miscarriage_count = len(miscarriage)
         if len(nnd):
             self.sim.people.request_death(nnd)
             self.ti_nnd[nnd] = np.nan  # Clear after firing
         if len(stillborn):
             self.sim.people.request_death(stillborn)
             self.ti_stillborn[stillborn] = np.nan  # Clear after firing
+        if len(miscarriage):
+            self.sim.people.request_death(miscarriage)
+            self.ti_miscarriage[miscarriage] = np.nan  # Clear after firing
 
         # Congenital syphilis transmission outcomes
         congenital = (self.ti_congenital <= ti).uids
@@ -557,7 +563,7 @@ class Syphilis(BaseSTI):
         self.chancre_visible[uids] = False
         self.rash_visible[uids] = False
 
-        # Clear future scheduled events (but keep ti_dead, ti_nnd, ti_stillborn for records)
+        # Clear future scheduled events (but keep ti_dead, ti_nnd, ti_stillborn, ti_miscarriage for records)
         self.ti_exposed[uids] = np.nan
         self.ti_infected[uids] = np.nan
         self.ti_primary[uids] = np.nan
@@ -597,11 +603,14 @@ class Syphilis(BaseSTI):
             self.results['delivery_prevalence'][ti] = deliv_prev
 
         # Congenital results: read from stashes set in step_state before
-        # ti_nnd / ti_stillborn / ti_congenital were cleared to nan.
-        self.results['new_nnds'][ti]       = getattr(self, '_new_nnd_count', 0)
-        self.results['new_stillborns'][ti] = getattr(self, '_new_stillborn_count', 0)
+        # ti_nnd / ti_stillborn / ti_miscarriage / ti_congenital were cleared to nan.
+        self.results['new_nnds'][ti]         = getattr(self, '_new_nnd_count', 0)
+        self.results['new_stillborns'][ti]   = getattr(self, '_new_stillborn_count', 0)
+        self.results['new_miscarriages'][ti] = getattr(self, '_new_miscarriage_count', 0)
         self.results['new_congenital'][ti] = getattr(self, '_new_congenital_count', 0)
-        self.results['new_congenital_deaths'][ti] = self.results['new_nnds'][ti] + self.results['new_stillborns'][ti]
+        self.results['new_congenital_deaths'][ti] = (
+            self.results['new_nnds'][ti] + self.results['new_stillborns'][ti] + self.results['new_miscarriages'][ti]
+        )
         self.results['new_deaths'][ti] = np.count_nonzero(self.ti_dead == ti)
         self.results['new_reinfections'][ti] = np.count_nonzero((self.ti_infected == ti) & (self.n_infections > 1))
 
@@ -821,14 +830,22 @@ class Syphilis(BaseSTI):
                 mat_flag[uids] = True
                 self.setattribute(mat_stage, mat_flag)
 
-                # Schedule events
+                # Schedule events. Fetal losses (miscarriage/stillborn) fire one
+                # timestep before ti_delivery so the baby's age is still <0 when
+                # request_death is called: Pregnancy.process_prenatal_deaths only
+                # classifies a death as a fetal loss if age<0, and age flips to 0
+                # exactly at ti_delivery. Scheduling at ti_delivery itself would
+                # misclassify the death as a live birth (see issue #588).
                 for oi, outcome in enumerate(self.pars.birth_outcome_keys):
                     m_uids = source_state_uids[assigned_outcomes == oi]
                     o_uids = uids[assigned_outcomes == oi]
                     if len(o_uids) > 0:
                         ti_outcome = f'ti_{outcome}'
                         vals = getattr(self, ti_outcome)
-                        vals[o_uids] = ti + timesteps_til_delivery[m_uids]
+                        ti_event = ti + timesteps_til_delivery[m_uids]
+                        if outcome in self.prenatal_death_keys:
+                            ti_event = np.maximum(ti_event - 1, ti)
+                        vals[o_uids] = ti_event
 
                         self.setattribute(ti_outcome, vals)
                         new_outcomes[outcome] += len(o_uids)
