@@ -705,7 +705,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="setup" class="level2">
 <h2 class="anchored" data-anchor-id="setup">Setup</h2>
 <p>Let’s run a simple gonorrhea simulation to work with:</p>
-<div id="6be1200e" class="cell" data-execution_count="1">
+<div id="ac5faf01" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> stisim <span class="im">as</span> sti</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -722,7 +722,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="browsing-available-results" class="level2">
 <h2 class="anchored" data-anchor-id="browsing-available-results">Browsing available results</h2>
 <p>After running a sim, all results are stored in <code>sim.results</code>. Each disease has its own results object. You can list all available keys with <code>sim.results.ng.keys()</code>, or access individual results directly. STIsim stores results at multiple levels of detail: overall, by sex, and by age group.</p>
-<div id="282eb96f" class="cell" data-execution_count="2">
+<div id="6bbb7ce1" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Access individual results</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>prev <span class="op">=</span> sim.results.ng.prevalence</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'</span><span class="sc">{</span>prev<span class="sc">.</span>label<span class="sc">}</span><span class="ss">: min=</span><span class="sc">{</span>prev<span class="sc">.</span>values<span class="sc">.</span><span class="bu">min</span>()<span class="sc">:.3f}</span><span class="ss">, mean=</span><span class="sc">{</span>prev<span class="sc">.</span>values<span class="sc">.</span>mean()<span class="sc">:.3f}</span><span class="ss">, max=</span><span class="sc">{</span>prev<span class="sc">.</span>values<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.3f}</span><span class="ss">'</span>)</span>
@@ -733,18 +733,18 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="co"># There are many more -- including by sex and age group</span></span>
 <span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'</span><span class="ch">\n</span><span class="ss">Total result keys: </span><span class="sc">{</span><span class="bu">len</span>(sim.results.ng.keys())<span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Prevalence: min=0.007, mean=0.016, max=0.030
-New infections: min=1, mean=7.7, max=28
+<pre><code>Prevalence: min=0.009, mean=0.018, max=0.034
+New infections: min=0, mean=3.9, max=28
 
-Total result keys: 204</code></pre>
+Total result keys: 205</code></pre>
 </div>
 </div>
 <p>Each result is an <a href="https://docs.starsim.org/api/results.html#starsim.results.Result" title="0"><code>ss.Result</code></a> object. The raw data is in <code>.values</code> (a NumPy array) and the time axis is in <code>.timevec</code>:</p>
-<div id="d66806a4" class="cell" data-execution_count="3">
+<div id="386ae953" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Values (first 5): </span><span class="sc">{</span>prev<span class="sc">.</span>values[:<span class="dv">5</span>]<span class="sc">}</span><span class="ss">'</span>)</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Timevec:          </span><span class="sc">{</span>prev<span class="sc">.</span>timevec[<span class="dv">0</span>]<span class="sc">}</span><span class="ss"> to </span><span class="sc">{</span>prev<span class="sc">.</span>timevec[<span class="op">-</span><span class="dv">1</span>]<span class="sc">}</span><span class="ss"> (</span><span class="sc">{</span><span class="bu">len</span>(prev.values)<span class="sc">}</span><span class="ss"> timesteps)'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Values (first 5): [0.01353965 0.01672026 0.02119461 0.0224359  0.02498398]
+<pre><code>Values (first 5): [0.01676338 0.02122186 0.02312139 0.02564103 0.02882767]
 Timevec:          2010.01.01 to 2030.01.01 (241 timesteps)</code></pre>
 </div>
 </div>
@@ -752,7 +752,7 @@ Timevec:          2010.01.01 to 2030.01.01 (241 timesteps)</code></pre>
 <section id="automatic-plotting" class="level2">
 <h2 class="anchored" data-anchor-id="automatic-plotting">Automatic plotting</h2>
 <p>The simplest way to visualize results is <code>sim.plot()</code>. By default, it shows only the high-level results (not every age/sex subgroup):</p>
-<div id="e265b6f3" class="cell" data-execution_count="4">
+<div id="9df67c3f" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>sim.plot()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Figure(896x672)</code></pre>
@@ -760,7 +760,7 @@ Timevec:          2010.01.01 to 2030.01.01 (241 timesteps)</code></pre>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="tut_results_files/figure-html/cell-5-output-2.png" width="914" height="662" class="figure-img"></p>
+<p><img src="tut_results_files/figure-html/cell-5-output-2.png" width="899" height="662" class="figure-img"></p>
 </figure>
 </div>
 </div>
@@ -768,7 +768,7 @@ Timevec:          2010.01.01 to 2030.01.01 (241 timesteps)</code></pre>
 <section id="plotting-specific-results" class="level3">
 <h3 class="anchored" data-anchor-id="plotting-specific-results">Plotting specific results</h3>
 <p>To plot specific results, pass the <code>key</code> argument. You can use a single key or a list:</p>
-<div id="62039e6a" class="cell" data-execution_count="5">
+<div id="a17e59c5" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot just prevalence and new infections</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>sim.plot(key<span class="op">=</span>[<span class="st">'ng.prevalence'</span>, <span class="st">'ng.new_infections'</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -783,7 +783,7 @@ Timevec:          2010.01.01 to 2030.01.01 (241 timesteps)</code></pre>
 </div>
 </div>
 <p>You can also plot results that are hidden from the default view. For example, sex-stratified prevalence:</p>
-<div id="6594fe8c" class="cell" data-execution_count="6">
+<div id="9b55ad9f" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>sim.plot(key<span class="op">=</span>[<span class="st">'ng.prevalence_f'</span>, <span class="st">'ng.prevalence_m'</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Figure(768x576)</code></pre>
@@ -803,12 +803,12 @@ Timevec:          2010.01.01 to 2030.01.01 (241 timesteps)</code></pre>
 <section id="as-a-dataframe" class="level3">
 <h3 class="anchored" data-anchor-id="as-a-dataframe">As a DataFrame</h3>
 <p>Export all results to a Pandas DataFrame with <code>sim.to_df()</code>:</p>
-<div id="018ce726" class="cell" data-execution_count="7">
+<div id="44c4008a" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> sim.to_df()</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Shape: </span><span class="sc">{</span>df<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">'</span>)</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>df.head()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Shape: (241, 211)</code></pre>
+<pre><code>Shape: (241, 212)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="7">
 <div>
@@ -822,8 +822,8 @@ Timevec:          2010.01.01 to 2030.01.01 (241 timesteps)</code></pre>
 <th data-quarto-table-cell-role="th">structuredsexual_n_edges</th>
 <th data-quarto-table-cell-role="th">maternalnet_n_edges</th>
 <th data-quarto-table-cell-role="th">ng_n_susceptible</th>
-<th data-quarto-table-cell-role="th">ng_n_infected</th>
 <th data-quarto-table-cell-role="th">ng_n_exposed</th>
+<th data-quarto-table-cell-role="th">ng_n_infectious</th>
 <th data-quarto-table-cell-role="th">ng_n_asymptomatic</th>
 <th data-quarto-table-cell-role="th">ng_n_symptomatic</th>
 <th data-quarto-table-cell-role="th">ng_n_pid</th>
@@ -848,8 +848,8 @@ Timevec:          2010.01.01 to 2030.01.01 (241 timesteps)</code></pre>
 <td>237.0</td>
 <td>0.0</td>
 <td>1972.0</td>
-<td>23.0</td>
 <td>5.0</td>
+<td>23.0</td>
 <td>28.0</td>
 <td>0.0</td>
 <td>0.0</td>
@@ -872,8 +872,8 @@ Timevec:          2010.01.01 to 2030.01.01 (241 timesteps)</code></pre>
 <td>313.0</td>
 <td>0.0</td>
 <td>1965.0</td>
-<td>28.0</td>
 <td>7.0</td>
+<td>28.0</td>
 <td>26.0</td>
 <td>9.0</td>
 <td>0.0</td>
@@ -896,8 +896,8 @@ Timevec:          2010.01.01 to 2030.01.01 (241 timesteps)</code></pre>
 <td>394.0</td>
 <td>0.0</td>
 <td>1962.0</td>
-<td>35.0</td>
 <td>3.0</td>
+<td>35.0</td>
 <td>29.0</td>
 <td>9.0</td>
 <td>0.0</td>
@@ -920,8 +920,8 @@ Timevec:          2010.01.01 to 2030.01.01 (241 timesteps)</code></pre>
 <td>427.0</td>
 <td>0.0</td>
 <td>1958.0</td>
-<td>37.0</td>
 <td>5.0</td>
+<td>37.0</td>
 <td>33.0</td>
 <td>9.0</td>
 <td>0.0</td>
@@ -944,8 +944,8 @@ Timevec:          2010.01.01 to 2030.01.01 (241 timesteps)</code></pre>
 <td>421.0</td>
 <td>0.0</td>
 <td>1954.0</td>
-<td>40.0</td>
 <td>6.0</td>
+<td>40.0</td>
 <td>34.0</td>
 <td>12.0</td>
 <td>0.0</td>
@@ -965,12 +965,12 @@ Timevec:          2010.01.01 to 2030.01.01 (241 timesteps)</code></pre>
 </tbody>
 </table>
 
-<p>5 rows × 211 columns</p>
+<p>5 rows × 212 columns</p>
 </div>
 </div>
 </div>
 <p>You can also export a single result:</p>
-<div id="96adec41" class="cell" data-execution_count="8">
+<div id="5cde7c32" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>prev_df <span class="op">=</span> sim.results.ng.prevalence.to_df()</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>prev_df.head()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="8">
@@ -989,27 +989,27 @@ Timevec:          2010.01.01 to 2030.01.01 (241 timesteps)</code></pre>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">0</th>
 <td>2010-01-01</td>
-<td>0.013540</td>
+<td>0.016763</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">1</th>
 <td>2010-01-31</td>
-<td>0.016720</td>
+<td>0.021222</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">2</th>
 <td>2010-03-03</td>
-<td>0.021195</td>
+<td>0.023121</td>
 </tr>
 <tr class="even">
 <th data-quarto-table-cell-role="th">3</th>
 <td>2010-04-02</td>
-<td>0.022436</td>
+<td>0.025641</td>
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">4</th>
 <td>2010-05-03</td>
-<td>0.024984</td>
+<td>0.028828</td>
 </tr>
 </tbody>
 </table>
@@ -1022,7 +1022,7 @@ Timevec:          2010.01.01 to 2030.01.01 (241 timesteps)</code></pre>
 <section id="resampling-to-annual-results" class="level2">
 <h2 class="anchored" data-anchor-id="resampling-to-annual-results">Resampling to annual results</h2>
 <p>STIsim runs with monthly timesteps by default, but you’ll often want annual results for reporting or comparison with data. Use the <code>resample()</code> method on any result:</p>
-<div id="746e2121" class="cell" data-execution_count="9">
+<div id="5cdec34a" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Monthly new infections (raw)</span></span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>monthly <span class="op">=</span> sim.results.ng.new_infections</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Monthly: </span><span class="sc">{</span><span class="bu">len</span>(monthly.values)<span class="sc">}</span><span class="ss"> timesteps'</span>)</span>
@@ -1034,21 +1034,21 @@ Timevec:          2010.01.01 to 2030.01.01 (241 timesteps)</code></pre>
 <div class="cell-output cell-output-stdout">
 <pre><code>Monthly: 241 timesteps
 Annual:  21 years
-Result(Gonorrhea.new_infections: min=9, mean=88.4762, max=151)</code></pre>
+Result(Gonorrhea.new_infections: min=3, mean=44.8571, max=91)</code></pre>
 </div>
 </div>
 <p>The <code>resample()</code> method automatically chooses the right aggregation: <strong>sum</strong> for counts (like <code>new_infections</code>) and <strong>mean</strong> for rates/proportions (like <code>prevalence</code>). You can also resample to a DataFrame:</p>
-<div id="812ae3a7" class="cell" data-execution_count="10">
+<div id="158e5dd5" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>annual_df <span class="op">=</span> sim.results.ng.new_infections.resample(<span class="st">'year'</span>)</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Annual result: </span><span class="sc">{</span><span class="bu">len</span>(annual_df.values)<span class="sc">}</span><span class="ss"> years'</span>)</span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(annual_df)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Annual result: 21 years
-Result(Gonorrhea.new_infections: min=9, mean=88.4762, max=151)</code></pre>
+Result(Gonorrhea.new_infections: min=3, mean=44.8571, max=91)</code></pre>
 </div>
 </div>
 <p>You can also resample the entire sim’s results at once via <code>to_df()</code>:</p>
-<div id="df22e9ce" class="cell" data-execution_count="11">
+<div id="45e6af93" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>annual_all <span class="op">=</span> sim.to_df(resample<span class="op">=</span><span class="st">'year'</span>, use_years<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>annual_all.head()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="11">
@@ -1063,8 +1063,8 @@ Result(Gonorrhea.new_infections: min=9, mean=88.4762, max=151)</code></pre>
 <th data-quarto-table-cell-role="th">structuredsexual_n_edges</th>
 <th data-quarto-table-cell-role="th">maternalnet_n_edges</th>
 <th data-quarto-table-cell-role="th">ng_n_susceptible</th>
-<th data-quarto-table-cell-role="th">ng_n_infected</th>
 <th data-quarto-table-cell-role="th">ng_n_exposed</th>
+<th data-quarto-table-cell-role="th">ng_n_infectious</th>
 <th data-quarto-table-cell-role="th">ng_n_asymptomatic</th>
 <th data-quarto-table-cell-role="th">ng_n_symptomatic</th>
 <th data-quarto-table-cell-role="th">ng_n_pid</th>
@@ -1089,8 +1089,8 @@ Result(Gonorrhea.new_infections: min=9, mean=88.4762, max=151)</code></pre>
 <td>429.166667</td>
 <td>0.0</td>
 <td>1956.083333</td>
-<td>38.250000</td>
 <td>5.666667</td>
+<td>38.250000</td>
 <td>31.333333</td>
 <td>12.583333</td>
 <td>0.0</td>
@@ -1113,8 +1113,8 @@ Result(Gonorrhea.new_infections: min=9, mean=88.4762, max=151)</code></pre>
 <td>518.666667</td>
 <td>0.0</td>
 <td>1956.000000</td>
-<td>38.583333</td>
 <td>5.416667</td>
+<td>38.583333</td>
 <td>22.333333</td>
 <td>21.666667</td>
 <td>0.0</td>
@@ -1137,8 +1137,8 @@ Result(Gonorrhea.new_infections: min=9, mean=88.4762, max=151)</code></pre>
 <td>534.916667</td>
 <td>0.0</td>
 <td>1962.583333</td>
-<td>33.000000</td>
 <td>4.416667</td>
+<td>33.000000</td>
 <td>20.750000</td>
 <td>16.666667</td>
 <td>0.0</td>
@@ -1161,8 +1161,8 @@ Result(Gonorrhea.new_infections: min=9, mean=88.4762, max=151)</code></pre>
 <td>549.583333</td>
 <td>0.0</td>
 <td>1969.666667</td>
-<td>26.333333</td>
 <td>4.000000</td>
+<td>26.333333</td>
 <td>17.583333</td>
 <td>12.750000</td>
 <td>0.0</td>
@@ -1185,8 +1185,8 @@ Result(Gonorrhea.new_infections: min=9, mean=88.4762, max=151)</code></pre>
 <td>561.000000</td>
 <td>0.0</td>
 <td>1971.583333</td>
-<td>24.583333</td>
 <td>3.833333</td>
+<td>24.583333</td>
 <td>16.583333</td>
 <td>11.833333</td>
 <td>0.0</td>
@@ -1206,7 +1206,7 @@ Result(Gonorrhea.new_infections: min=9, mean=88.4762, max=151)</code></pre>
 </tbody>
 </table>
 
-<p>5 rows × 211 columns</p>
+<p>5 rows × 212 columns</p>
 </div>
 </div>
 </div>
@@ -1214,7 +1214,7 @@ Result(Gonorrhea.new_infections: min=9, mean=88.4762, max=151)</code></pre>
 <section id="custom-plots-with-matplotlib" class="level2">
 <h2 class="anchored" data-anchor-id="custom-plots-with-matplotlib">Custom plots with Matplotlib</h2>
 <p>For publication-quality figures or custom layouts, use the result values directly with Matplotlib:</p>
-<div id="a903a251" class="cell" data-execution_count="12">
+<div id="901a36c1" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">4</span>))</span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Left: prevalence by sex</span></span>
@@ -1255,7 +1255,7 @@ Result(Gonorrhea.new_infections: min=9, mean=88.4762, max=151)</code></pre>
 <p>STIsim’s built-in results cover the most common quantities (prevalence, incidence, counts by sex and age group). But you’ll often need something specific to your analysis – coinfection prevalence in a subgroup, treatment coverage by pathway, network contact rates, etc.</p>
 <p>Any module can define custom results: <strong>analyzers</strong>, <strong>interventions</strong>, <strong>networks</strong>, <strong>connectors</strong>, and <strong>diseases</strong> all use the same <code>define_results</code> pattern. The result then automatically appears in <code>sim.results</code>, <code>sim.to_df()</code>, and <code>sim.plot()</code> – and can be used as a <a href="../tutorials/tut_calibration.html">calibration target</a>.</p>
 <p>Here’s a minimal example using an analyzer that tracks gonorrhea prevalence among people aged 15-24:</p>
-<div id="6330d7d0" class="cell" data-execution_count="13">
+<div id="01027f61" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> starsim <span class="im">as</span> ss</span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> YouthPrev(ss.Analyzer):</span>
@@ -1326,7 +1326,7 @@ Result(Gonorrhea.new_infections: min=9, mean=88.4762, max=151)</code></pre>
 </tbody>
 </table>
 <p>Let’s try it:</p>
-<div id="b5d755e1" class="cell" data-execution_count="14">
+<div id="5e2d78ef" class="cell" data-execution_count="14">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run a sim with our custom analyzer</span></span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> sti.Sim(diseases<span class="op">=</span><span class="st">'ng'</span>, n_agents<span class="op">=</span><span class="dv">2000</span>, start<span class="op">=</span><span class="dv">2010</span>, stop<span class="op">=</span><span class="dv">2030</span>, analyzers<span class="op">=</span>[YouthPrev()])</span>
 <span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>sim.run(verbose<span class="op">=</span><span class="dv">0</span>)</span>
@@ -1339,13 +1339,13 @@ Result(Gonorrhea.new_infections: min=9, mean=88.4762, max=151)</code></pre>
 <span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df[[<span class="st">'timevec'</span>, <span class="st">'youthprev.ng_prev_15_24'</span>]].head())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Initializing sim with 2000 agents
-Result(YouthPrev.ng_prev_15_24: min=0.0033557, mean=0.0168398, max=0.0441989)
+Result(YouthPrev.ng_prev_15_24: min=0.00350877, mean=0.0191684, max=0.0486486)
    timevec  youthprev.ng_prev_15_24
-0     2010                 0.024895
-1     2011                 0.021857
-2     2012                 0.026035
-3     2013                 0.019084
-4     2014                 0.014619</code></pre>
+0     2010                 0.027843
+1     2011                 0.025152
+2     2012                 0.028666
+3     2013                 0.021565
+4     2014                 0.016833</code></pre>
 </div>
 </div>
 </section>
@@ -1848,7 +1848,7 @@ Result(YouthPrev.ng_prev_15_24: min=0.0033557, mean=0.0168398, max=0.0441989)
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.5.11 (2026-08-24).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.6.0 (2026-08-28).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">

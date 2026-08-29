@@ -1357,12 +1357,6 @@ none  — dismissed without treatment</code></pre>
 <section id="parameters-5" class="level4 doc-section doc-section-parameters">
 <h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-5">Parameters</h4>
 <table class="caption-top table">
-<colgroup>
-<col style="width: 1%">
-<col style="width: 1%">
-<col style="width: 95%">
-<col style="width: 2%">
-</colgroup>
 <thead>
 <tr class="header">
 <th>Name</th>
@@ -1375,7 +1369,7 @@ none  — dismissed without treatment</code></pre>
 <tr class="odd">
 <td>rates</td>
 <td></td>
-<td>dict mapping edge-type name to a probability OR to a per-sex dict. Two supported shapes: - <code>{edge_name: prob}</code> — notification or attendance rate that does not depend on partner sex. Example:: {‘stable’: 0.20, ‘casual’: 0.10} - <code>{edge_name: {'f': prob, 'm': prob}}</code> — rate that depends on partner sex. Example:: {‘stable’: {‘f’: 0.80, ‘m’: 0.50}, ‘casual’: {‘f’: 0.50, ‘m’: 0.25}} Edge names must match the active network’s <code>edge_types</code> keys. Edges whose type is not in <code>rates</code> get probability 0.</td>
+<td>dict mapping edge-type name to a probability OR to a per-sex dict. Two supported shapes: - <code>{edge_name: prob}</code> — notification or attendance rate that does not depend on partner sex. Example:: {‘stable’: 0.20, ‘casual’: 0.10} - <code>{edge_name: {'f': prob, 'm': prob}}</code> — rate that depends on partner sex. Example:: {‘stable’: {‘f’: 0.80, ‘m’: 0.50}, ‘casual’: {‘f’: 0.50, ‘m’: 0.25}} Edge names must match the active network’s <code>edge_types</code> keys. Edges whose type is not in <code>rates</code> get probability 0. Despite the name, these are plain per-notification-event probabilities in [0, 1], not per-unit-time rates: each is applied once to a partner reached on the step their index case is notified. Pass plain numbers, not <a href="https://docs.starsim.org/api/time.html#starsim.time.Rate" title="0"><code>ss.Rate</code></a> timepars — a timepar has no meaning here and will raise.</td>
 <td><em>required</em></td>
 </tr>
 </tbody>
@@ -1860,7 +1854,7 @@ none  — dismissed without treatment</code></pre>
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.5.11 (2026-08-24).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.6.0 (2026-08-28).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">

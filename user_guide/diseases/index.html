@@ -654,7 +654,10 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#diseases" id="toc-diseases" class="nav-link active" data-scroll-target="#diseases">Diseases</a></li>
+  <li><a href="#diseases" id="toc-diseases" class="nav-link active" data-scroll-target="#diseases">Diseases</a>
+  <ul>
+  <li><a href="#infected-vs.-infectious" id="toc-infected-vs.-infectious" class="nav-link" data-scroll-target="#infected-vs.-infectious">Infected vs.&nbsp;infectious</a></li>
+  </ul></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></nav>
     </div>
@@ -722,6 +725,11 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </tr>
 </tbody>
 </table>
+<section id="infected-vs.-infectious" class="level2">
+<h2 class="anchored" data-anchor-id="infected-vs.-infectious">Infected vs.&nbsp;infectious</h2>
+<p>The SEIS diseases (chlamydia, gonorrhea, trichomoniasis) follow starsim’s <a href="https://docs.starsim.org/api/diseases.html#starsim.diseases.SEIR" title="0"><code>ss.SEIR</code></a> naming: <code>exposed</code> and <code>infectious</code> are the literal E and I compartments, and <code>infected</code> is derived as E plus I. So <code>n_infected</code> and <code>prevalence</code> count everyone carrying the infection, including those still in the latent period, while transmission depends on <code>infectious</code> alone. Use <code>n_infectious</code> if you want the transmitting compartment on its own.</p>
+<p>Correspondingly, <code>ti_exposed</code> is the time of acquisition and <code>ti_infectious</code> the time of becoming infectious; there is no <code>ti_infected</code> on an SEIS disease. Incidence (<code>new_infections</code>, <code>incidence</code>) is counted at acquisition, off <code>ti_exposed</code>.</p>
+<p>HIV, syphilis and BV set <code>infected</code> at acquisition already, so the same reading applies to them: <code>infected</code> means “has the infection”, not “is transmitting”.</p>
 <p>All diseases can be passed to <a href="../../api/sim.html#stisim.sim.Sim" title="0"><code>sti.Sim</code></a> by name (string alias) or as module instances. When passed as a string, default parameters are used. To customize, either pass parameters via <code>sti_pars</code> or create the module directly:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># By name with defaults</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> sti.Sim(diseases<span class="op">=</span><span class="st">'hiv'</span>)</span>
@@ -733,6 +741,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> sti.Sim(diseases<span class="op">=</span>[sti.HIV(init_prev<span class="op">=</span><span class="fl">0.1</span>), sti.Gonorrhea()])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->
@@ -1168,7 +1177,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.5.11 (2026-08-24).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.6.0 (2026-08-28).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">

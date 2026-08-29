@@ -1,7 +1,7 @@
 {
   "project": "stisim",
   "version": "0.0.9999",
-  "count": 242,
+  "count": 241,
   "items": [
     {
       "name": "stisim.sim.Sim.init",
@@ -809,14 +809,6 @@
       "role": "function",
       "priority": "1",
       "uri": "api/diseases.sti.html#stisim.diseases.sti.SEIS.step_state",
-      "dispname": "-"
-    },
-    {
-      "name": "stisim.diseases.sti.SEIS.treatable",
-      "domain": "py",
-      "role": "attribute",
-      "priority": "1",
-      "uri": "api/diseases.sti.html#stisim.diseases.sti.SEIS.treatable",
       "dispname": "-"
     },
     {
@@ -2681,14 +2673,6 @@
       "role": "function",
       "priority": "1",
       "uri": "api/diseases.sti.html#stisim.diseases.sti.SEIS.step_state",
-      "dispname": "-"
-    },
-    {
-      "name": "stisim.sti.SEIS.treatable",
-      "domain": "py",
-      "role": "attribute",
-      "priority": "1",
-      "uri": "api/diseases.sti.html#stisim.diseases.sti.SEIS.treatable",
       "dispname": "-"
     },
     {
