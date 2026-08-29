@@ -2,6 +2,9 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.6.1 (TBC)
+
+
 ## Version 1.6.0 (2026-08-28)
 
 This version requires `starsim>=3.6.0`, and the bugs found while migrating to it change simulated epidemiology and reported results enough that chlamydia, gonorrhea, trichomoniasis and syphilis calibrations have all changed.
