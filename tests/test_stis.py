@@ -52,6 +52,49 @@ def test_syph_epi():
     return sims
 
 
+def test_syph_congenital_death_timing():
+    """
+    Regression test for #588: syphilis fetal-loss outcomes (miscarriage,
+    stillborn) must be scheduled *before* ti_delivery so the baby's age is
+    still <0 when the death fires. Pregnancy.process_prenatal_deaths only
+    counts a death as a fetal loss when age<0 — age flips to 0 exactly at
+    ti_delivery, so a death scheduled at ti_delivery is misclassified as a
+    live birth. Also covers ti_miscarriage, which was assigned but never
+    fired (dead code — no request_death, no result counter).
+    """
+    sc.heading('Test syphilis congenital death timing (#588)')
+
+    def make_sim(outcome_idx):
+        p = np.zeros(5)
+        p[outcome_idx] = 1.0
+        birth_outcomes = sc.objdict(mat_active=ss.choice(a=5, p=p), early=ss.choice(a=5, p=p), late=ss.choice(a=5, p=p))
+        return sti.Sim(n_agents=n_agents, dur=12, start=2000,
+                        diseases=sti.Syphilis(init_prev=0.3, beta_m2f=0.5, beta_m2c=1.0, birth_outcomes=birth_outcomes),
+                        demographics=[ss.Pregnancy(), ss.Deaths()])
+
+    # Force every congenital outcome to be 'stillborn' (index 2)
+    sim_still = make_sim(2)
+    sim_still.run()
+    n_stillborn = sim_still.results.syph.new_stillborns.sum()
+    n_pregnancy_losses = sim_still.results.pregnancy.stillbirths.sum() + sim_still.results.pregnancy.miscarriages.sum()
+    assert n_stillborn > 0, 'Expected some congenital stillbirths with birth_outcomes forced to stillborn'
+    # Every syph-flagged stillbirth should register as a Pregnancy fetal loss too;
+    # a large gap means deaths are firing at/after ti_delivery and being
+    # misclassified as live births instead.
+    assert n_pregnancy_losses >= 0.8 * n_stillborn, (
+        f'syph recorded {n_stillborn} stillbirths but Pregnancy recorded only {n_pregnancy_losses} fetal losses — '
+        f'stillbirths are being misclassified as live births'
+    )
+
+    # Force every congenital outcome to be 'miscarriage' (index 0)
+    sim_misc = make_sim(0)
+    sim_misc.run()
+    n_miscarriages = sim_misc.results.syph.new_miscarriages.sum()
+    assert n_miscarriages > 0, 'ti_miscarriage is scheduled but never fires a death'
+
+    return sim_still, sim_misc
+
+
 def test_stis(which='discharging', n_agents=1e3, start=2010, stop=2020):
     """ Test running grouped STIs: discharging (NG, CT, TV, BV) and ulcerative (syphilis, GUD) """
     sc.heading('Test STI sim')
@@ -143,6 +186,7 @@ def test_bv(include_hiv=False, n_agents=500):
 if __name__ == '__main__':
     sc.options(interactive=False)
     s1, s2 = test_syph_epi()
+    test_syph_congenital_death_timing()
     test_stis(which='discharging')
     test_stis(which='ulcerative')
     test_bv()
