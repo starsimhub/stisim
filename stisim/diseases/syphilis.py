@@ -7,7 +7,7 @@ import sciris as sc
 from sciris import randround as rr # Since used frequently
 import starsim as ss
 import stisim as sti
-from stisim.diseases.sti import BaseSTI, BaseSTIPars
+from stisim.diseases.sti import BaseSTI, BaseSTIPars, default_age_bins, default_sex_keys
 from stisim.utils import count, div, countdiv, cond_prob
 
 __all__ = ['Syphilis', 'SyphilisPlaceholder']
@@ -153,8 +153,9 @@ class SyphPars(BaseSTIPars):
 
 class Syphilis(BaseSTI):
 
-    def __init__(self, pars=None, name='syph', init_prev_data=None, init_prev_latent_data=None, age_range=None, **kwargs):
-        super().__init__(name=name, age_range=age_range)
+    def __init__(self, pars=None, name='syph', init_prev_data=None, init_prev_latent_data=None, age_range=None,
+                 age_bins=default_age_bins, sex_keys=default_sex_keys, **kwargs):
+        super().__init__(name=name, age_range=age_range, age_bins=age_bins, sex_keys=sex_keys)
 
         # Define default parameters
         default_pars = SyphPars()
@@ -391,16 +392,17 @@ class Syphilis(BaseSTI):
                     ss.Result(f'nontrep_prevalence{skk}', scale=False, label=f"Non-treponemal positive{skl}", auto_plot=False),
                 ]
 
-            for ab1,ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
-                ask = f'{skk}_{ab1}_{ab2}'
-                asl = f' ({skl}, {ab1}-{ab2})'
-                results += [
-                    ss.Result(f'sexually_transmissible_prevalence{ask}', scale=False, label=f"Sexually transmissible prevalence{asl}", auto_plot=False),
-                    ss.Result(f'symptomatic_prevalence{ask}', scale=False, label=f"Symptomatic prevalence{asl}", auto_plot=False),
-                    ss.Result(f'primary_prevalence{ask}', scale=False, label=f"Primary stage prevalence{asl}", auto_plot=False),
-                    ss.Result(f'trep_prevalence{ask}', scale=False, label=f"Treponemal positive{asl}", auto_plot=False),
-                    ss.Result(f'nontrep_prevalence{ask}', scale=False, label=f"Non-treponemal positive{asl}", auto_plot=False),
-                ]
+            if self.age_bins is not None:
+                for ab1,ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
+                    ask = f'{skk}_{ab1}_{ab2}'
+                    asl = f' ({skl}, {ab1}-{ab2})'
+                    results += [
+                        ss.Result(f'sexually_transmissible_prevalence{ask}', scale=False, label=f"Sexually transmissible prevalence{asl}", auto_plot=False),
+                        ss.Result(f'symptomatic_prevalence{ask}', scale=False, label=f"Symptomatic prevalence{asl}", auto_plot=False),
+                        ss.Result(f'primary_prevalence{ask}', scale=False, label=f"Primary stage prevalence{asl}", auto_plot=False),
+                        ss.Result(f'trep_prevalence{ask}', scale=False, label=f"Treponemal positive{asl}", auto_plot=False),
+                        ss.Result(f'nontrep_prevalence{ask}', scale=False, label=f"Non-treponemal positive{asl}", auto_plot=False),
+                    ]
 
         # Add FSW and clients to results:
         if self.store_sw:
@@ -649,22 +651,22 @@ class Syphilis(BaseSTI):
                 self.results[f'primary_prevalence{skk}'][ti] = cond_prob(self.primary, sex_denom)
 
             # Compute age-binned prevalences (denominator = all people of that sex in each age bin)
-            ppl_pattr_hist = self.agehist(ppl[pattr])
-            age_results = dict(
-                sexually_transmissible_prevalence = div(self.agehist(self.sexually_transmissible & ppl[pattr]), ppl_pattr_hist),
-                symptomatic_prevalence = div(self.agehist(self.symptomatic & ppl[pattr]), ppl_pattr_hist),
-                primary_prevalence = div(self.agehist(self.primary & ppl[pattr]), ppl_pattr_hist),
-                trep_prevalence = div(self.agehist(self.trep & ppl[pattr]), ppl_pattr_hist),
-                nontrep_prevalence = div(self.agehist(self.nontrep & ppl[pattr]), ppl_pattr_hist),
-            )
+            if self.age_bins is not None:
+                ppl_pattr_hist = self.agehist(ppl[pattr])
+                age_results = dict(
+                    sexually_transmissible_prevalence = div(self.agehist(self.sexually_transmissible & ppl[pattr]), ppl_pattr_hist),
+                    symptomatic_prevalence = div(self.agehist(self.symptomatic & ppl[pattr]), ppl_pattr_hist),
+                    primary_prevalence = div(self.agehist(self.primary & ppl[pattr]), ppl_pattr_hist),
+                    trep_prevalence = div(self.agehist(self.trep & ppl[pattr]), ppl_pattr_hist),
+                    nontrep_prevalence = div(self.agehist(self.nontrep & ppl[pattr]), ppl_pattr_hist),
+                )
 
-            # Store age results
-            for akey, ares in age_results.items():
-                ai = 0
-                for ab1, ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
-                    ask = f'{skk}_{ab1}_{ab2}'
-                    self.results[f'{akey}{ask}'][ti] = ares[ai]
-                    ai += 1
+                for akey, ares in age_results.items():
+                    ai = 0
+                    for ab1, ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
+                        ask = f'{skk}_{ab1}_{ab2}'
+                        self.results[f'{akey}{ask}'][ti] = ares[ai]
+                        ai += 1
 
         return
 

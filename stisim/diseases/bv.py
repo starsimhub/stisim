@@ -9,7 +9,7 @@ import numpy as np
 import starsim as ss
 import sciris as sc
 import stisim.utils as ut
-from stisim.diseases.sti import BaseSTI, BaseSTIPars
+from stisim.diseases.sti import BaseSTI, BaseSTIPars, default_age_bins, default_sex_keys
 
 __all__ = ['SimpleBV', 'BV']
 
@@ -378,11 +378,13 @@ class BV(BaseSTI):
     Args:
         pars (dict): Override default parameters from ``BVPars``.
         name (str): Module name. Default: ``'bv'``.
+        age_bins (list): Bin edges for age-stratified results; ``None`` skips them entirely.
+        sex_keys (dict): Sex strata for results; ``None`` skips sex-stratified results.
         **kwargs: Additional parameters passed to ``update_pars``.
     """
 
-    def __init__(self, pars=None, name="bv", **kwargs):
-        super().__init__(name=name)
+    def __init__(self, pars=None, name="bv", age_bins=default_age_bins, sex_keys=default_sex_keys, **kwargs):
+        super().__init__(name=name, age_bins=age_bins, sex_keys=sex_keys)
 
         # Handle parameters
         default_pars = BVPars()

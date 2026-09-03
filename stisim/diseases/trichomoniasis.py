@@ -3,7 +3,7 @@ Trichomoniasis disease module
 """
 
 import starsim as ss
-from stisim.diseases.sti import SEIS
+from stisim.diseases.sti import SEIS, default_age_bins, default_sex_keys
 
 __all__ = ['Trichomoniasis']
 
@@ -20,11 +20,14 @@ class Trichomoniasis(SEIS):
         pars (dict): Override default parameters (defined inline).
         name (str): Module name used for results and parameter routing. Default: ``'tv'``.
         init_prev_data: Optional initial prevalence data by age/sex.
+        age_bins (list): Bin edges for age-stratified results; ``None`` skips them entirely.
+        sex_keys (dict): Sex strata for results; ``None`` skips sex-stratified results.
         **kwargs: Additional parameters passed to ``update_pars``.
     """
 
-    def __init__(self, pars=None, name='tv', init_prev_data=None, **kwargs):
-        super().__init__(name=name, init_prev_data=init_prev_data)
+    def __init__(self, pars=None, name='tv', init_prev_data=None,
+                 age_bins=default_age_bins, sex_keys=default_sex_keys, **kwargs):
+        super().__init__(name=name, init_prev_data=init_prev_data, age_bins=age_bins, sex_keys=sex_keys)
         self.requires = 'structuredsexual'
 
         self.define_pars(
