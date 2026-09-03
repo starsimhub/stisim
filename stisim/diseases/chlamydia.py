@@ -4,7 +4,7 @@ Chlamydia trachomatis disease module
 
 import numpy as np
 import starsim as ss
-from stisim.diseases.sti import SEIS, STIPars
+from stisim.diseases.sti import SEIS, STIPars, default_age_bins, default_sex_keys
 
 __all__ = ['CTPars', 'Chlamydia', 'ChlamydiaBL']
 
@@ -67,10 +67,13 @@ class Chlamydia(SEIS):
         pars (dict): Override default parameters from ``CTPars``.
         name (str): Module name used for results and parameter routing. Default: ``'ct'``.
         init_prev_data: Optional initial prevalence data by age/sex.
+        age_bins (list): Bin edges for age-stratified results; ``None`` skips them entirely.
+        sex_keys (dict): Sex strata for results; ``None`` skips sex-stratified results.
         **kwargs: Additional parameters passed to ``update_pars``.
     """
-    def __init__(self, pars=None, name='ct', init_prev_data=None, **kwargs):
-        super().__init__(name=name, init_prev_data=init_prev_data)
+    def __init__(self, pars=None, name='ct', init_prev_data=None,
+                 age_bins=default_age_bins, sex_keys=default_sex_keys, **kwargs):
+        super().__init__(name=name, init_prev_data=init_prev_data, age_bins=age_bins, sex_keys=sex_keys)
         default_pars = CTPars()
         self.define_pars(**default_pars)
         self.update_pars(pars, **kwargs)

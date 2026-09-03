@@ -6,7 +6,7 @@ import numpy as np
 import sciris as sc
 import starsim as ss
 import stisim as sti
-from stisim.diseases.sti import BaseSTI, BaseSTIPars
+from stisim.diseases.sti import BaseSTI, BaseSTIPars, default_age_bins, default_sex_keys
 
 __all__ = ['HIV', 'HIVPars']
 
@@ -130,11 +130,14 @@ class HIV(BaseSTI):
     Args:
         pars (dict): Override default parameters from ``HIVPars``.
         init_prev_data: Optional initial prevalence data by age/sex/risk group.
+        age_bins (list): Bin edges for age-stratified results; ``None`` skips them entirely.
+        sex_keys (dict): Sex strata for results; ``None`` skips sex-stratified results.
         **kwargs: Additional parameters passed to ``update_pars``.
     """
 
-    def __init__(self, pars=None, init_prev_data=None, **kwargs):
-        super().__init__()
+    def __init__(self, pars=None, init_prev_data=None,
+                 age_bins=default_age_bins, sex_keys=default_sex_keys, **kwargs):
+        super().__init__(age_bins=age_bins, sex_keys=sex_keys)
 
         # Parameters
         default_pars = HIVPars()

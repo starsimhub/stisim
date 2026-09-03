@@ -11,7 +11,12 @@ import pandas as pd
 
 ss_float_ = ss.dtypes.float
 
-__all__ = ['BaseSTI', 'SEIS', 'BaseSTIPars', 'STIPars']
+__all__ = ['BaseSTI', 'SEIS', 'BaseSTIPars', 'STIPars', 'default_age_bins', 'default_sex_keys']
+
+# Default stratifications for disease results. Pass age_bins=None or sex_keys=None to a
+# disease module to skip creating the corresponding stratified results.
+default_age_bins = [0, 15, 20, 25, 30, 35, 50, 65, 100]
+default_sex_keys = {'': 'alive', 'f': 'female', 'm': 'male'}
 
 
 class BaseSTIPars(ss.Pars):
@@ -118,9 +123,14 @@ class BaseSTI(ss.Infection):
         name (str): Module name used for results and parameter routing.
         pars (dict): Override default parameters from ``BaseSTIPars``.
         init_prev_data: Initial prevalence data (float or DataFrame by age/sex/risk group).
+        age_range (list): Age range used for the main (adult) prevalence results. Default: [15, 50].
+        age_bins (list): Bin edges for age-stratified results; ``None`` skips them entirely.
+        sex_keys (dict): Sex strata for results, mapping result suffix to a people attribute;
+            ``None`` skips sex-stratified results, keeping only the whole-population ones.
         **kwargs: Additional parameters passed to ``update_pars``.
     """
-    def __init__(self, name=None, pars=None, init_prev_data=None, age_range=None, **kwargs):
+    def __init__(self, name=None, pars=None, init_prev_data=None, age_range=None,
+                 age_bins=default_age_bins, sex_keys=default_sex_keys, **kwargs):
         super().__init__(name=name)
 
         # Handle parameters
@@ -147,10 +157,11 @@ class BaseSTI(ss.Infection):
         self.init_prev_data = init_prev_data
 
 
-        # Results
+        # Results. age_bins=None skips age-stratified results; sex_keys=None skips
+        # sex-stratified results, leaving only the whole-population ones.
         self.age_range = age_range if age_range is not None else [15, 50]  # Age range for main results e.g. prevalence
-        self.age_bins = np.array([0, 15, 20, 25, 30, 35, 50, 65, 100])  # Age bins for results
-        self.sex_keys = {'': 'alive', 'f': 'female', 'm': 'male'}
+        self.age_bins = np.array(age_bins) if age_bins is not None else None
+        self.sex_keys = dict(sex_keys) if sex_keys is not None else {'': 'alive'}
 
         return
 
@@ -248,15 +259,16 @@ class BaseSTI(ss.Infection):
                     ss.Result(f'n_infected{skk}', dtype=int, label=f"Number infected{skl}", auto_plot=False),
                 ]
 
-            for ab1,ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
-                ask = f'{skk}_{ab1}_{ab2}'
-                asl = f' ({skl}, {ab2}-{ab2})'
-                results += [
-                    ss.Result(f'new_infections{ask}', dtype=int, label=f"New infections{asl}", auto_plot=False),
-                    ss.Result(f'n_infected{ask}', dtype=int, label=f"Number infected{asl}", auto_plot=False),
-                    ss.Result(f'incidence{ask}', scale=False, label=f"Incidence{asl}", auto_plot=False),
-                    ss.Result(f'prevalence{ask}', scale=False, label=f"Prevalence{asl}", auto_plot=False),
-                ]
+            if self.age_bins is not None:
+                for ab1,ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
+                    ask = f'{skk}_{ab1}_{ab2}'
+                    asl = f' ({skl}, {ab2}-{ab2})'
+                    results += [
+                        ss.Result(f'new_infections{ask}', dtype=int, label=f"New infections{asl}", auto_plot=False),
+                        ss.Result(f'n_infected{ask}', dtype=int, label=f"Number infected{asl}", auto_plot=False),
+                        ss.Result(f'incidence{ask}', scale=False, label=f"Incidence{asl}", auto_plot=False),
+                        ss.Result(f'prevalence{ask}', scale=False, label=f"Prevalence{asl}", auto_plot=False),
+                    ]
 
         if self.pars.include_care:
             for sk in self.sex_keys.keys():
@@ -374,21 +386,21 @@ class BaseSTI(ss.Infection):
             self.results[f'n_infected{skk}'][ti] = ut.count(n_inf)
             self.results[f'incidence{skk}'][ti] = ut.countdiv(new_inf, n_sus)
 
-            # Compute age results
-            age_results = dict(
-                new_infections  = self.agehist(new_inf),
-                n_infected      = self.agehist(n_inf),
-                incidence       = ut.div(self.agehist(new_inf), self.agehist(n_sus)),
-                prevalence      = ut.div(self.agehist(n_inf), self.agehist(ppl[pattr])),
-            )
+            # Compute and store age results
+            if self.age_bins is not None:
+                age_results = dict(
+                    new_infections  = self.agehist(new_inf),
+                    n_infected      = self.agehist(n_inf),
+                    incidence       = ut.div(self.agehist(new_inf), self.agehist(n_sus)),
+                    prevalence      = ut.div(self.agehist(n_inf), self.agehist(ppl[pattr])),
+                )
 
-            # Store age results
-            for akey, ares in age_results.items():
-                ai = 0
-                for ab1, ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
-                    ask = f'{skk}_{ab1}_{ab2}'
-                    self.results[f'{akey}{ask}'][ti] = ares[ai]
-                    ai += 1
+                for akey, ares in age_results.items():
+                    ai = 0
+                    for ab1, ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
+                        ask = f'{skk}_{ab1}_{ab2}'
+                        self.results[f'{akey}{ask}'][ti] = ares[ai]
+                        ai += 1
 
         # Transmission route results: classify new infections by the network
         # they came from (stored in infection_net by set_outcomes).
@@ -439,11 +451,16 @@ class SEIS(BaseSTI):
         pars (dict): Override default parameters from ``STIPars``.
         name (str): Module name used for results and parameter routing.
         init_prev_data: Optional initial prevalence data by age/sex.
+        age_range (list): Age range used for the main (adult) prevalence results. Default: [15, 65].
+        age_bins (list): Bin edges for age-stratified results; ``None`` skips them entirely.
+        sex_keys (dict): Sex strata for results; ``None`` skips sex-stratified results.
         **kwargs: Additional parameters passed to ``update_pars``.
     """
 
-    def __init__(self, pars=None, name=None, init_prev_data=None, **kwargs):
-        super().__init__(name=name, init_prev_data=init_prev_data)
+    def __init__(self, pars=None, name=None, init_prev_data=None, age_range=None,
+                 age_bins=default_age_bins, sex_keys=default_sex_keys, **kwargs):
+        super().__init__(name=name, init_prev_data=init_prev_data, age_bins=age_bins, sex_keys=sex_keys,
+                         age_range=age_range if age_range is not None else [15, 65])
 
         # Handle parameters
         default_pars = STIPars()
@@ -471,9 +488,6 @@ class SEIS(BaseSTI):
             infected = lambda self: self.exposed | self.infectious, # Derived: E and I are both infected
         )
 
-        self.age_range = [15, 65]  # Age range for main results e.g. prevalence
-        self.age_bins = np.array([0, 15, 20, 25, 30, 35, 50, 65, 100])  # Age bins for results
-
         return
 
     # `treatable` is inherited from BaseSTI: `infected` is now E plus I, which is exactly the
@@ -498,13 +512,14 @@ class SEIS(BaseSTI):
                     ss.Result(f'n_symptomatic{skk}', dtype=int, label=f"Number symptomatic{skl}", auto_plot=False),
                 ]
 
-            for ab1,ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
-                ask = f'{skk}_{ab1}_{ab2}'
-                asl = f' ({skl}, {ab2}-{ab2})'
-                results += [
-                    ss.Result(f'new_symptomatic{ask}', dtype=int, label=f"New symptomatic{asl}", auto_plot=False),
-                    ss.Result(f'symp_prevalence{ask}', scale=False, label=f"Symptomatic prevalence{asl}", auto_plot=False),
-                ]
+            if self.age_bins is not None:
+                for ab1,ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
+                    ask = f'{skk}_{ab1}_{ab2}'
+                    asl = f' ({skl}, {ab2}-{ab2})'
+                    results += [
+                        ss.Result(f'new_symptomatic{ask}', dtype=int, label=f"New symptomatic{asl}", auto_plot=False),
+                        ss.Result(f'symp_prevalence{ask}', scale=False, label=f"Symptomatic prevalence{asl}", auto_plot=False),
+                    ]
 
         self.define_results(*results)
 
@@ -591,19 +606,19 @@ class SEIS(BaseSTI):
             self.results[f'new_symptomatic{skk}'][ti] = ut.count(new_sym)
             self.results[f'n_symptomatic{skk}'][ti] = ut.count(n_sym)
 
-            # Compute age results
-            age_results = dict(
-                new_symptomatic=self.agehist(new_sym),
-                symp_prevalence=ut.div(self.agehist(n_sym), self.agehist(ppl[pattr]))
-            )
+            # Compute and store age results
+            if self.age_bins is not None:
+                age_results = dict(
+                    new_symptomatic=self.agehist(new_sym),
+                    symp_prevalence=ut.div(self.agehist(n_sym), self.agehist(ppl[pattr]))
+                )
 
-            # Store age results
-            for akey, ares in age_results.items():
-                ai = 0
-                for ab1, ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
-                    ask = f'{skk}_{ab1}_{ab2}'
-                    self.results[f'{akey}{ask}'][ti] = ares[ai]
-                    ai += 1
+                for akey, ares in age_results.items():
+                    ai = 0
+                    for ab1, ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
+                        ask = f'{skk}_{ab1}_{ab2}'
+                        self.results[f'{akey}{ask}'][ti] = ares[ai]
+                        ai += 1
         return
 
     def set_exposure(self, uids):
