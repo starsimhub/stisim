@@ -222,15 +222,28 @@ class ART(ss.Intervention):
                           to HIV (default 0.96). Applied to both prenatal (MaternalNet)
                           and postnatal (BreastfeedingNet) transmission. Set to 1.0 for
                           complete protection (previous default behavior).
-        vls_coverage:     fraction of newly-initiated agents who achieve viral
-                          suppression (effective ART) rather than non-suppressive ART.
+        vls_coverage:     fraction of agents **on ART** who are virally suppressed
+                          (effective ART) rather than on non-suppressive ART.
                           Accepts the same formats as ``coverage`` (scalar, time-varying
                           dict, DataFrame, or age/sex-stratified DataFrame) — see
                           :func:`parse_coverage`, though values must be proportions
                           (0-1), not absolute counts. Default ``None`` means 100%
-                          of initiators achieve viral suppression. Any stratum not
+                          of those on ART are virally suppressed. Any stratum not
                           covered by a stratified ``vls_coverage`` also defaults to
-                          100%. Forwarded to HIV.start_art() at initiation.
+                          100%.
+
+                          This is a **stock (prevalence) target**, matching the
+                          semantics of ``coverage`` here and of ``sti.VMMC`` and
+                          ``sti.Prep``: each step, suppression among those already
+                          on ART is corrected toward the target, rather than being
+                          fixed at initiation and never revisited. Suppression
+                          rises mostly through better regimens and adherence
+                          support among people *already* on treatment, so
+                          initiation-only semantics misses most of it — see
+                          :meth:`vls_stock_correction`. ``vls_coverage`` is still
+                          applied at initiation too, via
+                          :meth:`make_vls_prob_fn`, which sets the starting state
+                          before the first correction.
         smoothness:       interpolation smoothness (0=linear, default)
         format_priority:  when both n_art and p_art are non-NaN, prefer this format
                           ('n' or 'p', default 'n')
@@ -301,6 +314,16 @@ class ART(ss.Intervention):
         self.vls_format        = None  # 'p' or per-timestep array
         self.vls_age_bins      = None  # For stratified VLS coverage
         self.vls_sex_keys      = None  # For stratified VLS coverage
+
+        # States
+        # Persistent per-agent adherence propensity, used to rank who is
+        # suppressed when correcting to a vls_coverage stock target. Mirrors
+        # VMMC/PrEP `willingness`. Persistence matters twice over: agents do not
+        # churn between suppressed and unsuppressed on every step, and a rising
+        # target *adds* to the suppressed pool rather than reshuffling it. It
+        # also reads as a plausible individual trait — adherence propensity is
+        # persistent, not redrawn monthly.
+        self.suppression_propensity = ss.FloatArr('suppression_propensity', default=ss.random())
         return
 
     def init_pre(self, sim):
@@ -351,6 +374,9 @@ class ART(ss.Intervention):
         Any agent not covered by an explicit vls_coverage stratum (or when
         vls_coverage is unset entirely) defaults to 100% — i.e. always
         effective, matching the previous behavior.
+
+        This sets the state *at initiation*; :meth:`vls_stock_correction` then
+        maintains it against the target for the rest of the agent's time on ART.
         """
         probs = np.ones(len(uids))
         if self.vls_coverage is None:
@@ -373,6 +399,84 @@ class ART(ss.Intervention):
             probs[:] = cov_val
 
         return probs
+
+    def _suppress_to_target(self, hiv, pool, target):
+        """
+        Set the suppressed set within `pool` to the top `target` agents by
+        adherence propensity. Returns the number newly suppressed.
+
+        Unlike VMMC, this can move agents in *both* directions: viral suppression
+        is genuinely reversible (treatment failure, interrupted adherence), where
+        circumcision is not. So a falling target un-suppresses, rather than being
+        clamped as VMMC's `_circumcise_to_target` is.
+        """
+        uids = pool.uids
+        if not len(uids):
+            return 0
+        n_target = int(np.clip(round(target), 0, len(uids)))
+        order = uids[np.argsort(-self.suppression_propensity[uids])]
+        keep, drop = order[:n_target], order[n_target:]
+        n_new = int(np.count_nonzero(~hiv.on_effective_art[keep])) if len(keep) else 0
+        if len(keep):
+            hiv.on_effective_art[keep] = True
+            hiv.on_nonsuppressive_art[keep] = False
+        if len(drop):
+            hiv.on_effective_art[drop] = False
+            hiv.on_nonsuppressive_art[drop] = True
+        return n_new
+
+    def vls_stock_correction(self, sim):
+        """
+        Correct viral suppression among agents *already on ART* to the
+        `vls_coverage` target.
+
+        Why this exists
+        ---------------
+        `on_effective_art` is otherwise written only in `HIV.start_art()`, so an
+        agent who starts treatment in 2010 keeps their 2010 suppression status
+        for life. That makes the dominant real-world mechanism unrepresentable:
+        suppression rises mostly through better regimens and adherence support
+        among people *already on treatment* (e.g. the dolutegravir/TLD
+        transition from ~2019), and by then the existing treated stock is most of
+        the treated population.
+
+        This makes `vls_coverage` a *stock* target, consistent with `coverage`
+        here and with the prevalence-target semantics already used by
+        `sti.VMMC` and `sti.Prep`.
+
+        Because `HIV.update_transmission()` recomputes `rel_trans` from
+        `on_effective_art` each step, and `get_art_mortality_hazard()` reads the
+        same state, flipping these booleans is sufficient — transmission and
+        on-ART mortality both follow.
+        """
+        if self.vls_coverage is None:
+            return 0
+
+        hiv = sim.diseases.hiv
+        ppl = sim.people
+        pool = hiv.on_art & ppl.alive
+        if not pool.any():
+            return 0
+
+        n_new = 0
+        if isinstance(self.vls_coverage, dict):
+            # Correct per stratum, or age/sex differentials in the input data
+            # get washed out by a single global ranking.
+            for ab in self.vls_age_bins:
+                for sex in (self.vls_sex_keys or [None]):
+                    key = (ab, sex) if sex is not None else ab
+                    cov = self.vls_coverage.get(key)
+                    if cov is None:
+                        continue        # unlisted stratum: leave as initiated
+                    cov_val = cov[self.ti] if len(cov) > self.ti else cov[-1]
+                    stratum = pool & age_sex_mask(ab, sex, ppl)
+                    n_new += self._suppress_to_target(
+                        hiv, stratum, cov_val * len(stratum.uids))
+        else:
+            cov_val = (self.vls_coverage[self.ti] if len(self.vls_coverage) > self.ti
+                       else self.vls_coverage[-1])
+            n_new += self._suppress_to_target(hiv, pool, cov_val * len(pool.uids))
+        return n_new
 
     def _get_n_to_treat(self, eligible_uids):
         """
@@ -441,6 +545,11 @@ class ART(ss.Intervention):
         if n_to_treat is not None:
             self.art_coverage_correction(sim, target_coverage=n_to_treat,
                                          stratum_targets=stratum_targets)
+
+        # Correct viral suppression among those already on ART to the
+        # vls_coverage target. Must run AFTER coverage correction, so that
+        # agents added to ART this step are included in the suppression pool.
+        self.vls_stock_correction(sim)
 
         # PMTCT: reduce susceptibility of infants whose mothers are on ART.
         # This applies to both prenatal (MaternalNet) and postnatal (BreastfeedingNet)
