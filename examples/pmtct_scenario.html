@@ -83,9 +83,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-bb62276ab45c84d9efd712f51ff97b5a.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-f79c51ff5e30854ac28238745b8bb7a4.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-f82da039d528b6d641c3350d1714121e.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-f79c51ff5e30854ac28238745b8bb7a4.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-e2cc62b63cae07313b67b92d61d82006.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-6b1ab2867bd145e9dff16240b8a0657a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-e2cc62b63cae07313b67b92d61d82006.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -400,7 +400,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <p>This example compares two scenarios that differ only in whether ANC testing is added on top of routine population-level HIV testing.</p>
 <section id="setup" class="level2">
 <h2 class="anchored" data-anchor-id="setup">Setup</h2>
-<div id="fd83d9c9" class="cell" data-execution_count="1">
+<div id="dca60315" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sciris <span class="im">as</span> sc</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> starsim <span class="im">as</span> ss</span>
@@ -413,7 +413,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="building-the-sims" class="level2">
 <h2 class="anchored" data-anchor-id="building-the-sims">Building the sims</h2>
 <p>Both scenarios share the same routine <code>HIVTest</code> (a modest 8%/year testing rate, deliberately low so the ANC-specific effect is visible) and <code>ART</code> (60% coverage target). The ANC scenario layers <code>ANCTest</code> + <code>InfantHIVTest</code> on top — <code>ART</code> is unchanged and simply treats whoever gets scheduled, regardless of which testing pathway diagnosed them.</p>
-<div id="3e1ebf15" class="cell" data-execution_count="2">
+<div id="e20551f9" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_sim(use_anc, rand_seed<span class="op">=</span><span class="dv">1</span>):</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    hiv_test <span class="op">=</span> sti.HIVTest(name<span class="op">=</span><span class="st">'hiv_test'</span>, test_prob_data<span class="op">=</span><span class="fl">0.08</span>)</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    art <span class="op">=</span> sti.ART(coverage<span class="op">=</span><span class="fl">0.6</span>)</span>
@@ -443,44 +443,44 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 Initializing sim "With ANC testing" with 5000 agents
   Running "No ANC testing": 2005 ( 0/181) (0.00 s)  ———————————————————— 1%
   Running "With ANC testing": 2005 ( 0/181) (0.00 s)  ———————————————————— 1%
-  Running "No ANC testing": 2006 (12/181) (0.35 s)  •——————————————————— 7%
-  Running "With ANC testing": 2006 (12/181) (0.37 s)  •——————————————————— 7%
-  Running "No ANC testing": 2007 (24/181) (0.70 s)  ••—————————————————— 14%
-  Running "With ANC testing": 2007 (24/181) (0.75 s)  ••—————————————————— 14%
-  Running "No ANC testing": 2008 (36/181) (1.05 s)  ••••———————————————— 20%
-  Running "With ANC testing": 2008 (36/181) (1.12 s)  ••••———————————————— 20%
-  Running "No ANC testing": 2009 (48/181) (1.40 s)  •••••——————————————— 27%
-  Running "With ANC testing": 2009 (48/181) (1.49 s)  •••••——————————————— 27%
-  Running "No ANC testing": 2010 (60/181) (1.75 s)  ••••••—————————————— 34%
-  Running "With ANC testing": 2010 (60/181) (1.88 s)  ••••••—————————————— 34%
-  Running "No ANC testing": 2011 (72/181) (2.11 s)  ••••••••———————————— 40%
-  Running "With ANC testing": 2011 (72/181) (2.25 s)  ••••••••———————————— 40%
-  Running "No ANC testing": 2012 (84/181) (2.46 s)  •••••••••——————————— 47%
-  Running "With ANC testing": 2012 (84/181) (2.63 s)  •••••••••——————————— 47%
-  Running "No ANC testing": 2013 (96/181) (2.83 s)  ••••••••••—————————— 54%
-  Running "With ANC testing": 2013 (96/181) (3.01 s)  ••••••••••—————————— 54%
-  Running "No ANC testing": 2014 (108/181) (3.17 s)  ••••••••••••———————— 60%
-  Running "With ANC testing": 2014 (108/181) (3.38 s)  ••••••••••••———————— 60%
-  Running "No ANC testing": 2015 (120/181) (3.52 s)  •••••••••••••——————— 67%
-  Running "With ANC testing": 2015 (120/181) (3.75 s)  •••••••••••••——————— 67%
-  Running "No ANC testing": 2016 (132/181) (3.87 s)  ••••••••••••••—————— 73%
-  Running "With ANC testing": 2016 (132/181) (4.12 s)  ••••••••••••••—————— 73%
-  Running "No ANC testing": 2017 (144/181) (4.23 s)  ••••••••••••••••———— 80%
-  Running "With ANC testing": 2017 (144/181) (4.51 s)  ••••••••••••••••———— 80%
-  Running "No ANC testing": 2018 (156/181) (4.57 s)  •••••••••••••••••——— 87%
-  Running "No ANC testing": 2019 (168/181) (4.91 s)  ••••••••••••••••••—— 93%
-  Running "With ANC testing": 2018 (156/181) (4.88 s)  •••••••••••••••••——— 87%
-  Running "No ANC testing": 2020 (180/181) (5.27 s)  •••••••••••••••••••• 100%
+  Running "No ANC testing": 2006 (12/181) (0.28 s)  •——————————————————— 7%
+  Running "With ANC testing": 2006 (12/181) (0.29 s)  •——————————————————— 7%
+  Running "No ANC testing": 2007 (24/181) (0.55 s)  ••—————————————————— 14%
+  Running "With ANC testing": 2007 (24/181) (0.57 s)  ••—————————————————— 14%
+  Running "No ANC testing": 2008 (36/181) (0.81 s)  ••••———————————————— 20%
+  Running "With ANC testing": 2008 (36/181) (0.86 s)  ••••———————————————— 20%
+  Running "No ANC testing": 2009 (48/181) (1.08 s)  •••••——————————————— 27%
+  Running "With ANC testing": 2009 (48/181) (1.15 s)  •••••——————————————— 27%
+  Running "No ANC testing": 2010 (60/181) (1.35 s)  ••••••—————————————— 34%
+  Running "With ANC testing": 2010 (60/181) (1.43 s)  ••••••—————————————— 34%
+  Running "No ANC testing": 2011 (72/181) (1.62 s)  ••••••••———————————— 40%
+  Running "With ANC testing": 2011 (72/181) (1.71 s)  ••••••••———————————— 40%
+  Running "No ANC testing": 2012 (84/181) (1.89 s)  •••••••••——————————— 47%
+  Running "With ANC testing": 2012 (84/181) (2.03 s)  •••••••••——————————— 47%
+  Running "No ANC testing": 2013 (96/181) (2.18 s)  ••••••••••—————————— 54%
+  Running "With ANC testing": 2013 (96/181) (2.32 s)  ••••••••••—————————— 54%
+  Running "No ANC testing": 2014 (108/181) (2.44 s)  ••••••••••••———————— 60%
+  Running "With ANC testing": 2014 (108/181) (2.60 s)  ••••••••••••———————— 60%
+  Running "No ANC testing": 2015 (120/181) (2.71 s)  •••••••••••••——————— 67%
+  Running "With ANC testing": 2015 (120/181) (2.89 s)  •••••••••••••——————— 67%
+  Running "No ANC testing": 2016 (132/181) (2.98 s)  ••••••••••••••—————— 73%
+  Running "With ANC testing": 2016 (132/181) (3.17 s)  ••••••••••••••—————— 73%
+  Running "No ANC testing": 2017 (144/181) (3.24 s)  ••••••••••••••••———— 80%
+  Running "With ANC testing": 2017 (144/181) (3.46 s)  ••••••••••••••••———— 80%
+  Running "No ANC testing": 2018 (156/181) (3.50 s)  •••••••••••••••••——— 87%
+  Running "No ANC testing": 2019 (168/181) (3.77 s)  ••••••••••••••••••—— 93%
+  Running "With ANC testing": 2018 (156/181) (3.75 s)  •••••••••••••••••——— 87%
+  Running "No ANC testing": 2020 (180/181) (4.03 s)  •••••••••••••••••••• 100%
 
-  Running "With ANC testing": 2019 (168/181) (5.26 s)  ••••••••••••••••••—— 93%
-  Running "With ANC testing": 2020 (180/181) (5.64 s)  •••••••••••••••••••• 100%
+  Running "With ANC testing": 2019 (168/181) (4.03 s)  ••••••••••••••••••—— 93%
+  Running "With ANC testing": 2020 (180/181) (4.30 s)  •••••••••••••••••••• 100%
 </code></pre>
 </div>
 </div>
 </section>
 <section id="comparing-outcomes" class="level2">
 <h2 class="anchored" data-anchor-id="comparing-outcomes">Comparing outcomes</h2>
-<div id="03e0c318" class="cell" data-execution_count="3">
+<div id="e3d055f4" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> label, sim <span class="kw">in</span> results.items():</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    mtct <span class="op">=</span> <span class="bu">int</span>(sim.results.hiv.new_infections_mtct.<span class="bu">sum</span>())</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    p_dx <span class="op">=</span> sim.results.hiv.p_diagnosed_pregnant[<span class="op">-</span><span class="dv">1</span>]</span>
@@ -491,7 +491,7 @@ Initializing sim "With ANC testing" with 5000 agents
  With ANC testing:   98 MTCT infections, 79% of pregnant HIV+ women diagnosed by end of sim</code></pre>
 </div>
 </div>
-<div id="1aa659fb" class="cell" data-execution_count="4">
+<div id="c34bd9e5" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>yearvec <span class="op">=</span> sims[<span class="dv">0</span>].t.yearvec</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">11</span>, <span class="fl">4.5</span>))</span>
@@ -970,7 +970,7 @@ Initializing sim "With ANC testing" with 5000 agents
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.6.0 (2026-08-28).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.6.1 (2026-09-04).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">

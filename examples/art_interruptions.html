@@ -85,9 +85,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-bb62276ab45c84d9efd712f51ff97b5a.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-f79c51ff5e30854ac28238745b8bb7a4.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-f82da039d528b6d641c3350d1714121e.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-f79c51ff5e30854ac28238745b8bb7a4.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-e2cc62b63cae07313b67b92d61d82006.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-6b1ab2867bd145e9dff16240b8a0657a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-e2cc62b63cae07313b67b92d61d82006.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -698,7 +698,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="setup" class="level2">
 <h2 class="anchored" data-anchor-id="setup">Setup</h2>
 <p>We’ll use a simplified model with 2,000 agents running from 2000 to 2035. In a real analysis you’d use more agents and location-specific demographic data.</p>
-<div id="0a85907c" class="cell" data-execution_count="1">
+<div id="3ceea0cc" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sciris <span class="im">as</span> sc</span>
@@ -711,7 +711,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="building-baseline-coverage" class="level2">
 <h2 class="anchored" data-anchor-id="building-baseline-coverage">Building baseline coverage</h2>
 <p>First, let’s create a realistic ART scale-up trajectory. In practice you’d load this from a CSV, but we’ll build it programmatically here.</p>
-<div id="7cceb2c8" class="cell" data-execution_count="2">
+<div id="782225af" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Historical ART numbers (absolute counts) representing scale-up in a</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># population of ~2,000 with ~15% HIV prevalence (~300 PLHIV).</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"># By 2023, ~650 on ART (accounting for population growth over 23 years).</span></span>
@@ -747,7 +747,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="defining-interruption-scenarios" class="level2">
 <h2 class="anchored" data-anchor-id="defining-interruption-scenarios">Defining interruption scenarios</h2>
 <p>Now let’s define a helper that modifies the coverage DataFrame to simulate a temporary ART interruption — a period where ART coverage drops by some fraction.</p>
-<div id="257dc2b9" class="cell" data-execution_count="3">
+<div id="d0b33119" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_interruption(base_df, shock_year, reduction, duration):</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">    Create a coverage DataFrame with an ART interruption.</span></span>
@@ -771,7 +771,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>                df.loc[year, <span class="st">'p_art'</span>] <span class="op">*=</span> (<span class="dv">1</span> <span class="op">-</span> reduction)</span>
 <span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> df</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="027227d6" class="cell" data-execution_count="4">
+<div id="8d34e240" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define scenarios: baseline + three interruption severities</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>scenarios <span class="op">=</span> {</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">'Baseline'</span>:          baseline_df,</span>
@@ -784,7 +784,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="running-the-scenarios" class="level2">
 <h2 class="anchored" data-anchor-id="running-the-scenarios">Running the scenarios</h2>
 <p>We run each scenario using <code>hivsim.demo</code> with the same random seed so differences are due to the intervention, not stochastic variation.</p>
-<div id="1fdbba3f" class="cell" data-execution_count="5">
+<div id="e5c189df" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> {}</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>seed <span class="op">=</span> <span class="dv">42</span></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -803,158 +803,158 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <div class="cell-output cell-output-stdout">
 <pre><code>Initializing sim with 2000 agents
   Running 2000 ( 0/421) (0.00 s)  ———————————————————— 0%
-  Running 2001 (12/421) (0.22 s)  ———————————————————— 3%
-  Running 2002 (24/421) (0.43 s)  •——————————————————— 6%
-  Running 2003 (36/421) (0.64 s)  •——————————————————— 9%
-  Running 2004 (48/421) (0.86 s)  ••—————————————————— 12%
-  Running 2005 (60/421) (1.08 s)  ••—————————————————— 14%
-  Running 2006 (72/421) (1.30 s)  •••————————————————— 17%
-  Running 2007 (84/421) (1.52 s)  ••••———————————————— 20%
-  Running 2008 (96/421) (1.74 s)  ••••———————————————— 23%
-  Running 2009 (108/421) (1.96 s)  •••••——————————————— 26%
-  Running 2010 (120/421) (2.19 s)  •••••——————————————— 29%
-  Running 2011 (132/421) (2.40 s)  ••••••—————————————— 32%
-  Running 2012 (144/421) (2.63 s)  ••••••—————————————— 34%
-  Running 2013 (156/421) (2.84 s)  •••••••————————————— 37%
-  Running 2014 (168/421) (3.06 s)  ••••••••———————————— 40%
-  Running 2015 (180/421) (3.27 s)  ••••••••———————————— 43%
-  Running 2016 (192/421) (3.49 s)  •••••••••——————————— 46%
-  Running 2017 (204/421) (3.70 s)  •••••••••——————————— 49%
-  Running 2018 (216/421) (3.92 s)  ••••••••••—————————— 52%
-  Running 2019 (228/421) (4.13 s)  ••••••••••—————————— 54%
-  Running 2020 (240/421) (4.35 s)  •••••••••••————————— 57%
-  Running 2021 (252/421) (4.56 s)  ••••••••••••———————— 60%
-  Running 2022 (264/421) (4.78 s)  ••••••••••••———————— 63%
-  Running 2023 (276/421) (5.00 s)  •••••••••••••——————— 66%
-  Running 2024 (288/421) (5.21 s)  •••••••••••••——————— 69%
-  Running 2025 (300/421) (5.43 s)  ••••••••••••••—————— 71%
-  Running 2026 (312/421) (5.65 s)  ••••••••••••••—————— 74%
-  Running 2027 (324/421) (5.88 s)  •••••••••••••••————— 77%
-  Running 2028 (336/421) (6.10 s)  ••••••••••••••••———— 80%
-  Running 2029 (348/421) (6.32 s)  ••••••••••••••••———— 83%
-  Running 2030 (360/421) (6.54 s)  •••••••••••••••••——— 86%
-  Running 2031 (372/421) (6.77 s)  •••••••••••••••••——— 89%
-  Running 2032 (384/421) (6.99 s)  ••••••••••••••••••—— 91%
-  Running 2033 (396/421) (7.21 s)  ••••••••••••••••••—— 94%
-  Running 2034 (408/421) (7.44 s)  •••••••••••••••••••— 97%
-  Running 2035 (420/421) (7.66 s)  •••••••••••••••••••• 100%
+  Running 2001 (12/421) (0.16 s)  ———————————————————— 3%
+  Running 2002 (24/421) (0.32 s)  •——————————————————— 6%
+  Running 2003 (36/421) (0.48 s)  •——————————————————— 9%
+  Running 2004 (48/421) (0.64 s)  ••—————————————————— 12%
+  Running 2005 (60/421) (0.80 s)  ••—————————————————— 14%
+  Running 2006 (72/421) (0.96 s)  •••————————————————— 17%
+  Running 2007 (84/421) (1.12 s)  ••••———————————————— 20%
+  Running 2008 (96/421) (1.29 s)  ••••———————————————— 23%
+  Running 2009 (108/421) (1.47 s)  •••••——————————————— 26%
+  Running 2010 (120/421) (1.64 s)  •••••——————————————— 29%
+  Running 2011 (132/421) (1.80 s)  ••••••—————————————— 32%
+  Running 2012 (144/421) (1.97 s)  ••••••—————————————— 34%
+  Running 2013 (156/421) (2.14 s)  •••••••————————————— 37%
+  Running 2014 (168/421) (2.31 s)  ••••••••———————————— 40%
+  Running 2015 (180/421) (2.47 s)  ••••••••———————————— 43%
+  Running 2016 (192/421) (2.63 s)  •••••••••——————————— 46%
+  Running 2017 (204/421) (2.79 s)  •••••••••——————————— 49%
+  Running 2018 (216/421) (2.96 s)  ••••••••••—————————— 52%
+  Running 2019 (228/421) (3.13 s)  ••••••••••—————————— 54%
+  Running 2020 (240/421) (3.29 s)  •••••••••••————————— 57%
+  Running 2021 (252/421) (3.45 s)  ••••••••••••———————— 60%
+  Running 2022 (264/421) (3.62 s)  ••••••••••••———————— 63%
+  Running 2023 (276/421) (3.78 s)  •••••••••••••——————— 66%
+  Running 2024 (288/421) (3.94 s)  •••••••••••••——————— 69%
+  Running 2025 (300/421) (4.10 s)  ••••••••••••••—————— 71%
+  Running 2026 (312/421) (4.26 s)  ••••••••••••••—————— 74%
+  Running 2027 (324/421) (4.43 s)  •••••••••••••••————— 77%
+  Running 2028 (336/421) (4.60 s)  ••••••••••••••••———— 80%
+  Running 2029 (348/421) (4.76 s)  ••••••••••••••••———— 83%
+  Running 2030 (360/421) (4.93 s)  •••••••••••••••••——— 86%
+  Running 2031 (372/421) (5.11 s)  •••••••••••••••••——— 89%
+  Running 2032 (384/421) (5.27 s)  ••••••••••••••••••—— 91%
+  Running 2033 (396/421) (5.44 s)  ••••••••••••••••••—— 94%
+  Running 2034 (408/421) (5.61 s)  •••••••••••••••••••— 97%
+  Running 2035 (420/421) (5.77 s)  •••••••••••••••••••• 100%
 
 Baseline: 49 on ART at end
 Initializing sim with 2000 agents
   Running 2000 ( 0/421) (0.00 s)  ———————————————————— 0%
-  Running 2001 (12/421) (0.21 s)  ———————————————————— 3%
-  Running 2002 (24/421) (0.42 s)  •——————————————————— 6%
-  Running 2003 (36/421) (0.63 s)  •——————————————————— 9%
-  Running 2004 (48/421) (0.85 s)  ••—————————————————— 12%
-  Running 2005 (60/421) (1.07 s)  ••—————————————————— 14%
-  Running 2006 (72/421) (1.29 s)  •••————————————————— 17%
-  Running 2007 (84/421) (1.51 s)  ••••———————————————— 20%
-  Running 2008 (96/421) (1.73 s)  ••••———————————————— 23%
-  Running 2009 (108/421) (1.95 s)  •••••——————————————— 26%
-  Running 2010 (120/421) (2.16 s)  •••••——————————————— 29%
-  Running 2011 (132/421) (2.39 s)  ••••••—————————————— 32%
-  Running 2012 (144/421) (2.61 s)  ••••••—————————————— 34%
-  Running 2013 (156/421) (2.82 s)  •••••••————————————— 37%
-  Running 2014 (168/421) (3.05 s)  ••••••••———————————— 40%
-  Running 2015 (180/421) (3.27 s)  ••••••••———————————— 43%
-  Running 2016 (192/421) (3.49 s)  •••••••••——————————— 46%
-  Running 2017 (204/421) (3.71 s)  •••••••••——————————— 49%
-  Running 2018 (216/421) (3.93 s)  ••••••••••—————————— 52%
-  Running 2019 (228/421) (4.14 s)  ••••••••••—————————— 54%
-  Running 2020 (240/421) (4.36 s)  •••••••••••————————— 57%
-  Running 2021 (252/421) (4.57 s)  ••••••••••••———————— 60%
-  Running 2022 (264/421) (4.79 s)  ••••••••••••———————— 63%
-  Running 2023 (276/421) (5.01 s)  •••••••••••••——————— 66%
-  Running 2024 (288/421) (5.23 s)  •••••••••••••——————— 69%
-  Running 2025 (300/421) (5.44 s)  ••••••••••••••—————— 71%
-  Running 2026 (312/421) (5.66 s)  ••••••••••••••—————— 74%
-  Running 2027 (324/421) (5.89 s)  •••••••••••••••————— 77%
-  Running 2028 (336/421) (6.11 s)  ••••••••••••••••———— 80%
-  Running 2029 (348/421) (6.33 s)  ••••••••••••••••———— 83%
-  Running 2030 (360/421) (6.55 s)  •••••••••••••••••——— 86%
-  Running 2031 (372/421) (6.77 s)  •••••••••••••••••——— 89%
-  Running 2032 (384/421) (6.99 s)  ••••••••••••••••••—— 91%
-  Running 2033 (396/421) (7.21 s)  ••••••••••••••••••—— 94%
-  Running 2034 (408/421) (7.43 s)  •••••••••••••••••••— 97%
-  Running 2035 (420/421) (7.66 s)  •••••••••••••••••••• 100%
+  Running 2001 (12/421) (0.16 s)  ———————————————————— 3%
+  Running 2002 (24/421) (0.31 s)  •——————————————————— 6%
+  Running 2003 (36/421) (0.47 s)  •——————————————————— 9%
+  Running 2004 (48/421) (0.63 s)  ••—————————————————— 12%
+  Running 2005 (60/421) (0.79 s)  ••—————————————————— 14%
+  Running 2006 (72/421) (0.95 s)  •••————————————————— 17%
+  Running 2007 (84/421) (1.11 s)  ••••———————————————— 20%
+  Running 2008 (96/421) (1.28 s)  ••••———————————————— 23%
+  Running 2009 (108/421) (1.44 s)  •••••——————————————— 26%
+  Running 2010 (120/421) (1.60 s)  •••••——————————————— 29%
+  Running 2011 (132/421) (1.77 s)  ••••••—————————————— 32%
+  Running 2012 (144/421) (1.93 s)  ••••••—————————————— 34%
+  Running 2013 (156/421) (2.09 s)  •••••••————————————— 37%
+  Running 2014 (168/421) (2.26 s)  ••••••••———————————— 40%
+  Running 2015 (180/421) (2.42 s)  ••••••••———————————— 43%
+  Running 2016 (192/421) (2.59 s)  •••••••••——————————— 46%
+  Running 2017 (204/421) (2.75 s)  •••••••••——————————— 49%
+  Running 2018 (216/421) (2.91 s)  ••••••••••—————————— 52%
+  Running 2019 (228/421) (3.08 s)  ••••••••••—————————— 54%
+  Running 2020 (240/421) (3.24 s)  •••••••••••————————— 57%
+  Running 2021 (252/421) (3.41 s)  ••••••••••••———————— 60%
+  Running 2022 (264/421) (3.58 s)  ••••••••••••———————— 63%
+  Running 2023 (276/421) (3.74 s)  •••••••••••••——————— 66%
+  Running 2024 (288/421) (3.90 s)  •••••••••••••——————— 69%
+  Running 2025 (300/421) (4.07 s)  ••••••••••••••—————— 71%
+  Running 2026 (312/421) (4.23 s)  ••••••••••••••—————— 74%
+  Running 2027 (324/421) (4.40 s)  •••••••••••••••————— 77%
+  Running 2028 (336/421) (4.57 s)  ••••••••••••••••———— 80%
+  Running 2029 (348/421) (4.73 s)  ••••••••••••••••———— 83%
+  Running 2030 (360/421) (4.91 s)  •••••••••••••••••——— 86%
+  Running 2031 (372/421) (5.07 s)  •••••••••••••••••——— 89%
+  Running 2032 (384/421) (5.24 s)  ••••••••••••••••••—— 91%
+  Running 2033 (396/421) (5.40 s)  ••••••••••••••••••—— 94%
+  Running 2034 (408/421) (5.57 s)  •••••••••••••••••••— 97%
+  Running 2035 (420/421) (5.74 s)  •••••••••••••••••••• 100%
 
 20% drop, 2 years: 49 on ART at end
 Initializing sim with 2000 agents
   Running 2000 ( 0/421) (0.00 s)  ———————————————————— 0%
-  Running 2001 (12/421) (0.21 s)  ———————————————————— 3%
-  Running 2002 (24/421) (0.42 s)  •——————————————————— 6%
-  Running 2003 (36/421) (0.64 s)  •——————————————————— 9%
-  Running 2004 (48/421) (0.86 s)  ••—————————————————— 12%
-  Running 2005 (60/421) (1.07 s)  ••—————————————————— 14%
-  Running 2006 (72/421) (1.30 s)  •••————————————————— 17%
-  Running 2007 (84/421) (1.53 s)  ••••———————————————— 20%
-  Running 2008 (96/421) (1.76 s)  ••••———————————————— 23%
-  Running 2009 (108/421) (1.98 s)  •••••——————————————— 26%
-  Running 2010 (120/421) (2.20 s)  •••••——————————————— 29%
-  Running 2011 (132/421) (2.42 s)  ••••••—————————————— 32%
-  Running 2012 (144/421) (2.64 s)  ••••••—————————————— 34%
-  Running 2013 (156/421) (2.85 s)  •••••••————————————— 37%
-  Running 2014 (168/421) (3.07 s)  ••••••••———————————— 40%
-  Running 2015 (180/421) (3.28 s)  ••••••••———————————— 43%
-  Running 2016 (192/421) (3.50 s)  •••••••••——————————— 46%
-  Running 2017 (204/421) (3.72 s)  •••••••••——————————— 49%
-  Running 2018 (216/421) (3.93 s)  ••••••••••—————————— 52%
-  Running 2019 (228/421) (4.15 s)  ••••••••••—————————— 54%
-  Running 2020 (240/421) (4.36 s)  •••••••••••————————— 57%
-  Running 2021 (252/421) (4.58 s)  ••••••••••••———————— 60%
-  Running 2022 (264/421) (4.80 s)  ••••••••••••———————— 63%
-  Running 2023 (276/421) (5.01 s)  •••••••••••••——————— 66%
-  Running 2024 (288/421) (5.23 s)  •••••••••••••——————— 69%
-  Running 2025 (300/421) (5.45 s)  ••••••••••••••—————— 71%
-  Running 2026 (312/421) (5.67 s)  ••••••••••••••—————— 74%
-  Running 2027 (324/421) (5.89 s)  •••••••••••••••————— 77%
-  Running 2028 (336/421) (6.11 s)  ••••••••••••••••———— 80%
-  Running 2029 (348/421) (6.34 s)  ••••••••••••••••———— 83%
-  Running 2030 (360/421) (6.56 s)  •••••••••••••••••——— 86%
-  Running 2031 (372/421) (6.78 s)  •••••••••••••••••——— 89%
-  Running 2032 (384/421) (7.00 s)  ••••••••••••••••••—— 91%
-  Running 2033 (396/421) (7.22 s)  ••••••••••••••••••—— 94%
-  Running 2034 (408/421) (7.44 s)  •••••••••••••••••••— 97%
-  Running 2035 (420/421) (7.66 s)  •••••••••••••••••••• 100%
+  Running 2001 (12/421) (0.16 s)  ———————————————————— 3%
+  Running 2002 (24/421) (0.32 s)  •——————————————————— 6%
+  Running 2003 (36/421) (0.47 s)  •——————————————————— 9%
+  Running 2004 (48/421) (0.64 s)  ••—————————————————— 12%
+  Running 2005 (60/421) (0.80 s)  ••—————————————————— 14%
+  Running 2006 (72/421) (0.98 s)  •••————————————————— 17%
+  Running 2007 (84/421) (1.14 s)  ••••———————————————— 20%
+  Running 2008 (96/421) (1.31 s)  ••••———————————————— 23%
+  Running 2009 (108/421) (1.47 s)  •••••——————————————— 26%
+  Running 2010 (120/421) (1.64 s)  •••••——————————————— 29%
+  Running 2011 (132/421) (1.81 s)  ••••••—————————————— 32%
+  Running 2012 (144/421) (1.99 s)  ••••••—————————————— 34%
+  Running 2013 (156/421) (2.16 s)  •••••••————————————— 37%
+  Running 2014 (168/421) (2.32 s)  ••••••••———————————— 40%
+  Running 2015 (180/421) (2.48 s)  ••••••••———————————— 43%
+  Running 2016 (192/421) (2.65 s)  •••••••••——————————— 46%
+  Running 2017 (204/421) (2.81 s)  •••••••••——————————— 49%
+  Running 2018 (216/421) (2.97 s)  ••••••••••—————————— 52%
+  Running 2019 (228/421) (3.13 s)  ••••••••••—————————— 54%
+  Running 2020 (240/421) (3.30 s)  •••••••••••————————— 57%
+  Running 2021 (252/421) (3.46 s)  ••••••••••••———————— 60%
+  Running 2022 (264/421) (3.62 s)  ••••••••••••———————— 63%
+  Running 2023 (276/421) (3.79 s)  •••••••••••••——————— 66%
+  Running 2024 (288/421) (3.97 s)  •••••••••••••——————— 69%
+  Running 2025 (300/421) (4.14 s)  ••••••••••••••—————— 71%
+  Running 2026 (312/421) (4.31 s)  ••••••••••••••—————— 74%
+  Running 2027 (324/421) (4.48 s)  •••••••••••••••————— 77%
+  Running 2028 (336/421) (4.65 s)  ••••••••••••••••———— 80%
+  Running 2029 (348/421) (4.82 s)  ••••••••••••••••———— 83%
+  Running 2030 (360/421) (4.98 s)  •••••••••••••••••——— 86%
+  Running 2031 (372/421) (5.15 s)  •••••••••••••••••——— 89%
+  Running 2032 (384/421) (5.31 s)  ••••••••••••••••••—— 91%
+  Running 2033 (396/421) (5.48 s)  ••••••••••••••••••—— 94%
+  Running 2034 (408/421) (5.64 s)  •••••••••••••••••••— 97%
+  Running 2035 (420/421) (5.81 s)  •••••••••••••••••••• 100%
 
 50% drop, 2 years: 50 on ART at end
 Initializing sim with 2000 agents
   Running 2000 ( 0/421) (0.00 s)  ———————————————————— 0%
-  Running 2001 (12/421) (0.21 s)  ———————————————————— 3%
-  Running 2002 (24/421) (0.41 s)  •——————————————————— 6%
-  Running 2003 (36/421) (0.62 s)  •——————————————————— 9%
-  Running 2004 (48/421) (0.84 s)  ••—————————————————— 12%
-  Running 2005 (60/421) (1.06 s)  ••—————————————————— 14%
-  Running 2006 (72/421) (1.27 s)  •••————————————————— 17%
-  Running 2007 (84/421) (1.49 s)  ••••———————————————— 20%
-  Running 2008 (96/421) (1.71 s)  ••••———————————————— 23%
-  Running 2009 (108/421) (1.93 s)  •••••——————————————— 26%
-  Running 2010 (120/421) (2.15 s)  •••••——————————————— 29%
-  Running 2011 (132/421) (2.37 s)  ••••••—————————————— 32%
-  Running 2012 (144/421) (2.59 s)  ••••••—————————————— 34%
-  Running 2013 (156/421) (2.81 s)  •••••••————————————— 37%
-  Running 2014 (168/421) (3.02 s)  ••••••••———————————— 40%
-  Running 2015 (180/421) (3.23 s)  ••••••••———————————— 43%
-  Running 2016 (192/421) (3.45 s)  •••••••••——————————— 46%
-  Running 2017 (204/421) (3.67 s)  •••••••••——————————— 49%
-  Running 2018 (216/421) (3.88 s)  ••••••••••—————————— 52%
-  Running 2019 (228/421) (4.10 s)  ••••••••••—————————— 54%
-  Running 2020 (240/421) (4.31 s)  •••••••••••————————— 57%
-  Running 2021 (252/421) (4.53 s)  ••••••••••••———————— 60%
-  Running 2022 (264/421) (4.74 s)  ••••••••••••———————— 63%
-  Running 2023 (276/421) (4.96 s)  •••••••••••••——————— 66%
-  Running 2024 (288/421) (5.17 s)  •••••••••••••——————— 69%
-  Running 2025 (300/421) (5.39 s)  ••••••••••••••—————— 71%
-  Running 2026 (312/421) (5.61 s)  ••••••••••••••—————— 74%
-  Running 2027 (324/421) (5.82 s)  •••••••••••••••————— 77%
-  Running 2028 (336/421) (6.04 s)  ••••••••••••••••———— 80%
-  Running 2029 (348/421) (6.26 s)  ••••••••••••••••———— 83%
-  Running 2030 (360/421) (6.49 s)  •••••••••••••••••——— 86%
-  Running 2031 (372/421) (6.71 s)  •••••••••••••••••——— 89%
-  Running 2032 (384/421) (7.10 s)  ••••••••••••••••••—— 91%
-  Running 2033 (396/421) (7.32 s)  ••••••••••••••••••—— 94%
-  Running 2034 (408/421) (7.54 s)  •••••••••••••••••••— 97%
-  Running 2035 (420/421) (7.76 s)  •••••••••••••••••••• 100%
+  Running 2001 (12/421) (0.16 s)  ———————————————————— 3%
+  Running 2002 (24/421) (0.31 s)  •——————————————————— 6%
+  Running 2003 (36/421) (0.47 s)  •——————————————————— 9%
+  Running 2004 (48/421) (0.64 s)  ••—————————————————— 12%
+  Running 2005 (60/421) (0.80 s)  ••—————————————————— 14%
+  Running 2006 (72/421) (0.96 s)  •••————————————————— 17%
+  Running 2007 (84/421) (1.12 s)  ••••———————————————— 20%
+  Running 2008 (96/421) (1.30 s)  ••••———————————————— 23%
+  Running 2009 (108/421) (1.47 s)  •••••——————————————— 26%
+  Running 2010 (120/421) (1.63 s)  •••••——————————————— 29%
+  Running 2011 (132/421) (1.79 s)  ••••••—————————————— 32%
+  Running 2012 (144/421) (1.96 s)  ••••••—————————————— 34%
+  Running 2013 (156/421) (2.13 s)  •••••••————————————— 37%
+  Running 2014 (168/421) (2.29 s)  ••••••••———————————— 40%
+  Running 2015 (180/421) (2.45 s)  ••••••••———————————— 43%
+  Running 2016 (192/421) (2.61 s)  •••••••••——————————— 46%
+  Running 2017 (204/421) (2.77 s)  •••••••••——————————— 49%
+  Running 2018 (216/421) (2.93 s)  ••••••••••—————————— 52%
+  Running 2019 (228/421) (3.09 s)  ••••••••••—————————— 54%
+  Running 2020 (240/421) (3.25 s)  •••••••••••————————— 57%
+  Running 2021 (252/421) (3.41 s)  ••••••••••••———————— 60%
+  Running 2022 (264/421) (3.57 s)  ••••••••••••———————— 63%
+  Running 2023 (276/421) (3.73 s)  •••••••••••••——————— 66%
+  Running 2024 (288/421) (3.89 s)  •••••••••••••——————— 69%
+  Running 2025 (300/421) (4.05 s)  ••••••••••••••—————— 71%
+  Running 2026 (312/421) (4.21 s)  ••••••••••••••—————— 74%
+  Running 2027 (324/421) (4.37 s)  •••••••••••••••————— 77%
+  Running 2028 (336/421) (4.53 s)  ••••••••••••••••———— 80%
+  Running 2029 (348/421) (4.69 s)  ••••••••••••••••———— 83%
+  Running 2030 (360/421) (4.86 s)  •••••••••••••••••——— 86%
+  Running 2031 (372/421) (5.02 s)  •••••••••••••••••——— 89%
+  Running 2032 (384/421) (5.35 s)  ••••••••••••••••••—— 91%
+  Running 2033 (396/421) (5.51 s)  ••••••••••••••••••—— 94%
+  Running 2034 (408/421) (5.68 s)  •••••••••••••••••••— 97%
+  Running 2035 (420/421) (5.85 s)  •••••••••••••••••••• 100%
 
 50% drop, 5 years: 49 on ART at end</code></pre>
 </div>
@@ -963,7 +963,7 @@ Initializing sim with 2000 agents
 <section id="comparing-outcomes" class="level2">
 <h2 class="anchored" data-anchor-id="comparing-outcomes">Comparing outcomes</h2>
 <p>Let’s visualize the impact of ART interruptions on treatment numbers and new infections.</p>
-<div id="05245ae3" class="cell" data-execution_count="6">
+<div id="9f8ce4a1" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>colors <span class="op">=</span> sc.gridcolors(<span class="dv">4</span>)</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> sc.options.with_style(<span class="st">'fancy'</span>):</span>
@@ -1446,7 +1446,7 @@ Initializing sim with 2000 agents
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.6.0 (2026-08-28).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.6.1 (2026-09-04).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">
