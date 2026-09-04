@@ -2,6 +2,11 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.6.1 (2026-09-04)
+
+- **Age and sex stratification of disease results is now optional.** Every `BaseSTI` subclass (`Chlamydia`, `Gonorrhea`, `Trichomoniasis`, `Syphilis`, `HIV`, `BV`) now accepts `age_bins` and `sex_keys`; passing `None` for either skips the corresponding stratified results, leaving the whole-population ones untouched and numerically identical. Defaults are unchanged, so existing models are unaffected. Disabling both takes a gonorrhea module from 205 results to 29, which matters for large multi-sims and low-memory runs. `sti.default_age_bins` and `sti.default_sex_keys` are exported for building custom stratifications. `SEIS` also gains `age_range` as a constructor argument, previously hardcoded to `[15, 65]`. (#592)
+
+
 ## Version 1.6.0 (2026-08-28)
 
 This version requires `starsim>=3.6.0`, and the bugs found while migrating to it change simulated epidemiology and reported results enough that chlamydia, gonorrhea, trichomoniasis and syphilis calibrations have all changed.

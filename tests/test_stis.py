@@ -129,6 +129,44 @@ def test_stis(which='discharging', n_agents=1e3, start=2010, stop=2020):
     return sim
 
 
+def test_optional_stratification(n_agents=500):
+    """ Test that age_bins=None and sex_keys=None drop stratified results without changing the rest """
+    sc.heading('Test optional age/sex stratification of results')
+
+    def make_sim(**kw):
+        dis = [sti.Gonorrhea(init_prev=0.1, **kw), sti.Syphilis(init_prev=0.1, **kw), sti.HIV(init_prev=0.1, **kw)]
+        return ss.Sim(n_agents=n_agents, start=2000, stop=2005, rand_seed=1, diseases=dis,
+                      networks=[sti.StructuredSexual(), ss.MaternalNet()],
+                      demographics=[ss.Pregnancy(fertility_rate=50), ss.Deaths(death_rate=10)])
+
+    s_full = make_sim()
+    s_none = make_sim(age_bins=None, sex_keys=None)
+    ss.parallel(s_full, s_none, debug=debug)
+
+    for name in ['ng', 'syph', 'hiv']:
+        r_full = s_full.diseases[name].results
+        r_none = s_none.diseases[name].results
+
+        # Stratified results are gone, unstratified ones remain
+        assert len(r_none) < len(r_full), f'{name}: expected fewer results without stratification'
+        assert not [k for k in r_none.keys() if k.endswith(('_f', '_m')) or '_15_20' in k], \
+            f'{name}: stratified results should not be defined'
+        assert 'prevalence' in r_none and 'new_infections' in r_none, f'{name}: main results should remain'
+
+        # Everything still computed must be bit-identical to the fully stratified run
+        for key in r_none.keys():
+            if key in r_full:
+                assert np.allclose(np.asarray(r_full[key], float), np.asarray(r_none[key], float), equal_nan=True), \
+                    f'{name}: result {key} changed when stratification was disabled'
+
+    # Each stratification can also be disabled on its own
+    for kw in [dict(age_bins=None), dict(sex_keys=None)]:
+        sim = make_sim(**kw)
+        sim.run(verbose=0)
+
+    return s_full, s_none
+
+
 def test_bv(include_hiv=False, n_agents=500):
     """ Test BV dynamics with optional HIV co-infection and a custom menstrual hygiene intervention """
 
@@ -189,5 +227,6 @@ if __name__ == '__main__':
     test_syph_congenital_death_timing()
     test_stis(which='discharging')
     test_stis(which='ulcerative')
+    test_optional_stratification()
     test_bv()
     test_bv(include_hiv=True)
