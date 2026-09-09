@@ -61,6 +61,7 @@ include = ["stisim*", "hivsim*"]
 [tool.setuptools.package-data]
 "hivsim_examples.zimbabwe" = ["*.csv"]
 "stisim.ai" = [
+    "README.md",
     "plugin/.claude-plugin/*.json",
     "plugin/skills/**/*.md",
     "plugin/skills/**/*.json",
