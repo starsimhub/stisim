@@ -1,18 +1,43 @@
 # Handoff template
 
-*Scaffold — content to be written by the lead developer.*
+A handoff entry lets someone opening the workspace cold — a colleague, a
+fresh Claude session, or the same user two weeks from now — pick up
+without re-deriving context from `git log` alone.
 
-A session handoff summary lets someone opening the workspace cold (a colleague, a fresh Claude session, or you two weeks from now) pick up without re-deriving context from git log alone.
+Append entries to `SESSION_LOG.md` at the workspace root, newest at the
+top, each under a `## YYYY-MM-DD` heading. Do not modify existing
+entries; each session gets its own block.
 
-Suggested sections (rearrange, cut, or extend as the pattern earns its keep):
+## Template
 
-- **Session date** — YYYY-MM-DD.
-- **What was done this session** — a few bullets, plain language.
-- **Where the analysis stands** — what is working, what is not, what has been ruled out.
-- **Next steps** — what to pick up next time, in order.
-- **Unresolved** — decisions deferred, questions still open, blocking dependencies.
-- **Workspace state** — branch, uncommitted files (or "clean"), any temp scaffolding worth knowing about.
+```markdown
+## YYYY-MM-DD
 
-Written where: append to `SESSION_LOG.md` at the workspace root, newest at the top, each entry under a `## <date>` heading. Existing entries are not modified; each session gets a fresh block.
+**Done this session:**
+- <bullet>
+- <bullet>
 
-Length target: short. If the block runs longer than the screen, the session either did too many things or the summary is too detailed.
+**State of the analysis:**
+- Working: <what is in a good state>
+- Not yet: <what is planned but not done, or partly done>
+- Ruled out: <what was tried and abandoned — only include when relevant>
+
+**Next steps:**
+1. <first thing to pick up>
+2. <second thing>
+
+**Unresolved:**
+- <open question, deferred decision, blocking dependency — or the single
+  word "None." if the session left no open items>
+
+**Workspace state:**
+- Branch: <name>
+- Uncommitted: <one-line summary, or "Clean.">
+```
+
+## Style
+
+Fits on one screen. If a handoff runs longer, either the session did too
+many things or the summary is over-detailed. Plain sentences over bullet
+paragraphs. Names, not "the thing we discussed"; concrete file paths and
+commit shas where they help a cold reader.
