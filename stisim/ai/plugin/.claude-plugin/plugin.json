@@ -1,0 +1,9 @@
+{
+  "name": "stisim",
+  "version": "0.1.0",
+  "description": "AI-assisted STIsim research: guardrails, checkpoints, and workflow discipline for high-quality HIV and STI modelling.",
+  "author": {
+    "name": "STIsim",
+    "url": "https://github.com/starsimhub/stisim"
+  }
+}
