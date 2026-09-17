@@ -225,6 +225,80 @@ def test_match_pairs_refactor_preserves_output():
     assert (sim.people.female[p2]).all() if len(p2) else True
 
 
+def test_decrement_partners_duplicate_edges():
+    """Partner counts must be decremented once per ending edge, not once per agent.
+
+    Regression test: when an agent has more than one partnership ending on the
+    same timestep (concurrency > 1), the counters are updated by fancy-indexing
+    a repeated UID. A naive ``partners[p1e] -= 1`` only subtracts 1 for the
+    duplicated UID (last-write-wins), so the count drifts and can go negative.
+    ``_decrement_partners`` counts duplicates with np.unique to avoid this.
+    """
+    net = sti.MFNetwork()
+    sim = sti.Sim(n_agents=20, networks=[net], dur=1)
+    sim.init()
+    net = sim.networks.mfnetwork
+
+    # Start from a clean slate: drop any auto-formed edges and zero the counters.
+    for k in net.meta_keys():
+        net.edges[k] = net.edges[k][[]]
+    net.partners[:] = 0
+    net.stable_partners[:] = 0
+
+    # Agent 0 is p1 in TWO stable edges (with agents 1 and 2) ending this step.
+    p1 = ss.uids([0, 0])
+    p2 = ss.uids([1, 2])
+    n = len(p1)
+    net.append(
+        p1=p1, p2=p2, beta=np.ones(n), condoms=np.zeros(n), dur=np.ones(n),
+        acts=np.ones(n), age_p1=np.zeros(n), age_p2=np.zeros(n),
+        edge_type=np.full(n, net.edge_types['stable'], dtype=float),
+        ti_formed=np.zeros(n, dtype=int),
+    )
+    net.partners[ss.uids([0])] = 2
+    net.partners[ss.uids([1, 2])] = 1
+    net.stable_partners[ss.uids([0])] = 2
+    net.stable_partners[ss.uids([1, 2])] = 1
+
+    # Every edge ends (active = all False).
+    net._decrement_partners(np.zeros(n, dtype=bool))
+
+    assert net.partners[ss.uids([0])][0] == 0, \
+        f"Agent with 2 ending edges should decrement by 2; got {net.partners[ss.uids([0])][0]}"
+    assert net.stable_partners[ss.uids([0])][0] == 0, \
+        f"stable_partners not decremented per-edge; got {net.stable_partners[ss.uids([0])][0]}"
+    assert (net.partners[ss.uids([1, 2])] == 0).all(), "Partners of the duplicated agent should reach 0"
+
+
+def test_partner_counts_match_active_degree():
+    """End-to-end invariant: partners == number of active non-SW edges per agent.
+
+    Exercises both the increment (add_pairs) and decrement (_decrement_partners)
+    paths under high concurrency, where an agent can form or end multiple edges
+    of the same type in one step. Before the np.unique fix this drifted and
+    partner counts went negative.
+    """
+    net = sti.MFNetwork(pars={'f1_conc': 0.5, 'f2_conc': 0.9, 'm1_conc': 0.7, 'm2_conc': 0.95})
+    sim = sti.Sim(n_agents=2000, networks=[net], dur=15, rand_seed=1)
+    sim.run(verbose=0)
+    net = sim.networks.mfnetwork
+
+    p1, p2, et = net.edges.p1, net.edges.p2, net.edges.edge_type
+    mask = np.ones(len(p1), dtype=bool)
+    if 'sw' in net.edge_types:
+        mask = et != net.edge_types['sw']
+    degree = np.zeros(len(net.partners))
+    np.add.at(degree, np.asarray(p1[mask]), 1)
+    np.add.at(degree, np.asarray(p2[mask]), 1)
+
+    alive = sim.people.alive.uids
+    mismatch = np.asarray(net.partners[alive]) - degree[np.asarray(alive)]
+    assert np.nanmin(net.partners.values) >= 0, \
+        f"partners went negative (min={np.nanmin(net.partners.values)})"
+    assert np.abs(mismatch).max() == 0, \
+        f"partners disagrees with active edge degree for {int((np.abs(mismatch) > 0).sum())} agents"
+
+
 if __name__ == '__main__':
     test_msm_network()
     test_network_degrees()
@@ -234,3 +308,5 @@ if __name__ == '__main__':
     test_debut_age()
     test_shorter_sw()
     test_match_pairs_refactor_preserves_output()
+    test_decrement_partners_duplicate_edges()
+    test_partner_counts_match_active_degree()
