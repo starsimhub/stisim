@@ -250,8 +250,6 @@ interlinks:
       url: https://numpy.org/doc/stable/
     pandas:
       url: https://pandas.pydata.org/pandas-docs/stable/
-    scipy:
-      url: https://docs.scipy.org/doc/scipy/
     matplotlib:
       url: https://matplotlib.org/stable/
     sciris:
