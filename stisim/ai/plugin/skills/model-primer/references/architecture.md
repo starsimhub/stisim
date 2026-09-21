@@ -139,15 +139,21 @@ assumes a module instance is already present).
 
 ## Care-seeking
 
-Unlike most ABMs, STIsim treats care-seeking propensity as a first-
-class module (`stisim/care_seeking.py`) rather than embedding it in
-each disease or intervention. Each agent gets a baseline propensity
-at birth (lognormal, sex-differential by default), and a working
-propensity that can be temporarily modified by conditions like
-pregnancy. Testing and treatment interventions consult this module
-when deciding whether an agent presents for care, which keeps
-care-seeking behaviour consistent across diseases and localises the
-"how likely is someone to seek care" question.
+STIsim provides a `CareSeeking` module (`stisim/care_seeking.py`) that
+represents care-seeking propensity as a per-agent value drawn at
+birth (lognormal, sex-differential by default) and modifiable by
+conditions like pregnancy. The intent is that testing and treatment
+interventions consult this module rather than each disease and
+intervention re-implementing care-seeking logic.
+
+In current practice, most STIsim projects **parameterise care-seeking
+on the disease modules and testing interventions directly** rather
+than composing `CareSeeking` into the Sim. The relevant knobs are
+`p_symp_care` on the SEIS diseases, `rel_test` and similar scaling
+factors on testing interventions, and per-project multipliers that
+sit above those (e.g. a `care_seek_mult` in the analysis-specific
+code). The `CareSeeking` module is available for analyses that want
+cross-disease consistency without per-module parameterisation.
 
 ## Timestep and time discipline
 

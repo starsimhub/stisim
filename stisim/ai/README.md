@@ -25,12 +25,13 @@ Three layers under a `stisim:` plugin namespace:
 - **Reference layer** — loaded on demand. Architecture index
   (`model-primer`), plus per-topic references as they earn their keep.
 
-Two skills are scaffolded so far:
+Three skills are scaffolded so far:
 
 | Skill | Layer | Status |
 |---|---|---|
-| `stisim:model-primer` | Reference | Scaffolded; `references/canonical-sources.md` populated, `references/architecture.md` awaiting content |
-| `stisim:session-close` | Meta | Scaffolded; procedural detail still light |
+| `stisim:model-primer` | Reference | Scaffolded; `references/canonical-sources.md` populated, `references/architecture.md` filled in |
+| `stisim:session-close` | Meta | Scaffolded; procedural steps and handoff template filled in |
+| `stisim:model-writer` | Specialist | Scaffolded; procedural steps and authoring checklist filled in |
 
 ## Directory layout
 
@@ -45,6 +46,9 @@ stisim/ai/
     │   └── marketplace.json        # local marketplace descriptor
     └── skills/
         ├── model-primer/
+        │   ├── SKILL.md
+        │   └── references/
+        ├── model-writer/
         │   ├── SKILL.md
         │   └── references/
         └── session-close/
@@ -72,7 +76,7 @@ all other settings. `python -m stisim.ai uninstall` reverses it;
 `python -m stisim.ai status` reports current registration.
 
 
-## AI collaboration disclosure
+## AI collaboration
 
 This subpackage was scaffolded in a collaborative design session with
 Claude Code (Anthropic Claude Opus 4.7). The plugin skeleton, bootstrap
@@ -80,5 +84,5 @@ CLI, initial skill scaffolding, and this README were drafted by Claude
 under human review. All architectural and scoping decisions —
 package layout, invariants, install mechanism, roadmap ordering, and what
 belongs in MVP versus later — were made by humans on the STIsim team.
-Skill body content is authored by humans; areas that still contain
+Skill body content is authored by AI and humans; areas that still contain
 AI-drafted placeholder text are marked as such in the files.
