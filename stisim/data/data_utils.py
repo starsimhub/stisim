@@ -75,8 +75,15 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy.stats import norm
 
-__all__ = ['dedup_deaths', 'deleted_fraction', 'make_datafolder']
+__all__ = [
+    'dedup_deaths',
+    'deleted_fraction',
+    'make_datafolder',
+    'percentiles_to_pars',
+    'logn_percentiles_to_pars',
+]
 
 DEFAULT_BASE_YEAR = 1985
 DEFAULT_END_YEAR = 2025
@@ -186,3 +193,54 @@ def make_datafolder(src: Path, dest: Path, hiv_deleted: pd.DataFrame,
         shutil.copy2(f, dest / f.name)
     hiv_deleted.to_csv(dest / deaths_filename, index=False)
     return dest
+
+
+# ---------------------------------------------------------------------------
+# Distribution fitting from empirical percentiles
+# ---------------------------------------------------------------------------
+#
+# Sexual-behaviour data from surveys (DHS, PHIA, IBBS) is often reported as
+# cumulative fractions by exact age — e.g. "fraction of women who have had
+# first sexual intercourse by age 15, 18, 20, 22, 25". Two such (value,
+# fraction) points identify a two-parameter distribution, so the pair can
+# be inverted to distribution parameters that stisim can consume.
+
+
+def percentiles_to_pars(x1, p1, x2, p2):
+    """Find (location, scale) of a normal distribution given two quantiles.
+
+    Solves ``P(X < x1) = p1`` and ``P(X < x2) = p2`` for a normal
+    distribution. Returns ``(location, scale)`` — the mean and standard
+    deviation of the fitted normal. Feed those to ``scipy.stats.norm``
+    or, if the distribution is not skewed, directly to a normal-shaped
+    stisim distribution.
+    """
+    p1ppf = norm.ppf(p1)
+    p2ppf = norm.ppf(p2)
+    location = ((x1 * p2ppf) - (x2 * p1ppf)) / (p2ppf - p1ppf)
+    scale = (x2 - x1) / (p2ppf - p1ppf)
+    return location, scale
+
+
+def logn_percentiles_to_pars(x1, p1, x2, p2):
+    """Find (s, scale) of a lognormal distribution given two quantiles.
+
+    Solves ``P(X < x1) = p1`` and ``P(X < x2) = p2`` for a lognormal
+    distribution. Returns ``(s, scale)`` — the shape (standard deviation
+    of the underlying normal) and scale (``exp`` of its mean) parameters
+    used by ``scipy.stats.lognorm``.
+
+    To convert to the ``(mean, std)`` form used by ``ss.lognorm_ex``::
+
+        s, scale = logn_percentiles_to_pars(x1, p1, x2, p2)
+        mean = scale * np.exp(s ** 2 / 2)
+        std = mean * np.sqrt(np.exp(s ** 2) - 1)
+    """
+    x1 = np.log(x1)
+    x2 = np.log(x2)
+    p1ppf = norm.ppf(p1)
+    p2ppf = norm.ppf(p2)
+    s = (x2 - x1) / (p2ppf - p1ppf)
+    mean = ((x1 * p2ppf) - (x2 * p1ppf)) / (p2ppf - p1ppf)
+    scale = np.exp(mean)
+    return s, scale
