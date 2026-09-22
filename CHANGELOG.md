@@ -2,6 +2,38 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.7.0 (2026-09-25)
+
+### stisim.ai — new AI plugin
+
+The `stisim.ai` plugin ships with an initial skill library for Claude Code, in three functional clusters. Enable via `python -m stisim.ai install` — see [`stisim/ai/README.md`](stisim/ai/README.md) for the full inventory.
+
+**Analysis workflow — scaffold and structure a research project:**
+- **`analysis-intake`** — grilling-style design-tree intake that turns a vague research idea into a provisional analysis specification. Adapts Matt Pocock's [`grilling`](https://github.com/mattpocock/skills/blob/main/skills/productivity/grilling/SKILL.md) with a facts-vs-decisions split and `blocked-on-evidence` as a third branch state alongside `settled` and `open`.
+- **`analysis-selector`** — runs very early in intake, before any tool is assumed. Classifies the research question into one of six analytical objectives (description / association / structure / causal / forecasting / dynamic-mechanistic) and only routes to HIVsim if dynamic mechanistic transmission is actually required. Redirection away from HIVsim is a successful outcome.
+- **`project-memory`** — establishes a durable memory strategy at project intake (repo-based, session-indexing, agent-memory provider, or hybrid) so a multi-month project can survive session ends, machine switches, and collaborator handoffs. A chat session is working memory, not project memory.
+- **`session-close`** — handoff summariser at session end, feeding into whichever memory mechanism `project-memory` established.
+
+**Model authoring and calibration — invoked once the analysis is scoped:**
+- **`model-primer`** — reference-layer architectural index of stisim, including a `calibration-knobs.md` reference for what stisim actually exposes as a knob vs. what should come from data vs. what belongs in an upstream PR.
+- **`model-writer`** — composes a new Sim from a scoped research question.
+- **`hiv-interventions`** — design-interview for the ART / testing / VMMC / PrEP set, with per-intervention data-source references.
+- **`network-data`** — DHS-focused sexual-network calibration input.
+- **`calibration-strategy`** — HIVsim / STIsim-specific what/why/whether-to-calibrate: parameter classification (data-informed / literature-fixed / country-specific-uncertain / behavioural / tuning / intervention-assumption), target-vs-knob distinction, ART/testing structural dependency, failure diagnosis. Delegates algorithm / sampler / likelihood / diagnostics to the `calib:*` plugin.
+
+**Software quality — cross-cutting**, unified by the theme *share your work rather than accumulate private forks of shared code or private caches of project knowledge* (a pattern that becomes especially easy to fall into when code generation is cheap and code review is not):
+- **`extending-stisim`** — before subclassing / monkey-patching stisim, classify the change as (a) fix, (b) opt-in research knob, or (c) project-specific data preprocessing, and enforce PR-upstream for fixes, no-op default for knobs, cleanup of downstream artifacts once their upstream fix lands, and file-an-issue as the fallback.
+- **`editable-dep-hygiene`** — any edit to an editable `pip install -e` dependency gets committed and PR'd immediately; before a version bump or branch switch, the dep checkout is verified clean of unmerged local work.
+- **`comment-hygiene`** — shared-library docstrings and comments explain the software itself, not project-specific memory. Strips anti-patterns like "Experiment 5", "the current task", "we changed this because the user requested it".
+- **`result-extraction`** — directs to `ss.Result` / `ss.Results` methods (`annualize`, `resample`, `to_df`) over hand-rolled `df.groupby('year').mean() / .sum()`, which silently mishandles the flow-vs-stock distinction and produces errors of `n_timesteps_per_year` that don't scream at calibration ranges.
+- **`writing-tests`** — prefer a small number of scientifically meaningful tests over comprehensive enumeration. Every proposed test should have a one-sentence answer to "what meaningful bug would this catch?"; if the answer is "confirms a value we assigned still has that value", don't add it.
+
+### stisim.data
+
+- **`stisim.data.dedup_deaths`** — reconstructs a non-AIDS mortality counterfactual from all-cause mortality by log-linear interpolation between pre-epidemic and post-epidemic anchors. Prevents the double-counting that happens when `ss.Deaths` (all-cause data) and `sti.HIV` (HIV-specific mortality) both kill agents from the same underlying epidemic. Includes `deleted_fraction` diagnostic. Referenced from `stisim.ai`'s `calibration-knobs.md`.
+- **Percentile-to-distribution-parameter helpers** — convert observed quantiles (e.g. "median 5 years, 95th percentile 12 years") into parameters of the corresponding lognormal / gamma / beta distributions, so calibration priors and duration parameters can be set directly from published summary statistics.
+
+
 ## Version 1.6.1 (2026-09-04)
 
 - **Age and sex stratification of disease results is now optional.** Every `BaseSTI` subclass (`Chlamydia`, `Gonorrhea`, `Trichomoniasis`, `Syphilis`, `HIV`, `BV`) now accepts `age_bins` and `sex_keys`; passing `None` for either skips the corresponding stratified results, leaving the whole-population ones untouched and numerically identical. Defaults are unchanged, so existing models are unaffected. Disabling both takes a gonorrhea module from 205 results to 29, which matters for large multi-sims and low-memory runs. `sti.default_age_bins` and `sti.default_sex_keys` are exported for building custom stratifications. `SEIS` also gains `age_range` as a constructor argument, previously hardcoded to `[15, 65]`. (#592)

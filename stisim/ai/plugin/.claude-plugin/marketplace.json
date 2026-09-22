@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "stisim-local",
+  "description": "AI-assisted STIsim research plugin, shipped alongside the stisim Python package for guaranteed skill/API version parity.",
+  "owner": {
+    "name": "STIsim",
+    "url": "https://github.com/starsimhub/stisim"
+  },
+  "plugins": [
+    {
+      "name": "stisim",
+      "description": "AI-assisted STIsim research: guardrails, checkpoints, and workflow discipline for high-quality HIV and STI modelling.",
+      "source": "./",
+      "category": "research"
+    }
+  ]
+}
