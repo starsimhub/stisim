@@ -14,7 +14,7 @@ description: Use when writing or editing docstrings and inline comments in share
 
 ## When NOT to use
 
-- Writing comments in downstream project or experiment code, where project-specific references ("exp 015", "the ANC screening handoff") are stable and meaningful within that repo's scope. This skill is scoped to shared library code specifically.
+- Writing comments in downstream project or experiment code, where project-specific references (an experiment ID, a session handoff name, a scenario label) are stable and meaningful within that repo's scope. This skill is scoped to shared library code specifically.
 - Writing test names or test docstrings that reference a specific historical scenario — a regression test can and should preserve the concrete failing case; production code should stick to the underlying invariant. See instruction 6.
 
 ## Framing

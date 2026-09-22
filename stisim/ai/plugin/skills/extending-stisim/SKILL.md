@@ -15,7 +15,7 @@ description: Use when about to subclass a stisim / starsim class, override a lib
 ## When NOT to use
 
 - The user is writing an `ss.Analyzer` — analyzers are always downstream, that is what they are for.
-- The user is writing country-specific data preprocessing (mortality reconstruction, coverage cleaning) — that is a data-construction script, belongs downstream by definition. See `mortality_construction.py`-shape scripts for the canonical pattern.
+- The user is writing project-specific data preprocessing (mortality reconstruction, coverage cleaning, target file assembly) — that is a data-construction script, belongs in the project repo by definition.
 - The user is adding a parameter that already exists on the parent — consult `model-primer/references/calibration-knobs.md` first for what stisim already exposes.
 
 ## Framing
@@ -34,10 +34,10 @@ The `model-primer/references/calibration-knobs.md` "Framing" section already sta
 
 Common failure modes this skill prevents:
 
-- **Reinvented existing knob.** `HIVMortalityMultiplier` was written as a `sti.HIV` subclass exposing a CD4-death-rate multiplier; `pars.rel_death` already existed for exactly this. Sixty-line subclass, one-line kwarg.
-- **Method override when a callable parameter suffices.** `AgeDependentSurvival` overrode `set_prognoses` to make `dur_latent` depend on age at infection; starsim distributions accept callable parameters ([`starsim/distributions.py:939`](../../../../../../starsim/starsim/distributions.py)) — `dur_latent = ss.lognorm_ex(mean=age_func, …)` achieves the same result in ~10 lines.
-- **Real fix kept downstream forever.** `VMMCPrevalenceTarget` was a legitimate workaround for a real stisim VMMC bug; the exp README rationalised keeping it in-repo "so a stisim git pull cannot silently wipe it again". The correct response was the PR that eventually landed as #535 — months later, with every other stisim user hitting the same bug in the interim.
-- **Never cleaned up after upstream landed.** `VLSStockTarget` was upstreamed in commit `45a8b21`; the downstream subclass is still the default in the exp repo. Dead code that will confuse the next reader and drift out of sync with the upstream API.
+- **Reinvented an existing par.** A downstream subclass exposes a scalar multiplier over an internal rate table; the parent already provides an equivalent par (e.g. a `rel_*` scaler) for exactly the same quantity. A multi-line subclass duplicating a one-line kwarg — because the agent did not grep the parent for existing pars first.
+- **Method override when a callable parameter suffices.** A subclass overrides a `set_prognoses`-style method to make a duration distribution depend on per-agent state (e.g. age at infection). Starsim distributions already accept callable parameters (see `convert_callable` in `starsim/distributions.py`) — the same behaviour is a ~10-line setup, no subclass needed.
+- **Real fix kept downstream indefinitely.** A downstream subclass fixes a genuine upstream bug. The docstring rationalises keeping it in-repo, typically with language like "so a stisim git pull cannot silently wipe it again". The correct response is an upstream PR opened in the same session — until then, every other stisim user hits the same bug.
+- **Never cleaned up after upstream landed.** A downstream workaround eventually gets upstreamed, but the downstream subclass remains the default in the project repo. Dead code that will confuse the next reader and drift out of sync with the upstream API.
 
 ## Instructions
 
@@ -49,7 +49,7 @@ Common failure modes this skill prevents:
 
 4. **If it is a research knob (b)** — ensure the subclass has a documented no-op default (a same-seed sim with the knob at its no-op value must be bit-identical to the base class). Opt-in via `hiv_class=` or an explicit `interventions=[…]` entry — never make it the default in a shared config.
 
-5. **When an upstream PR that supersedes a downstream workaround merges**, delete the downstream artifact in the same commit that bumps the dep version. Grep the repo for uses of the old subclass and switch them to the upstream API. This is the point most often skipped; it is what left `VLSStockTarget` alive in the exp repo months after the upstream fix.
+5. **When an upstream PR that supersedes a downstream workaround merges**, delete the downstream artifact in the same commit that bumps the dep version. Grep the repo for uses of the old subclass and switch them to the upstream API. This is the point most often skipped; it is why downstream repos routinely contain dead subclasses long after their upstream fix has landed.
 
 6. **On any inherited repo**, sweep for downstream `sti.*` / `ss.*` subclasses and ask, for each: does this reinvent an existing par? Is it still needed given current upstream? Is the "kept in-repo so git pull cannot wipe it" rationale in its docstring — because that framing itself is the anti-pattern.
 
