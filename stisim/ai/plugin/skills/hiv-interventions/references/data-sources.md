@@ -84,7 +84,7 @@ programme data.
 
 ## Cross-cutting sources
 
-### Existing HIV Sim country analyses
+### Existing HIVsim country analyses
 
 The two reference analyses ship their own compiled data:
 

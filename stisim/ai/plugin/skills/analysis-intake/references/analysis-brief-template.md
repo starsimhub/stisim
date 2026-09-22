@@ -1,6 +1,6 @@
 # Analysis brief — living template
 
-An analysis brief captures the current provisional specification of an HIV Sim analysis. It is **living** — fields are added, changed, and moved between statuses throughout the project. It is not a form to complete once. It is the durable output of `analysis-intake` and the input to every subsequent skill.
+An analysis brief captures the current provisional specification of an HIVsim analysis. It is **living** — fields are added, changed, and moved between statuses throughout the project. It is not a form to complete once. It is the durable output of `analysis-intake` and the input to every subsequent skill.
 
 ## Status markers
 
@@ -27,6 +27,17 @@ Do not invent values for unresolved fields. Leaving a field open is more useful 
 - **Time horizon** — from when to when
 - **Scenarios** — the specific comparisons the analysis will run
 
+### Methodological assessment
+
+The output of the `analysis-selector` skill, invoked once the research question is clear enough to classify. Explains the reasoning behind the tool choice, not just the tool.
+
+- **Analytical objective** — one of: description / estimation, association / prediction, structure / clustering, causal estimation, forecasting, dynamic mechanistic
+- **Dynamic transmission required** — yes / no, with reasoning
+- **Individual-level representation potentially valuable** — yes / no / n/a, with reasoning (only meaningful if dynamic transmission is required)
+- **HIVsim / STIsim suitability** — plausibly strong / not required / unsuitable / requires missing mechanism
+- **Evidence gaps** — what needs to be gathered or reviewed before the methodology can be finalised
+- **Multi-method plan** — if the question decomposes into stages using different methods, record each stage here
+
 ### Evidence
 
 - **Known evidence / data** — what is already in hand, with provenance
@@ -44,7 +55,7 @@ Do not invent values for unresolved fields. Leaving a field open is more useful 
 
 ### Working style
 
-- **Researcher HIV Sim experience** — first analysis / some experience / expert
+- **Researcher HIVsim experience** — first analysis / some experience / expert
 - **Desired guidance level** — explicit-every-decision / surface-only-consequential / minimal
 - **Memory strategy** — what holds curated project memory (per the `project-memory` skill)
 - **Repository / git strategy** — main repo, working branch, PR flow

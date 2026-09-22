@@ -6,7 +6,7 @@ All notable changes to the codebase are documented in this file.
 
 ### stisim.ai — new AI plugin
 
-The `stisim.ai` plugin ships with an initial skill library for Claude Code, in two clusters: **analysis-workflow** skills that scaffold and structure an HIV Sim analysis, and **software-quality** skills that keep AI-generated work shared and reviewable rather than accumulating as private forks. Enable via `python -m stisim.ai` — see [`stisim/ai/README.md`](stisim/ai/README.md).
+The `stisim.ai` plugin ships with an initial skill library for Claude Code, in two clusters: **analysis-workflow** skills that scaffold and structure an HIVsim analysis, and **software-quality** skills that keep AI-generated work shared and reviewable rather than accumulating as private forks. Enable via `python -m stisim.ai` — see [`stisim/ai/README.md`](stisim/ai/README.md).
 
 **Analysis workflow:** `model-primer` (architectural index of stisim, including the `calibration-knobs.md` reference for what stisim actually exposes as a knob vs. what should come from data vs. what belongs in an upstream PR), `model-writer` (composes a new Sim from a scoped research question), `hiv-interventions` (design-interview for ART / testing / VMMC / PrEP), `network-data` (DHS-focused sexual-network calibration), `session-close` (handoff summariser at session end), and **`analysis-intake`** (adapts Matt Pocock's [`grilling`](https://github.com/mattpocock/skills/blob/main/skills/productivity/grilling/SKILL.md) design-tree pattern for research intake — facts-vs-decisions split, with **blocked-on-evidence** as a third branch state alongside **settled** and **open**).
 
