@@ -2,6 +2,27 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.7.0 (2026-09-25)
+
+### stisim.ai — new AI plugin
+
+The `stisim.ai` plugin ships with an initial skill library for Claude Code, in two clusters: **analysis-workflow** skills that scaffold and structure an HIV Sim analysis, and **software-quality** skills that keep AI-generated work shared and reviewable rather than accumulating as private forks. Enable via `python -m stisim.ai` — see [`stisim/ai/README.md`](stisim/ai/README.md).
+
+**Analysis workflow:** `model-primer` (architectural index of stisim, including the `calibration-knobs.md` reference for what stisim actually exposes as a knob vs. what should come from data vs. what belongs in an upstream PR), `model-writer` (composes a new Sim from a scoped research question), `hiv-interventions` (design-interview for ART / testing / VMMC / PrEP), `network-data` (DHS-focused sexual-network calibration), `session-close` (handoff summariser at session end), and **`analysis-intake`** (adapts Matt Pocock's [`grilling`](https://github.com/mattpocock/skills/blob/main/skills/productivity/grilling/SKILL.md) design-tree pattern for research intake — facts-vs-decisions split, with **blocked-on-evidence** as a third branch state alongside **settled** and **open**).
+
+**Software quality:** all new in 1.7, unified by the theme *share your work rather than accumulate private forks of shared code or private caches of project knowledge* — a pattern that becomes especially easy to fall into when code generation is cheap and code review is not.
+- **`result-extraction`** — directs to `ss.Result` / `ss.Results` methods (`annualize`, `resample`, `to_df`) over hand-rolled `df.groupby('year').mean() / .sum()`, which silently mishandles the flow-vs-stock distinction and produces errors of `n_timesteps_per_year` that don't scream at calibration ranges.
+- **`extending-stisim`** — classifies candidate downstream changes as (a) fix, (b) opt-in research knob, or (c) project-specific data preprocessing, and enforces PR-upstream for fixes, no-op default for knobs, cleanup of downstream artifacts once their upstream fix lands, and file-an-issue as the fallback when a fix cannot be PR'd in-session.
+- **`editable-dep-hygiene`** — any edit to an editable pip install (stisim, starsim, or any `pip install -e` dep) gets committed and PR'd immediately; before a version bump or branch switch, the dep checkout is verified clean of unmerged local work. Also mandates a file-an-issue fallback for knowledge that cannot be cleanly PR'd yet.
+- **`comment-hygiene`** — shared-library docstrings and comments explain the software itself, not project-specific memory. Strips anti-patterns like "Experiment 5", "the current task", "we changed this because the user requested it"; points project-specific context at the project's own memory mechanism.
+- **`project-memory`** — establishes a durable memory strategy at project intake (repo-based, session-indexing, agent-memory provider, or hybrid) so a multi-month research project can survive session ends, machine switches, and collaborator handoffs. A chat session is working memory, not project memory.
+
+### stisim.data
+
+- **`stisim.data.dedup_deaths`** — reconstructs a non-AIDS mortality counterfactual from all-cause mortality by log-linear interpolation between pre-epidemic and post-epidemic anchors. Prevents the double-counting that happens when `ss.Deaths` (all-cause data) and `sti.HIV` (HIV-specific mortality) both kill agents from the same underlying epidemic. Includes `deleted_fraction` diagnostic. Referenced from `stisim.ai`'s `calibration-knobs.md`.
+- **Percentile-to-distribution-parameter helpers** — convert observed quantiles (e.g. "median 5 years, 95th percentile 12 years") into parameters of the corresponding lognormal / gamma / beta distributions, so calibration priors and duration parameters can be set directly from published summary statistics.
+
+
 ## Version 1.6.1 (2026-09-04)
 
 - **Age and sex stratification of disease results is now optional.** Every `BaseSTI` subclass (`Chlamydia`, `Gonorrhea`, `Trichomoniasis`, `Syphilis`, `HIV`, `BV`) now accepts `age_bins` and `sex_keys`; passing `None` for either skips the corresponding stratified results, leaving the whole-population ones untouched and numerically identical. Defaults are unchanged, so existing models are unaffected. Disabling both takes a gonorrhea module from 205 results to 29, which matters for large multi-sims and low-memory runs. `sti.default_age_bins` and `sti.default_sex_keys` are exported for building custom stratifications. `SEIS` also gains `age_range` as a constructor argument, previously hardcoded to `[15, 65]`. (#592)
