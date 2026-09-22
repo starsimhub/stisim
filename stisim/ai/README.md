@@ -123,10 +123,40 @@ other settings. `python -m stisim.ai uninstall` reverses it;
 
 ## Companion plugins
 
-- **`calib:*`** — generic calibration machinery (algorithm choice, prior
-  predictive, re-identification, workflow sequencing, plotting).
-  `calibration-strategy` decides *what* to calibrate; `calib:` skills
-  handle *how*.
+`stisim.ai` is intentionally narrow — it covers HIVsim / STIsim
+specifically. The plugins below cover adjacent concerns (generic
+calibration, generic starsim / disease modelling, project memory,
+IDM-wide engineering standards) and are designed to compose. We
+strongly encourage installing them alongside `stisim.ai`.
+
+- **[`calib`](https://github.com/InstituteforDiseaseModeling/calib-plugin)**
+  — generic calibration machinery: algorithm choice, prior predictive,
+  re-identification, workflow sequencing, method selection,
+  likelihood design, plotting. `calibration-strategy` decides *what*
+  to calibrate; `calib:*` skills handle *how*. Install:
+  `/plugin marketplace add https://github.com/InstituteforDiseaseModeling/calib-plugin`.
+
+- **[`starsim_ai`](https://github.com/starsimhub/starsim_ai)** —
+  three Claude Code plugins covering the layer under stisim:
+  `starsim-ai` (Starsim + Sciris MCP tools and modelling skills),
+  `disease-modeling` (general disease-modelling skills that apply
+  beyond HIVsim/STIsim), and `project-improver` (engineering-quality
+  review). Install:
+  `/plugin marketplace add https://github.com/starsimhub/starsim_ai`.
+
+- **[`canonize`](https://github.com/emiliasimmons/canonize)** — agent
+  skills for durable decision capture in computational modelling
+  projects. *"Sources feed the wiki. Decisions are internal sources.
+  Collaborators browse the wiki, not the sources."* Complements
+  `project-memory` with a concrete, opinionated implementation of the
+  curated-project-memory layer.
+
+- **[`idm_standards`](https://github.com/InstituteforDiseaseModeling/idm_standards)**
+  — IDM's central hub for software-quality standards, engineering
+  practice, style, and documentation. Covers what `comment-hygiene`,
+  `writing-tests`, and the other software-quality skills touch, but
+  from a broader institutional standards perspective. Install:
+  `/plugin marketplace add https://github.com/InstituteforDiseaseModeling/idm_standards`.
 
 ## AI collaboration
 
