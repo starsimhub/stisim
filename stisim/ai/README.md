@@ -1,37 +1,50 @@
-# stisim.ai — AI-assisted STIsim research (WIP)
-
-**Status:** early scaffold, actively iterating. Structure, skill inventory,
-packaging and roadmap are all subject to change during this branch.
-
-## What this is
+# stisim.ai — AI-assisted STIsim research
 
 A Claude Code plugin that ships alongside the `stisim` Python package. Its
 goal is to install guardrails, checkpoints, and workflow discipline around
-STIsim research so that model-assisted analyses are more defensible, more
-reproducible, and less prone to known failure modes. The value proposition
-is **guardrails, not speed** — the plugin may sometimes slow an experienced
-user relative to vanilla Claude Code. Better work, not faster work.
+STIsim / HIVsim research so that model-assisted analyses are more
+defensible, more reproducible, and less prone to known failure modes. The
+value proposition is **guardrails, not speed** — the plugin may sometimes
+slow an experienced user relative to vanilla Claude Code. Better work,
+not faster work.
 
-## Proposed structure
+## Skill inventory
 
-Three layers under a `stisim:` plugin namespace:
+Fourteen skills, in three functional clusters.
 
-- **Meta layer** — orchestration and process. Intake (`getting-started`),
-  the research workflow, session hygiene (`session-close`), and topic
-  teach-and-quiz (`model-exam`).
-- **Specialist layer** — invoked by the research workflow at each step.
-  `model-writer`, `extend-model`, `scenario-runner`, `results-analyst`,
-  and more.
-- **Reference layer** — loaded on demand. Architecture index
-  (`model-primer`), plus per-topic references as they earn their keep.
+### Analysis workflow — scaffold and structure a research project
 
-Three skills are scaffolded so far:
+| Skill | Purpose |
+|---|---|
+| `analysis-intake` | Grilling-style design-tree intake that turns a vague research idea into a provisional analysis specification. Adapts Matt Pocock's [`grilling`](https://github.com/mattpocock/skills/blob/main/skills/productivity/grilling/SKILL.md) with facts-vs-decisions split and `blocked-on-evidence` as a third branch state. |
+| `analysis-selector` | Runs very early in intake, before any tool is assumed. Classifies the research question into one of six analytical objectives (description / association / structure / causal / forecasting / dynamic-mechanistic) and only routes to HIVsim if dynamic mechanistic transmission is actually required. Redirection away from HIVsim is a successful outcome. |
+| `project-memory` | Establishes a durable memory strategy at project intake (repo-based, session-indexing, agent-memory provider, or hybrid) so a multi-month project can survive session ends, machine switches, and collaborator handoffs. A chat session is working memory, not project memory. |
+| `session-close` | Handoff summariser at session end, feeding into whichever memory mechanism `project-memory` established. |
 
-| Skill | Layer | Status |
-|---|---|---|
-| `stisim:model-primer` | Reference | Scaffolded; `references/canonical-sources.md` populated, `references/architecture.md` filled in |
-| `stisim:session-close` | Meta | Scaffolded; procedural steps and handoff template filled in |
-| `stisim:model-writer` | Specialist | Scaffolded; procedural steps and authoring checklist filled in |
+### Model authoring and calibration — invoked once the analysis is scoped
+
+| Skill | Purpose |
+|---|---|
+| `model-primer` | Reference-layer architectural index of stisim — assembly, disease hierarchy, networks, interventions, connectors, analyzers, demographics, care-seeking, timestep discipline. Includes the `calibration-knobs.md` reference for what stisim actually exposes. |
+| `model-writer` | Composes a new Sim from a scoped research question. |
+| `hiv-interventions` | Design-interview for the ART / testing / VMMC / PrEP set, with per-intervention data-source references. |
+| `network-data` | DHS-focused sexual-network calibration input. |
+| `calibration-strategy` | HIVsim / STIsim-specific what/why/whether-to-calibrate: parameter classification (data-informed / literature-fixed / country-specific-uncertain / behavioural / tuning / intervention-assumption), target-vs-knob distinction, ART/testing structural dependency, failure diagnosis. Delegates algorithm / sampler / likelihood / diagnostics to the `calib:*` plugin. |
+
+### Software quality — cross-cutting, unified by "share your work"
+
+All in this cluster reinforce the theme *share your work rather than
+accumulate private forks of shared code or private caches of project
+knowledge* — a pattern that becomes especially easy to fall into when
+code generation is cheap and code review is not.
+
+| Skill | Purpose |
+|---|---|
+| `extending-stisim` | Before subclassing / monkey-patching stisim, classify the change as (a) fix, (b) opt-in research knob, or (c) project-specific data preprocessing, and enforce PR-upstream for fixes, no-op default for knobs, cleanup of downstream artifacts once their upstream fix lands, and file-an-issue as the fallback. |
+| `editable-dep-hygiene` | Any edit to an editable `pip install -e` dependency gets committed and PR'd immediately; before a version bump or branch switch, the dep checkout is verified clean of unmerged local work. |
+| `comment-hygiene` | Shared-library docstrings and comments explain the software itself, not project-specific memory. Strips anti-patterns like "Experiment 5", "the current task", "we changed this because the user requested it". |
+| `result-extraction` | Directs to `ss.Result` / `ss.Results` methods (`annualize`, `resample`, `to_df`) over hand-rolled `df.groupby('year').mean() / .sum()`, which silently mishandles the flow-vs-stock distinction. |
+| `writing-tests` | Prefer a small number of scientifically meaningful tests over comprehensive enumeration. Every proposed test should have a one-sentence answer to "what meaningful bug would this catch?"; if the answer is "confirms a value we assigned still has that value", don't add it. |
 
 ## Directory layout
 
@@ -45,16 +58,24 @@ stisim/ai/
     │   ├── plugin.json             # plugin manifest
     │   └── marketplace.json        # local marketplace descriptor
     └── skills/
+        ├── analysis-intake/
+        ├── analysis-selector/
+        ├── calibration-strategy/
+        ├── comment-hygiene/
+        ├── editable-dep-hygiene/
+        ├── extending-stisim/
+        ├── hiv-interventions/
         ├── model-primer/
-        │   ├── SKILL.md
-        │   └── references/
         ├── model-writer/
-        │   ├── SKILL.md
-        │   └── references/
-        └── session-close/
-            ├── SKILL.md
-            └── references/
+        ├── network-data/
+        ├── project-memory/
+        ├── result-extraction/
+        ├── session-close/
+        └── writing-tests/
 ```
+
+Each skill directory contains `SKILL.md`; skills with deeper reference
+material also carry a `references/` subdirectory.
 
 ## Activation
 
@@ -75,6 +96,12 @@ pip-installed plugin path. The write is atomic, idempotent, and preserves
 all other settings. `python -m stisim.ai uninstall` reverses it;
 `python -m stisim.ai status` reports current registration.
 
+## Companion plugins
+
+- **`calib:*`** — generic calibration machinery (algorithm choice, prior
+  predictive, re-identification, workflow sequencing, plotting).
+  `calibration-strategy` decides *what* to calibrate; `calib:` skills
+  handle *how*.
 
 ## AI collaboration
 
@@ -84,5 +111,4 @@ CLI, initial skill scaffolding, and this README were drafted by Claude
 under human review. All architectural and scoping decisions —
 package layout, invariants, install mechanism, roadmap ordering, and what
 belongs in MVP versus later — were made by humans on the STIsim team.
-Skill body content is authored by AI and humans; areas that still contain
-AI-drafted placeholder text are marked as such in the files.
+Skill body content is authored by AI and humans.
