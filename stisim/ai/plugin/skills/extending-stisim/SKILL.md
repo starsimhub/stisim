@@ -20,6 +20,10 @@ description: Use when about to subclass a stisim / starsim class, override a lib
 
 ## Framing
 
+**The goal is to share fixes back to the community that benefits from them.** When you find a bug or gap in stisim, the default action is an upstream PR — every stisim user benefits, and future you gets code review from the maintainers rather than maintaining an untested private fork alone. If you spot a bug you cannot fix in this session, file an issue upstream so at least the knowledge is shared; silent knowledge of a bug is also siloing.
+
+**The cost of a downstream workaround is not that a version bump might wipe it — it is that it stays siloed.** Every other stisim user hits the same bug until the fix lands upstream. Every downstream subclass is code that only your team can maintain, review, and improve. AI makes downstream subclassing especially tempting (fast to draft, feels productive) and especially dangerous (unshared code accumulates faster than the org can review it, and code review — not code production — is the binding constraint on org throughput now). The version-bump-wipes-the-fix problem is a symptom of the deeper anti-pattern: a private fork of shared code.
+
 Two questions decide where a change lives. Ask them in this order:
 
 1. **Am I fixing broken behavior, or adding a project-specific opt-in knob?** If the change corrects a bug or gap that every stisim user would want fixed, it belongs upstream. If it is a research-specific handle that other users would not want as the default, it can live downstream — but only as an opt-in with a no-op default.
@@ -41,7 +45,7 @@ Common failure modes this skill prevents:
 
 2. **Before writing any subclass, grep the parent for an existing par or an equivalent mechanism.** Read `model-primer/references/calibration-knobs.md` for the canonical index. Check `define_pars(…)`, `self.<name> = …` attributes in `__init__`, and — for anything that draws from a distribution based on per-agent state — starsim's callable-parameter mechanism. If the mechanism already exists, use it and do not subclass.
 
-3. **If it is a fix (a)** — write the change as a PR against the dep, not as a downstream subclass. A downstream hotfix is acceptable *only* if the PR is opened in the same session and the exp / SUMMARY records the PR URL. If a hotfix is used without an accompanying PR, name that as technical debt in the exp and set a deadline.
+3. **If it is a fix (a)** — write the change as a PR against the dep, not as a downstream subclass. A downstream hotfix is acceptable *only* if the PR is opened in the same session and the exp / SUMMARY records the PR URL. If the fix is beyond what you can PR in this session (needs a maintainer conversation, a design decision, or expertise you don't have), **file an issue in the dep repo describing the bug and the workaround you used**, and link the issue from the exp — the knowledge is then shared even if the fix is not yet.
 
 4. **If it is a research knob (b)** — ensure the subclass has a documented no-op default (a same-seed sim with the knob at its no-op value must be bit-identical to the base class). Opt-in via `hiv_class=` or an explicit `interventions=[…]` entry — never make it the default in a shared config.
 
