@@ -7,6 +7,14 @@ publish_docs workflow does. It is slow (minutes) and depends on quarto being
 installed, so it's marked manual: pytest skips it unless the
 ``RUN_DOCS_BUILD`` environment variable is set.
 
+It also clears ``docs/_inv/`` first, so the render matches CI's fresh checkout.
+That directory is a gitignored cache of the external inventories quartodoc
+fetches for interlinks (python, numpy, pandas, matplotlib, sciris, starsim). A
+stale entry means the local build never touches the network for that source,
+so an unreachable one passes locally and fails on CI — exactly what happened at
+the v1.6.1 release, when docs.scipy.org went down between the local check and
+the publish (#594).
+
 Run before merging any rcX.X.X branch into main:
 
     RUN_DOCS_BUILD=1 pytest tests/devtests/devtest_docs.py -s
@@ -23,6 +31,7 @@ import pytest
 
 
 DOCS_DIR = Path(__file__).resolve().parent.parent.parent / 'docs'
+INV_DIR = DOCS_DIR / '_inv'  # quartodoc's cache of external interlinks inventories
 
 
 def _quarto_available():
@@ -36,6 +45,9 @@ def _quarto_available():
 @pytest.mark.skipif(not _quarto_available(), reason='quarto not installed')
 def test_docs_render():
     """Render the docs site end-to-end; any tutorial/example error will fail."""
+    # Force interlinks to re-fetch, so a dead source fails here rather than on CI
+    shutil.rmtree(INV_DIR, ignore_errors=True)
+
     result = subprocess.run(
         ['quarto', 'render'],
         cwd=DOCS_DIR,
