@@ -79,12 +79,37 @@ material also carry a `references/` subdirectory.
 
 ## Activation
 
+### From a released stisim (pip)
+
 ```
 pip install stisim
 python -m stisim.ai install
 ```
 
-Then reload the Claude Code session:
+### From an editable clone (contributors, and anyone tracking `main` or a feature branch)
+
+```
+git clone git@github.com:starsimhub/stisim.git
+cd stisim
+pip install -e .
+python -m stisim.ai install
+```
+
+`stisim.ai install` resolves the plugin path from the installed `stisim`
+package location, so an editable install activates the plugin *from your
+git checkout* — any local edits to `stisim/ai/plugin/skills/` are picked
+up immediately on the next Claude Code reload, without a reinstall.
+This is the workflow to use if you are developing or editing the skills
+themselves.
+
+If you `git pull` on the editable stisim checkout, the plugin content
+updates on the next Claude Code reload; no reinstall needed. See the
+`editable-dep-hygiene` skill for the git protocol around editable
+dependencies.
+
+### After install (either path)
+
+Reload the Claude Code session:
 - VS Code / Positron: Command Palette → *Developer: Reload Window*
 - CLI: exit and relaunch `claude`
 
@@ -92,8 +117,8 @@ Then reload the Claude Code session:
 
 The bootstrap edits `~/.claude/settings.json` to add `stisim@stisim-local`
 under `enabledPlugins` and register a directory-sourced marketplace at the
-pip-installed plugin path. The write is atomic, idempotent, and preserves
-all other settings. `python -m stisim.ai uninstall` reverses it;
+stisim plugin path. The write is atomic, idempotent, and preserves all
+other settings. `python -m stisim.ai uninstall` reverses it;
 `python -m stisim.ai status` reports current registration.
 
 ## Companion plugins
