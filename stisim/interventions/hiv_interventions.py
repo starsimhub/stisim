@@ -344,7 +344,7 @@ class ART(ss.Intervention):
             smoothness=self._smoothness, format_priority=self._format_priority,
         )
 
-        # Parse VLS coverage data (fraction achieving viral suppression at initiation).
+        # Parse VLS coverage data (target fraction of agents on ART who are virally suppressed).
         # missing_fill=1.0 so strata absent from a stratified vls_coverage default to
         # 100% suppression, per the documented default (opposite of the 0%-default used
         # for ART's own enrollment `coverage`, above).
@@ -360,10 +360,21 @@ class ART(ss.Intervention):
             vls_values = (np.concatenate(list(self.vls_coverage.values()))
                           if isinstance(self.vls_coverage, dict) else self.vls_coverage)
             if np.any(vls_values < 0) or np.any(vls_values > 1):
-                errormsg = 'vls_coverage must be a proportion (0-1) of ART initiators achieving viral suppression, not an absolute count.'
+                errormsg = 'vls_coverage must be a proportion (0-1) of agents on ART who are virally suppressed, not an absolute count.'
                 raise ValueError(errormsg)
 
         self.initialized = True
+        return
+
+    def init_results(self):
+        super().init_results()
+        # Per-step flow of agents newly moved into viral suppression by
+        # vls_stock_correction. Mirrors VMMC's new_circumcisions and PrEP's
+        # new_prep. Reversions (agents moved out of suppression when the
+        # target falls) are not counted here — see _suppress_to_target.
+        self.define_results(
+            ss.Result('new_vls', dtype=int, label='Newly virally suppressed', auto_plot=False),
+        )
         return
 
     def make_vls_prob_fn(self, sim, uids):
@@ -375,8 +386,12 @@ class ART(ss.Intervention):
         vls_coverage is unset entirely) defaults to 100% — i.e. always
         effective, matching the previous behavior.
 
-        This sets the state *at initiation*; :meth:`vls_stock_correction` then
-        maintains it against the target for the rest of the agent's time on ART.
+        Note that when vls_coverage is set, :meth:`vls_stock_correction` runs
+        later in the same step and re-ranks every agent on ART by
+        :attr:`suppression_propensity`, so this per-initiate draw is overwritten
+        before transmission reads `on_effective_art`. The draw is preserved for
+        the ``vls_coverage is None`` default (100% suppressed at initiation, no
+        correction) and as a defensive initial value.
         """
         probs = np.ones(len(uids))
         if self.vls_coverage is None:
@@ -549,7 +564,7 @@ class ART(ss.Intervention):
         # Correct viral suppression among those already on ART to the
         # vls_coverage target. Must run AFTER coverage correction, so that
         # agents added to ART this step are included in the suppression pool.
-        self.vls_stock_correction(sim)
+        self.results['new_vls'][self.ti] = self.vls_stock_correction(sim)
 
         # PMTCT: reduce susceptibility of infants whose mothers are on ART.
         # This applies to both prenatal (MaternalNet) and postnatal (BreastfeedingNet)

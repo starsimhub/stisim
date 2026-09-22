@@ -249,6 +249,98 @@ def test_art_vls_coverage():
     return sim
 
 
+@sc.timer()
+def test_art_vls_coverage_stock_tracks_over_time(do_plot=do_plot):
+    """
+    vls_coverage is a stock target: p_vls_given_art at time t should track the
+    target *at time t*, not the target that was active when each agent initiated
+    ART. Under initiation-only semantics both arms below would freeze near their
+    starting target — the rising arm below its final target, the falling arm
+    above it — because the existing treated stock would never revisit its
+    suppression status.
+    """
+    sc.heading('Testing vls_coverage stock-target semantics over time...')
+
+    def _build(vls_years, vls_vals):
+        vls_df = pd.DataFrame({'Year': vls_years, 'p_vls': vls_vals})
+        sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=20)
+        sim.pars.interventions = [
+            sti.HIVTest(name='hiv_test', test_prob_data=0.5),
+            sti.ART(coverage=0.7, vls_coverage=vls_df),
+        ]
+        sim.pars.analyzers = [sti.art_coverage()]
+        return sim
+
+    # 20-year window; the ramp endpoints match the sim window so the last-year
+    # target equals the ramp endpoint (parse_coverage interpolates linearly).
+    rising  = _build([2000, 2020], [0.3, 0.9])
+    falling = _build([2000, 2020], [0.9, 0.3])
+    msim = ss.parallel([rising, falling])
+
+    r_ac = msim.sims[0].results.art_coverage
+    f_ac = msim.sims[1].results.art_coverage
+    final_rise = np.mean(r_ac.p_vls_given_art[-24:])
+    final_fall = np.mean(f_ac.p_vls_given_art[-24:])
+
+    assert final_rise > 0.75, (
+        f'Rising vls_coverage (0.3→0.9) failed to lift the existing treated '
+        f'stock; final p_vls_given_art={final_rise:.2f}'
+    )
+    assert final_fall < 0.5, (
+        f'Falling vls_coverage (0.9→0.3) failed to un-suppress the existing '
+        f'treated stock; final p_vls_given_art={final_fall:.2f}'
+    )
+
+    if do_plot:
+        fig, ax = pl.subplots()
+        ax.plot(msim.sims[0].t.yearvec, r_ac.p_vls_given_art, label='rising target')
+        ax.plot(msim.sims[1].t.yearvec, f_ac.p_vls_given_art, label='falling target')
+        ax.set_ylabel('p_vls_given_art')
+        ax.legend()
+
+    return msim
+
+
+@sc.timer()
+def test_art_vls_coverage_stratified_stock():
+    """
+    Stratified vls_coverage: per-stratum targets survive stock correction.
+    A global ranking across all agents on ART would collapse the F/M
+    differential in the input toward the pool-wide mean; the per-stratum loop
+    in vls_stock_correction preserves it.
+    """
+    sc.heading('Testing stratified vls_coverage stock correction...')
+
+    # Sex-only differentials (single all-ages bin) with a wide gap, so the
+    # invariant is detectable at n_agents=1k without per-age sub-splits.
+    target_f, target_m = 0.85, 0.35
+    age_bins = [15, 100]
+    rows = []
+    for year in [2000, 2010]:
+        for gender, p in [(0, target_f), (1, target_m)]:
+            rows.append(dict(Year=year, Gender=gender, AgeBin='[15,100)', p_vls=p))
+    vls_df = pd.DataFrame(rows)
+
+    sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=10)
+    sim.pars.interventions = [
+        sti.HIVTest(name='hiv_test', test_prob_data=0.5),
+        sti.ART(coverage=0.7, vls_coverage=vls_df),
+    ]
+    sim.pars.analyzers = [sti.art_coverage(age_bins=age_bins)]
+    sim.run()
+    ac = sim.results.art_coverage
+
+    final_f = np.mean(ac.p_vls_given_art_f[-24:])
+    final_m = np.mean(ac.p_vls_given_art_m[-24:])
+    assert final_f - final_m > 0.3, (
+        f'F/M vls_coverage gap ({target_f}/{target_m}) collapsed after '
+        f'correction: F={final_f:.2f}, M={final_m:.2f} — per-stratum loop '
+        f'may be misapplied.'
+    )
+
+    return sim
+
+
 # %% Functional tests
 @sc.timer()
 def test_art_effects(do_plot=do_plot):
@@ -749,6 +841,8 @@ if __name__ == '__main__':
     r9  = test_art_reduces_mortality(do_plot=do_plot)
     r10 = test_art_parameter_sensitivity(do_plot=do_plot)
     r11 = test_art_duration(do_plot=do_plot)
+    r11a = test_art_vls_coverage_stock_tracks_over_time(do_plot=do_plot)
+    r11b = test_art_vls_coverage_stratified_stock()
     r12 = test_pn()
     r13 = test_pn_rates()
     r14 = test_pn_rates_sim()
