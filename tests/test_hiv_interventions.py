@@ -241,23 +241,14 @@ def test_art_vls_coverage():
         bad_art = sti.ART(vls_coverage=bad_df)
         sti.Sim(diseases='hiv', interventions=bad_art, n_agents=n_agents, start=2015, stop=2016, verbose=0).init()
 
-    # Combining vls_coverage with the legacy p_effective_art override should raise at construction,
-    # since p_effective_art would otherwise silently clobber vls_coverage
-    with pytest.raises(ValueError):
-        sti.ART(vls_coverage=0.7, p_effective_art=0.9)
-
     return sim
 
 
 @sc.timer()
 def test_art_vls_coverage_stock_tracks_over_time(do_plot=do_plot):
     """
-    vls_coverage is a stock target: p_vls_given_art at time t should track the
-    target *at time t*, not the target that was active when each agent initiated
-    ART. Under initiation-only semantics both arms below would freeze near their
-    starting target — the rising arm below its final target, the falling arm
-    above it — because the existing treated stock would never revisit its
-    suppression status.
+    vls_coverage is a stock target: p_vls_given_art should track the current
+    target, not the one that was active when each agent initiated ART.
     """
     sc.heading('Testing vls_coverage stock-target semantics over time...')
 
@@ -271,8 +262,7 @@ def test_art_vls_coverage_stock_tracks_over_time(do_plot=do_plot):
         sim.pars.analyzers = [sti.art_coverage()]
         return sim
 
-    # 20-year window; the ramp endpoints match the sim window so the last-year
-    # target equals the ramp endpoint (parse_coverage interpolates linearly).
+    # Ramp endpoints match the sim window (parse_coverage interpolates linearly).
     rising  = _build([2000, 2020], [0.3, 0.9])
     falling = _build([2000, 2020], [0.9, 0.3])
     msim = ss.parallel([rising, falling])
@@ -282,14 +272,8 @@ def test_art_vls_coverage_stock_tracks_over_time(do_plot=do_plot):
     final_rise = np.mean(r_ac.p_vls_given_art[-24:])
     final_fall = np.mean(f_ac.p_vls_given_art[-24:])
 
-    assert final_rise > 0.75, (
-        f'Rising vls_coverage (0.3→0.9) failed to lift the existing treated '
-        f'stock; final p_vls_given_art={final_rise:.2f}'
-    )
-    assert final_fall < 0.5, (
-        f'Falling vls_coverage (0.9→0.3) failed to un-suppress the existing '
-        f'treated stock; final p_vls_given_art={final_fall:.2f}'
-    )
+    assert final_rise > 0.75, f'Rising vls_coverage: final p_vls_given_art={final_rise:.2f}, expected >0.75'
+    assert final_fall < 0.5,  f'Falling vls_coverage: final p_vls_given_art={final_fall:.2f}, expected <0.5'
 
     if do_plot:
         fig, ax = pl.subplots()
@@ -304,21 +288,16 @@ def test_art_vls_coverage_stock_tracks_over_time(do_plot=do_plot):
 @sc.timer()
 def test_art_vls_coverage_stratified_stock():
     """
-    Stratified vls_coverage: per-stratum targets survive stock correction.
-    A global ranking across all agents on ART would collapse the F/M
-    differential in the input toward the pool-wide mean; the per-stratum loop
-    in vls_stock_correction preserves it.
+    Stratified vls_coverage: an F/M target gap in the input must survive
+    stock correction (a global ranking would collapse it toward the pool mean).
     """
     sc.heading('Testing stratified vls_coverage stock correction...')
 
-    # Sex-only differentials (single all-ages bin) with a wide gap, so the
-    # invariant is detectable at n_agents=1k without per-age sub-splits.
     target_f, target_m = 0.85, 0.35
     age_bins = [15, 100]
-    rows = []
-    for year in [2000, 2010]:
-        for gender, p in [(0, target_f), (1, target_m)]:
-            rows.append(dict(Year=year, Gender=gender, AgeBin='[15,100)', p_vls=p))
+    rows = [dict(Year=year, Gender=g, AgeBin='[15,100)', p_vls=p)
+            for year in [2000, 2010]
+            for g, p in [(0, target_f), (1, target_m)]]
     vls_df = pd.DataFrame(rows)
 
     sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=10)
@@ -333,9 +312,8 @@ def test_art_vls_coverage_stratified_stock():
     final_f = np.mean(ac.p_vls_given_art_f[-24:])
     final_m = np.mean(ac.p_vls_given_art_m[-24:])
     assert final_f - final_m > 0.3, (
-        f'F/M vls_coverage gap ({target_f}/{target_m}) collapsed after '
-        f'correction: F={final_f:.2f}, M={final_m:.2f} — per-stratum loop '
-        f'may be misapplied.'
+        f'F/M vls_coverage gap ({target_f}/{target_m}) collapsed: '
+        f'F={final_f:.2f}, M={final_m:.2f}'
     )
 
     return sim
