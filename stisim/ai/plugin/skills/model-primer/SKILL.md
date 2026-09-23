@@ -25,7 +25,7 @@ An index and mental model of STIsim's architecture. It points at canonical sourc
 
 1. Read `references/architecture.md` for the mental model of how STIsim's components compose.
 2. For a specific area, use `references/canonical-sources.md` to locate the authoritative implementation, docs, and tests.
-3. If the task requires deep semantics (parameter meanings, algorithm details, edge behaviour), read the canonical source directly rather than paraphrasing from this primer.
+3. If the task requires deep semantics (parameter meanings, algorithm details, edge behavior), read the canonical source directly rather than paraphrasing from this primer.
 
 ## How this skill is evaluated
 
@@ -33,4 +33,4 @@ Design-time evaluation: whether invoking this skill measurably improves Claude's
 
 ## Checks before completion
 
-Reference skills produce no artefacts. Not applicable.
+Reference skills produce no artifacts. Not applicable.

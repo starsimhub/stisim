@@ -38,7 +38,7 @@ Common failure modes this skill prevents:
    - `result.resample(new_unit='month', …)` — non-annual cadences, pandas-backed, more flexible.
    - `result.to_df(resample='year')` — annual DataFrame ready for plotting or joining, with low/high bounds preserved.
 
-3. **If the result name doesn't match the heuristic, pass `summarize_by=` explicitly.** The heuristic only recognises `new_*`, `n_*` / `_n_*`, and `cum_*`. A result named `treatment_success_rate` or `prev_15_49` will default to `mean`, which may or may not be what you want. Either set `summarize_by='sum'|'mean'|'last'` on the Result at creation time (preferred — the decision travels with the data), or pass it into `annualize()` / `resample()` at the call site.
+3. **If the result name doesn't match the heuristic, pass `summarize_by=` explicitly.** The heuristic only recognizes `new_*`, `n_*` / `_n_*`, and `cum_*`. A result named `treatment_success_rate` or `prev_15_49` will default to `mean`, which may or may not be what you want. Either set `summarize_by='sum'|'mean'|'last'` on the Result at creation time (preferred — the decision travels with the data), or pass it into `annualize()` / `resample()` at the call site.
 
 4. **Never hand-roll aggregation over sim results.** If the code you are about to write contains `df.groupby(…)[<result_col>].mean()` or `.sum()`, stop and use one of the above instead. The only legitimate exception is a genuinely custom denominator that no method covers — and even then, aggregate the numerator and denominator separately using the correct per-Result method, then divide. Do not compute per-capita rates by summing a stock.
 

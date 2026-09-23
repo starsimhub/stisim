@@ -20,7 +20,7 @@ Source lives in `stisim/diseases/`; each disease has its own file.
 | Base STI | `stisim/diseases/sti.py` | `docs/user_guide/diseases/` |
 | HIV | `stisim/diseases/hiv.py` | `docs/user_guide/diseases/` |
 | Syphilis | `stisim/diseases/syphilis.py` | `docs/user_guide/diseases/` |
-| Gonorrhoea | `stisim/diseases/gonorrhea.py` | `docs/user_guide/diseases/` |
+| Gonorrhea | `stisim/diseases/gonorrhea.py` | `docs/user_guide/diseases/` |
 | Chlamydia | `stisim/diseases/chlamydia.py` | `docs/user_guide/diseases/` |
 | Trichomoniasis | `stisim/diseases/trichomoniasis.py` | `docs/user_guide/diseases/` |
 | BV | `stisim/diseases/bv.py` | `docs/user_guide/diseases/` |
@@ -50,7 +50,7 @@ Source lives in `stisim/interventions/`.
 | Base | `stisim/interventions/base_interventions.py` |
 | HIV | `stisim/interventions/hiv_interventions.py` |
 | Syphilis | `stisim/interventions/syphilis_interventions.py` |
-| Gonorrhoea | `stisim/interventions/gonorrhea_interventions.py` |
+| Gonorrhea | `stisim/interventions/gonorrhea_interventions.py` |
 | BV | `stisim/interventions/bv_interventions.py` |
 | Pregnancy risk | `stisim/interventions/pregnancy_risk.py` |
 
@@ -85,7 +85,7 @@ Note: for actual calibration workflow, hand off to the `calib:` plugin.
 
 Source: `stisim/logistics/`.
 
-## hivsim (slim HIV subpackage)
+## HIVsim (slim HIV subpackage)
 
 Source: `hivsim/sim.py`.
 Docs: `docs/user_guide/hivsim.md`.
@@ -112,7 +112,7 @@ Examples: `hivsim_examples/simple/`, `hivsim_examples/zimbabwe/`.
 
 ## Tests
 
-Source: `tests/`. Consult for expected behaviour when semantics are unclear from source alone.
+Source: `tests/`. Consult for expected behavior when semantics are unclear from source alone.
 
 ## External
 

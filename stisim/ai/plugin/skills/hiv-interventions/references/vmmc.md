@@ -31,18 +31,18 @@ Same as ART: the coverage parser (`parse_coverage`) accepts:
 
 Stratification is optional. Age bins (`AgeBin`) are the most
 consequential stratification because circumcision prevalence rises
-sharply with age in scaled-up programmes, and coverage is often
+sharply with age in scaled-up programs, and coverage is often
 tracked in 5-year bins.
 
-## Baseline (traditional) vs programme scale-up
+## Baseline (traditional) vs program scale-up
 
-Both reference analyses **combine traditional baseline and programme
+Both reference analyses **combine traditional baseline and program
 VMMC in a single prevalence series** — the input CSV runs across the
 full period and the intervention treats whatever prevalence the data
 shows as the joint result of both. Eswatini's data starts at 1990
 with low prevalence (~0.25–2%), rising to survey-measured levels by
 2007+ (4–19%, age-dependent). Zimbabwe's data starts from the
-programme launch in 2008.
+program launch in 2008.
 
 STIsim exposes a `traditional_prob` parameter (default
 `ss.bernoulli(p=0)`, i.e. off) for representing traditional
@@ -51,7 +51,7 @@ circumcision as a separate always-on process at a given age
 
 Use `traditional_prob` when the analysis needs to distinguish
 traditional and programmatic circumcision explicitly — e.g. an
-analysis of VMMC programme impact that must not conflate the two.
+analysis of VMMC program impact that must not conflate the two.
 Otherwise, feeding a combined prevalence series is simpler.
 
 ## Age targeting
@@ -61,7 +61,7 @@ provides bins [10,15), [15,20), ..., [60,65); the per-stratum
 correction hits each bin against its target. Zimbabwe's unaggregated
 data applies a single national prevalence to all ages.
 
-For programmes that explicitly targeted a specific age range (VMMC
+For programs that explicitly targeted a specific age range (VMMC
 scale-up commonly targets 10–29 or 15–34), fill zeros in the bins
 outside the target range if the observed data supports it. Do not
 extrapolate from the target range to older bands unless the data
@@ -83,7 +83,7 @@ This split matters for two reasons:
    state; the risk reduction they experience is determined by the
    HIV module's `eff_circ`.
 
-Neither reference analysis overrides `eff_circ`; both use stisim's
+Neither reference analysis overrides `eff_circ`; both use STIsim's
 default. If the analysis question involves the protective effect
 directly, tune it explicitly and record the choice.
 
@@ -98,7 +98,7 @@ directly, tune it explicitly and record the choice.
 - Is the analysis sensitive to the protective effect? If so, plan a
   sensitivity on `eff_circ`.
 
-For non-VMMC settings (or the pre-programme period), leave the
+For non-VMMC settings (or the pre-program period), leave the
 intervention out entirely rather than passing zero coverage — the
 model treats no intervention differently from zero coverage in some
 edge cases.

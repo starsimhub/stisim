@@ -21,7 +21,7 @@ Do not invent values for unresolved fields. Leaving a field open is more useful 
 - **Decision / scientific purpose** — what the analysis is intended to inform
 - **Setting** — country, region, or explicitly-theoretical
 - **Population** — who the analysis is about, including any sub-populations
-- **Intervention(s)** — what is being modelled as the change
+- **Intervention(s)** — what is being modeled as the change
 - **Comparator(s)** — what the intervention is compared against
 - **Outcomes** — primary and secondary; include distributional / equity outcomes if relevant
 - **Time horizon** — from when to when
@@ -35,7 +35,7 @@ The output of the `analysis-selector` skill, invoked once the research question 
 - **Dynamic transmission required** — yes / no, with reasoning
 - **Individual-level representation potentially valuable** — yes / no / n/a, with reasoning (only meaningful if dynamic transmission is required)
 - **HIVsim / STIsim suitability** — plausibly strong / not required / unsuitable / requires missing mechanism
-- **Evidence gaps** — what needs to be gathered or reviewed before the methodology can be finalised
+- **Evidence gaps** — what needs to be gathered or reviewed before the methodology can be finalized
 - **Multi-method plan** — if the question decomposes into stages using different methods, record each stage here
 
 ### Evidence

@@ -81,7 +81,7 @@ low_cd4_testing = sti.HIVTest(
 A `HIVTest` instance whose eligibility is *pregnant, first-trimester,
 undiagnosed*. Eswatini implements ANC testing this way (a `HIVTest`
 with pregnancy-scoped eligibility and `dt_scale=False` so the given
-probability is per-timestep rather than annualised).
+probability is per-timestep rather than annualized).
 
 ```python
 anc_testing = sti.HIVTest(
@@ -89,7 +89,7 @@ anc_testing = sti.HIVTest(
         ~sim.diseases.hiv.diagnosed[sim.demographics.pregnancy.tri1_uids]
     ],
     test_prob_data=anc_ramp,
-    dt_scale=False,   # per-timestep probability, not annualised
+    dt_scale=False,   # per-timestep probability, not annualized
     years=years,
 )
 ```
@@ -109,7 +109,7 @@ health outcomes, ANC testing is usually essential.
 `sti.InfantHIVTest` — follow-up testing of HIV-exposed infants at
 delivery. Scheduled by pregnancy events, not by a rate. Neither
 reference analysis currently uses it. Include when the analysis needs
-paediatric diagnosis dynamics.
+pediatric diagnosis dynamics.
 
 ## The `test_prob_data` shape
 
@@ -138,7 +138,7 @@ fsw_prob = np.concatenate([
 Linear interpolation is a convention, not a requirement. Alternatives
 worth offering the user when their data has structure:
 
-- **Step changes** tied to programme introductions or guideline
+- **Step changes** tied to program introductions or guideline
   changes (e.g. treat-all, universal ART) — replace the linspace with
   piecewise constants at guideline-change years.
 - **Custom shape** from a fitted curve through anchor points (spline,
@@ -148,7 +148,7 @@ When data are sparse, use the linear-ramp default but label it as an
 assumption in `analysis-brief.md` — do not present it as observed
 history.
 
-## `dt_scale` — per-timestep vs annualised
+## `dt_scale` — per-timestep vs annualized
 
 `HIVTest.test_prob_data` is interpreted as an annual probability by
 default and converted to per-timestep via `ss.probperyear`. Set
@@ -194,6 +194,6 @@ For each modality the user opts into:
 - Confirm the data shape (annual probability, per-visit probability,
   count-based).
 - Confirm the population targeting (via eligibility function).
-- Confirm the temporal shape (ramp, step, custom) — labelling as
+- Confirm the temporal shape (ramp, step, custom) — labeling as
   data-driven or assumption.
 - Record the choice in `analysis-brief.md`.

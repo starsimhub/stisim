@@ -25,11 +25,11 @@ Fourteen skills, in three functional clusters.
 
 | Skill | Purpose |
 |---|---|
-| `model-primer` | Reference-layer architectural index of stisim — assembly, disease hierarchy, networks, interventions, connectors, analyzers, demographics, care-seeking, timestep discipline. Includes the `calibration-knobs.md` reference for what stisim actually exposes. |
+| `model-primer` | Reference-layer architectural index of STIsim — assembly, disease hierarchy, networks, interventions, connectors, analyzers, demographics, care-seeking, timestep discipline. Includes the `calibration-knobs.md` reference for what STIsim actually exposes. |
 | `model-writer` | Composes a new Sim from a scoped research question. |
 | `hiv-interventions` | Design-interview for the ART / testing / VMMC / PrEP set, with per-intervention data-source references. |
 | `network-data` | DHS-focused sexual-network calibration input. |
-| `calibration-strategy` | HIVsim / STIsim-specific what/why/whether-to-calibrate: parameter classification (data-informed / literature-fixed / country-specific-uncertain / behavioural / tuning / intervention-assumption), target-vs-knob distinction, ART/testing structural dependency, failure diagnosis. Delegates algorithm / sampler / likelihood / diagnostics to the `calib:*` plugin. |
+| `calibration-strategy` | HIVsim / STIsim-specific what/why/whether-to-calibrate: parameter classification (data-informed / literature-fixed / country-specific-uncertain / behavioral / tuning / intervention-assumption), target-vs-knob distinction, ART/testing structural dependency, failure diagnosis. Delegates algorithm / sampler / likelihood / diagnostics to the `calib:*` plugin. |
 
 ### Software quality — cross-cutting, unified by "share your work"
 
@@ -40,7 +40,7 @@ code generation is cheap and code review is not.
 
 | Skill | Purpose |
 |---|---|
-| `extending-stisim` | Before subclassing / monkey-patching stisim, classify the change as (a) fix, (b) opt-in research knob, or (c) project-specific data preprocessing, and enforce PR-upstream for fixes, no-op default for knobs, cleanup of downstream artifacts once their upstream fix lands, and file-an-issue as the fallback. |
+| `extending-stisim` | Before subclassing / monkey-patching STIsim, classify the change as (a) fix, (b) opt-in research knob, or (c) project-specific data preprocessing, and enforce PR-upstream for fixes, no-op default for knobs, cleanup of downstream artifacts once their upstream fix lands, and file-an-issue as the fallback. |
 | `editable-dep-hygiene` | Any edit to an editable `pip install -e` dependency gets committed and PR'd immediately; before a version bump or branch switch, the dep checkout is verified clean of unmerged local work. |
 | `comment-hygiene` | Shared-library docstrings and comments explain the software itself, not project-specific memory. Strips anti-patterns like "Experiment 5", "the current task", "we changed this because the user requested it". |
 | `result-extraction` | Directs to `ss.Result` / `ss.Results` methods (`annualize`, `resample`, `to_df`) over hand-rolled `df.groupby('year').mean() / .sum()`, which silently mishandles the flow-vs-stock distinction. |
@@ -79,7 +79,7 @@ material also carry a `references/` subdirectory.
 
 ## Activation
 
-### From a released stisim (pip)
+### From a released STIsim (pip)
 
 ```
 pip install stisim
@@ -102,7 +102,7 @@ up immediately on the next Claude Code reload, without a reinstall.
 This is the workflow to use if you are developing or editing the skills
 themselves.
 
-If you `git pull` on the editable stisim checkout, the plugin content
+If you `git pull` on the editable STIsim checkout, the plugin content
 updates on the next Claude Code reload; no reinstall needed. See the
 `editable-dep-hygiene` skill for the git protocol around editable
 dependencies.
@@ -117,7 +117,7 @@ Reload the Claude Code session:
 
 The bootstrap edits `~/.claude/settings.json` to add `stisim@stisim-local`
 under `enabledPlugins` and register a directory-sourced marketplace at the
-stisim plugin path. The write is atomic, idempotent, and preserves all
+STIsim plugin path. The write is atomic, idempotent, and preserves all
 other settings. `python -m stisim.ai uninstall` reverses it;
 `python -m stisim.ai status` reports current registration.
 
@@ -125,7 +125,7 @@ other settings. `python -m stisim.ai uninstall` reverses it;
 
 `stisim.ai` is intentionally narrow — it covers HIVsim / STIsim
 specifically. The plugins below cover adjacent concerns (generic
-calibration, generic starsim / disease modelling, project memory,
+calibration, generic Starsim / disease modeling, project memory,
 IDM-wide engineering standards) and are designed to compose. We
 strongly encourage installing them alongside `stisim.ai`.
 
@@ -138,14 +138,14 @@ strongly encourage installing them alongside `stisim.ai`.
 
 - **[`starsim_ai`](https://github.com/starsimhub/starsim_ai)** —
   three Claude Code plugins covering the layer under stisim:
-  `starsim-ai` (Starsim + Sciris MCP tools and modelling skills),
-  `disease-modeling` (general disease-modelling skills that apply
+  `starsim-ai` (Starsim + Sciris MCP tools and modeling skills),
+  `disease-modeling` (general disease-modeling skills that apply
   beyond HIVsim/STIsim), and `project-improver` (engineering-quality
   review). Install:
   `/plugin marketplace add https://github.com/starsimhub/starsim_ai`.
 
 - **[`canonize`](https://github.com/emiliasimmons/canonize)** — agent
-  skills for durable decision capture in computational modelling
+  skills for durable decision capture in computational modeling
   projects. *"Sources feed the wiki. Decisions are internal sources.
   Collaborators browse the wiki, not the sources."* Complements
   `project-memory` with a concrete, opinionated implementation of the

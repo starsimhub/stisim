@@ -7,7 +7,7 @@ the whole codebase.
 
 ## Orientation
 
-STIsim is a Python package for agent-based modelling of sexually
+STIsim is a Python package for agent-based modeling of sexually
 transmitted infections and HIV, built on top of the Starsim framework.
 The user-facing entry point is `sti.Sim` (`stisim/sim.py`), which
 extends Starsim's `ss.Sim` with STI-specific defaults, module
@@ -29,7 +29,7 @@ Two ways to think about STIsim:
 `networks`, `demographics`, `interventions`, `analyzers`, `connectors`.
 Each may be:
 - A string name (`'hiv'`, `'syphilis'`, `'zimbabwe'`) — resolved to the
-  matching STIsim or Starsim class and initialised with defaults.
+  matching STIsim or Starsim class and initialized with defaults.
 - An instance of a module already configured by the user.
 - A list mixing strings and instances.
 
@@ -38,9 +38,9 @@ Per-module parameters travel via matching `<slot>_pars` kwargs, e.g.
 of which modules to include from their configuration.
 
 **Two-phase lifecycle.** Construction (`__init__`) collects and clones
-the modules. Initialisation (`init`, before the run) resolves cross-
+the modules. Initialization (`init`, before the run) resolves cross-
 references between modules, wires up the simulation state, and
-finalises parameter derivations. If a module needs to reference
+finalizes parameter derivations. If a module needs to reference
 another module by name (a connector referring to two diseases, an
 intervention referring to its target disease), the wiring belongs in
 `init_pre(sim)` — not in `__init__` — because the object you passed
@@ -57,7 +57,7 @@ Disease modules live in `stisim/diseases/`. Two base classes matter:
   prevalence rescaling.
 - **`SEIS` / `STIPars`** — extends `BaseSTI` with a specific natural-
   history shape (susceptible → exposed → infected → susceptible) used
-  by chlamydia, gonorrhoea, and trichomoniasis.
+  by chlamydia, gonorrhea, and trichomoniasis.
 
 HIV, syphilis, BV, and GUD have richer natural histories and extend the
 base directly rather than reusing the SEIS template. Each disease's
@@ -86,7 +86,7 @@ Building blocks:
 - **`matchers.py`** — the algorithms that choose partners subject to
   the network's constraints.
 
-The layered structure is what `sti.Sim` uses by default; specialised
+The layered structure is what `sti.Sim` uses by default; specialized
 studies (MSM-only, FSW-focused) can drop or reweight layers.
 
 ## Interventions
@@ -96,7 +96,7 @@ two rough shapes:
 
 - **Screening / testing / diagnosis.** Test-then-treat pipelines,
   point-of-care versus lab, syndromic management, ANC screening.
-- **Prevention / treatment / behaviour.** ART, PrEP (including LA-PrEP
+- **Prevention / treatment / behavior.** ART, PrEP (including LA-PrEP
   where represented), condom promotion, partner notification, VMMC,
   BV treatment.
 
@@ -127,7 +127,7 @@ disease and network results.
 ## Demographics
 
 Demographics are in `stisim/demographics.py`. They own the background
-population dynamics: births, deaths, migration, ageing. For location-
+population dynamics: births, deaths, migration, aging. For location-
 specific simulations the demographics module loads country-level rates
 and cohort structure from `stisim/data/`.
 
@@ -146,14 +146,14 @@ conditions like pregnancy. The intent is that testing and treatment
 interventions consult this module rather than each disease and
 intervention re-implementing care-seeking logic.
 
-In current practice, most STIsim projects **parameterise care-seeking
+In current practice, most STIsim projects **parameterize care-seeking
 on the disease modules and testing interventions directly** rather
 than composing `CareSeeking` into the Sim. The relevant knobs are
 `p_symp_care` on the SEIS diseases, `rel_test` and similar scaling
 factors on testing interventions, and per-project multipliers that
 sit above those (e.g. a `care_seek_mult` in the analysis-specific
 code). The `CareSeeking` module is available for analyses that want
-cross-disease consistency without per-module parameterisation.
+cross-disease consistency without per-module parameterization.
 
 ## Timestep and time discipline
 
@@ -193,7 +193,7 @@ scheduled event.
   distinguishes flow versus stock semantics. Don't groupby-year and
   hand-roll mean / sum aggregations.
 - **Stochasticity discipline.** A single-seed observation is not
-  evidence of a mechanism. Any claim about model behaviour needs
+  evidence of a mechanism. Any claim about model behavior needs
   three or more seeds, and any proposed mechanism must reconcile
   with known model idioms — expanded treatment can raise incidence
   when it selects for AMR, for example, so that pattern is not a

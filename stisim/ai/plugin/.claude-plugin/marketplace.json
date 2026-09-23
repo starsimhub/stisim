@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "stisim",
-      "description": "AI-assisted STIsim research: guardrails, checkpoints, and workflow discipline for high-quality HIV and STI modelling.",
+      "description": "AI-assisted STIsim research: guardrails, checkpoints, and workflow discipline for high-quality HIV and STI modeling.",
       "source": "./",
       "category": "research"
     }

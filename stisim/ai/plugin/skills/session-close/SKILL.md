@@ -1,6 +1,6 @@
 ---
 name: session-close
-description: Use at the end of a STIsim work session to produce a handoff summary, verify the analysis brief is current, and surface any unresolved items or uncommitted state.
+description: Use at the end of an STIsim work session to produce a handoff summary, verify the analysis brief is current, and surface any unresolved items or uncommitted state.
 ---
 
 # STIsim session close
@@ -18,7 +18,7 @@ description: Use at the end of a STIsim work session to produce a handoff summar
 
 ## Instructions
 
-1. **Establish what the session covered.** Summarise the session back to the user in 3–5 bullets so they can confirm or correct. If the conversation was long or the arc is unclear, ask directly: *"What are the two or three most important things that happened this session?"* Distinguish work done from work only discussed — both matter but they are recorded differently.
+1. **Establish what the session covered.** Summarize the session back to the user in 3–5 bullets so they can confirm or correct. If the conversation was long or the arc is unclear, ask directly: *"What are the two or three most important things that happened this session?"* Distinguish work done from work only discussed — both matter but they are recorded differently.
 
 2. **Update `analysis-brief.md` if present.** Check the workspace root for `analysis-brief.md`. If absent, skip to step 3. If present, verify that its *Intended model changes* and *Unresolved decisions* sections reflect this session. Propose the specific edits and ask the user to confirm before writing. Do not restructure the brief — only add, update, or mark items resolved.
 

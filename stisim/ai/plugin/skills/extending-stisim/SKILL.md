@@ -1,32 +1,32 @@
 ---
 name: extending-stisim
-description: Use when about to subclass a stisim / starsim class, override a library method, or write a downstream workaround for behavior that seems wrong upstream. Enforces the upstream-vs-downstream decision — real bugs go upstream as PRs, opt-in project knobs are fine downstream with a no-op default, and downstream workarounds get deleted the moment their upstream fix lands.
+description: Use when about to subclass an STIsim / Starsim class, override a library method, or write a downstream workaround for behavior that seems wrong upstream. Enforces the upstream-vs-downstream decision — real bugs go upstream as PRs, opt-in project knobs are fine downstream with a no-op default, and downstream workarounds get deleted the moment their upstream fix lands.
 ---
 
-# Extending stisim
+# Extending STIsim
 
 ## When to use
 
 - About to write a subclass of `sti.*` or `ss.*` to change library behavior.
 - About to override a library method, monkey-patch, or replace a library-provided intervention with a local variant.
 - Reviewing an inherited repo for downstream subclasses that may be dead code (upstream fix has landed but the subclass was never deleted).
-- Trigger phrases: "subclass sti.HIV", "override this stisim behavior", "the upstream VMMC/ART/… is wrong", "let me patch stisim locally", "workaround for a stisim bug", "in-repo intervention subclass".
+- Trigger phrases: "subclass sti.HIV", "override this STIsim behavior", "the upstream VMMC/ART/… is wrong", "let me patch STIsim locally", "workaround for an STIsim bug", "in-repo intervention subclass".
 
 ## When NOT to use
 
 - The user is writing an `ss.Analyzer` — analyzers are always downstream, that is what they are for.
 - The user is writing project-specific data preprocessing (mortality reconstruction, coverage cleaning, target file assembly) — that is a data-construction script, belongs in the project repo by definition.
-- The user is adding a parameter that already exists on the parent — consult `model-primer/references/calibration-knobs.md` first for what stisim already exposes.
+- The user is adding a parameter that already exists on the parent — consult `model-primer/references/calibration-knobs.md` first for what STIsim already exposes.
 
 ## Framing
 
-**The goal is to share fixes back to the community that benefits from them.** When you find a bug or gap in stisim, the default action is an upstream PR — every stisim user benefits, and future you gets code review from the maintainers rather than maintaining an untested private fork alone. If you spot a bug you cannot fix in this session, file an issue upstream so at least the knowledge is shared; silent knowledge of a bug is also siloing.
+**The goal is to share fixes back to the community that benefits from them.** When you find a bug or gap in STIsim, the default action is an upstream PR — every STIsim user benefits, and future you gets code review from the maintainers rather than maintaining an untested private fork alone. If you spot a bug you cannot fix in this session, file an issue upstream so at least the knowledge is shared; silent knowledge of a bug is also siloing.
 
-**The cost of a downstream workaround is not that a version bump might wipe it — it is that it stays siloed.** Every other stisim user hits the same bug until the fix lands upstream. Every downstream subclass is code that only your team can maintain, review, and improve. AI makes downstream subclassing especially tempting (fast to draft, feels productive) and especially dangerous (unshared code accumulates faster than the org can review it, and code review — not code production — is the binding constraint on org throughput now). The version-bump-wipes-the-fix problem is a symptom of the deeper anti-pattern: a private fork of shared code.
+**The cost of a downstream workaround is not that a version bump might wipe it — it is that it stays siloed.** Every other STIsim user hits the same bug until the fix lands upstream. Every downstream subclass is code that only your team can maintain, review, and improve. AI makes downstream subclassing especially tempting (fast to draft, feels productive) and especially dangerous (unshared code accumulates faster than the org can review it, and code review — not code production — is the binding constraint on org throughput now). The version-bump-wipes-the-fix problem is a symptom of the deeper anti-pattern: a private fork of shared code.
 
 Two questions decide where a change lives. Ask them in this order:
 
-1. **Am I fixing broken behavior, or adding a project-specific opt-in knob?** If the change corrects a bug or gap that every stisim user would want fixed, it belongs upstream. If it is a research-specific handle that other users would not want as the default, it can live downstream — but only as an opt-in with a no-op default.
+1. **Am I fixing broken behavior, or adding a project-specific opt-in knob?** If the change corrects a bug or gap that every STIsim user would want fixed, it belongs upstream. If it is a research-specific handle that other users would not want as the default, it can live downstream — but only as an opt-in with a no-op default.
 
 2. **If it is a fix, when does the upstream PR happen — before, after, or with the local hotfix?** With. A downstream workaround with no matching PR is a fix that will silently vanish at the next version bump (see `editable-dep-hygiene` for why). The workaround is a hotfix, not a fix, until the PR is merged.
 
@@ -35,15 +35,15 @@ The `model-primer/references/calibration-knobs.md` "Framing" section already sta
 Common failure modes this skill prevents:
 
 - **Reinvented an existing par.** A downstream subclass exposes a scalar multiplier over an internal rate table; the parent already provides an equivalent par (e.g. a `rel_*` scaler) for exactly the same quantity. A multi-line subclass duplicating a one-line kwarg — because the agent did not grep the parent for existing pars first.
-- **Method override when a callable parameter suffices.** A subclass overrides a `set_prognoses`-style method to make a duration distribution depend on per-agent state (e.g. age at infection). Starsim distributions already accept callable parameters (see `convert_callable` in `starsim/distributions.py`) — the same behaviour is a ~10-line setup, no subclass needed.
-- **Real fix kept downstream indefinitely.** A downstream subclass fixes a genuine upstream bug. The docstring rationalises keeping it in-repo, typically with language like "so a stisim git pull cannot silently wipe it again". The correct response is an upstream PR opened in the same session — until then, every other stisim user hits the same bug.
+- **Method override when a callable parameter suffices.** A subclass overrides a `set_prognoses`-style method to make a duration distribution depend on per-agent state (e.g. age at infection). Starsim distributions already accept callable parameters (see `convert_callable` in `starsim/distributions.py`) — the same behavior is a ~10-line setup, no subclass needed.
+- **Real fix kept downstream indefinitely.** A downstream subclass fixes a genuine upstream bug. The docstring rationalizes keeping it in-repo, typically with language like "so an STIsim git pull cannot silently wipe it again". The correct response is an upstream PR opened in the same session — until then, every other STIsim user hits the same bug.
 - **Never cleaned up after upstream landed.** A downstream workaround eventually gets upstreamed, but the downstream subclass remains the default in the project repo. Dead code that will confuse the next reader and drift out of sync with the upstream API.
 
 ## Instructions
 
-1. **Classify the change.** State plainly whether this is (a) a fix to broken or wrong behavior in stisim / starsim, (b) an opt-in research knob, or (c) a project-specific data or workflow concern that does not belong in the library at all. Do not proceed until this is clear.
+1. **Classify the change.** State plainly whether this is (a) a fix to broken or wrong behavior in STIsim / Starsim, (b) an opt-in research knob, or (c) a project-specific data or workflow concern that does not belong in the library at all. Do not proceed until this is clear.
 
-2. **Before writing any subclass, grep the parent for an existing par or an equivalent mechanism.** Read `model-primer/references/calibration-knobs.md` for the canonical index. Check `define_pars(…)`, `self.<name> = …` attributes in `__init__`, and — for anything that draws from a distribution based on per-agent state — starsim's callable-parameter mechanism. If the mechanism already exists, use it and do not subclass.
+2. **Before writing any subclass, grep the parent for an existing par or an equivalent mechanism.** Read `model-primer/references/calibration-knobs.md` for the canonical index. Check `define_pars(…)`, `self.<name> = …` attributes in `__init__`, and — for anything that draws from a distribution based on per-agent state — Starsim's callable-parameter mechanism. If the mechanism already exists, use it and do not subclass.
 
 3. **If it is a fix (a)** — write the change as a PR against the dep, not as a downstream subclass. A downstream hotfix is acceptable *only* if the PR is opened in the same session and the exp / SUMMARY records the PR URL. If the fix is beyond what you can PR in this session (needs a maintainer conversation, a design decision, or expertise you don't have), **file an issue in the dep repo describing the bug and the workaround you used**, and link the issue from the exp — the knowledge is then shared even if the fix is not yet.
 

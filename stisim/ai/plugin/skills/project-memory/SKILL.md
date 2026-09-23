@@ -40,9 +40,9 @@ Project memory sits inside the same sharing theme as `comment-hygiene` and `exte
 
     > "This project may span many agent sessions and potentially multiple machines or collaborators. What would you like to use for durable project memory? If you already have a system, we can use it. Otherwise I can help you pick between a project-local approach, a session-indexing system such as Funes, an agent-memory provider (e.g. Hermes Agent supports several backends), or a hybrid."
 
-    Do not require one specific provider. If the researcher declines a specialised system, establish at minimum a version-controlled project-memory structure in the repository (see step 2).
+    Do not require one specific provider. If the researcher declines a specialized system, establish at minimum a version-controlled project-memory structure in the repository (see step 2).
 
-2. **The default fallback: repo-based markdown memory.** For projects that decline a specialised system, propose a small set of committed markdown files. Do not create all of these mechanically — a single concise file may suffice. Only create what the project needs:
+2. **The default fallback: repo-based markdown memory.** For projects that decline a specialized system, propose a small set of committed markdown files. Do not create all of these mechanically — a single concise file may suffice. Only create what the project needs:
 
     - `PROJECT.md` — stable project purpose and scope
     - `DECISIONS.md` — methodological or software decisions with rationale
@@ -52,7 +52,7 @@ Project memory sits inside the same sharing theme as `comment-hygiene` and `exte
 
     Transparent, portable, version-controlled, available anywhere the repo is cloned. Weakness: requires active curation and does not automatically make old sessions searchable — pair with a session-indexing layer if that matters (step 3).
 
-3. **Consider the hybrid pattern for substantial projects: curated project memory + searchable session history.** The curated layer holds the project's durable understanding; the session layer allows deeper recall of why a decision was made or what was tried weeks earlier. Treat session memory as a retrieval layer over history, not as the authoritative record — important decisions should still be promoted into curated memory when they stabilise.
+3. **Consider the hybrid pattern for substantial projects: curated project memory + searchable session history.** The curated layer holds the project's durable understanding; the session layer allows deeper recall of why a decision was made or what was tried weeks earlier. Treat session memory as a retrieval layer over history, not as the authoritative record — important decisions should still be promoted into curated memory when they stabilize.
 
 4. **Teach the memory hierarchy explicitly.** Not all context deserves the same permanence:
 
@@ -69,10 +69,10 @@ Project memory sits inside the same sharing theme as `comment-hygiene` and `exte
 
 6. **Address cross-machine, collaborator, and security questions explicitly.**
     - **Machines:** if memory must follow the researcher across machines, use a deliberate sync mechanism (git for markdown, a shared project store, or a memory provider designed for cross-machine access). Do not discover halfway through a project that all useful memory lives in a hidden directory on a terminated VM.
-    - **Collaborators:** ask *"should this be shared among collaborators or is it your personal working memory?"*. Some information describes the project (methodology, assumptions, provenance, status) and should be shared; some is personal (individual scratch reasoning, task organisation, incomplete thoughts) and need not be. Configure the memory system accordingly.
+    - **Collaborators:** ask *"should this be shared among collaborators or is it your personal working memory?"*. Some information describes the project (methodology, assumptions, provenance, status) and should be shared; some is personal (individual scratch reasoning, task organization, incomplete thoughts) and need not be. Configure the memory system accordingly.
     - **Security:** research memory may contain unpublished results, confidential data, credentials, or drafts. Assess a cloud-hosted memory service against the project's data-handling requirements before adopting it. Never rely on automated secret filtering as the sole protection for sensitive material.
 
-7. **What belongs in durable memory.** Good candidates: major modelling decisions; important scientific assumptions; data inclusion / exclusion decisions; provenance of unusual inputs; rationale for non-obvious implementation choices; calibration strategy; important rejected approaches and why they were rejected; known limitations; recurring debugging discoveries; project-specific conventions; collaborator decisions; current unresolved questions.
+7. **What belongs in durable memory.** Good candidates: major modeling decisions; important scientific assumptions; data inclusion / exclusion decisions; provenance of unusual inputs; rationale for non-obvious implementation choices; calibration strategy; important rejected approaches and why they were rejected; known limitations; recurring debugging discoveries; project-specific conventions; collaborator decisions; current unresolved questions.
 
     **What does not:** every command run, every failed test, every temporary debugging theory, generic facts easy to rediscover, large copies of source files, verbose per-session summaries, conversational filler. Memory should reduce future work, not create another corpus to wade through.
 
@@ -82,7 +82,7 @@ Project memory sits inside the same sharing theme as `comment-hygiene` and `exte
 
 10. **Periodically maintain durable memory.** Long-running projects need memory maintenance the way they need code maintenance: review for stale conclusions, reversed decisions, duplicated entries, resolved questions, assumptions since anchored to data. Where the memory system supports it, mark decisions as superseded rather than silently rewriting history.
 
-11. **Every significant session should end recoverable.** Before closing a substantive session, verify: important decisions recorded in durable memory; current status recoverable; unresolved questions captured; session-indexing synchronised if applicable; a competent new agent can resume from durable memory plus the repo without needing the preceding conversation pasted in. Per-session mechanics in `session-close`; this skill is about the memory infrastructure `session-close` writes into.
+11. **Every significant session should end recoverable.** Before closing a substantive session, verify: important decisions recorded in durable memory; current status recoverable; unresolved questions captured; session-indexing synchronized if applicable; a competent new agent can resume from durable memory plus the repo without needing the preceding conversation pasted in. Per-session mechanics in `session-close`; this skill is about the memory infrastructure `session-close` writes into.
 
 ## Checks before completion (initial intake)
 

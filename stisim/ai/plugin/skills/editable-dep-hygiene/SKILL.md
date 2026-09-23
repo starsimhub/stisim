@@ -1,16 +1,16 @@
 ---
 name: editable-dep-hygiene
-description: Use when about to edit a file inside an editable pip install (stisim, starsim, or any other `pip install -e` dependency), or about to bump the version or switch the branch of such a dependency. Enforces the rule that any edit to an editable dep must be committed, pushed, and PR'd immediately — and that no version bump or branch switch happens with unmerged local work in the dep checkout.
+description: Use when about to edit a file inside an editable pip install (STIsim, Starsim, or any other `pip install -e` dependency), or about to bump the version or switch the branch of such a dependency. Enforces the rule that any edit to an editable dep must be committed, pushed, and PR'd immediately — and that no version bump or branch switch happens with unmerged local work in the dep checkout.
 ---
 
 # Editable-dep hygiene
 
 ## When to use
 
-- About to edit any file inside an editable pip install (stisim, starsim, fpsim, hpvsim, etc. — anything installed with `pip install -e`).
+- About to edit any file inside an editable pip install (STIsim, Starsim, FPsim, HPVsim, etc. — anything installed with `pip install -e`).
 - About to bump the version of an editable dep, switch its branch, or pull upstream.
 - Reviewing a work-in-progress state where an editable dep's working tree or branch state is unclear.
-- Trigger phrases: "let me patch stisim locally", "edit the starsim source", "upgrade stisim", "switch stisim to rc…", "the editable checkout of X", "pull the latest stisim", "bump the dep version".
+- Trigger phrases: "let me patch STIsim locally", "edit the Starsim source", "upgrade STIsim", "switch STIsim to rc…", "the editable checkout of X", "pull the latest STIsim", "bump the dep version".
 
 ## When NOT to use
 

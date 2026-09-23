@@ -15,7 +15,7 @@ apply, note that it was considered.
   needed by the analysis is either removed or its inclusion is
   justified (e.g. "kept to preserve the default calibration"). Extra
   modules cost run time and complicate interpretation.
-- [ ] **Care-seeking parameterised.** If the Sim has any care-based
+- [ ] **Care-seeking parameterized.** If the Sim has any care-based
   intervention (testing, treatment, ANC screening), care-seeking
   intensity is set on the relevant disease modules (`p_symp_care`
   on the SEIS diseases) or on the testing interventions (`rel_test`
@@ -70,7 +70,7 @@ apply, note that it was considered.
   event.
 - [ ] **Seeds specified.** At least three distinct random seeds are
   set for any stochastic output the analysis will report on. A
-  single-seed run is a debugging artefact, not a result.
+  single-seed run is a debugging artifact, not a result.
 - [ ] **Event scheduling is integer-safe.** If custom code schedules
   events at `ti + fractional_duration`, the target is floored (or
   otherwise coerced to an integer) before equality-comparing to

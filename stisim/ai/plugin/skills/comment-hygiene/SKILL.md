@@ -1,13 +1,13 @@
 ---
 name: comment-hygiene
-description: Use when writing or editing docstrings and inline comments in shared library code (stisim, starsim, or any package used by people outside the current project). Enforces the rule that library comments explain the software itself, not the history of the project that motivated the change or the agent's working context.
+description: Use when writing or editing docstrings and inline comments in shared library code (STIsim, Starsim, or any package used by people outside the current project). Enforces the rule that library comments explain the software itself, not the history of the project that motivated the change or the agent's working context.
 ---
 
 # Comment hygiene for shared library code
 
 ## When to use
 
-- Writing or editing docstrings, inline comments, or module-level narration in shared library code (stisim, starsim, or any other `pip install -e`-shared package).
+- Writing or editing docstrings, inline comments, or module-level narration in shared library code (STIsim, Starsim, or any other `pip install -e`-shared package).
 - Reviewing an inherited file for comments that read like agent scratch space or downstream-project memory.
 - Preparing a PR against a shared package — check that no comments carry references only meaningful in the originating conversation.
 - Trigger phrases: "add a docstring", "document this function", "add a comment explaining", "clean up the comments", "why is there a comment about X", "explain what this does".
@@ -19,9 +19,9 @@ description: Use when writing or editing docstrings and inline comments in share
 
 ## Framing
 
-Comments in shared library code have a different audience than comments in project code. A stisim docstring is read by every stisim user, forever. A comment in an experiment folder is read by you and maybe one collaborator, all of whom share the same project context.
+Comments in shared library code have a different audience than comments in project code. An STIsim docstring is read by every STIsim user, forever. A comment in an experiment folder is read by you and maybe one collaborator, all of whom share the same project context.
 
-The rule for shared code: **explain the software, not the history of the project that motivated the change.** A comment like *"Special case added to fix Experiment 5"* makes sense to the agent that wrote it during one downstream analysis, but a future stisim maintainer has no idea what "Experiment 5" refers to, whether it is still relevant, or why it mattered.
+The rule for shared code: **explain the software, not the history of the project that motivated the change.** A comment like *"Special case added to fix Experiment 5"* makes sense to the agent that wrote it during one downstream analysis, but a future STIsim maintainer has no idea what "Experiment 5" refers to, whether it is still relevant, or why it mattered.
 
 AI makes this failure mode especially common. Agents run inside task-specific conversations, so their default is to describe *why they are making the change right now* — the current task, the current experiment, the user who requested it. That context is invisible to everyone who reads the code later. Library comments must be written for a maintainer who has no access to the originating conversation.
 

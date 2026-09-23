@@ -7,11 +7,11 @@ that first, then follow the specific path.
 
 **Country study** — the analysis targets a real country's HIV / STI
 dynamics for policy or projection. Needs demographic data, initial
-prevalence, calibration targets, and behavioural inputs. This is the
+prevalence, calibration targets, and behavioral inputs. This is the
 most common shape.
 
 **Theoretical or illustrative study** — the analysis is about
-mechanism or behaviour (transmission patterns, network dynamics,
+mechanism or behavior (transmission patterns, network dynamics,
 intervention shapes) rather than a specific setting. Uses default
 STIsim demographics or a synthetic population. No country-specific
 data files needed. Populations are typically small (5k–20k agents)
@@ -92,8 +92,8 @@ Required for each disease in the composition.
 | Disease | Typical source |
 |---|---|
 | HIV | National surveillance (Spectrum estimates), PHIA-family surveys (ZIMPHIA, MPHIA, etc.), IBBS for key populations. |
-| Syphilis | PHIA-family surveys where included (syphilis is in ZIMPHIA), ANC surveillance, national STI programme data. |
-| Gonorrhoea / chlamydia / trichomoniasis | Sparse. Etiologic surveys where they exist; otherwise regional or global estimates (GBD). |
+| Syphilis | PHIA-family surveys where included (syphilis is in ZIMPHIA), ANC surveillance, national STI program data. |
+| Gonorrhea / chlamydia / trichomoniasis | Sparse. Etiologic surveys where they exist; otherwise regional or global estimates (GBD). |
 
 Prevalence files are typically per-disease CSVs (e.g. `init_prev_hiv.csv`)
 with age × sex breakdowns matching STIsim's expected age bins (see
@@ -107,9 +107,9 @@ Time series the analysis will calibrate against.
 |---|---|
 | IHME Global Burden of Disease | Country-year prevalence / incidence / mortality for HIV and the STIs. Raw files are large and typically not committed to the repo. See `stisim_vddx_zim/process_ihme_data.py` for a local-processing pattern. |
 | UNAIDS Spectrum | HIV-specific: prevalence, ART coverage, incidence, mortality. |
-| National surveillance | Any country-specific programme data — new HIV diagnoses, syphilis notifications, ANC positivity. |
+| National surveillance | Any country-specific program data — new HIV diagnoses, syphilis notifications, ANC positivity. |
 
-### Behavioural inputs
+### Behavioral inputs
 
 | Input | Source |
 |---|---|

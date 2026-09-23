@@ -18,9 +18,9 @@ For a country study we want:
 - **Median age at first sexual intercourse** for women (20–49 aggregate)
   and for men (20–49 aggregate). Used to set the mean of the lognormal.
 - **Cumulative first-sex fractions by exact age** (15, 18, 20, 22, 25).
-  Used to characterise the spread — from the cumulative curve the
+  Used to characterize the spread — from the cumulative curve the
   standard deviation of the underlying age-of-debut distribution can
-  be estimated, replacing stisim's default `std=3`.
+  be estimated, replacing STIsim's default `std=3`.
 
 For a lighter touch, the median alone gives a decent mean estimate;
 default `std=3` can be kept until a spread-informed value earns its
@@ -40,7 +40,7 @@ place.
    average across recent surveys if the analysis is over a stretch of
    years).
 
-For the spread-informed parameterisation, also retrieve:
+For the spread-informed parameterization, also retrieve:
 
 - *First sexual intercourse by exact age 15 [Young women]*
 - *First sexual intercourse by exact age 18 [Young women]*
@@ -59,7 +59,7 @@ required for basic use; registering as a partner
 
 **Base URL:** `https://api.dhsprogram.com/`
 **Data endpoint:** `/rest/dhs/data`
-**Indicator catalogue endpoint:** `/rest/dhs/indicators`
+**Indicator catalog endpoint:** `/rest/dhs/indicators`
 **Formats:** `f=json`, `f=xml`, `f=csv`, `f=html`
 
 ### Indicator IDs
@@ -76,7 +76,7 @@ The relevant indicator IDs for age-of-debut work:
 | `SX_SBAY_W_B15` … `SX_SBAY_W_B20` | Cumulative first-sex fraction by exact age (young women 15–24) |
 | `SX_SBAY_W_MSX` | Median age at first sexual intercourse [Young women] |
 
-To discover other indicators, query the catalogue:
+To discover other indicators, query the catalog:
 
 ```bash
 curl -s 'https://api.dhsprogram.com/rest/dhs/indicators?f=json&perpage=5000' \
@@ -121,15 +121,15 @@ Sample output (Zimbabwe, current as of the most recent DHS rounds):
 | 1999 | Median age at first sex [Men]: 20–49 | 19.6 |
 
 Notice the Zimbabwe medians (~18.7 women, ~19.5 men) run meaningfully
-lower than stisim's defaults (20 women, 21 men) — a concrete case of
+lower than STIsim's defaults (20 women, 21 men) — a concrete case of
 why country-specific data matters.
 
-## Translating to stisim parameters
+## Translating to STIsim parameters
 
 **Median → mean of the lognormal.** For an `ss.lognorm_ex(mean, std)`
 distribution, `mean` is the arithmetic mean and `std` is the standard
 deviation of the distribution — not of the underlying normal. The DHS
-median is close enough to the mean for practical use in stisim's
+median is close enough to the mean for practical use in STIsim's
 lognormal shape (the distributions are moderately skewed but not
 extreme).
 
@@ -170,7 +170,7 @@ Log the source in `analysis-brief.md`:
 
 > Age of debut set from DHS Zimbabwe (most recent round used: DHS 2015,
 > indicator SX_AAFS_W_M2A = 18.7, SX_AAFS_M_M2A = 19.5). Standard
-> deviation left at stisim default (3) — no spread fit performed for
+> deviation left at STIsim default (3) — no spread fit performed for
 > this pass.
 
 ## Cautions

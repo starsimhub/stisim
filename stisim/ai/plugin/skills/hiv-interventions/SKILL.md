@@ -13,19 +13,19 @@ description: Use to design the intervention set for an HIVsim analysis through a
 
 ## When NOT to use
 
-- Theoretical or illustrative studies not tied to a real country programme — intervention defaults are fine and detailed elicitation is overhead.
+- Theoretical or illustrative studies not tied to a real country program — intervention defaults are fine and detailed elicitation is overhead.
 - The analysis is scenario-comparison only against a fixed baseline the user already has — this skill is for authoring the baseline, not for designing scenario contrasts.
 
 ## Framing
 
-This skill is an **intervention-design interview**, not a form. Walk through interventions section by section. Explain what HIVsim commonly supports, ask what data the user has, propose defensible defaults where data is thin, and confirm choices before generating configuration. Do not silently populate uncertain values; do not treat stisim intervention defaults as universally appropriate for a specific country.
+This skill is an **intervention-design interview**, not a form. Walk through interventions section by section. Explain what HIVsim commonly supports, ask what data the user has, propose defensible defaults where data is thin, and confirm choices before generating configuration. Do not silently populate uncertain values; do not treat STIsim intervention defaults as universally appropriate for a specific country.
 
 For each intervention area, distinguish clearly between:
-- **Observed programme data** the user should feed in (coverage series, testing rates, VMMC counts).
-- **Model parameters** governing behaviour, uptake, efficacy, or persistence.
+- **Observed program data** the user should feed in (coverage series, testing rates, VMMC counts).
+- **Model parameters** governing behavior, uptake, efficacy, or persistence.
 - **Assumptions** the user is making because data are unavailable — these must be recorded in `analysis-brief.md` so they remain visible.
 
-Common failure mode this skill prevents: papering over data gaps with defaults, then treating simulated behaviour as if it were the model's prediction rather than a consequence of the assumed input.
+Common failure mode this skill prevents: papering over data gaps with defaults, then treating simulated behavior as if it were the model's prediction rather than a consequence of the assumed input.
 
 ## Instructions
 
@@ -38,7 +38,7 @@ Proceed through the four intervention areas in this order. For each, follow the 
 5. Propose data sources or explicit assumptions for the gaps.
 6. Confirm the resulting design with the user before moving on.
 
-Between sections, restate what the user has committed to so the accumulating design stays visible. After all four intervention areas are complete, summarise the whole intervention design back to the user before writing code or updating `analysis-brief.md`.
+Between sections, restate what the user has committed to so the accumulating design stays visible. After all four intervention areas are complete, summarize the whole intervention design back to the user before writing code or updating `analysis-brief.md`.
 
 ### Section 1 — ART
 
@@ -83,17 +83,17 @@ Confirm the testing design (modalities, per-modality data or defaults, tuning ap
 
 ### Section 3 — VMMC
 
-Consult `references/vmmc.md` for the coverage-as-stock semantics, the baseline-vs-programme split, and where the protective effect lives.
+Consult `references/vmmc.md` for the coverage-as-stock semantics, the baseline-vs-program split, and where the protective effect lives.
 
 Open with:
 
-> Is VMMC part of the national HIV response in this country and period? Do you have data on circumcision coverage? Reported as programme procedures performed, coverage / proportion circumcised, or both? Disaggregated by age? Do you need to distinguish traditional / non-programmatic circumcision from VMMC?
+> Is VMMC part of the national HIV response in this country and period? Do you have data on circumcision coverage? Reported as program procedures performed, coverage / proportion circumcised, or both? Disaggregated by age? Do you need to distinguish traditional / non-programmatic circumcision from VMMC?
 
-Explain what HIVsim treats as VMMC coverage: a **stock target** (prevalence of circumcised men), not a flow of procedures. Both reference analyses combine traditional baseline and VMMC scale-up into a single prevalence series rather than modelling them separately. The `traditional_prob` parameter exists for cases where the user wants to model traditional circumcision separately, but it's off by default.
+Explain what HIVsim treats as VMMC coverage: a **stock target** (prevalence of circumcised men), not a flow of procedures. Both reference analyses combine traditional baseline and VMMC scale-up into a single prevalence series rather than modeling them separately. The `traditional_prob` parameter exists for cases where the user wants to model traditional circumcision separately, but it's off by default.
 
 Note where the protective effect lives: `eff_circ` is on the HIV disease module, not on the VMMC intervention. Users who want to tune the protective effect for a sensitivity analysis need to adjust that parameter.
 
-Confirm the VMMC design (data file, age stratification, whether traditional is modelled separately) before moving on.
+Confirm the VMMC design (data file, age stratification, whether traditional is modeled separately) before moving on.
 
 ### Section 4 — PrEP
 
@@ -104,10 +104,10 @@ Open with:
 > Does PrEP need to be represented in this analysis? PrEP was rolled out in most settings from the mid-to-late 2010s onward. If your analysis covers a period before that, and you're not doing forward projections, PrEP may be out of scope.
 
 If PrEP is in scope, ask:
-- Which populations receive PrEP in this setting? (FSW is the stisim default; adolescent girls and young women, serodiscordant couples, general-population risk groups are all possible.)
-- What data does the user have? (Number initiating, number currently using, coverage among an eligible population, programme targets, historical rollout dates, age/sex-specific coverage, persistence / discontinuation data.)
+- Which populations receive PrEP in this setting? (FSW is the STIsim default; adolescent girls and young women, serodiscordant couples, general-population risk groups are all possible.)
+- What data does the user have? (Number initiating, number currently using, coverage among an eligible population, program targets, historical rollout dates, age/sex-specific coverage, persistence / discontinuation data.)
 
-Explain the HIVsim parameterisation. Efficacy (`prep_eff`), adherence (`prep_adh`), and programme coverage (`coverage`) are separate parameters that combine multiplicatively — do not collapse them into a single effective-coverage number if the user has separate observations. Course duration (`prep_dur`) governs how long a course lasts before renewal.
+Explain the HIVsim parameterization. Efficacy (`prep_eff`), adherence (`prep_adh`), and program coverage (`coverage`) are separate parameters that combine multiplicatively — do not collapse them into a single effective-coverage number if the user has separate observations. Course duration (`prep_dur`) governs how long a course lasts before renewal.
 
 **Flag the divergence** between the reference analyses as a cautionary example: `hivsim_zim` calls `sti.Prep()` with no arguments, which activates a default coverage ramp starting in 2004 — well before evidence-based PrEP scale-up in most settings. `hivsim_eswatini` explicitly disabled PrEP in its production calibration for exactly this reason. Do not accept `sti.Prep()` with no arguments without confirming with the user that its implicit defaults match the intended history.
 
@@ -115,16 +115,16 @@ Confirm the PrEP design (in scope or not, populations, data or defaults, which p
 
 ## Data sources
 
-For each intervention, `references/data-sources.md` lists likely sources (UNAIDS, DHS Statcompiler, PHIA, PEPFAR, national programme reports, existing HIVsim country analyses) and, where a programmatic path exists, how to retrieve the data. Prefer APIs and machine-readable downloads over manual transcription when they exist.
+For each intervention, `references/data-sources.md` lists likely sources (UNAIDS, DHS Statcompiler, PHIA, PEPFAR, national program reports, existing HIVsim country analyses) and, where a programmatic path exists, how to retrieve the data. Prefer APIs and machine-readable downloads over manual transcription when they exist.
 
-## Summarising before writing
+## Summarizing before writing
 
-Before generating or editing HIVsim configuration, summarise the intervention design back to the user in a compact table or structured description. Suggested shape:
+Before generating or editing HIVsim configuration, summarize the intervention design back to the user in a compact table or structured description. Suggested shape:
 
 | Intervention | Data source | Shape | Mode / notes | Assumptions to review |
 |---|---|---|---|---|
 | ART | e.g. UNAIDS AIDSInfo 2015–2024 | Proportion PLHIV on ART, by year | Match-coverage mode | VLS defaults to 100% (no country data) |
-| HIV testing | e.g. DHS 2015, national programme 2020 | Per-modality annual probability | General + FSW + low-CD4 (no ANC) | Testing 1990–2010 linearly interpolated from zero to 2010 anchor |
+| HIV testing | e.g. DHS 2015, national program 2020 | Per-modality annual probability | General + FSW + low-CD4 (no ANC) | Testing 1990–2010 linearly interpolated from zero to 2010 anchor |
 | VMMC | e.g. PEPFAR MER 2013–2023 | Coverage by age band | Coverage-as-stock, single series (traditional folded in) | Ages 15–29 targeted, older bands zero |
 | PrEP | e.g. Not in scope | — | Not represented | — |
 
@@ -132,14 +132,14 @@ Ask the user to confirm before writing code. Record every assumption in `analysi
 
 ## Handoffs
 
-- `stisim:model-primer` — for the architecture of the interventions module and the parameter catalogue in `references/calibration-knobs.md`.
-- `stisim:network-data` — for country-specific network-parameter data acquisition (age of debut, partnership durations); intervention design assumes the network is already parameterised.
+- `stisim:model-primer` — for the architecture of the interventions module and the parameter catalog in `references/calibration-knobs.md`.
+- `stisim:network-data` — for country-specific network-parameter data acquisition (age of debut, partnership durations); intervention design assumes the network is already parameterized.
 - `stisim:model-writer` — this skill is typically invoked from step 4 (module selection) of model-writer, after diseases and networks are settled.
-- `stisim:extend-model` — if an intervention needed doesn't exist in stisim as-is (an age-targeted intervention that lacks age targeting, a modality not in the current menu), route to extend-model for local-vs-upstream decision.
+- `stisim:extend-model` — if an intervention needed doesn't exist in STIsim as-is (an age-targeted intervention that lacks age targeting, a modality not in the current menu), route to extend-model for local-vs-upstream decision.
 
 ## How this skill is evaluated
 
-An intervention set designed with this skill in the loop should leave the analysis brief with, per intervention: (a) the data source used, (b) the mode of use (match-coverage vs emergent, or the equivalent for other interventions), (c) any tuning parameters that differ from stisim defaults, and (d) an explicit list of assumptions for gaps that couldn't be filled from data. A cold reader of the brief should be able to reconstruct why each intervention was configured the way it was.
+An intervention set designed with this skill in the loop should leave the analysis brief with, per intervention: (a) the data source used, (b) the mode of use (match-coverage vs emergent, or the equivalent for other interventions), (c) any tuning parameters that differ from STIsim defaults, and (d) an explicit list of assumptions for gaps that couldn't be filled from data. A cold reader of the brief should be able to reconstruct why each intervention was configured the way it was.
 
 ## Checks before completion
 

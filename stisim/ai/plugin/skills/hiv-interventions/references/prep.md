@@ -1,9 +1,9 @@
 # PrEP — populations, parameters, and a divergence to notice
 
 STIsim's PrEP intervention (`sti.Prep`, source at
-`stisim/interventions/hiv_interventions.py:739`) parameterises PrEP
+`stisim/interventions/hiv_interventions.py:739`) parameterizes PrEP
 across four distinct axes: **efficacy**, **adherence**, **course
-duration**, and **programme coverage**. Do not collapse them into a
+duration**, and **program coverage**. Do not collapse them into a
 single number — they combine multiplicatively, and the analysis
 often has separate observations for each.
 
@@ -68,11 +68,11 @@ about which of the two is driving the result.
 ### `prep_dur` — course duration before renewal
 
 Default `ss.months(3)`. Governs when an agent's PrEP course expires
-and needs renewal. Together with adherence, this parameterises
+and needs renewal. Together with adherence, this parameterizes
 persistence — an agent whose course expires without renewal drops
 off PrEP.
 
-### `coverage` — programme coverage / enrolment target
+### `coverage` — program coverage / enrollment target
 
 Same shape as ART and VMMC coverage: DataFrame or scalar. Interpreted
 as prevalence of PrEP use in the eligible population. The default
@@ -82,10 +82,10 @@ most settings.
 
 For a country analysis, supply either:
 
-- **A coverage series from national programme data** (PEPFAR MER,
-  national HIV programme reports, published PrEP scale-up studies).
+- **A coverage series from national program data** (PEPFAR MER,
+  national HIV program reports, published PrEP scale-up studies).
 - **A coverage series constructed from initiation counts** if the
-  data is programme-side rather than survey-side — divide initiators
+  data is program-side rather than survey-side — divide initiators
   by the eligible population size to get a coverage-equivalent.
 
 If no data are available and PrEP must be represented for the
@@ -119,7 +119,7 @@ per-population coverage detail.
 ### The `sti.Prep()` no-args default is not universal
 
 The implicit `coverage` ramp starts in 2004. That predates
-demonstrable PrEP evidence in most settings and predates programme
+demonstrable PrEP evidence in most settings and predates program
 scale-up in every one. `hivsim_eswatini`'s production calibration
 disabled `sti.Prep()` for exactly this reason.
 
@@ -135,12 +135,12 @@ pre-PrEP period.
 
 ### Data source specificity
 
-PrEP is programme-specific in a way ART and testing often aren't.
+PrEP is program-specific in a way ART and testing often aren't.
 There is rarely a single "national PrEP coverage" number; coverage
-is typically reported per programme, per target population, per
+is typically reported per program, per target population, per
 funding stream (PEPFAR-supported vs government, etc.). When
 compiling coverage data, the user should be explicit about which
-programmes and populations the number covers, and reflect that in
+programs and populations the number covers, and reflect that in
 the `eligibility` function.
 
 ## Recap for the interview

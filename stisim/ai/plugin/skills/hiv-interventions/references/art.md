@@ -58,7 +58,7 @@ agent starts (and continues) ART emerges from:
 - Whether they've been diagnosed (see `references/testing.md`).
 - The `art_initiation` parameter (default
   `ss.bernoulli(p=0.9)` — probability a newly diagnosed agent starts).
-- Any discontinuation dynamics represented in the current stisim ART
+- Any discontinuation dynamics represented in the current STIsim ART
   implementation.
 
 In this mode, the user reproduces observed ART coverage by tuning the

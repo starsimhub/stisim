@@ -23,9 +23,9 @@ particular:
 - **Discovering that a default doesn't fit your setting is not a bug.**
   It means you have found a parameter that varies across settings and
   that you need to set for your setting. That is the normal case, not
-  a defect in stisim.
+  a defect in STIsim.
 - **Do not "calibrate" a parameter that should come from data.** Many
-  parameters — especially anything network- or behaviour-related (age
+  parameters — especially anything network- or behavior-related (age
   of sexual debut, partnership durations, sex-work durations, risk-
   group proportions, condom use) — vary by country. These should be
   filled in from local surveys (DHS, PHIA, IBBS, etc.), not treated as
@@ -45,7 +45,7 @@ Two different modes of intervention, then:
 |---|---|---|
 | **Feed data** | Replace a default with a local value from a survey or data source. Not a calibration. | Age of sexual debut for your country from DHS. |
 | **Calibrate** | Tune a parameter that genuinely lacks observational anchoring, to match a target output. | HIV `beta_m2f`, tuned against prevalence trajectory. |
-| **Upstream fix** | Correct a stisim default that misses a known signal. Belongs in a PR, not your workspace. | A default value contradicted by a well-established literature source. |
+| **Upstream fix** | Correct an STIsim default that misses a known signal. Belongs in a PR, not your workspace. | A default value contradicted by a well-established literature source. |
 
 The sections below use these categories to flag which levers belong in
 which mode.
@@ -160,7 +160,7 @@ Canonical source: `stisim/diseases/sti.py` (`BaseSTIPars`) and
 ## Sexual networks (mostly data-driven, not calibration)
 
 Network parameters are the largest cluster of "should come from data,
-not the calibrator" levers in stisim. They vary substantially by
+not the calibrator" levers in STIsim. They vary substantially by
 country and by population, and treating them as calibration knobs
 usually means fitting on a parameter that has an observed answer in
 the local literature.
@@ -173,7 +173,7 @@ Base parameters (`stisim/networks/base.py`):
 |---|---|---|
 | `debut_f` | `ss.lognorm_ex(20, 3)` | Female age at sexual debut. Country-specific; fill from DHS. |
 | `debut_m` | `ss.lognorm_ex(21, 3)` | Male age at sexual debut. Country-specific; fill from DHS. |
-| `acts` | `ss.lognorm_ex(freqperyear(80), freqperyear(30))` | Annual coital frequency per partnership. Country-specific; fill from behavioural surveys where available. |
+| `acts` | `ss.lognorm_ex(freqperyear(80), freqperyear(30))` | Annual coital frequency per partnership. Country-specific; fill from behavioral surveys where available. |
 
 ### Risk-group composition and partnership dynamics
 
@@ -211,19 +211,19 @@ which network parameters lack observational anchoring.
 
 ## Care-seeking
 
-STIsim's practical convention is to parameterise care-seeking on the
+STIsim's practical convention is to parameterize care-seeking on the
 disease modules and testing interventions directly, not via the
 standalone `CareSeeking` module.
 
 **This is a natural data-entry point.** Care-seeking probabilities and
 testing coverage over time are commonly observed (DHS "sought care
 for STI symptoms" tables, ART coverage from Spectrum, HTS testing
-volumes from national programme data). Feed observed values in
+volumes from national program data). Feed observed values in
 rather than calibrating them from prevalence.
 
 | Lever | Where |
 |---|---|
-| `p_symp_care` on SEIS diseases | Sets the probability that a symptomatic agent seeks care. Fill from DHS or national STI programme data. |
+| `p_symp_care` on SEIS diseases | Sets the probability that a symptomatic agent seeks care. Fill from DHS or national STI program data. |
 | `rel_test` on testing interventions | Multiplies testing rates for scale-up scenarios; typically driven from a time-series of testing coverage. |
 | Project-level multipliers (e.g. `care_seek_mult`) | Applied above the disease parameters when needed. |
 
@@ -237,7 +237,7 @@ Not typically calibration territory. The demographic inputs (age
 structure, ASFR, deaths, migration) are data — pulled from UN WPP
 via `stisim.data.downloaders` or downloaded manually. Once the input
 files are correct (including HIV-deletion for high-burden settings),
-demographic behaviour usually needs only light tuning.
+demographic behavior usually needs only light tuning.
 
 The main lever:
 

@@ -13,7 +13,7 @@ description: Use to author a new STIsim Sim in the user's workspace from a scope
 
 ## When NOT to use
 
-- The user wants to modify an existing calibrated Sim they already have in their workspace. Extend or re-parameterise that Sim rather than authoring from scratch.
+- The user wants to modify an existing calibrated Sim they already have in their workspace. Extend or re-parameterize that Sim rather than authoring from scratch.
 - The user hasn't yet scoped the research question, comparison, or setting. Send them to `stisim:getting-started` (once it ships) or ask directly before authoring.
 - The user's question needs calibration first — hand off to the `calib:` plugin.
 
@@ -27,7 +27,7 @@ description: Use to author a new STIsim Sim in the user's workspace from a scope
    Do not proceed to authoring until this is written down. Update the brief with what the user says.
 
 2. **Identify the study type and its data path.** Consult `references/data-guide.md` and classify the analysis as one of:
-   - **Country study** — targets a real country. Needs demographic data, initial prevalence, calibration targets, behavioural inputs.
+   - **Country study** — targets a real country. Needs demographic data, initial prevalence, calibration targets, behavioral inputs.
    - **Sub-national study** — targets a subregion or key population. User brings location-specific data in the expected format.
    - **Theoretical / illustrative** — no country-specific data; small population, short horizon.
 
@@ -36,13 +36,13 @@ description: Use to author a new STIsim Sim in the user's workspace from a scope
 3. **Load the model primer.** Invoke `stisim:model-primer` and consult `references/architecture.md` to ground module choices in the composition surface `sti.Sim` actually offers. For a specific area (a disease's natural history, a network's partnership dynamics), read the canonical source per `references/canonical-sources.md` before deciding.
 
 4. **Select modules.** From the analysis intent, decide the module composition:
-   - **diseases** — which of the available diseases (HIV, syphilis, chlamydia, gonorrhoea, trichomoniasis, BV, GUD) the analysis actually needs.
+   - **diseases** — which of the available diseases (HIV, syphilis, chlamydia, gonorrhea, trichomoniasis, BV, GUD) the analysis actually needs.
    - **networks** — default layered structure, or a narrower composition (MSM-only, FSW-focused) if the question calls for it.
    - **demographics** — for country studies, prefer the `demographics='<country>'` string convention so STIsim's location loaders resolve the data files. For sub-national studies, pass a demographics instance pointing at the user's data.
    - **interventions** — baseline standard-of-care plus any the analysis compares.
    - **connectors** — default composition covers common cross-disease coupling; specify explicit connectors (e.g. `sti.hiv_syph`, `sti.hiv_ng`) when overriding parameters.
    - **analyzers** — whatever produces the outputs the analysis needs.
-   - **custom modules** — for non-standard behaviour (e.g. fetal-health tracking), pass via the `custom=[...]` kwarg.
+   - **custom modules** — for non-standard behavior (e.g. fetal-health tracking), pass via the `custom=[...]` kwarg.
 
    Note each choice, with a one-line rationale, in `analysis-brief.md` under **Intended model changes**.
 
@@ -52,7 +52,7 @@ description: Use to author a new STIsim Sim in the user's workspace from a scope
    - use `sti.Sim(...)` for composition — always, not the base `ss.Sim`;
    - route per-module parameters via the `<slot>_pars` kwargs (e.g. `disease_pars={'hiv': {...}}`);
    - route location-specific demographic tuning via `dem_pars=` (e.g. `dem_pars={'rel_migration': 0.5}`), not by post-hoc mutation of a demographics object;
-   - parameterise care-seeking on the relevant disease modules (e.g. `p_symp_care` for the SEIS diseases) or on the testing interventions (e.g. `rel_test` scaling) — that is the practical convention in current STIsim projects, rather than adding a separate `CareSeeking` module;
+   - parameterize care-seeking on the relevant disease modules (e.g. `p_symp_care` for the SEIS diseases) or on the testing interventions (e.g. `rel_test` scaling) — that is the practical convention in current STIsim projects, rather than adding a separate `CareSeeking` module;
    - set explicit seeds (three or more) for any stochastic claim the analysis will make;
    - if the analysis has cross-module dependencies (e.g. a custom connector or an intervention that references a disease by name), wire cross-references in `init_pre(sim)`, not `__init__`.
 
@@ -62,7 +62,7 @@ description: Use to author a new STIsim Sim in the user's workspace from a scope
 
 ## How this skill is evaluated
 
-A Sim authored with this skill should (a) run without error on the first try in a fresh conda env with the current stisim installed, (b) produce outputs the analysis question actually needs, and (c) leave `analysis-brief.md` current enough that a cold reader can reconstruct what was built and why. Judged manually across the two example analyses as they mature.
+A Sim authored with this skill should (a) run without error on the first try in a fresh conda env with the current STIsim installed, (b) produce outputs the analysis question actually needs, and (c) leave `analysis-brief.md` current enough that a cold reader can reconstruct what was built and why. Judged manually across the two example analyses as they mature.
 
 ## Checks before completion
 

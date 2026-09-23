@@ -33,15 +33,15 @@ The intake should feel like a conversation with a strong scientific collaborator
 
 **Question-first** ("How should I distribute long-acting PrEP among sub-populations in my country?"): start with the question, work outward — decision context, populations, intervention definition, comparator, outcomes, time horizon, equity dimensions, constraints, evidence. Do not immediately translate the first sentence into a simulation specification.
 
-**Data-first** ("We have new efficacy / uptake / adherence data — can we do something with it?"): start with what the evidence measures, then explore scientific implications — what mechanism it affects, whether HIVsim represents that mechanism, what existing assumptions it might replace, whether the evidence generalises to the target setting, what decision becomes answerable because these data now exist. Do not assume interesting data warrants a simulation analysis.
+**Data-first** ("We have new efficacy / uptake / adherence data — can we do something with it?"): start with what the evidence measures, then explore scientific implications — what mechanism it affects, whether HIVsim represents that mechanism, what existing assumptions it might replace, whether the evidence generalizes to the target setting, what decision becomes answerable because these data now exist. Do not assume interesting data warrants a simulation analysis.
 
 **Tool-first** ("I'd like to use HIVsim"): help discover the research question. Ask what setting, intervention, policy problem, or scientific uncertainty motivated the interest. Explain briefly what HIVsim is good at if useful. Do not immediately start collecting configuration parameters.
 
 ## Instructions
 
-1. **Before the first round, assess HIVsim experience and desired guidance level.** Ask enough to establish: first HIVsim analysis? Familiar with agent-based / individual-based models? How much explanation do they want? Do they want to make every modelling decision explicitly, or would they prefer the agent to recommend conventional choices and surface only consequential decisions? If it is a first HIVsim analysis, offer a short crash course — do not force it. Experienced users should be able to say "skip the background". Record the desired guidance level so later skills do not re-ask or re-explain.
+1. **Before the first round, assess HIVsim experience and desired guidance level.** Ask enough to establish: first HIVsim analysis? Familiar with agent-based / individual-based models? How much explanation do they want? Do they want to make every modeling decision explicitly, or would they prefer the agent to recommend conventional choices and surface only consequential decisions? If it is a first HIVsim analysis, offer a short crash course — do not force it. Experienced users should be able to say "skip the background". Record the desired guidance level so later skills do not re-ask or re-explain.
 
-2. **Run rounds of 2–5 substantive questions.** Do not dump the whole frontier if it contains fifteen questions — group related questions and prioritise the highest information value. Follow the round format:
+2. **Run rounds of 2–5 substantive questions.** Do not dump the whole frontier if it contains fifteen questions — group related questions and prioritize the highest information value. Follow the round format:
 
     ```
     ❓ **Q1** — **<question title>**: <question body, may include options>
@@ -85,7 +85,7 @@ Do not require the design tree to be empty before useful research begins. Initia
 - the researcher's desired working style is understood,
 - and the project has enough operational structure to proceed safely.
 
-At that point, summarise the current shared understanding, explicitly identify unresolved branches (which are still **open** vs. **blocked on evidence**), and move into literature / data discovery. Later, after evidence lands, return to the tree and continue grilling the branches that are now unblocked.
+At that point, summarize the current shared understanding, explicitly identify unresolved branches (which are still **open** vs. **blocked on evidence**), and move into literature / data discovery. Later, after evidence lands, return to the tree and continue grilling the branches that are now unblocked.
 
 ## Checks before completion (initial intake)
 
