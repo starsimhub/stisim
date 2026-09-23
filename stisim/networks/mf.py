@@ -337,17 +337,21 @@ class MFNetwork(BaseNetwork):
             raise ValueError(errormsg)
 
         # update partner counts
+        # Use np.unique(..., return_counts=True) so an agent forming more than one
+        # edge of the same type this step is counted once per edge; a plain
+        # ``arr[uids] += 1`` would only add 1 for duplicated UIDs (last-write-wins).
         for key, edge_type in self.edge_types.items():
-            p1_edges = p1[edge_types==edge_type]
-            p2_edges = p2[edge_types==edge_type]
-            self.partners[p1_edges] += 1
-            self.partners[p2_edges] += 1
-            self.lifetime_partners[p1_edges] += 1
-            self.lifetime_partners[p2_edges] += 1
-            getattr(self, f'{key}_partners')[p1_edges] += 1
-            getattr(self, f'{key}_partners')[p2_edges] += 1
-            getattr(self, f'lifetime_{key}_partners')[p1_edges] += 1
-            getattr(self, f'lifetime_{key}_partners')[p2_edges] += 1
+            u1, c1 = np.unique(p1[edge_types==edge_type], return_counts=True)
+            u2, c2 = np.unique(p2[edge_types==edge_type], return_counts=True)
+            u1, u2 = ss.uids(u1), ss.uids(u2)
+            self.partners[u1] += c1
+            self.partners[u2] += c2
+            self.lifetime_partners[u1] += c1
+            self.lifetime_partners[u2] += c2
+            getattr(self, f'{key}_partners')[u1] += c1
+            getattr(self, f'{key}_partners')[u2] += c2
+            getattr(self, f'lifetime_{key}_partners')[u1] += c1
+            getattr(self, f'lifetime_{key}_partners')[u2] += c2
 
         return
 
@@ -388,13 +392,20 @@ class MFNetwork(BaseNetwork):
         p1e = self.edges.p1[inactive]
         p2e = self.edges.p2[inactive]
         edge_types = self.edges.edge_type[inactive]
-        self.partners[p1e] -= 1
-        self.partners[p2e] -= 1
+        # Use np.unique(..., return_counts=True) so an agent with more than one edge
+        # of the same type ending this step is decremented once per edge; a plain
+        # ``arr[uids] -= 1`` would only subtract 1 for duplicated UIDs (last-write-wins).
+        u1, c1 = np.unique(p1e, return_counts=True)
+        u2, c2 = np.unique(p2e, return_counts=True)
+        self.partners[ss.uids(u1)] -= c1
+        self.partners[ss.uids(u2)] -= c2
         for key in ('stable', 'casual', 'onetime'):
             if key not in self.edge_types:
                 continue
             mask = edge_types == self.edge_types[key]
             if not mask.any():
                 continue
-            getattr(self, f'{key}_partners')[p1e[mask]] -= 1
-            getattr(self, f'{key}_partners')[p2e[mask]] -= 1
+            m1, mc1 = np.unique(p1e[mask], return_counts=True)
+            m2, mc2 = np.unique(p2e[mask], return_counts=True)
+            getattr(self, f'{key}_partners')[ss.uids(m1)] -= mc1
+            getattr(self, f'{key}_partners')[ss.uids(m2)] -= mc2
