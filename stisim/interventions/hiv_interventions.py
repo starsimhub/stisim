@@ -372,25 +372,26 @@ class ART(ss.Intervention):
             return
 
         hiv = sim.diseases.hiv
-        ppl = sim.people
-        pool = hiv.on_art & ppl.alive
+        pool = hiv.on_art
         if not pool.any():
             return
 
-        if isinstance(self.vls_coverage, dict):
-            for ab in self.vls_age_bins:
-                for sex in (self.vls_sex_keys or [None]):
-                    key = (ab, sex) if sex is not None else ab
-                    cov = self.vls_coverage.get(key)
-                    if cov is None:
-                        continue
-                    cov_val = cov[self.ti] if len(cov) > self.ti else cov[-1]
-                    stratum = pool & age_sex_mask(ab, sex, ppl)
-                    self._suppress_to_target(hiv, stratum, cov_val * len(stratum.uids))
+        stratum_targets = compute_stratum_targets(
+            self.vls_coverage, self.vls_format, self.vls_age_bins, self.vls_sex_keys,
+            self.ti, pool.uids, sim,
+        )
+        if stratum_targets is not None:
+            for key, target in stratum_targets.items():
+                ab, sex = key if isinstance(key, tuple) else (key, None)
+                stratum = pool & age_sex_mask(ab, sex, sim.people)
+                self._suppress_to_target(hiv, stratum, target)
         else:
-            cov_val = (self.vls_coverage[self.ti] if len(self.vls_coverage) > self.ti
-                       else self.vls_coverage[-1])
-            self._suppress_to_target(hiv, pool, cov_val * len(pool.uids))
+            total = compute_coverage_target(
+                self.vls_coverage, self.vls_format, self.vls_age_bins, self.vls_sex_keys,
+                self.ti, pool.uids, sim,
+            )
+            if total is not None:
+                self._suppress_to_target(hiv, pool, total)
 
     def _get_n_to_treat(self, eligible_uids):
         """
