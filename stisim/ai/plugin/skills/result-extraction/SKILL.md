@@ -1,6 +1,9 @@
 ---
 name: result-extraction
 description: Use when writing analysis, plotting, or post-processing code that reads sim results. Directs to ss.Result / ss.Results built-in methods (annualize, resample, to_df) instead of hand-rolled groupby aggregation, which silently mishandles the flow-vs-stock distinction.
+metadata:
+  version: "0.1"
+  versiondate: "2026-09-23"
 ---
 
 # STIsim result extraction

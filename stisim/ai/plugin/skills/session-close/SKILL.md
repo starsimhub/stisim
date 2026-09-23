@@ -1,6 +1,9 @@
 ---
 name: session-close
 description: Use at the end of an STIsim work session to produce a handoff summary, verify the analysis brief is current, and surface any unresolved items or uncommitted state.
+metadata:
+  version: "0.1"
+  versiondate: "2026-09-23"
 ---
 
 # STIsim session close

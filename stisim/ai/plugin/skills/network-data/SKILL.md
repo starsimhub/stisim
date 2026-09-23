@@ -1,6 +1,9 @@
 ---
 name: network-data
 description: Use to fill STIsim's sexual-network parameters (age of debut, partnership durations, risk-group composition, sex-work parameters) with country-specific data rather than accepting the global defaults. Points at the appropriate data source and workflow for each parameter.
+metadata:
+  version: "0.1"
+  versiondate: "2026-09-23"
 ---
 
 # STIsim network data

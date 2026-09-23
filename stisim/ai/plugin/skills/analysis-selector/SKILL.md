@@ -1,6 +1,9 @@
 ---
 name: analysis-selector
 description: Use very early in research intake — before any tool is assumed — to classify what class of analytical method a research question actually calls for. Prevents routing a statistical, ML, causal-inference, or descriptive question into HIVsim / STIsim (or any transmission model) simply because the researcher entered through that workflow. Sequence is research question → analytical objective → need for dynamics → need for mechanistic transmission → required representation of heterogeneity → data sufficiency → specific tool.
+metadata:
+  version: "0.1"
+  versiondate: "2026-09-23"
 ---
 
 # Analysis selector

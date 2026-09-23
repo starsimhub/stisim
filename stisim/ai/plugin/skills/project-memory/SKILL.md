@@ -1,6 +1,9 @@
 ---
 name: project-memory
 description: Use during initial project intake to establish a durable memory strategy for a research project, and throughout the project to enforce that important decisions live outside any single agent session. Directs research projects to a deliberate memory mechanism (repo-based, session-indexing, agent-memory provider, or hybrid) rather than letting the current chat session become the de facto project memory.
+metadata:
+  version: "0.1"
+  versiondate: "2026-09-23"
 ---
 
 # Project memory

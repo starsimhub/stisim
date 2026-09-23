@@ -1,6 +1,9 @@
 ---
 name: editable-dep-hygiene
 description: Use when about to edit a file inside an editable pip install (STIsim, Starsim, or any other `pip install -e` dependency), or about to bump the version or switch the branch of such a dependency. Enforces the rule that any edit to an editable dep must be committed, pushed, and PR'd immediately — and that no version bump or branch switch happens with unmerged local work in the dep checkout.
+metadata:
+  version: "0.1"
+  versiondate: "2026-09-23"
 ---
 
 # Editable-dep hygiene

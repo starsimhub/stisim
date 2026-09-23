@@ -1,6 +1,9 @@
 ---
 name: comment-hygiene
 description: Use when writing or editing docstrings and inline comments in shared library code (STIsim, Starsim, or any package used by people outside the current project). Enforces the rule that library comments explain the software itself, not the history of the project that motivated the change or the agent's working context.
+metadata:
+  version: "0.1"
+  versiondate: "2026-09-23"
 ---
 
 # Comment hygiene for shared library code

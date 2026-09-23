@@ -1,6 +1,9 @@
 ---
 name: writing-tests
 description: Use when writing or reviewing tests for HIVsim / STIsim development or downstream analysis code. Optimizes for a small number of scientifically meaningful tests over comprehensive enumeration of trivial ones. Every proposed test should have a one-sentence answer to "what meaningful bug would this catch?"; if the answer is "it confirms a value we assigned still has that value", do not add it.
+metadata:
+  version: "0.1"
+  versiondate: "2026-09-23"
 ---
 
 # Writing tests for HIVsim / STIsim code

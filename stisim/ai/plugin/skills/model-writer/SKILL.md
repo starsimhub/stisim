@@ -1,6 +1,9 @@
 ---
 name: model-writer
 description: Use to author a new STIsim Sim in the user's workspace from a scoped research question — select modules, draft the code, self-critique against known traps, and record the intended model changes in the analysis brief.
+metadata:
+  version: "0.1"
+  versiondate: "2026-09-23"
 ---
 
 # STIsim model writer

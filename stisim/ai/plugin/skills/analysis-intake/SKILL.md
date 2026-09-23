@@ -1,6 +1,9 @@
 ---
 name: analysis-intake
 description: Use at the start of any new HIVsim analysis to convert an initially vague research idea into a provisional analysis specification through an iterative, grilling-style design-tree conversation. Investigates facts the agent can discover (literature, data, HIVsim capabilities); asks the researcher only for decisions that require their scientific judgment. Establishes working style, constraints, and durable memory before code is written.
+metadata:
+  version: "0.1"
+  versiondate: "2026-09-23"
 ---
 
 # HIVsim analysis intake

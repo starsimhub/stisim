@@ -1,6 +1,9 @@
 ---
 name: calibration-strategy
 description: Use when scoping the calibration for an HIVsim / STIsim analysis — deciding what should be calibrated, what should be populated from data, what should stay fixed from literature, and what belongs to intervention scenarios rather than to historical fit. Owns the model-specific choices (which parameters, which targets, ART/testing dependency, staged sequencing); delegates the machinery (algorithm, optimizer, prior predictive, re-identification, plotting) to the `calib:*` plugin.
+metadata:
+  version: "0.1"
+  versiondate: "2026-09-23"
 ---
 
 # HIVsim / STIsim calibration strategy

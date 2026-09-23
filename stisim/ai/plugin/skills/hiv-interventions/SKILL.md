@@ -1,6 +1,9 @@
 ---
 name: hiv-interventions
 description: Use to design the intervention set for an HIVsim analysis through a structured conversation with the user. Covers ART, HIV testing, VMMC, and PrEP by eliciting data, presenting HIVsim's options, proposing defensible defaults where data is sparse, and confirming choices before writing configuration.
+metadata:
+  version: "0.1"
+  versiondate: "2026-09-23"
 ---
 
 # STIsim HIV interventions — design interview

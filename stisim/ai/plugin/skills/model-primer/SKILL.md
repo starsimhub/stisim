@@ -1,6 +1,9 @@
 ---
 name: model-primer
 description: Use before answering STIsim-specific questions, writing STIsim code, or scoping an analysis with the model. Provides an index and mental model of STIsim's architecture and points at canonical sources.
+metadata:
+  version: "0.1"
+  versiondate: "2026-09-23"
 ---
 
 # STIsim model primer

@@ -1,6 +1,9 @@
 ---
 name: extending-stisim
 description: Use when about to subclass an STIsim / Starsim class, override a library method, or write a downstream workaround for behavior that seems wrong upstream. Enforces the upstream-vs-downstream decision — real bugs go upstream as PRs, opt-in project knobs are fine downstream with a no-op default, and downstream workarounds get deleted the moment their upstream fix lands.
+metadata:
+  version: "0.1"
+  versiondate: "2026-09-23"
 ---
 
 # Extending STIsim
