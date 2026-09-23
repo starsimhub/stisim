@@ -85,9 +85,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-bb62276ab45c84d9efd712f51ff97b5a.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-e2cc62b63cae07313b67b92d61d82006.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-6b1ab2867bd145e9dff16240b8a0657a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-e2cc62b63cae07313b67b92d61d82006.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-f147ff0edcba14fc1363cea39731a244.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-9d73b2f327211b430cd3ecc299e40db5.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-f147ff0edcba14fc1363cea39731a244.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -683,26 +683,26 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <tbody>
 <tr class="odd">
 <td>pars</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a></td>
 <td>Override default parameters from <code>HIVPars</code>.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
 <td>init_prev_data</td>
 <td></td>
 <td>Optional initial prevalence data by age/sex/risk group.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="odd">
 <td>age_bins</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#list">list</a></td>
-<td>Bin edges for age-stratified results; <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a> skips them entirely.</td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a></td>
+<td>Bin edges for age-stratified results; <a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a> skips them entirely.</td>
 <td><code>default_age_bins</code></td>
 </tr>
 <tr class="even">
 <td>sex_keys</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></td>
-<td>Sex strata for results; <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a> skips sex-stratified results.</td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a></td>
+<td>Sex strata for results; <a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a> skips sex-stratified results.</td>
 <td><code>default_sex_keys</code></td>
 </tr>
 <tr class="odd">
@@ -849,7 +849,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <td>traditional</td>
 <td></td>
 <td>False=program (medical) VMMC (default), True=traditional (non-program)</td>
-<td><a href="https://docs.python.org/3/library/constants.html#False" title="1"><code>False</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#False" title="1"><code>False</code></a></td>
 </tr>
 </tbody>
 </table>
@@ -933,9 +933,9 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </tr>
 <tr class="even">
 <td>p_effective_art</td>
-<td><a href="https://docs.python.org/3/library/functions.html#float">float</a> / <code>ss</code>.<a href="https://docs.starsim.org/api/distributions.html#starsim.distributions.Dist">Dist</a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#float">float</a> / <code>ss</code>.<a href="https://docs.starsim.org/api/distributions.html#starsim.distributions.Dist">Dist</a></td>
 <td>probability that each agent achieves viral suppression (effective ART) rather than non-suppressive ART. Pass a float to override <code>self.pars.p_effective_art</code>’s probability, or an already-initialized <a href="https://docs.starsim.org/api/distributions.html#starsim.distributions.Dist" title="0"><code>ss.Dist</code></a> (e.g.&nbsp;an intervention’s own par) to use it directly. Defaults to <code>self.pars.p_effective_art</code> (default: always effective).</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 </tbody>
 </table>
@@ -1502,7 +1502,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.6.1 (2026-09-04).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.6.2 (2026-09-23).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">

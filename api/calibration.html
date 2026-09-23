@@ -85,9 +85,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-bb62276ab45c84d9efd712f51ff97b5a.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-e2cc62b63cae07313b67b92d61d82006.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-6b1ab2867bd145e9dff16240b8a0657a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-e2cc62b63cae07313b67b92d61d82006.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-f147ff0edcba14fc1363cea39731a244.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-9d73b2f327211b430cd3ecc299e40db5.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-f147ff0edcba14fc1363cea39731a244.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -707,7 +707,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </tr>
 <tr class="even">
 <td>calib_pars</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a></td>
 <td>Parameters to calibrate using dot notation, e.g.&nbsp;<code>{'hiv.beta_m2f': dict(low=0.01, high=0.1, guess=0.05)}</code></td>
 <td><em>required</em></td>
 </tr>
@@ -715,25 +715,25 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <td>data</td>
 <td><code>DataFrame</code></td>
 <td>Calibration targets with ‘time’ column + result columns</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
 <td>weights</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a></td>
 <td>Optional weight multipliers per result</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="odd">
 <td>extra_results</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#list">list</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a></td>
 <td>Additional results to track beyond data columns</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
 <td>save_results</td>
-<td><a href="https://docs.python.org/3/library/functions.html#bool">bool</a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></td>
 <td>Save sim results for each trial</td>
-<td><a href="https://docs.python.org/3/library/constants.html#False" title="1"><code>False</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#False" title="1"><code>False</code></a></td>
 </tr>
 </tbody>
 </table>
@@ -820,9 +820,9 @@ msim = sti.make_calib_sims(calib=calib, n_parsets=200)</code></pre>
 <tbody>
 <tr class="odd">
 <td>n</td>
-<td><a href="https://docs.python.org/3/library/functions.html#int">int</a></td>
-<td>Number of top parameter sets. <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a> returns all.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#int">int</a></td>
+<td>Number of top parameter sets. <a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a> returns all.</td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 </tbody>
 </table>
@@ -892,33 +892,33 @@ msim = sti.make_calib_sims(calib=calib, n_parsets=200)</code></pre>
 <tbody>
 <tr class="odd">
 <td>filename</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#str">str</a> / <code>Path</code></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a> / <code>Path</code></td>
 <td>Path for the saved calibration object.</td>
 <td><em>required</em></td>
 </tr>
 <tr class="even">
 <td>shrink</td>
-<td><a href="https://docs.python.org/3/library/functions.html#bool">bool</a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></td>
 <td>If True (default), shrink before saving. The full (unshrunk) object is saved with a <code>_full</code> suffix first.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#True" title="1"><code>True</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#True" title="1"><code>True</code></a></td>
 </tr>
 <tr class="odd">
 <td>n_results</td>
-<td><a href="https://docs.python.org/3/library/functions.html#int">int</a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#int">int</a></td>
 <td>Number of top results to keep when shrinking. Default: <code>len(self.df) // 10</code> (minimum 1).</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
 <td>save_pars</td>
-<td><a href="https://docs.python.org/3/library/functions.html#bool">bool</a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></td>
 <td>If True (default), also save <code>calib.df</code>.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#True" title="1"><code>True</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#True" title="1"><code>True</code></a></td>
 </tr>
 <tr class="odd">
 <td>pars_filename</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#str">str</a> / <code>Path</code></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a> / <code>Path</code></td>
 <td>Path for the parameter DataFrame. If None, uses <code>{stem}_pars.df</code> next to <em>filename</em>.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 </tbody>
 </table>
@@ -1029,49 +1029,49 @@ msim = sti.make_calib_sims(calib=calib, n_parsets=200)</code></pre>
 </tr>
 <tr class="odd">
 <td>normalize</td>
-<td><a href="https://docs.python.org/3/library/functions.html#bool">bool</a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></td>
 <td>whether to divide the values by the largest value in either series</td>
-<td><a href="https://docs.python.org/3/library/constants.html#True" title="1"><code>True</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#True" title="1"><code>True</code></a></td>
 </tr>
 <tr class="even">
 <td>use_frac</td>
-<td><a href="https://docs.python.org/3/library/functions.html#bool">bool</a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></td>
 <td>convert to fractional mismatches rather than absolute</td>
-<td><a href="https://docs.python.org/3/library/constants.html#False" title="1"><code>False</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#False" title="1"><code>False</code></a></td>
 </tr>
 <tr class="odd">
 <td>use_squared</td>
-<td><a href="https://docs.python.org/3/library/functions.html#bool">bool</a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></td>
 <td>square the mismatches</td>
-<td><a href="https://docs.python.org/3/library/constants.html#False" title="1"><code>False</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#False" title="1"><code>False</code></a></td>
 </tr>
 <tr class="even">
 <td>as_scalar</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#str">str</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></td>
 <td>return as a scalar instead of a time series: choices are sum, mean, median</td>
 <td><code>'none'</code></td>
 </tr>
 <tr class="odd">
 <td>eps</td>
-<td><a href="https://docs.python.org/3/library/functions.html#float">float</a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#float">float</a></td>
 <td>to avoid divide-by-zero</td>
 <td><code>1e-09</code></td>
 </tr>
 <tr class="even">
 <td>skestimator</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#str">str</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></td>
 <td>if provided, use this scikit-learn estimator instead</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="odd">
 <td>estimator</td>
 <td><code>func</code></td>
 <td>if provided, use this custom estimator instead</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
 <td>kwargs</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a></td>
 <td>passed to the scikit-learn or custom estimator</td>
 <td><code>{}</code></td>
 </tr>
@@ -1143,7 +1143,7 @@ e5 = compute_gof(x1, x2, as_scalar='median') # Normalized median absolute error 
 </tr>
 <tr class="even">
 <td>calib_pars</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a></td>
 <td>Calibration parameters with values set by the sampler</td>
 <td><em>required</em></td>
 </tr>
@@ -1237,35 +1237,35 @@ sim = default_build_fn(sim, calib_pars)</code></pre>
 <td>calib</td>
 <td><a href="../api/calibration.html#stisim.calibration.Calibration">Calibration</a></td>
 <td>A completed calibration. Extracts pars via <code>calib.get_pars()</code> and uses <code>calib.sim</code> as the base if <em>sim</em> is not provided.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
 <td>calib_pars</td>
 <td></td>
 <td>Parameter source — one of: - <strong>dict</strong>: single parameter set → 1 sim (× <em>seeds_per_par</em>) - <strong>list[dict]</strong>: N parameter sets → N sims - <strong>DataFrame</strong>: rows are parameter sets (like <code>calib.df</code>)</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="odd">
 <td>sim</td>
 <td><a href="../api/sim.html#stisim.sim.Sim">Sim</a></td>
-<td>Base (uninitialized) simulation to copy. If <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a>, uses <code>calib.sim</code>.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td>Base (uninitialized) simulation to copy. If <a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a>, uses <code>calib.sim</code>.</td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
 <td>n_parsets</td>
-<td><a href="https://docs.python.org/3/library/functions.html#int">int</a></td>
-<td>Number of top parameter sets to use. <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a> = all.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#int">int</a></td>
+<td>Number of top parameter sets to use. <a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a> = all.</td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="odd">
 <td>check_fn</td>
-<td><a href="https://docs.python.org/3/library/functions.html#callable">callable</a></td>
-<td>Post-run filter — <code>check_fn(sim) → bool</code>. Sims returning <a href="https://docs.python.org/3/library/constants.html#False" title="1"><code>False</code></a> are dropped. If <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a> and <em>calib</em> is provided, uses <code>calib.check_fn</code>.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#callable">callable</a></td>
+<td>Post-run filter — <code>check_fn(sim) → bool</code>. Sims returning <a href="https://docs.python.org/3/builtins/constants.html#False" title="1"><code>False</code></a> are dropped. If <a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a> and <em>calib</em> is provided, uses <code>calib.check_fn</code>.</td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
 <td>seeds_per_par</td>
-<td><a href="https://docs.python.org/3/library/functions.html#int">int</a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#int">int</a></td>
 <td>Random seeds per parameter set. When &gt; 1, each par set is run with multiple seeds and only the first surviving seed (per <code>check_fn</code>) is kept.</td>
 <td><code>1</code></td>
 </tr>
@@ -1349,7 +1349,7 @@ msim = sti.make_calib_sims(
 </tr>
 <tr class="even">
 <td>pars</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a></td>
 <td>Flat parameter dict, e.g.&nbsp;<code>{'hiv.beta_m2f': 0.05, ...}</code></td>
 <td><em>required</em></td>
 </tr>
@@ -1814,7 +1814,7 @@ msim = sti.make_calib_sims(
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.6.1 (2026-09-04).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.6.2 (2026-09-23).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">

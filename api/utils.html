@@ -85,9 +85,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-bb62276ab45c84d9efd712f51ff97b5a.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-e2cc62b63cae07313b67b92d61d82006.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-6b1ab2867bd145e9dff16240b8a0657a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-e2cc62b63cae07313b67b92d61d82006.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-f147ff0edcba14fc1363cea39731a244.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-9d73b2f327211b430cd3ecc299e40db5.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-f147ff0edcba14fc1363cea39731a244.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -672,31 +672,31 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <td>t</td>
 <td></td>
 <td>Optionally specify a scalar, list, or array of time values.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
 <td>vals</td>
 <td></td>
 <td>Optionally specify a scalar, list, or array of values (must be same size as <code>t</code>).</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="odd">
 <td>units</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#str">str</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></td>
 <td>Optionally specify units (as a string).</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
 <td>assumption</td>
-<td><a href="https://docs.python.org/3/library/functions.html#float">float</a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#float">float</a></td>
 <td>Optionally specify a scalar assumption.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="odd">
 <td>sigma</td>
-<td><a href="https://docs.python.org/3/library/functions.html#float">float</a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#float">float</a></td>
 <td>Optionally specify a scalar uncertainty.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 </tbody>
 </table>
@@ -786,7 +786,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <p>Retrieve value at a particular time</p>
 <p>This function will automatically retrieve the value of the assumption if no time specific values have been provided, or if any time specific values are provided, will return the value entered at that time. If time specific values have been entered and the requested time is not explicitly present, an error will be raised.</p>
 <p>This function may be deprecated in future because generally it is more useful to either call <code>TimeSeries.interpolate()</code> if interested in getting values at arbitrary times, or <code>TimeSeries.get_arrays()</code> if interested in retrieving values that have been entered.</p>
-<p>:param t: A time value. If <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a>, will return assumption regardless of whether time data has been entered or not :return: The value at the corresponding time. Returns None if the value no value present</p>
+<p>:param t: A time value. If <a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a>, will return assumption regardless of whether time data has been entered or not :return: The value at the corresponding time. Returns None if the value no value present</p>
 </section>
 <section id="stisim.utils.TimeSeries.get_arrays" class="level5">
 <h5 class="anchored" data-anchor-id="stisim.utils.TimeSeries.get_arrays">get_arrays</h5>
@@ -800,7 +800,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>utils.TimeSeries.insert(t, v)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Insert a value or list of at a particular time</p>
 <p>If the value already exists in the <code>TimeSeries</code>, it will be overwritten/updated. The arrays are internally sorted by time value, and this order will be maintained.</p>
-<p>:param t: Time value to insert or update. If <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a>, the value will be assigned to the assumption :param v: Value to insert. If <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a>, this function will return immediately without doing anything</p>
+<p>:param t: Time value to insert or update. If <a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a>, the value will be assigned to the assumption :param v: Value to insert. If <a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a>, this function will return immediately without doing anything</p>
 </section>
 <section id="stisim.utils.TimeSeries.interpolate" class="level5">
 <h5 class="anchored" data-anchor-id="stisim.utils.TimeSeries.interpolate">interpolate</h5>
@@ -835,7 +835,7 @@ return c(t2)</code></pre>
 <h5 class="anchored" data-anchor-id="stisim.utils.TimeSeries.remove">remove</h5>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>utils.TimeSeries.remove(t)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Remove single time point</p>
-<p>:param t: Time value to remove. Set to <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a> to remove the assumption</p>
+<p>:param t: Time value to remove. Set to <a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a> to remove the assumption</p>
 </section>
 <section id="stisim.utils.TimeSeries.remove_after" class="level5">
 <h5 class="anchored" data-anchor-id="stisim.utils.TimeSeries.remove_after">remove_after</h5>
@@ -919,27 +919,27 @@ return c(t2)</code></pre>
 <tbody>
 <tr class="odd">
 <td>pars</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a></td>
 <td>Flat pars to route by registry lookup.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
 <td>sim_pars, sti_pars, nw_pars, dem_pars, connector_pars</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a></td>
 <td>Pre-categorized pars; merged into their bucket as-is.</td>
 <td><em>required</em></td>
 </tr>
 <tr class="odd">
 <td>strict</td>
-<td><a href="https://docs.python.org/3/library/functions.html#bool">bool</a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></td>
 <td>If True, raise on flat-pars keys that match no category. If False, unmatched keys appear in <code>routed.unmatched</code>.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#False" title="1"><code>False</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#False" title="1"><code>False</code></a></td>
 </tr>
 <tr class="even">
 <td>verbose</td>
-<td><a href="https://docs.python.org/3/library/functions.html#bool">bool</a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></td>
 <td>If True, print one line per cross-category broadcast.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#True" title="1"><code>True</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#True" title="1"><code>True</code></a></td>
 </tr>
 <tr class="odd">
 <td>**kwargs</td>
@@ -1418,7 +1418,7 @@ return c(t2)</code></pre>
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.6.1 (2026-09-04).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.6.2 (2026-09-23).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">

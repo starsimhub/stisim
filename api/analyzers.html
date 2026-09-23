@@ -85,9 +85,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-bb62276ab45c84d9efd712f51ff97b5a.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-e2cc62b63cae07313b67b92d61d82006.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-6b1ab2867bd145e9dff16240b8a0657a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-e2cc62b63cae07313b67b92d61d82006.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-f147ff0edcba14fc1363cea39731a244.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-9d73b2f327211b430cd3ecc299e40db5.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-f147ff0edcba14fc1363cea39731a244.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -753,13 +753,13 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <td>bins</td>
 <td><a href="https://docs.python.org/3/library/array.html#module-array">array</a></td>
 <td>Age bins to evaluate, e.g.&nbsp;<code>np.arange(12, 31)</code>. Defaults to ages 12-30.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
 <td>cohort_starts</td>
 <td><a href="https://docs.python.org/3/library/array.html#module-array">array</a></td>
 <td>Birth-year cohort start years. Defaults to all cohorts that fit within the simulation timespan.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 </tbody>
 </table>
@@ -812,21 +812,21 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <tbody>
 <tr class="odd">
 <td>year</td>
-<td><a href="https://docs.python.org/3/library/functions.html#float">float</a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#float">float</a></td>
 <td>Calendar year at which to record partner counts. Defaults to the last year of the simulation.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
 <td>bins</td>
 <td><a href="https://docs.python.org/3/library/array.html#module-array">array</a></td>
 <td>Bin edges for the partner count histogram. Defaults to <code>[0, 1, ..., 20, 100]</code>.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="odd">
 <td>relationship_types</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#list">list</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a></td>
 <td>Relationship types to track, e.g.&nbsp;<code>['stable', 'casual']</code>. Use <code>'partners'</code> for combined stable + casual counts.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 </tbody>
 </table>
@@ -894,7 +894,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <p>Stores <strong>one row per distinct edge</strong> with its active interval, rather than re-snapshotting the active edge set every timestep. Formation is detected at the step where <code>ti_formed == ti</code>; the end of the interval comes from the network’s <code>expired_this_loop</code> (populated by <code>_on_edge_dissolution</code> when <code>record_expired=True</code>), so <code>step()</code> only touches the per-step <em>flows</em> (newly-formed and newly-expired edges), never the active <em>stock</em>. Each partner’s sex and age-at-formation are read from the edge/people directly, so the analyzer makes no p1=male/p2=female assumption and works for any gender combination (male-female, male-male).</p>
 <p>Recorded state lives in <code>self.results['relationships'][nw]</code>: a list of one mutable row per distinct edge::</p>
 <pre><code>[p1, p2, ti_formed, ti_expired, age_p1, age_p2, female_p1, female_p2]</code></pre>
-<p><code>ti_expired</code> is the timestep at which the edge was observed in <code>expired_this_loop</code> (so its active interval is the half-open <code>[ti_formed, ti_expired)</code>), or <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a> while the edge is still active at the end of the run. Getters map <code>None -&gt; final_ti + 1</code> so an ongoing edge tests active through the last timestep.</p>
+<p><code>ti_expired</code> is the timestep at which the edge was observed in <code>expired_this_loop</code> (so its active interval is the half-open <code>[ti_formed, ti_expired)</code>), or <a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a> while the edge is still active at the end of the run. Getters map <code>None -&gt; final_ti + 1</code> so an ongoing edge tests active through the last timestep.</p>
 <p>.. warning:: <strong>Single-edge-per-pair-per-timestep assumption.</strong> Edges are keyed by <code>(p1, p2, ti_formed)</code> (see <code>_indicies_of_rels_in_table_for_nw</code>). If a network ever forms <strong>more than one edge between the same pair of agents at the same ti</strong>, those edges collide on this key and <strong>expiry data is corrupted</strong>: only the last-formed colliding edge remains reachable for <code>ti_expired</code> recording, so the others keep <code>ti_expired = None</code> (wrongly treated as active through run end) and their expiry events are dropped. Formation <em>counts</em> are unaffected (every edge is still appended as its own row), so only the active-interval results (<code>get_unique_partners_active_per_agent</code> and any duration computed from <code>ti_expired</code>) are affected. The bundled networks do not do this; the assumption holds as long as a pair forms at most one edge per network per timestep (the no-concurrent-duplicate-edge invariant noted in <code>BaseNetwork.add_pairs</code>). Forming a second edge between the same pair at a <em>different</em> ti is fine (distinct key).</p>
 <p><strong>Duration semantics.</strong> <code>ti_expired</code> is defined as one past the last timestep the edge was present and transmission-capable during the disease transmission step (step 9 of the 16-step integration loop). Any duration reported or computed from this analyzer is therefore::</p>
 <pre><code>duration = ti_expired - ti_formed
@@ -933,15 +933,15 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <tbody>
 <tr class="odd">
 <td>age_bins</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a href="https://docs.python.org/3/library/stdtypes.html#str">str</a>]</td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a>[<a href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>]</td>
 <td>Age bin strings parsable by <a href="https://docs.starsim.org/api/utils.html#starsim.utils.parse_age_range" title="0"><code>ss.parse_age_range</code></a> (e.g.&nbsp;<code>['0-5', '5-10', ..., '70-75']</code>). Bins may overlap; a partner is counted in every bin containing its age. Defaults to five-year bins from <code>'0-5'</code> through <code>'70-75'</code>.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
 <td>networks</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a href="https://docs.python.org/3/library/stdtypes.html#str">str</a>] | None</td>
-<td>Network names to track. <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a> (default) tracks every stisim <code>BaseNetwork</code>-derived sexual network in the sim. Named missing networks raise <a href="https://docs.python.org/3/library/exceptions.html#ValueError" title="1"><code>ValueError</code></a>; named networks that are not <code>BaseNetwork</code>-derived warn and are skipped. A network that cannot record all edge expirations (<code>records_all_expirations</code> is False, e.g.&nbsp;<code>MSMScaleFreeNetwork</code>) is <strong>skipped with a warning</strong>, since its active-interval results would be incomplete. The analyzer requires <code>BaseNetwork</code> because it reads BaseNetwork-only edge meta (<code>ti_formed</code>, <code>age_p1</code>, <code>age_p2</code>) and the <code>expired_this_loop</code> buffer, and sets <code>record_expired = True</code> on each tracked network.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a>[<a href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>] | None</td>
+<td>Network names to track. <a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a> (default) tracks every stisim <code>BaseNetwork</code>-derived sexual network in the sim. Named missing networks raise <a href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="1"><code>ValueError</code></a>; named networks that are not <code>BaseNetwork</code>-derived warn and are skipped. A network that cannot record all edge expirations (<code>records_all_expirations</code> is False, e.g.&nbsp;<code>MSMScaleFreeNetwork</code>) is <strong>skipped with a warning</strong>, since its active-interval results would be incomplete. The analyzer requires <code>BaseNetwork</code> because it reads BaseNetwork-only edge meta (<code>ti_formed</code>, <code>age_p1</code>, <code>age_p2</code>) and the <code>expired_this_loop</code> buffer, and sets <code>record_expired = True</code> on each tracked network.</td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 </tbody>
 </table>
@@ -978,7 +978,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <h5 class="anchored" data-anchor-id="stisim.analyzers.PartnershipFormationAnalyzer.finalize">finalize</h5>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>analyzers.PartnershipFormationAnalyzer.finalize()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Resolve still-buffered relationships that expired at the end of the simulation.</p>
-<p>After the loop, the only edges left in a network’s <code>self.expired_this_loop</code> are those removed by death at the <strong>final</strong> step 15 — i.e.&nbsp;after the last <code>step()</code> read. They were active through the disease phase of the final ti (step 9), so they get <code>ti_expired = final_ti + 1</code>. Relationships/edges still active at sim end were never buffered for removal recording, so they keep <code>ti_expired = None</code> (the right-censored marker; getter methods treat <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a> as still-active relationships at simulation end).</p>
+<p>After the loop, the only edges left in a network’s <code>self.expired_this_loop</code> are those removed by death at the <strong>final</strong> step 15 — i.e.&nbsp;after the last <code>step()</code> read. They were active through the disease phase of the final ti (step 9), so they get <code>ti_expired = final_ti + 1</code>. Relationships/edges still active at sim end were never buffered for removal recording, so they keep <code>ti_expired = None</code> (the right-censored marker; getter methods treat <a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a> as still-active relationships at simulation end).</p>
 </section>
 <section id="stisim.analyzers.PartnershipFormationAnalyzer.get_n_partnerships_formed" class="level5">
 <h5 class="anchored" data-anchor-id="stisim.analyzers.PartnershipFormationAnalyzer.get_n_partnerships_formed">get_n_partnerships_formed</h5>
@@ -1003,21 +1003,21 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <tbody>
 <tr class="odd">
 <td>female</td>
-<td><a href="https://docs.python.org/3/library/functions.html#bool">bool</a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></td>
 <td>Subject sex (True=female, False=male).</td>
-<td><a href="https://docs.python.org/3/library/constants.html#False" title="1"><code>False</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#False" title="1"><code>False</code></a></td>
 </tr>
 <tr class="even">
 <td>age_bins</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#list">list</a>[<a href="https://docs.python.org/3/library/stdtypes.html#str">str</a>] | None</td>
-<td>Bins to report; <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a> (default) uses the analyzer’s construction bins. A partner is counted in every bin containing its age at formation (overlapping bins each count it); a partner whose age is outside every bin is not counted.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a>[<a href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a>] | None</td>
+<td>Bins to report; <a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a> (default) uses the analyzer’s construction bins. A partner is counted in every bin containing its age at formation (overlapping bins each count it); a partner whose age is outside every bin is not counted.</td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="odd">
 <td>window_months</td>
-<td><a href="https://docs.python.org/3/library/functions.html#int">int</a> | None</td>
-<td>If <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a> (default), the inner array is the full per-timestep series (length <code>n_ti</code>, indexed by ti). If an int, the inner array is a single trailing-window sum (length 1).</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#int">int</a> | None</td>
+<td>If <a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a> (default), the inner array is the full per-timestep series (length <code>n_ti</code>, indexed by ti). If an int, the inner array is a single trailing-window sum (length 1).</td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 </tbody>
 </table>
@@ -1083,15 +1083,15 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <tbody>
 <tr class="odd">
 <td>female</td>
-<td><a href="https://docs.python.org/3/library/functions.html#bool">bool</a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></td>
 <td>Subject sex.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#False" title="1"><code>False</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#False" title="1"><code>False</code></a></td>
 </tr>
 <tr class="even">
 <td>window_months</td>
-<td><a href="https://docs.python.org/3/library/functions.html#int">int</a> | None</td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#int">int</a> | None</td>
 <td>Trailing ti window length for partnership counting, None for whole simulation.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 </tbody>
 </table>
@@ -1154,15 +1154,15 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <tbody>
 <tr class="odd">
 <td>female</td>
-<td><a href="https://docs.python.org/3/library/functions.html#bool">bool</a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#bool">bool</a></td>
 <td>Subject sex.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#False" title="1"><code>False</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#False" title="1"><code>False</code></a></td>
 </tr>
 <tr class="even">
 <td>window_months</td>
-<td><a href="https://docs.python.org/3/library/functions.html#int">int</a> | None</td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#int">int</a> | None</td>
 <td>Trailing ti window length for partner counting, None for whole simulation.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 </tbody>
 </table>
@@ -1303,9 +1303,9 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <tbody>
 <tr class="odd">
 <td>age_bins</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#list">list</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a></td>
 <td>age bin edges, e.g.&nbsp;[15, 25, 35, 45, 65]. Default: [15, 25, 35, 45, 65]. Bins are half-open intervals: [lo, hi), i.e.&nbsp;lo &lt;= age &lt; hi.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 </tbody>
 </table>
@@ -1364,39 +1364,39 @@ sim.analyzers.art_coverage.plot()</code></pre>
 <tbody>
 <tr class="odd">
 <td>disease1</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | <code>ss</code>.<a href="https://docs.starsim.org/api/diseases.html#starsim.diseases.Disease">Disease</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a> | <code>ss</code>.<a href="https://docs.starsim.org/api/diseases.html#starsim.diseases.Disease">Disease</a></td>
 <td>name of the first disease</td>
 <td><em>required</em></td>
 </tr>
 <tr class="even">
 <td>disease2</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#str">str</a> | <code>ss</code>.<a href="https://docs.starsim.org/api/diseases.html#starsim.diseases.Disease">Disease</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a> | <code>ss</code>.<a href="https://docs.starsim.org/api/diseases.html#starsim.diseases.Disease">Disease</a></td>
 <td>name of the second disease</td>
 <td><em>required</em></td>
 </tr>
 <tr class="odd">
 <td>disease1_infected_state_name</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#str">str</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></td>
 <td>name of the infected state for disease1 (default: ‘infected’)</td>
 <td><code>'infected'</code></td>
 </tr>
 <tr class="even">
 <td>disease2_infected_state_name</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#str">str</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></td>
 <td>name of the infected state for disease2 (default: ‘infected’)</td>
 <td><code>'infected'</code></td>
 </tr>
 <tr class="odd">
 <td>age_limits</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#list">list</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a></td>
 <td>list of two integers that define the age limits for the denominator.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
 <td>denom</td>
 <td><code>function</code></td>
 <td>function that returns a boolean array of the denominator, usually the relevant population. default: lambda self: (self.sim.people.age &gt;= 15) &amp; (self.sim.people.age &lt; 50)</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="odd">
 <td>*args, **kwargs</td>
@@ -1433,19 +1433,19 @@ sim.analyzers.art_coverage.plot()</code></pre>
 <tbody>
 <tr class="odd">
 <td>year</td>
-<td><a href="https://docs.python.org/3/library/functions.html#float">float</a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#float">float</a></td>
 <td>Calendar year at which to store detailed age-difference distributions. Defaults to 2000.</td>
 <td><code>2000</code></td>
 </tr>
 <tr class="even">
 <td>age_bins</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#list">list</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a></td>
 <td>Female age group names matching the network’s <code>f_age_group_bins</code> keys. Defaults to <code>['teens', 'young', 'adult']</code>.</td>
 <td><code>['teens', 'young', 'adult']</code></td>
 </tr>
 <tr class="odd">
 <td>network</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#str">str</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></td>
 <td>Name of the network to analyze. Defaults to <code>'structuredsexual'</code>.</td>
 <td><code>'structuredsexual'</code></td>
 </tr>
@@ -1518,9 +1518,9 @@ sim.analyzers.art_coverage.plot()</code></pre>
 <tbody>
 <tr class="odd">
 <td>diseases</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#list">list</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a></td>
 <td>List of disease names (str) to track, e.g.&nbsp;<code>['hiv', 'syphilis']</code>.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 </tbody>
 </table>
@@ -1964,7 +1964,7 @@ sim.analyzers.art_coverage.plot()</code></pre>
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.6.1 (2026-09-04).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.6.2 (2026-09-23).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">

@@ -1660,14 +1660,6 @@
       "dispname": "-"
     },
     {
-      "name": "stisim.interventions.hiv_interventions.ART.make_vls_prob_fn",
-      "domain": "py",
-      "role": "function",
-      "priority": "1",
-      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.ART.make_vls_prob_fn",
-      "dispname": "-"
-    },
-    {
       "name": "stisim.interventions.hiv_interventions.ART.prioritize_art",
       "domain": "py",
       "role": "function",
@@ -1681,6 +1673,14 @@
       "role": "function",
       "priority": "1",
       "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.ART.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.interventions.hiv_interventions.ART.vls_stock_correction",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.ART.vls_stock_correction",
       "dispname": "-"
     },
     {
@@ -3524,14 +3524,6 @@
       "dispname": "-"
     },
     {
-      "name": "stisim.hiv_interventions.ART.make_vls_prob_fn",
-      "domain": "py",
-      "role": "function",
-      "priority": "1",
-      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.ART.make_vls_prob_fn",
-      "dispname": "-"
-    },
-    {
       "name": "stisim.hiv_interventions.ART.prioritize_art",
       "domain": "py",
       "role": "function",
@@ -3545,6 +3537,14 @@
       "role": "function",
       "priority": "1",
       "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.ART.step",
+      "dispname": "-"
+    },
+    {
+      "name": "stisim.hiv_interventions.ART.vls_stock_correction",
+      "domain": "py",
+      "role": "function",
+      "priority": "1",
+      "uri": "api/interventions.hiv_interventions.html#stisim.interventions.hiv_interventions.ART.vls_stock_correction",
       "dispname": "-"
     },
     {

@@ -85,9 +85,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-bb62276ab45c84d9efd712f51ff97b5a.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-e2cc62b63cae07313b67b92d61d82006.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-6b1ab2867bd145e9dff16240b8a0657a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-e2cc62b63cae07313b67b92d61d82006.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-f147ff0edcba14fc1363cea39731a244.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-9d73b2f327211b430cd3ecc299e40db5.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-f147ff0edcba14fc1363cea39731a244.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -755,33 +755,33 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <tbody>
 <tr class="odd">
 <td>visit_prob</td>
-<td><a href="https://docs.python.org/3/library/functions.html#float">float</a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#float">float</a></td>
 <td>probability of attending ANC (default 0.85)</td>
 <td><code>0.85</code></td>
 </tr>
 <tr class="even">
 <td>disease_names</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#list">list</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a></td>
 <td>extra diseases to test for; HIV and syphilis are auto-detected if present in the sim</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="odd">
 <td>test_sensitivity</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a></td>
 <td>per-disease sensitivity, e.g.&nbsp;<code>{'hiv': 0.99}</code>; default 1.0 for all</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
 <td>disease_treatment_map</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a></td>
 <td>maps disease name → treatment intervention; required for syphilis and any non-HIV disease</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="odd">
 <td>newborn_tests</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a></td>
 <td>maps disease name → newborn/infant test intervention (also added to <code>sim.interventions</code>), e.g.&nbsp;<code>{'hiv': infant_hiv, 'syphilis': newborn_syph}</code></td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
 <td>start, stop, name, label</td>
@@ -845,14 +845,14 @@ sim = ss.Sim(..., interventions=[anc, art, syph_tx, infant_hiv, newborn_syph])</
 <tr class="even">
 <td>test</td>
 <td></td>
-<td>Test intervention to schedule for attending partners. Optional — subclasses overriding :meth:<code>notify_attendees</code> may set this to <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a>.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td>Test intervention to schedule for attending partners. Optional — subclasses overriding :meth:<code>notify_attendees</code> may set this to <a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a>.</td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="odd">
 <td>pars</td>
 <td></td>
 <td>Optional dict of parameter overrides.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
 <td>**kwargs</td>
@@ -994,37 +994,37 @@ sim = ss.Sim(..., interventions=[anc, art, syph_tx, infant_hiv, newborn_syph])</
 <td>product</td>
 <td></td>
 <td>diagnostic product (e.g.&nbsp;STIDx, HIVDx) that determines test outcomes (sensitivity, specificity). If None, subclasses supply a default (e.g.&nbsp;HIVTest uses a perfect HIVDx). For STITest, a product is required.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
 <td>test_prob_data</td>
 <td></td>
 <td>annual testing probability (if dt_scale=True, the default) or per-timestep probability (if dt_scale=False). Accepts a scalar (constant probability), an array (one value per entry in <code>years</code>), or a DataFrame (subclass-specific, e.g.&nbsp;SymptomaticTesting accepts risk-group-stratified DataFrames). Default: 1.0 (test all eligible agents per year).</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="odd">
 <td>years</td>
 <td><a href="https://docs.python.org/3/library/array.html#module-array">array</a></td>
 <td>calendar years corresponding to entries in test_prob_data when test_prob_data is an array. Mutually exclusive with start.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
 <td>start</td>
-<td><a href="https://docs.python.org/3/library/functions.html#float">float</a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#float">float</a></td>
 <td>calendar year when the intervention activates (inclusive). Defaults to the first simulation year.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="odd">
 <td>stop</td>
-<td><a href="https://docs.python.org/3/library/functions.html#float">float</a></td>
+<td><a href="https://docs.python.org/3/builtins/functions.html#float">float</a></td>
 <td>calendar year when the intervention deactivates (inclusive). Defaults to the last simulation year.</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
 <td>eligibility</td>
 <td></td>
 <td>function <code>f(sim) -&gt; BoolArr</code> or <code>f(sim) -&gt; UIDs</code> defining who can be tested. Can filter on any agent property, e.g.&nbsp;<code>lambda sim: sim.people.female &amp; (sim.people.age &gt; 15)</code>. Default: all agents (subclasses may override, e.g.&nbsp;HIVTest defaults to undiagnosed agents only).</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="odd">
 <td>rel_test</td>
@@ -1132,11 +1132,11 @@ sim = ss.Sim(..., interventions=[anc, art, syph_tx, infant_hiv, newborn_syph])</
 <td>pars</td>
 <td></td>
 <td></td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
 <td>disease</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#str">str</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#str">str</a></td>
 <td>should match the name of one of the diseases in the simulation</td>
 <td><em>required</em></td>
 </tr>
@@ -1288,33 +1288,33 @@ none  — dismissed without treatment</code></pre>
 <tbody>
 <tr class="odd">
 <td>treatments</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#list">list</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a></td>
 <td>treatment module instances</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
 <td>diseases</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#list">list</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a></td>
 <td>names of diseases to track accuracy for (resolved against <code>sim.diseases</code> at init)</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="odd">
 <td>cervical_diseases</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#list">list</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#list">list</a></td>
 <td>names of diseases whose symptomatic flag indicates cervical infection; defaults to any disease named ‘ng’ or ‘ct’ in <code>diseases</code></td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
 <td>outcome_tx_map</td>
-<td><a href="https://docs.python.org/3/library/stdtypes.html#dict">dict</a></td>
+<td><a href="https://docs.python.org/3/builtins/stdtypes.html#dict">dict</a></td>
 <td>maps outcome name → list of treatment modules; auto-constructed from <code>treatments</code> if omitted</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="odd">
 <td>treat_prob_data</td>
 <td></td>
 <td>unused; reserved for future time-varying tx prob</td>
-<td><a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a></td>
+<td><a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a></td>
 </tr>
 <tr class="even">
 <td>years, start, stop, eligibility, name, label</td>
@@ -1854,7 +1854,7 @@ none  — dismissed without treatment</code></pre>
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.6.1 (2026-09-04).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.6.2 (2026-09-23).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">

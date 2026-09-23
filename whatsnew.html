@@ -50,9 +50,9 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-bb62276ab45c84d9efd712f51ff97b5a.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-e2cc62b63cae07313b67b92d61d82006.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="site_libs/bootstrap/bootstrap-dark-6b1ab2867bd145e9dff16240b8a0657a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="site_libs/bootstrap/bootstrap-e2cc62b63cae07313b67b92d61d82006.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-f147ff0edcba14fc1363cea39731a244.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-9d73b2f327211b430cd3ecc299e40db5.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="site_libs/bootstrap/bootstrap-f147ff0edcba14fc1363cea39731a244.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -621,6 +621,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
   <ul>
   <li><a href="#whats-new" id="toc-whats-new" class="nav-link active" data-scroll-target="#whats-new">What’s new</a>
   <ul>
+  <li><a href="#version-1.6.2-2026-09-23" id="toc-version-1.6.2-2026-09-23" class="nav-link" data-scroll-target="#version-1.6.2-2026-09-23">Version 1.6.2 (2026-09-23)</a></li>
   <li><a href="#version-1.6.1-2026-09-04" id="toc-version-1.6.1-2026-09-04" class="nav-link" data-scroll-target="#version-1.6.1-2026-09-04">Version 1.6.1 (2026-09-04)</a></li>
   <li><a href="#version-1.6.0-2026-08-28" id="toc-version-1.6.0-2026-08-28" class="nav-link" data-scroll-target="#version-1.6.0-2026-08-28">Version 1.6.0 (2026-08-28)</a></li>
   <li><a href="#version-1.5.11-2026-08-24" id="toc-version-1.5.11-2026-08-24" class="nav-link" data-scroll-target="#version-1.5.11-2026-08-24">Version 1.5.11 (2026-08-24)</a>
@@ -755,10 +756,19 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="whats-new" class="level1">
 <h1>What’s new</h1>
 <p>All notable changes to the codebase are documented in this file.</p>
+<section id="version-1.6.2-2026-09-23" class="level2">
+<h2 class="anchored" data-anchor-id="version-1.6.2-2026-09-23">Version 1.6.2 (2026-09-23)</h2>
+<ul>
+<li><strong><code>vls_coverage</code> is now a stock target, not a per-initiation flow.</strong> Previously, VLS status was set once at ART initiation and never revisited, so a time-varying <code>vls_coverage</code> affected only newly-enrolled agents. <code>ART.vls_stock_correction()</code> now runs each step, ranking on-ART agents by a persistent <code>suppression_propensity</code> and correcting the suppressed set (per stratum) to the target — bidirectional, since suppression is reversible. Aligns ART with the stock-target semantics VMMC (1.5.9) and PrEP (1.5.11) already use. <code>vls_coverage=None</code> still means 100% suppressed, so the default is untouched. (#597)</li>
+<li>New <code>n_vls</code> / <code>p_vls</code> / <code>p_vls_given_art</code> results (aggregate, per sex, per age-sex band) on the <code>art_coverage</code> analyzer. <code>p_vls_given_art</code> is the <em>input</em> (ART-conditional suppression); <code>p_vls</code> is the cascade <em>outcome</em> over all PLHIV (GAM 1.3, the “third 95”). Also adds per-age-sex-band <code>new_infections</code>, <code>n_susceptible</code>, and <code>incidence</code>, so stratified incidence is computable from standard outputs. (#597)</li>
+<li><strong>Partner counts drifted under concurrency.</strong> In <code>MFNetwork</code>, <code>arr[uids] += 1</code> with duplicated UIDs writes each duplicate only once (NumPy fancy-indexing gotcha), so agents starting or ending more than one edge of the same type on the same timestep had counters updated by 1 rather than by edge count. Fixed via <code>np.unique(return_counts=True)</code>. Baseline endpoints shift &lt;1%. (#601)</li>
+<li><strong><code>ti_infected</code> returns as an alias for <code>ti_exposed</code> on <code>SEIS</code> diseases</strong> (chlamydia, gonorrhea, trichomoniasis), so cross-disease code iterating over <code>sim.diseases</code> can read time of acquisition uniformly without branching on the disease. Read-through only; no numerical change. (#599, #603)</li>
+</ul>
+</section>
 <section id="version-1.6.1-2026-09-04" class="level2">
 <h2 class="anchored" data-anchor-id="version-1.6.1-2026-09-04">Version 1.6.1 (2026-09-04)</h2>
 <ul>
-<li><strong>Age and sex stratification of disease results is now optional.</strong> Every <code>BaseSTI</code> subclass (<code>Chlamydia</code>, <code>Gonorrhea</code>, <code>Trichomoniasis</code>, <code>Syphilis</code>, <code>HIV</code>, <code>BV</code>) now accepts <code>age_bins</code> and <code>sex_keys</code>; passing <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a> for either skips the corresponding stratified results, leaving the whole-population ones untouched and numerically identical. Defaults are unchanged, so existing models are unaffected. Disabling both takes a gonorrhea module from 205 results to 29, which matters for large multi-sims and low-memory runs. <code>sti.default_age_bins</code> and <code>sti.default_sex_keys</code> are exported for building custom stratifications. <code>SEIS</code> also gains <code>age_range</code> as a constructor argument, previously hardcoded to <code>[15, 65]</code>. (#592)</li>
+<li><strong>Age and sex stratification of disease results is now optional.</strong> Every <code>BaseSTI</code> subclass (<code>Chlamydia</code>, <code>Gonorrhea</code>, <code>Trichomoniasis</code>, <code>Syphilis</code>, <code>HIV</code>, <code>BV</code>) now accepts <code>age_bins</code> and <code>sex_keys</code>; passing <a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a> for either skips the corresponding stratified results, leaving the whole-population ones untouched and numerically identical. Defaults are unchanged, so existing models are unaffected. Disabling both takes a gonorrhea module from 205 results to 29, which matters for large multi-sims and low-memory runs. <code>sti.default_age_bins</code> and <code>sti.default_sex_keys</code> are exported for building custom stratifications. <code>SEIS</code> also gains <code>age_range</code> as a constructor argument, previously hardcoded to <code>[15, 65]</code>. (#592)</li>
 </ul>
 </section>
 <section id="version-1.6.0-2026-08-28" class="level2">
@@ -789,7 +799,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <li>HIV: <code>rel_death_f</code> (the female mortality multiplier) now applies off-ART as well as on-ART; previously it only applied on ART, with no documented reason for the asymmetry. (#583)</li>
 <li>HIV: circumcision (<code>circumcised</code>/<code>circ_traditional</code>/<code>eff_circ</code>/<code>eff_circ_traditional</code>) moved from <code>VMMC</code> onto <code>HIV</code> so multiple circumcision pathways can share the same state. <code>VMMC</code> gains an independent traditional (non-program) circumcision pathway (<code>traditional_prob</code>, <code>traditional_age</code>) alongside program VMMC — both write through the same <code>HIV.circumcise()</code> sink, so someone circumcised by either pathway is automatically excluded from the other. (#576)</li>
 <li>Syphilis: fix a reactivation-from-latent bug where the previous fix for “reactivation never happens” caused the opposite failure — <em>every</em> latent agent flipped back to secondary the timestep after entering latency, regardless of the reactivation draw, collapsing latency to a ~1-timestep blip and effectively disabling tertiary progression. (#569)</li>
-<li>Removed the dead <code>post_art</code> state: it was declared and cleared on infection-clear, but nothing ever set it <a href="https://docs.python.org/3/library/constants.html#True" title="1"><code>True</code></a> (superseded by <code>art_discontinued</code>, which everything else already reads); <code>hiv_n_post_art</code> was silently always 0.</li>
+<li>Removed the dead <code>post_art</code> state: it was declared and cleared on infection-clear, but nothing ever set it <a href="https://docs.python.org/3/builtins/constants.html#True" title="1"><code>True</code></a> (superseded by <code>art_discontinued</code>, which everything else already reads); <code>hiv_n_post_art</code> was silently always 0.</li>
 </ul>
 </section>
 <section id="interventions" class="level3">
@@ -826,8 +836,8 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="bug-fixes-1" class="level3">
 <h3 class="anchored" data-anchor-id="bug-fixes-1">Bug fixes</h3>
 <ul>
-<li><strong><code>HIV.stop_art</code> now actually sets <code>post_art=True</code>.</strong> The <code>post_art</code> <code>BoolState</code> was defined but only ever cleared to <a href="https://docs.python.org/3/library/constants.html#False" title="1"><code>False</code></a> in <code>clear_infection</code>, so downstream cascade-stage attribution (e.g.&nbsp;transmission-source-by-ART-status analyzers) couldn’t distinguish “never on ART” from “on ART, now interrupted”. <code>start_art</code> also clears <code>post_art</code> when re-enrolling a previously-interrupted agent. (#544, #541)</li>
-<li><strong><code>STITest</code>/<code>SyphTest</code> no longer crash with the default <code>eligibility=None</code>.</strong> <code>get_testers</code> treated <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a> as a non-callable UID list instead of falling back to <code>check_eligibility()</code> (which already handles <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a> → everyone), so any test intervention without an explicit <code>eligibility</code> function crashed on its first step. (#537, #562)</li>
+<li><strong><code>HIV.stop_art</code> now actually sets <code>post_art=True</code>.</strong> The <code>post_art</code> <code>BoolState</code> was defined but only ever cleared to <a href="https://docs.python.org/3/builtins/constants.html#False" title="1"><code>False</code></a> in <code>clear_infection</code>, so downstream cascade-stage attribution (e.g.&nbsp;transmission-source-by-ART-status analyzers) couldn’t distinguish “never on ART” from “on ART, now interrupted”. <code>start_art</code> also clears <code>post_art</code> when re-enrolling a previously-interrupted agent. (#544, #541)</li>
+<li><strong><code>STITest</code>/<code>SyphTest</code> no longer crash with the default <code>eligibility=None</code>.</strong> <code>get_testers</code> treated <a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a> as a non-callable UID list instead of falling back to <code>check_eligibility()</code> (which already handles <a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a> → everyone), so any test intervention without an explicit <code>eligibility</code> function crashed on its first step. (#537, #562)</li>
 <li>Syphilis: fix <code>new_nnds</code> / <code>new_stillborns</code> (and derived <code>new_congenital_deaths</code> / <code>cum_congenital_deaths</code>) always reading 0 — <code>step_state</code> cleared <code>ti_nnd</code> / <code>ti_stillborn</code> to NaN before <code>update_results</code> could match them against the current timestep. Counts are now stashed before clearing, mirroring the existing <code>_new_congenital_count</code> pattern. (#560)</li>
 <li><code>ANCTest</code>: fixed a crash under current starsim (<code>ss.dur(1, 'month')</code> → <code>'months'</code>) and a bug where <code>active_diseases</code> was resolved after <code>super().init_pre(sim)</code> had already called <code>init_results()</code>, so per-disease results (<code>n_&lt;disease&gt;_positive</code>) were never created. <code>ANCTest</code> had zero test coverage before this. (#324, #546)</li>
 </ul>
@@ -866,7 +876,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <h3 class="anchored" data-anchor-id="bug-fixes-2">Bug fixes</h3>
 <ul>
 <li><strong><code>VMMC</code> now hits its coverage as a prevalence (stock) target, not a per-step hazard.</strong> The 1.5.6 rewrite computed the per-timestep target over the <em>uncircumcised</em> pool and only in aggregate, so <code>coverage</code> behaved as a per-step uptake rate on the remaining-uncircumcised men: realised circumcision coverage ratcheted toward ~100% regardless of the target, and the age/sex stratification in the input data was ignored (all ages converged to the same level). <code>VMMC.step()</code> now tops up to <code>coverage × (all eligible males)</code> per <code>(age, sex)</code> stratum each step — the denominator includes already-circumcised men, matching cross-sectional survey definitions — and never removes (circumcision is irreversible). Realised coverage converges to the target and preserves the input age gradient. Models calibrated against 1.5.6–1.5.8 VMMC behaviour will need recalibration. (#535)</li>
-<li><strong><code>HIV.set_prognoses</code> now calls <a href="https://docs.python.org/3/library/functions.html#super" title="1"><code>super()</code></a>, fixing <a href="https://docs.starsim.org/api/analyzers.html#starsim.analyzers.infection_log" title="0"><code>ss.infection_log()</code></a> for HIV.</strong> HIV overrode <code>Disease.set_prognoses()</code> entirely for its natural-history setup and never called <a href="https://docs.python.org/3/library/functions.html#super" title="1"><code>super()</code></a>, so the infection log’s append hook never fired for HIV specifically (other diseases such as SEIS-based Gonorrhea were unaffected). Infection log entries for a 1000-agent HIV sim went from 0 to 259 after the fix, restoring source/target transmission tracking (e.g.&nbsp;attributing onward transmission to a source subgroup). (#536)</li>
+<li><strong><code>HIV.set_prognoses</code> now calls <a href="https://docs.python.org/3/builtins/functions.html#super" title="1"><code>super()</code></a>, fixing <a href="https://docs.starsim.org/api/analyzers.html#starsim.analyzers.infection_log" title="0"><code>ss.infection_log()</code></a> for HIV.</strong> HIV overrode <code>Disease.set_prognoses()</code> entirely for its natural-history setup and never called <a href="https://docs.python.org/3/builtins/functions.html#super" title="1"><code>super()</code></a>, so the infection log’s append hook never fired for HIV specifically (other diseases such as SEIS-based Gonorrhea were unaffected). Infection log entries for a 1000-agent HIV sim went from 0 to 259 after the fix, restoring source/target transmission tracking (e.g.&nbsp;attributing onward transmission to a source subgroup). (#536)</li>
 <li><code>GonorrheaTreatment.set_treat_eff</code> now defends against NaN <code>rel_treat</code>: a small fraction of agents allocated but inactive at <code>sim.init</code> keep an uninitialized slot and read back as NaN when reactivated, which previously propagated to <code>treat_eff</code> and made those agents always fail treatment. NaN entries are now replaced with the declared default (1) before computing <code>treat_eff</code>. (#528)</li>
 <li><code>art_coverage</code> analyzer plotting no longer produces two identical plots. (#530)</li>
 </ul>
@@ -945,7 +955,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="analyzers" class="level3">
 <h3 class="anchored" data-anchor-id="analyzers">Analyzers</h3>
 <ul>
-<li>Add <a href="./api/analyzers.html#stisim.analyzers.PartnershipFormationAnalyzer" title="0"><code>sti.PartnershipFormationAnalyzer</code></a>. Networks now record the timestep each relationship ends (<a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a> if still active at sim end), enabling efficient post-run partnership analysis from a shared results store. (#504)</li>
+<li>Add <a href="./api/analyzers.html#stisim.analyzers.PartnershipFormationAnalyzer" title="0"><code>sti.PartnershipFormationAnalyzer</code></a>. Networks now record the timestep each relationship ends (<a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a> if still active at sim end), enabling efficient post-run partnership analysis from a shared results store. (#504)</li>
 </ul>
 </section>
 <section id="results" class="level3">
@@ -991,7 +1001,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <h3 class="anchored" data-anchor-id="sim-parameter-routing">Sim / parameter routing</h3>
 <ul>
 <li>Add <a href="./api/utils.html#stisim.utils.route_pars" title="0"><code>sti.route_pars</code></a> utility (in <code>stisim/utils.py</code>) that auto-discovers par categories (sim, sti, nw, dem) from the par-class registry and routes flat kwargs accordingly. Cross-category clashes broadcast to all matches with a printed note; unknown keys raise when <code>strict=True</code>. <a href="./api/sim.html#stisim.sim.Sim.separate_pars" title="0"><code>sti.Sim.separate_pars</code></a> now delegates to it and shrinks from ~95 to ~30 lines. (#451, #452)</li>
-<li>Auto-add coinfection connectors when <code>diseases=[...]</code> is supplied without an explicit <code>connectors=</code>. Lookup tries <code>sti.&lt;d1&gt;_&lt;d2&gt;</code> then <code>sti.&lt;d2&gt;_&lt;d1&gt;</code>; pairs with no registered class are silently skipped. Replaces the previous <a href="https://docs.python.org/3/library/exceptions.html#NotImplementedError" title="1"><code>NotImplementedError</code></a> stub. (#442, #453)</li>
+<li>Auto-add coinfection connectors when <code>diseases=[...]</code> is supplied without an explicit <code>connectors=</code>. Lookup tries <code>sti.&lt;d1&gt;_&lt;d2&gt;</code> then <code>sti.&lt;d2&gt;_&lt;d1&gt;</code>; pairs with no registered class are silently skipped. Replaces the previous <a href="https://docs.python.org/3/builtins/exceptions.html#NotImplementedError" title="1"><code>NotImplementedError</code></a> stub. (#442, #453)</li>
 <li>Route flat connector pars (e.g.&nbsp;<code>rel_sus_hiv_syph=3.5</code>) through to the matching connector instance. (#442, #453)</li>
 </ul>
 </section>
@@ -1041,7 +1051,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <h3 class="anchored" data-anchor-id="hiv-1">HIV</h3>
 <ul>
 <li>Update acute HIV defaults to Bellan 2015 central estimates: <code>rel_trans_acute=N(5.3, 0.5)</code>, <code>dur_acute=LogNorm(1.7 mo, 1 mo)</code>. EHM drops from 15 to ~7.3. (#396, #426)</li>
-<li>Add <code>rel_sus_age</code>: list of <code>(age_lo, age_hi, sex, multiplier)</code> tuples for age/sex-stratified susceptibility. Default <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a> preserves existing behaviour. (#395, #427)</li>
+<li>Add <code>rel_sus_age</code>: list of <code>(age_lo, age_hi, sex, multiplier)</code> tuples for age/sex-stratified susceptibility. Default <a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a> preserves existing behaviour. (#395, #427)</li>
 <li>Remove <code>BaseSTI.infect()</code> override; inherits parent <a href="https://docs.starsim.org/api/diseases.html#starsim.diseases.Infection.infect" title="0"><code>ss.Infection.infect()</code></a> for free mixing-pool compatibility. (#412, #421, #422)</li>
 </ul>
 </section>
@@ -1173,7 +1183,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <h3 class="anchored" data-anchor-id="bug-fixes-6">Bug fixes</h3>
 <ul>
 <li>Fix VMMC eligibility: pass <code>eligibility</code> to parent class and use <code>check_eligibility()</code> in <code>step()</code>, so user-supplied eligibility functions are no longer silently ignored (#353)</li>
-<li>Fix starsim compatibility: convert <code>ss.years</code>/<a href="https://docs.starsim.org/api/time.html#starsim.time.date" title="0"><code>ss.date</code></a> to <a href="https://docs.python.org/3/library/functions.html#int" title="1"><code>int</code></a> in <code>get_age_distribution()</code> for newer starsim <code>__len__</code> behavior</li>
+<li>Fix starsim compatibility: convert <code>ss.years</code>/<a href="https://docs.starsim.org/api/time.html#starsim.time.date" title="0"><code>ss.date</code></a> to <a href="https://docs.python.org/3/builtins/functions.html#int" title="1"><code>int</code></a> in <code>get_age_distribution()</code> for newer starsim <code>__len__</code> behavior</li>
 <li>Fix rand_seed placement in beta transmission test (#354)</li>
 </ul>
 </section>
@@ -1231,7 +1241,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <h3 class="anchored" data-anchor-id="hiv-2">HIV</h3>
 <ul>
 <li>Add <code>aids</code> property to HIV module (cd4 &lt; 200)</li>
-<li>Fix <code>dur_on_art</code> being silently scaled by <code>dur_on_art_trend</code>: default is now <a href="https://docs.python.org/3/library/constants.html#None" title="1"><code>None</code></a> (#336)</li>
+<li>Fix <code>dur_on_art</code> being silently scaled by <code>dur_on_art_trend</code>: default is now <a href="https://docs.python.org/3/builtins/constants.html#None" title="1"><code>None</code></a> (#336)</li>
 <li>Add time-varying ART duration and wider care-seeking distribution</li>
 <li>Add custom module support to Sim constructor (#318)</li>
 </ul>
@@ -1902,7 +1912,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.6.1 (2026-09-04).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.6.2 (2026-09-23).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">

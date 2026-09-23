@@ -85,9 +85,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-bb62276ab45c84d9efd712f51ff97b5a.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-e2cc62b63cae07313b67b92d61d82006.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../../site_libs/bootstrap/bootstrap-dark-6b1ab2867bd145e9dff16240b8a0657a.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../../site_libs/bootstrap/bootstrap-e2cc62b63cae07313b67b92d61d82006.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-f147ff0edcba14fc1363cea39731a244.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-dark-9d73b2f327211b430cd3ecc299e40db5.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../../site_libs/bootstrap/bootstrap-f147ff0edcba14fc1363cea39731a244.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -1133,7 +1133,7 @@ hiv.ti_diagnosed = ti         │
 </tbody>
 </table>
 <p>State (<code>prep_naive</code>/<code>on_prep</code>/<code>prep_discontinued</code>/<code>prep_eff</code>/<code>prep_source</code>/<code>ti_prep_start</code>/<code>ti_prep_stop</code>) lives on the <code>HIV</code> disease module. This lets multiple <code>Prep</code> instances (one per product) share the same PrEP history, so a person on one product is automatically excluded from starting another, and their history (naive/on/discontinued) is tracked consistently no matter which product they used.</p>
-<p><code>prep_naive</code> flips to <a href="https://docs.python.org/3/library/constants.html#False" title="1"><code>False</code></a> once, permanently, on first-ever enrollment; <code>prep_discontinued</code> clears if a course is later restarted. <code>prep_discontinued</code> allows a user to target individuals who have already used PrEP for additional future PrEP initiation. <code>prep_source</code> is a per-agent number recording of which instance of <code>Prep</code> enrolled this agent.</p>
+<p><code>prep_naive</code> flips to <a href="https://docs.python.org/3/builtins/constants.html#False" title="1"><code>False</code></a> once, permanently, on first-ever enrollment; <code>prep_discontinued</code> clears if a course is later restarted. <code>prep_discontinued</code> allows a user to target individuals who have already used PrEP for additional future PrEP initiation. <code>prep_source</code> is a per-agent number recording of which instance of <code>Prep</code> enrolled this agent.</p>
 <p>Coverage is a <em>prevalence</em> (stock) target, like VMMC and ART.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>prep <span class="op">=</span> sti.Prep(coverage<span class="op">=</span>[<span class="dv">0</span>, <span class="fl">0.5</span>], years<span class="op">=</span>[<span class="dv">2020</span>, <span class="dv">2025</span>])</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -1775,7 +1775,7 @@ hiv.ti_diagnosed = ti         │
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.6.1 (2026-09-04).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.6.2 (2026-09-23).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">
