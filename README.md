@@ -84,7 +84,7 @@ The following repositories contain end-to-end analyses built with STIsim, and ar
 
 ## Contributing
 
-We welcome all contributions to STIsim! Please refer to our [code of conduct](https://github.com/starsimhub/stisim/blob/main/code_of_conduct.md) and [contributors's guide](https://github.com/starsimhub/stisim/blob/main/contributing.md). You'll find information there about our style guide, which is essential reading prior to contributing. Questions or comments can be directed to [info@starsim.org](mailto:info@starsim.org), or on this project's [GitHub](https://github.com/starsimhub/stisim) page. 
+We welcome all contributions to STIsim! Please refer to our [code of conduct](https://github.com/starsimhub/stisim/blob/main/CODE_OF_CONDUCT.md) and [contributors's guide](https://github.com/starsimhub/stisim/blob/main/CONTRIBUTING.md). You'll find information there about our style guide, which is essential reading prior to contributing. Questions or comments can be directed to [info@starsim.org](mailto:info@starsim.org), or on this project's [GitHub](https://github.com/starsimhub/stisim) page. 
 
 See `.github/workflows/README.md` for details on publishing new releases of STIsim.
 
