@@ -2,6 +2,14 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.6.2 (2026-09-23)
+
+- **`vls_coverage` is now a stock target, not a per-initiation flow.** Previously, VLS status was set once at ART initiation and never revisited, so a time-varying `vls_coverage` affected only newly-enrolled agents. `ART.vls_stock_correction()` now runs each step, ranking on-ART agents by a persistent `suppression_propensity` and correcting the suppressed set (per stratum) to the target — bidirectional, since suppression is reversible. Aligns ART with the stock-target semantics VMMC (1.5.9) and PrEP (1.5.11) already use. `vls_coverage=None` still means 100% suppressed, so the default is untouched. (#597)
+- New `n_vls` / `p_vls` / `p_vls_given_art` results (aggregate, per sex, per age-sex band) on the `art_coverage` analyzer. `p_vls_given_art` is the *input* (ART-conditional suppression); `p_vls` is the cascade *outcome* over all PLHIV (GAM 1.3, the "third 95"). Also adds per-age-sex-band `new_infections`, `n_susceptible`, and `incidence`, so stratified incidence is computable from standard outputs. (#597)
+- **Partner counts drifted under concurrency.** In `MFNetwork`, `arr[uids] += 1` with duplicated UIDs writes each duplicate only once (NumPy fancy-indexing gotcha), so agents starting or ending more than one edge of the same type on the same timestep had counters updated by 1 rather than by edge count. Fixed via `np.unique(return_counts=True)`. Baseline endpoints shift <1%. (#601)
+- **`ti_infected` returns as an alias for `ti_exposed` on `SEIS` diseases** (chlamydia, gonorrhea, trichomoniasis), so cross-disease code iterating over `sim.diseases` can read time of acquisition uniformly without branching on the disease. Read-through only; no numerical change. (#599, #603)
+
+
 ## Version 1.6.1 (2026-09-04)
 
 - **Age and sex stratification of disease results is now optional.** Every `BaseSTI` subclass (`Chlamydia`, `Gonorrhea`, `Trichomoniasis`, `Syphilis`, `HIV`, `BV`) now accepts `age_bins` and `sex_keys`; passing `None` for either skips the corresponding stratified results, leaving the whole-population ones untouched and numerically identical. Defaults are unchanged, so existing models are unaffected. Disabling both takes a gonorrhea module from 205 results to 29, which matters for large multi-sims and low-memory runs. `sti.default_age_bins` and `sti.default_sex_keys` are exported for building custom stratifications. `SEIS` also gains `age_range` as a constructor argument, previously hardcoded to `[15, 65]`. (#592)

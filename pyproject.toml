@@ -7,7 +7,7 @@ name = "stisim"
 dynamic = ["version"]
 description = "STI and HIV modeling toolbox built on the Starsim framework"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = {file = "LICENSE"}
 keywords = ["agent-based model", "simulation", "disease", "epidemiology", "sexually transmitted infections", "STIs", "STDs"]
 

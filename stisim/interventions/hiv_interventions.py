@@ -7,7 +7,8 @@ import starsim as ss
 import numpy as np
 from stisim.interventions.base_interventions import STITest
 from stisim.interventions.utils import (
-    parse_coverage, compute_coverage_target, compute_stratum_targets, age_sex_mask,
+    parse_coverage, compute_coverage_target, compute_stratum_targets,
+    resolve_coverage_targets, age_sex_mask, top_n_by,
 )
 from stisim.utils import count
 
@@ -222,15 +223,18 @@ class ART(ss.Intervention):
                           to HIV (default 0.96). Applied to both prenatal (MaternalNet)
                           and postnatal (BreastfeedingNet) transmission. Set to 1.0 for
                           complete protection (previous default behavior).
-        vls_coverage:     fraction of newly-initiated agents who achieve viral
-                          suppression (effective ART) rather than non-suppressive ART.
-                          Accepts the same formats as ``coverage`` (scalar, time-varying
-                          dict, DataFrame, or age/sex-stratified DataFrame) — see
-                          :func:`parse_coverage`, though values must be proportions
-                          (0-1), not absolute counts. Default ``None`` means 100%
-                          of initiators achieve viral suppression. Any stratum not
-                          covered by a stratified ``vls_coverage`` also defaults to
-                          100%. Forwarded to HIV.start_art() at initiation.
+        vls_coverage:     stock target for the fraction of agents on ART who are
+                          virally suppressed. Accepts the same formats as
+                          ``coverage`` (scalar, time-varying dict, DataFrame, or
+                          age/sex-stratified DataFrame) but must be a proportion.
+                          Corrected each step by :meth:`vls_stock_correction`.
+                          Operates in tandem with ``p_effective_art`` (see
+                          ``pars`` above), the same way ``coverage`` operates
+                          alongside ``art_initiation``: ``p_effective_art`` sets
+                          the per-initiate probability of starting suppressed,
+                          ``vls_coverage`` reconciles the resulting stock to
+                          observed data. Default ``None`` means no correction;
+                          missing strata in a stratified input default to 100%.
         smoothness:       interpolation smoothness (0=linear, default)
         format_priority:  when both n_art and p_art are non-NaN, prefer this format
                           ('n' or 'p', default 'n')
@@ -274,18 +278,12 @@ class ART(ss.Intervention):
     def __init__(self, pars=None, coverage=None, vls_coverage=None, smoothness=0, format_priority='n', **kwargs):
         super().__init__()
 
-        # p_effective_art is the legacy pre-vls_coverage override; update_pars would let it
-        # silently clobber the vls_coverage-driven callable below with no warning if both are set
-        if vls_coverage is not None and ('p_effective_art' in kwargs or (pars is not None and 'p_effective_art' in pars)):
-            errormsg = 'Pass either vls_coverage or the legacy p_effective_art, not both — p_effective_art would silently override vls_coverage.'
-            raise ValueError(errormsg)
-
         self.define_pars(
             art_initiation=ss.bernoulli(p=0.9),
             pmtct_efficacy=0.96,  # How much maternal ART reduces infant susceptibility
                                    # to HIV via MaternalNet (prenatal) and BreastfeedingNet
                                    # (postnatal). Conceptually like infant PrEP.
-            p_effective_art=ss.bernoulli(self.make_vls_prob_fn),  # Probability a newly-initiated agent achieves viral suppression
+            p_effective_art=ss.bernoulli(p=1.0),  # Probability a newly-initiated agent achieves viral suppression
         )
         self.update_pars(pars, **kwargs)
 
@@ -301,6 +299,12 @@ class ART(ss.Intervention):
         self.vls_format        = None  # 'p' or per-timestep array
         self.vls_age_bins      = None  # For stratified VLS coverage
         self.vls_sex_keys      = None  # For stratified VLS coverage
+
+        # States
+        self.define_states(
+            ss.FloatArr('adherence', default=ss.random())
+        )
+
         return
 
     def init_pre(self, sim):
@@ -321,10 +325,8 @@ class ART(ss.Intervention):
             smoothness=self._smoothness, format_priority=self._format_priority,
         )
 
-        # Parse VLS coverage data (fraction achieving viral suppression at initiation).
-        # missing_fill=1.0 so strata absent from a stratified vls_coverage default to
-        # 100% suppression, per the documented default (opposite of the 0%-default used
-        # for ART's own enrollment `coverage`, above).
+        # missing_fill=1.0 so strata absent from a stratified vls_coverage default
+        # to 100% suppressed (opposite of the 0% default used for `coverage` above).
         self.vls_coverage, self.vls_format, self.vls_age_bins, self.vls_sex_keys = parse_coverage(
             self._raw_vls_coverage, valid_names=['p_vls'], yearvec=self.t.yearvec,
             smoothness=self._smoothness, missing_fill=1.0,
@@ -337,66 +339,55 @@ class ART(ss.Intervention):
             vls_values = (np.concatenate(list(self.vls_coverage.values()))
                           if isinstance(self.vls_coverage, dict) else self.vls_coverage)
             if np.any(vls_values < 0) or np.any(vls_values > 1):
-                errormsg = 'vls_coverage must be a proportion (0-1) of ART initiators achieving viral suppression, not an absolute count.'
+                errormsg = 'vls_coverage must be a proportion (0-1), not an absolute count.'
                 raise ValueError(errormsg)
 
         self.initialized = True
         return
 
-    def make_vls_prob_fn(self, sim, uids):
+    def _suppress_to_target(self, hiv, pool, target):
         """
-        Per-agent probability of achieving viral suppression (effective ART)
-        at initiation, derived from vls_coverage.
+        Suppress the top ``target`` agents in ``pool`` by ``adherence``;
+        un-suppress the rest.
+        """
+        uids = pool.uids
+        if not len(uids):
+            return
+        n_target = int(np.clip(round(target), 0, len(uids)))
+        order = uids[np.argsort(-self.adherence[uids])]
+        keep, drop = order[:n_target], order[n_target:]
+        if len(keep):
+            hiv.on_effective_art[keep] = True
+            hiv.on_nonsuppressive_art[keep] = False
+        if len(drop):
+            hiv.on_effective_art[drop] = False
+            hiv.on_nonsuppressive_art[drop] = True
 
-        Any agent not covered by an explicit vls_coverage stratum (or when
-        vls_coverage is unset entirely) defaults to 100% — i.e. always
-        effective, matching the previous behavior.
+    def vls_stock_correction(self, sim):
         """
-        probs = np.ones(len(uids))
+        Correct viral suppression among agents already on ART toward the
+        ``vls_coverage`` target. Stratified targets are corrected per stratum
+        so age/sex differentials in the input survive the ranking.
+        """
         if self.vls_coverage is None:
-            return probs
+            return
 
-        if isinstance(self.vls_coverage, dict):
-            # Stratified by (age_bin, sex) or age_bin alone
-            for ab in self.vls_age_bins:
-                for sex in (self.vls_sex_keys or [None]):
-                    key = (ab, sex) if sex is not None else ab
-                    mask = age_sex_mask(ab, sex, sim.people)[uids]
-                    if not mask.any():
-                        continue
-                    cov = self.vls_coverage.get(key, np.ones(1))
-                    cov_val = cov[self.ti] if len(cov) > self.ti else cov[-1]
-                    probs[mask] = cov_val
-        else:
-            # Aggregate (possibly time-varying) coverage applied to everyone
-            cov_val = self.vls_coverage[self.ti] if len(self.vls_coverage) > self.ti else self.vls_coverage[-1]
-            probs[:] = cov_val
+        hiv = sim.diseases.hiv
+        pool = hiv.on_art
+        if not pool.any():
+            return
 
-        return probs
-
-    def _get_n_to_treat(self, eligible_uids):
-        """
-        Get the target number of people on ART this timestep.
-
-        Returns ``(total, stratum_targets)`` where:
-            - ``total`` is the aggregate target (or ``None`` if no coverage)
-            - ``stratum_targets`` is a dict ``{(age_bin, sex): n}`` for
-              stratified coverage, else ``None``.
-
-        When ``stratum_targets`` is not ``None``, callers should correct
-        coverage *within each stratum* rather than against the aggregate
-        total — otherwise allocation by global CD4 priority will wash out
-        the age/sex differentials in the input data.
-        """
-        total = compute_coverage_target(
-            self.coverage, self.coverage_format, self.age_bins, self.sex_keys,
-            self.ti, eligible_uids, self.sim,
+        total, stratum_targets = resolve_coverage_targets(
+            self.vls_coverage, self.vls_format, self.vls_age_bins, self.vls_sex_keys,
+            self.ti, pool.uids, sim,
         )
-        stratum_targets = compute_stratum_targets(
-            self.coverage, self.coverage_format, self.age_bins, self.sex_keys,
-            self.ti, eligible_uids, self.sim,
-        )
-        return total, stratum_targets
+        if stratum_targets is not None:
+            for key, target in stratum_targets.items():
+                ab, sex = key if isinstance(key, tuple) else (key, None)
+                stratum = pool & age_sex_mask(ab, sex, sim.people)
+                self._suppress_to_target(hiv, stratum, target)
+        elif total is not None:
+            self._suppress_to_target(hiv, pool, total)
 
     def step(self):
         """
@@ -408,8 +399,13 @@ class ART(ss.Intervention):
         hiv = sim.diseases.hiv
         inf_uids = hiv.infected.uids
 
-        # Determine treatment target (None = no capacity constraint)
-        n_to_treat, stratum_targets = self._get_n_to_treat(inf_uids)
+        # Determine treatment target (None = no capacity constraint). When
+        # stratum_targets is set, correct within each stratum so age/sex
+        # differentials aren't washed out by a global CD4-priority allocation.
+        n_to_treat, stratum_targets = resolve_coverage_targets(
+            self.coverage, self.coverage_format, self.age_bins, self.sex_keys,
+            self.ti, inf_uids, self.sim,
+        )
 
         # Check who is stopping ART
         if hiv.on_art.any():
@@ -441,6 +437,9 @@ class ART(ss.Intervention):
         if n_to_treat is not None:
             self.art_coverage_correction(sim, target_coverage=n_to_treat,
                                          stratum_targets=stratum_targets)
+
+        # Run after coverage correction so agents added to ART this step are in the pool.
+        self.vls_stock_correction(sim)
 
         # PMTCT: reduce susceptibility of infants whose mothers are on ART.
         # This applies to both prenatal (MaternalNet) and postnatal (BreastfeedingNet)
@@ -479,13 +478,12 @@ class ART(ss.Intervention):
         if n > len(awaiting_art_uids):
             start_uids = awaiting_art_uids
 
-        # Not enough spots — prioritize by CD4 and care seeking
+        # Not enough spots — prioritize lowest-CD4, highest-care-seeking
         else:
             cd4_counts   = hiv.cd4[awaiting_art_uids]
             care_seeking = hiv.care_seeking[awaiting_art_uids]
-            weights = cd4_counts * (1 / care_seeking)
-            choices = np.argsort(weights)[:n]
-            start_uids = awaiting_art_uids[choices]
+            weights = cd4_counts / care_seeking
+            start_uids = top_n_by(awaiting_art_uids, -weights, n)
 
         hiv.start_art(start_uids, p_effective_art=self.pars.p_effective_art)
 
@@ -511,15 +509,14 @@ class ART(ss.Intervention):
         hiv = sim.diseases.hiv
         on_art = hiv.on_art
 
-        # Too many on treatment → remove
+        # Too many on treatment → remove highest-CD4, lowest-care-seeking
         if len(on_art.uids) > target_coverage:
             n_to_stop    = int(len(on_art.uids) - target_coverage)
             on_art_uids  = on_art.uids
             cd4_counts   = hiv.cd4[on_art_uids]
             care_seeking = hiv.care_seeking[on_art_uids]
-            weights  = cd4_counts / care_seeking
-            choices  = np.argsort(-weights)[:n_to_stop]
-            stop_uids = on_art_uids[choices]
+            weights      = cd4_counts / care_seeking
+            stop_uids    = top_n_by(on_art_uids, weights, n_to_stop)
             hiv.ti_stop_art[stop_uids] = self.ti
             hiv.stop_art(stop_uids)
 
@@ -562,8 +559,7 @@ class ART(ss.Intervention):
                 cd4_counts   = hiv.cd4[on_art_in_stratum]
                 care_seeking = hiv.care_seeking[on_art_in_stratum]
                 weights      = cd4_counts / care_seeking
-                choices      = np.argsort(-weights)[:n_to_stop]
-                stop_uids    = on_art_in_stratum[choices]
+                stop_uids    = top_n_by(on_art_in_stratum, weights, n_to_stop)
                 hiv.ti_stop_art[stop_uids] = self.ti
                 hiv.stop_art(stop_uids)
 
@@ -646,9 +642,10 @@ class VMMC(ss.Intervention):
         self.sex_keys         = None
 
         # States
-        self.willingness = ss.FloatArr('willingness', default=ss.random())
-        self.traditional_assessed = ss.BoolArr('traditional_assessed', default=False)
-
+        self.define_states(
+            ss.FloatArr('willingness', default=ss.random()),
+            ss.BoolArr('traditional_assessed', default=False),
+        )
         return
 
     def init_pre(self, sim):
@@ -677,8 +674,7 @@ class VMMC(ss.Intervention):
         candidates = (pool & ~hiv.circumcised).uids
         if len(candidates) == 0:
             return 0
-        n_add = min(n_add, len(candidates))
-        new_circs = candidates[np.argsort(-self.willingness[candidates])[:n_add]]
+        new_circs = top_n_by(candidates, self.willingness[candidates], n_add)
         hiv.circumcise(new_circs)
         return len(new_circs)
 
@@ -827,7 +823,9 @@ class Prep(ss.Intervention):
         self._raw_coverage = coverage
 
         # States
-        self.willingness = ss.FloatArr('willingness', default=ss.random())
+        self.define_states(
+            ss.FloatArr('willingness', default=ss.random())
+        )
 
         return
 
@@ -858,8 +856,7 @@ class Prep(ss.Intervention):
         candidates = (pool & ~hiv.on_prep).uids  # excludes ANY product -- mutual exclusivity
         if len(candidates) == 0:
             return 0
-        n_add = min(n_add, len(candidates))
-        new_uids = candidates[np.argsort(-self.willingness[candidates])[:n_add]]
+        new_uids = top_n_by(candidates, self.willingness[candidates], n_add)
         started = hiv.start_prep(new_uids, eff=self.pars.prep_eff, dur=self.pars.prep_dur,
                                   source_id=self._source_id, adh=self.pars.prep_adh)
         return len(started)
