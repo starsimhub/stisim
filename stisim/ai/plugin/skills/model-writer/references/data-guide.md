@@ -1,26 +1,14 @@
 # Data guide
 
-The data an STIsim analysis needs depends on the study type. Route by
-that first, then follow the specific path.
+The data an STIsim analysis needs depends on the study type. Route by that first, then follow the specific path.
 
 ## Study type
 
-**Country study** — the analysis targets a real country's HIV / STI
-dynamics for policy or projection. Needs demographic data, initial
-prevalence, calibration targets, and behavioral inputs. This is the
-most common shape.
+**Country study** — the analysis targets a real country's HIV / STI dynamics for policy or projection. Needs demographic data, initial prevalence, calibration targets, and behavioral inputs. This is the most common shape.
 
-**Theoretical or illustrative study** — the analysis is about
-mechanism or behavior (transmission patterns, network dynamics,
-intervention shapes) rather than a specific setting. Uses default
-STIsim demographics or a synthetic population. No country-specific
-data files needed. Populations are typically small (5k–20k agents)
-and time horizons short (1–5 years).
+**Theoretical or illustrative study** — the analysis is about mechanism or behavior (transmission patterns, network dynamics, intervention shapes) rather than a specific setting. Uses default STIsim demographics or a synthetic population. No country-specific data files needed. Populations are typically small (5k–20k agents) and time horizons short (1–5 years).
 
-**Sub-national study** — the analysis targets a subregion (a province,
-a district, a key population). Requires location-specific data the
-user provides. STIsim's default demographic loaders won't cover it;
-the user brings CSVs in the expected format (see below).
+**Sub-national study** — the analysis targets a subregion (a province, a district, a key population). Requires location-specific data the user provides. STIsim's default demographic loaders won't cover it; the user brings CSVs in the expected format (see below).
 
 ## Country study — data requirements
 
@@ -35,34 +23,17 @@ Required to populate the background population dynamics.
 | Death rates by age and sex | UN WPP life tables | Available via the same downloader path. |
 | Net migration | UN WPP or country statistics office | Available via the downloader; may need `rel_migration` scaling to match a specific dataset (example: `dem_pars={'rel_migration': 0.5}`). |
 
-**STIsim ships a UN Data Portal API downloader.** See
-`stisim/data/downloaders.py`. To use it:
+**STIsim ships a UN Data Portal API downloader.** See `stisim/data/downloaders.py`. To use it:
 
-1. Register for an auth token by emailing `population@un.org` with the
-   subject "Data Portal Token Request"
-   (`population.un.org/dataportalapi/index.html`).
-2. Save the token as `stisim/data/files/auth_key.txt` in your STIsim
-   install.
-3. Call the downloader for the target location; it fetches death
-   rates, ASFR, and (optionally) births, writes them to
-   `stisim/data/files/` as `<location>_deaths.csv`,
-   `<location>_asfr.csv`, `<location>_births.csv`.
+1. Register for an auth token by emailing `population@un.org` with the subject "Data Portal Token Request" (`population.un.org/dataportalapi/index.html`).
+2. Save the token as `stisim/data/files/auth_key.txt` in your STIsim install.
+3. Call the downloader for the target location; it fetches death rates, ASFR, and (optionally) births, writes them to `stisim/data/files/` as `<location>_deaths.csv`, `<location>_asfr.csv`, `<location>_births.csv`.
 
-If no auth key is set, the downloader raises an error with manual-
-download instructions. Users then download the CSVs by hand from UN
-WPP and place them in the same folder with the same filenames.
+If no auth key is set, the downloader raises an error with manual- download instructions. Users then download the CSVs by hand from UN WPP and place them in the same folder with the same filenames.
 
-Expected filenames follow the `<location>_<indicator>.csv` convention
-so that `sti.Sim(demographics='<country>')` resolves to the files
-without extra configuration. See `tests/test_data/zimbabwe_asfr.csv`,
-`zimbabwe_deaths.csv`, `zimbabwe_births.csv` for canonical shape.
+Expected filenames follow the `<location>_<indicator>.csv` convention so that `sti.Sim(demographics='<country>')` resolves to the files without extra configuration. See `tests/test_data/zimbabwe_asfr.csv`, `zimbabwe_deaths.csv`, `zimbabwe_births.csv` for canonical shape.
 
-**High-HIV-burden countries: deduplicate the deaths file before
-running.** UN WPP all-cause mortality includes AIDS deaths. Because
-the HIV module separately kills agents via `p_hiv_death` and the
-`ti_zero` pathway, feeding raw all-cause rates into `ss.Deaths`
-double-counts HIV mortality. Use `stisim.data.dedup_deaths` on the
-deaths file before running:
+**High-HIV-burden countries: deduplicate the deaths file before running.** UN WPP all-cause mortality includes AIDS deaths. Because the HIV module separately kills agents via `p_hiv_death` and the `ti_zero` pathway, feeding raw all-cause rates into `ss.Deaths` double-counts HIV mortality. Use `stisim.data.dedup_deaths` on the deaths file before running:
 
 ```python
 import pandas as pd
@@ -81,9 +52,7 @@ hiv_deleted.to_csv('data/<country>_deaths.csv', index=False)
 diag = deleted_fraction(all_cause, hiv_deleted)
 ```
 
-See `model-primer/references/calibration-knobs.md` under "HIV
-mortality" for the argument and the full mortality-adjustment
-sequence.
+See `model-primer/references/calibration-knobs.md` under "HIV mortality" for the argument and the full mortality-adjustment sequence.
 
 ### Initial disease prevalence
 
@@ -95,9 +64,7 @@ Required for each disease in the composition.
 | Syphilis | PHIA-family surveys where included (syphilis is in ZIMPHIA), ANC surveillance, national STI program data. |
 | Gonorrhea / chlamydia / trichomoniasis | Sparse. Etiologic surveys where they exist; otherwise regional or global estimates (GBD). |
 
-Prevalence files are typically per-disease CSVs (e.g. `init_prev_hiv.csv`)
-with age × sex breakdowns matching STIsim's expected age bins (see
-`stisim/diseases/sti.py` `default_age_bins`).
+Prevalence files are typically per-disease CSVs (e.g. `init_prev_hiv.csv`) with age × sex breakdowns matching STIsim's expected age bins (see `stisim/diseases/sti.py` `default_age_bins`).
 
 ### Calibration targets
 
@@ -119,28 +86,17 @@ Time series the analysis will calibrate against.
 
 ## Sub-national study — data expectations
 
-The user provides all location-specific data. STIsim's default loaders
-won't fetch subregional data. Files should follow the same shape as
-the country CSVs above:
+The user provides all location-specific data. STIsim's default loaders won't fetch subregional data. Files should follow the same shape as the country CSVs above:
 
-- Demographic CSVs with columns `age`, `sex`, `year`, `value` (units
-  as appropriate: population count for age structure, per-1000-women
-  for ASFR, per-1000-population for mortality).
+- Demographic CSVs with columns `age`, `sex`, `year`, `value` (units as appropriate: population count for age structure, per-1000-women for ASFR, per-1000-population for mortality).
 - Prevalence CSVs with `age`, `sex`, `value` (proportion).
-- Calibration target CSVs with `year`, `value`, `lower`, `upper`
-  (bounds for CI-based likelihood).
+- Calibration target CSVs with `year`, `value`, `lower`, `upper` (bounds for CI-based likelihood).
 
-Point STIsim at the user's `data/` directory rather than using the
-`demographics='<country>'` string convention — the string convention
-resolves against STIsim's packaged data loaders, not user files.
+Point STIsim at the user's `data/` directory rather than using the `demographics='<country>'` string convention — the string convention resolves against STIsim's packaged data loaders, not user files.
 
 ## Theoretical study — no external data
 
-Populations of 5k–20k agents run over 1–5 years illustrate transmission
-dynamics without needing country data. Skip data ingestion entirely.
-Use `sti.Sim()` with default demographics and small `n_agents`. Fix
-seeds and vary only the axis of interest (network structure,
-intervention shape) across runs.
+Populations of 5k–20k agents run over 1–5 years illustrate transmission dynamics without needing country data. Skip data ingestion entirely. Use `sti.Sim()` with default demographics and small `n_agents`. Fix seeds and vary only the axis of interest (network structure, intervention shape) across runs.
 
 ## File layout
 
@@ -162,6 +118,4 @@ Convention across the surveyed projects:
 └── ...
 ```
 
-Files derived from large raw sources (IHME) typically go through a
-`process_*.py` script that's committed alongside the derived CSV; the
-raw extract itself is left out of the repo.
+Files derived from large raw sources (IHME) typically go through a `process_*.py` script that's committed alongside the derived CSV; the raw extract itself is left out of the repo.

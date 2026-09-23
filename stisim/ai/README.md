@@ -1,12 +1,6 @@
 # stisim.ai — AI-assisted STIsim research
 
-A Claude Code plugin that ships alongside the `stisim` Python package. Its
-goal is to install guardrails, checkpoints, and workflow discipline around
-STIsim / HIVsim research so that model-assisted analyses are more
-defensible, more reproducible, and less prone to known failure modes. The
-value proposition is **guardrails, not speed** — the plugin may sometimes
-slow an experienced user relative to vanilla Claude Code. Better work,
-not faster work.
+A Claude Code plugin that ships alongside the `stisim` Python package. Its goal is to install guardrails, checkpoints, and workflow discipline around STIsim / HIVsim research so that model-assisted analyses are more defensible, more reproducible, and less prone to known failure modes. The value proposition is **guardrails, not speed** — the plugin may sometimes slow an experienced user relative to vanilla Claude Code. Better work, not faster work.
 
 ## Skill inventory
 
@@ -33,10 +27,7 @@ Fourteen skills, in three functional clusters.
 
 ### Software quality — cross-cutting, unified by "share your work"
 
-All in this cluster reinforce the theme *share your work rather than
-accumulate private forks of shared code or private caches of project
-knowledge* — a pattern that becomes especially easy to fall into when
-code generation is cheap and code review is not.
+All in this cluster reinforce the theme *share your work rather than accumulate private forks of shared code or private caches of project knowledge* — a pattern that becomes especially easy to fall into when code generation is cheap and code review is not.
 
 | Skill | Purpose |
 |---|---|
@@ -74,8 +65,7 @@ stisim/ai/
         └── writing-tests/
 ```
 
-Each skill directory contains `SKILL.md`; skills with deeper reference
-material also carry a `references/` subdirectory.
+Each skill directory contains `SKILL.md`; skills with deeper reference material also carry a `references/` subdirectory.
 
 ## Activation
 
@@ -95,17 +85,9 @@ pip install -e .
 python -m stisim.ai install
 ```
 
-`stisim.ai install` resolves the plugin path from the installed `stisim`
-package location, so an editable install activates the plugin *from your
-git checkout* — any local edits to `stisim/ai/plugin/skills/` are picked
-up immediately on the next Claude Code reload, without a reinstall.
-This is the workflow to use if you are developing or editing the skills
-themselves.
+`stisim.ai install` resolves the plugin path from the installed `stisim` package location, so an editable install activates the plugin *from your git checkout* — any local edits to `stisim/ai/plugin/skills/` are picked up immediately on the next Claude Code reload, without a reinstall. This is the workflow to use if you are developing or editing the skills themselves.
 
-If you `git pull` on the editable STIsim checkout, the plugin content
-updates on the next Claude Code reload; no reinstall needed. See the
-`editable-dep-hygiene` skill for the git protocol around editable
-dependencies.
+If you `git pull` on the editable STIsim checkout, the plugin content updates on the next Claude Code reload; no reinstall needed. See the `editable-dep-hygiene` skill for the git protocol around editable dependencies.
 
 ### After install (either path)
 
@@ -115,55 +97,20 @@ Reload the Claude Code session:
 
 `/stisim:*` skills are then available in every Claude Code session.
 
-The bootstrap edits `~/.claude/settings.json` to add `stisim@stisim-local`
-under `enabledPlugins` and register a directory-sourced marketplace at the
-STIsim plugin path. The write is atomic, idempotent, and preserves all
-other settings. `python -m stisim.ai uninstall` reverses it;
-`python -m stisim.ai status` reports current registration.
+The bootstrap edits `~/.claude/settings.json` to add `stisim@stisim-local` under `enabledPlugins` and register a directory-sourced marketplace at the STIsim plugin path. The write is atomic, idempotent, and preserves all other settings. `python -m stisim.ai uninstall` reverses it; `python -m stisim.ai status` reports current registration.
 
 ## Companion plugins
 
-`stisim.ai` is intentionally narrow — it covers HIVsim / STIsim
-specifically. The plugins below cover adjacent concerns (generic
-calibration, generic Starsim / disease modeling, project memory,
-IDM-wide engineering standards) and are designed to compose. We
-strongly encourage installing them alongside `stisim.ai`.
+`stisim.ai` is intentionally narrow — it covers HIVsim / STIsim specifically. The plugins below cover adjacent concerns (generic calibration, generic Starsim / disease modeling, project memory, IDM-wide engineering standards) and are designed to compose. We strongly encourage installing them alongside `stisim.ai`.
 
-- **[`calib`](https://github.com/InstituteforDiseaseModeling/calib-plugin)**
-  — generic calibration machinery: algorithm choice, prior predictive,
-  re-identification, workflow sequencing, method selection,
-  likelihood design, plotting. `calibration-strategy` decides *what*
-  to calibrate; `calib:*` skills handle *how*. Install:
-  `/plugin marketplace add https://github.com/InstituteforDiseaseModeling/calib-plugin`.
+- **[`calib`](https://github.com/InstituteforDiseaseModeling/calib-plugin)** — generic calibration machinery: algorithm choice, prior predictive, re-identification, workflow sequencing, method selection, likelihood design, plotting. `calibration-strategy` decides *what* to calibrate; `calib:*` skills handle *how*. Install: `/plugin marketplace add https://github.com/InstituteforDiseaseModeling/calib-plugin`.
 
-- **[`starsim_ai`](https://github.com/starsimhub/starsim_ai)** —
-  three Claude Code plugins covering the layer under stisim:
-  `starsim-ai` (Starsim + Sciris MCP tools and modeling skills),
-  `disease-modeling` (general disease-modeling skills that apply
-  beyond HIVsim/STIsim), and `project-improver` (engineering-quality
-  review). Install:
-  `/plugin marketplace add https://github.com/starsimhub/starsim_ai`.
+- **[`starsim_ai`](https://github.com/starsimhub/starsim_ai)** — three Claude Code plugins covering the layer under stisim: `starsim-ai` (Starsim + Sciris MCP tools and modeling skills), `disease-modeling` (general disease-modeling skills that apply beyond HIVsim/STIsim), and `project-improver` (engineering-quality review). Install: `/plugin marketplace add https://github.com/starsimhub/starsim_ai`.
 
-- **[`canonize`](https://github.com/emiliasimmons/canonize)** — agent
-  skills for durable decision capture in computational modeling
-  projects. *"Sources feed the wiki. Decisions are internal sources.
-  Collaborators browse the wiki, not the sources."* Complements
-  `project-memory` with a concrete, opinionated implementation of the
-  curated-project-memory layer.
+- **[`canonize`](https://github.com/emiliasimmons/canonize)** — agent skills for durable decision capture in computational modeling projects. *"Sources feed the wiki. Decisions are internal sources. Collaborators browse the wiki, not the sources."* Complements `project-memory` with a concrete, opinionated implementation of the curated-project-memory layer.
 
-- **[`idm_standards`](https://github.com/InstituteforDiseaseModeling/idm_standards)**
-  — IDM's central hub for software-quality standards, engineering
-  practice, style, and documentation. Covers what `comment-hygiene`,
-  `writing-tests`, and the other software-quality skills touch, but
-  from a broader institutional standards perspective. Install:
-  `/plugin marketplace add https://github.com/InstituteforDiseaseModeling/idm_standards`.
+- **[`idm_standards`](https://github.com/InstituteforDiseaseModeling/idm_standards)** — IDM's central hub for software-quality standards, engineering practice, style, and documentation. Covers what `comment-hygiene`, `writing-tests`, and the other software-quality skills touch, but from a broader institutional standards perspective. Install: `/plugin marketplace add https://github.com/InstituteforDiseaseModeling/idm_standards`.
 
 ## AI collaboration
 
-This subpackage was scaffolded in a collaborative design session with
-Claude Code (Anthropic Claude Opus 4.7). The plugin skeleton, bootstrap
-CLI, initial skill scaffolding, and this README were drafted by Claude
-under human review. All architectural and scoping decisions —
-package layout, invariants, install mechanism, roadmap ordering, and what
-belongs in MVP versus later — were made by humans on the STIsim team.
-Skill body content is authored by AI and humans.
+This subpackage was scaffolded in a collaborative design session with Claude Code (Anthropic Claude Opus 4.7). The plugin skeleton, bootstrap CLI, initial skill scaffolding, and this README were drafted by Claude under human review. All architectural and scoping decisions — package layout, invariants, install mechanism, roadmap ordering, and what belongs in MVP versus later — were made by humans on the STIsim team. Skill body content is authored by AI and humans.

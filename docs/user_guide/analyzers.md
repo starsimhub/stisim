@@ -1,9 +1,6 @@
 # Analyzers
 
-Analyzers observe the simulation each timestep and store derived results without
-changing dynamics. STIsim ships analyzers for coinfection, sex-work transmission,
-and network/partnership structure, on top of Starsim's analyzer framework. Attach
-them via the `analyzers=[...]` argument to `sti.Sim`.
+Analyzers observe the simulation each timestep and store derived results without changing dynamics. STIsim ships analyzers for coinfection, sex-work transmission, and network/partnership structure, on top of Starsim's analyzer framework. Attach them via the `analyzers=[...]` argument to `sti.Sim`.
 
 ```python
 sim = sti.Sim(
@@ -26,10 +23,6 @@ sim = sti.Sim(
 | `sti.DebutAge` | Proportion of agents sexually debuted by age. |
 | `sti.PartnershipFormationAnalyzer` | Partnership formation per network, gender, and age bin. Relies on networks recording the timestep each relationship ends. |
 
-The grouped-result analyzers build on `result_grouper`, which provides conditional
-probability utilities for stratified results.
+The grouped-result analyzers build on `result_grouper`, which provides conditional probability utilities for stratified results.
 
-> **Stub** — expand with usage examples for each analyzer, the result keys they
-> write, and how to plot them. See the API reference for
-> [`analyzers`](../api/analyzers.qmd) and the
-> [Results tutorial](../tutorials/tut_results.qmd) for custom analysis patterns.
+> **Stub** — expand with usage examples for each analyzer, the result keys they write, and how to plot them. See the API reference for [`analyzers`](../api/analyzers.qmd) and the [Results tutorial](../tutorials/tut_results.qmd) for custom analysis patterns.
