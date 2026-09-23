@@ -156,7 +156,6 @@ class BaseSTI(ss.Infection):
         # Set initial prevalence
         self.init_prev_data = init_prev_data
 
-
         # Results. age_bins=None skips age-stratified results; sex_keys=None skips
         # sex-stratified results, leaving only the whole-population ones.
         self.age_range = age_range if age_range is not None else [15, 50]  # Age range for main results e.g. prevalence
@@ -441,11 +440,13 @@ class SEIS(BaseSTI):
     compartments, and ``infected`` is derived as E plus I, so ``n_infected`` and ``prevalence``
     count everyone carrying the infection while transmission depends on ``infectious`` alone.
     Correspondingly, ``ti_exposed`` is the time of acquisition and ``ti_infectious`` the time of
-    becoming infectious; ``ti_infected`` is not defined, since it is too easily confused with
-    ``ti_infectious``. Only ``ti_exposed`` is written exactly once per infection, so incidence is
-    counted off that (see ``BaseSTI.update_results``). Unlike ``ss.SEIR``, ``step_state()`` below
-    snaps ``ti_infectious`` forward to the timestep the transition actually happens, so it stays a
-    truthful record of onset even when ``dur_exp`` is a fraction of a timestep.
+    becoming infectious. ``ti_infected`` is exposed as an alias for ``ti_exposed`` so cross-disease
+    code can read time of acquisition uniformly regardless of whether the disease has a latent
+    period; use ``ti_exposed`` inside SEIS itself to keep the E/I distinction unambiguous. Only
+    ``ti_exposed`` is written exactly once per infection, so incidence is counted off that (see
+    ``BaseSTI.update_results``). Unlike ``ss.SEIR``, ``step_state()`` below snaps ``ti_infectious``
+    forward to the timestep the transition actually happens, so it stays a truthful record of onset
+    even when ``dur_exp`` is a fraction of a timestep.
 
     Args:
         pars (dict): Override default parameters from ``STIPars``.
@@ -469,8 +470,9 @@ class SEIS(BaseSTI):
 
         self.define_states(
             # Natural history. As ss.SEIR, the I compartment is `infectious` and `infected` is
-            # derived as E plus I; `ti_infected` is dropped in favour of `ti_exposed` (defined in
-            # BaseSTI) and `ti_infectious`.
+            # derived as E plus I. `ti_infected` is removed as a state and re-added as an alias
+            # for `ti_exposed`, so cross-disease code can rely on a single attribute for time of
+            # acquisition regardless of whether the disease has a latent period.
             ss.BoolState('exposed', label='Exposed'),
             ss.BoolState('infectious', label='Infectious'),
             ss.BoolState('asymptomatic'),
@@ -486,6 +488,7 @@ class SEIS(BaseSTI):
             ss.FloatArr('ti_clearance'),
             reset = ['infected', 'infectious', 'ti_infected'],
             infected = lambda self: self.exposed | self.infectious, # Derived: E and I are both infected
+            ti_infected = 'ti_exposed', # Alias so cross-disease code can read time of acquisition uniformly
         )
 
         return
