@@ -51,6 +51,15 @@ load_starsim("my_env_name")
 
 See [r.starsim.org](https://r.starsim.org) for more information on using Starsim from R.
 
+### AI plugin (optional)
+
+STIsim ships with `stisim.ai`, a [Claude Code](https://claude.com/claude-code) plugin with skills for scoping, building, and calibrating STIsim/HIVsim analyses. After installing STIsim, register it with Claude Code:
+```sh
+python -m stisim.ai install
+```
+
+Then reload Claude Code (exit and relaunch `claude`, or in VS Code run *Developer: Reload Window*). The skills are available as `/stisim:<skill-name>` (e.g. `/stisim:analysis-intake`). Use `python -m stisim.ai status` to check the registration and `python -m stisim.ai uninstall` to remove it. See the [AI plugin user guide](https://docs.stisim.org/user_guide/ai.html) for more information.
+
 ## Usage and documentation
 
 Documentation, including tutorials and a user guide, is available at https://docs.stisim.org. Additional resources:

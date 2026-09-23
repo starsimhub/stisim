@@ -115,6 +115,8 @@ website:
             - user_guide/care_seeking.md
             - user_guide/connectors.md
             - user_guide/calibration.md
+            - href: user_guide/ai.md
+              text: "AI plugin"
         - section: "**Examples**"
           contents:
             - href: examples/index.qmd

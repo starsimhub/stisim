@@ -12,3 +12,4 @@ This user guide documents what STIsim adds on top of Starsim:
 - **[Connectors](connectors.md)** -- Coinfection interactions between co-circulating diseases.
 - **[Calibration](calibration.md)** -- Fitting model parameters to data with Optuna.
 - **[HIVsim](hivsim.md)** -- The HIV-focused convenience wrapper around `sti.Sim`.
+- **[AI plugin](ai.md)** -- Installing and using `stisim.ai`, the Claude Code plugin for STIsim/HIVsim research.
