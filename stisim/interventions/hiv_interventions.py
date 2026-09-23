@@ -8,7 +8,7 @@ import numpy as np
 from stisim.interventions.base_interventions import STITest
 from stisim.interventions.utils import (
     parse_coverage, compute_coverage_target, compute_stratum_targets,
-    resolve_coverage_targets, age_sex_mask,
+    resolve_coverage_targets, age_sex_mask, top_n_by,
 )
 from stisim.utils import count
 
@@ -478,13 +478,12 @@ class ART(ss.Intervention):
         if n > len(awaiting_art_uids):
             start_uids = awaiting_art_uids
 
-        # Not enough spots — prioritize by CD4 and care seeking
+        # Not enough spots — prioritize lowest-CD4, highest-care-seeking
         else:
             cd4_counts   = hiv.cd4[awaiting_art_uids]
             care_seeking = hiv.care_seeking[awaiting_art_uids]
-            weights = cd4_counts * (1 / care_seeking)
-            choices = np.argsort(weights)[:n]
-            start_uids = awaiting_art_uids[choices]
+            weights = cd4_counts / care_seeking
+            start_uids = top_n_by(awaiting_art_uids, -weights, n)
 
         hiv.start_art(start_uids, p_effective_art=self.pars.p_effective_art)
 
@@ -510,15 +509,14 @@ class ART(ss.Intervention):
         hiv = sim.diseases.hiv
         on_art = hiv.on_art
 
-        # Too many on treatment → remove
+        # Too many on treatment → remove highest-CD4, lowest-care-seeking
         if len(on_art.uids) > target_coverage:
             n_to_stop    = int(len(on_art.uids) - target_coverage)
             on_art_uids  = on_art.uids
             cd4_counts   = hiv.cd4[on_art_uids]
             care_seeking = hiv.care_seeking[on_art_uids]
-            weights  = cd4_counts / care_seeking
-            choices  = np.argsort(-weights)[:n_to_stop]
-            stop_uids = on_art_uids[choices]
+            weights      = cd4_counts / care_seeking
+            stop_uids    = top_n_by(on_art_uids, weights, n_to_stop)
             hiv.ti_stop_art[stop_uids] = self.ti
             hiv.stop_art(stop_uids)
 
@@ -561,8 +559,7 @@ class ART(ss.Intervention):
                 cd4_counts   = hiv.cd4[on_art_in_stratum]
                 care_seeking = hiv.care_seeking[on_art_in_stratum]
                 weights      = cd4_counts / care_seeking
-                choices      = np.argsort(-weights)[:n_to_stop]
-                stop_uids    = on_art_in_stratum[choices]
+                stop_uids    = top_n_by(on_art_in_stratum, weights, n_to_stop)
                 hiv.ti_stop_art[stop_uids] = self.ti
                 hiv.stop_art(stop_uids)
 
@@ -677,8 +674,7 @@ class VMMC(ss.Intervention):
         candidates = (pool & ~hiv.circumcised).uids
         if len(candidates) == 0:
             return 0
-        n_add = min(n_add, len(candidates))
-        new_circs = candidates[np.argsort(-self.willingness[candidates])[:n_add]]
+        new_circs = top_n_by(candidates, self.willingness[candidates], n_add)
         hiv.circumcise(new_circs)
         return len(new_circs)
 
@@ -860,8 +856,7 @@ class Prep(ss.Intervention):
         candidates = (pool & ~hiv.on_prep).uids  # excludes ANY product -- mutual exclusivity
         if len(candidates) == 0:
             return 0
-        n_add = min(n_add, len(candidates))
-        new_uids = candidates[np.argsort(-self.willingness[candidates])[:n_add]]
+        new_uids = top_n_by(candidates, self.willingness[candidates], n_add)
         started = hiv.start_prep(new_uids, eff=self.pars.prep_eff, dur=self.pars.prep_dur,
                                   source_id=self._source_id, adh=self.pars.prep_adh)
         return len(started)

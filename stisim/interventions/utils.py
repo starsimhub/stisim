@@ -383,6 +383,17 @@ def age_sex_mask(age_bin, sex, people):
     return mask
 
 
+def top_n_by(uids, scores, n):
+    """
+    Return the ``n`` uids with the largest ``scores``, clipped to
+    ``[0, len(uids)]``. Pass ``-scores`` to select the smallest instead.
+    """
+    if n <= 0 or len(uids) == 0:
+        return uids[:0]
+    n = min(int(n), len(uids))
+    return uids[np.argsort(-scores)[:n]]
+
+
 def coverage_to_number(cov_val, coverage_format, pop_scale=None, n_eligible=None):
     """
     Convert a coverage value to a target count.
