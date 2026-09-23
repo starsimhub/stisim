@@ -7,7 +7,8 @@ import starsim as ss
 import numpy as np
 from stisim.interventions.base_interventions import STITest
 from stisim.interventions.utils import (
-    parse_coverage, compute_coverage_target, compute_stratum_targets, age_sex_mask,
+    parse_coverage, compute_coverage_target, compute_stratum_targets,
+    resolve_coverage_targets, age_sex_mask,
 )
 from stisim.utils import count
 
@@ -376,7 +377,7 @@ class ART(ss.Intervention):
         if not pool.any():
             return
 
-        stratum_targets = compute_stratum_targets(
+        total, stratum_targets = resolve_coverage_targets(
             self.vls_coverage, self.vls_format, self.vls_age_bins, self.vls_sex_keys,
             self.ti, pool.uids, sim,
         )
@@ -385,37 +386,8 @@ class ART(ss.Intervention):
                 ab, sex = key if isinstance(key, tuple) else (key, None)
                 stratum = pool & age_sex_mask(ab, sex, sim.people)
                 self._suppress_to_target(hiv, stratum, target)
-        else:
-            total = compute_coverage_target(
-                self.vls_coverage, self.vls_format, self.vls_age_bins, self.vls_sex_keys,
-                self.ti, pool.uids, sim,
-            )
-            if total is not None:
-                self._suppress_to_target(hiv, pool, total)
-
-    def _get_n_to_treat(self, eligible_uids):
-        """
-        Get the target number of people on ART this timestep.
-
-        Returns ``(total, stratum_targets)`` where:
-            - ``total`` is the aggregate target (or ``None`` if no coverage)
-            - ``stratum_targets`` is a dict ``{(age_bin, sex): n}`` for
-              stratified coverage, else ``None``.
-
-        When ``stratum_targets`` is not ``None``, callers should correct
-        coverage *within each stratum* rather than against the aggregate
-        total — otherwise allocation by global CD4 priority will wash out
-        the age/sex differentials in the input data.
-        """
-        total = compute_coverage_target(
-            self.coverage, self.coverage_format, self.age_bins, self.sex_keys,
-            self.ti, eligible_uids, self.sim,
-        )
-        stratum_targets = compute_stratum_targets(
-            self.coverage, self.coverage_format, self.age_bins, self.sex_keys,
-            self.ti, eligible_uids, self.sim,
-        )
-        return total, stratum_targets
+        elif total is not None:
+            self._suppress_to_target(hiv, pool, total)
 
     def step(self):
         """
@@ -427,8 +399,13 @@ class ART(ss.Intervention):
         hiv = sim.diseases.hiv
         inf_uids = hiv.infected.uids
 
-        # Determine treatment target (None = no capacity constraint)
-        n_to_treat, stratum_targets = self._get_n_to_treat(inf_uids)
+        # Determine treatment target (None = no capacity constraint). When
+        # stratum_targets is set, correct within each stratum so age/sex
+        # differentials aren't washed out by a global CD4-priority allocation.
+        n_to_treat, stratum_targets = resolve_coverage_targets(
+            self.coverage, self.coverage_format, self.age_bins, self.sex_keys,
+            self.ti, inf_uids, self.sim,
+        )
 
         # Check who is stopping ART
         if hiv.on_art.any():
