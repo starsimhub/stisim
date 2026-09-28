@@ -26,6 +26,7 @@ class BasePars(ss.Pars):
         self.acts = ss.lognorm_ex(ss.freqperyear(80), ss.freqperyear(30))
         self.condom_data = None
         self.condom_smoothness = None  # Smoothness for sc.smoothinterp on time-varying condom_data
+        self.rel_condom_use = 1.0      # Scalar multiplier on all condom_data values; clipped to [0, 1]
         self.update(kwargs)
         return
 
@@ -189,14 +190,15 @@ class BaseNetwork(ss.SexualNetwork):
         cd = self.pars.condom_data
         if cd is None:
             return
+        rel = self.pars.rel_condom_use
         if sc.isnumber(cd):
-            self.edges.condoms[:] = cd
+            self.edges.condoms[:] = min(cd * rel, 1.0)
             return
         if not isinstance(cd, dict):
             raise Exception("Unknown condom data input type")
 
         for key, valdict in cd.items():
-            val = valdict['simvals'][self.ti]
+            val = min(valdict['simvals'][self.ti] * rel, 1.0)
             if key == ('fsw', 'client'):
                 if 'sw' in self.edge_types:
                     sw_mask = self.edges.edge_type == self.edge_types['sw']
