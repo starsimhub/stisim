@@ -903,7 +903,7 @@ class HIV(BaseSTI):
         self.prep_eff[uids] = eff * adh
         self.prep_source[uids] = source_id
         self.ti_prep_start[uids] = ti
-        self.ti_prep_stop[uids] = ti + int(dur / self.dt)
+        self.ti_prep_stop[uids] = ti + np.asarray(dur / self.dt).astype(int)
         return uids
 
     def stop_prep(self, uids=None):
