@@ -205,7 +205,7 @@ class HIV(BaseSTI):
         return
 
     @property
-    def include_mtct(self): return 'pregnancy' in self.sim.demographics
+    def include_mtct(self): return self.sim.get_module(ss.Pregnancy, die=False) is not None
 
     def plot(self):
         """ Plot key HIV results """
@@ -493,7 +493,7 @@ class HIV(BaseSTI):
         # This makes it much less likely that pregnant women will stop treatment
         self.init_care_seeking()
         if self.include_mtct:
-            pregnant = self.sim.demographics.pregnancy.pregnant
+            pregnant = self.sim.get_module(ss.Pregnancy).pregnant
             self.care_seeking[pregnant] = self.baseline_care_seeking[pregnant] * self.pars.maternal_care_scale
             self.care_seeking[~pregnant] = self.baseline_care_seeking[~pregnant]
 
@@ -697,7 +697,7 @@ class HIV(BaseSTI):
         self.results['cum_diagnoses'][ti] = np.sum(self.results['new_diagnoses'][:ti + 1])
         self.results['new_agents_on_art'][ti] = sum((self.ti_art == ti) & self.on_art)  # gate on on_art; ti_art may also hold a scheduled future start
         if self.include_mtct:
-            pregnant = self.sim.people.pregnancy.pregnant
+            pregnant = self.sim.get_module(ss.Pregnancy).pregnant
             self.results['n_on_art_pregnant'][ti] = np.count_nonzero(self.on_art & pregnant)
             n_infected_pregnant = np.count_nonzero(self.infected & pregnant)
             n_diagnosed_pregnant = np.count_nonzero(self.diagnosed & pregnant & self.infected)
