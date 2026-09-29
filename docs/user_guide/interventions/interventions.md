@@ -287,10 +287,7 @@ interventions = [
 
 ## Syndromic management
 
-`SyndromicManagement` treats vaginal/urethral discharge syndromes presumptively,
-without a confirmatory lab test: symptomatic care-seekers are routed to treatment
-based on the syndrome rather than a diagnosis. Use it for bacterial STIs in
-settings where point-of-care diagnostics are unavailable.
+`SyndromicManagement` treats vaginal/urethral discharge syndromes presumptively, without a confirmatory lab test: symptomatic care-seekers are routed to treatment based on the syndrome rather than a diagnosis. Use it for bacterial STIs in settings where point-of-care diagnostics are unavailable.
 
 ```python
 sm = sti.SyndromicManagement(
@@ -307,17 +304,11 @@ sm = sti.SyndromicManagement(
 | `treatments` / `outcome_tx_map` | Treatment interventions and the syndrome → treatment routing. |
 | `treat_prob_data` | Probability a symptomatic care-seeker is managed. |
 
-> **Stub** — expand with the symptom-detection logic and a worked discharge example.
-> See [`SymptomaticTesting`](#symptomatictesting) for the test-and-treat variant, and
-> the API reference for [`interventions.base_interventions`](../../api/interventions.base_interventions.qmd).
+> **Stub** — expand with the symptom-detection logic and a worked discharge example. See [`SymptomaticTesting`](#symptomatictesting) for the test-and-treat variant, and the API reference for [`interventions.base_interventions`](../../api/interventions.base_interventions.qmd).
 
 ## Antenatal and infant screening (PMTCT)
 
-STIsim supports single-visit antenatal care (ANC) screening that auto-schedules
-newborn/infant follow-up, used for preventing mother-to-child transmission (PMTCT)
-of HIV and congenital syphilis. Requires an `ss.Pregnancy` demographics module
-(and `ss.MaternalNet` — plus `ss.BreastfeedingNet` for postnatal protection —
-for infant scheduling).
+STIsim supports single-visit antenatal care (ANC) screening that auto-schedules newborn/infant follow-up, used for preventing mother-to-child transmission (PMTCT) of HIV and congenital syphilis. Requires an `ss.Pregnancy` demographics module (and `ss.MaternalNet` — plus `ss.BreastfeedingNet` for postnatal protection — for infant scheduling).
 
 ```python
 infant_hiv = sti.InfantHIVTest(name='infant_hiv')   # HIV test for newborns
@@ -345,39 +336,17 @@ sim = sti.Sim(diseases=[sti.HIV()], demographics=[ss.Pregnancy(), ss.Deaths()],
 
 **The ANC → ART → newborn-test cascade:**
 
-1. When a woman becomes pregnant, `ANCTest` schedules one ANC visit at a random
-   gestational month (1–7); `visit_prob` gates whether she actually attends.
-2. At the visit, she is tested for every disease in `ANCTest.active_diseases`
-   (HIV and syphilis auto-detected from `sim.diseases` unless `disease_names`
-   is given explicitly), each with its own `test_sensitivity` (default 1.0).
-3. **HIV positives are handled specially**: `ANCTest` sets `hiv.diagnosed` and
-   schedules `hiv.ti_art = ti` — immediate ART start, no delay — the same
-   mechanism `HIVTest` uses via its `dur_dx2tx` parameter (default
-   `ss.constant(0)`). Any `ART` intervention present in the sim's
-   `interventions` list picks these agents up passively; HIV is **not**
-   routed through `disease_treatment_map` (that map is only consulted for
-   non-HIV diseases such as syphilis).
-4. If `newborn_tests` includes an entry for a disease the mother tested
-   positive for, the corresponding test (e.g. `InfantHIVTest`) is scheduled
-   for her unborn child at the modeled delivery timestep, via the
-   `ss.MaternalNet` edge.
-5. Once a mother is on ART, `maternal_care_scale` (default 2, see the
-   [HIV disease page](../diseases/hiv.md#care-seeking)) doubles her
-   care-seeking behaviour for the duration of pregnancy, making her much
-   less likely to default off treatment before delivery.
+1. When a woman becomes pregnant, `ANCTest` schedules one ANC visit at a random gestational month (1–7); `visit_prob` gates whether she actually attends.
+2. At the visit, she is tested for every disease in `ANCTest.active_diseases` (HIV and syphilis auto-detected from `sim.diseases` unless `disease_names` is given explicitly), each with its own `test_sensitivity` (default 1.0).
+3. **HIV positives are handled specially**: `ANCTest` sets `hiv.diagnosed` and schedules `hiv.ti_art = ti` — immediate ART start, no delay — the same mechanism `HIVTest` uses via its `dur_dx2tx` parameter (default `ss.constant(0)`). Any `ART` intervention present in the sim's `interventions` list picks these agents up passively; HIV is **not** routed through `disease_treatment_map` (that map is only consulted for non-HIV diseases such as syphilis).
+4. If `newborn_tests` includes an entry for a disease the mother tested positive for, the corresponding test (e.g. `InfantHIVTest`) is scheduled for her unborn child at the modeled delivery timestep, via the `ss.MaternalNet` edge.
+5. Once a mother is on ART, `maternal_care_scale` (default 2, see the [HIV disease page](../diseases/hiv.md#care-seeking)) doubles her care-seeking behaviour for the duration of pregnancy, making her much less likely to default off treatment before delivery.
 
-See the [PMTCT worked example](../../examples/pmtct_scenario.qmd) for a full
-runnable comparison of MTCT infections with and without ANC testing, and the
-API reference for
-[`interventions.hiv_interventions`](../../api/interventions.hiv_interventions.qmd) and
-[`interventions.syphilis_interventions`](../../api/interventions.syphilis_interventions.qmd).
+See the [PMTCT worked example](../../examples/pmtct_scenario.qmd) for a full runnable comparison of MTCT infections with and without ANC testing, and the API reference for [`interventions.hiv_interventions`](../../api/interventions.hiv_interventions.qmd) and [`interventions.syphilis_interventions`](../../api/interventions.syphilis_interventions.qmd).
 
 ## Partner notification
 
-`PartnerNotification` reaches the sexual partners of newly diagnosed index cases
-and offers them follow-up testing. It works over two channels — the current sexual
-network and an optional prior-partner recall network — each with separate
-notification and attendance probabilities.
+`PartnerNotification` reaches the sexual partners of newly diagnosed index cases and offers them follow-up testing. It works over two channels — the current sexual network and an optional prior-partner recall network — each with separate notification and attendance probabilities.
 
 ```python
 pn = sti.PartnerNotification(
@@ -393,14 +362,11 @@ pn = sti.PartnerNotification(
 | `test` | Testing intervention scheduled for partners who attend follow-up. |
 | `p_notify_*` / `p_attends_*` | Per-channel (current/prior) notification × attendance probabilities; may be callables for edge-type stratification (see `sti.pn_rates`). |
 
-> **Stub** — expand with the two-channel cascade and per-channel result tracking.
-> See the gallery example [Partner notification](../../examples/partner_notification.qmd).
+> **Stub** — expand with the two-channel cascade and per-channel result tracking. See the gallery example [Partner notification](../../examples/partner_notification.qmd).
 
 ## Pregnancy-driven risk reduction
 
-`PregnancyRiskReduction` lowers sexual-risk behaviour during pregnancy and restores
-it afterwards — useful when behaviour change during pregnancy materially affects
-transmission.
+`PregnancyRiskReduction` lowers sexual-risk behaviour during pregnancy and restores it afterwards — useful when behaviour change during pregnancy materially affects transmission.
 
 ```python
 prr = sti.PregnancyRiskReduction(pars=dict(
@@ -410,12 +376,9 @@ prr = sti.PregnancyRiskReduction(pars=dict(
 ))
 ```
 
-During pregnancy the module optionally clears FSW status, drops high-risk-group
-membership to `default_risk_group`, and/or zeros concurrency; each agent's prior
-state is restored once the pregnancy ends.
+During pregnancy the module optionally clears FSW status, drops high-risk-group membership to `default_risk_group`, and/or zeros concurrency; each agent's prior state is restored once the pregnancy ends.
 
-> **Stub** — expand with parameter semantics and the gallery example
-> [Pregnancy risk modifier](../../examples/pregnancy_risk_modifier.qmd).
+> **Stub** — expand with parameter semantics and the gallery example [Pregnancy risk modifier](../../examples/pregnancy_risk_modifier.qmd).
 
 ## Combining interventions
 

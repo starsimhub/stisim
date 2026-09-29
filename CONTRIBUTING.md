@@ -1,7 +1,6 @@
 # Contributing
 
-Welcome! We are thrilled you are interested in contributing to STIsim. This
-document will help you get started.
+Welcome! We are thrilled you are interested in contributing to STIsim. This document will help you get started.
 
 - We are serious about inclusion and believe the open-source software community still has a long way to go. The STIsim community follows a [code of conduct](https://docs.idmod.org/projects/starsim/en/stable/conduct.html). By participating in this project, you agree to abide by its terms.
 - Take a look at our house [style guide](https://github.com/starsimhub/styleguide). STIsim more or less follows Google's Python style guide, but with some exceptions.

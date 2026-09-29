@@ -1,7 +1,6 @@
 # Network modules
 
-Sexual contact networks for STIsim simulations. Each file defines one or more
-network classes; the table below shows where to find each.
+Sexual contact networks for STIsim simulations. Each file defines one or more network classes; the table below shows where to find each.
 
 | File | Provides |
 |------|----------|
