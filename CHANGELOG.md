@@ -2,6 +2,9 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.7.1 (TBC)
+
+
 ## Version 1.7.0 (2026-09-29)
 
 ### stisim.ai — new AI plugin
