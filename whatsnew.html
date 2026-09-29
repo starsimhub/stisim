@@ -548,6 +548,12 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
  <span class="menu-text">Calibration</span></a>
   </div>
 </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./user_guide/ai.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">AI plugin</span></a>
+  </div>
+</li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
@@ -621,6 +627,11 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
   <ul>
   <li><a href="#whats-new" id="toc-whats-new" class="nav-link active" data-scroll-target="#whats-new">What’s new</a>
   <ul>
+  <li><a href="#version-1.7.0-2026-09-29" id="toc-version-1.7.0-2026-09-29" class="nav-link" data-scroll-target="#version-1.7.0-2026-09-29">Version 1.7.0 (2026-09-29)</a>
+  <ul>
+  <li><a href="#stisim.ai-new-ai-plugin" id="toc-stisim.ai-new-ai-plugin" class="nav-link" data-scroll-target="#stisim.ai-new-ai-plugin">stisim.ai — new AI plugin</a></li>
+  <li><a href="#stisim.data" id="toc-stisim.data" class="nav-link" data-scroll-target="#stisim.data">stisim.data</a></li>
+  </ul></li>
   <li><a href="#version-1.6.2-2026-09-23" id="toc-version-1.6.2-2026-09-23" class="nav-link" data-scroll-target="#version-1.6.2-2026-09-23">Version 1.6.2 (2026-09-23)</a></li>
   <li><a href="#version-1.6.1-2026-09-04" id="toc-version-1.6.1-2026-09-04" class="nav-link" data-scroll-target="#version-1.6.1-2026-09-04">Version 1.6.1 (2026-09-04)</a></li>
   <li><a href="#version-1.6.0-2026-08-28" id="toc-version-1.6.0-2026-08-28" class="nav-link" data-scroll-target="#version-1.6.0-2026-08-28">Version 1.6.0 (2026-08-28)</a></li>
@@ -756,6 +767,23 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <section id="whats-new" class="level1">
 <h1>What’s new</h1>
 <p>All notable changes to the codebase are documented in this file.</p>
+<section id="version-1.7.0-2026-09-29" class="level2">
+<h2 class="anchored" data-anchor-id="version-1.7.0-2026-09-29">Version 1.7.0 (2026-09-29)</h2>
+<section id="stisim.ai-new-ai-plugin" class="level3">
+<h3 class="anchored" data-anchor-id="stisim.ai-new-ai-plugin">stisim.ai — new AI plugin</h3>
+<p>The <code>stisim.ai</code> plugin ships with an initial skill library for Claude Code, in three functional clusters. Enable via <code>python -m stisim.ai install</code> — see <a href="stisim/ai/README.md"><code>stisim/ai/README.md</code></a> for the full inventory.</p>
+<p><strong>Analysis workflow — scaffold and structure a research project:</strong> - <strong><code>analysis-intake</code></strong> — grilling-style design-tree intake that turns a vague research idea into a provisional analysis specification. Adapts Matt Pocock’s <a href="https://github.com/mattpocock/skills/blob/main/skills/productivity/grilling/SKILL.md"><code>grilling</code></a> with a facts-vs-decisions split and <code>blocked-on-evidence</code> as a third branch state alongside <code>settled</code> and <a href="https://docs.python.org/3/builtins/functions.html#open" title="1"><code>open</code></a>. - <strong><code>analysis-selector</code></strong> — runs very early in intake, before any tool is assumed. Classifies the research question into one of six analytical objectives (description / association / structure / causal / forecasting / dynamic-mechanistic) and only routes to HIVsim if dynamic mechanistic transmission is actually required. Redirection away from HIVsim is a successful outcome. - <strong><code>project-memory</code></strong> — establishes a durable memory strategy at project intake (repo-based, session-indexing, agent-memory provider, or hybrid) so a multi-month project can survive session ends, machine switches, and collaborator handoffs. A chat session is working memory, not project memory. - <strong><code>session-close</code></strong> — handoff summariser at session end, feeding into whichever memory mechanism <code>project-memory</code> established.</p>
+<p><strong>Model authoring and calibration — invoked once the analysis is scoped:</strong> - <strong><code>model-primer</code></strong> — reference-layer architectural index of stisim, including a <code>calibration-knobs.md</code> reference for what stisim actually exposes as a knob vs.&nbsp;what should come from data vs.&nbsp;what belongs in an upstream PR. - <strong><code>model-writer</code></strong> — composes a new Sim from a scoped research question. - <strong><code>hiv-interventions</code></strong> — design-interview for the ART / testing / VMMC / PrEP set, with per-intervention data-source references. - <strong><code>network-data</code></strong> — DHS-focused sexual-network calibration input. - <strong><code>calibration-strategy</code></strong> — HIVsim / STIsim-specific what/why/whether-to-calibrate: parameter classification (data-informed / literature-fixed / country-specific-uncertain / behavioural / tuning / intervention-assumption), target-vs-knob distinction, ART/testing structural dependency, failure diagnosis. Delegates algorithm / sampler / likelihood / diagnostics to the <code>calib:*</code> plugin.</p>
+<p><strong>Software quality — cross-cutting</strong>, unified by the theme <em>share your work rather than accumulate private forks of shared code or private caches of project knowledge</em> (a pattern that becomes especially easy to fall into when code generation is cheap and code review is not): - <strong><code>extending-stisim</code></strong> — before subclassing / monkey-patching stisim, classify the change as (a) fix, (b) opt-in research knob, or (c) project-specific data preprocessing, and enforce PR-upstream for fixes, no-op default for knobs, cleanup of downstream artifacts once their upstream fix lands, and file-an-issue as the fallback. - <strong><code>editable-dep-hygiene</code></strong> — any edit to an editable <code>pip install -e</code> dependency gets committed and PR’d immediately; before a version bump or branch switch, the dep checkout is verified clean of unmerged local work. - <strong><code>comment-hygiene</code></strong> — shared-library docstrings and comments explain the software itself, not project-specific memory. Strips anti-patterns like “Experiment 5”, “the current task”, “we changed this because the user requested it”. - <strong><code>result-extraction</code></strong> — directs to <a href="https://docs.starsim.org/api/results.html#starsim.results.Result" title="0"><code>ss.Result</code></a> / <a href="https://docs.starsim.org/api/results.html#starsim.results.Results" title="0"><code>ss.Results</code></a> methods (<code>annualize</code>, <code>resample</code>, <code>to_df</code>) over hand-rolled <code>df.groupby('year').mean() / .sum()</code>, which silently mishandles the flow-vs-stock distinction and produces errors of <code>n_timesteps_per_year</code> that don’t scream at calibration ranges. - <strong><code>writing-tests</code></strong> — prefer a small number of scientifically meaningful tests over comprehensive enumeration. Every proposed test should have a one-sentence answer to “what meaningful bug would this catch?”; if the answer is “confirms a value we assigned still has that value”, don’t add it.</p>
+</section>
+<section id="stisim.data" class="level3">
+<h3 class="anchored" data-anchor-id="stisim.data">stisim.data</h3>
+<ul>
+<li><strong><code>stisim.data.dedup_deaths</code></strong> — reconstructs a non-AIDS mortality counterfactual from all-cause mortality by log-linear interpolation between pre-epidemic and post-epidemic anchors. Prevents the double-counting that happens when <a href="https://docs.starsim.org/api/demographics.html#starsim.demographics.Deaths" title="0"><code>ss.Deaths</code></a> (all-cause data) and <code>sti.HIV</code> (HIV-specific mortality) both kill agents from the same underlying epidemic. Includes <code>deleted_fraction</code> diagnostic. Referenced from <code>stisim.ai</code>’s <code>calibration-knobs.md</code>.</li>
+<li><strong>Percentile-to-distribution-parameter helpers</strong> — convert observed quantiles (e.g.&nbsp;“median 5 years, 95th percentile 12 years”) into parameters of the corresponding lognormal / gamma / beta distributions, so calibration priors and duration parameters can be set directly from published summary statistics.</li>
+</ul>
+</section>
+</section>
 <section id="version-1.6.2-2026-09-23" class="level2">
 <h2 class="anchored" data-anchor-id="version-1.6.2-2026-09-23">Version 1.6.2 (2026-09-23)</h2>
 <ul>
@@ -1912,7 +1940,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.6.2 (2026-09-23).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.7.0 (2026-09-29).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">

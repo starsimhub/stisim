@@ -582,6 +582,12 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
  <span class="menu-text">Calibration</span></a>
   </div>
 </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./user_guide/ai.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">AI plugin</span></a>
+  </div>
+</li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
@@ -660,6 +666,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
   <ul>
   <li><a href="#python" id="toc-python" class="nav-link" data-scroll-target="#python">Python</a></li>
   <li><a href="#r" id="toc-r" class="nav-link" data-scroll-target="#r">R</a></li>
+  <li><a href="#ai-plugin-optional" id="toc-ai-plugin-optional" class="nav-link" data-scroll-target="#ai-plugin-optional">AI plugin (optional)</a></li>
   </ul></li>
   <li><a href="#usage-and-documentation" id="toc-usage-and-documentation" class="nav-link" data-scroll-target="#usage-and-documentation">Usage and documentation</a></li>
   <li><a href="#development-roadmap" id="toc-development-roadmap" class="nav-link" data-scroll-target="#development-roadmap">Development roadmap</a></li>
@@ -711,6 +718,12 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">load_starsim</span>(<span class="st">"my_env_name"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>See <a href="https://r.starsim.org">r.starsim.org</a> for more information on using Starsim from R.</p>
 </section>
+<section id="ai-plugin-optional" class="level3">
+<h3 class="anchored" data-anchor-id="ai-plugin-optional">AI plugin (optional)</h3>
+<p>STIsim ships with <code>stisim.ai</code>, a <a href="https://claude.com/claude-code">Claude Code</a> plugin with skills for scoping, building, and calibrating STIsim/HIVsim analyses. After installing STIsim, register it with Claude Code:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> stisim.ai install</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Then reload Claude Code (exit and relaunch <code>claude</code>, or in VS Code run <em>Developer: Reload Window</em>). The skills are available as <code>/stisim:&lt;skill-name&gt;</code> (e.g.&nbsp;<code>/stisim:analysis-intake</code>). Use <code>python -m stisim.ai status</code> to check the registration and <code>python -m stisim.ai uninstall</code> to remove it. See the <a href="https://docs.stisim.org/user_guide/ai.html">AI plugin user guide</a> for more information.</p>
+</section>
 </section>
 <section id="usage-and-documentation" class="level2">
 <h2 class="anchored" data-anchor-id="usage-and-documentation">Usage and documentation</h2>
@@ -742,7 +755,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
 </section>
 <section id="contributing" class="level2">
 <h2 class="anchored" data-anchor-id="contributing">Contributing</h2>
-<p>We welcome all contributions to STIsim! Please refer to our <a href="https://github.com/starsimhub/stisim/blob/main/code_of_conduct.md">code of conduct</a> and <a href="https://github.com/starsimhub/stisim/blob/main/contributing.md">contributors’s guide</a>. You’ll find information there about our style guide, which is essential reading prior to contributing. Questions or comments can be directed to <a href="mailto:info@starsim.org">info@starsim.org</a>, or on this project’s <a href="https://github.com/starsimhub/stisim">GitHub</a> page.</p>
+<p>We welcome all contributions to STIsim! Please refer to our <a href="https://github.com/starsimhub/stisim/blob/main/CODE_OF_CONDUCT.md">code of conduct</a> and <a href="https://github.com/starsimhub/stisim/blob/main/CONTRIBUTING.md">contributors’s guide</a>. You’ll find information there about our style guide, which is essential reading prior to contributing. Questions or comments can be directed to <a href="mailto:info@starsim.org">info@starsim.org</a>, or on this project’s <a href="https://github.com/starsimhub/stisim">GitHub</a> page.</p>
 <p>See <code>.github/workflows/README.md</code> for details on publishing new releases of STIsim.</p>
 </section>
 <section id="disclaimer" class="level2">
@@ -1183,7 +1196,7 @@ gtag('config', 'GTM-NK4K647', { 'anonymize_ip': true});
       &nbsp;
     </div>   
     <div class="nav-footer-center">
-<p>Docs built for STIsim v1.6.2 (2026-09-23).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
+<p>Docs built for STIsim v1.7.0 (2026-09-29).<br>© 2024–2026, Gates Foundation. All rights reserved. <a href="https://www.gatesfoundation.org/Privacy-and-Cookies-Notice">Privacy and Cookies Notice</a> | <a href="https://www.gatesfoundation.org/Terms-of-Use">Terms of Use</a></p>
 <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/starsimhub/stisim/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div>
     <div class="nav-footer-right">
       <ul class="footer-items list-unstyled">
