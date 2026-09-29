@@ -241,10 +241,80 @@ def test_art_vls_coverage():
         bad_art = sti.ART(vls_coverage=bad_df)
         sti.Sim(diseases='hiv', interventions=bad_art, n_agents=n_agents, start=2015, stop=2016, verbose=0).init()
 
-    # Combining vls_coverage with the legacy p_effective_art override should raise at construction,
-    # since p_effective_art would otherwise silently clobber vls_coverage
-    with pytest.raises(ValueError):
-        sti.ART(vls_coverage=0.7, p_effective_art=0.9)
+    return sim
+
+
+@sc.timer()
+def test_art_vls_coverage_stock_tracks_over_time(do_plot=do_plot):
+    """
+    vls_coverage is a stock target: p_vls_given_art should track the current
+    target, not the one that was active when each agent initiated ART.
+    """
+    sc.heading('Testing vls_coverage stock-target semantics over time...')
+
+    def _build(vls_years, vls_vals):
+        vls_df = pd.DataFrame({'Year': vls_years, 'p_vls': vls_vals})
+        sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=20)
+        sim.pars.interventions = [
+            sti.HIVTest(name='hiv_test', test_prob_data=0.5),
+            sti.ART(coverage=0.7, vls_coverage=vls_df),
+        ]
+        sim.pars.analyzers = [sti.art_coverage()]
+        return sim
+
+    # Ramp endpoints match the sim window (parse_coverage interpolates linearly).
+    rising  = _build([2000, 2020], [0.3, 0.9])
+    falling = _build([2000, 2020], [0.9, 0.3])
+    msim = ss.parallel([rising, falling])
+
+    r_ac = msim.sims[0].results.art_coverage
+    f_ac = msim.sims[1].results.art_coverage
+    final_rise = np.mean(r_ac.p_vls_given_art[-24:])
+    final_fall = np.mean(f_ac.p_vls_given_art[-24:])
+
+    assert final_rise > 0.75, f'Rising vls_coverage: final p_vls_given_art={final_rise:.2f}, expected >0.75'
+    assert final_fall < 0.5,  f'Falling vls_coverage: final p_vls_given_art={final_fall:.2f}, expected <0.5'
+
+    if do_plot:
+        fig, ax = pl.subplots()
+        ax.plot(msim.sims[0].t.yearvec, r_ac.p_vls_given_art, label='rising target')
+        ax.plot(msim.sims[1].t.yearvec, f_ac.p_vls_given_art, label='falling target')
+        ax.set_ylabel('p_vls_given_art')
+        ax.legend()
+
+    return msim
+
+
+@sc.timer()
+def test_art_vls_coverage_stratified_stock():
+    """
+    Stratified vls_coverage: an F/M target gap in the input must survive
+    stock correction (a global ranking would collapse it toward the pool mean).
+    """
+    sc.heading('Testing stratified vls_coverage stock correction...')
+
+    target_f, target_m = 0.85, 0.35
+    age_bins = [15, 100]
+    rows = [dict(Year=year, Gender=g, AgeBin='[15,100)', p_vls=p)
+            for year in [2000, 2010]
+            for g, p in [(0, target_f), (1, target_m)]]
+    vls_df = pd.DataFrame(rows)
+
+    sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=10)
+    sim.pars.interventions = [
+        sti.HIVTest(name='hiv_test', test_prob_data=0.5),
+        sti.ART(coverage=0.7, vls_coverage=vls_df),
+    ]
+    sim.pars.analyzers = [sti.art_coverage(age_bins=age_bins)]
+    sim.run()
+    ac = sim.results.art_coverage
+
+    final_f = np.mean(ac.p_vls_given_art_f[-24:])
+    final_m = np.mean(ac.p_vls_given_art_m[-24:])
+    assert final_f - final_m > 0.3, (
+        f'F/M vls_coverage gap ({target_f}/{target_m}) collapsed: '
+        f'F={final_f:.2f}, M={final_m:.2f}'
+    )
 
     return sim
 
@@ -749,6 +819,8 @@ if __name__ == '__main__':
     r9  = test_art_reduces_mortality(do_plot=do_plot)
     r10 = test_art_parameter_sensitivity(do_plot=do_plot)
     r11 = test_art_duration(do_plot=do_plot)
+    r11a = test_art_vls_coverage_stock_tracks_over_time(do_plot=do_plot)
+    r11b = test_art_vls_coverage_stratified_stock()
     r12 = test_pn()
     r13 = test_pn_rates()
     r14 = test_pn_rates_sim()

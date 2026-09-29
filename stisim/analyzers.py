@@ -658,12 +658,45 @@ class art_coverage(ss.Analyzer):
         results.append(ss.Result('p_art_f', scale=False, label='ART coverage (women)'))
         results.append(ss.Result('p_art_m', scale=False, label='ART coverage (men)'))
 
+        # Viral suppression. HIV maintains on_effective_art and
+        # on_nonsuppressive_art, and the difference between them is large
+        # (effective_art_efficacy 0.99 vs nonsupp_art_efficacy 0.35, a ~65x
+        # difference in residual transmission), but no result reports the split:
+        # hiv.p_on_art pools them. That makes population viral suppression --
+        # the third 95, and the headline PHIA/GAM indicator -- unobservable from
+        # standard outputs.
+        #
+        # Two proportions, and the distinction matters: p_vls is of all PLHIV and
+        # is a cascade OUTCOME (the GAM 1.3 indicator), whereas p_vls_given_art
+        # is the quantity ART's `vls_coverage` sets as an INPUT. Conflating them
+        # double-counts the coverage ramp.
+        results.append(ss.Result('n_vls',             dtype=int,   label='Total virally suppressed'))
+        results.append(ss.Result('p_vls',             scale=False, label='Viral suppression (proportion of infected)'))
+        results.append(ss.Result('p_vls_given_art',   scale=False, label='Viral suppression (proportion on ART)'))
+        for sex in ['f', 'm']:
+            results.append(ss.Result(f'n_vls_{sex}',           dtype=int,   label=f'Virally suppressed ({sex.upper()})'))
+            results.append(ss.Result(f'p_vls_{sex}',           scale=False, label=f'Viral suppression ({sex.upper()})'))
+            results.append(ss.Result(f'p_vls_given_art_{sex}', scale=False, label=f'Viral suppression given ART ({sex.upper()})'))
+
         # Per age bin × sex
         for i in range(len(self.age_bins) - 1):
             lo, hi = self.age_bins[i], self.age_bins[i + 1]
             for sex in ['f', 'm']:
                 results.append(ss.Result(f'n_art_{sex}_{lo}_{hi}', dtype=int, label=f'On ART {sex.upper()} {lo}-{hi}'))
                 results.append(ss.Result(f'p_art_{sex}_{lo}_{hi}', scale=False, label=f'ART coverage {sex.upper()} {lo}-{hi}'))
+                results.append(ss.Result(f'n_vls_{sex}_{lo}_{hi}', dtype=int, label=f'Virally suppressed {sex.upper()} {lo}-{hi}'))
+                results.append(ss.Result(f'p_vls_{sex}_{lo}_{hi}', scale=False, label=f'Viral suppression {sex.upper()} {lo}-{hi}'))
+                results.append(ss.Result(f'p_vls_given_art_{sex}_{lo}_{hi}', scale=False, label=f'Viral suppression given ART {sex.upper()} {lo}-{hi}'))
+
+                # Banded incidence inputs. Without a per-band new_infections
+                # there is no way to compute age-stratified incidence from
+                # standard outputs -- only the 15-49/18-49 aggregates -- yet
+                # survey incidence is published in 5- and 10-year bands.
+                # n_susceptible is the correct denominator (person-time at risk);
+                # using the whole band understates incidence by (1 - prevalence).
+                results.append(ss.Result(f'new_infections_{sex}_{lo}_{hi}', dtype=int, label=f'New infections {sex.upper()} {lo}-{hi}'))
+                results.append(ss.Result(f'n_susceptible_{sex}_{lo}_{hi}', dtype=int, label=f'Susceptible {sex.upper()} {lo}-{hi}'))
+                results.append(ss.Result(f'incidence_{sex}_{lo}_{hi}', scale=False, label=f'Incidence {sex.upper()} {lo}-{hi}'))
 
         self.define_results(*results)
         return
@@ -676,19 +709,32 @@ class art_coverage(ss.Analyzer):
 
         on_art   = hiv.on_art
         infected = hiv.infected
+        vls      = hiv.on_effective_art
+        newly    = hiv.ti_infected == ti
         female   = ppl.female
         male     = ppl.male
         age      = ppl.age
+        alive    = ppl.alive
 
         # Aggregate
         n_art = len(on_art.uids)
         n_inf = len(infected.uids)
+        n_vls = len((vls & alive).uids)
         self.results['n_art'][ti]   = n_art
         self.results['p_art'][ti]   = sc.safedivide(n_art, n_inf)
         self.results['n_art_f'][ti] = len((on_art & female).uids)
         self.results['n_art_m'][ti] = len((on_art & male).uids)
         self.results['p_art_f'][ti] = sc.safedivide(len((on_art & female).uids), len((infected & female).uids))
         self.results['p_art_m'][ti] = sc.safedivide(len((on_art & male).uids), len((infected & male).uids))
+
+        self.results['n_vls'][ti]           = n_vls
+        self.results['p_vls'][ti]           = sc.safedivide(n_vls, n_inf)
+        self.results['p_vls_given_art'][ti] = sc.safedivide(n_vls, n_art)
+        for sex, sex_mask in [('f', female), ('m', male)]:
+            n_v = len((vls & alive & sex_mask).uids)
+            self.results[f'n_vls_{sex}'][ti]           = n_v
+            self.results[f'p_vls_{sex}'][ti]           = sc.safedivide(n_v, len((infected & sex_mask).uids))
+            self.results[f'p_vls_given_art_{sex}'][ti] = sc.safedivide(n_v, len((on_art & sex_mask).uids))
 
         # Per age bin × sex
         for i in range(len(self.age_bins) - 1):
@@ -700,6 +746,17 @@ class art_coverage(ss.Analyzer):
                 n_inf_strat = len((infected & stratum).uids)
                 self.results[f'n_art_{sex}_{lo}_{hi}'][ti] = n_on
                 self.results[f'p_art_{sex}_{lo}_{hi}'][ti] = sc.safedivide(n_on, n_inf_strat)
+
+                n_v = len((vls & alive & stratum).uids)
+                self.results[f'n_vls_{sex}_{lo}_{hi}'][ti]           = n_v
+                self.results[f'p_vls_{sex}_{lo}_{hi}'][ti]           = sc.safedivide(n_v, n_inf_strat)
+                self.results[f'p_vls_given_art_{sex}_{lo}_{hi}'][ti] = sc.safedivide(n_v, n_on)
+
+                n_new  = len((newly & stratum & alive).uids)
+                n_susc = len((alive & stratum).uids) - n_inf_strat
+                self.results[f'new_infections_{sex}_{lo}_{hi}'][ti] = n_new
+                self.results[f'n_susceptible_{sex}_{lo}_{hi}'][ti]  = n_susc
+                self.results[f'incidence_{sex}_{lo}_{hi}'][ti]      = sc.safedivide(n_new, n_susc)
 
         return
 

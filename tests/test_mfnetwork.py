@@ -42,7 +42,7 @@ from hiv_natural_history_analyzers import AgeGapWindowAnalyzer, NewPairsAnalyzer
 SEEDS = [1, 2, 3]
 TARGET_GAPS = [5, 8, 11, 14]
 TARGET_STD = 3
-N_AGENTS = 10000
+N_AGENTS = 15000
 DUR = 20
 WINDOW_MONTHS = 12
 
