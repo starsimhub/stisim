@@ -23,6 +23,7 @@ Fourteen skills, in three functional clusters.
 | `model-writer` | Composes a new Sim from a scoped research question. |
 | `hiv-interventions` | Design-interview for the ART / testing / VMMC / PrEP set, with per-intervention data-source references. |
 | `network-data` | DHS-focused sexual-network calibration input. |
+| `table-s1` | Assembles a parameter table ("Table S1") from the user-guide parameter tables, adds the values used by the user's sim(s), and flags overridden values that still need a source. Format follows the R package `table1`. |
 | `calibration-strategy` | HIVsim / STIsim-specific what/why/whether-to-calibrate: parameter classification (data-informed / literature-fixed / country-specific-uncertain / behavioral / tuning / intervention-assumption), target-vs-knob distinction, ART/testing structural dependency, failure diagnosis. Delegates algorithm / sampler / likelihood / diagnostics to the `calib:*` plugin. |
 
 ### Software quality — cross-cutting, unified by "share your work"
@@ -62,10 +63,11 @@ stisim/ai/
         ├── project-memory/
         ├── result-extraction/
         ├── session-close/
+        ├── table-s1/
         └── writing-tests/
 ```
 
-Each skill directory contains `SKILL.md`; skills with deeper reference material also carry a `references/` subdirectory.
+Each skill directory contains `SKILL.md`; skills with deeper reference material also carry a `references/` subdirectory, and skills that run code carry a `scripts/` subdirectory.
 
 ## Activation
 

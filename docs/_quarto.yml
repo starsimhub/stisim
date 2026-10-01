@@ -66,6 +66,8 @@ website:
         text: Contributing
       - href: api/index.qmd
         text: API reference
+      - href: parameters.qmd
+        text: Parameters
 
   sidebar:
     - id: main
@@ -77,6 +79,8 @@ website:
           text: "**What's new**"
         - href: api/index.qmd
           text: "**API reference**"
+        - href: parameters.qmd
+          text: "**Parameters**"
         - section: "**Tutorials**"
           contents:
             - href: tutorials/index.md

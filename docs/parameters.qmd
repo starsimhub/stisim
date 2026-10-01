@@ -1,0 +1,54 @@
+---
+title: Parameters
+jupyter: python3
+---
+
+This page lists the parameters of the STIsim disease, network, and connector modules, with their default values and the source of each default. It is built from the parameter tables on the user-guide pages (for example [HIV](user_guide/diseases/hiv.md#parameters)), which are the only place these values are maintained. `tests/test_docs_parameters.py` checks that every module parameter appears in those tables.
+
+## Scope
+
+- **Included:** `sti.HIV`, `sti.Syphilis`, `sti.Chlamydia`, `sti.Gonorrhea`, `sti.Trichomoniasis`, `sti.BV`, `sti.GUD`, `sti.StructuredSexual`, `sti.MSMScaleFreeNetwork`, and the coinfection connectors.
+- **Not included:** demographic inputs, which come from UN World Population Prospects data when `demographics='<country>'` is set; intervention parameters, which are set for each analysis (see [Interventions](user_guide/interventions/interventions.md)); and simulation settings such as `n_agents`, `start`, and `dt` (see the [Starsim documentation](https://docs.starsim.org)).
+
+Defaults are not calibrated to any setting.
+
+## Conventions
+
+- **Distributions:** `normal(mean, sd)`, `lognorm(mean, sd)`, `uniform(low, high)`. Durations carry units (`d`, `wk`, `mo`, `yr`).
+- **Sex-specific values:** `[F, M]` gives the female value, then the male value.
+- **Source:**
+  - *Citation:* the published source recorded for the default.
+  - *Derived:* the default is computed from the cited source.
+  - *Calibrated:* the default comes from a previous calibration.
+  - *Assumption:* the default is a modeling assumption.
+  - *Unpublished evidence review:* the default comes from an internal review that has not been published.
+  - *Not recorded:* no source has been documented for the default.
+  - *Not applicable:* the parameter is a switch or scaling factor that is neutral by default.
+
+## Format
+
+The table follows the "Table 1" convention for descriptive tables in epidemiology, as implemented in the R package [table1](https://cran.r-project.org/web/packages/table1/vignettes/table1-examples.html) (Rich). Rows are grouped by module and section under labeled headers, values carry their units, and the table has a caption and footnotes. table1 shows one column per stratum. When the table is generated for a model, it shows one value column per simulation instead, so that a calibrated model can be reported alongside the defaults. That version is typically included as supplementary "Table S1" in a manuscript.
+
+## Generating the table for a model
+
+`stisim/ai/plugin/skills/table-s1/scripts/table_s1.py` builds this table and adds the values used by one or more simulations. Values that differ from the default are marked with `*`:
+
+```python
+import table_s1
+rows = table_s1.parse(ref='v1.7.0')        # or parse(docs='path/to/stisim/docs')
+rows = table_s1.add_sim(rows, sim, label='Calibrated')
+print(table_s1.to_markdown(rows))           # or table_s1.to_csv(rows, 'table_s1.csv')
+```
+
+The `table-s1` skill of the [AI plugin](user_guide/ai.md) runs this workflow and adds the remaining parts of a supplementary table: intervention parameters, calibration ranges, and sources for overridden values.
+
+## Table
+
+```{python}
+#| echo: false
+#| output: asis
+import sys
+sys.path.insert(0, '../stisim/ai/plugin/skills/table-s1/scripts')
+import table_s1
+print(table_s1.to_markdown(table_s1.parse(docs='.'), caption='STIsim model parameters, default values, and sources.', notes=False))
+```

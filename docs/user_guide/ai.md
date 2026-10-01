@@ -61,6 +61,7 @@ A typical workflow for a new analysis is:
 | `model-writer` | Composes a new sim from a scoped research question. |
 | `hiv-interventions` | Design interview for HIV testing, ART, VMMC, and PrEP, with data-source references. |
 | `network-data` | Sexual network calibration inputs from DHS data. |
+| `table-s1` | Builds a parameter table ("Table S1") for a model from the user-guide parameter tables, marking values that differ from the defaults and still need a source. See [Parameters](../parameters.qmd). |
 | `calibration-strategy` | Decides what, why, and whether to calibrate: parameter classification, targets vs. knobs, and failure diagnosis. |
 
 ### Software quality

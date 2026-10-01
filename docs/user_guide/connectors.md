@@ -26,6 +26,29 @@ Each effect is implemented as a connector class so that users can mix and match.
 
 Most connectors are unidirectional (the STI affects HIV but not vice versa); `hiv_syph` is the exception.
 
+## Parameters
+
+Multipliers are applied to `rel_sus` or `rel_trans` of the affected disease while the coinfection is present. The Source column follows the conventions of the [parameter reference](../parameters.qmd).
+
+| Parameter | Default | Description | Source |
+|-----------|---------|-------------|--------|
+| `rel_sus_hiv_syph` | 2.67 | HIV susceptibility multiplier with symptomatic syphilis (`sti.hiv_syph`) | Not recorded |
+| `rel_trans_hiv_syph` | 1.2 | HIV transmissibility multiplier with symptomatic syphilis (`sti.hiv_syph`) | Not recorded |
+| `rel_sus_syph_hiv` | 1 | Syphilis susceptibility multiplier with HIV (CD4 < 500) (`sti.hiv_syph`) | Not applicable |
+| `rel_sus_syph_aids` | 1 | Syphilis susceptibility multiplier with AIDS (CD4 < 200) (`sti.hiv_syph`) | Not applicable |
+| `rel_trans_syph_hiv` | 1 | Syphilis transmissibility multiplier with HIV (CD4 < 500) (`sti.hiv_syph`) | Not applicable |
+| `rel_trans_syph_aids` | 1 | Syphilis transmissibility multiplier with AIDS (CD4 < 200) (`sti.hiv_syph`) | Not applicable |
+| `rel_sus_hiv_tv` | 1.5 | HIV susceptibility multiplier with trichomoniasis (`sti.hiv_tv`) | [WHO trichomoniasis fact sheet](https://www.who.int/news-room/fact-sheets/detail/trichomoniasis); [Masha 2019](https://doi.org/10.1136/sextrans-2018-053713) |
+| `rel_sus_hiv_ng` | 1.2 | HIV susceptibility multiplier with gonorrhea (`sti.hiv_ng`) | Not recorded |
+| `rel_trans_hiv_ng` | 1.2 | HIV transmissibility multiplier with gonorrhea (`sti.hiv_ng`) | Not recorded |
+| `rel_sus_hiv_ct` | 1 | HIV susceptibility multiplier with chlamydia (`sti.hiv_ct`) | Assumption (placeholder) |
+| `rel_sus_hiv_bv` | 2 | HIV susceptibility multiplier with CST IV (`sti.hiv_bv`) | Assumption (placeholder) |
+| `rel_trans_hiv_bv` | 2 | HIV transmissibility multiplier with CST IV (`sti.hiv_bv`) | Assumption (placeholder) |
+| `rel_sus_syph_gud` | 2 | Syphilis susceptibility multiplier with GUD (`sti.gud_syph`) | Not recorded |
+| `rel_trans_syph_gud` | 2 | Syphilis transmissibility multiplier with GUD (`sti.gud_syph`) | Not recorded |
+| `rel_sus_gud_syph` | 2 | GUD susceptibility multiplier with syphilis (`sti.gud_syph`) | Not recorded |
+| `rel_trans_gud_syph` | 2 | GUD transmissibility multiplier with syphilis (`sti.gud_syph`) | Not recorded |
+
 ## Adding connectors
 
 Connectors are passed explicitly when constructing an `sti.Sim`. By default, STIsim automatically wires connectors if `connectors=True` (the default). Alternatively, provide an explicit list of connectors instead:

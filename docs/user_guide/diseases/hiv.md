@@ -157,63 +157,74 @@ giving a relative infectiousness of ~0.66, i.e. efficacy ≈ 1 - 0.66 = 0.34 —
 
 ## Parameters
 
+Pars of `sti.HIV`. The Source column follows the conventions of the [parameter reference](../../parameters.qmd), which combines these tables with those of the other modules.
+
 ### Natural history
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `cd4_start` | normal(800, 50) | Initial CD4 count at infection |
-| `cd4_latent` | normal(500, 50) | CD4 count during latent phase |
-| `dur_acute` | lognorm(3 mo, 1 mo) | Duration of acute infection |
-| `dur_latent` | lognorm(10 yr, 3 yr) | Duration of latent infection (untreated) |
-| `dur_falling` | lognorm(3 yr, 1 yr) | Duration of late-stage CD4 decline |
-| `include_aids_deaths` | True | Whether to include AIDS mortality |
-| `cd4_death_bins` | [1000,500,350,200,50,0] | Off-ART CD4-stratified mortality bin edges (descending) |
-| `cd4_death_rates` | [.003,.003,.005,.01,.05,.30] | Off-ART annual mortality rate per CD4 bin |
-| `rel_death` | 1.0 | Scales all HIV death probabilities, off- and on-ART |
+| Parameter | Default | Description | Source |
+|-----------|---------|-------------|--------|
+| `cd4_start` | normal(800, 50) | CD4 count at infection | Not recorded |
+| `cd4_latent` | normal(500, 50) | CD4 count during the latent phase | Not recorded |
+| `dur_acute` | lognorm(1.7 mo, 1 mo) | Duration of acute infection | [Bellan 2015](https://doi.org/10.1371/journal.pmed.1001801) |
+| `dur_latent` | lognorm(10 yr, 3 yr) | Duration of latent infection (untreated) | Not recorded |
+| `dur_falling` | lognorm(3 yr, 1 yr) | Duration of late-stage CD4 decline | Not recorded |
+| `include_aids_deaths` | True | Whether HIV-related mortality is modeled | Not applicable |
+| `cd4_death_bins` | [1000, 500, 350, 200, 50, 0] | Lower edges of the off-ART CD4 mortality bins (descending) | Not recorded |
+| `cd4_death_rates` | [0.003, 0.003, 0.005, 0.01, 0.05, 0.30] | Off-ART annual mortality rate in each CD4 bin | Not recorded |
+| `rel_death` | 1.0 | Multiplier on all HIV death probabilities, off and on ART | Not applicable |
 
 ### Transmission
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `beta_m2f` | 0.05 | Per-act male-to-female transmission probability |
-| `rel_beta_f2m` | 0.5 | Female-to-male transmission relative to male-to-female |
-| `beta_m2c` | 0.025/mo | Prenatal mother-to-child transmission probability |
-| `beta_breastfeed` | 0.005/mo | Postnatal (breastfeeding) transmission probability |
-| `rel_trans_acute` | normal(6, 0.5) | Relative transmissibility during acute phase |
-| `rel_trans_falling` | normal(8, 0.5) | Relative transmissibility during late stage |
-| `eff_condom` | 0.9 | Condom efficacy for reducing transmission |
+| Parameter | Default | Description | Source |
+|-----------|---------|-------------|--------|
+| `beta_m2f` | 0.05 | Per-act male-to-female transmission probability; usually calibrated | Not recorded |
+| `rel_beta_f2m` | 0.5 | Female-to-male per-act probability relative to `beta_m2f` | Not recorded |
+| `beta_m2c` | 0.025/mo | Prenatal mother-to-child transmission probability | Not recorded |
+| `beta_breastfeed` | 0.005/mo | Postnatal (breastfeeding) transmission probability | Not recorded |
+| `beta_m2m` | None | Per-act male-to-male transmission probability (used on an `msm` network) | Not applicable |
+| `rel_trans_acute` | normal(5.3, 0.5) | Relative transmissibility during the acute phase | [Bellan 2015](https://doi.org/10.1371/journal.pmed.1001801) |
+| `rel_trans_falling` | normal(8, 0.5) | Relative transmissibility during late-stage CD4 decline | Not recorded |
+| `eff_condom` | 0.9 | Condom efficacy against transmission | Not recorded |
+| `eff_circ` | 0.6 | Reduction in male susceptibility from program (medical) circumcision | Not recorded |
+| `eff_circ_traditional` | 0.6 | Reduction in male susceptibility from traditional circumcision | Not recorded |
+| `rel_sus_age` | None | Age- and sex-stratified susceptibility multipliers | Not applicable |
 
 ### Initialization
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `init_prev` | 0.05 | Initial prevalence |
-| `init_diagnosed` | 0.0 | Proportion initially diagnosed |
-| `dist_ti_init_infected` | uniform(-120, -5) | Time of initial infection (months before start) |
+| Parameter | Default | Description | Source |
+|-----------|---------|-------------|--------|
+| `init_prev` | 0.05 | Initial prevalence | Not recorded |
+| `rel_init_prev` | 1 | Multiplier on initial prevalence | Not applicable |
+| `init_diagnosed` | 0.0 | Proportion of initial infections already diagnosed | Not recorded |
+| `dist_ti_init_infected` | uniform(-120, -5) | Time of initial infection relative to the start (timesteps; months at the default `dt`) | Not recorded |
 
 ### Treatment (ART)
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `effective_art_efficacy` | 0.99 | Transmission efficacy of effective (virally-suppressive) ART |
-| `nonsupp_art_efficacy` | 0.35 | Transmission efficacy of non-suppressive ART |
-| `time_to_art_efficacy` | 6 months | Time to reach full ART efficacy (linear ramp) |
-| `p_effective_art` | bernoulli(1.0) | Probability a newly-initiated agent achieves viral suppression |
-| `art_cd4_growth` | 0.1 | Logistic growth rate for CD4 reconstitution on ART |
-| `dur_on_art` | lognorm(3 yr, 1.5 yr) | Duration on ART before dropout |
-| `rel_art_mortality_effective` | 0.25 | Modifies CD4-based mortality rate while on effective ART, both sexes (see "On-ART mortality" above) |
-| `rel_art_mortality_unsupp_m` | 0.7 | Fraction of the off-ART CD4-based rate retained on non-suppressive ART, males |
-| `rel_art_mortality_unsupp_f` | 0.35 | ...females — chosen so the non-suppressive/effective mortality ratio is ~2x higher for men (2.8x) than women (1.4x) |
-| `rel_death_f` | 0.74 | Additional multiplier for females, on ART (applies equally to effective and non-suppressive; doesn't affect the ratio above) |
-| `art_death_age` | 4 age bins: 0-25, 25-35, 35-45, 45+ | `(age_lo, age_hi, mult)` list of mortality multipliers by age |
-| `art_death_dur` | None | (This parameter is currently unused, may be used in future releases if we want a history-dependent mortality that depends on the time since initiating ART.) |
+| Parameter | Default | Description | Source |
+|-----------|---------|-------------|--------|
+| `effective_art_efficacy` | 0.99 | Reduction in transmission on effective (virally suppressive) ART | [Rodger 2016](https://doi.org/10.1001/jama.2016.5148); [Rodger 2019](https://doi.org/10.1016/S0140-6736(19)30418-0); [Bavinton 2018](https://doi.org/10.1016/S2352-3018(18)30132-2) |
+| `nonsupp_art_efficacy` | 0.35 | Reduction in transmission on non-suppressive ART (see "On-ART transmission" above) | Derived from [Quinn 2000](https://doi.org/10.1056/NEJM200003303421303) |
+| `time_to_art_efficacy` | 6 months | Time to full ART efficacy (linear ramp) | Not recorded |
+| `p_effective_art` | bernoulli(1.0) | Probability that ART initiation achieves viral suppression | Not recorded |
+| `art_cd4_growth` | 0.1 | Logistic growth rate of CD4 reconstitution on ART | Fitted to the [EMOD](https://docs.idmod.org/projects/emod-hiv/en/latest/hiv-model-healthcare-systems.html) reconstitution curve; [Seoane 2008](https://doi.org/10.1186/1471-2334-8-20); [Darraj 2018](https://doi.org/10.1016/j.jiph.2017.08.001) |
+| `art_cd4_pars` | cd4_max=1000, cd4_healthy=500 | Upper bound and healthy reference CD4 count for reconstitution | Not recorded |
+| `dur_on_art` | lognorm(3 yr, 1.5 yr) | Duration on ART before discontinuation | Not recorded |
+| `rel_dur_on_art` | 1.0 | Multiplier on `dur_on_art`; usually calibrated | Not applicable |
+| `dur_on_art_trend` | None | Time-varying multiplier on `dur_on_art` (years and values) | Not applicable |
+| `dur_post_art_scale_factor` | 0.1 | Standard deviation of post-ART CD4 decline duration, as a fraction of its mean | Not recorded |
+| `rel_art_mortality_effective` | 0.25 | Fraction of off-ART CD4-based mortality retained on effective ART, both sexes (see "On-ART mortality" above) | Not recorded |
+| `rel_art_mortality_unsupp_m` | 0.7 | Fraction of off-ART CD4-based mortality retained on non-suppressive ART, males | Not recorded |
+| `rel_art_mortality_unsupp_f` | 0.35 | Fraction of off-ART CD4-based mortality retained on non-suppressive ART, females; gives a non-suppressive/effective mortality ratio of 2.8 (males) vs 1.4 (females) | Not recorded |
+| `rel_death_f` | 0.74 | Mortality multiplier for females, on and off ART | Not recorded |
+| `art_death_age` | (0, 25, 1.0), (25, 35, 1.10), (35, 45, 1.21), (45, 125, 1.32) | On-ART mortality multipliers by age, as `(age_lo, age_hi, mult)` | Not recorded |
+| `art_death_dur` | None | Reserved for on-ART mortality multipliers by time since initiation; currently unused | Not applicable |
 
 ### Care seeking
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `care_seeking` | normal(1, 0.5) | Relative care-seeking behavior (per agent) |
-| `maternal_care_scale` | 2 | Multiplicative increase in care seeking during pregnancy |
+| Parameter | Default | Description | Source |
+|-----------|---------|-------------|--------|
+| `care_seeking` | normal(1, 0.5) | Relative care-seeking propensity (per agent) | Not recorded |
+| `maternal_care_scale` | 2 | Multiplier on care seeking during pregnancy | Not recorded |
 
 ## Results
 
