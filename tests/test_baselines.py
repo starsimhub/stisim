@@ -115,8 +115,8 @@ def test_benchmark(do_save=False, repeats=1, verbose=True):
                 },
             'parameters': {
                 'n_agents': sim.pars.n_agents,
-                'dur':      sim.t.dur,
-                'dt':       sim.t.dt,
+                'dur':      sim.t.dur.value,
+                'dt':       sim.t.dt.value,
                 },
             'cpu_performance': ratio,
             }
