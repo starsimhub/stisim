@@ -44,3 +44,26 @@ jobs:
         path: dist/
     - name: Publish distribution 📦 to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    name: Create GitHub release with installers
+    needs:
+    - publish-to-pypi
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Create release (or update its installers if it already exists)
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        eval "$(python3 -c "exec(open('stisim/version.py').read()); print(f'VERSION={__version__} DATE={__versiondate__}')")"
+        if gh release view "v$VERSION" >/dev/null 2>&1; then
+          gh release upload "v$VERSION" install/install.bat install/install.sh --clobber
+        else
+          gh release create "v$VERSION" install/install.bat install/install.sh \
+            --target "$GITHUB_SHA" --title "STIsim $VERSION" \
+            --notes "See [CHANGELOG.md](https://github.com/$GITHUB_REPOSITORY/blob/main/CHANGELOG.md#version-${VERSION//./}-$DATE) for the full release notes."
+        fi

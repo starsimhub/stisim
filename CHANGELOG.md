@@ -2,6 +2,16 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.7.1 (TBC)
+
+### Parameter tables
+
+The user-guide pages for each disease, network and connector now have parameter tables (`Parameter | Default | Description | Source`), and a new [Parameters](docs/parameters.qmd) reference page combines them into one table. The new `parameter-table` AI skill builds a manuscript parameter table ("Table S1") from these, adding the values used by your sim(s) and flagging overridden values that still need a source. `tests/test_docs_parameters.py` checks that the tables match the code.
+
+### Installers for users without Python
+
+`install/install.sh` (Linux/macOS) and `install/install.bat` (Windows) install Miniforge (conda-forge) if it isn't already present and then `pip install stisim jupyter` into the base conda env. Linux/macOS: `curl -LsSf https://stisim.org/install.sh | sh`. Windows: download `install.bat` from the latest GitHub release. See [`install/README.md`](install/README.md). The PyPI release workflow now also creates the GitHub release with both installers attached.
+
 ## Version 1.7.0 (2026-09-29)
 
 ### stisim.ai — new AI plugin

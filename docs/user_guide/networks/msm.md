@@ -31,15 +31,17 @@ Each network maintains its own edges and partnership classification. Disease mod
 
 ## Scale-free network
 
-`sti.MSMScaleFreeNetwork` (Whittles-2019 S2 kernel) forms edges via a rate proportional to a degree-based pair weight, producing a scale-free degree distribution where a minority of high-degree agents drive most transmission. Edges are deleted at random subject to a hard duration cap.
+`sti.MSMScaleFreeNetwork` (the S2 kernel of [Whittles 2019](https://doi.org/10.1371/journal.pcbi.1006748)) forms edges via a rate proportional to a degree-based pair weight, producing a scale-free degree distribution where a minority of high-degree agents drive most transmission. Edges are deleted at random subject to a hard duration cap.
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `p_msm` | `ss.bernoulli(p=0.015)` | Fraction of males in the MSM pool |
-| `target_mean_degree` | 2.0 | Target mean concurrent partners per pool agent |
-| `target_mean_dur` | `ss.years(2)` | Target mean edge duration |
-| `max_edge_dur` | `ss.years(10)` | Hard cap on edge persistence |
-| `phi` | 1.0 | Turnover parameter (sets initial network density) |
+Pars of `sti.MSMScaleFreeNetwork`; debut, coital-act, and condom pars are inherited from `sti.BaseNetwork` with the defaults listed in [Structured sexual network](structured_sexual.md#parameters). The Source column follows the conventions of the [parameter reference](../../parameters.qmd).
+
+| Parameter | Default | Description | Source |
+|-----------|---------|-------------|--------|
+| `p_msm` | 0.015 | Proportion of males in the MSM pool | Not recorded |
+| `target_mean_degree` | 2.0 | Target mean number of concurrent partners per pool member | Not recorded |
+| `target_mean_dur` | 2 yr | Target mean partnership duration | Not recorded |
+| `max_edge_dur` | 10 yr | Maximum partnership duration | Not recorded |
+| `phi` | 1.0 | Turnover parameter; sets the initial network density | [Whittles 2019](https://doi.org/10.1371/journal.pcbi.1006748) |
 
 ```python
 msm = sti.MSMScaleFreeNetwork(target_mean_degree=3.0)

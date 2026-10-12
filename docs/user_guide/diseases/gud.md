@@ -15,8 +15,11 @@ GUD is a simple SIS infection model used as a syndromic proxy for ulcerative STI
 
 ## Parameters
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `dur_inf` | lognorm(3 mo, 1 mo) | Duration of infection |
-| `beta` | 1.0 | Transmission probability (placeholder) |
-| `init_prev` | 0.0 | Initial prevalence |
+Pars of `sti.GUD`. The Source column follows the conventions of the [parameter reference](../../parameters.qmd).
+
+| Parameter | Default | Description | Source |
+|-----------|---------|-------------|--------|
+| `dur_inf` | lognorm(3 mo, 1 mo) | Duration of infection | Not recorded |
+| `beta` | 1.0 | Transmission probability | Assumption (placeholder) |
+| `init_prev` | 0.0 | Initial prevalence; set from `init_prev_data` if supplied | Not applicable |
+| `rel_init_prev` | 1 | Multiplier on initial prevalence | Not applicable |

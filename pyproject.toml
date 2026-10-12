@@ -65,6 +65,7 @@ include = ["stisim*", "hivsim*"]
     "plugin/.claude-plugin/*.json",
     "plugin/skills/**/*.md",
     "plugin/skills/**/*.json",
+    "plugin/skills/**/*.py",
 ]
 
 [tool.setuptools.dynamic]
