@@ -2,7 +2,7 @@
 
 All notable changes to the codebase are documented in this file.
 
-## Version 1.7.1 (TBC)
+## Version 1.7.1 (2026-10-12)
 
 ### Parameter tables
 
