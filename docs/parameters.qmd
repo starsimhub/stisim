@@ -31,16 +31,16 @@ The table follows the "Table 1" convention for descriptive tables in epidemiolog
 
 ## Generating the table for a model
 
-`stisim/ai/plugin/skills/table-s1/scripts/table_s1.py` builds this table and adds the values used by one or more simulations. Values that differ from the default are marked with `*`:
+`stisim/ai/plugin/skills/parameter-table/scripts/parameter_table.py` builds this table and adds the values used by one or more simulations. Values that differ from the default are marked with `*`:
 
 ```python
-import table_s1
-rows = table_s1.parse(ref='v1.7.0')        # or parse(docs='path/to/stisim/docs')
-rows = table_s1.add_sim(rows, sim, label='Calibrated')
-print(table_s1.to_markdown(rows))           # or table_s1.to_csv(rows, 'table_s1.csv')
+import parameter_table
+rows = parameter_table.parse(ref='v1.7.0')        # or parse(docs='path/to/stisim/docs')
+rows = parameter_table.add_sim(rows, sim, label='Calibrated')
+print(parameter_table.to_markdown(rows))           # or parameter_table.to_csv(rows, 'parameter_table.csv')
 ```
 
-The `table-s1` skill of the [AI plugin](user_guide/ai.md) runs this workflow and adds the remaining parts of a supplementary table: intervention parameters, calibration ranges, and sources for overridden values.
+The `parameter-table` skill of the [AI plugin](user_guide/ai.md) runs this workflow and adds the remaining parts of a supplementary table: intervention parameters, calibration ranges, and sources for overridden values.
 
 ## Table
 
@@ -48,7 +48,7 @@ The `table-s1` skill of the [AI plugin](user_guide/ai.md) runs this workflow and
 #| echo: false
 #| output: asis
 import sys
-sys.path.insert(0, '../stisim/ai/plugin/skills/table-s1/scripts')
-import table_s1
-print(table_s1.to_markdown(table_s1.parse(docs='.'), caption='STIsim model parameters, default values, and sources.', notes=False))
+sys.path.insert(0, '../stisim/ai/plugin/skills/parameter-table/scripts')
+import parameter_table
+print(parameter_table.to_markdown(parameter_table.parse(docs='.'), caption='STIsim model parameters, default values, and sources.', notes=False))
 ```

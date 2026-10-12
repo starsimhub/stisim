@@ -1,12 +1,12 @@
 ---
-name: table-s1
+name: parameter-table
 description: Use when the user needs a parameter table for an STIsim or HIVsim model — a manuscript supplement ("Table S1"), a reference table for a collaborator, or a comparison of a model's parameters against the STIsim defaults or another model. Assembles the table from the user-guide parameter tables, adds the values used by the user's sim(s), and flags which values differ from the defaults and still need a source.
 metadata:
   version: "0.1"
   versiondate: "2026-10-01"
 ---
 
-# Table S1: model parameter table
+# Parameter table
 
 ## When to use
 
@@ -21,7 +21,7 @@ metadata:
 
 ## Framing
 
-The STIsim user-guide pages are the single source for parameter defaults and their sources: each module's page has tables with the columns `Parameter | Default | Description | Source`. `scripts/table_s1.py` parses those tables and adds one value column per sim. Values that differ from the class default are marked with `*`. The docs page [Parameters](https://docs.stisim.org/parameters.html) is the default-only version of the same table.
+The STIsim user-guide pages are the single source for parameter defaults and their sources: each module's page has tables with the columns `Parameter | Default | Description | Source`. `scripts/parameter_table.py` parses those tables and adds one value column per sim. Values that differ from the class default are marked with `*`. The docs page [Parameters](https://docs.stisim.org/parameters.html) is the default-only version of the same table.
 
 The format follows the "Table 1" convention of descriptive tables in epidemiology, as implemented in the R package [table1](https://cran.r-project.org/web/packages/table1/vignettes/table1-examples.html) by Benjamin Rich. Rows are grouped under labeled module and section headers, values carry their units, and the table has a caption and footnotes. table1 shows one column per stratum. Here there is one column per simulation instead (for example the defaults alongside a calibrated model, or one column per country).
 
@@ -35,14 +35,14 @@ A default's Source is only as good as what the developers recorded. Many default
 
    ```python
    import sys; sys.path.insert(0, '<path to this skill>/scripts')
-   import stisim as sti, table_s1
-   rows = table_s1.parse(ref=f'v{sti.__version__}')   # or parse(docs='path/to/stisim/docs')
+   import stisim as sti, parameter_table
+   rows = parameter_table.parse(ref=f'v{sti.__version__}')   # or parse(docs='path/to/stisim/docs')
    for label, sim in sims.items():
-       rows = table_s1.add_sim(rows, sim, label=label)
+       rows = parameter_table.add_sim(rows, sim, label=label)
    rows = [r for r in rows if any(v != 'not in sim' for v in r['values'].values())]
    ```
 
-   The command-line form (`python table_s1.py --format csv -o table_s1.csv`) gives the default-only table.
+   The command-line form (`python parameter_table.py --format csv -o parameter_table.csv`) gives the default-only table.
 
 3. **Add what the docs do not cover.** Add these as extra rows, using the same columns:
    - **Interventions:** for each module in `sim.interventions`, the pars the analysis sets (coverage, efficacy, eligibility, timing). The docs do not list these because they are set per analysis.
@@ -55,7 +55,7 @@ A default's Source is only as good as what the developers recorded. Many default
 
 6. **Choose the scope.** Ask whether the user wants the full table or a compact one. A compact table drops unchanged "Not applicable" rows and modules the analysis does not depend on. In either case, keep every row with a `*`.
 
-7. **Write the output.** Use `table_s1.to_markdown(rows, caption=...)` or `table_s1.to_csv(rows, path)`. For Word, convert the markdown with pandoc or the `docx` skill. The caption names the model, version, and setting. Keep the footnotes, which define the notation, the source vocabulary, and the `*` marker. If the journal uses numbered references, convert the linked sources to a numbered list at the end.
+7. **Write the output.** Use `parameter_table.to_markdown(rows, caption=...)` or `parameter_table.to_csv(rows, path)`. For Word, convert the markdown with pandoc or the `docx` skill. The caption names the model, version, and setting. Keep the footnotes, which define the notation, the source vocabulary, and the `*` marker. If the journal uses numbered references, convert the linked sources to a numbered list at the end.
 
 ## Reporting
 

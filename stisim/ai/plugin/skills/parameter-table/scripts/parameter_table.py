@@ -8,16 +8,16 @@ simulation, marking values that differ from the STIsim default.
 
 Usage (command line):
 
-    python table_s1.py                                 # markdown to stdout
-    python table_s1.py --format csv -o table_s1.csv
-    python table_s1.py --docs /path/to/stisim/docs     # use a local docs checkout
+    python parameter_table.py                                 # markdown to stdout
+    python parameter_table.py --format csv -o parameter_table.csv
+    python parameter_table.py --docs /path/to/stisim/docs     # use a local docs checkout
 
 Usage (Python):
 
-    import table_s1
-    rows = table_s1.parse()
-    rows = table_s1.add_sim(rows, sim, label='Zimbabwe')
-    print(table_s1.to_markdown(rows))
+    import parameter_table
+    rows = parameter_table.parse()
+    rows = parameter_table.add_sim(rows, sim, label='Zimbabwe')
+    print(parameter_table.to_markdown(rows))
 
 Only the standard library is required unless ``add_sim`` is used.
 """
