@@ -33,6 +33,18 @@ STIsim can also be installed locally (including optional dependencies for testin
 pip install -e .[dev]
 ```
 
+### For users without Python
+
+If you don't already have Python set up, the [`install/`](install/) folder
+contains standalone installers that handle Miniforge (conda-forge) and STIsim
+in one step:
+
+- **Linux / macOS**: `curl -LsSf https://stisim.org/install.sh | sh`
+- **Windows**: download [`install.bat`](https://github.com/starsimhub/stisim/releases/latest/download/install.bat)
+  and double-click it.
+
+See [`install/README.md`](install/README.md) for details.
+
 ### R
 
 STIsim can be used from R via [rstarsim](https://github.com/starsimhub/rstarsim), which calls the Python engine through reticulate. The Python packages are required regardless of whether you use the R or Python interface.
