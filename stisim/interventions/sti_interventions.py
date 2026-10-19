@@ -23,18 +23,13 @@ v3_states = dict(
 
 def care_seekers(diseases):
     """
-    Who sought care for any of these diseases (entered C, since this point in the last step), as a function of the sim; for `eligible=`
+    Who sought care for any of these diseases (entered C, since this point in the last step), as a condition; for `eligible=`
 
     Args:
         diseases (list): names of `sti.SEIS` diseases
     """
     names = [getattr(d, 'name', d) for d in sc.tolist(diseases)]
-    def seeking(sim):
-        out = ss.uids()
-        for name in names:
-            out = out | sim.diseases[name].graph.states.C.enter.uids
-        return out
-    return seeking
+    return ss.any(ss.state(f'{name}.C').enter for name in names)
 
 
 def by_sex(val):
@@ -134,7 +129,7 @@ class STITest(ss.screen):
         self.years = years
         self.rel_test = rel_test
         self.dt_scale = dt_scale
-        super().__init__(product, start=start, stop=stop, eligible=eligibility, coverage=self.test_prob, repeat=True,
+        super().__init__(product, start=start, stop=stop, eligible=eligibility, coverage=self.test_prob, repeat=None if dt_scale else True, # A typed rate is a rate at every step
                          disease=sc.ifelse(disease, product.for_disease if isinstance(product, STIDx) else None), **kwargs)
         return
 
@@ -319,7 +314,10 @@ class SyndromicManagement(ss.Intervention):
         self.outcome_tx_map = outcome_tx_map
         for tx in self.treatments: # Treated only when referred
             tx.triggered = True
-        self.eligibility = sc.ifelse(eligibility, care_seekers(self.diseases))
+        names = self.diseases
+        def seeking(sim): # Agents only, like this class
+            return ss.uids.concatenate([sim.diseases[name].graph.states.C.enter.uids for name in names]).unique()
+        self.eligibility = sc.ifelse(eligibility, seeking)
         if years is not None:
             start, stop = sc.ifelse(start, years[0]), sc.ifelse(stop, years[-1])
         self.start, self.stop = start, stop

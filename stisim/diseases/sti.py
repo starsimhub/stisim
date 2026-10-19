@@ -39,6 +39,29 @@ def sexed(val):
     return val
 
 
+def init_prev_fn(data):
+    """
+    Initial prevalence by risk group, sex, and sex work, as a function of `(sim, uids)` for `init_prev=` (agents only)
+
+    Args:
+        data (dataframe): columns `risk_group`, `sex` (`'female'` or `'male'`), `sw` (0 or 1), and `init_prev`; or a number
+    """
+    if sc.isnumber(data):
+        return data
+    def init_prev(sim, uids):
+        nw = sim.networks.structuredsexual
+        ppl = sim.people
+        out = np.zeros(len(uids))
+        active = nw.active(ppl)[uids]
+        for row in data.sort_values('sw').itertuples(): # As in STIsim 3: by group, then sex workers and clients overwrite theirs
+            cond = ppl[row.sex][uids] & (nw.risk_group[uids] == row.risk_group) & active
+            if row.sw:
+                cond &= (nw.fsw if row.sex == 'female' else nw.client)[uids]
+            out[np.asarray(cond)] = row.init_prev
+        return np.clip(out, 0, 1)
+    return init_prev
+
+
 class BaseSTI(ss.Disease):
     """
     Base class for sexually transmitted infections declared as states and transitions
@@ -57,7 +80,7 @@ class BaseSTI(ss.Disease):
         pars (dict): parameter values
         name (str): the name of the module
         init_prev (float): the initial prevalence (or `ss.bernoulli(p=...)`)
-        init_prev_data: initial prevalence data by risk group; not supported yet (raises `NotImplementedError`)
+        init_prev_data (dataframe): initial prevalence by risk group, sex, and sex work (columns `risk_group`, `sex`, `sw`, `init_prev`), among the sexually active in `structuredsexual`; instead of init_prev
         age_range (list): the ages of the adults that `prevalence` and `symp_prevalence` count (default [15, 65])
         age_bins (list): the age groups `sti.Sim` stratifies by, if this disease is in it; None for none
         sex_keys (dict): the sexes of the flat results (`prevalence_f`, ...); None for none
@@ -73,10 +96,9 @@ class BaseSTI(ss.Disease):
 
     def __init__(self, pars=None, name=None, init_prev=None, init_prev_data=None, age_range=None,
                  age_bins=default_age_bins, sex_keys=default_sex_keys, **kwargs):
-        if init_prev_data is not None:
-            errormsg = 'init_prev_data (initial prevalence by risk group) is not supported yet in Starsim 4; give init_prev'
-            raise NotImplementedError(errormsg)
         names = ss.transitions.class_members(type(self)).keys()
+        if init_prev_data is not None:
+            init_prev = init_prev_fn(init_prev_data)
         given = sc.mergedicts(pars, {k:kwargs.pop(k) for k in list(kwargs) if k in names}, None if init_prev is None else dict(init_prev=init_prev))
         pars = sc.mergedicts(dict(init_prev=0.01), self.defaults, given)
         init_prev = sexed(pars.pop('init_prev'))
@@ -217,7 +239,7 @@ class SEIS(BaseSTI):
     seek_pid  = ss.Transition(PID, C, p=p_pid_care, dur=dur_pid2care)
     clear_pid = ss.Transition(PID, S, dur=dur_pid2clear)
     clear_c   = ss.Transition(C, S, dur=dur_symp2clear)
-    cure      = (E | P | A | Y | C | PID) >> S
+    cure      = ss.Transition(E | P | A | Y | C | PID, S, undriven=True)
 
     # Results
     n_infected       = E + P + A + Y + C + PID

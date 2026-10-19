@@ -101,8 +101,6 @@ class Sim(ss.Sim):
         sim_kwargs = dict(label=label, people=people, demographics=demographics, diseases=diseases, networks=networks,
                     interventions=interventions, analyzers=analyzers, connectors=connectors, custom=custom)
         sim_kwargs = {key: val for key, val in sim_kwargs.items() if val is not None}
-        if 'interventions' in sim_kwargs: # Follow-ups of deliveries (e.g. on_positive=) are modules too
-            sim_kwargs['interventions'] = self._add_followups(sim_kwargs['interventions'])
         updated_pars = self.separate_pars(pars, sim_pars, sti_pars, nw_pars, dem_pars, sim_kwargs, **kwargs)
         self.pars.update(updated_pars)
         return
@@ -239,8 +237,6 @@ class Sim(ss.Sim):
         age_bins = next((d.age_bins for d in declared if d.age_bins is not None), None)
         if age_bins is not None:
             strat.append(dict(age=age_bins))
-            if self.pars['people'] is None and self.pars.get('solver') in [None, 'auto', 'abm'] and self.pars['n_agents']:
-                self.pars['people'] = ss.People(int(self.pars['n_agents'])) # TODO(v4-rs): otherwise agents' ages are drawn from equal shares of the age groups
         self.pars['stratify'] = strat
         return
 
