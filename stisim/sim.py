@@ -10,6 +10,18 @@ from .data import loaders as stidata
 from .data import downloaders as stidl
 
 
+def flatten(connectors):
+    """ Connectors as a flat list: each coinfection connector (e.g. sti.hiv_syph()) is a list of modifiers """
+    if connectors is None:
+        return []
+    if isinstance(connectors, ss.Module):
+        return [connectors]
+    out = []
+    for conn in (connectors.values() if isinstance(connectors, dict) else connectors):
+        out += flatten(conn) if isinstance(conn, (list, tuple, dict)) else [conn]
+    return out
+
+
 class Sim(ss.Sim):
     """
     A subclass of starsim.Sim that is specifically designed for STI simulations.
@@ -177,7 +189,7 @@ class Sim(ss.Sim):
         # Process the STIs
         self.pars['diseases'] = self.process_stis()
         connectors = self.process_connectors()
-        self.pars['connectors'] = ss.ndict(sc.tolist(self.pars['connectors']) + sc.tolist(connectors))
+        self.pars['connectors'] = ss.ndict(flatten(self.pars['connectors']) + connectors)
 
         # Process the network
         self.pars['networks'] = self.process_networks()
@@ -423,7 +435,7 @@ class Sim(ss.Sim):
 
         # Normalize before length check: pars['connectors'] may be a single
         # Connector instance (whose own __len__ can return 0), a list, or an ndict.
-        existing = sc.tolist(self.pars['connectors'])
+        existing = flatten(self.pars['connectors'])
         if len(existing) > 0:
             if user_pars:
                 raise ValueError(
@@ -436,16 +448,16 @@ class Sim(ss.Sim):
         consumed = set()
         diseases = [(m.name, m) for m in self.pars['diseases']]
         for (k1, m1), (k2, m2) in itertools.combinations(diseases, 2):
-            if (cls := getattr(sti, f'{k1}_{k2}', None)) is not None:
+            registry = sti.connector_register()
+            if (conn := registry.get(f'{k1}_{k2}')) is not None:
                 args = (m1, m2)
-            elif (cls := getattr(sti, f'{k2}_{k1}', None)) is not None:
-                args = (m2, m1)  # reversed to match class name
+            elif (conn := registry.get(f'{k2}_{k1}')) is not None:
+                args = (m2, m1)  # reversed to match the connector's name
             else:
                 continue
-            accepted = set(cls(None, None).pars.keys())
-            kwargs = {k: v for k, v in user_pars.items() if k in accepted}
+            kwargs = {k: v for k, v in user_pars.items() if k in conn.pars}
             consumed.update(kwargs)
-            connectors.append(cls(*args, **kwargs))
+            connectors += conn(*args, **kwargs) # A list of modifiers
 
         if (unused := set(user_pars) - consumed):
             raise ValueError(

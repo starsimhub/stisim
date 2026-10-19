@@ -6,6 +6,7 @@ Placeholder modules for non-specific STIs, including:
 
 import starsim as ss
 import stisim as sti
+from stisim.diseases.sti import BaseSTI
 
 __all__ = ['Placeholder', 'GUDPlaceholder', 'VDPlaceholder', 'GUD']
 
@@ -94,67 +95,42 @@ class GUDPlaceholder(Placeholder):
         return
 
 
-class GUD(ss.Infection):
+class GUD(BaseSTI):
     """
-    Genital ulcer disease (GUD) module.
+    Genital ulcer disease (GUD), as an SIS infection
 
-    Models GUD as a simple SIS infection with a lognormal duration of
-    infectiousness and spontaneous recovery. Typically used alongside a
-    syphilis connector that drives GUD prevalence from active syphilis cases.
+    States: S (susceptible) and I (an ulcer), which clears after `dur_inf`. Transmission is
+    per act over the sexual network (`beta_m2f`, `rel_beta_f2m`), as for the other STIs; the
+    defaults are placeholders, and with `init_prev=0` nobody has GUD unless it is seeded.
+    Usually used with a syphilis connector (`sti.gud_syph`).
 
     Args:
-        pars (dict): Override default parameters (dur_inf, beta, init_prev).
-        init_prev_data: Optional initial prevalence data by age/sex/risk group.
-        **kwargs: Additional parameters passed to ``update_pars``.
+        init_prev (float): initial prevalence (default 0)
+        kwargs (dict): passed to `sti.BaseSTI` (e.g. `dur_inf=`, `beta_m2f=`)
+
+    Examples:
+        ```python
+        gud = sti.GUD(init_prev=0.05, beta_m2f=0.2)
+        sim = sti.Sim(diseases=[gud, 'syph'], connectors=sti.gud_syph(gud, 'syph'))
+        ```
     """
+    S, I = ss.states('S I')
+    dur_inf = ss.par(ss.lognorm_ex(ss.months(3), ss.months(1)), doc='Duration of an ulcer')
+    infection = S >> I @ BaseSTI.beta*I
+    recovery = ss.Transition(I, S, dur=dur_inf)
+    n_infected = I + 0*S
+    prevalence = I/(S + I)
+    incidence = infection/S
+    defaults = dict(beta_m2f=1.0, rel_beta_f2m=1.0, init_prev=0) # Starsim 3: beta=1 on every network (a placeholder)
 
-    def __init__(self, pars=None, init_prev_data=None, **kwargs):
-        super().__init__()
-        self.define_pars(
-            dur_inf = ss.lognorm_ex(ss.months(3), ss.months(1)),
-            beta=1.0,  # Placeholder
-            init_prev=0,  # See make_init_prev_fn
-            rel_init_prev=1,
-        )
-        self.update_pars(pars, **kwargs)
-
-        # Set initial prevalence
-        self.init_prev_data = init_prev_data
-        if init_prev_data is not None:
-            self.pars.init_prev = ss.bernoulli(self.make_init_prev_fn)
-
-        # Add states
-        self.define_states(
-            ss.FloatArr('ti_recovered'),
-        )
+    def __init__(self, name='gud', **kwargs):
+        super().__init__(name=name, **kwargs)
         return
 
-    @staticmethod
-    def make_init_prev_fn(self, sim, uids):
-        return sti.make_init_prev_fn(self, sim, uids)
+    def flat_results(self):
+        return super().flat_results() + [('prevalence', 'prevalence', True, 'Prevalence')]
 
-    def step_state(self):
-        """ Update states """
-        self.rel_sus[:] = 1
-        self.rel_trans[:] = 1
-
-        recovered = (self.infected & (self.ti_recovered <= self.sim.ti)).uids
-        self.infected[recovered] = False
-        self.susceptible[recovered] = True
-        return
-
-    def set_prognoses(self, uids, source_uids=None):
-        """
-        Set initial prognoses for adults newly infected with syphilis
-        """
-        ti = self.ti
-
-        self.susceptible[uids] = False
-        self.infected[uids] = True
-        self.ti_infected[uids] = ti
-
-        # Set future recovery
-        dur_inf = self.pars.dur_inf.rvs(uids)
-        self.ti_recovered[uids] = ti + dur_inf
-
-        return
+    @property
+    def susceptible(self): return self.S
+    @property
+    def infected(self):    return self.I

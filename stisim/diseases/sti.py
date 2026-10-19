@@ -93,6 +93,7 @@ class BaseSTI(ss.Disease):
     beta_m2m = ss.par(None, doc='Per-act probability of transmission, male to male')
     eff_condom = ss.par(1.0, doc='Efficacy of condoms')
     defaults = {}
+    transmits = True # False for a condition that is not transmitted (BV): it needs no networks
 
     def __init__(self, pars=None, name=None, init_prev=None, init_prev_data=None, age_range=None,
                  age_bins=default_age_bins, sex_keys=default_sex_keys, **kwargs):
@@ -100,9 +101,17 @@ class BaseSTI(ss.Disease):
         if init_prev_data is not None:
             init_prev = init_prev_fn(init_prev_data)
         given = sc.mergedicts(pars, {k:kwargs.pop(k) for k in list(kwargs) if k in names}, None if init_prev is None else dict(init_prev=init_prev))
-        pars = sc.mergedicts(dict(init_prev=0.01), self.defaults, given)
-        init_prev = sexed(pars.pop('init_prev'))
-        super().__init__(name=name, init_prev=ss.par(init_prev, name='init_prev'), **kwargs)
+        if not self.transmits:
+            if given.get('init_prev') is not None:
+                errormsg = f'{type(self).__name__} is not transmitted, so has no init_prev; set the shares in its states instead'
+                raise ValueError(errormsg)
+            given.pop('init_prev', None)
+            pars = sc.mergedicts(self.defaults, given)
+            super().__init__(name=name, **kwargs)
+        else:
+            pars = sc.mergedicts(dict(init_prev=0.01), self.defaults, given)
+            init_prev = sexed(pars.pop('init_prev'))
+            super().__init__(name=name, init_prev=ss.par(init_prev, name='init_prev'), **kwargs)
         self.set_pars({k:sexed(v) for k,v in pars.items()})
         self.beta_given = 'beta' in given
         self.age_range = age_range if age_range is not None else [15, 65]
@@ -131,13 +140,26 @@ class BaseSTI(ss.Disease):
                 out[name] = 0
         return out
 
+    def modifiers(self, sim):
+        """ Modifiers that are part of the disease (e.g. syphilis latent infectiousness, BV risk factors from the network): added to the sim's connectors """
+        return []
+
+    def add_modifiers(self, sim):
+        """ Add the disease's own modifiers to the sim, if they are not there already. TODO(v4-rs): a way for a module to declare its own modifiers """
+        for mod in self.modifiers(sim):
+            if mod.name not in sim.connectors:
+                sim.connectors[mod.name] = mod
+                mod.init_pre(sim)
+        return
+
     def init_pre(self, sim):
-        if not self.beta_given:
+        if self.transmits and not self.beta_given:
             if not len(sim.networks):
                 errormsg = f'"{self.name}" has no networks to transmit over; give beta= (e.g. ss.peryear(2)) for homogeneous mixing'
                 raise ValueError(errormsg)
             self.pars.beta.value = self.betamap(sim)
         super().init_pre(sim)
+        self.add_modifiers(sim)
         return
 
     @property

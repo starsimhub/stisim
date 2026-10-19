@@ -71,6 +71,8 @@ class STIDx(ss.Test):
         dx = sti.STIDx(df, disease='ct')
         ```
     """
+    state_map = v3_states # The states each of STIsim 3's state names covers
+
     def __init__(self, df=None, disease=None, sensitivity=1.0, specificity=1.0, **kwargs):
         if df is not None:
             sensitivity = {}
@@ -78,7 +80,10 @@ class STIDx(ss.Test):
                 if state == 'susceptible':
                     specificity = 1 - p
                 else:
-                    for s in v3_states.get(state, [state]):
+                    if state in ['trep', 'nontrep']:
+                        errormsg = f'A test keyed by "{state}" is not supported: give the states it detects, or detects= (e.g. the rpr dimension of sti.Syphilis)'
+                        raise NotImplementedError(errormsg)
+                    for s in self.state_map.get(state, [state]):
                         sensitivity[s] = p
         if isinstance(sensitivity, dict):
             sensitivity = {k:by_sex(v) for k,v in sensitivity.items()}
@@ -129,7 +134,7 @@ class STITest(ss.screen):
         self.years = years
         self.rel_test = rel_test
         self.dt_scale = dt_scale
-        super().__init__(product, start=start, stop=stop, eligible=eligibility, coverage=self.test_prob, repeat=None if dt_scale else True, # A typed rate is a rate at every step
+        super().__init__(product, start=start, stop=stop, eligible=eligibility, coverage=self.test_prob, repeat=kwargs.pop('repeat', None if dt_scale else True), # A typed rate is a rate at every step
                          disease=sc.ifelse(disease, product.for_disease if isinstance(product, STIDx) else None), **kwargs)
         return
 

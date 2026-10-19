@@ -133,9 +133,8 @@ def mergepars(*args):
 
 
 def connector_register():
-    """Auto-discoverable connectors keyed by ``<d1>_<d2>``. Only includes
-    connectors that follow the ``(disease1_module, disease2_module, ...)`` constructor
-    convention, so ``sti.Sim`` can build them automatically from a disease list."""
+    """Auto-discoverable connectors keyed by ``<d1>_<d2>``: functions of the two disease
+    modules that return lists of modifiers, so ``sti.Sim`` can build them from a disease list."""
     from stisim.connectors.hiv_sti import hiv_syph, hiv_tv, hiv_ng, hiv_ct, hiv_bv
     return sc.objdict(
         hiv_syph=hiv_syph,
@@ -149,8 +148,8 @@ def connector_register():
 def merged_connector_pars():
     """Merge all parameters from auto-discoverable connectors."""
     merged = {}
-    for cls in connector_register().values():
-        merged.update(cls(None, None).pars)
+    for conn in connector_register().values():
+        merged.update(conn.pars)
     return merged
 
 
