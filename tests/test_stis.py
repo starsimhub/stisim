@@ -133,8 +133,9 @@ def test_optional_stratification(n_agents=500):
     """ Test that age_bins=None and sex_keys=None drop stratified results without changing the rest """
     sc.heading('Test optional age/sex stratification of results')
 
+    # Starsim 3 diseases: flat results by sex and age
     def make_sim(**kw):
-        dis = [sti.Gonorrhea(init_prev=0.1, **kw), sti.Syphilis(init_prev=0.1, **kw), sti.HIV(init_prev=0.1, **kw)]
+        dis = [sti.Syphilis(init_prev=0.1, **kw), sti.HIV(init_prev=0.1, **kw)]
         return ss.Sim(n_agents=n_agents, start=2000, stop=2005, rand_seed=1, diseases=dis,
                       networks=[sti.StructuredSexual(), ss.MaternalNet()],
                       demographics=[ss.Pregnancy(fertility_rate=50), ss.Deaths(death_rate=10)])
@@ -143,28 +144,85 @@ def test_optional_stratification(n_agents=500):
     s_none = make_sim(age_bins=None, sex_keys=None)
     ss.parallel(s_full, s_none, debug=debug)
 
-    for name in ['ng', 'syph', 'hiv']:
+    for name in ['syph', 'hiv']:
         r_full = s_full.diseases[name].results
         r_none = s_none.diseases[name].results
-
-        # Stratified results are gone, unstratified ones remain
         assert len(r_none) < len(r_full), f'{name}: expected fewer results without stratification'
         assert not [k for k in r_none.keys() if k.endswith(('_f', '_m')) or '_15_20' in k], \
             f'{name}: stratified results should not be defined'
         assert 'prevalence' in r_none and 'new_infections' in r_none, f'{name}: main results should remain'
-
-        # Everything still computed must be bit-identical to the fully stratified run
         for key in r_none.keys():
             if key in r_full:
                 assert np.allclose(np.asarray(r_full[key], float), np.asarray(r_none[key], float), equal_nan=True), \
                     f'{name}: result {key} changed when stratification was disabled'
 
-    # Each stratification can also be disabled on its own
-    for kw in [dict(age_bins=None), dict(sex_keys=None)]:
-        sim = make_sim(**kw)
-        sim.run(verbose=0)
-
+    # Declared diseases: sti.Sim stratifies by sex and age, so results can be selected; sex_keys=None drops the flat ones
+    kw = dict(n_agents=n_agents, start=2000, stop=2005, rand_seed=1)
+    sim = sti.Sim(diseases=sti.Gonorrhea(init_prev=0.1), **kw).run()
+    r = sim.results.ng
+    assert np.allclose(r.n_infected_f + r.n_infected_m, r.n_infected)
+    assert np.allclose(r.n_infected.by('age').values.sum(axis=1), r.n_infected)
+    sim_none = sti.Sim(diseases=sti.Gonorrhea(init_prev=0.1, sex_keys=None), **kw).run()
+    assert 'prevalence_f' not in sim_none.results.ng and np.array_equal(sim_none.results.ng.prevalence, r.prevalence)
+    sim_noage = sti.Sim(diseases=sti.Gonorrhea(init_prev=0.1, age_bins=None), **kw).run()
+    assert [s.name for s in sim_noage.strats] == ['sex']
     return s_full, s_none
+
+
+def test_seis_natural_history(n_agents=5000):
+    """ Test the bacterial STIs' natural history: symptoms by sex, care seeking, TV persistence, and PID """
+    sc.heading('Test bacterial STI natural history')
+    kw = dict(start=2000, stop=2004, dt=ss.months(1), n_agents=n_agents, stratify=dict(sex=['female', 'male']), verbose=0)
+    no_infection = dict(beta=ss.permonth(0), init_prev=0.5)
+
+    # Share symptomatic, by sex
+    for cls in [sti.Gonorrhea, sti.Chlamydia, sti.Trichomoniasis]:
+        sim = ss.Sim(cls(**no_infection), **kw).run()
+        d = sim.diseases[0]
+        r = d.results
+        p_symp = d.pars.p_symp.value.values
+        ppl = sim.people
+        seeded = ~np.isnan(d.ti_E.raw[ppl.uid.raw]) # Everyone infected, all seeds since beta is 0
+        symp = ~np.isnan(d.ti_P.raw[ppl.uid.raw])
+        for female,p in zip([True, False], p_symp):
+            sex = ppl.female.raw[ppl.uid.raw] == female
+            share = (symp & sex).sum()/(seeded & sex).sum()
+            assert np.isclose(share, p, atol=0.05), f'{d.name} female={female}: {share:.2f} symptomatic, expected {p}'
+        assert r.new_care_seekers.sum() > 0
+
+    # TV: most asymptomatic infections in women persist; men's clear
+    sim = ss.Sim(sti.Trichomoniasis(**no_infection), **kw).run()
+    r = sim.results.tv
+    left = r.n_infected.select(sex='female')[-1]/r.n_infected.select(sex='female')[0], r.n_infected.select(sex='male')[-1]/r.n_infected.select(sex='male')[0]
+    assert left[0] > 0.4 and left[1] < 0.05, f'Expected persistence in women only, not {left}'
+
+    # PID: women only
+    sim = ss.Sim(sti.Chlamydia(p_pid=0.3, **no_infection), **kw).run()
+    r = sim.results.ct
+    assert r.cum_pid_a.select(sex='female')[-1] > 0 and r.cum_pid_a.select(sex='male')[-1] == 0
+    return sim
+
+
+def test_abm_ode():
+    """ Agents and an ODE agree for each bacterial STI under homogeneous mixing, at weekly steps (they differ by order dt) """
+    sc.heading('Test ABM vs ODE agreement for NG, CT, and TV')
+    pop = 20_000
+    kw = dict(start=2000, stop=2012, dt=ss.weeks(1), stratify=dict(sex=['female', 'male']), verbose=0)
+    out = sc.objdict()
+    for cls,beta in [(sti.Gonorrhea, 0.16), (sti.Chlamydia, 0.09), (sti.Trichomoniasis, 0.06)]:
+        res = sc.objdict()
+        for solver,size,seeds in [('abm', dict(n_agents=pop), [0, 1]), ('ode', dict(total_pop=pop), [0])]:
+            vals = []
+            for seed in seeds:
+                sim = ss.Sim(cls(beta=ss.permonth(beta), init_prev=0.05), solver=solver, rand_seed=seed, **size, **kw).run()
+                r = sim.results[sim.diseases[0].name]
+                vals.append([r.prevalence_f[-1], r.prevalence_m[-1], r.cum_infections[-1], r.new_care_seekers.sum()])
+            res[solver] = np.mean(vals, axis=0)
+        rel = np.abs(res.abm/res.ode - 1)
+        out[cls.__name__] = sc.objdict(abm=res.abm, ode=res.ode, rel=rel)
+        print(f'{cls.__name__}: ABM {np.round(res.abm, 3)}, ODE {np.round(res.ode, 3)}, differences {np.round(rel, 3)}')
+        assert np.all(rel < 0.1), f'{cls.__name__}: ABM and ODE differ by {np.round(rel, 3)} (prevalence F, M; infections; care seekers)'
+    return out
 
 
 def test_bv(include_hiv=False, n_agents=500):
@@ -228,5 +286,7 @@ if __name__ == '__main__':
     test_stis(which='discharging')
     test_stis(which='ulcerative')
     test_optional_stratification()
+    test_seis_natural_history()
+    test_abm_ode()
     test_bv()
     test_bv(include_hiv=True)

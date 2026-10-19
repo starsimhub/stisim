@@ -76,7 +76,7 @@ def test_sim_creation():
     )
     sim1.init()
 
-    assert sim1.diseases.ng.pars.eff_condom == 0.6, "Disease parameter not set correctly"
+    assert sim1.diseases.ng.pars.eff_condom.value == 0.6, "Disease parameter not set correctly"
 
     # Test 2: mix of strings and modules
     demographics = [ss.Pregnancy(), ss.Deaths()]
@@ -108,9 +108,9 @@ def test_sim_creation():
     sim3 = sti.Sim(**pars)
     sim3.init()
 
-    assert sim3.diseases.ng.pars.beta_m2f == pars['beta_m2f'], "Disease parameter not set correctly"
-    assert sim3.diseases.ct.pars.beta_m2f == pars['beta_m2f'], "Disease parameter not set correctly"
-    assert sim3.diseases.ng.pars.eff_condom == pars['ng']['eff_condom'], "Disease parameter not set correctly"
+    assert sim3.diseases.ng.pars.beta_m2f.value == pars['beta_m2f'], "Disease parameter not set correctly"
+    assert sim3.diseases.ct.pars.beta_m2f.value == pars['beta_m2f'], "Disease parameter not set correctly"
+    assert sim3.diseases.ng.pars.eff_condom.value == pars['ng']['eff_condom'], "Disease parameter not set correctly"
     assert sim3.networks.structuredsexual.pars.prop_f0 == pars['prop_f0'], "Network parameter not set correctly"
 
     return
