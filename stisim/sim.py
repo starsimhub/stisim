@@ -101,12 +101,14 @@ class Sim(ss.Sim):
         sim_kwargs = dict(label=label, people=people, demographics=demographics, diseases=diseases, networks=networks,
                     interventions=interventions, analyzers=analyzers, connectors=connectors, custom=custom)
         sim_kwargs = {key: val for key, val in sim_kwargs.items() if val is not None}
+        if 'interventions' in sim_kwargs: # Follow-ups of deliveries (e.g. on_positive=) are modules too
+            sim_kwargs['interventions'] = self._add_followups(sim_kwargs['interventions'])
         updated_pars = self.separate_pars(pars, sim_pars, sti_pars, nw_pars, dem_pars, sim_kwargs, **kwargs)
         self.pars.update(updated_pars)
         return
 
     def separate_pars(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None, dem_pars=None,
-                      sim_kwargs=None, verbose=True, **kwargs):
+                      sim_kwargs=None, route_verbose=True, **kwargs):
         """
         Sort all incoming pars into per-category dicts (sim, sti, nw, dem,
         connector). Most of the work is delegated to ``sti.route_pars``; this
@@ -116,7 +118,7 @@ class Sim(ss.Sim):
         ``_user_connector_pars``) for the two-phase init's XOR checks.
 
         Args:
-            verbose (bool): If True, ``route_pars`` prints one line per
+            route_verbose (bool): If True, ``route_pars`` prints one line per
                 cross-category broadcast. See ``sti.route_pars`` for design.
         """
         merged = self.remap_pars(sc.mergedicts(pars, sim_kwargs, kwargs))
@@ -135,7 +137,7 @@ class Sim(ss.Sim):
             merged,
             sim_pars=sim_pars, sti_pars=sti_pars, nw_pars=nw_pars,
             dem_pars=dem_pars,
-            strict=True, verbose=verbose,
+            strict=True, verbose=route_verbose,
         )
 
         if 'dur' in routed.sim:
@@ -193,6 +195,9 @@ class Sim(ss.Sim):
         # Reset n_agents
         if self.pars['people'] is not None: self.pars['n_agents'] = len(self.pars['people'])
 
+        # Results of declared diseases by sex and age
+        self.process_stratify()
+
         super().init(force=force, **kwargs)  # Call the parent init method
 
         return self
@@ -221,6 +226,23 @@ class Sim(ss.Sim):
                     'n_alive',
                 ]
         return super().plot(key=key, **kwargs)
+
+    def process_stratify(self):
+        """
+        Stratify the sim by sex and by the age groups of its declared STIs (`age_bins`), unless
+        `stratify=` was given, so their results can be selected by sex and age
+        """
+        declared = [d for d in self.pars['diseases'] if isinstance(d, sti.BaseSTI)]
+        if self.pars.get('stratify') is not None or not declared:
+            return
+        strat = [dict(sex=['female', 'male'])]
+        age_bins = next((d.age_bins for d in declared if d.age_bins is not None), None)
+        if age_bins is not None:
+            strat.append(dict(age=age_bins))
+            if self.pars['people'] is None and self.pars.get('solver') in [None, 'auto', 'abm'] and self.pars['n_agents']:
+                self.pars['people'] = ss.People(int(self.pars['n_agents'])) # TODO(v4-rs): otherwise agents' ages are drawn from equal shares of the age groups
+        self.pars['stratify'] = strat
+        return
 
     def process_networks(self):
         """
