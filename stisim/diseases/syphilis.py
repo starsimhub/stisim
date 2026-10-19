@@ -7,7 +7,7 @@ import sciris as sc
 from sciris import randround as rr # Since used frequently
 import starsim as ss
 import stisim as sti
-from stisim.diseases.sti import BaseSTI, BaseSTIPars, default_age_bins, default_sex_keys
+from stisim.diseases.legacy import BaseSTI, BaseSTIPars, default_age_bins, default_sex_keys
 from stisim.utils import count, div, countdiv, cond_prob
 
 __all__ = ['Syphilis', 'SyphilisPlaceholder']

@@ -6,7 +6,7 @@ import numpy as np
 import sciris as sc
 import starsim as ss
 import stisim as sti
-from stisim.diseases.sti import BaseSTI, BaseSTIPars, default_age_bins, default_sex_keys
+from stisim.diseases.legacy import BaseSTI, BaseSTIPars, default_age_bins, default_sex_keys
 
 __all__ = ['HIV', 'HIVPars']
 

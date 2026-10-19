@@ -79,7 +79,6 @@ def sti_register(key=None):
     sti_dict = sc.objdict(
         bv=sti.BV,
         ct=sti.Chlamydia,
-        ctbl=sti.ChlamydiaBL,
         gud=sti.GUDPlaceholder,  # Placeholder for GUD
         ng=sti.Gonorrhea,
         hiv=sti.HIV,
