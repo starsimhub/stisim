@@ -13,7 +13,7 @@ from stisim.utils import count
 
 
 # %% Base classes
-__all__ = ["STIDx", "STITest", "SymptomaticTesting", "SyndromicManagement", "ANCTest", "STITreatment", "PartnerNotification", "ProductMix", "pn_rates"]
+__all__ = ["ANCTest", "PartnerNotification", "ProductMix", "pn_rates"] # STIDx, STITest, STITreatment, SymptomaticTesting, and SyndromicManagement: see sti_interventions.py; these are Starsim 3 versions, for HIV and syphilis
 
 
 class STIDx(ss.Product):
