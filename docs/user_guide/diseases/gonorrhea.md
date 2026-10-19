@@ -43,8 +43,8 @@ Pars of `sti.Gonorrhea`. The Source column follows the conventions of the [param
 | `dur_presymp` | F: [1 wk, 12 wk]; M: [0.25 wk, 1 wk] | Time from infection to symptom onset, lognormal [mean, sd] | Not recorded |
 | `dur_asymp2clear` | F: [8 mo, 2 mo]; M: [6 mo, 3 mo] | Duration of untreated asymptomatic infection, lognormal [mean, sd] | Not recorded |
 | `dur_symp2clear` | F: [9 mo, 2 mo]; M: [6 mo, 3 mo] | Duration of untreated symptomatic infection, lognormal [mean, sd] | Assumption |
-| `p_symp_clear` | [0.0, 0.0] | Probability that symptoms resolve before clearance [F, M] | Not applicable |
-| `dur_symp` | lognorm(1 wk, 26 wk) [F, M] | Duration of symptoms, for those whose symptoms resolve | Not recorded |
+| `p_clear` | 1.0 | Probability that an asymptomatic infection in a woman clears spontaneously; otherwise it persists | Not applicable |
+| `dur_persist` | 100 yr | Duration of a persistent infection | Not applicable |
 
 ### Care seeking
 
@@ -70,7 +70,6 @@ Pars of `sti.Gonorrhea`. The Source column follows the conventions of the [param
 | `beta_m2f` | 0.06 | Per-act male-to-female transmission probability; usually calibrated | Not recorded |
 | `rel_beta_f2m` | 0.5 | Female-to-male per-act probability relative to `beta_m2f` | Not recorded |
 | `beta_m2c` | None | Mother-to-child transmission probability per timestep | Not applicable |
-| `beta_breastfeed` | None | Breastfeeding transmission probability per timestep | Not applicable |
 | `beta_m2m` | None | Per-act male-to-male transmission probability (used on an `msm` network) | Not applicable |
 | `eff_condom` | 0.9 | Condom efficacy against transmission | Not recorded |
 
@@ -79,4 +78,3 @@ Pars of `sti.Gonorrhea`. The Source column follows the conventions of the [param
 | Parameter | Default | Description | Source |
 |-----------|---------|-------------|--------|
 | `init_prev` | 0.01 | Initial prevalence | Not recorded |
-| `rel_init_prev` | 1 | Multiplier on initial prevalence | Not applicable |
