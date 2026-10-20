@@ -31,6 +31,16 @@ All notable changes to the codebase are documented in this file.
 - The no-coverage ART pathway offers ART once to each person who is ready, as before; people who stop do not restart. With a coverage target, people who stopped are eligible again, as before.
 - PrEP courses lapse after an exponential time with mean `prep_dur`, not exactly `prep_dur`. With a stock target, renewal is a new delivery.
 - VMMC coverage targets apply to `n_vmmc`/`p_vmmc` as a stock (circumcision prevalence), as in 1.5.9.
+- HIV's results by age are by group (`hiv.prevalence.select(age=...)`, `.by('age')`), as for the other declared STIs; the flat age-band results (`hiv_prevalence_m_25_30`, ...) are gone. HIV keeps `prevalence_f`/`_m` (adults 15–50), `prevalence_15_49`, and the sex-work and risk-group results.
+- Against STIsim 3 on Starsim 4, over 6 seeds at 5,000 agents:
+  - Zimbabwe demo (1990–2025): HIV deaths +8%, new infections +10%, mother-to-child infections +23%, prevalence among women in 2024 28% (26%).
+  - Without ART: deaths +3%, infections +5%.
+  - `hivsim.demo('simple')`: within 5%.
+  - The rest comes from:
+    - Back-dated seeds keep their CD4 consistent with their stage. In STIsim 3, seeds started at their set-point CD4 whatever their stage, so the dying were not prioritized for ART.
+    - In STIsim 3, ART could go to people dying on the same step.
+    - About 30% more initial seeds.
+  - The higher mother-to-child transmission under ART is not explained yet.
 
 ## Version 1.7.1 (2026-10-12)
 
