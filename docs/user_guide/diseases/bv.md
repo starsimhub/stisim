@@ -49,7 +49,8 @@ Pars of `sti.BV`. The Source column follows the conventions of the [parameter re
 | Parameter | Default | Description | Source |
 |-----------|---------|-------------|--------|
 | `stable_cst_distribution` | CST 1: 0.10, CST 3: 0.30, CST 4: 0.60 | Distribution of baseline (stable) CST | [Munoz 2021](https://doi.org/10.1186/s40168-021-01096-9) |
-| `p_cst_change` | cst1: 0.1, cst3: 0.05 | Probability of transition to a worse CST (CST 1 to 3; CST 3 to 4) | Not recorded |
+| `p_cst_change_cst1` | 0.10 per month | Probability of a change from CST 1 to CST 3 | Not recorded |
+| `p_cst_change_cst3` | 0.05 per month | Probability of a change from CST 3 to CST 4 (BV) | Not recorded |
 | `rr_stable_cst1` | 0.1 | Relative risk of CST transition for women with stable CST 1 | Not recorded |
 | `rr_stable_cst3` | 1.0 | Relative risk of CST transition for women with stable CST 3 (reference) | Not applicable |
 | `rr_stable_cst4` | 2.0 | Relative risk of CST transition for women with stable CST 4 | Not recorded |
@@ -58,10 +59,11 @@ Pars of `sti.BV`. The Source column follows the conventions of the [parameter re
 
 | Parameter | Default | Description | Source |
 |-----------|---------|-------------|--------|
-| `dur2clear` (cst3) | uniform(1 wk, 18 wk) | Time to return to the stable CST from CST 3 | Not recorded |
-| `dur2clear` (cst4) | uniform(5 wk, 50 wk) | Time to return to the stable CST from CST 4 | [Klebanoff 2004](https://doi.org/10.1016/j.ajog.2003.08.020) |
-| `dur2clear` (male) | uniform(1 wk, 18 wk) | Duration of male colonization | Not recorded |
-| `spontaneous_clearance` | cst1→1, cst3→3, cst4→3 | CST reached after spontaneous clearance, by stable CST | [Tamarelle 2022](https://doi.org/10.1097/OLQ.0000000000001662) |
+| `dur2clear_cst3` | uniform(1 wk, 18 wk) | Duration of a transient CST 3, in women with stable CST 1 | Not recorded |
+| `dur2clear_cst4` | uniform(5 wk, 50 wk) | Duration of untreated BV, after which women return to CST 1 (stable CST 1) or CST 3 | [Klebanoff 2004](https://doi.org/10.1016/j.ajog.2003.08.020); [Tamarelle 2022](https://doi.org/10.1097/OLQ.0000000000001662) |
+| `dur_post_tx` | constant(0) | Time after treatment before return to the stable CST (0: at once) | Assumption |
+| `recur_rate` | 0.06 per month | Rate of recurrence just after treatment | Assumption |
+| `dur_recur_decay` | 3 mo | Time over which the rate of recurrence falls by a factor of e | Assumption |
 
 ### Symptoms
 
@@ -90,25 +92,8 @@ Pars of `sti.BV`. The Source column follows the conventions of the [parameter re
 
 | Parameter | Default | Description | Source |
 |-----------|---------|-------------|--------|
-| `sexual_transmission` | False | Whether BV-associated bacteria are sexually transmitted | Not applicable |
-| `beta_m2f` | None | Per-act male-to-female transmission probability (used if `sexual_transmission` is True) | Not applicable |
-| `rel_beta_f2m` | 0.5 | Female-to-male per-act probability relative to `beta_m2f` | Not applicable |
-| `beta_m2c` | None | Mother-to-child transmission probability per timestep | Not applicable |
-| `beta_breastfeed` | None | Breastfeeding transmission probability per timestep | Not applicable |
-| `beta_m2m` | None | Per-act male-to-male transmission probability | Not applicable |
+| `beta_m2f` | 0 | Not used: BV is not transmitted | Not applicable |
+| `rel_beta_f2m` | 0.5 | Not used: BV is not transmitted | Not applicable |
+| `beta_m2c` | 0 | Not used: BV is not transmitted | Not applicable |
+| `beta_m2m` | 0 | Not used: BV is not transmitted | Not applicable |
 | `eff_condom` | 0.45 | Condom effectiveness in reducing BV risk | [Hutchinson 2007](https://doi.org/10.1097/EDE.0b013e3181567eaa) |
-
-### Initialization
-
-| Parameter | Default | Description | Source |
-|-----------|---------|-------------|--------|
-| `init_prev` | 0.23 | Initial BV prevalence | [WHO BV fact sheet](https://www.who.int/news-room/fact-sheets/detail/bacterial-vaginosis) |
-| `rel_init_prev` | 1 | Multiplier on initial prevalence | Not applicable |
-
-### Pregnancy outcomes
-
-| Parameter | Default | Description | Source |
-|-----------|---------|-------------|--------|
-| `or_ptb` (trimester 1) | 3 | Odds ratio for preterm birth, BV in 1st trimester | [Juliana 2020](https://doi.org/10.3389/fpubh.2020.567885); [Dunlop 2021](https://doi.org/10.3389/fcimb.2021.641005) |
-| `or_ptb` (trimester 2) | 2 | Odds ratio for preterm birth, BV in 2nd trimester | [Juliana 2020](https://doi.org/10.3389/fpubh.2020.567885) |
-| `or_ptb` (trimester 3) | 1 | Odds ratio for preterm birth, BV in 3rd trimester | [Juliana 2020](https://doi.org/10.3389/fpubh.2020.567885) |

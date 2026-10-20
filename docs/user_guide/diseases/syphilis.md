@@ -85,11 +85,10 @@ Pars of `sti.Syphilis`. The Source column follows the conventions of the [parame
 |-----------|---------|-------------|--------|
 | `p_symp_primary` | [0.3, 0.5] | Probability that a primary chancre is noticed [F, M] | [O'Byrne 2019](https://doi.org/10.1136/bmj.l4159) |
 | `p_symp_secondary` | [0.85, 0.85] | Probability that secondary symptoms are noticed [F, M] | Not recorded |
-| `time_to_undetectable` | lognorm(15 yr, 5 yr) | Time from late-latent onset until the non-treponemal titre falls below detection | Not recorded |
-| `dur_to_trep` | normal(3 wk, 1 wk) | Time from infection to a positive treponemal test (window period) | Not recorded |
+| `time_to_undetectable` | 15 yr | Mean time in late latent until the non-treponemal titre falls below detection | Not recorded |
 | `p_trep_persists` | 0.8 | Probability that a positive treponemal test persists for life | Not recorded |
+| `dur_nontrep_revert` | 9 mo | Mean time after early treatment until the non-treponemal (RPR) titre falls below detection | Not recorded |
 | `time_to_trep_revert` | normal(10 yr, 5 yr) | Time to treponemal sero-reversion, for those who revert | Not recorded |
-| `anc_detection` | 0.8 | Proportion of prevalent infections in pregnant women counted in the `detected_pregnant_prevalence` result | Not recorded |
 
 ### Transmission
 
@@ -97,9 +96,8 @@ Pars of `sti.Syphilis`. The Source column follows the conventions of the [parame
 |-----------|---------|-------------|--------|
 | `beta_m2f` | 0.1 | Per-act male-to-female transmission probability; usually calibrated | Not recorded |
 | `rel_beta_f2m` | 0.5 | Female-to-male per-act probability relative to `beta_m2f` | Not recorded |
-| `beta_m2c` | None | Mother-to-child transmission probability per timestep | Not applicable |
-| `beta_breastfeed` | None | Breastfeeding transmission probability per timestep | Not applicable |
-| `beta_m2m` | None | Per-act male-to-male transmission probability (used on an `msm` network) | Not applicable |
+| `beta_m2c` | 0 | Monthly rate of in-utero infection of a fetus whose mother is in primary, secondary, or latent syphilis | Not applicable |
+| `beta_m2m` | 0 | Per-act male-to-male transmission probability (used on an `msm` network) | Not applicable |
 | `eff_condom` | 0.0 | Condom efficacy against transmission | Not recorded |
 | `rel_trans_primary` | 1 | Relative transmissibility during the primary stage | Assumption |
 | `rel_trans_secondary` | 1 | Relative transmissibility during the secondary stage (reference) | Assumption |
@@ -118,9 +116,18 @@ Birth outcomes depend on the maternal stage of infection. Probabilities sum to 1
 
 | Parameter | Default | Description | Source |
 |-----------|---------|-------------|--------|
-| `birth_outcomes` (mat_active) | [0.00, 0.25, 0.25, 0.45, 0.05] | Outcome probabilities for an active (exposed, primary, or secondary) maternal infection | [Gomez 2013](https://doi.org/10.2471/BLT.12.107623); [Stoltey 2015](https://doi.org/10.1071/SH14174); [Arnold 2000](https://doi.org/10.1093/pch/5.8.463) |
-| `birth_outcomes` (early) | [0.00, 0.05, 0.10, 0.40, 0.45] | Outcome probabilities for an early latent maternal infection | [Stoltey 2015](https://doi.org/10.1071/SH14174); [Arnold 2000](https://doi.org/10.1093/pch/5.8.463) |
-| `birth_outcomes` (late) | [0.00, 0.00, 0.10, 0.10, 0.80] | Outcome probabilities for a late latent maternal infection | [Stoltey 2015](https://doi.org/10.1071/SH14174); [Arnold 2000](https://doi.org/10.1093/pch/5.8.463) |
+| `p_miscarriage_active` | 0.00 | Probability of miscarriage, for an active (primary or secondary) maternal infection | [Gomez 2013](https://doi.org/10.2471/BLT.12.107623); [Stoltey 2015](https://doi.org/10.1071/SH14174); [Arnold 2000](https://doi.org/10.1093/pch/5.8.463) |
+| `p_nnd_active` | 0.25 | Probability of neonatal death, for an active (primary or secondary) maternal infection | [Gomez 2013](https://doi.org/10.2471/BLT.12.107623); [Stoltey 2015](https://doi.org/10.1071/SH14174); [Arnold 2000](https://doi.org/10.1093/pch/5.8.463) |
+| `p_stillborn_active` | 0.25 | Probability of stillbirth, for an active (primary or secondary) maternal infection | [Gomez 2013](https://doi.org/10.2471/BLT.12.107623); [Stoltey 2015](https://doi.org/10.1071/SH14174); [Arnold 2000](https://doi.org/10.1093/pch/5.8.463) |
+| `p_congenital_active` | 0.45 | Probability of congenital syphilis, for an active (primary or secondary) maternal infection | [Gomez 2013](https://doi.org/10.2471/BLT.12.107623); [Stoltey 2015](https://doi.org/10.1071/SH14174); [Arnold 2000](https://doi.org/10.1093/pch/5.8.463) |
+| `p_miscarriage_early` | 0.00 | Probability of miscarriage, for an early latent maternal infection | [Stoltey 2015](https://doi.org/10.1071/SH14174); [Arnold 2000](https://doi.org/10.1093/pch/5.8.463) |
+| `p_nnd_early` | 0.05 | Probability of neonatal death, for an early latent maternal infection | [Stoltey 2015](https://doi.org/10.1071/SH14174); [Arnold 2000](https://doi.org/10.1093/pch/5.8.463) |
+| `p_stillborn_early` | 0.10 | Probability of stillbirth, for an early latent maternal infection | [Stoltey 2015](https://doi.org/10.1071/SH14174); [Arnold 2000](https://doi.org/10.1093/pch/5.8.463) |
+| `p_congenital_early` | 0.40 | Probability of congenital syphilis, for an early latent maternal infection | [Stoltey 2015](https://doi.org/10.1071/SH14174); [Arnold 2000](https://doi.org/10.1093/pch/5.8.463) |
+| `p_miscarriage_late` | 0.00 | Probability of miscarriage, for a late latent maternal infection | [Stoltey 2015](https://doi.org/10.1071/SH14174); [Arnold 2000](https://doi.org/10.1093/pch/5.8.463) |
+| `p_nnd_late` | 0.00 | Probability of neonatal death, for a late latent maternal infection | [Stoltey 2015](https://doi.org/10.1071/SH14174); [Arnold 2000](https://doi.org/10.1093/pch/5.8.463) |
+| `p_stillborn_late` | 0.10 | Probability of stillbirth, for a late latent maternal infection | [Stoltey 2015](https://doi.org/10.1071/SH14174); [Arnold 2000](https://doi.org/10.1093/pch/5.8.463) |
+| `p_congenital_late` | 0.10 | Probability of congenital syphilis, for a late latent maternal infection | [Stoltey 2015](https://doi.org/10.1071/SH14174); [Arnold 2000](https://doi.org/10.1093/pch/5.8.463) |
 
 ### Initialization
 
@@ -128,5 +135,3 @@ Birth outcomes depend on the maternal stage of infection. Probabilities sum to 1
 |-----------|---------|-------------|--------|
 | `init_prev` | 0.0 | Initial active syphilis prevalence | Not applicable |
 | `init_latent_prev` | 0.0 | Initial latent syphilis prevalence | Not applicable |
-| `rel_init_prev` | 1 | Multiplier on initial prevalence | Not applicable |
-| `dist_ti_init_infected` | constant(0) | Time of initial infection relative to the start (timesteps) | Not applicable |
