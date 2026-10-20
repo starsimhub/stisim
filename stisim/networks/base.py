@@ -58,6 +58,7 @@ class BaseNetwork(ss.SexualNetwork):
     and ``set_condom_use``. The MSM subclasses inherit this via
     ``MFNetwork``.
     """
+    sides = dict(m='male', f='female') # Partnerships between men and women, so a disease's beta on it is ss.peract(m2f=..., f2m=...)
 
     # Capability flag read by analyzers (e.g. PartnershipFormationAnalyzer):
     # True means every edge removal funnels through ``_on_edge_dissolution`` so

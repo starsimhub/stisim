@@ -86,13 +86,14 @@ class BaseSTI(ss.Disease):
         sex_keys (dict): the sexes of the flat results (`prevalence_f`, ...); None for none
         kwargs (dict): parameter values by name, or `label`, `dt`
     """
-    beta = ss.par(0.0, doc='Beta by network; worked out from beta_m2f, beta_m2c, and beta_m2m unless given')
-    beta_m2f = ss.par(None, doc='Per-act probability of transmission, male to female')
+    beta = ss.par(ss.peryear(0), doc='Beta by network; worked out from beta_m2f, beta_m2c, and beta_m2m unless given')
+    beta_m2f = ss.par(0.0, doc='Per-act probability of transmission, male to female')
     rel_beta_f2m = ss.par(0.5, doc='Relative per-act probability of transmission, female to male')
-    beta_m2c = ss.par(None, doc='Monthly probability of mother-to-child transmission')
-    beta_m2m = ss.par(None, doc='Per-act probability of transmission, male to male')
+    beta_m2c = ss.par(0.0, doc='Monthly probability of mother-to-child transmission')
+    beta_m2m = ss.par(0.0, doc='Per-act probability of transmission, male to male')
     eff_condom = ss.par(1.0, doc='Efficacy of condoms')
     defaults = {}
+    standard_results = True # new_infections, cum_infections, and prevalence, as STIsim 3 had
     transmits = True # False for a condition that is not transmitted (BV): it needs no networks
 
     def __init__(self, pars=None, name=None, init_prev=None, init_prev_data=None, age_range=None,
@@ -107,38 +108,42 @@ class BaseSTI(ss.Disease):
                 raise ValueError(errormsg)
             given.pop('init_prev', None)
             pars = sc.mergedicts(self.defaults, given)
-            super().__init__(name=name, **kwargs)
+            super().__init__(name=name, pars={k:sexed(v) for k,v in pars.items()}, **kwargs)
         else:
             pars = sc.mergedicts(dict(init_prev=0.01), self.defaults, given)
             init_prev = sexed(pars.pop('init_prev'))
-            super().__init__(name=name, init_prev=ss.par(init_prev, name='init_prev'), **kwargs)
-        self.set_pars({k:sexed(v) for k,v in pars.items()})
+            super().__init__(name=name, pars={k:sexed(v) for k,v in pars.items()}, init_prev=ss.par(init_prev, name='init_prev'), **kwargs)
         self.beta_given = 'beta' in given
         self.age_range = age_range if age_range is not None else [15, 65]
         self.age_bins = None if age_bins is None else list(age_bins)
         self.sex_keys = {'': 'alive'} if sex_keys is None else dict(sex_keys)
         return
 
-    def value(self, key):
-        """ The plain value of a parameter """
-        val = self.pars[key]
-        return val.value if isinstance(val, ss.par) else val
-
-    def betamap(self, sim):
+    def betamap(self, netnames):
         """ The beta of each network in the sim, from beta_m2f, rel_beta_f2m, beta_m2c, and beta_m2m """
         m2f, rel, m2c, m2m = [self.value(k) for k in ['beta_m2f', 'rel_beta_f2m', 'beta_m2c', 'beta_m2m']]
         out = {}
-        for name in sim.networks.keys():
+        for name in netnames:
             key = ss.standardize_netkey(name)
-            if key == 'structuredsexual' and m2f is not None:
-                out[name] = [m2f, m2f*rel]
-            elif key == 'msm' and m2m is not None:
-                out[name] = [m2m, m2m]
+            if key == 'structuredsexual' and m2f:
+                out[name] = ss.peract(m2f=m2f, f2m=m2f*rel)
+            elif key == 'msm' and m2m:
+                out[name] = ss.peract(m2m)
             elif key == 'maternal' and m2c:
-                out[name] = [ss.permonth(m2c), 0]
+                out[name] = ss.permonth(m2c) # One way, mother to child
             else:
                 out[name] = 0
         return out
+
+    def set_betas(self, netnames):
+        """ Set the beta of each network from beta_m2f, rel_beta_f2m, beta_m2c, and beta_m2m, unless beta was given """
+        if self.transmits and not self.beta_given:
+            netnames = list(netnames)
+            if not netnames:
+                errormsg = f'"{self.name}" has no networks to transmit over; give beta= (e.g. ss.peryear(2)) for homogeneous mixing'
+                raise ValueError(errormsg)
+            self.pars.beta.value = self.betamap(netnames)
+        return
 
     def modifiers(self, sim):
         """ Modifiers that are part of the disease (e.g. syphilis latent infectiousness, BV risk factors from the network): added to the sim's connectors """
@@ -153,11 +158,6 @@ class BaseSTI(ss.Disease):
         return
 
     def init_pre(self, sim):
-        if self.transmits and not self.beta_given:
-            if not len(sim.networks):
-                errormsg = f'"{self.name}" has no networks to transmit over; give beta= (e.g. ss.peryear(2)) for homogeneous mixing'
-                raise ValueError(errormsg)
-            self.pars.beta.value = self.betamap(sim)
         super().init_pre(sim)
         self.add_modifiers(sim)
         return
@@ -261,7 +261,7 @@ class SEIS(BaseSTI):
     seek_pid  = ss.Transition(PID, C, p=p_pid_care, dur=dur_pid2care)
     clear_pid = ss.Transition(PID, S, dur=dur_pid2clear)
     clear_c   = ss.Transition(C, S, dur=dur_symp2clear)
-    cure      = ss.Transition(E | P | A | Y | C | PID, S, undriven=True)
+    cure      = ss.Transition(E + P + A + Y + C + PID, S, undriven=True)
 
     # Results
     n_infected       = E + P + A + Y + C + PID

@@ -184,8 +184,8 @@ def test_seis_natural_history(n_agents=5000):
         r = d.results
         p_symp = d.pars.p_symp.value.values
         ppl = sim.people
-        seeded = ~np.isnan(d.ti_E.raw[ppl.uid.raw]) # Everyone infected, all seeds since beta is 0
-        symp = ~np.isnan(d.ti_P.raw[ppl.uid.raw])
+        seeded = ~np.isnan(np.asarray(d.ti_E[ppl.uid])) # Everyone infected, all seeds since beta is 0
+        symp = ~np.isnan(np.asarray(d.ti_P[ppl.uid]))
         for female,p in zip([True, False], p_symp):
             sex = ppl.female.raw[ppl.uid.raw] == female
             share = (symp & sex).sum()/(seeded & sex).sum()
@@ -201,7 +201,7 @@ def test_seis_natural_history(n_agents=5000):
     # PID: women only
     sim = ss.Sim(sti.Chlamydia(p_pid=0.3, **no_infection), **kw).run()
     r = sim.results.ct
-    assert r.cum_pid_a.select(sex='female')[-1] > 0 and r.cum_pid_a.select(sex='male')[-1] == 0
+    assert r.pid_a.select(sex='female').sum() > 0 and r.pid_a.select(sex='male').sum() == 0
     return sim
 
 

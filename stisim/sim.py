@@ -110,6 +110,8 @@ class Sim(ss.Sim):
         self.pars = sti.SimPars()  # Make default parameters
 
         # Separate the parameters, storing sim pars now and saving module pars to process in init
+        if interventions is not None: # UPSTREAM: ss.Sim adds a cascade's steps in __init__ only from its own arguments, so a subclass that routes pars itself must call the private _add_steps()
+            interventions = ss.Sim._add_steps(interventions)
         sim_kwargs = dict(label=label, people=people, demographics=demographics, diseases=diseases, networks=networks,
                     interventions=interventions, analyzers=analyzers, connectors=connectors, custom=custom)
         sim_kwargs = {key: val for key, val in sim_kwargs.items() if val is not None}
@@ -207,6 +209,13 @@ class Sim(ss.Sim):
 
         # Results of declared diseases by sex and age
         self.process_stratify()
+
+        # UPSTREAM: a disease cannot key its beta by the sim's networks before the solver is chosen (choose.check_betas runs before init_pre)
+        aslist = lambda mods: list(mods.values()) if isinstance(mods, dict) else sc.tolist(mods)
+        netnames = [nw.name for nw in aslist(self.pars['networks'])]
+        for dis in aslist(self.pars['diseases']):
+            if isinstance(dis, sti.BaseSTI):
+                dis.set_betas(netnames)
 
         super().init(force=force, **kwargs)  # Call the parent init method
 

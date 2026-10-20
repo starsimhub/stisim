@@ -29,6 +29,8 @@ class AgeMatchedMSM(MFNetwork):
             (default ``ss.bernoulli(p=0.015)``).
         **kwargs: Additional parameter overrides.
     """
+    sides = None # Men only: one beta, ss.peract(p)
+
 
     def __init__(self, pars=None, **kwargs):
         super().__init__(name='msm')
@@ -127,6 +129,8 @@ class MSMScaleFreeNetwork(BaseNetwork):
         name (str): network name (default: auto-assigned).
         **kwargs: forwarded to ``update_pars``.
     """
+    sides = None # Men only: one beta, ss.peract(p)
+
 
     # This network deletes edges inside ``add_pairs`` (Markov deletes) without
     # routing them through ``_on_edge_dissolution``, so ``expired_this_loop`` is
@@ -518,6 +522,8 @@ class AgeApproxMSM(MFNetwork):
             (default ``ss.bernoulli(p=0.015)``).
         **kwargs: Additional parameter overrides.
     """
+    sides = None # Men only: one beta, ss.peract(p)
+
 
     def __init__(self, pars=None, **kwargs):
         super().__init__(name='msm')
