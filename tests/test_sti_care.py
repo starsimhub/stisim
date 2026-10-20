@@ -112,7 +112,7 @@ def test_syphilis_care():
     assert r.syph_tx_fetus.delivered.sum() > 0 # Fetuses of cured mothers, over the maternal network
     assert np.isclose(r.syph.fetal_cure.sum(), r.syph_tx_fetus.cured.sum())
     assert r.syph.prevalence[-1] < base.results.syph.prevalence[-1]
-    assert r.nb_test.delivered.sum() >= 0 and np.isclose(r.nb_tx.delivered.sum(), r.nb_test.positive.sum())
+    assert 0 < r.nb_test.delivered.sum() <= r.anc.positive.sum() and np.isclose(r.nb_tx.delivered.sum(), r.nb_test.positive.sum())
     return sim
 
 

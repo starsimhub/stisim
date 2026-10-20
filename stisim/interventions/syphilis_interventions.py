@@ -264,19 +264,7 @@ class NewbornSyphTest(SyphTest):
         if kwargs.get('eligibility') is not None:
             errormsg = 'NewbornSyphTest tests the newborns of mothers who tested positive at ANC; it takes no eligibility='
             raise ValueError(errormsg)
-        self.mother_positive = anc.positive.since <= ss.years(1)
         kwargs.setdefault('product', SyphDx(sensitivity=dict(CS=1.0, Ccs=1.0, Cnnd=1.0)))
-        super().__init__(test_prob_data=test_prob_data, dt_scale=None, on=self.newborns, **kwargs)
+        on = ss.state('pregnancy.birth') & ss.mother(anc.positive.since <= ss.years(1), born=True) # Born now, to a mother who tested positive at ANC in the last year
+        super().__init__(test_prob_data=test_prob_data, dt_scale=None, on=on, **kwargs)
         return
-
-    def newborns(self, sim):
-        """ The babies born on this step whose mothers tested positive at antenatal care within the last year """
-        ppl = sim.people
-        kids = ppl.auids
-        age = ppl.age.raw[kids]
-        kids = kids[(age >= 0) & (age < sim.t.dt.years)]
-        moms = ppl.parent.raw[kids]
-        has = moms != ppl.parent.nan
-        kids, moms = kids[has], ss.uids(moms[has])
-        positive = ss.networks.people_mask(sim, self.mother_positive) # UPSTREAM: no public way for code to evaluate a condition (a delivery's memory) for some agents
-        return kids[positive[moms]]
