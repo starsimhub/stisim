@@ -251,8 +251,8 @@ class STITest(ss.Intervention):
     def update_results(self):
         # Store results
         ti = self.ti
-        self.results['new_diagnoses'][ti] += count(self.ti_positive == ti)
-        self.results['new_tests'][ti] += count(self.ti_tested == ti)
+        self.results['new_diagnoses'][ti] += count(self.ti_positive == (ti - 1))
+        self.results['new_tests'][ti] += count(self.ti_tested == (ti - 1))
 
 
 class SymptomaticTesting(STITest):
@@ -384,10 +384,10 @@ class SymptomaticTesting(STITest):
                     do_treat = np.array([True if u in treat_uids else False for u in uids])
 
                     # Add to results
-                    disease.results['new_true_pos'][ti] += len(true_pos)
-                    disease.results['new_false_pos'][ti] += len(false_pos)
-                    disease.results['new_true_neg'][ti] += len(true_neg)
-                    disease.results['new_false_neg'][ti] += len(false_neg)
+                    disease.results['new_true_pos'][ti + 1] += len(true_pos)
+                    disease.results['new_false_pos'][ti + 1] += len(false_pos)
+                    disease.results['new_true_neg'][ti + 1] += len(true_neg)
+                    disease.results['new_false_neg'][ti + 1] += len(false_neg)
 
                     tx = self.disease_treatment_map[disease.name]
                     if tx is not None:
@@ -422,7 +422,7 @@ class SymptomaticTesting(STITest):
     def update_results(self):
         super().update_results()
         ti = self.ti
-        just_tested = self.ti_tested == ti
+        just_tested = self.ti_tested == (ti - 1)
         self.results['new_care_seekers'][ti] += count(just_tested)
 
         # Record the number of people who received 0-3 treatments
@@ -613,14 +613,14 @@ class SyndromicManagement(STITest):
                     miss_outcomes   = in_mtnz         if is_cerv_disease else in_all3_or_ngct
                     for pkey, pattr in disease.sex_keys.items():
                         skk = '' if pkey == '' else f'_{pkey}'
-                        disease.results[f'new_true_pos{skk}'][self.ti]  += len(outcomes['all3'] & disease.treatable & ppl[pattr])
-                        disease.results[f'new_false_pos{skk}'][self.ti] += len(outcomes['all3'] & disease.susceptible & ppl[pattr])
-                        disease.results[f'new_true_neg{skk}'][self.ti]  += len(outcomes['none'] & disease.susceptible & ppl[pattr])
-                        disease.results[f'new_false_neg{skk}'][self.ti] += len(outcomes['none'] & disease.treatable & ppl[pattr])
-                        disease.results[f'new_true_pos{skk}'][self.ti]  += len(treat_outcomes & disease.treatable & ppl[pattr])
-                        disease.results[f'new_false_pos{skk}'][self.ti] += len(treat_outcomes & disease.susceptible & ppl[pattr])
-                        disease.results[f'new_false_neg{skk}'][self.ti] += len(miss_outcomes & disease.treatable & ppl[pattr])
-                        disease.results[f'new_true_neg{skk}'][self.ti]  += len(miss_outcomes & disease.susceptible & ppl[pattr])
+                        disease.results[f'new_true_pos{skk}'][self.ti + 1]  += len(outcomes['all3'] & disease.treatable & ppl[pattr])
+                        disease.results[f'new_false_pos{skk}'][self.ti + 1] += len(outcomes['all3'] & disease.susceptible & ppl[pattr])
+                        disease.results[f'new_true_neg{skk}'][self.ti + 1]  += len(outcomes['none'] & disease.susceptible & ppl[pattr])
+                        disease.results[f'new_false_neg{skk}'][self.ti + 1] += len(outcomes['none'] & disease.treatable & ppl[pattr])
+                        disease.results[f'new_true_pos{skk}'][self.ti + 1]  += len(treat_outcomes & disease.treatable & ppl[pattr])
+                        disease.results[f'new_false_pos{skk}'][self.ti + 1] += len(treat_outcomes & disease.susceptible & ppl[pattr])
+                        disease.results[f'new_false_neg{skk}'][self.ti + 1] += len(miss_outcomes & disease.treatable & ppl[pattr])
+                        disease.results[f'new_true_neg{skk}'][self.ti + 1]  += len(miss_outcomes & disease.susceptible & ppl[pattr])
 
                 # Route to treatments
                 for outcome, txs in self.outcome_tx_map.items():
@@ -773,7 +773,7 @@ class ANCTest(ss.Intervention):
         if not len(visit_uids):
             return
 
-        self.results['n_attended'][ti] = len(visit_uids)
+        self.results['n_attended'][ti + 1] = len(visit_uids)
 
         for dname in self.active_diseases:
             disease = sim.diseases[dname]
@@ -790,7 +790,7 @@ class ANCTest(ss.Intervention):
             if not len(pos_uids):
                 continue
 
-            self.results[f'n_{dname}_positive'][ti] += len(pos_uids)
+            self.results[f'n_{dname}_positive'][ti + 1] += len(pos_uids)
 
             if dname == 'hiv':
                 # Set diagnosed flag and schedule ART start (no delay by default)
@@ -994,7 +994,7 @@ class STITreatment(ss.Intervention):
 
     def update_results(self):
         ti = self.ti
-        just_treated = self.ti_treated == ti
+        just_treated = self.ti_treated == (ti - 1)
 
         # Store new treatment results in the disease module results
         for sk, sl in self.sexdict.items():
@@ -1224,10 +1224,10 @@ class PartnerNotification(ss.Intervention):
 
         # Record
         ti = self.ti
-        self.results['new_notified_current'][ti] = len(cur_notified)
-        self.results['new_notified_previous'][ti] = len(prev_notified)
-        self.results['new_notified'][ti] = len(cur_notified) + len(prev_notified)
-        self.results['new_attending'][ti] = len(all_attending)
+        self.results['new_notified_current'][ti + 1] = len(cur_notified)
+        self.results['new_notified_previous'][ti + 1] = len(prev_notified)
+        self.results['new_notified'][ti + 1] = len(cur_notified) + len(prev_notified)
+        self.results['new_attending'][ti + 1] = len(all_attending)
         return
 
 

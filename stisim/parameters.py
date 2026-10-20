@@ -42,7 +42,7 @@ class SimPars(ss.SimPars):
         self.dur       = None   # Duration of time to run, if stop isn't specified
         self.dt        = ss.years(1/12)   # Timestep
         self.rand_seed = 1      # Random seed; if None, don't reset
-        self.verbose = 1/12
+        self.verbose = 1
 
         # Demographic parameters
         self.age_scale = 1.0 # If age data values are supplied, convert from e.g. thousands

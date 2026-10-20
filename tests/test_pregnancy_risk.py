@@ -23,7 +23,7 @@ def _make_sim(intervention_pars=None, n_agents=3_000, dur=15, rand_seed=1):
         networks=[sti.StructuredSexual(), ss.MaternalNet(), ss.BreastfeedingNet()],
         demographics=[ss.Pregnancy(), ss.Deaths()],
         interventions=[sti.PregnancyRiskReduction(intervention_pars or {})],
-        n_agents=n_agents, dur=dur, start=2005, verbose=-1, rand_seed=rand_seed,
+        n_agents=n_agents, dur=dur, start=2005, verbose=0, rand_seed=rand_seed,
     )
 
 
@@ -135,7 +135,7 @@ def test_runs_without_breastfeedingnet():
         networks=[sti.StructuredSexual(), ss.MaternalNet()],
         demographics=[ss.Pregnancy(), ss.Deaths()],
         interventions=[sti.PregnancyRiskReduction()],
-        n_agents=3_000, dur=15, start=2005, verbose=-1, rand_seed=1,
+        n_agents=3_000, dur=15, start=2005, verbose=0, rand_seed=1,
     )
     sim.run()
     intv = sim.interventions.pregnancyriskreduction

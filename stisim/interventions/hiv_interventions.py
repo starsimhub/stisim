@@ -726,8 +726,8 @@ class VMMC(ss.Intervention):
                     hiv.circumcise(new_trad, traditional=True)
                     n_new += len(new_trad)
 
-        self.results['new_circumcisions'][self.ti] = n_new
-        self.results['n_circumcised'][self.ti] = count(hiv.circumcised)
+        self.results['new_circumcisions'][self.ti + 1] = n_new
+        self.results['n_circumcised'][self.ti + 1] = count(hiv.circumcised)
 
         return
 
@@ -902,8 +902,8 @@ class Prep(ss.Intervention):
                 if total is not None:
                     n_new += self._add_to_target(hiv, pool, total)
 
-        self.results['new_prep'][self.ti] = n_new
-        self.results['n_on_prep'][self.ti] = (hiv.on_prep & (hiv.prep_source == self._source_id)).count()
+        self.results['new_prep'][self.ti + 1] = n_new
+        self.results['n_on_prep'][self.ti + 1] = (hiv.on_prep & (hiv.prep_source == self._source_id)).count()
 
         return
 

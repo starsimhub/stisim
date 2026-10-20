@@ -305,7 +305,7 @@ class BaseSTI(ss.Infection):
         # `new_infections` result that `ss.Infection.set_prognoses()` accumulates (starsim >=
         # 3.6.0), which excludes seed infections as prevalent rather than incident; STIsim counts
         # them, so that `new_infections` agrees with the stratified `new_infections_*` results.
-        newly_infected = self.ti_exposed == ti
+        newly_infected = self.ti_exposed == (ti - 1)
 
         # Main results, looping over people keys and attributes.
         for pkey, pattr in self.sex_keys.items():

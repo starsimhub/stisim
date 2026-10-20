@@ -691,11 +691,11 @@ class HIV(BaseSTI):
         # Recalculate prevalence so it's for the whole population - the STI module calculates it for adults
         self.results['prevalence'][ti] = sum(self.infected) / len(self.infected)
 
-        self.results['new_deaths'][ti] = np.count_nonzero(self.ti_dead == ti)
+        self.results['new_deaths'][ti] = np.count_nonzero(self.ti_dead == (ti - 1))
         self.results['cum_deaths'][ti] = np.sum(self.results['new_deaths'][:ti + 1])
-        self.results['new_diagnoses'][ti] = np.count_nonzero(self.ti_diagnosed == ti)
+        self.results['new_diagnoses'][ti] = np.count_nonzero(self.ti_diagnosed == (ti - 1))
         self.results['cum_diagnoses'][ti] = np.sum(self.results['new_diagnoses'][:ti + 1])
-        self.results['new_agents_on_art'][ti] = sum((self.ti_art == ti) & self.on_art)  # gate on on_art; ti_art may also hold a scheduled future start
+        self.results['new_agents_on_art'][ti] = sum((self.ti_art == (ti - 1)) & self.on_art)  # gate on on_art; ti_art may also hold a scheduled future start
         if self.include_mtct:
             pregnant = self.sim.people.pregnancy.pregnant
             self.results['n_on_art_pregnant'][ti] = np.count_nonzero(self.on_art & pregnant)
@@ -717,12 +717,12 @@ class HIV(BaseSTI):
             # Add FSW and clients to results:
             if len(fsw_infected) > 0:
                 self.results['prevalence_sw'][ti] = sum(fsw_infected) / len(fsw_infected)
-                self.results['new_infections_sw'][ti] = len(((self.ti_infected == ti) & self.sim.networks.structuredsexual.fsw).uids)
-                self.results['new_infections_not_sw'][ti] = len(((self.ti_infected == ti) & ~self.sim.networks.structuredsexual.fsw).uids)
+                self.results['new_infections_sw'][ti] = len(((self.ti_infected == (ti - 1)) & self.sim.networks.structuredsexual.fsw).uids)
+                self.results['new_infections_not_sw'][ti] = len(((self.ti_infected == (ti - 1)) & ~self.sim.networks.structuredsexual.fsw).uids)
             if len(client_infected) > 0:
                 self.results['prevalence_client'][ti] = sum(client_infected) / len(client_infected)
-                self.results['new_infections_client'][ti] = len(((self.ti_infected == ti) & self.sim.networks.structuredsexual.client).uids)
-                self.results['new_infections_not_client'][ti] = len(((self.ti_infected == ti) & ~self.sim.networks.structuredsexual.client).uids)
+                self.results['new_infections_client'][ti] = len(((self.ti_infected == (ti - 1)) & self.sim.networks.structuredsexual.client).uids)
+                self.results['new_infections_not_client'][ti] = len(((self.ti_infected == (ti - 1)) & ~self.sim.networks.structuredsexual.client).uids)
 
         return
 

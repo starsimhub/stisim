@@ -53,8 +53,8 @@ def test_screening():
     sc.heading('Testing screening with STITest, to treatment, with a capacity')
     df = pd.DataFrame(dict(state=['susceptible', 'infected'], p_positive=[0.02, 0.9]))
     tx = sti.STITreatment(diseases='ct', name='ct_tx')
-    young_women = ss.people.female & (ss.people.age >= 15) & (ss.people.age < 25)
-    screen = sti.STITest(sti.STIDx(df, disease='ct'), test_prob_data=0.5, eligibility=young_women, on_positive=tx, name='ct_screen')
+    young_women = ss.ppl.female & (ss.ppl.age >= 15) & (ss.ppl.age < 25)
+    screen = sti.STITest(sti.STIDx(df, disease='ct'), test_prob_data=0.5, eligibility=young_women, name='ct_screen')
     sim = make_sim([screen]).run()
     r = sim.results
     assert r.ct_screen.new_tests.sum() > 0 and np.array_equal(r.ct_screen.new_tests, r.ct_screen.delivered)
@@ -65,7 +65,7 @@ def test_screening():
 
     # A capacity on the treatment: at most 5 a step
     tx = sti.STITreatment(diseases='ct', max_capacity=5, name='ct_tx')
-    screen = sti.STITest(sti.STIDx(df, disease='ct'), test_prob_data=0.5, eligibility=young_women, on_positive=tx, name='ct_screen')
+    screen = sti.STITest(sti.STIDx(df, disease='ct'), test_prob_data=0.5, eligibility=young_women, name='ct_screen')
     capped = make_sim([screen]).run()
     assert capped.results.ct_tx.delivered.max() <= 5 and capped.results.ct_tx.dropped.sum() > 0
     return sim

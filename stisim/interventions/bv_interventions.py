@@ -59,7 +59,7 @@ class treat_BV(ss.treat):
         eff = [e.pars.p if isinstance(e, ss.Dist) else e for e in eff]
         self.tx_doses = tx_doses
         product = ss.Treatment(moves=f'{disease}.tx', efficacy=ss.by(stable=list(eff)), name=f'{name}_mtz')
-        trigger = dict(eligible=eligibility, repeat=True) if eligibility is not None else dict(on=ss.state(f'{disease}.symptoms'))
+        trigger = dict(where=eligibility, repeat=True) if eligibility is not None else dict(on=ss.state(f'{disease}.symptoms'))
         super().__init__(product, coverage=None if p_seek_care == 1 else p_seek_care, start=start_year, stop=stop_year,
                          disease=disease, name=name, **trigger, **kwargs)
         return

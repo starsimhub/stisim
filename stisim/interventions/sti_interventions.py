@@ -23,7 +23,7 @@ v3_states = dict(
 
 def care_seekers(diseases):
     """
-    Who sought care for any of these diseases (entered C, since this point in the last step), as a condition; for `eligible=`
+    Who sought care for any of these diseases (entered C, since this point in the last step), as a condition; for `where=`
 
     Args:
         diseases (list): names of `sti.SEIS` diseases
@@ -117,7 +117,7 @@ class STITest(ss.screen):
     Examples:
         ```python
         tx = sti.STITreatment(diseases='ng', name='ng_tx')
-        test = sti.STITest(sti.STIDx(sensitivity=0.95, disease='ng'), test_prob_data=0.2, eligibility=ss.people.female, on_positive=tx)
+        test = sti.STITest(sti.STIDx(sensitivity=0.95, disease='ng'), test_prob_data=0.2, eligibility=ss.ppl.female, on_positive=tx)
         ```
     """
     def __init__(self, product=None, test_prob_data=None, years=None, start=None, stop=None, eligibility=None,
@@ -134,7 +134,7 @@ class STITest(ss.screen):
         self.years = years
         self.rel_test = rel_test
         self.dt_scale = dt_scale
-        super().__init__(product, start=start, stop=stop, eligible=eligibility, coverage=self.test_prob, repeat=kwargs.pop('repeat', None if dt_scale else True), # A typed rate is a rate at every step
+        super().__init__(product, start=start, stop=stop, where=eligibility, coverage=self.test_prob, repeat=kwargs.pop('repeat', None if dt_scale else True), # A typed rate is a rate at every step
                          disease=sc.ifelse(disease, product.for_disease if isinstance(product, STIDx) else None), **kwargs)
         return
 
@@ -199,7 +199,7 @@ class STITreatment(ss.treat):
                 raise ValueError(errormsg)
             product = ss.Treatment(moves={f'{d}.cure':treat_eff for d in self.treats}, on_fail=on_fail, name=f'{name or "_".join(self.treats)}_drug')
         start, stop = (years[0], years[-1]) if years is not None else (kwargs.pop('start', None), kwargs.pop('stop', None))
-        super().__init__(product, eligible=eligibility, coverage=None if treat_prob == 1 else treat_prob, capacity=max_capacity,
+        super().__init__(product, where=eligibility, coverage=None if treat_prob == 1 else treat_prob, capacity=max_capacity,
                          start=start, stop=stop, repeat=True, name=name, label=label, **kwargs)
         if eligibility is None and self.on is None and self.deliver is None:
             self.triggered = True # Only those referred to it
@@ -265,7 +265,7 @@ class SymptomaticTesting(ss.screen):
             kwargs.setdefault('stop', years[-1])
         tests = {d:STIDx(sensitivity=sens[d], specificity=spec[d], name=f'{name or "symptomatic"}_{d}_dx') for d in names}
         others = [ss.screen(tests[d], disease=d, on_positive=txmap.get(d), name=f'{name}_{d}' if name else None) for d in names[1:]]
-        super().__init__(tests[names[0]], disease=names[0], eligible=sc.ifelse(eligibility, care_seekers(names)), repeat=True,
+        super().__init__(tests[names[0]], disease=names[0], where=sc.ifelse(eligibility, care_seekers(names)), repeat=True,
                          on_positive=txmap.get(names[0]), then=others or None, name=name, label=label, **kwargs)
         return
 
@@ -374,7 +374,7 @@ class SyndromicManagement(ss.Intervention):
 
         ti = self.ti
         for sk,sel in [('', ppl.alive), ('_f', ppl.female), ('_m', ~ppl.female)]:
-            self.results[f'new_care_seekers{sk}'][ti] += np.count_nonzero(sel[uids])
+            self.results[f'new_care_seekers{sk}'][ti + 1] += np.count_nonzero(sel[uids])
             for i,key in enumerate(['none', 'mtnz', 'ngct', 'all3']):
-                self.results[f'new_tx{i}{sk}'][ti] += np.count_nonzero(sel[self.outcomes[key]])
+                self.results[f'new_tx{i}{sk}'][ti + 1] += np.count_nonzero(sel[self.outcomes[key]])
         return

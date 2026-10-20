@@ -284,13 +284,13 @@ class SimpleBV(ss.Disease):
         women = (self.sim.people.age >= 15) & self.sim.people.female
         self.results['prevalence'][ti] = ut.cond_prob(self.infected, women)
         self.results['symp_prevalence'][ti] = ut.cond_prob(self.symptomatic, women)
-        self.results['new_infections'][ti] = ut.count(self.ti_infected == ti)
-        self.results['new_symptomatic'][ti] = ut.count(self.ti_symptomatic == ti)
+        self.results['new_infections'][ti] = ut.count(self.ti_infected == (ti - 1))
+        self.results['new_symptomatic'][ti] = ut.count(self.ti_symptomatic == (ti - 1))
 
         return
 
 
-adult_f = ss.people.female & (ss.people.age >= 15)
+adult_f = ss.ppl.female & (ss.ppl.age >= 15)
 stable = lambda *vals: ss.by(stable=list(vals)) # A value for each stable CST: 1, 3, 4
 
 

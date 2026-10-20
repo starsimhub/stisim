@@ -154,7 +154,7 @@ class sw_stats(result_grouper):
         sim = self.sim
         ti = self.ti
 
-        if ti > 0:
+        if (ti - 1) > 0:
 
             for d in self.diseases:
                 dis = sim.diseases[d]
@@ -164,14 +164,14 @@ class sw_stats(result_grouper):
                 client = nw.client & adult
                 non_fsw = sim.people.female & ~nw.fsw & adult
                 non_client = sim.people.male & ~nw.client & adult
-                newly_infected = (dis.ti_exposed == ti) & adult
-                new_trans = dis.ti_transmitted_sex == ti
+                newly_infected = (dis.ti_exposed == (ti - 1)) & adult
+                new_trans = dis.ti_transmitted_sex == (ti - 1)
                 total_acq = len(newly_infected.uids)
 
-                newly_transmitting_fsw = (dis.ti_transmitted_sex == ti) & fsw
-                newly_transmitting_clients = (dis.ti_transmitted_sex == ti) & client
-                newly_transmitting_non_fsw = (dis.ti_transmitted_sex == ti) & non_fsw
-                newly_transmitting_non_client = (dis.ti_transmitted_sex == ti) & non_client
+                newly_transmitting_fsw = (dis.ti_transmitted_sex == (ti - 1)) & fsw
+                newly_transmitting_clients = (dis.ti_transmitted_sex == (ti - 1)) & client
+                newly_transmitting_non_fsw = (dis.ti_transmitted_sex == (ti - 1)) & non_fsw
+                newly_transmitting_non_client = (dis.ti_transmitted_sex == (ti - 1)) & non_client
 
                 new_transmissions_fsw = dis.new_transmissions_sex[newly_transmitting_fsw]
                 new_transmissions_client = dis.new_transmissions_sex[newly_transmitting_clients]
@@ -710,7 +710,7 @@ class art_coverage(ss.Analyzer):
         on_art   = hiv.on_art
         infected = hiv.infected
         vls      = hiv.on_effective_art
-        newly    = hiv.ti_infected == ti
+        newly    = hiv.ti_infected == (ti - 1)
         female   = ppl.female
         male     = ppl.male
         age      = ppl.age
@@ -1018,7 +1018,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
 
             # (1) append newly formed rels this ti to the rels table with ti_expired=None, and index by key for later
             # recording of actual ti_expired.
-            new_rel_mask = np.asarray(nw.edges.ti_formed, dtype=np.int64) == ti
+            new_rel_mask = np.asarray(nw.edges.ti_formed, dtype=np.int64) == (ti - 1)
             if new_rel_mask.any():
                 p1arr = np.asarray(nw.edges.p1, dtype=np.int64)[new_rel_mask]
                 p2arr = np.asarray(nw.edges.p2, dtype=np.int64)[new_rel_mask]

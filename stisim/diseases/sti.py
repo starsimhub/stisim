@@ -12,7 +12,7 @@ __all__ = ['BaseSTI', 'SEIS', 'sexed', 'default_age_bins', 'default_sex_keys']
 # Default stratifications of results: sti.Sim stratifies by sex and by these age groups
 default_age_bins = [0, 15, 20, 25, 30, 35, 50, 65, 100]
 default_sex_keys = {'': 'alive', 'f': 'female', 'm': 'male'}
-female = ss.people.female
+female = ss.ppl.female
 
 
 def sexed(val):

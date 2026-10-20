@@ -553,7 +553,7 @@ class Calibration(ss.Calibration):
         self.tmp_filename = 'tmp_calibration_%05i.obj'
 
         if data is not None:
-            self.data = ss.validate_sim_data(data, die=True)
+            self.data = ss.results.validate_sim_data(data, die=True)
             self.sim_result_list = self.data.cols
 
             if save_results:

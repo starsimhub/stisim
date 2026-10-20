@@ -123,7 +123,7 @@ class Migration(ss.Demographics):
         self.init_migration_propensity()  # Set propensity to migrate
         new_migrants = self.step_migration()  # Step through the actual migration logic
         self.remove_emigrants()  # Remove emigrants
-        self.results.new_migrants[self.ti] = new_migrants
+        self.results.new_migrants[self.ti + 1] = new_migrants
         return
 
     def step_migration(self):

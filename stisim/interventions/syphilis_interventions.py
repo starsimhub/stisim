@@ -52,7 +52,7 @@ class SyphDx(STIDx):
     As `sti.STIDx`, for `sti.Syphilis`: the dataframe's states can be STIsim 3's names
     (`primary`, `secondary`, `latent`, `early`, `late`, `tertiary`, `exposed`,
     `sus_not_naive`, ...) or the states of `sti.Syphilis`; the row for `susceptible` gives
-    1 - specificity. A non-treponemal (RPR) test is `ss.Test(detects=syph.rpr, ...)`.
+    1 - specificity. A non-treponemal (RPR) test is `ss.Diagnostic(detects=syph.rpr, ...)`.
 
     Args:
         df (dataframe): columns `state` and `p_positive`
@@ -275,7 +275,7 @@ class ANCSyphTest(SyphTest):
         return
 
     def visiting(self, sim):
-        """ Pregnant women at their visit. TODO(v4-rs): preg.attr() added by a delivery, so eligible=preg.P & (preg.P.time >= ga) """
+        """ Pregnant women at their visit. TODO(v4-rs): preg.attr() added by a delivery, so where=preg.P & (preg.P.time >= ga) """
         preg = sim.demographics.pregnancy
         new = (preg.ti_pregnant == sim.ti).uids
         if len(new):

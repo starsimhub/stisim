@@ -339,7 +339,7 @@ def test_art_effects(do_plot=do_plot):
             networks=sti.StructuredSexual(),
             demographics=[ss.Pregnancy(fertility_rate=10), ss.Deaths(death_rate=10)],
             interventions=[sti.ART(coverage=0.9)],
-            n_agents=n_agents, dur=5, verbose=-1,
+            n_agents=n_agents, dur=5, verbose=0,
         )
         sim_without.run()
         warn_texts = [str(x.message) for x in w]
@@ -373,7 +373,7 @@ def test_art_no_pregnancy(do_plot=do_plot):
             sti.HIVTest(name='hiv_test', test_prob_data=0.3),
             sti.ART(coverage=0.8),
         ],
-        n_agents=n_agents, dur=20, verbose=-1,
+        n_agents=n_agents, dur=20, verbose=0,
     )
     sim.run()
     assert sim.results.hiv.n_on_art[-1] > 0, 'Expected people on ART without pregnancy module'
@@ -575,7 +575,7 @@ def test_art_duration(do_plot=do_plot):
     # Set a known constant ART duration and create a mini sim
     dur_years = 5
     run_years = dur_years - 1
-    sim_kwargs = dict(n_agents=10, dur=run_years, start=1990, verbose=-1)
+    sim_kwargs = dict(n_agents=10, dur=run_years, start=1990, verbose=0)
 
     # HIV parameters: everyone starts infected and with a fixed duration on ART
     hiv_pars = dict(init_prev=1.0, dur_on_art=ss.constant(v=ss.years(dur_years)))
@@ -625,7 +625,7 @@ def test_art_dx2tx_delay(do_plot=do_plot):
 
     # Build two sims that only differ in the dx→tx delay
     delay_years = 2
-    sim_kwargs = dict(n_agents=200, dur=delay_years + 2, start=1990, verbose=-1)
+    sim_kwargs = dict(n_agents=200, dur=delay_years + 2, start=1990, verbose=0)
     hiv_pars = dict(init_prev=1.0, dur_on_art=ss.constant(v=ss.years(10)))
 
     def make_sim(delay):
@@ -695,7 +695,7 @@ def test_pn():
             ))
         return hivsim.demo(
             'simple', run=False, plot=False,
-            n_agents=n_agents, dur=5, rand_seed=rand_seed, verbose=-1,
+            n_agents=n_agents, dur=5, rand_seed=rand_seed, verbose=0,
             networks=[sti.StructuredSexual(recall_prior=True),
                       sti.PriorPartners(dur_recall=ss.years(0.5))],
             interventions=intvs,
@@ -782,7 +782,7 @@ def test_pn_rates_sim():
         if use_prior:
             networks.append(sti.PriorPartners(dur_recall=ss.years(0.5)))
         return hivsim.demo('simple', run=False, plot=False, n_agents=n_agents,
-                           dur=5, rand_seed=1, verbose=-1,
+                           dur=5, rand_seed=1, verbose=0,
                            networks=networks, interventions=[hiv_test, pn])
 
     edge_types = sti.StructuredSexual().edge_types

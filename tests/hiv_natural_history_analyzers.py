@@ -26,9 +26,9 @@ class TimeToAIDSTracker(ss.Analyzer):
         infected = hiv.infected
 
         if self.has_results:
-            infected_this_step = infected & (hiv.ti_infected == self.ti)
+            infected_this_step = infected & (hiv.ti_infected == (self.ti - 1))
         else:
-            infected_this_step = infected & (hiv.ti_infected <= self.ti)
+            infected_this_step = infected & (hiv.ti_infected <= (self.ti - 1))
             self.has_results = True
 
         times_to_aids = hiv.ti_falling[infected_this_step] - hiv.ti_infected[infected_this_step]
@@ -159,7 +159,7 @@ class RelativeInfectivityTracker(ss.Analyzer):
             # we ignore ti_infected == self.ti because relative transmission is updated BEFORE infection in the model
             # timestep and all just-infected agents have rel_trans == 1 (but this value is not used in any infection
             # events, as rel_trans will be properly updated for the NEXT transmission step)
-            ratios = hiv.rel_trans[(state_dict['filter'](hiv=hiv) & (hiv.ti_infected < self.ti))]
+            ratios = hiv.rel_trans[(state_dict['filter'](hiv=hiv) & (hiv.ti_infected < (self.ti - 1)))]
             self.results[state_dict['result_name']][self.ti] = ratios
 
 

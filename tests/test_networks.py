@@ -23,7 +23,7 @@ def test_msm_network(n_agents=500):
         networks=[msm],
         demographics=[pregnancy, death],
     )
-    sim.run(verbose=1/12)
+    sim.run(verbose=1)
 
     assert sim.results.hiv.cum_infections[-1] > 0, "MSM network should produce HIV infections"
     return sim

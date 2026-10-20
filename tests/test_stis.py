@@ -126,7 +126,7 @@ def test_stis(which='discharging', n_agents=1e3, start=2010, stop=2020):
         demographics=[pregnancy, death],
     )
 
-    sim.run(verbose=1/12)
+    sim.run(verbose=1)
 
     return sim
 
