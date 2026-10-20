@@ -11,8 +11,13 @@ def _default_demographics():
     return [ss.Pregnancy(), ss.Deaths()]
 
 
-def _default_interventions():
-    return [sti.HIVTest(), sti.ART(), sti.VMMC(), sti.Prep()]
+def _default_interventions(art_pars=None):
+    return [sti.HIVTest(), sti.ART(**(art_pars or {})), sti.VMMC(), sti.Prep()]
+
+
+def art_par_names():
+    """ The parameters of sti.ART, which hivsim routes to its default ART (e.g. hivsim.Sim(effective_art_efficacy=0.9)) """
+    return [k for k,v in ss.transitions.class_members(sti.ART).items() if isinstance(v, ss.par)]
 
 
 def _default_networks(demographics):
@@ -89,8 +94,12 @@ class Sim(sti.Sim):
             else:
                 pars['networks'] = _default_networks(demographics)
 
-        # Default interventions.
-        pars.setdefault('interventions', _default_interventions())
+        # Default interventions; parameters of ART go to the default ART
+        art_pars = {k:pars.pop(k) for k in art_par_names() if k in pars}
+        if art_pars and 'interventions' in pars:
+            errormsg = f'{sc.strjoin(art_pars.keys())} {"is a parameter" if len(art_pars) == 1 else "are parameters"} of sti.ART, which hivsim only sets on its default ART; with interventions=, give them to your sti.ART(...)'
+            raise ValueError(errormsg)
+        pars.setdefault('interventions', _default_interventions(art_pars))
 
         # Backward-compat: hiv_pars kwarg → merge into the 'hiv' keyed dict
         # so sti.Sim's separate_pars picks it up.

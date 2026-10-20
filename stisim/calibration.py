@@ -165,7 +165,7 @@ def eval_fn(sim, data=None, sim_result_list=None, weights=None, df_res_list=None
         data (dict): Mapping of result key → DataFrame indexed by year, with
             an observed-value column matching the result key.
         sim_result_list (list[str]): Result keys to evaluate (e.g.
-            `['hiv.prevalence', 'hiv.n_on_art']`).
+            `['hiv.prevalence', 'art.n_on_art']`).
         weights (dict): Optional per-result weight; defaults to 1.0.
         df_res_list (list[str]): Result keys to extract via `make_df`;
             defaults to `sim_result_list`.

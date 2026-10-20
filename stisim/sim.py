@@ -234,9 +234,10 @@ class Sim(ss.Sim):
                     'hiv_new_deaths',
                     'hiv_n_infected',
                     'hiv_prevalence',
-                    'hiv_n_on_art',
                     'n_alive',
                 ]
+                if 'art' in self.interventions:
+                    key.insert(-1, 'art_n_on_art')
         return super().plot(key=key, **kwargs)
 
     def process_stratify(self):

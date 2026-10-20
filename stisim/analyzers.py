@@ -150,50 +150,56 @@ class sw_stats(result_grouper):
         self.define_results(*results)
         return
 
+    def init_post(self):
+        """ Keep an infection log in each disease: who infected whom, and through which network """
+        super().init_post()
+        self.seen = {}
+        for d in self.diseases:
+            dis = self.sim.diseases[d]
+            if dis.infection_log is None:
+                dis.infection_log = ss.diseases.InfectionLog(disease=dis.name, networks=self.sim.networks.keys())
+            self.seen[d] = 0
+        return
+
+    def new_sexual_infections(self, d):
+        """ The infections logged since the last step through networks other than mother-to-child ones: (targets, sources) """
+        log = self.sim.diseases[d].infection_log
+        chunks = log.chunks[self.seen[d]:]
+        self.seen[d] = len(log.chunks)
+        nets = list(self.sim.networks.values())
+        mtc = [i for i,net in enumerate(nets) if isinstance(net, (ss.PrenatalNet, ss.PostnatalNet))]
+        targets, sources = [], []
+        for c in chunks:
+            src = np.asarray(c['source'], dtype=float)
+            net = np.asarray(c.get('network', np.full(len(src), np.nan)), dtype=float)
+            keep = ~np.isnan(src) & (src >= 0) & ~np.isin(net, mtc)
+            targets.append(np.asarray(c['target'])[keep])
+            sources.append(src[keep].astype(int))
+        cat = lambda arrs: np.concatenate(arrs) if arrs else np.zeros(0, dtype=int)
+        return cat(targets), cat(sources)
+
     def step(self):
         sim = self.sim
         ti = self.ti
-
-        if (ti - 1) > 0:
-
-            for d in self.diseases:
-                dis = sim.diseases[d]
-                nw = sim.networks.structuredsexual
-                adult = sim.people.age > 0
-                fsw = nw.fsw & adult
-                client = nw.client & adult
-                non_fsw = sim.people.female & ~nw.fsw & adult
-                non_client = sim.people.male & ~nw.client & adult
-                newly_infected = (dis.ti_exposed == (ti - 1)) & adult
-                new_trans = dis.ti_transmitted_sex == (ti - 1)
-                total_acq = len(newly_infected.uids)
-
-                newly_transmitting_fsw = (dis.ti_transmitted_sex == (ti - 1)) & fsw
-                newly_transmitting_clients = (dis.ti_transmitted_sex == (ti - 1)) & client
-                newly_transmitting_non_fsw = (dis.ti_transmitted_sex == (ti - 1)) & non_fsw
-                newly_transmitting_non_client = (dis.ti_transmitted_sex == (ti - 1)) & non_client
-
-                new_transmissions_fsw = dis.new_transmissions_sex[newly_transmitting_fsw]
-                new_transmissions_client = dis.new_transmissions_sex[newly_transmitting_clients]
-                new_transmissions_non_fsw = dis.new_transmissions_sex[newly_transmitting_non_fsw]
-                new_transmissions_non_client = dis.new_transmissions_sex[newly_transmitting_non_client]
-
-                self.results['share_new_infections_fsw_'+d][ti] = self.cond_prob(fsw, newly_infected)
-                self.results['share_new_infections_client_'+d][ti] = self.cond_prob(client, newly_infected)
-
-                self.results['new_infections_fsw_'+d][ti] = len((fsw & newly_infected).uids)
-                self.results['new_infections_client_'+d][ti] = len((client & newly_infected).uids)
-                self.results['new_infections_non_fsw_'+d][ti] = len((non_fsw & newly_infected).uids)
-                self.results['new_infections_non_client_'+d][ti] = len((non_client & newly_infected).uids)
-
-                self.results['new_transmissions_fsw_'+d][ti] = sum(new_transmissions_fsw)
-                self.results['new_transmissions_client_'+d][ti] = sum(new_transmissions_client)
-                self.results['new_transmissions_non_fsw_'+d][ti] = sum(new_transmissions_non_fsw)
-                self.results['new_transmissions_non_client_'+d][ti] = sum(new_transmissions_non_client)
-
-                # Note: total_trans only counts sexual transmission, not MTC (congenital).
-                # So we don't validate against newly_infected which includes MTC.
-
+        ppl = sim.people
+        nw = sim.networks.structuredsexual
+        alive = ppl.alive.raw
+        fsw = nw.fsw.raw & alive
+        client = nw.client.raw & alive
+        non_fsw = ppl.female.raw & ~nw.fsw.raw & alive
+        non_client = ppl.male.raw & ~nw.client.raw & alive
+        groups = dict(fsw=fsw, client=client, non_fsw=non_fsw, non_client=non_client)
+        for d in self.diseases:
+            dis = sim.diseases[d]
+            ti_acq = dis.ti_exposed if 'ti_exposed' in dir(type(dis)) or hasattr(dis, 'ti_exposed') else dis[f'ti_{dis.graph.transmissions[0].dst[0].name}'] # When infected: the state infection enters
+            newly = (ti_acq.raw == ti) & alive # Infected in the step just taken (dated at its end)
+            n_new = np.count_nonzero(newly)
+            _, sources = self.new_sexual_infections(d)
+            for key,grp in groups.items():
+                self.results[f'new_infections_{key}_{d}'][ti] = np.count_nonzero(grp & newly)
+                self.results[f'new_transmissions_{key}_{d}'][ti] = np.count_nonzero(grp[sources]) # Each transmission from someone in the group (sexual only, not mother to child)
+            self.results['share_new_infections_fsw_'+d][ti] = sc.safedivide(np.count_nonzero(fsw & newly), n_new)
+            self.results['share_new_infections_client_'+d][ti] = sc.safedivide(np.count_nonzero(client & newly), n_new)
         return
 
 
@@ -658,13 +664,10 @@ class art_coverage(ss.Analyzer):
         results.append(ss.Result('p_art_f', scale=False, label='ART coverage (women)'))
         results.append(ss.Result('p_art_m', scale=False, label='ART coverage (men)'))
 
-        # Viral suppression. HIV maintains on_effective_art and
-        # on_nonsuppressive_art, and the difference between them is large
-        # (effective_art_efficacy 0.99 vs nonsupp_art_efficacy 0.35, a ~65x
-        # difference in residual transmission), but no result reports the split:
-        # hiv.p_on_art pools them. That makes population viral suppression --
-        # the third 95, and the headline PHIA/GAM indicator -- unobservable from
-        # standard outputs.
+        # Viral suppression, by sex and age. ART's suppressed and unsuppressed
+        # differ a lot (effective_art_efficacy 0.99 vs nonsupp_art_efficacy 0.35,
+        # a ~65x difference in residual transmission); ART reports the totals
+        # (art.n_vls, art.p_vls), and these give them by sex and age.
         #
         # Two proportions, and the distinction matters: p_vls is of all PLHIV and
         # is a cascade OUTCOME (the GAM 1.3 indicator), whereas p_vls_given_art
@@ -706,11 +709,12 @@ class art_coverage(ss.Analyzer):
         ti  = self.ti
         ppl = sim.people
         hiv = sim.diseases.hiv
+        art = sti.interventions.hiv_interventions.find_art(sim)
 
-        on_art   = hiv.on_art
         infected = hiv.infected
-        vls      = hiv.on_effective_art
-        newly    = hiv.ti_infected == (ti - 1)
+        on_art   = art.on_art if art is not None else infected & False
+        vls      = art.on_effective_art if art is not None else infected & False
+        newly    = hiv.ti_acute == ti # Infected in the step just taken (dated at its end)
         female   = ppl.female
         male     = ppl.male
         age      = ppl.age
