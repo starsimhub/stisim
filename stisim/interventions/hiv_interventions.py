@@ -385,6 +385,7 @@ class ART(ss.Disease, ss.cascade):
             ss.FloatArr('ti_ready', label='Time ready to start ART (after diagnosis and referral)'),
             ss.FloatArr('adherence', default=ss.random(), label='Adherence rank, for vls_coverage'),
             ss.FloatArr('potential', label='CD4 potential from the first start'),
+            ss.FloatArr('initiation', default=ss.random(), label='Draw for taking up ART when first ready (art_initiation), under a coverage target'),
         )
         self.steps = self.make_steps() # As a cascade's: the sim adds them to its interventions (cascade.__init__ is not called: ART's results are its own)
         return
@@ -480,6 +481,7 @@ class ART(ss.Disease, ss.cascade):
         self.shares = [share for stratum,share in strata]
         self.coverage, self.coverage_format, self.age_bins, self.sex_keys = parsed
         add_modules(sim, connectors=self.make_modifiers(sim, hiv))
+        hiv.other_deaths.append((self.name, 'death')) # Deaths after stopping ART are HIV deaths
         return
 
     def make_modifiers(self, sim, hiv):
@@ -530,13 +532,20 @@ class ART(ss.Disease, ss.cascade):
         return self.ready(sim) & self.naive
 
     def priority(self, sim, uids):
-        """ Lowest CD4 over care seeking first (care seeking is higher in pregnancy) """
+        """
+        Who starts first under a coverage target: those who became ready on this step (just diagnosed, or past the
+        referral delay) and take it up (art_initiation), then everyone else ready, lowest CD4 over care seeking first
+        (care seeking is higher in pregnancy). As in STIsim 3, the newly ready are linked at once while there are places.
+        """
         hiv = sim.diseases[self.disease]
         care = np.maximum(self.care_seeking.raw[uids], 0.01)
         preg = sim.demographics.get('pregnancy') if hasattr(sim, 'demographics') else None
         if preg is not None:
             care = care*np.where(preg.pregnant.raw[uids], self.maternal_care_scale, 1.0)
-        return -hiv.cd4_values(uids)/care
+        score = -hiv.cd4_values(uids)/care
+        p = self.pars.art_initiation
+        newly = (self.ti_ready.raw[uids] == sim.ti) & (self.initiation.raw[uids] < float(getattr(p, 'raw', p)))
+        return score + np.where(newly, 1e9, 0.0)
 
     def rank(self, sim, uids):
         return self.priority(sim, uids)
@@ -616,8 +625,8 @@ class ART(ss.Disease, ss.cascade):
         self.define_results(
             ss.Result('p_on_art', dtype=float, label='Proportion of people with HIV on ART', scale=False),
             ss.Result('new_agents_on_art', dtype=float, label='New on ART', scale=False, auto_plot=False),
-            ss.Result('n_on_art_pregnant', dtype=int, label='Pregnant women on ART', auto_plot=False),
-            ss.Result('n_vls', dtype=int, label='Number virally suppressed', auto_plot=False),
+            ss.Result('n_on_art_pregnant', dtype=float, label='Pregnant women on ART', scale=False, auto_plot=False),
+            ss.Result('n_vls', dtype=float, label='Number virally suppressed', scale=False, auto_plot=False),
             ss.Result('p_vls', dtype=float, label='Proportion of people with HIV virally suppressed', scale=False, auto_plot=False),
         )
         return
@@ -631,21 +640,19 @@ class ART(ss.Disease, ss.cascade):
         hiv = self.sim.diseases[self.disease]
         n_inf = np.count_nonzero(hiv.infected.raw & alive)
         n_vls = np.count_nonzero(on & (self.suppressed.raw > 0.5))
+        w = ss.results.people_scale(self.sim) # A declared module's results are written in people
         res.p_on_art[ti] = sc.safedivide(np.count_nonzero(on), n_inf)
-        res.n_vls[ti] = n_vls
+        res.n_vls[ti] = w*n_vls
         res.p_vls[ti] = sc.safedivide(n_vls, n_inf)
         preg = self.sim.demographics.get('pregnancy') if hasattr(self.sim, 'demographics') else None
         if preg is not None:
-            res.n_on_art_pregnant[ti] = np.count_nonzero(on & preg.pregnant.raw)
+            res.n_on_art_pregnant[ti] = w*np.count_nonzero(on & preg.pregnant.raw)
         return
 
     def finalize_results(self):
         super().finalize_results()
         res = self.results
         res.new_agents_on_art.values[:] = res.start.values
-        hiv = self.sim.diseases[self.disease] # Deaths after stopping ART are HIV deaths
-        hiv.results.new_deaths.values[:] += res.death.values
-        hiv.results.cum_deaths.values[:] = np.cumsum(hiv.results.new_deaths.values)
         return
 
 

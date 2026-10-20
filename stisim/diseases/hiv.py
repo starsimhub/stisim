@@ -136,6 +136,7 @@ class HIV(BaseSTI):
     new_infections_mtct = prenatal + postnatal
 
     defaults = dict(beta_m2f=0.05, beta_m2c=0.025, eff_condom=0.9, init_prev=0.05)
+    options = ['cd4_death_bins', 'cd4_death_rates', 'include_aids_deaths', 'init_diagnosed', 'init_window', 'rel_init_prev', 'rel_sus_age'] # Constructor arguments documented with the parameters
 
     def __init__(self, pars=None, name='hiv', init_prev_data=None, rel_init_prev=1.0, init_window=None,
                  age_bins=default_age_bins, sex_keys=default_sex_keys, **kwargs):
@@ -187,6 +188,7 @@ class HIV(BaseSTI):
         super().__init__(name=name, pars=pars, init_prev=init_prev, age_bins=age_bins, sex_keys=sex_keys, **kwargs)
         self.age_range = [15, 50]
         self.stratify(cd4=self.cd4_edges, states=self.graph.states.acute + self.graph.states.latent + self.graph.states.falling) # The CD4 bands of the death rate (derived: no groups)
+        self.other_deaths = [] # (module, result) of the deaths that other modules count as HIV deaths (see finalize_results())
         self.define_states(
             ss.BoolArr('diagnosed', label='Diagnosed'), # Not a BoolState: its automatic result is not counted in a declared disease (see n_diagnosed)
             ss.FloatArr('ti_diagnosed', label='Time of diagnosis'),
@@ -254,26 +256,26 @@ class HIV(BaseSTI):
         results = [
             ss.Result('new_deaths', dtype=float, label='HIV deaths', scale=False),
             ss.Result('cum_deaths', dtype=float, label='Cumulative HIV deaths', scale=False, auto_plot=False),
-            ss.Result('new_diagnoses', dtype=int, label='Diagnoses'),
-            ss.Result('cum_diagnoses', dtype=int, label='Cumulative diagnoses', auto_plot=False),
-            ss.Result('n_diagnosed', dtype=int, label='Number diagnosed', auto_plot=False),
+            ss.Result('new_diagnoses', dtype=float, label='Diagnoses', scale=False),
+            ss.Result('cum_diagnoses', dtype=float, label='Cumulative diagnoses', scale=False, auto_plot=False),
+            ss.Result('n_diagnosed', dtype=float, label='Number diagnosed', scale=False, auto_plot=False),
             ss.Result('prevalence_15_49', dtype=float, label='Prevalence 15-49', scale=False),
             ss.Result('p_diagnosed_pregnant', dtype=float, label='Proportion of HIV+ pregnant women diagnosed', scale=False, auto_plot=False),
         ]
         if 'structuredsexual' in self.sim.networks:
             results += [
                 ss.Result('prevalence_sw', dtype=float, label='FSW prevalence', scale=False, auto_plot=False),
-                ss.Result('new_infections_sw', dtype=int, label='New infections - FSW', auto_plot=False),
-                ss.Result('new_infections_not_sw', dtype=int, label='New infections - Other F', auto_plot=False),
+                ss.Result('new_infections_sw', dtype=float, scale=False, label='New infections - FSW', auto_plot=False),
+                ss.Result('new_infections_not_sw', dtype=float, scale=False, label='New infections - Other F', auto_plot=False),
                 ss.Result('prevalence_client', dtype=float, label='Client prevalence', scale=False, auto_plot=False),
-                ss.Result('new_infections_client', dtype=int, label='New infections - Clients', auto_plot=False),
-                ss.Result('new_infections_not_client', dtype=int, label='New infections - Other M', auto_plot=False),
+                ss.Result('new_infections_client', dtype=float, scale=False, label='New infections - Clients', auto_plot=False),
+                ss.Result('new_infections_not_client', dtype=float, scale=False, label='New infections - Other M', auto_plot=False),
             ]
             for rg in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
                 for sex in ['female', 'male']:
                     results += [
                         ss.Result(f'prevalence_risk_group_{rg}_{sex}', scale=False, auto_plot=False),
-                        ss.Result(f'new_infections_risk_group_{rg}_{sex}', dtype=int, auto_plot=False),
+                        ss.Result(f'new_infections_risk_group_{rg}_{sex}', dtype=float, scale=False, auto_plot=False),
                     ]
         self.define_results(*results)
         return
@@ -284,13 +286,14 @@ class HIV(BaseSTI):
         ti = self.ti
         res = self.results
         ppl = self.sim.people
+        w = ss.results.people_scale(self.sim) # A declared module's results are written in people
         alive = ppl.alive.raw
         infected = self.infected.raw & alive
         newly = (self.ti_acute.raw == ti) & alive # Infected in the step just taken (dated at its end)
         dx = self.diagnosed.raw & alive
-        res.new_diagnoses[ti] = np.count_nonzero((self.ti_diagnosed.raw == ti - 1) & alive) # Dated at the step's start by the tests
+        res.new_diagnoses[ti] = w*np.count_nonzero((self.ti_diagnosed.raw == ti - 1) & alive) # Dated at the step's start by the tests
         res.cum_diagnoses[ti] = res.new_diagnoses[:ti+1].sum()
-        res.n_diagnosed[ti] = np.count_nonzero(dx)
+        res.n_diagnosed[ti] = w*np.count_nonzero(dx)
         age = ppl.age.raw
         adults = alive & (age >= 15) & (age < 50)
         res.prevalence_15_49[ti] = sc.safedivide(np.count_nonzero(infected & adults), np.count_nonzero(adults))
@@ -304,18 +307,18 @@ class HIV(BaseSTI):
             female = ppl.female.raw
             if fsw.any():
                 res.prevalence_sw[ti] = np.count_nonzero(infected & fsw)/np.count_nonzero(fsw)
-                res.new_infections_sw[ti] = np.count_nonzero(newly & fsw)
-                res.new_infections_not_sw[ti] = np.count_nonzero(newly & ~fsw & female)
+                res.new_infections_sw[ti] = w*np.count_nonzero(newly & fsw)
+                res.new_infections_not_sw[ti] = w*np.count_nonzero(newly & ~fsw & female)
             if client.any():
                 res.prevalence_client[ti] = np.count_nonzero(infected & client)/np.count_nonzero(client)
-                res.new_infections_client[ti] = np.count_nonzero(newly & client)
-                res.new_infections_not_client[ti] = np.count_nonzero(newly & ~client & ~female)
+                res.new_infections_client[ti] = w*np.count_nonzero(newly & client)
+                res.new_infections_not_client[ti] = w*np.count_nonzero(newly & ~client & ~female)
             rg = nw.risk_group.raw
             for g in range(nw.pars.n_risk_groups):
                 for sex,sel in [('female', female), ('male', ~female)]:
                     grp = alive & sel & (rg == g)
                     res[f'prevalence_risk_group_{g}_{sex}'][ti] = sc.safedivide(np.count_nonzero(infected & grp), np.count_nonzero(grp))
-                    res[f'new_infections_risk_group_{g}_{sex}'][ti] = np.count_nonzero(newly & grp)
+                    res[f'new_infections_risk_group_{g}_{sex}'][ti] = w*np.count_nonzero(newly & grp)
         return
 
     def flat_results(self):
@@ -326,12 +329,12 @@ class HIV(BaseSTI):
     def finalize_results(self):
         """ As BaseSTI, with prevalence of everyone (not only adults), as in STIsim 3; and HIV deaths by cause """
         res = self.results
-        n_sus = np.maximum(np.concatenate([[np.nan], res.n_S.values[:-1]]), 1e-12) # Susceptible at the start of each step
+        n_sus = np.maximum(np.concatenate([res.n_S.values[:1], res.n_S.values[:-1]]), 1e-12) # Susceptible at the start of each step (no infections at the start)
         vals = res.new_infections.values/n_sus # UPSTREAM: a sum of flows over a state (new_infections/S) cannot be declared as a result
         self.results += ss.Result('incidence', values=vals, scale=False, label='Incidence', timevec=res.n_S.timevec, module=self.name)
         super().finalize_results()
         res.prevalence.values[:] = (res.n_infected.values/np.maximum(res.n_S.values + res.n_infected.values, 1e-12))
-        res.new_deaths.values[:] = res.aids_death.values + res.cd4_death.values
+        res.new_deaths.values[:] = res.aids_death.values + res.cd4_death.values + sum(self.sim.results[mod][key].values for mod,key in self.other_deaths) # And deaths that other modules count as HIV deaths (e.g. sti.ART's, after stopping)
         res.cum_deaths.values[:] = np.cumsum(res.new_deaths.values)
         return
 
