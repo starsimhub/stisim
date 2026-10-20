@@ -40,7 +40,9 @@ class where:
 
 
 def cd4_below(hiv, threshold):
-    """ People with HIV whose CD4 count is below a threshold, as a function of the sim. TODO: an attribute condition (hiv.cd4 < 500) once HIV is declared """
+    """ People with HIV whose CD4 count is below a threshold: a condition on the attribute (with ART's modifiers on it), or for a Starsim 3 module a function of the sim """
+    if is_declared(hiv) and 'cd4' in hiv.graph.attrs:
+        return hiv.infected & (hiv.graph.attrs.cd4 < threshold)
     name = hiv.name
     def below(sim):
         cd4 = sim.diseases[name].cd4.raw
