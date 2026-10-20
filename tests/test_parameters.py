@@ -20,7 +20,7 @@ def test_broadcast():
     routed = sti.route_pars(dt=0.5, verbose=False)
     assert routed.sim['dt'] == 0.5
     assert routed.sti['dt'] == 0.5
-    assert routed.connector['dt'] == 0.5
+    assert 'dt' not in routed.connector # Connectors are lists of modifiers, with no time step of their own
     return routed
 
 
