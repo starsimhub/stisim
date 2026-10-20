@@ -2,6 +2,36 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Unreleased (Starsim 4)
+
+### HIV and ART are separate modules (#335)
+
+`sti.HIV` is now a declared Starsim 4 disease holding only the natural history and transmission. `sti.ART` is a declared module of its own (states `naive`, `on_art`, `off_art`), whose effects on HIV are modifiers: on infectiousness, on CD4, on mortality, on HIV's progression, and on mother-to-child transmission. HIV has no ART states, parameters, or branches. PrEP and VMMC are products (`ss.Vaccine`) delivered to a stock target. See [docs/design/hiv_art_split.md](docs/design/hiv_art_split.md).
+
+**Migrating from STIsim 3:**
+
+| STIsim 3 | STIsim 4 |
+|---|---|
+| `sti.HIV(dur_on_art=..., rel_dur_on_art=..., dur_on_art_trend=...)` | `sti.ART(dur_on_art=..., ...)`: every ART parameter is ART's (`art_cd4_growth`, `effective_art_efficacy`, `nonsupp_art_efficacy`, `time_to_art_efficacy`, `p_effective_art`, `rel_art_mortality_*`, `art_death_age`, `art_death_dur`, `maternal_care_scale`); `sti.HIV(dur_on_art=...)` raises, naming the module |
+| `sti.HIV(eff_circ=..., eff_circ_traditional=...)` | `sti.VMMC(eff_circ=..., eff_circ_traditional=...)` |
+| `hiv.on_art`, `hiv.art_naive`, `hiv.art_discontinued`, `hiv.on_effective_art`, `hiv.on_nonsuppressive_art`, `hiv.ti_art`, `hiv.ti_stop_art` | `art.on_art`, `art.naive`, `art.off_art`, `art.on_effective_art`, `art.on_nonsuppressive_art`, `art.ti_on_art`, `art.ti_off_art` (`art = sim.interventions.art`); the scheduled start after diagnosis is `art.ti_ready` |
+| `hiv.cd4_preart`, `hiv.cd4_potential`, `hiv.cd4_postart` | `art.cd4_preart`, `art.cd4_potential`, `art.cd4_stop` |
+| `hiv.cd4` | `hiv.cd4` (an attribute, as at the end of the last step), or `hiv.cd4_values(uids)` (now, with ART's modifiers); `hiv.cd4_nadir` is removed |
+| `hiv.circumcised`, `hiv.on_prep` | `vmmc.circumcised`, `prep.on_prep` (boolean arrays over all agents) |
+| `sim.results.hiv.n_on_art`, `p_on_art`, `new_agents_on_art`, `n_on_art_pregnant` | `sim.results.art.n_on_art`, ... (data columns `art.n_on_art`, `art.p_on_art`) |
+| `hiv.acute`, `latent`, `falling` (with `ti_latent`, `ti_falling`, `ti_zero` scheduled in advance) | declared states; `ti_<state>` is the time of entering it, and deaths are flows (`aids_death`, `cd4_death`, and ART's `death` after stopping), summed in `hiv.new_deaths` |
+| `hiv.set_prognoses()`, `start_art()`, `stop_art()`, `start_prep()`, `circumcise()`, `make_p_hiv_death()`, `update_transmission()` | removed: transitions, deliveries, and modifiers do these |
+| `sti.HIVPars` | removed: the parameters are `sti.HIV`'s (`sti.HIV().pars`) |
+| `init_prev` back-dated by `dist_ti_init_infected` | `ss.spread(init_prev, over=init_window)` (default 5 months to 10 years); with `init_prev_data`, back-dated over the same window |
+
+**What changes in behaviour:**
+
+- People age in `sti.Sim` again. `sti.Sim` did not record which parameters were given, so Starsim turned aging off for every `sti.Sim` without demographics modules.
+- `rel_trans_acute` and `rel_trans_falling` are drawn once per infection, not every step (same mean).
+- The no-coverage ART pathway offers ART once to each person who is ready, as before; people who stop do not restart. With a coverage target, people who stopped are eligible again, as before.
+- PrEP courses lapse after an exponential time with mean `prep_dur`, not exactly `prep_dur`. With a stock target, renewal is a new delivery.
+- VMMC coverage targets apply to `n_vmmc`/`p_vmmc` as a stock (circumcision prevalence), as in 1.5.9.
+
 ## Version 1.7.1 (2026-10-12)
 
 ### Parameter tables
