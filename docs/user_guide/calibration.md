@@ -15,8 +15,8 @@ calib = sti.Calibration(
     sim=base_sim,
     calib_pars={'hiv.beta_m2f': dict(low=0.02, high=0.10, guess=0.05)},
     data=data_df,
-    sim_result_list=['hiv.prevalence', 'hiv.n_on_art'],
-    weights={'hiv.prevalence': 1.0, 'hiv.n_on_art': 0.5},
+    sim_result_list=['hiv.prevalence', 'art.n_on_art'],
+    weights={'hiv.prevalence': 1.0, 'art.n_on_art': 0.5},
     total_trials=200,
     n_workers=4,
 )
@@ -25,7 +25,7 @@ calib.calibrate()
 
 ## Calibration parameters
 
-`calib_pars` is a flat dict keyed by `'<module>.<parameter>'`. Each entry is itself a dict with `low`, `high`, and `guess` keys, optionally `suggest_type` (`'float'`, `'int'`, `'categorical'`).
+`calib_pars` is a flat dict keyed by `'<module>.<parameter>'`. Each entry is itself a dict with `low`, `high`, and `guess` keys, optionally `suggest_type` (`'float'`, `'int'`, `'categorical'`). The module is any module of the sim by name, including interventions: ART is its own module (`sti.ART`), so its parameters are `'art.<parameter>'` (e.g. `'art.rel_dur_on_art'`) and its results `'art.n_on_art'`, `'art.p_on_art'`.
 
 Keys are resolved via `flatten_calib_pars()` and applied via `set_sim_pars()` — these are exposed for use in custom build functions.
 

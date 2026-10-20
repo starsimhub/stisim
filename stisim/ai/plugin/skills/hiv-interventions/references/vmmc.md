@@ -1,6 +1,6 @@
 # VMMC — coverage as a stock target
 
-STIsim's VMMC intervention (`sti.VMMC`, source at `stisim/interventions/hiv_interventions.py:579`) treats male circumcision as a **stock target**: the input series is prevalence of circumcised men, and the intervention adjusts each timestep to hit that prevalence. It is *not* a flow-of-procedures input.
+STIsim's VMMC intervention (`sti.VMMC`, source in `stisim/interventions/hiv_interventions.py`) treats male circumcision as a **stock target**: the input series is prevalence of circumcised men, and the intervention adjusts each timestep to hit that prevalence. It is *not* a flow-of-procedures input.
 
 This shape matters for how you feed data.
 
@@ -28,7 +28,7 @@ Stratification is optional. Age bins (`AgeBin`) are the most consequential strat
 
 Both reference analyses **combine traditional baseline and program VMMC in a single prevalence series** — the input CSV runs across the full period and the intervention treats whatever prevalence the data shows as the joint result of both. Eswatini's data starts at 1990 with low prevalence (~0.25–2%), rising to survey-measured levels by 2007+ (4–19%, age-dependent). Zimbabwe's data starts from the program launch in 2008.
 
-STIsim exposes a `traditional_prob` parameter (default `ss.bernoulli(p=0)`, i.e. off) for representing traditional circumcision as a separate always-on process at a given age (`traditional_age`, default 15). Neither reference analysis uses it.
+STIsim exposes a `traditional_prob` parameter (default 0, i.e. off) for representing traditional circumcision as a separate always-on process at a given age (`traditional_age`, default 15). Neither reference analysis uses it.
 
 Use `traditional_prob` when the analysis needs to distinguish traditional and programmatic circumcision explicitly — e.g. an analysis of VMMC program impact that must not conflate the two. Otherwise, feeding a combined prevalence series is simpler.
 
@@ -40,12 +40,11 @@ For programs that explicitly targeted a specific age range (VMMC scale-up common
 
 ## Protective effect
 
-**The protective multiplier on male susceptibility lives on the HIV disease module, not on the VMMC intervention.** The parameter is `eff_circ` and is applied in `HIV.circumcise()`. VMMC hands off to this parameter for the actual effect on transmission.
+**The protective multiplier on male susceptibility is a parameter of the VMMC intervention**: `eff_circ` for program VMMC and `eff_circ_traditional` for traditional circumcision, e.g. `sti.VMMC(coverage=data, eff_circ=0.6)`. Circumcision is a product (`ss.Vaccine`) whose efficacy acts on HIV acquisition (`rel_sus`). Passing `eff_circ` to `sti.HIV` raises an error naming `sti.VMMC`.
 
-This split matters for two reasons:
+Who is circumcised (by either pathway) is `sim.interventions.vmmc.circumcised`, a boolean array over all agents; someone circumcised by one pathway is excluded from the other.
 
-1. **Sensitivity analyses on protective effect** need to tune `sti.HIV`'s `eff_circ`, not the VMMC intervention.
-2. **The intervention itself has no efficacy parameter** — passing `coverage=data` to `VMMC` just moves agents into the circumcised state; the risk reduction they experience is determined by the HIV module's `eff_circ`.
+Sensitivity analyses on the protective effect tune `sti.VMMC`'s `eff_circ`.
 
 Neither reference analysis overrides `eff_circ`; both use STIsim's default. If the analysis question involves the protective effect directly, tune it explicitly and record the choice.
 

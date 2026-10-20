@@ -94,7 +94,7 @@ Open with:
 
 Explain what HIVsim treats as VMMC coverage: a **stock target** (prevalence of circumcised men), not a flow of procedures. Both reference analyses combine traditional baseline and VMMC scale-up into a single prevalence series rather than modeling them separately. The `traditional_prob` parameter exists for cases where the user wants to model traditional circumcision separately, but it's off by default.
 
-Note where the protective effect lives: `eff_circ` is on the HIV disease module, not on the VMMC intervention. Users who want to tune the protective effect for a sensitivity analysis need to adjust that parameter.
+Note where the protective effect lives: `eff_circ` (and `eff_circ_traditional`) is a parameter of the VMMC intervention, `sti.VMMC(eff_circ=...)`; it acts on HIV acquisition. Users who want to tune the protective effect for a sensitivity analysis adjust it there.
 
 Confirm the VMMC design (data file, age stratification, whether traditional is modeled separately) before moving on.
 

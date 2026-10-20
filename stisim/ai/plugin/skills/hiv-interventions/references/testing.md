@@ -10,7 +10,7 @@ Both reference analyses (`hivsim_eswatini`, `hivsim_zim`) use variants of the fo
 
 ### General-population testing
 
-One `sti.HIVTest` instance, with `eligibility` set to *undiagnosed and not on ART, excluding key populations*. Coverage is a per-period probability, often ramping from near-zero in the early epidemic to current national HTS coverage.
+One `sti.HIVTest` instance, with `eligibility` set to *undiagnosed and not on ART, excluding key populations*. ART is its own module (`sti.ART`), so who is on ART is `sim.interventions.art.on_art`, not an HIV state. Coverage is a per-period probability, often ramping from near-zero in the early epidemic to current national HTS coverage.
 
 Reference example (Eswatini and Zimbabwe both use):
 
@@ -18,7 +18,7 @@ Reference example (Eswatini and Zimbabwe both use):
 other_testing = sti.HIVTest(
     eligibility=lambda sim: ~sim.networks.structuredsexual.fsw
                             & ~sim.diseases.hiv.diagnosed
-                            & ~sim.diseases.hiv.on_art,
+                            & ~sim.interventions.art.on_art,
     test_prob_data=general_pop_ramp,
     years=years,
 )
@@ -32,7 +32,7 @@ A separate `HIVTest` instance per key population, each with a different probabil
 fsw_testing = sti.HIVTest(
     eligibility=lambda sim: sim.networks.structuredsexual.fsw
                             & ~sim.diseases.hiv.diagnosed
-                            & ~sim.diseases.hiv.on_art,
+                            & ~sim.interventions.art.on_art,
     test_prob_data=fsw_ramp,   # higher plateau than general
     years=years,
 )
@@ -48,7 +48,7 @@ Both reference analyses use a CD4<200 threshold:
 
 ```python
 low_cd4_testing = sti.HIVTest(
-    eligibility=lambda sim: (sim.diseases.hiv.cd4 < 200)
+    eligibility=lambda sim: sim.diseases.hiv.aids   # CD4 < 200, including ART's effect on CD4
                             & ~sim.diseases.hiv.diagnosed,
     test_prob_data=low_cd4_ramp,   # highest plateau of the three
     years=years,
@@ -126,7 +126,7 @@ Do not tune `rel_test` silently. If used, note the value and the justification i
 
 `dur_dx2tx` on `HIVTest` controls the delay from diagnosis to ART initiation (default `ss.constant(0)`, meaning ART starts on the next timestep). Neither reference analysis overrides it. Consider setting a non-zero delay if the analysis is sensitive to same-day ART policy or to programmatic delays.
 
-The full mechanism: on diagnosis, `HIVTest` sets `hiv.diagnosed=True`, `hiv.ti_diagnosed`, samples `dur_dx2tx`, and schedules `hiv.ti_art = ti + delay`. The ART intervention picks up scheduled agents on the following timestep.
+The full mechanism: on diagnosis, `HIVTest` sets `hiv.diagnosed=True`, `hiv.ti_diagnosed`, samples `dur_dx2tx`, and refers the person to ART, ready from `art.ti_ready = ti + delay`. ART's deliveries start people who are diagnosed, ready, and naive or off ART.
 
 ## Recap for the interview
 
