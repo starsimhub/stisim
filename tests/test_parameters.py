@@ -16,11 +16,13 @@ def test_basic_routing():
 
 
 def test_broadcast():
-    """A key valid in 2+ categories is broadcast to all of them (e.g. dt)."""
+    """A key valid in 2+ categories is broadcast to all of them; dt is the sim's only, since declared diseases run at the sim's step."""
     routed = sti.route_pars(dt=0.5, verbose=False)
     assert routed.sim['dt'] == 0.5
-    assert routed.sti['dt'] == 0.5
+    assert 'dt' not in routed.sti # Declared diseases run at the sim's step
     assert 'dt' not in routed.connector # Connectors are lists of modifiers, with no time step of their own
+    routed = sti.route_pars(rel_sus_age=[(15, 25, 'f', 2.0)], verbose=False)
+    assert routed.sti['rel_sus_age'] == [(15, 25, 'f', 2.0)] # A constructor argument of a disease (sti.HIV.options) routes to it
     return routed
 
 

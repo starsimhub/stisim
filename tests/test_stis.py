@@ -135,10 +135,10 @@ def test_optional_stratification(n_agents=500):
     """ Test that age_bins=None and sex_keys=None drop stratified results without changing the rest """
     sc.heading('Test optional age/sex stratification of results')
 
-    # Starsim 3 diseases: flat results by sex and age
+    # Results by sex (flat, _f and _m) and age (by group), as sti.Sim stratifies them
     def make_sim(**kw):
         dis = [sti.HIV(init_prev=0.1, **kw)]
-        return ss.Sim(n_agents=n_agents, start=2000, stop=2005, rand_seed=1, diseases=dis,
+        return sti.Sim(n_agents=n_agents, start=2000, stop=2005, rand_seed=1, diseases=dis,
                       networks=[sti.StructuredSexual(), ss.MaternalNet()],
                       demographics=[ss.Pregnancy(fertility_rate=50), ss.Deaths(death_rate=10)])
 

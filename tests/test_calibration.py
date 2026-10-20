@@ -31,8 +31,8 @@ def test_set_sim_pars(do_plot=do_plot):
         'mismatch': 0.5,          # metadata — should be skipped
     })
 
-    assert sim.get_module('hiv').pars['beta_m2f'] == 0.123, 'Expected beta_m2f to be set'
-    assert sim.get_module('hiv').pars['eff_condom'] == 0.88, 'Expected eff_condom to be set'
+    assert sim.get_module('hiv').pars['beta_m2f'].value == 0.123, 'Expected beta_m2f to be set'
+    assert sim.get_module('hiv').pars['eff_condom'].value == 0.88, 'Expected eff_condom to be set'
     assert sim.get_module('fsw_testing').pars['rel_test'] == 2.5, 'Expected intervention par to be set'
     return sim
 
@@ -50,8 +50,8 @@ def test_default_build_fn(do_plot=do_plot):
     sim = sti.default_build_fn(sim, calib_pars)
 
     assert sim.initialized, 'Expected sim to be initialized after default_build_fn'
-    assert sim.diseases.hiv.pars['beta_m2f'] == 0.077, 'Expected beta_m2f to match calibration value'
-    assert sim.diseases.hiv.pars['eff_condom'] == 0.88, 'Expected eff_condom to match calibration value'
+    assert sim.diseases.hiv.pars['beta_m2f'].value == 0.077, 'Expected beta_m2f to match calibration value'
+    assert sim.diseases.hiv.pars['eff_condom'].value == 0.88, 'Expected eff_condom to match calibration value'
     return sim
 
 

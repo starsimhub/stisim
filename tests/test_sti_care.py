@@ -90,7 +90,8 @@ def test_amr():
     for level,eff in [('sens', 0.96), ('res', 0.3)]:
         c, f = r.ng_tx.cured.select(amr=level).sum(), r.ng_tx.failed.select(amr=level).sum()
         assert np.isclose(c/(c + f), eff, atol=0.05), f'{level}: cure share {c/(c + f):.2f}, expected {eff}'
-    assert np.isclose(r.ng_tx_fail.delivered.sum(), 0.2*r.ng_tx.failed.select(amr='sens').sum(), rtol=0.3) # Resistance acquired on failure
+    n_fail = r.ng_tx.failed.select(amr='sens').sum() # Resistance acquired on failure, with p_acquire: binomial, so within 3 standard deviations (a few dozen failures)
+    assert abs(r.ng_tx_fail.delivered.sum() - 0.2*n_fail) <= 3*np.sqrt(n_fail*0.2*0.8) + 1, f'{r.ng_tx_fail.delivered.sum()} acquired resistance of {n_fail} failures, expected 0.2'
     return sim
 
 

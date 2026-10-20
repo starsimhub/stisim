@@ -97,6 +97,7 @@ def merged_sti_pars():
         disease_pars = disease().pars
         # Merge the parameters into the merged_pars dictionary
         merged_pars.update(disease_pars)
+        merged_pars.update({key:None for key in getattr(disease, 'options', [])}) # Constructor arguments, e.g. HIV's rel_sus_age
     return merged_pars
 
 
