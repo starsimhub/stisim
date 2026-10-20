@@ -314,7 +314,7 @@ class BV(BaseSTI):
         CST4s, CST4a -> CST1 (stable 1) | CST3     after dur2clear_cst4
         CST4* -> P                                 treatment (tx): moved only by sti.treat_BV
         P -> CST1 (stable 1) | CST3                after dur_post_tx (settle)
-        P -> CST4p (p_symp) | CST4a                recur_rate*exp(-P.time/dur_recur_decay) (recur)
+        P -> CST4p (p_symp) | CST4a                recur_rate*exp(-P.dwell/dur_recur_decay) (recur)
 
     The rates of worsening (shift13, onset, and recur) are multiplied by the risk factors,
     each a trait drawn once for each woman and a dimension of the disease: the stable CST
@@ -379,9 +379,9 @@ class BV(BaseSTI):
     symptoms = ss.Transition(CST4p, CST4s, dur=dur_presymp)
     clear_s  = ss.Transition(CST4s, [CST1, CST3], dur=dur2clear_cst4, p=[stable(1, 0, 0), None])
     clear_a  = ss.Transition(CST4a, [CST1, CST3], dur=dur2clear_cst4, p=[stable(1, 0, 0), None])
-    tx       = ss.Transition(CST4a | CST4p | CST4s, P, undriven=True)
+    tx       = ss.Transition(CST4a + CST4p + CST4s, P, undriven=True)
     settle   = ss.Transition(P, [CST1, CST3], dur=dur_post_tx, p=[stable(1, 0, 0), None])
-    recur    = ss.Transition(P, [CST4p, CST4a], rate=recur_rate*np.exp(-P.time/dur_recur_decay), p=[p_symp, None])
+    recur    = ss.Transition(P, [CST4p, CST4a], rate=recur_rate*np.exp(-P.dwell/dur_recur_decay), p=[p_symp, None])
 
     # Results, among women 15+ (everyone with a CST)
     n_infected       = CST4a + CST4p + CST4s

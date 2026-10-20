@@ -24,11 +24,11 @@ class treat_BV(ss.treat):
         tx_doses (int): doses per course
         start_year (float): first year of treatment (default: the start of the sim)
         stop_year (float): last year of treatment
-        eligibility (Cond/func): who is treated, instead of the newly symptomatic (then at each step they are eligible)
+        eligibility (Cond/func): who is treated, instead of the newly symptomatic (once in each spell of being eligible)
         disease (str): the name of the BV module
         kwargs (dict): passed to `ss.treat` (e.g. `capacity=`, `name=`)
 
-    Results: those of `ss.treat` (`delivered`, `cured`, `failed`, `overtreated`), `new_treated`, and `new_doses`.
+    Results: those of `ss.treat` (`delivered`, `cured`, `failed`, `unneeded`), `new_treated`, and `new_doses`.
 
     Examples:
         ```python
@@ -58,8 +58,8 @@ class treat_BV(ss.treat):
             eff = [eff[k] for k in ['stable_cst1', 'stable_cst3', 'stable_cst4']]
         eff = [e.pars.p if isinstance(e, ss.Dist) else e for e in eff]
         self.tx_doses = tx_doses
-        product = ss.Treatment(moves=f'{disease}.tx', efficacy=ss.by(stable=list(eff)), name=f'{name}_mtz')
-        trigger = dict(where=eligibility, repeat=True) if eligibility is not None else dict(on=ss.state(f'{disease}.symptoms'))
+        product = ss.Treatment(moves={f'{disease}.tx': ss.by(stable=list(eff))}, name=f'{name}_mtz')
+        trigger = dict(where=eligibility) if eligibility is not None else dict(who=ss.state(f'{disease}.CST4s').enter) # Newly symptomatic
         super().__init__(product, coverage=None if p_seek_care == 1 else p_seek_care, start=start_year, stop=stop_year,
                          disease=disease, name=name, **trigger, **kwargs)
         return
