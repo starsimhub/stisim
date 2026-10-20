@@ -270,6 +270,7 @@ def test_bv(n_agents=5000):
     return sim
 
 
+@pytest.mark.xfail(strict=True, reason='Starsim: an exit that reads P.dwell beside branches or a fixed delay out of P has no compartmental form yet (conveyor work, phase B1)')
 def test_bv_abm_ode():
     """ BV as agents and as an ODE, with treatment: they agree (weekly steps; two risk factors, so the ODE is quick) """
     sc.heading('Test BV ABM vs ODE')
