@@ -153,9 +153,12 @@ class BaseSTI(ss.Infection):
             - msm: beta_m2m (bidirectional)
         """
         betamap = super().validate_beta()
-        if self.pars.beta_m2f is not None and 'structuredsexual' in betamap:
-            betamap['structuredsexual'][0] = self.pars.beta_m2f
-            betamap['structuredsexual'][1] = self.pars.beta_m2f * self.pars.rel_beta_f2m
+        if self.pars.beta_m2f is not None:
+            for name,net in self.sim.networks.items(): # Every network between men and women (sides m and f; men are p1)
+                key = ss.standardize_netkey(name)
+                if key == 'structuredsexual' or getattr(net, 'sides', None) == dict(m='male', f='female'):
+                    betamap[key][0] = self.pars.beta_m2f
+                    betamap[key][1] = self.pars.beta_m2f * self.pars.rel_beta_f2m
         if self.pars.beta_m2c is not None and 'maternal' in betamap:
             betamap['maternal'][0] = ss.permonth(self.pars.beta_m2c)
         if self.pars.beta_breastfeed is not None and 'breastfeeding' in betamap:
@@ -342,7 +345,7 @@ class BaseSTI(ss.Infection):
         # they came from (stored in infection_net by set_outcomes).
         # TODO: refactor once starsim tracks transmission route natively
         #   (see https://github.com/starsimhub/starsim/issues/1232)
-        new_this_ti = newly_infected
+        new_this_ti = newly_infected & ppl.alive # As new_infections counts them
         n_prenatal = 0
         n_postnatal = 0
         n_horizontal = 0
