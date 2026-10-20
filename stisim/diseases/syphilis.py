@@ -198,11 +198,17 @@ class Syphilis(BaseSTI):
     p_nnd_late           = ss.par(0.00, doc='Probability of neonatal death, mother in late latent')
     p_stillborn_late     = ss.par(0.10, doc='Probability of stillbirth, mother in late latent')
     p_congenital_late    = ss.par(0.10, doc='Probability of congenital syphilis, mother in late latent')
-    mtct_rate = ss.par(ss.permonth(0), doc='Rate of in-utero infection (from beta_m2c)')
+
+    # Sexual transmission as for other STIs, but nothing over the maternal network: in-utero infection is mtct, from the mother's stage
+    beta = ss.par(dict(
+        structuredsexual = ss.peract(m2f=BaseSTI.beta_m2f, f2m=BaseSTI.beta_m2f*BaseSTI.rel_beta_f2m),
+        msm = ss.peract(BaseSTI.beta_m2m),
+        default = 0,
+    ), doc='Beta by network, from beta_m2f, rel_beta_f2m, and beta_m2m')
 
     # Sexual transmission: by stage; latent infectiousness decays (see modifiers())
-    infection   = S >> E @ BaseSTI.beta*(Pv + Ph + S2v + S2h + EL + LL + T)
-    reinfection = (Sp | Spl | Sr) >> E @ BaseSTI.beta*(Pv + Ph + S2v + S2h + EL + LL + T)
+    infection   = S >> E @ beta*(Pv + Ph + S2v + S2h + EL + LL + T)
+    reinfection = (Sp + Spl + Sr) >> E @ beta*(Pv + Ph + S2v + S2h + EL + LL + T)
 
     # Natural history
     primary    = ss.Transition(E, [Pv, Ph], dur=dur_exposed, p=[p_symp_primary, None])
@@ -211,16 +217,16 @@ class Syphilis(BaseSTI):
     reactivate_v = ss.Transition(EL, S2v, dur=time_to_reactivate, p=p_reactivate*p_symp_secondary, move=dict(rpr=True)) # Split at latent onset
     reactivate_h = ss.Transition(EL, S2h, dur=time_to_reactivate, p=p_reactivate*(1 - p_symp_secondary), move=dict(rpr=True))
     to_late    = ss.Transition(EL, LL, dur=dur_early, p=None) # The rest: those who will not reactivate
-    tertiary   = ss.Transition(LL, T, dur=time_to_tertiary, p=p_tertiary) # The rest stay
-    death      = ss.Transition(T, ss.null, dur=time_to_death, p=p_death) # The rest stay
-    trep_revert = ss.Transition([Sp, Spl], Sr, dur=time_to_trep_revert, p=1 - p_trep_persists) # The rest stay
+    tertiary   = ss.Transition(LL, [T, ss.stay], dur=time_to_tertiary, p=[p_tertiary, None])
+    death      = ss.Transition(T, [ss.null, ss.stay], dur=time_to_death, p=[p_death, None])
+    trep_revert = ss.Transition([Sp, Spl], [Sr, ss.stay], dur=time_to_trep_revert, p=[1 - p_trep_persists, None])
 
     # Treatment
-    cure_early = ss.Transition(E | Pv | Ph | S2v | S2h | EL, Sp, undriven=True)
-    cure_late  = ss.Transition(LL | T, Spl, undriven=True)
+    cure_early = ss.Transition(E + Pv + Ph + S2v + S2h + EL, Sp, undriven=True)
+    cure_late  = ss.Transition(LL + T, Spl, undriven=True)
 
     # Congenital: the outcome is drawn from the mother's stage when the fetus is infected
-    mtct = ss.Transition(S, [Cmisc, Cnnd, Cstill, Ccs, Cnorm], rate=mtct_rate*ss.mother(Pv | Ph | S2v | S2h | EL | LL), p=[
+    mtct = ss.Transition(S, [Cmisc, Cnnd, Cstill, Ccs, Cnorm], rate=BaseSTI.beta_m2c*ss.permonth(1)*ss.mother(Pv | Ph | S2v | S2h | EL | LL), p=[
         p_miscarriage_active*ss.mother(Pv | Ph | S2v | S2h) + p_miscarriage_early*ss.mother(EL) + p_miscarriage_late*ss.mother(LL),
         p_nnd_active*ss.mother(Pv | Ph | S2v | S2h) + p_nnd_early*ss.mother(EL) + p_nnd_late*ss.mother(LL),
         p_stillborn_active*ss.mother(Pv | Ph | S2v | S2h) + p_stillborn_early*ss.mother(EL) + p_stillborn_late*ss.mother(LL),
@@ -231,7 +237,7 @@ class Syphilis(BaseSTI):
     nnd         = ss.Transition(Cnnd, ss.null, on=ss.state('pregnancy.birth'))
     born_cs     = ss.Transition(Ccs, CS, on=ss.state('pregnancy.birth'))
     born_ok     = ss.Transition(Cnorm, S, on=ss.state('pregnancy.birth')) # Susceptible later in life (in STIsim 3 they never were)
-    fetal_cure  = ss.Transition(Cmisc | Cnnd | Cstill | Ccs, Cnorm, undriven=True) # Treatment of the mother
+    fetal_cure  = ss.Transition(Cmisc + Cnnd + Cstill + Ccs, Cnorm, undriven=True) # Treatment of the mother
     cs_cure     = ss.Transition(CS, S, undriven=True) # Treatment of the newborn
 
     # Results
@@ -278,20 +284,6 @@ class Syphilis(BaseSTI):
         self.stratify(rpr=[False, True], split=[1, 0],
                       rpr_late=ss.transfer(rpr=False, dur=self.pars.time_to_undetectable, states=['LL', 'T', 'Spl', 'Sr']),
                       rpr_tx=ss.transfer(rpr=False, dur=self.pars.dur_nontrep_revert, states=['Sp']))
-        return
-
-    def betamap(self, sim):
-        """ As for other STIs, but nothing over the maternal network: in-utero infection is `mtct`, from the mother's stage """
-        out = super().betamap(sim)
-        for name in out:
-            if ss.standardize_netkey(name) == 'maternal':
-                out[name] = 0
-        return out
-
-    def init_pre(self, sim):
-        m2c = self.value('beta_m2c')
-        self.pars.mtct_rate.value = ss.permonth(m2c or 0)
-        super().init_pre(sim)
         return
 
     def modifiers(self, sim):

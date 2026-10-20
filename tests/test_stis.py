@@ -44,9 +44,9 @@ def test_syph_epi():
     # Check results pairwise
     for i, (par, (lo, hi)) in enumerate(par_effects.items()):
         s0, s1 = sims[2*i], sims[2*i+1]
-        ind = 1 if par == 'init_prev' else -1
-        v0 = s0.results.syph.cum_infections[ind]
-        v1 = s1.results.syph.cum_infections[ind]
+        key, ind = ('n_infected', 0) if par == 'init_prev' else ('cum_infections', -1) # Seeds are prevalent infections, not new ones
+        v0 = s0.results.syph[key][ind]
+        v1 = s1.results.syph[key][ind]
         print(f'Checking with varying {par:10s} ... ', end='')
         assert v0 <= v1, f'Expected infections to be lower with {par}={lo} than with {par}={hi}, but {v0} > {v1})'
         print(f'✓ ({v0} <= {v1})')
@@ -182,7 +182,7 @@ def test_seis_natural_history(n_agents=5000):
         sim = ss.Sim(cls(**no_infection), **kw).run()
         d = sim.diseases[0]
         r = d.results
-        p_symp = d.pars.p_symp.value.values
+        p_symp = [d.pars.p_symp.value.given['sex'][k] for k in ['female', 'male']]
         ppl = sim.people
         seeded = ~np.isnan(np.asarray(d.ti_E[ppl.uid])) # Everyone infected, all seeds since beta is 0
         symp = ~np.isnan(np.asarray(d.ti_P[ppl.uid]))

@@ -19,13 +19,13 @@ def sexed(val):
     """
     Convert a value by sex as STIsim has written it to a Starsim value
 
-    `[women, men]` becomes `ss.by(sex=[women, men])`, `[[mean, std], [mean, std]]` a lognormal
+    `[women, men]` becomes `ss.by(sex=dict(female=women, male=men))`, `[[mean, std], [mean, std]]` a lognormal
     with a mean and standard deviation by sex, and `ss.bernoulli(p=x)` its probability `x`.
     Anything else is returned unchanged.
 
     Examples:
         ```python
-        sti.sexed([0.35, 0.65]) # ss.by(sex=[0.35, 0.65])
+        sti.sexed([0.35, 0.65]) # ss.by(sex=dict(female=0.35, male=0.65))
         sti.sexed([[ss.months(8), ss.months(2)], [ss.months(6), ss.months(3)]]) # ss.lognorm_ex by sex
         ```
     """
@@ -34,8 +34,8 @@ def sexed(val):
     if isinstance(val, (list, tuple)) and len(val) == 2:
         f, m = val
         if all(isinstance(v, (list, tuple)) for v in val):
-            return ss.lognorm_ex(mean=ss.by(sex=[f[0], m[0]]), std=ss.by(sex=[f[1], m[1]]))
-        return ss.by(sex=list(val))
+            return ss.lognorm_ex(mean=ss.by(sex=dict(female=f[0], male=m[0])), std=ss.by(sex=dict(female=f[1], male=m[1])))
+        return ss.by(sex=dict(female=f, male=m))
     return val
 
 
@@ -86,11 +86,16 @@ class BaseSTI(ss.Disease):
         sex_keys (dict): the sexes of the flat results (`prevalence_f`, ...); None for none
         kwargs (dict): parameter values by name, or `label`, `dt`
     """
-    beta = ss.par(ss.peryear(0), doc='Beta by network; worked out from beta_m2f, beta_m2c, and beta_m2m unless given')
     beta_m2f = ss.par(0.0, doc='Per-act probability of transmission, male to female')
     rel_beta_f2m = ss.par(0.5, doc='Relative per-act probability of transmission, female to male')
     beta_m2c = ss.par(0.0, doc='Monthly probability of mother-to-child transmission')
     beta_m2m = ss.par(0.0, doc='Per-act probability of transmission, male to male')
+    beta = ss.par(dict(
+        structuredsexual = ss.peract(m2f=beta_m2f, f2m=beta_m2f*rel_beta_f2m),
+        msm = ss.peract(beta_m2m),
+        maternalnet = beta_m2c*ss.permonth(1),
+        default = 0, # Other networks do not transmit
+    ), doc='Beta by network, from beta_m2f, rel_beta_f2m, beta_m2c, and beta_m2m; give it directly (e.g. ss.peryear(2) with no networks) to replace them')
     eff_condom = ss.par(1.0, doc='Efficacy of condoms')
     defaults = {}
     standard_results = True # new_infections, cum_infections, and prevalence, as STIsim 3 had
@@ -113,36 +118,9 @@ class BaseSTI(ss.Disease):
             pars = sc.mergedicts(dict(init_prev=0.01), self.defaults, given)
             init_prev = sexed(pars.pop('init_prev'))
             super().__init__(name=name, pars={k:sexed(v) for k,v in pars.items()}, init_prev=ss.par(init_prev, name='init_prev'), **kwargs)
-        self.beta_given = 'beta' in given
         self.age_range = age_range if age_range is not None else [15, 65]
         self.age_bins = None if age_bins is None else list(age_bins)
         self.sex_keys = {'': 'alive'} if sex_keys is None else dict(sex_keys)
-        return
-
-    def betamap(self, netnames):
-        """ The beta of each network in the sim, from beta_m2f, rel_beta_f2m, beta_m2c, and beta_m2m """
-        m2f, rel, m2c, m2m = [self.value(k) for k in ['beta_m2f', 'rel_beta_f2m', 'beta_m2c', 'beta_m2m']]
-        out = {}
-        for name in netnames:
-            key = ss.standardize_netkey(name)
-            if key == 'structuredsexual' and m2f:
-                out[name] = ss.peract(m2f=m2f, f2m=m2f*rel)
-            elif key == 'msm' and m2m:
-                out[name] = ss.peract(m2m)
-            elif key == 'maternal' and m2c:
-                out[name] = ss.permonth(m2c) # One way, mother to child
-            else:
-                out[name] = 0
-        return out
-
-    def set_betas(self, netnames):
-        """ Set the beta of each network from beta_m2f, rel_beta_f2m, beta_m2c, and beta_m2m, unless beta was given """
-        if self.transmits and not self.beta_given:
-            netnames = list(netnames)
-            if not netnames:
-                errormsg = f'"{self.name}" has no networks to transmit over; give beta= (e.g. ss.peryear(2)) for homogeneous mixing'
-                raise ValueError(errormsg)
-            self.pars.beta.value = self.betamap(netnames)
         return
 
     def modifiers(self, sim):
@@ -219,7 +197,7 @@ class SEIS(BaseSTI):
         C -> S                                   after dur_symp2clear
         (E | P | A | Y | C | PID) -> S           cure: moved only by treatment
 
-    Values by sex are `ss.by(sex=[women, men])`; STIsim's forms (`[women, men]`, and
+    Values by sex are `ss.by(sex=dict(female=women, male=men))`; STIsim's forms (`[women, men]`, and
     `[[mean, std], [mean, std]]` for durations) are converted by `sti.sexed()`. Seeking care
     is entering C (`dis.C.enter`), the event that care-seeking interventions are triggered
     by. Treatment moves people along `cure`; failures stay where they are.

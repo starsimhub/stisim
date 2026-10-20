@@ -94,6 +94,28 @@ def test_amr():
     return sim
 
 
+def test_syphilis_care():
+    sc.heading('Testing syphilis screening, treatment of mothers and fetuses, and newborn testing')
+    dual = sti.SyphDx(sensitivity=dict(E=0.2, Pv=0.9, Ph=0.9, S2v=0.95, S2h=0.95, EL=0.95, LL=0.95, T=0.95), specificity=0.99, name='dual')
+    test = sti.SyphTest(product=dual, test_prob_data=0.2, name='syph_test')
+    anc = sti.ANCSyphTest(product=dual, test_prob_data=0.9, name='anc')
+    tx = sti.SyphTx(who=test.positive | anc.positive, name='syph_tx')
+    nb = sti.NewbornSyphTest(anc=anc, test_prob_data=1.0, name='nb_test')
+    nb_tx = sti.NewbornTreatment(who=nb.positive, name='nb_tx')
+    syph = sti.Syphilis(beta_m2f=0.3, beta_m2c=0.5, init_prev=0.1, init_latent_prev=0.1)
+    kw = dict(n_agents=5000, start=2000, stop=2010, verbose=0, demographics=[ss.Pregnancy(fertility_rate=ss.freqperyear(80)), ss.Deaths(death_rate=10)])
+    base, sim = ss.parallel(sti.Sim(diseases=syph, **kw), sti.Sim(diseases=syph, interventions=[test, anc, tx, tx.fetal, nb, nb_tx], **kw)).sims
+    r = sim.results
+    assert r.anc.delivered.sum() > 0 and r.anc.delivered.sum() <= r.pregnancy.pregnancies.sum()
+    assert np.isclose(r.syph_tx.delivered.sum(), r.syph_test.positive.sum() + r.anc.positive.sum(), rtol=0.05) # Triggered by either (the same step counts once)
+    assert np.isclose(r.syph.cure_early.sum() + r.syph.cure_late.sum(), r.syph_tx.cured.sum())
+    assert r.syph_tx_fetus.delivered.sum() > 0 # Fetuses of cured mothers, over the maternal network
+    assert np.isclose(r.syph.fetal_cure.sum(), r.syph_tx_fetus.cured.sum())
+    assert r.syph.prevalence[-1] < base.results.syph.prevalence[-1]
+    assert r.nb_test.delivered.sum() >= 0 and np.isclose(r.nb_tx.delivered.sum(), r.nb_test.positive.sum())
+    return sim
+
+
 if __name__ == '__main__':
     sc.options(interactive=False)
     test_symptomatic_testing()

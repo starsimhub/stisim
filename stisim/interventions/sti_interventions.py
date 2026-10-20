@@ -109,7 +109,7 @@ class STITest(ss.screen):
         stop (float): the year testing stops
         eligibility (Cond/func): who can be tested: a condition, or a function of the sim (default: everyone)
         rel_test (float): a multiplier on the probability of testing
-        dt_scale (bool): whether `test_prob_data` is an annual probability (True) or a probability per step
+        dt_scale (bool): whether `test_prob_data` is an annual probability (True), a probability per step (False), or a probability each time someone is offered it (None, e.g. at a visit)
         disease (str): the disease tested for (default: the product's)
         kwargs (dict): passed to `ss.screen` (e.g. `who=`, `capacity=`, `name=`)
 
@@ -147,6 +147,8 @@ class STITest(ss.screen):
         else:
             p = data[sc.findnearest(self.years, sim.t.now('year'))]
         p = np.clip(p*self.rel_test, 0, 1)
+        if self.dt_scale is None: # A probability each time someone is offered it (e.g. at a visit)
+            return p
         return ss.probperyear(p) if self.dt_scale else ss.prob(p, sim.t.dt)
 
     def finalize_results(self):
