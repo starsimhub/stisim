@@ -22,16 +22,11 @@ class TimeToAIDSTracker(ss.Analyzer):
         self.define_results(ss.Result('hiv.ti_to_aids', dtype=list, scale=False))
 
     def update_results(self):
+        """ For those who entered latent infection in the last step (once their exit is scheduled), the scheduled time from infection to the falling stage """
         hiv = self.sim.diseases.hiv
-        infected = hiv.infected
-
-        if self.has_results:
-            infected_this_step = infected & (hiv.ti_infected == (self.ti - 1))
-        else:
-            infected_this_step = infected & (hiv.ti_infected <= (self.ti - 1))
-            self.has_results = True
-
-        times_to_aids = hiv.ti_falling[infected_this_step] - hiv.ti_infected[infected_this_step]
+        entered = (hiv.latent & (hiv.ti_latent == (self.ti - 1))).uids
+        entered = entered[hiv.ti_acute[entered] >= 0] # Infected in the sim, not seeded part way through
+        times_to_aids = hiv.ti_exit_latent[entered] - hiv.ti_acute[entered]
         self.results['hiv.ti_to_aids'][self.ti] = times_to_aids
 
 
@@ -69,15 +64,15 @@ class CD4ByUIDTracker(ss.Analyzer):
         if self.subpop == self.INFECTED:
             uids = hiv.infected.uids
         elif self.subpop == self.ONART:
-            uids = hiv.on_art.uids
+            uids = self.sim.interventions.art.on_art.uids
         else:
             raise Exception(f"Unknown sub-population specified for analyzer CD4ByUIDTracker: {self.subpop}")
 
-        # record cd4 count for agents of interest
-        for uid in uids:
+        # record cd4 count for agents of interest (with ART's modifiers on it)
+        cd4s = hiv.cd4_values(uids)
+        for uid, cd4 in zip(uids, cd4s):
             if uid not in self.results[result_name]:
                 self.results[result_name][uid] = []
-            cd4 = hiv.cd4[uid]
             self.results[result_name][uid].append(cd4)
 
 
@@ -115,16 +110,16 @@ class RelativeInfectivityByUIDTracker(ss.Analyzer):
         if self.subpop == self.INFECTED:
             uids = hiv.infected.uids
         elif self.subpop == self.ONART:
-            uids = hiv.on_art.uids
+            uids = self.sim.interventions.art.on_art.uids
         else:
             raise Exception(f"Unknown sub-population specified for analyzer RelativeInfectivityByUIDTracker: {self.subpop}")
 
-        # record rel_trans for agents of interest
+        # record rel_trans for agents of interest (with the modifiers on it)
+        rel_trans = hiv.rel_trans.effective
         for uid in uids:
             if uid not in self.results[result_name]:
                 self.results[result_name][uid] = []
-            rel_trans = hiv.rel_trans[uid]
-            self.results[result_name][uid].append(rel_trans)
+            self.results[result_name][uid].append(rel_trans[uid])
 
 
 # TODO: consider replacing usage of this analyzer with RelativeInfectivityByUIDTracker usage & updates
@@ -167,7 +162,9 @@ class RelativeInfectivityTracker(ss.Analyzer):
             # we ignore ti_infected == self.ti because relative transmission is updated BEFORE infection in the model
             # timestep and all just-infected agents have rel_trans == 1 (but this value is not used in any infection
             # events, as rel_trans will be properly updated for the NEXT transmission step)
-            ratios = hiv.rel_trans[(state_dict['filter'](hiv=hiv) & (hiv.ti_infected < (self.ti - 1)))]
+            rel_trans = hiv.rel_trans.effective # With the modifiers (stage and CD4) on it
+            who = (state_dict['filter'](hiv=hiv) & (hiv.ti_infected < (self.ti - 1))).uids
+            ratios = rel_trans[who]
             self.results[state_dict['result_name']][self.ti] = ratios
 
 
@@ -187,9 +184,7 @@ class SexualTransmissionCountTracker(ss.Analyzer):
         self.define_results(ss.Result(self.result_name, dtype=list, scale=False))
 
     def update_results(self):
-        hiv = self.sim.diseases.hiv
-        transmissions = sum(hiv.new_transmissions_sex.notnanvals)
-        self.results[self.result_name][self.ti] = transmissions
+        self.results[self.result_name][self.ti] = self.sim.diseases.hiv.results.infection[self.ti] # The flow of sexual transmission
 
 
 class MTCTransmissionCountTracker(ss.Analyzer):
@@ -208,7 +203,8 @@ class MTCTransmissionCountTracker(ss.Analyzer):
         self.define_results(ss.Result(self.result_name, dtype=list, scale=False))
 
     def update_results(self):
-        self.results[self.result_name][self.ti] = self.sim.diseases.hiv.results['new_infections_mtct'][self.ti]
+        res = self.sim.diseases.hiv.results
+        self.results[self.result_name][self.ti] = res.prenatal[self.ti] + res.postnatal[self.ti] # The flows of mother-to-child transmission
 
 
 # perinatal infection progression not currently implemented in hivsim, so leaving this untested analyzer out for
