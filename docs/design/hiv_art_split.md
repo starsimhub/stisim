@@ -161,3 +161,59 @@ The sim does not run compartmentally for free. These block it:
 - per-agent modifier amounts (age and duration multipliers on ART mortality).
 
 The declared HIV and ART, without the STIsim networks and the coded tests, would be a candidate once attributes run as compartments.
+
+## Implementation notes
+
+- ART is a declared module and a cascade (`class ART(ss.Disease, ss.cascade)`). Its deliveries are made in `__init__` as the cascade's steps, so the sim has them before it is built. Its modifiers are added in `init_pre()`.
+- Under a coverage target, people who became ready on the step (and take up ART, `art_initiation`) start first, then the rest, lowest CD4 over care seeking first. This is STIsim 3's rule, and it matters: ranking everyone by CD4 alone treats sicker people and averts more deaths (in the Zimbabwe demo, 25% fewer HIV deaths).
+- `cd4_preart` and `cd4_potential` are set by a hook (`ss.func`) when people start ART, from HIV's CD4 without ART for a first start, else as at the end of the last step. `cd4_stop` is ART's own on-ART CD4 at the move.
+
+## Starsim friction (upstream changes that would remove the shims)
+
+Worst first. Line numbers are in `/home/robyn/starsim-v4` at a0735405.
+
+1. **A dwell paused by `ss.modify(tr, multiply=0)` never resumes.**
+   - Where: `solvers/agents.py:1811` clamps the speed to 1e-9, so the remaining time is scaled by 1e9, and `ti_exit_<state>` is an int16 `StepArr` that saturates at 32767; the remaining time is lost.
+   - Repro: `ss.modify(hiv.aids_death, multiply=0, where=art.on)`, then stop ART: the person stays in `falling` forever.
+   - Fix: keep the remaining dwell (in steps, as float) when the speed is 0, and resume from it.
+   - This blocks the "ART pauses natural history" design (alternative 3).
+2. **`X.progress` runs on the wall clock, not the dwell.**
+   - Where: `solvers/agents.py:897`, `(ti - start)/(end - start)`; when a modifier rescales the exit, `progress` jumps.
+   - Fix: progress as the share of the (rescaled) dwell elapsed.
+3. **A target delivery with `moves=` and `where=` is not limited to the transition's sources.**
+   - Where: `interventions.py:2058` (`eligible_now`): with `where=`, `default_eligible()` (the sources) is not intersected. People already on ART are chosen, counted as `unneeded`, and use up the gap, so the target is never met.
+   - Repro: `ss.treat(ss.Treatment(moves=art.start), target=..., where=hiv.infected)` holds at 60% of a 100% target.
+   - Fix: always intersect with the sources of `moves=`.
+   - Shim: `where=` includes `naive | off_art` (`ART.ready()`).
+4. **Products and routine deliveries made in a module's `init_pre()` get no dimension.**
+   - Where: `sim.py:325`. Dimensions (`has_<product>`, `offered_<delivery>`) are made in `_init_solver()`, before `init_pre()`, so a delivery a module adds then fails with `KeyError: not stratified by "offered_..."`.
+   - Fix: a way for a module to declare the deliveries and modifiers it brings, collected before the solver (`BaseSTI.add_modifiers` has the same TODO).
+   - Shim: ART and the prevention programs are `ss.cascade`s, made in `__init__`.
+5. **An attribute of another module, read during a move, sees the mover in its new state.**
+   - Where: `solvers/agents.py:1022`. `_leaving` covers only the moving module's own states, so another module's `where=` on the mover is evaluated after the move. `ss.attr(hiv.cd4, on=art.stop)` records CD4 without ART's modifier (438 for someone at 124 on ART).
+   - Also: an attribute of another module in the class body loses its module when the module is made (`module=None`).
+   - Fix: apply `_leaving` across engines during a move, and keep the module of foreign attributes.
+   - Shim: `ART.on_start()` hook, and `cd4_stop` recorded from ART's own expression.
+6. **`ss.modify(attr, set=...)` is refused, though the agent engine implements it.**
+   - Where: `connectors.py:334` (raises for anything but a parameter); `Agents.modify_attr()` applies set/multiply/add.
+   - Fix: allow `set=`/`add=` on attributes.
+   - Shim: `sti.set_attr` (in `hiv_interventions.py`).
+7. **A modifier's amount cannot read the unmodified value of the quantity it modifies.** Reading `hiv.cd4` inside a modifier of `hiv.cd4` recurses.
+   - Fix: e.g. `ss.modify(hiv.cd4, set=lambda base: ...)`, or `hiv.cd4.base`.
+   - Shim: `ART.cd4_natural()` temporarily removes ART's modifiers.
+8. **There is no integrated attribute (one whose rate of change a modifier sets).** "ART changes CD4's rate of change" cannot be said; CD4 must be closed-form by state.
+9. **An amount mixing another module's attribute with `ss.by()` is evaluated for different agents.**
+   - Repro: `multiply=art.suppressed*0.25 + ss.by(sex=...)*(1 - art.suppressed)` gives `operands could not be broadcast (3,) (3600,)` during back-filling.
+   - Shim: a function of the sim.
+10. **`ss.spread()` takes only a scalar share.** A per-person probability (initial prevalence by risk group) needs the undocumented `burnin_spread()` hook, which back-dates over `[0, steps)`, not a window.
+11. **Pars of a declared module must be passed in `pars=`**, unlike the kwargs that `BaseSTI` filters. `ss.Disease(art_initiation=1.0)` raises `UnknownParameter`, listing pars without the one given.
+12. **An undriven transition cannot branch with `p=`**, so suppression at ART start is an attribute (`suppressed`) rather than two states.
+13. **A declared result cannot divide a sum of flows by a state** (`(infection + prenatal + postnatal)/S`: `FlowSum / float` TypeError). Shim: `incidence` in `finalize_results()`.
+14. **A distribution par times a par in `dur=` raises a confusing `DuplicateDeclaration`.** Shim: `rel_dur_on_art` is a modifier of `stop`.
+15. **A declared module in `interventions=` needs `has_product = False`.**
+16. **The automatic result of a `BoolState` defined with `define_states()` on a declared disease stays 0.** Shim: `diagnosed` is a `BoolArr`, with HIV's own `n_diagnosed`.
+17. **Run sims with declared HIV and ART need a recursion depth of about 500 to pickle**, which fails in `ss.parallel()` workers under pytest-xdist. Shim: `stisim/__init__.py` raises the recursion limit to 3000.
+18. **Per-route infection counts need an infection log.** Shim: transmission is declared as three transitions (sexual, prenatal, postnatal); `sw_stats` keeps an `InfectionLog`.
+19. **A beta dict with no networks gives a bare `TypeError`** (`dict * float`), not a coded error.
+20. **Results written by a declared module in `update_results()` must be in people** (`ss.results.people_scale()`), and people per agent is private (`sim._current_scale`).
+21. **`describe()`/`sim.given`:** `sti.Sim` (which calls `ss.Sim.__init__` without its parameters) left `sim.given` empty, so Starsim turned aging off for every `sti.Sim` without demographics modules (`dimensions.py:789`). This is fixed in STIsim; Starsim could respect a `use_aging` that is already set.

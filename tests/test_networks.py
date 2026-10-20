@@ -9,8 +9,11 @@ import sciris as sc
 import hivsim
 
 
-def test_msm_network(n_agents=500):
-    """ Test MSM HIV transmission via AgeMatchedMSM network """
+def test_msm_network(n_agents=2000):
+    """ Test MSM HIV transmission via AgeMatchedMSM network
+
+    Infections are seeded in everyone, so the network transmits only if an infected man is an MSM participant past
+    debut; with 500 agents, a seed can leave none (about 1 in 12), and the test then fails with no network bug. """
     hiv = sti.HIV(beta_m2m=0.1, init_prev=0.05)
     pregnancy = ss.Pregnancy(fertility_rate=10)
     death = ss.Deaths(death_rate=10)
