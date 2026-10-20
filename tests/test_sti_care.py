@@ -18,17 +18,21 @@ def make_sim(interventions=None, **kwargs):
 
 def test_symptomatic_testing():
     sc.heading('Testing symptomatic testing for NG, CT, and TV, with a treatment for each')
-    txs = [sti.STITreatment(diseases=d, name=f'{d}_tx') for d in ['ng', 'ct', 'tv']]
-    panel = sti.SymptomaticTesting(diseases=['ng', 'ct', 'tv'], treatments=txs, name='panel')
-    base, sim = ss.parallel(make_sim(), make_sim([panel] + txs)).sims
+    def interventions():
+        panel = sti.SymptomaticTesting(diseases=['ng', 'ct', 'tv'], name='panel')
+        txs = [sti.STITreatment(diseases=d, who=panel.positive(d), name=f'{d}_tx') for d in ['ng', 'ct', 'tv']]
+        return [panel, *txs]
+    base, sim = ss.parallel(make_sim(), make_sim(interventions())).sims
     r = sim.results
     seekers = sum(r[d].new_care_seekers.sum() for d in ['ng', 'ct', 'tv'])
-    assert 0 < r.panel.delivered.sum() <= seekers # Each care seeker is tested once, whatever they sought care for
+    assert 0 < r.panel_visit.delivered.sum() <= seekers # Each care seeker is tested once, whatever they sought care for
     for d in ['ng', 'ct', 'tv']:
+        assert np.isclose(r[f'panel_{d}'].delivered.sum(), r.panel_visit.delivered.sum()) # Tested for each at the visit
         tx = r[f'{d}_tx']
-        assert np.isclose(tx.cured.sum() + tx.failed.sum() + tx.overtreated.sum(), tx.delivered.sum())
+        assert np.isclose(tx.delivered.sum(), r[f'panel_{d}'].positive.sum())
+        assert np.isclose(tx.cured.sum() + tx.failed.sum() + tx.unneeded.sum(), tx.delivered.sum())
         assert np.isclose(tx.cured.sum()/(tx.cured.sum() + tx.failed.sum()), 0.9, atol=0.03)
-        assert tx.overtreated.sum() > 0 # False positives, from the specificity
+        assert tx.unneeded.sum() > 0 # False positives, from the specificity
         assert np.isclose(r[d].cure.sum(), tx.cured.sum())
         assert np.array_equal(tx.new_treated_success, tx.cured) # Results as STIsim 3 named them
         assert r[d].prevalence[-1] < base.results[d].prevalence[-1], f'{d}: treatment should lower prevalence'
@@ -37,14 +41,16 @@ def test_symptomatic_testing():
 
 def test_syndromic():
     sc.heading('Testing syndromic management')
-    txs = [sti.STITreatment(diseases='ng', name='ng_tx'), sti.STITreatment(diseases='ct', name='ct_tx'), sti.STITreatment(diseases='tv', name='mtz')]
-    synd = sti.SyndromicManagement(diseases=['ng', 'ct', 'tv'], treatments=txs, outcome_tx_map=dict(all3=txs, ngct=txs[:2], mtnz=txs[2:], none=[]), name='synd')
+    synd = sti.SyndromicManagement(diseases=['ng', 'ct', 'tv'], name='synd')
+    txs = [sti.STITreatment(diseases='ng', who=synd.all3 | synd.ngct, name='ng_tx'),
+           sti.STITreatment(diseases='ct', who=synd.all3 | synd.ngct, name='ct_tx'),
+           sti.STITreatment(diseases='tv', who=synd.all3 | synd.mtnz, name='mtz')]
     sim = make_sim([synd] + txs).run()
     r = sim.results
     n = [r.synd[f'new_tx{i}'].sum() for i in range(4)]
     assert np.isclose(sum(n), r.synd.new_care_seekers.sum())
-    assert np.isclose(r.ng_tx.delivered.sum(), n[2] + n[3]) and np.isclose(r.mtz.delivered.sum(), n[1] + n[3]) # Referred by outcome
-    assert r.ct_tx.overtreated.sum() > r.ct_tx.cured.sum()*0.2 # Treated for CT because of NG or TV symptoms
+    assert np.isclose(r.ng_tx.delivered.sum(), n[2] + n[3]) and np.isclose(r.mtz.delivered.sum(), n[1] + n[3]) # Triggered by outcome
+    assert r.ct_tx.unneeded.sum() > r.ct_tx.cured.sum()*0.2 # Treated for CT because of NG or TV symptoms
     assert np.isclose(r.synd.new_care_seekers_f.sum() + r.synd.new_care_seekers_m.sum(), r.synd.new_care_seekers.sum())
     return sim
 
@@ -52,31 +58,31 @@ def test_syndromic():
 def test_screening():
     sc.heading('Testing screening with STITest, to treatment, with a capacity')
     df = pd.DataFrame(dict(state=['susceptible', 'infected'], p_positive=[0.02, 0.9]))
-    tx = sti.STITreatment(diseases='ct', name='ct_tx')
     young_women = ss.ppl.female & (ss.ppl.age >= 15) & (ss.ppl.age < 25)
     screen = sti.STITest(sti.STIDx(df, disease='ct'), test_prob_data=0.5, eligibility=young_women, name='ct_screen')
-    sim = make_sim([screen]).run()
+    tx = sti.STITreatment(diseases='ct', who=screen.positive, name='ct_tx')
+    sim = make_sim([screen, tx]).run()
     r = sim.results
     assert r.ct_screen.new_tests.sum() > 0 and np.array_equal(r.ct_screen.new_tests, r.ct_screen.delivered)
-    assert np.isclose(r.ct_tx.delivered.sum(), r.ct_screen.diagnosed.sum())
-    assert r.ct_tx.overtreated.sum() > 0 # False positives
+    assert np.isclose(r.ct_tx.delivered.sum(), r.ct_screen.positive.sum())
+    assert r.ct_tx.unneeded.sum() > 0 # False positives
     yearly = r.ct_screen.delivered[1:13].sum()/r.ct_screen.eligible[1:13].mean()
     assert np.isclose(yearly, -np.log(0.5), rtol=0.1), f'Expected tests at a rate of {-np.log(0.5):.2f} per year among those eligible (a probability of 0.5 a year), not {yearly:.2f}'
 
     # A capacity on the treatment: at most 5 a step
-    tx = sti.STITreatment(diseases='ct', max_capacity=5, name='ct_tx')
     screen = sti.STITest(sti.STIDx(df, disease='ct'), test_prob_data=0.5, eligibility=young_women, name='ct_screen')
-    capped = make_sim([screen]).run()
-    assert capped.results.ct_tx.delivered.max() <= 5 and capped.results.ct_tx.dropped.sum() > 0
+    tx = sti.STITreatment(diseases='ct', who=screen.positive, max_capacity=5, name='ct_tx')
+    capped = make_sim([screen, tx]).run()
+    assert capped.results.ct_tx.delivered.max() <= 5 and capped.results.ct_tx.lost_capacity.sum() > 0
     return sim
 
 
 def test_amr():
     sc.heading('Testing gonorrhea resistance as a strain')
     ng = sti.Gonorrhea(amr=True, init_res=0.02, beta_m2f=0.4, init_prev=0.05)
-    tx = sti.GonorrheaTreatment(amr=True, res_treat_eff=0.3, p_acquire=0.2, name='ng_tx')
-    panel = sti.SymptomaticTesting(diseases=['ng'], treatments=[tx], name='panel')
-    sim = sti.Sim(diseases=ng, interventions=[panel, tx], n_agents=5000, start=2000, stop=2015, verbose=0).run()
+    panel = sti.SymptomaticTesting(diseases=['ng'], name='panel')
+    tx = sti.GonorrheaTreatment(amr=True, res_treat_eff=0.3, p_acquire=0.2, who=panel.positive('ng'), name='ng_tx')
+    sim = sti.Sim(diseases=ng, interventions=[panel, tx, tx.acquire], n_agents=5000, start=2000, stop=2015, verbose=0).run()
     r = sim.results
     res, inf = r.ng.infection.select(amr='res'), r.ng.infection
     share = lambda s: res[s].sum()/inf[s].sum()
@@ -84,7 +90,7 @@ def test_amr():
     for level,eff in [('sens', 0.96), ('res', 0.3)]:
         c, f = r.ng_tx.cured.select(amr=level).sum(), r.ng_tx.failed.select(amr=level).sum()
         assert np.isclose(c/(c + f), eff, atol=0.05), f'{level}: cure share {c/(c + f):.2f}, expected {eff}'
-    assert r.ng_tx_fail.delivered.sum() > 0 # Resistance acquired on failure
+    assert np.isclose(r.ng_tx_fail.delivered.sum(), 0.2*r.ng_tx.failed.select(amr='sens').sum(), rtol=0.3) # Resistance acquired on failure
     return sim
 
 
