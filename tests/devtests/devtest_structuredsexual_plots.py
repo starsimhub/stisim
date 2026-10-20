@@ -110,7 +110,7 @@ class count_partners(ss.Analyzer):
         self.counts = np.zeros((self.n, self.count))
         for u in self.uids:
             for i, raw in enumerate(self.raw):
-                contacts = ss.find_contacts(raw.p1.values, raw.p2.values, np.array([u]))
+                contacts = ss.utils.find_contacts(raw.p1.values, raw.p2.values, np.array([u]))
                 self.sets[u] = self.sets[u] | contacts
                 self.counts[u,i] = len(self.sets[u])
         

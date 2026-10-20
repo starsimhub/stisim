@@ -11,7 +11,8 @@ import parameter_table
 
 # Internal pars that are placeholders or set at runtime, so are not documented
 internal = {'beta', 'dt', 'include_care', 'dur_post_art', 'p_hiv_death', 'birth_outcome_keys', 'p_spontaneous',
-            '_f_partnership_taper_offset', 'age_diffs', 'dur_dist', 'match_dist', 'p_actually_looking', 'p_hi_risk', 'p_lo_risk'}
+            '_f_partnership_taper_offset', 'age_diffs', 'dur_dist', 'match_dist', 'p_actually_looking', 'p_hi_risk', 'p_lo_risk',
+            'init_latent_prev'} # A constructor argument of sti.Syphilis (spread over latency), not a parameter
 
 
 def test_parameter_docs_coverage():
@@ -19,6 +20,7 @@ def test_parameter_docs_coverage():
     rows = parameter_table.parse(docs=docs)
     for cls, (undocumented, unknown) in parameter_table.check_coverage(rows, exclude=internal).items():
         undocumented = [k for k in undocumented if not k.endswith('_dist')]
+        unknown = [k for k in unknown if k not in internal]
         assert not undocumented, f'{cls} pars missing from the docs: {undocumented}'
         assert not unknown, f'{cls} pars documented but not in the code: {unknown}'
     return rows

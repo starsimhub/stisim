@@ -76,7 +76,7 @@ def test_sim_creation():
     )
     sim1.init()
 
-    assert sim1.diseases.ng.pars.eff_condom == 0.6, "Disease parameter not set correctly"
+    assert sim1.diseases.ng.pars.eff_condom.value == 0.6, "Disease parameter not set correctly"
 
     # Test 2: mix of strings and modules
     demographics = [ss.Pregnancy(), ss.Deaths()]
@@ -108,9 +108,9 @@ def test_sim_creation():
     sim3 = sti.Sim(**pars)
     sim3.init()
 
-    assert sim3.diseases.ng.pars.beta_m2f == pars['beta_m2f'], "Disease parameter not set correctly"
-    assert sim3.diseases.ct.pars.beta_m2f == pars['beta_m2f'], "Disease parameter not set correctly"
-    assert sim3.diseases.ng.pars.eff_condom == pars['ng']['eff_condom'], "Disease parameter not set correctly"
+    assert sim3.diseases.ng.pars.beta_m2f.value == pars['beta_m2f'], "Disease parameter not set correctly"
+    assert sim3.diseases.ct.pars.beta_m2f.value == pars['beta_m2f'], "Disease parameter not set correctly"
+    assert sim3.diseases.ng.pars.eff_condom.value == pars['ng']['eff_condom'], "Disease parameter not set correctly"
     assert sim3.networks.structuredsexual.pars.prop_f0 == pars['prop_f0'], "Network parameter not set correctly"
 
     return
@@ -136,7 +136,7 @@ def test_hivsim_pars():
     beta = 0.05
     sim = hivsim.Sim(beta_m2f=beta, n_agents=500, dur=5)
     sim.init()
-    assert sim.diseases.hiv.pars.beta_m2f == beta, f"beta_m2f not routed to HIV: {sim.diseases.hiv.pars.beta_m2f}"
+    assert sim.diseases.hiv.pars.beta_m2f.value == beta, f"beta_m2f not routed to HIV: {sim.diseases.hiv.pars.beta_m2f}"
     return sim
 
 
@@ -146,8 +146,9 @@ def test_hivsim_custom_modules():
     sim = hivsim.Sim(interventions=[custom_art], n_agents=500, dur=5)
     sim.init()
 
-    # User passed 1 intervention, so defaults should be replaced
-    assert len(sim.interventions) == 1, f"Expected 1 intervention, got {len(sim.interventions)}"
+    # User passed 1 intervention, so defaults should be replaced: only ART, and the delivery of ART it brings
+    others = [mod.name for mod in sim.interventions.values() if not (mod is sim.interventions.art or mod.name.startswith('art_'))]
+    assert not others, f"Expected only the user's ART, got {list(sim.interventions.keys())}"
     return sim
 
 

@@ -42,7 +42,7 @@ class SimPars(ss.SimPars):
         self.dur       = None   # Duration of time to run, if stop isn't specified
         self.dt        = ss.years(1/12)   # Timestep
         self.rand_seed = 1      # Random seed; if None, don't reset
-        self.verbose = 1/12
+        self.verbose = 1
 
         # Demographic parameters
         self.age_scale = 1.0 # If age data values are supplied, convert from e.g. thousands
@@ -79,7 +79,6 @@ def sti_register(key=None):
     sti_dict = sc.objdict(
         bv=sti.BV,
         ct=sti.Chlamydia,
-        ctbl=sti.ChlamydiaBL,
         gud=sti.GUDPlaceholder,  # Placeholder for GUD
         ng=sti.Gonorrhea,
         hiv=sti.HIV,
@@ -98,6 +97,7 @@ def merged_sti_pars():
         disease_pars = disease().pars
         # Merge the parameters into the merged_pars dictionary
         merged_pars.update(disease_pars)
+        merged_pars.update({key:None for key in getattr(disease, 'options', [])}) # Constructor arguments, e.g. HIV's rel_sus_age
     return merged_pars
 
 
@@ -134,9 +134,8 @@ def mergepars(*args):
 
 
 def connector_register():
-    """Auto-discoverable connectors keyed by ``<d1>_<d2>``. Only includes
-    connectors that follow the ``(disease1_module, disease2_module, ...)`` constructor
-    convention, so ``sti.Sim`` can build them automatically from a disease list."""
+    """Auto-discoverable connectors keyed by ``<d1>_<d2>``: functions of the two disease
+    modules that return lists of modifiers, so ``sti.Sim`` can build them from a disease list."""
     from stisim.connectors.hiv_sti import hiv_syph, hiv_tv, hiv_ng, hiv_ct, hiv_bv
     return sc.objdict(
         hiv_syph=hiv_syph,
@@ -150,8 +149,8 @@ def connector_register():
 def merged_connector_pars():
     """Merge all parameters from auto-discoverable connectors."""
     merged = {}
-    for cls in connector_register().values():
-        merged.update(cls(None, None).pars)
+    for conn in connector_register().values():
+        merged.update(conn.pars)
     return merged
 
 

@@ -7,6 +7,7 @@ and HIV epi parameter sensitivity. HIV-specific scientific validation (CD4, ART
 effects, natural history) lives in test_hiv.py.
 """
 import numpy as np
+import pytest
 import pandas as pd
 import sciris as sc
 import starsim as ss
@@ -37,14 +38,15 @@ def test_syph_epi():
         sims.append(sti.Sim(sc.mergedicts(base_pars, dict(diseases=sti.Syphilis(**simpardict_lo), dur=10)), label=f'{par}={lo}'))
         sims.append(sti.Sim(sc.mergedicts(base_pars, dict(diseases=sti.Syphilis(**simpardict_hi), dur=10)), label=f'{par}={hi}'))
 
-    ss.parallel(*sims, debug=debug)
+    for sim in sims:
+        sim.run()
 
     # Check results pairwise
     for i, (par, (lo, hi)) in enumerate(par_effects.items()):
         s0, s1 = sims[2*i], sims[2*i+1]
-        ind = 1 if par == 'init_prev' else -1
-        v0 = s0.results.syph.cum_infections[ind]
-        v1 = s1.results.syph.cum_infections[ind]
+        key, ind = ('n_infected', 0) if par == 'init_prev' else ('cum_infections', -1) # Seeds are prevalent infections, not new ones
+        v0 = s0.results.syph[key][ind]
+        v1 = s1.results.syph[key][ind]
         print(f'Checking with varying {par:10s} ... ', end='')
         assert v0 <= v1, f'Expected infections to be lower with {par}={lo} than with {par}={hi}, but {v0} > {v1})'
         print(f'✓ ({v0} <= {v1})')
@@ -124,7 +126,7 @@ def test_stis(which='discharging', n_agents=1e3, start=2010, stop=2020):
         demographics=[pregnancy, death],
     )
 
-    sim.run(verbose=1/12)
+    sim.run(verbose=1)
 
     return sim
 
@@ -133,92 +135,172 @@ def test_optional_stratification(n_agents=500):
     """ Test that age_bins=None and sex_keys=None drop stratified results without changing the rest """
     sc.heading('Test optional age/sex stratification of results')
 
+    # Results by sex (flat, _f and _m) and age (by group), as sti.Sim stratifies them
     def make_sim(**kw):
-        dis = [sti.Gonorrhea(init_prev=0.1, **kw), sti.Syphilis(init_prev=0.1, **kw), sti.HIV(init_prev=0.1, **kw)]
-        return ss.Sim(n_agents=n_agents, start=2000, stop=2005, rand_seed=1, diseases=dis,
+        dis = [sti.HIV(init_prev=0.1, **kw)]
+        return sti.Sim(n_agents=n_agents, start=2000, stop=2005, rand_seed=1, diseases=dis,
                       networks=[sti.StructuredSexual(), ss.MaternalNet()],
                       demographics=[ss.Pregnancy(fertility_rate=50), ss.Deaths(death_rate=10)])
 
     s_full = make_sim()
     s_none = make_sim(age_bins=None, sex_keys=None)
-    ss.parallel(s_full, s_none, debug=debug)
+    s_full.run(); s_none.run()
 
-    for name in ['ng', 'syph', 'hiv']:
+    for name in ['hiv']:
         r_full = s_full.diseases[name].results
         r_none = s_none.diseases[name].results
-
-        # Stratified results are gone, unstratified ones remain
         assert len(r_none) < len(r_full), f'{name}: expected fewer results without stratification'
         assert not [k for k in r_none.keys() if k.endswith(('_f', '_m')) or '_15_20' in k], \
             f'{name}: stratified results should not be defined'
         assert 'prevalence' in r_none and 'new_infections' in r_none, f'{name}: main results should remain'
-
-        # Everything still computed must be bit-identical to the fully stratified run
         for key in r_none.keys():
             if key in r_full:
                 assert np.allclose(np.asarray(r_full[key], float), np.asarray(r_none[key], float), equal_nan=True), \
                     f'{name}: result {key} changed when stratification was disabled'
 
-    # Each stratification can also be disabled on its own
-    for kw in [dict(age_bins=None), dict(sex_keys=None)]:
-        sim = make_sim(**kw)
-        sim.run(verbose=0)
-
+    # Declared diseases: sti.Sim stratifies by sex and age, so results can be selected; sex_keys=None drops the flat ones
+    kw = dict(n_agents=n_agents, start=2000, stop=2005, rand_seed=1)
+    sim = sti.Sim(diseases=sti.Gonorrhea(init_prev=0.1), **kw).run()
+    r = sim.results.ng
+    assert np.allclose(r.n_infected_f + r.n_infected_m, r.n_infected)
+    assert np.allclose(r.n_infected.by('age').values.sum(axis=1), r.n_infected)
+    sim_none = sti.Sim(diseases=sti.Gonorrhea(init_prev=0.1, sex_keys=None), **kw).run()
+    assert 'prevalence_f' not in sim_none.results.ng and np.array_equal(sim_none.results.ng.prevalence, r.prevalence)
+    sim_noage = sti.Sim(diseases=sti.Gonorrhea(init_prev=0.1, age_bins=None), **kw).run()
+    assert [s.name for s in sim_noage.strats] == ['sex']
     return s_full, s_none
 
 
-def test_bv(include_hiv=False, n_agents=500):
-    """ Test BV dynamics with optional HIV co-infection and a custom menstrual hygiene intervention """
+def test_seis_natural_history(n_agents=5000):
+    """ Test the bacterial STIs' natural history: symptoms by sex, care seeking, TV persistence, and PID """
+    sc.heading('Test bacterial STI natural history')
+    kw = dict(start=2000, stop=2004, dt=ss.months(1), n_agents=n_agents, stratify=dict(sex=['female', 'male']), verbose=0)
+    no_infection = dict(beta=ss.permonth(0), init_prev=0.5)
 
-    class menstrual_hygiene(ss.Intervention):
-        def __init__(self, pars=None, **kwargs):
-            super().__init__()
-            self.define_pars(
-                start=2000,
-                new_val=None,
-            )
-            self.update_pars(pars, **kwargs)
-            return
+    # Share symptomatic, by sex
+    for cls in [sti.Gonorrhea, sti.Chlamydia, sti.Trichomoniasis]:
+        sim = ss.Sim(cls(**no_infection), **kw).run()
+        d = sim.diseases[0]
+        r = d.results
+        p_symp = [d.pars.p_symp.value.given['sex'][k] for k in ['female', 'male']]
+        ppl = sim.people
+        seeded = ~np.isnan(np.asarray(d.ti_E[ppl.uid])) # Everyone infected, all seeds since beta is 0
+        symp = ~np.isnan(np.asarray(d.ti_P[ppl.uid]))
+        for female,p in zip([True, False], p_symp):
+            sex = ppl.female.raw[ppl.uid.raw] == female
+            share = (symp & sex).sum()/(seeded & sex).sum()
+            assert np.isclose(share, p, atol=0.05), f'{d.name} female={female}: {share:.2f} symptomatic, expected {p}'
+        assert r.new_care_seekers.sum() > 0
 
-        def step(self):
-            if self.t.now() == self.pars.start:
-                self.sim.diseases.bv.pars.p_poor_menstrual_hygiene.set(self.pars.new_val)
-            return
+    # TV: most asymptomatic infections in women persist; men's clear
+    sim = ss.Sim(sti.Trichomoniasis(**no_infection), **kw).run()
+    r = sim.results.tv
+    left = r.n_infected.select(sex='female')[-1]/r.n_infected.select(sex='female')[0], r.n_infected.select(sex='male')[-1]/r.n_infected.select(sex='male')[0]
+    assert left[0] > 0.4 and left[1] < 0.05, f'Expected persistence in women only, not {left}'
 
-    bv = sti.BV(init_prev=0.025)
-    nets = []
-    dem = []
-    intvs = []
-    dis = [bv]
-    con = []
+    # PID: women only
+    sim = ss.Sim(sti.Chlamydia(p_pid=0.3, **no_infection), **kw).run()
+    r = sim.results.ct
+    assert r.pid_a.select(sex='female').sum() > 0 and r.pid_a.select(sex='male').sum() == 0
+    return sim
 
-    if include_hiv:
-        hiv = sti.HIV(
-            beta_m2f=0.5,
-            beta_m2c=0.1,
-            init_prev=0.1,
-        )
 
-        nets += [sti.StructuredSexual(store_register=True), ss.MaternalNet()]
+def test_abm_ode():
+    """ Agents and an ODE agree for each bacterial STI under homogeneous mixing, at weekly steps (they differ by order dt) """
+    sc.heading('Test ABM vs ODE agreement for NG, CT, and TV')
+    pop = 20_000
+    kw = dict(start=2000, stop=2012, dt=ss.weeks(1), stratify=dict(sex=['female', 'male']), verbose=0)
+    out = sc.objdict()
+    for cls,beta in [(sti.Gonorrhea, 0.16), (sti.Chlamydia, 0.09), (sti.Trichomoniasis, 0.06)]:
+        res = sc.objdict()
+        for solver,size,seeds in [('abm', dict(n_agents=pop), [0, 1]), ('ode', dict(total_pop=pop), [0])]:
+            vals = []
+            for seed in seeds:
+                sim = ss.Sim(cls(beta=ss.permonth(beta), init_prev=0.05), solver=solver, rand_seed=seed, **size, **kw).run()
+                r = sim.results[sim.diseases[0].name]
+                vals.append([r.prevalence_f[-1], r.prevalence_m[-1], r.cum_infections[-1], r.new_care_seekers.sum()])
+            res[solver] = np.mean(vals, axis=0)
+        rel = np.abs(res.abm/res.ode - 1)
+        out[cls.__name__] = sc.objdict(abm=res.abm, ode=res.ode, rel=rel)
+        print(f'{cls.__name__}: ABM {np.round(res.abm, 3)}, ODE {np.round(res.ode, 3)}, differences {np.round(rel, 3)}')
+        assert np.all(rel < 0.1), f'{cls.__name__}: ABM and ODE differ by {np.round(rel, 3)} (prevalence F, M; infections; care seekers)'
+    return out
 
-        pregnancy = ss.Pregnancy(fertility_rate=10)
-        death = ss.Deaths(death_rate=10)
-        dem += [pregnancy, death]
 
-        testing = sti.HIVTest(test_prob_data=0.2, start=2000)
-        art = sti.ART(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_art': np.linspace(0, 0.9, 21)}))
-        vmmc = sti.VMMC(coverage_data=pd.DataFrame(index=np.arange(2000, 2021), data={'p_vmmc': np.linspace(0.025, 0.125, 21)}))
-        intvs += [testing, art, vmmc]
-        dis += [hiv]
-        con += [sti.hiv_bv(hiv_module=hiv, bv_module=bv)]
+def test_bv(n_agents=5000):
+    """ BV: women enter at 15 at their stable CST, risk factors raise the rate of BV, and treatment cures """
+    sc.heading('Test BV')
+    kw = dict(n_agents=n_agents, start=2000, stop=2010, verbose=0, rand_seed=1, demographics=[ss.Pregnancy(fertility_rate=ss.freqperyear(80)), ss.Deaths(death_rate=10)])
+    sim = sti.Sim(diseases=sti.BV(), **kw).run()
+    bv, ppl = sim.diseases.bv, sim.people
+    r = sim.results.bv
+    u = bv.U.uids
+    assert not np.any(ppl.female[u] & (ppl.age[u] >= 15 + sim.t.dt.years)), 'Women 15+ are still without a CST' # Those who turned 15 in the last step move at the next
+    assert not np.any(ppl.male[(~bv.U).uids]), 'Men have a CST'
+    assert np.allclose(r.n_women.by('stable').values[-1]/r.n_women[-1], [0.1, 0.3, 0.6], atol=0.03)
+    assert 0.3 < r.prevalence[-1] < 0.8 and np.isclose(r.prevalence[-1], r.cst4_prevalence[-1])
+    assert np.allclose(r.cst1_prevalence + r.cst3_prevalence + r.cst4_prevalence + r.n_P/r.n_women, 1)
+    assert r.clear_s.sum() + r.clear_a.sum() > 0.5*r.onset.sum() # BV clears (in STIsim 3, stable-CST4 girls never did)
 
-    # Make sim
-    sim_args = dict(start=2015, stop=2030, n_agents=n_agents, diseases=dis, networks=nets, demographics=dem, connectors=con)
+    # Symptoms by stable CST
+    cst4 = r.n_CST4p.by('stable').values.sum(axis=0) + r.n_CST4s.by('stable').values.sum(axis=0)
+    share = cst4/(cst4 + r.n_CST4a.by('stable').values.sum(axis=0))
+    assert share[0] > share[1] > share[2], f'Symptoms should be likeliest in stable CST1: {share}'
 
-    s0 = ss.Sim(**sim_args, interventions=intvs)
-    s1 = ss.Sim(**sim_args, interventions=intvs + [menstrual_hygiene(start=2020, new_val=0.1)])
-    ss.parallel(s0, s1, debug=debug)
-    return s0, s1
+    # Risk factors: poor menstrual hygiene raises prevalence; without it, it is lower
+    low = sti.Sim(diseases=sti.BV(p_poor_menstrual_hygiene=0.1), **kw).run().results.bv
+    assert low.prevalence[-1] < r.prevalence[-1]
+    hyg = r.n_infected.by('poor_menstrual_hygiene').values[-1]/r.n_women.by('poor_menstrual_hygiene').values[-1]
+    assert hyg[1] > hyg[0], f'BV prevalence with and without poor hygiene: {hyg}'
+    assert 'bv_uncirc_onset' in sim.what_modifies('bv.onset', output=True) # From the sexual network
+
+    # Treatment: newly symptomatic women seek care, cured by stable CST; with a post-treatment window, recurrence
+    tx = sti.Sim(diseases=sti.BV(), interventions=sti.treat_BV(), **kw).run()
+    rt, t = tx.results.bv, tx.results.treat_bv
+    assert np.isclose(t.new_treated.sum(), 0.9*rt.symptoms.sum(), rtol=0.05)
+    assert np.isclose(t.cured.sum(), rt.tx.sum()) and np.isclose(t.new_doses.sum(), 14*t.new_treated.sum())
+    assert rt.recur.sum() == 0 and np.isclose(rt.settle.sum(), rt.tx.sum(), rtol=0.01) # dur_post_tx=0: back at once, as in STIsim 3
+    assert rt.prevalence[-1] < r.prevalence[-1]
+    win = sti.Sim(diseases=sti.BV(dur_post_tx=ss.months(6)), interventions=sti.treat_BV(), **kw).run().results.bv
+    assert win.recur.sum() > 0.2*win.tx.sum()
+    with pytest.raises(ValueError):
+        sti.BV(init_prev=0.1)
+    with pytest.raises(NotImplementedError):
+        sti.treat_BV(durable_cst1_change=True)
+    return sim
+
+
+@pytest.mark.xfail(strict=True, reason='Starsim: an exit that reads P.dwell beside branches or a fixed delay out of P has no compartmental form yet (conveyor work, phase B1)')
+def test_bv_abm_ode():
+    """ BV as agents and as an ODE, with treatment: they agree (weekly steps; two risk factors, so the ODE is quick) """
+    sc.heading('Test BV ABM vs ODE')
+    pop = 20_000
+    kw = dict(start=2000, stop=2008, dt=ss.weeks(1), stratify=[dict(sex=['female', 'male']), dict(age=[0, 15, 100])], verbose=0)
+    res = sc.objdict()
+    for solver,size,seeds in [('abm', dict(n_agents=pop), [0, 1]), ('ode', dict(total_pop=pop), [0])]:
+        vals = []
+        for seed in seeds:
+            bv = sti.BV(rr_douching=1, rr_concurrency=1)
+            sim = ss.Sim(diseases=bv, interventions=sti.treat_BV(), solver=solver, rand_seed=seed, **size, **kw).run()
+            r = sim.results
+            vals.append([r.bv.prevalence[-1], r.bv.cst1_prevalence[-1], r.bv.cst3_prevalence[-1], r.bv.onset.sum(), r.treat_bv.delivered.sum()])
+        res[solver] = np.mean(vals, axis=0)
+    rel = np.abs(res.abm/res.ode - 1)
+    print(f'BV: ABM {np.round(res.abm, 3)}, ODE {np.round(res.ode, 3)}, differences {np.round(rel, 3)}')
+    assert np.all(rel < 0.1), f'BV: ABM and ODE differ by {np.round(rel, 3)} (prevalence, CST1, CST3; onsets; treated)'
+    return res
+
+
+def test_gud():
+    """ GUD: an SIS infection over the sexual network; none without seeding """
+    sc.heading('Test GUD')
+    kw = dict(n_agents=2000, start=2000, stop=2005, verbose=0)
+    r = sti.Sim(diseases=sti.GUD(init_prev=0.1, beta_m2f=0.2), **kw).run().results.gud
+    assert r.new_infections.sum() > 0 and r.recovery.sum() > 0 and 'prevalence_f' in r
+    assert np.isclose(r.prevalence[0], 0.1, atol=0.03)
+    r0 = sti.Sim(diseases=sti.GUD(), **kw).run().results.gud
+    assert r0.n_infected.sum() == 0 # init_prev=0, as in STIsim 3
+    return r
 
 
 if __name__ == '__main__':
@@ -228,5 +310,8 @@ if __name__ == '__main__':
     test_stis(which='discharging')
     test_stis(which='ulcerative')
     test_optional_stratification()
+    test_seis_natural_history()
+    test_abm_ode()
     test_bv()
-    test_bv(include_hiv=True)
+    test_bv_abm_ode()
+    test_gud()

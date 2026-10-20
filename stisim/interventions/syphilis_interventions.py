@@ -1,442 +1,270 @@
 """
-Define syphilis interventions for STIsim
+Syphilis testing and treatment, as Starsim products and deliveries
 """
 
-import starsim as ss
 import numpy as np
 import pandas as pd
 import sciris as sc
-from stisim.interventions.base_interventions import STIDx, STITest, STITreatment
-from stisim.utils import TimeSeries
+import starsim as ss
+from stisim.interventions.sti_interventions import STIDx, STITest, STITreatment, add_aliases
 
-__all__ = ["SyphDx", "SyphTx", "NewbornTreatment", "SyphTest", "ANCSyphTest", "NewbornSyphTest"]
+__all__ = ['SyphDx', 'SyphTx', 'FetalSyphTx', 'NewbornTreatment', 'SyphTest', 'ANCSyphTest', 'NewbornSyphTest']
+
+# The states of sti.Syphilis that STIsim 3's state names cover
+syph_states = dict(
+    naive         = ['S'],
+    sus_not_naive = ['Sp', 'Spl', 'Sr'],
+    exposed       = ['E'],
+    primary       = ['Pv', 'Ph'],
+    secondary     = ['S2v', 'S2h'],
+    latent        = ['EL', 'LL'],
+    early         = ['EL'],
+    late          = ['LL'],
+    tertiary      = ['T'],
+    symptomatic   = ['Pv', 'Ph', 'S2v', 'S2h'],
+    ulcerative    = ['Pv'],
+    visibly_symptomatic = ['Pv', 'S2v'],
+    mat_active    = ['E', 'Pv', 'Ph', 'S2v', 'S2h'],
+    sexually_transmissible = ['Pv', 'Ph', 'S2v', 'S2h', 'EL'],
+    infectious    = ['Pv', 'Ph', 'S2v', 'S2h', 'EL', 'LL'],
+    infected      = ['E', 'Pv', 'Ph', 'S2v', 'S2h', 'EL', 'LL', 'T'],
+    congenital    = ['CS'],
+)
+
+
+def p_of(val):
+    """ The probability of a Starsim 3 bernoulli, or the value """
+    return val.pars.p if isinstance(val, ss.bernoulli) else val
 
 
 class SyphDx(STIDx):
-    """Syphilis diagnostic product.
+    """
+    A syphilis test, with the probability of a positive result by state
 
-    Wraps :class:`STIDx` with the disease key set to ``'syph'``. Used as the
-    default product for syphilis testing interventions.
+    As `sti.STIDx`, for `sti.Syphilis`: the dataframe's states can be STIsim 3's names
+    (`primary`, `secondary`, `latent`, `early`, `late`, `tertiary`, `exposed`,
+    `sus_not_naive`, ...) or the states of `sti.Syphilis`; the row for `susceptible` gives
+    1 - specificity. A non-treponemal (RPR) test is `ss.Diagnostic(detects=syph.rpr, ...)`.
 
     Args:
-        df: Diagnostic performance data (sensitivity/specificity by stage).
-        *args: Positional arguments forwarded to :class:`STIDx`.
-        **kwargs: Keyword arguments forwarded to :class:`STIDx`.
+        df (dataframe): columns `state` and `p_positive`
+        kwargs (dict): passed to `sti.STIDx` (e.g. `sensitivity=`, `name=`)
+
+    Examples:
+        ```python
+        dual = sti.SyphDx(sensitivity=dict(Sp=0.95, Spl=0.95, E=0.2, Pv=0.2, Ph=0.2, S2v=0.95, S2h=0.95, EL=0.95, LL=0.95, T=0.95), specificity=0.99)
+        ```
     """
-    def __init__(self, df, *args, **kwargs):
-        super().__init__(df, 'syph', *args, **kwargs)
+    state_map = syph_states
+
+    def __init__(self, df=None, *args, disease='syph', **kwargs):
+        super().__init__(df, disease, *args, **kwargs)
+        return
+
+
+class FetalSyphTx(ss.treat):
+    """
+    Treatment of the fetuses of mothers cured of syphilis: a fetus infected in utero is
+    cured (`syph.fetal_cure`) with `fetus_treat_eff`, or `treat_eff_reduced` within
+    `-fetus_age_cutoff_treat_eff` years of birth. Delivered over the maternal network to
+    the fetuses of the people `who=` selects (e.g. `who=syph_tx.cured`); see `sti.SyphTx`.
+
+    Results: those of `ss.treat`, and `new_fetus_treated_success`, `new_fetus_treated_failure`, and `new_fetus_treated_unnecessary` as in STIsim 3.
+    """
+    def __init__(self, fetus_treat_eff=0.98, treat_eff_reduced=0.75, fetus_age_cutoff_treat_eff=-0.25, disease='syph', network='maternalnet', name='fetal_tx', **kwargs):
+        eff = lambda sim: np.where(sim.people.age.raw > fetus_age_cutoff_treat_eff, treat_eff_reduced, fetus_treat_eff) # Lower in the last trimester
+        product = ss.Treatment(moves={f'{disease}.fetal_cure': eff}, name=f'{name}_drug')
+        super().__init__(product, trace=network, disease=disease, name=name, **kwargs)
+        return
+
+    def finalize_results(self):
+        super().finalize_results()
+        add_aliases(self, dict(new_fetus_treated_success='cured', new_fetus_treated_failure='failed', new_fetus_treated_unnecessary='unneeded'))
         return
 
 
 class SyphTx(STITreatment):
-    """Syphilis treatment intervention.
+    """
+    Syphilis treatment (benzathine penicillin), from any stage
 
-    Treats diagnosed syphilis cases each timestep, clearing all disease
-    stages (primary, secondary, latent, tertiary) on successful treatment.
-    Also treats fetuses of pregnant mothers, with reduced efficacy in the
-    last trimester.
+    Cures with probability `treat_eff`: people in an early stage (incubation to early
+    latent) move along `syph.cure_early` to Sp, and their RPR titre falls within months;
+    people in late latent or tertiary move along `syph.cure_late` to Spl, where it stays.
+    The fetuses of mothers it cures are treated by a step of their own, `fetal`
+    (`sti.FetalSyphTx`, over the maternal network): pass it to the sim too. Who is treated
+    is `who=` (e.g. `who=test.positive`) or `eligibility=`, as for `sti.STITreatment`.
 
     Args:
-        pars (dict): Parameter overrides (e.g. ``treat_eff``, ``fetus_treat_eff``).
-        max_capacity (int): Maximum number of treatments per timestep.
-        years (list): Calendar years during which the intervention is active.
-        eligibility (func): Function returning eligible UIDs.
-        name (str): Intervention name.
-        **kwargs: Additional parameter overrides.
-    """
+        pars (dict): `treat_eff`, `treat_prob`, `rel_treat_prob`, `fetus_treat_eff`, `treat_eff_reduced`, `fetus_age_cutoff_treat_eff`
+        max_capacity (float): the most that can be treated (see `ss.Delivery` `capacity=`)
+        years (list): the first and last years of treatment
+        eligibility (Cond/func): who is treated, as a condition
+        kwargs (dict): parameter values, or passed to `sti.STITreatment` (e.g. `who=`)
 
+    Examples:
+        ```python
+        test = sti.SyphTest(product=dual, test_prob_data=0.1, name='syph_test')
+        tx = sti.SyphTx(who=test.positive, name='syph_tx')
+        sim = sti.Sim(diseases='syph', interventions=[test, tx, tx.fetal])
+        ```
+    """
     def __init__(self, pars=None, max_capacity=None, years=None, eligibility=None, name=None, **kwargs):
-        super().__init__(diseases='syph', name=name, eligibility=eligibility, years=years, max_capacity=max_capacity)
-        self.define_pars(
-            rel_treat_prob=1,
-            treat_prob=ss.bernoulli(p=1),
-            treat_eff=ss.bernoulli(p=.98),
-            fetus_treat_eff=ss.bernoulli(p=.98),
-            fetus_age_cutoff_treat_eff=-0.25,  # Reduced treatment efficacy for fetuses in the last trimester
-            treat_eff_reduced=ss.bernoulli(p=.75),  # Reduced efficacy for fetuses older than cut off
-            # Non-trep sero-reversion after early-stage treatment: RPR titre
-            # drops 4-fold within ~6 months of adequate treatment of
-            # primary/secondary/early-latent syphilis, with most patients
-            # becoming RPR-negative within 6-12 months. Late-latent treatment
-            # does NOT produce reliable RPR sero-reversion and is excluded
-            # in change_states below.
-            nontrep_revert_months=ss.uniform(low=6, high=12),
-        )
-        self.update_pars(pars, **kwargs)
+        p = sc.mergedicts(dict(rel_treat_prob=1, treat_prob=1, treat_eff=0.98, fetus_treat_eff=0.98, treat_eff_reduced=0.75, fetus_age_cutoff_treat_eff=-0.25), pars)
+        for key in list(kwargs):
+            if key in p or key == 'nontrep_revert_months':
+                p[key] = kwargs.pop(key)
+        if 'nontrep_revert_months' in p:
+            errormsg = 'nontrep_revert_months is now dur_nontrep_revert of sti.Syphilis'
+            raise ValueError(errormsg)
+        if 'fetus' in kwargs:
+            errormsg = 'The treatment of fetuses is a step of its own, tx.fetal: pass it to the sim, or leave it out'
+            raise TypeError(errormsg)
+        p = sc.objdict({k:p_of(v) for k,v in p.items()})
+        self.syph_pars = p
+        eff = p.treat_eff
+        name = sc.ifelse(name, 'syphtx')
+        product = ss.Treatment(moves={'syph.cure_early':eff, 'syph.cure_late':eff}, name=f'{name}_bpg')
+        super().__init__(product=product, treat_prob=p.treat_prob*p.rel_treat_prob, eligibility=eligibility, max_capacity=max_capacity,
+                         years=years, name=name, **kwargs)
+        self.treats = ['syph']
+        self.fetal = FetalSyphTx(fetus_treat_eff=p.fetus_treat_eff, treat_eff_reduced=p.treat_eff_reduced, fetus_age_cutoff_treat_eff=p.fetus_age_cutoff_treat_eff,
+                                 who=self.cured, name=f'{name}_fetus')
         return
 
-    def change_states(self, disease, treat_succ):
-        """ Change the states of people who are treated """
-        d = self.sim.diseases[disease]
 
-        # Identify early-stage treated agents BEFORE clearing stage flags.
-        # Treatment in primary, secondary, or early latent yields RPR
-        # sero-reversion within 6-12 months; late-latent treatment does not
-        # reliably clear the non-trep test.
-        early_stage_mask = (d.primary[treat_succ]
-                             | d.secondary[treat_succ]
-                             | d.early[treat_succ])
-        early_stage_treated = treat_succ[early_stage_mask]
+class NewbornTreatment(STITreatment):
+    """
+    Treatment of newborns with congenital syphilis (`syph.cs_cure`), with efficacy `treat_eff`
 
-        d.primary[treat_succ] = False
-        d.secondary[treat_succ] = False
-        d.early[treat_succ] = False
-        d.late[treat_succ] = False
-        d.latent[treat_succ] = False
-        d.tertiary[treat_succ] = False
-        d.chancre_visible[treat_succ] = False
-        d.rash_visible[treat_succ] = False
-        d.ti_primary[treat_succ] = np.nan
-        d.ti_secondary[treat_succ] = np.nan
-        d.ti_latent[treat_succ] = np.nan
-        d.ti_tertiary[treat_succ] = np.nan
-        d.susceptible[treat_succ] = True
-        d.infected[treat_succ] = False
-
-        # Schedule post-treatment non-trep sero-reversion for early-stage
-        # treated agents currently RPR-positive. Without this, treated
-        # patients stayed nontrep=True for life (ti_nontrep_end was only
-        # set when entering late latent, never for early-stage treated).
-        nontrep_treated = early_stage_treated[d.nontrep[early_stage_treated]]
-        if len(nontrep_treated) > 0:
-            months = self.pars.nontrep_revert_months.rvs(nontrep_treated)
-            steps_to_revert = np.maximum(
-                1, np.round(months / (12.0 * d.t.dt_year)).astype(int))
-            d.ti_nontrep_end[nontrep_treated] = d.ti + steps_to_revert
-
-        # Window-period treatment: if treated BEFORE the agent's
-        # ti_trep_start fires (i.e. before trep antibodies appear, ~3 weeks
-        # post-infection), the trep test also stays negative — they never
-        # seroconvert. Clear ti_trep_start so step_state doesn't flip
-        # trep=True later.
-        window_period_treated = treat_succ[
-            (~d.trep[treat_succ]) &
-            (d.ti_trep_start.notnan[treat_succ]) &
-            (d.ti + 1 < d.ti_trep_start[treat_succ])
-        ]
-        if len(window_period_treated) > 0:
-            d.ti_trep_start[window_period_treated] = np.nan
-
-    def treat_fetus(self, sim, mother_uids):
-        """
-        Treat fetuses of successfully treated mothers.
-        Birth outcomes of successfully treated fetuses will be updated. If fetus is not yet infected, the treatment doesn't do anything.
-        Treatment success depends on when in the pregnancy the mother gets treated
-        with reduced treatment efficacy above the cut off age
-        """
-        # Get Fetuses
-        children_uids = ss.uids(sim.networks.maternalnet.find_contacts(mother_uids))  # Children and Fetuses of treated mothers
-        fetus_gt_cutoff = children_uids[sim.people.age[children_uids] > self.pars.fetus_age_cutoff_treat_eff]  # Fetuses above cutoff age
-        fetus_st_cutoff = children_uids[sim.people.age[children_uids] <= self.pars.fetus_age_cutoff_treat_eff]  # Fetuses below cutoff age
-
-        # Treat fetuses above cutoff age (e.g. in the last trimester) with a reduced treatment efficacy
-        treat_gt_cutoff = self.pars.treat_eff_reduced.filter(fetus_gt_cutoff)
-
-        # Treat fetuses below cutoff age (e.g. in the first two trimesters)
-        treat_st_cutoff = self.pars.fetus_treat_eff.filter(fetus_st_cutoff)
-
-        # Combine
-        treat_uids = treat_gt_cutoff.concat(treat_st_cutoff)
-
-        # Store results - Failure
-        sim.diseases.syph.results['new_fetus_treated_failure'][self.ti] = len(fetus_gt_cutoff) + len(fetus_st_cutoff) - len(treat_uids)
-        # Store results - Unnecessary. Subtract successful uids below
-        sim.diseases.syph.results['new_fetus_treated_unnecessary'][self.ti] += len(treat_uids)
-
-        # Change birth outcomes for successfully treated unborn babies
-        # If fetus is not yet infected, this will do nothing
-        if len(treat_uids):
-            # Birth outcomes must be modified to add probability of susceptible birth
-            birth_outcomes = sim.diseases.syph.pars.birth_outcome_keys
-
-            # Change states
-            for oi, outcome in enumerate(birth_outcomes):
-                if outcome != 'normal':
-                    ti_outcome = f'ti_{outcome}'
-                    vals = getattr(sim.diseases.syph, ti_outcome)
-                    successful_uids = treat_uids & vals.notnan.uids
-                    vals[successful_uids] = np.nan
-                    sim.diseases.syph.setattribute(ti_outcome, vals)
-
-                # Store results - Success
-                sim.diseases.syph.results['new_fetus_treated_success'][self.ti] += len(successful_uids)
-                # Store results - Unnecessary. Subtract the uids that were successful
-                sim.diseases.syph.results['new_fetus_treated_unnecessary'][self.ti] -= len(successful_uids)
-
-        return
-
-    def step(self):
-        """
-        Apply treatment
-        """
-        sim = self.sim
-        treat_uids = super().step()
-        # Treat unborn babies of successfully treated mothers (only if pregnancy is modeled)
-        if hasattr(sim.people, 'pregnancy'):
-            treat_pregnant_uids = sim.people.pregnancy.pregnant.uids & self.outcomes['successful']
-            overtreat_pregnant_uids = sim.people.pregnancy.pregnant.uids & self.outcomes['unnecessary']
-            sim.diseases.syph.results['new_treated_unnecessary_pregnant'][self.ti] += len(overtreat_pregnant_uids)
-            if len(treat_pregnant_uids):
-                self.treat_fetus(sim, mother_uids=treat_pregnant_uids)
-        return treat_uids
-
-
-class NewbornTreatment(SyphTx):
-    """Treatment for congenital syphilis in newborns.
-
-    Extends :class:`SyphTx` to treat newborns diagnosed with congenital
-    syphilis. Successful treatment clears the congenital state and resets
-    the birth outcome to normal.
+    Who is treated is `who=` (e.g. `who=newborn_test.positive`) or `eligibility=`.
 
     Args:
-        pars (dict): Parameter overrides.
-        eligibility (func): Function returning eligible newborn UIDs.
-        max_capacity (int): Maximum treatments per timestep.
-        years (list): Calendar years during which the intervention is active.
-        name (str): Intervention name.
-        **kwargs: Additional parameter overrides.
+        pars (dict): `treat_eff`, `treat_prob`
+        eligibility (Cond/func): who is treated, as a condition
+        max_capacity (float): the most that can be treated
+        years (list): the first and last years of treatment
+        kwargs (dict): passed to `sti.STITreatment` (e.g. `who=`)
     """
-
-    def __init__(self, pars=None, eligibility=None, max_capacity=None, years=None, name=None, *args, **kwargs):
-        super().__init__(name=name, eligibility=eligibility, max_capacity=max_capacity, years=years, *args)
-        self.define_pars(
-            by_sex=False,
-        )
-        self.update_pars(pars, **kwargs)
+    def __init__(self, pars=None, eligibility=None, max_capacity=None, years=None, name=None, **kwargs):
+        p = sc.mergedicts(dict(treat_eff=0.98, treat_prob=1), pars, {k:kwargs.pop(k) for k in ['treat_eff', 'treat_prob'] if k in kwargs})
+        kwargs.pop('by_sex', None)
+        name = sc.ifelse(name, 'newborntreatment')
+        product = ss.Treatment(moves={'syph.cs_cure': p_of(p['treat_eff'])}, name=f'{name}_drug')
+        super().__init__(product=product, treat_prob=p_of(p['treat_prob']), eligibility=eligibility, max_capacity=max_capacity, years=years, name=name, **kwargs)
+        self.treats = ['syph']
         return
-
-    def change_states(self, disease, treat_succ):
-        """ Change states of congenital cases """
-        self.sim.diseases[disease].congenital[treat_succ] = False
-        self.sim.diseases[disease].ti_congenital[treat_succ] = np.nan
-        self.sim.diseases[disease].cs_outcome[treat_succ] = 4  # Reset to 'normal' outcome
-
-    def administer(self, sim, uids, disease, return_format='dict'):
-        """ Administer treatment to newborns """
-        sus = sim.diseases[disease].susceptible
-        con = sim.diseases[disease].congenital
-        sus_uids = uids[sus[uids]]
-        con_uids = uids[con[uids]]
-
-        # Babies that are neither susceptible nor congenital are MTC-infected
-        # (susceptible cleared during pregnancy, congenital not yet fired).
-        # Treat them as congenital cases.
-        mtc_uids = uids[~sus[uids] & ~con[uids]]
-        all_con = con_uids | mtc_uids
-
-        successful = self.pars.treat_eff.filter(all_con)
-        unsuccessful = np.setdiff1d(np.asarray(all_con), np.asarray(successful))
-        unnecessary = sus_uids
-
-        # Return outcomes
-        if return_format == 'dict':
-            output = {'successful': successful, 'unsuccessful': unsuccessful, 'unnecessary': unnecessary}
-        elif return_format == 'array':
-            output = successful
-
-        return output
 
 
 class SyphTest(STITest):
-    """Base class for syphilis screening and testing interventions.
+    """
+    Syphilis testing, with the probability of testing as for `sti.STITest`, or by risk group
 
-    Provides shared logic for processing test probability data (which can
-    be stratified by risk group, sex, and sex-work status) and scheduling
-    tests. Subclasses like :class:`ANCSyphTest` and :class:`NewbornSyphTest`
-    customize eligibility and scheduling.
+    `test_prob_data` can also be a dataframe with columns `year`, `risk_group`, `sex`,
+    `sw`, and `symp_test_prob`: an annual probability for each risk group and sex of
+    `structuredsexual`, with the rows with `sw=1` for female sex workers and clients
+    (interpolated between years). Agents only.
 
     Args:
-        test_prob_data: Testing probability; scalar, array, TimeSeries, or
-            DataFrame stratified by risk group/sex/sex-work status.
-        years (list): Calendar years corresponding to ``test_prob_data`` values.
-        start (float): Calendar year when testing begins.
-        stop (float): Calendar year when testing ends.
-        pars (dict): Parameter overrides.
-        product: Diagnostic product (default: ``SyphDx``).
-        eligibility (func): Function returning eligible UIDs.
-        name (str): Intervention name.
-        label (str): Label for plotting.
-        newborn_test: Optional :class:`NewbornSyphTest` to schedule for
-            positive mothers.
-        **kwargs: Additional parameter overrides.
+        test_prob_data (float/array/dataframe): the probability of testing
+        product (`sti.SyphDx`): the test
+        kwargs (dict): passed to `sti.STITest` (e.g. `years=`, `start=`, `eligibility=`)
     """
-    def __init__(self, test_prob_data=None, years=None, start=None, stop=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
-        super().__init__(test_prob_data=test_prob_data, years=years, start=start, stop=stop, eligibility=eligibility, product=product, name=name, label=label)
-        self.define_pars(
-            dt_scale=True,
-        )
-        self.update_pars(pars, **kwargs)
-        # Store optional newborn test intervention
-        self.newborn_test = newborn_test
-        return
-
-    def init_pre(self, sim):
-        super().init_pre(sim)
-        self.test_prob_data = self.process_data(sim)
-        return
-
-    def process_data(self, sim):
-        """ Turn dataframe into a dictionary """
-        if isinstance(self.test_prob_data, pd.DataFrame):
-            df = self.test_prob_data.set_index(['risk_group', 'sex', 'sw'])
-            df = df.pivot(columns='year', values='symp_test_prob')
-            dd = df.to_dict(orient='index')
-            for group, vals in dd.items():
-                dd[group] = sc.smoothinterp(self.t.yearvec, list(vals.keys()), list(vals.values()), smoothness=0)
-            return dd
-        else: return self.test_prob_data
-
-    @staticmethod
-    def make_test_prob_fn(self, sim, uids):
-        """ Process symptomatic testing probabilites over time by sex and risk group """
-
-        if sc.isnumber(self.test_prob_data):
-            test_prob = self.test_prob_data
-        elif isinstance(self.test_prob_data, TimeSeries):
-            test_prob = self.test_prob_data.interpolate(sim.now)
-        elif sc.checktype(self.test_prob_data, 'arraylike'):
-            # year_ind = sc.findnearest(self.years, self.t.now('year'))
-            # self.test_prob_data[year_ind]
-            all_vals = sc.smoothinterp(self.t.yearvec, self.years, self.test_prob_data, smoothness=0)
-            test_prob = all_vals[self.ti]
-        elif isinstance(self.test_prob_data, dict):
-            test_prob = pd.Series(index=uids)
-            n_risk_groups = sim.networks.structuredsexual.pars.n_risk_groups
-            for rg in range(n_risk_groups):
-                for sex in ['female', 'male']:
-                    for sw in [0, 1]:
-                        dkey = (rg, sex, sw)
-                        conditions = (sim.people[sex] & (sim.networks.structuredsexual.risk_group==rg))
-                        if sw:
-                            if sex == 'female': conditions = conditions & sim.networks.structuredsexual.fsw
-                            if sex == 'male':   conditions = conditions & sim.networks.structuredsexual.client
-                        test_prob[conditions[uids]] = self.test_prob_data[dkey][self.ti]
-        else:
-            errormsg = 'Format of test_prob_data must be float, array, or dict.'
+    def __init__(self, test_prob_data=None, years=None, start=None, stop=None, pars=None, product=None, eligibility=None,
+                 name=None, label=None, newborn_test=None, dt_scale=True, **kwargs):
+        pars = sc.mergedicts(pars)
+        dt_scale = pars.pop('dt_scale', dt_scale)
+        if newborn_test is not None:
+            errormsg = 'newborn_test= is gone: sti.NewbornSyphTest(anc=anc_test) is a step of its own'
             raise ValueError(errormsg)
-
-        # Scale and validate
-        test_prob = test_prob * self.pars.rel_test
-        if self.pars.dt_scale:
-            test_prob = test_prob * self.t.dt_year
-        test_prob = np.clip(test_prob, a_min=0, a_max=1)
-
-        return test_prob
-
-    def step(self, uids=None):
-        super().step(uids=uids)
-        sim = self.sim
-
-        after_start = (self.t.now('year') >= self.start)
-        before_stop = (self.t.now('year') < self.stop)
-
-        if (after_start & before_stop):
-            # Schedule newborn tests if the mother is positive
-            if self.newborn_test is not None and hasattr(sim.networks, 'maternalnet') and hasattr(sim.people, 'pregnancy'):
-                new_pos = self.ti_positive == self.ti
-                if new_pos.any():
-                    pos_mother_inds = np.in1d(sim.networks.maternalnet.p1, new_pos.uids)
-                    unborn_uids = sim.networks.maternalnet.p2[pos_mother_inds]
-                    ti_births = sim.demographics.pregnancy.ti_delivery[sim.networks.maternalnet.p1[pos_mother_inds]]
-                    valid = ~np.isnan(ti_births)
-                    if valid.any():
-                        self.newborn_test.schedule(unborn_uids[valid], ti_births[valid].astype(int))
-
+        if isinstance(test_prob_data, pd.DataFrame):
+            self.by_group = test_prob_data
+            test_prob_data = 1.0
+        else:
+            self.by_group = None
+        name = sc.ifelse(name, type(self).__name__.lower()) # As in Starsim 3
+        super().__init__(product=product if product is not None else SyphDx(sensitivity=dict.fromkeys(syph_states['infected'], 1.0)),
+                         test_prob_data=test_prob_data, years=years, start=start, stop=stop, eligibility=eligibility, dt_scale=dt_scale,
+                         disease='syph', name=name, label=label, **kwargs, **pars)
+        if self.by_group is not None:
+            self.coverage = self.group_prob
         return
 
-    def update_results(self):
-        ti = self.ti
-        super().update_results()
-        if 'positive' in self.outcomes.keys() and (self.ti_positive == ti).any():
-            self.update_positives()
-        if 'negative' in self.outcomes.keys() and (self.ti_negative == ti).any():
-            self.update_negatives()
-
-        return
-
-    def update_positives(self):
-        ti = self.ti
-        new_pos = self.ti_positive == ti
-        # Count true/false positives
-        false_pos = np.count_nonzero(self.sim.diseases.syph.susceptible[new_pos])
-        true_pos = np.count_nonzero(self.sim.diseases.syph.infected[new_pos])
-        self.sim.diseases.syph.results['new_false_pos'][ti] += false_pos
-        self.sim.diseases.syph.results['new_true_pos'][ti] += true_pos
-        return
-
-    def update_negatives(self):
-        ti = self.ti
-        new_neg = self.ti_negative == ti
-        # Count true/false negatives
-        false_neg = np.count_nonzero(self.sim.diseases.syph.infected[new_neg])
-        true_neg = np.count_nonzero(self.sim.diseases.syph.susceptible[new_neg])
-        self.sim.diseases.syph.results['new_false_neg'][ti] += false_neg
-        self.sim.diseases.syph.results['new_true_neg'][ti] += true_neg
-        return
+    def group_prob(self, sim):
+        """ The probability of testing for each agent, from a dataframe by risk group, sex, and sex work, as a typed probability (so it is offered at every step) """
+        df = self.by_group
+        nw = sim.networks.structuredsexual
+        ppl = sim.people
+        year = sim.t.now('year')
+        out = np.zeros(len(ppl.uid.raw))
+        for (rg, sex, sw), rows in df.sort_values('sw').groupby(['risk_group', 'sex', 'sw'], sort=False):
+            rows = rows.sort_values('year')
+            p = np.interp(year, rows.year.values, rows.symp_test_prob.values)
+            cond = ppl[sex].raw & (nw.risk_group.raw == rg)
+            if sw:
+                cond &= (nw.fsw if sex == 'female' else nw.client).raw
+            out[cond] = p
+        out = np.clip(out*self.rel_test, 0, 1)
+        return ss.probperyear(out) if self.dt_scale else ss.prob(out, sim.t.dt)
 
 
 class ANCSyphTest(SyphTest):
-    """Antenatal care syphilis screening for pregnant women.
+    """
+    Syphilis screening at antenatal care, once a pregnancy
 
-    Schedules a syphilis test at a random gestational timepoint for each
-    newly pregnant woman. Unlike the base :class:`SyphTest`, testing
-    probability is not dt-scaled since tests are scheduled once per
-    pregnancy rather than applied each timestep.
+    Each pregnant woman is tested with probability `test_prob_data` at a visit `visit_ga`
+    after conception (drawn for each pregnancy), if she is still pregnant then. The
+    treatment of those who test positive is a step of its own (`who=anc.positive`), as is
+    the testing of their newborns (`sti.NewbornSyphTest(anc=anc)`). Needs `ss.Pregnancy`;
+    agents only.
 
     Args:
-        test_prob_data: Testing probability (see :class:`SyphTest`).
-        years (list): Calendar years for ``test_prob_data``.
-        start (float): Calendar year when ANC testing begins.
-        stop (float): Calendar year when ANC testing ends.
-        pars (dict): Parameter overrides.
-        product: Diagnostic product.
-        eligibility (func): Override default (pregnant women).
-        name (str): Intervention name.
-        label (str): Label for plotting.
-        newborn_test: Optional :class:`NewbornSyphTest` for positive mothers.
-        **kwargs: Additional parameter overrides.
+        test_prob_data (float/array): the probability of testing at the visit
+        visit_ga (dur/Dist): the time from conception to the visit (default 1 to 8 months)
+        kwargs (dict): passed to `sti.SyphTest`
+
+    Examples:
+        ```python
+        anc = sti.ANCSyphTest(product=dual, test_prob_data=0.9, start=2005, name='anc')
+        tx = sti.SyphTx(who=anc.positive, name='syph_tx')
+        nb = sti.NewbornSyphTest(anc=anc, product=dual, test_prob_data=0.8, name='nb_test')
+        nb_tx = sti.NewbornTreatment(who=nb.positive, name='newborn_tx')
+        sim = sti.Sim(diseases='syph', interventions=[anc, tx, tx.fetal, nb, nb_tx])
+        ```
     """
-    def __init__(self, test_prob_data=None, years=None, start=None, stop=None, pars=None, product=None, eligibility=None, name=None, label=None, newborn_test=None, **kwargs):
-        super().__init__(test_prob_data=test_prob_data, years=years, start=start, stop=stop, eligibility=eligibility, product=product, name=name, label=label, newborn_test=newborn_test, **kwargs)
-        self.define_pars(
-            dt_scale=False,
-        )
-        self.update_pars(pars, **kwargs)
-        self.test_timing = ss.randint(1, 8)
-        if self.eligibility is None:
-            self.eligibility = lambda sim: sim.demographics.pregnancy.pregnant
-        return
-
-    def get_testers(self, sim):
-        # For ANC testing, only administer scheduled tests
-        return (self.ti_scheduled == self.ti).uids
-
-    def schedule_tests(self):
-        """ Schedule a test for newly pregnant women """
-        sim = self.sim
-        newly_preg = (sim.demographics.pregnancy.ti_pregnant == (self.ti)).uids
-        self.test_prob.pars['p'] = self.make_test_prob_fn(self, sim, newly_preg)
-        will_test = self.test_prob.filter(newly_preg)
-        ti_test = self.ti + self.test_timing.rvs(will_test)
-        self.ti_scheduled[will_test] = ti_test
-
-    def step(self):
-        self.schedule_tests()  # Check for newly pregnant women so they can be added to the schedule
-        super().step()
+    def __init__(self, test_prob_data=None, years=None, start=None, stop=None, pars=None, product=None, eligibility=None,
+                 name=None, label=None, visit_ga=None, **kwargs):
+        for key in ['newborn_test', 'on_positive']:
+            if kwargs.get(key) is not None:
+                errormsg = f'{key}= is gone: what follows a positive test is a step of its own (who=anc.positive, or sti.NewbornSyphTest(anc=anc))'
+                raise TypeError(errormsg)
+        visit_ga = sc.ifelse(visit_ga, ss.uniform(ss.months(1), ss.months(8)))
+        pregnant = ss.state('pregnancy.P')
+        who = pregnant.enter & pregnant # At conception; tested at the visit if still pregnant
+        super().__init__(test_prob_data=test_prob_data, years=years, start=start, stop=stop, pars=pars, product=product,
+                         eligibility=eligibility, name=name, label=label, dt_scale=None, who=who, delay=visit_ga, **kwargs)
         return
 
 
 class NewbornSyphTest(SyphTest):
-    """Syphilis test for newborns of mothers diagnosed during pregnancy.
-
-    Administers scheduled tests to newborns whose mothers tested positive
-    for syphilis at any point during pregnancy. Tests are only given at the
-    scheduled timestep, filtered by acceptance probability.
     """
+    Syphilis testing of newborns at birth, if their mothers tested positive at antenatal care within the last year
 
-    def get_testers(self, sim):
-        # For newborn testing, only administer scheduled tests, and account for probability of testing at this point
-        eligible_uids = (self.ti_scheduled == self.ti).uids
-        accept_uids = self.test_prob.filter(eligible_uids)
-        return accept_uids
+    Each such newborn is tested with probability `test_prob_data`; their treatment is a step
+    of its own (e.g. `sti.NewbornTreatment(who=nb.positive)`). Agents only.
 
+    Args:
+        test_prob_data (float): the probability of testing
+        anc (`sti.ANCSyphTest`): the antenatal testing whose positives' newborns are tested
+        kwargs (dict): passed to `sti.SyphTest`
+    """
+    def __init__(self, test_prob_data=None, anc=None, **kwargs):
+        if anc is None:
+            errormsg = 'NewbornSyphTest tests the newborns of mothers who tested positive at an sti.ANCSyphTest: give it as anc='
+            raise ValueError(errormsg)
+        if kwargs.get('eligibility') is not None:
+            errormsg = 'NewbornSyphTest tests the newborns of mothers who tested positive at ANC; it takes no eligibility='
+            raise ValueError(errormsg)
+        kwargs.setdefault('product', SyphDx(sensitivity=dict(CS=1.0, Ccs=1.0, Cnnd=1.0)))
+        on = ss.state('pregnancy.birth') & ss.mother(anc.positive.since <= ss.years(1), born=True) # Born now, to a mother who tested positive at ANC in the last year
+        super().__init__(test_prob_data=test_prob_data, dt_scale=None, on=on, **kwargs)
+        return

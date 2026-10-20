@@ -9,8 +9,11 @@ import sciris as sc
 import hivsim
 
 
-def test_msm_network(n_agents=500):
-    """ Test MSM HIV transmission via AgeMatchedMSM network """
+def test_msm_network(n_agents=2000):
+    """ Test MSM HIV transmission via AgeMatchedMSM network
+
+    Infections are seeded in everyone, so the network transmits only if an infected man is an MSM participant past
+    debut; with 500 agents, a seed can leave none (about 1 in 12), and the test then fails with no network bug. """
     hiv = sti.HIV(beta_m2m=0.1, init_prev=0.05)
     pregnancy = ss.Pregnancy(fertility_rate=10)
     death = ss.Deaths(death_rate=10)
@@ -23,7 +26,7 @@ def test_msm_network(n_agents=500):
         networks=[msm],
         demographics=[pregnancy, death],
     )
-    sim.run(verbose=1/12)
+    sim.run(verbose=1)
 
     assert sim.results.hiv.cum_infections[-1] > 0, "MSM network should produce HIV infections"
     return sim
@@ -209,7 +212,7 @@ def test_match_pairs_refactor_preserves_output():
     import numpy as np
     import starsim as ss
     import stisim as sti
-    sim = ss.Sim(n_agents=2_000, networks=sti.StructuredSexual(), diseases='sis',
+    sim = ss.Sim(n_agents=2_000, networks=sti.StructuredSexual(), diseases=ss.SIS(beta=ss.peract(0.05)), # A sexual network has acts, so beta is per act
                  start='2000-01-01', stop='2001-01-01', rand_seed=42)
     sim.init()
     net = sim.networks.structuredsexual

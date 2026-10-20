@@ -103,7 +103,10 @@ def parse(docs=None, ref='main'):
 
 
 def _fmt(value):
-    """ Compact string for a parameter value, e.g. ``ss.normal(loc=800, scale=50)`` -> ``normal(loc=800, scale=50)`` """
+    """ Compact string for a parameter value, e.g. ``ss.normal(loc=800, scale=50)`` -> ``normal(loc=800, scale=50)``; a declared module's ``ss.par`` gives its value """
+    import starsim as ss
+    if isinstance(value, ss.par):
+        value = value.raw
     return re.sub(r'\bss\.', '', repr(value)).replace('\n', ' ')
 
 
@@ -220,7 +223,7 @@ def check_coverage(rows, exclude=()):
     out = {}
     for modname, cls in classes.items():
         documented = {r['name'] for r in rows if r['modname'] == modname}
-        defined = set(cls().pars)
+        defined = set(cls().pars) | set(getattr(cls, 'options', [])) # A class's options are constructor arguments, documented with its parameters
         out[cls.__name__] = (sorted(defined - documented - set(exclude)), sorted(documented - defined))
     return out
 

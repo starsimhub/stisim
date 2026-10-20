@@ -1,744 +1,283 @@
 """
-Template class for SEIS-type STIs
-Used for chlamydia, gonorrhea, and trich
+Bacterial STIs as declared Starsim diseases: the base class, and the SEIS template
+used for chlamydia, gonorrhea, and trichomoniasis
 """
 
 import numpy as np
-import starsim as ss
 import sciris as sc
-import stisim.utils as ut
-import pandas as pd
+import starsim as ss
 
-ss_float_ = ss.dtypes.float
+__all__ = ['BaseSTI', 'SEIS', 'sexed', 'default_age_bins', 'default_sex_keys']
 
-__all__ = ['BaseSTI', 'SEIS', 'BaseSTIPars', 'STIPars', 'default_age_bins', 'default_sex_keys']
-
-# Default stratifications for disease results. Pass age_bins=None or sex_keys=None to a
-# disease module to skip creating the corresponding stratified results.
+# Default stratifications of results: sti.Sim stratifies by sex and by these age groups
 default_age_bins = [0, 15, 20, 25, 30, 35, 50, 65, 100]
 default_sex_keys = {'': 'alive', 'f': 'female', 'm': 'male'}
+female = ss.ppl.female
 
 
-class BaseSTIPars(ss.Pars):
+def sexed(val):
     """
-    Base parameters shared by all STI disease modules.
+    Convert a value by sex as STIsim has written it to a Starsim value
 
-    Holds transmission parameters (beta values, condom efficacy), timestep
-    settings, and initial prevalence configuration.
+    `[women, men]` becomes `ss.by(sex=dict(female=women, male=men))`, `[[mean, std], [mean, std]]` a lognormal
+    with a mean and standard deviation by sex, and `ss.bernoulli(p=x)` its probability `x`.
+    Anything else is returned unchanged.
+
+    Examples:
+        ```python
+        sti.sexed([0.35, 0.65]) # ss.by(sex=dict(female=0.35, male=0.65))
+        sti.sexed([[ss.months(8), ss.months(2)], [ss.months(6), ss.months(3)]]) # ss.lognorm_ex by sex
+        ```
     """
-    def __init__(self, **kwargs):
-        super().__init__()
-
-        # Settings
-        self.include_care = True  # Determines whether testing results are included
-
-        # Time
-        self.dt = 'month'
-
-        # Transmission
-        self.beta = 0  # Placeholder: no transmission. This will be set in validate_beta
-        self.beta_m2f = None
-        self.rel_beta_f2m = 0.5
-        self.beta_m2c = None
-        self.beta_breastfeed = None
-        self.beta_m2m = None
-        self.eff_condom = 1
-        self.rel_init_prev = 1
-        self.update(kwargs)
-        return
+    if isinstance(val, ss.bernoulli):
+        return val.pars.p
+    if isinstance(val, (list, tuple)) and len(val) == 2:
+        f, m = val
+        if all(isinstance(v, (list, tuple)) for v in val):
+            return ss.lognorm_ex(mean=ss.by(sex=dict(female=f[0], male=m[0])), std=ss.by(sex=dict(female=f[1], male=m[1])))
+        return ss.by(sex=dict(female=f, male=m))
+    return val
 
 
-class STIPars(BaseSTIPars):
+def init_prev_fn(data):
     """
-    Parameters for SEIS-type STI models.
-
-    Extends ``BaseSTIPars`` with natural history parameters including symptom
-    probabilities, care-seeking behavior, PID progression, and clearance
-    durations. Used as the default parameter set for chlamydia, gonorrhea,
-    and trichomoniasis.
-    """
-    def __init__(self, **kwargs):
-        super().__init__()
-
-        # Natural history
-        self.dur_exp = ss.constant(ss.weeks(1))  # How long after exposure before you can infect others
-
-        # Symptoms and symptomatic testing
-        self.p_symp_dist = ss.bernoulli(p=0.5)  # Distribution of symptomatic vs asymptomatic
-        self.p_symp = [0.375, 0.375]
-        self.dur_presymp_dist = ss.lognorm_ex()
-        self.dur_presymp = [  # For those who develop symptoms, how long before symptoms appear
-            [ss.weeks(1), ss.weeks(12)],    # Women
-            [ss.weeks(0.25), ss.weeks(3)],  # Men
-        ]
-        self.p_symp_clear_dist = ss.bernoulli(p=0)
-        self.p_symp_clear = [0.0, 0.0]
-        self.dur_symp = [
-            ss.lognorm_ex(ss.weeks(1), ss.weeks(26)),  # Duration of symptoms
-            ss.lognorm_ex(ss.weeks(1), ss.weeks(26)),  # Duration of symptoms
-        ]
-        self.p_symp_care_dist=ss.bernoulli(p=0)
-        self.p_symp_care=[0.3, 0.2]
-        self.dur_symp2care_dist=ss.lognorm_ex()
-        self.dur_symp2care = [  # For those who test, how long before they seek care - reset for each individual STI
-            [ss.weeks(4), ss.weeks(4)],  # Women
-            [ss.weeks(6), ss.weeks(4)],  # Men
-        ]
-
-        # PID and PID care-seeking
-        self.p_pid = ss.bernoulli(p=0.2)
-        self.dur_prepid = ss.lognorm_ex(ss.weeks(6), ss.weeks(4))
-        self.p_pid_care = ss.bernoulli(p=0.1)  # Women
-        self.dur_pid2care = ss.lognorm_ex(ss.weeks(2), ss.weeks(4))  # Women
-
-        # Clearance
-        self.dur_asymp2clear_dist = ss.lognorm_ex()
-        self.dur_asymp2clear = [  # Duration of untreated asymptomatic infection (excl initial latent)
-            [ss.weeks(52), ss.weeks(5)],  # Women
-            [ss.weeks(52), ss.weeks(5)],  # Men
-        ]
-        self.dur_symp2clear_dist = ss.lognorm_ex()
-        self.dur_symp2clear = [  # Duration of untreated symptomatic infection (excl initial latent)
-            [ss.weeks(52), ss.weeks(5)],  # Women
-            [ss.weeks(52), ss.weeks(5)],  # Men
-        ]
-        self.dur_pid2clear=ss.lognorm_ex(ss.weeks(52), ss.weeks(5))
-
-        # Initial conditions
-        self.init_prev = ss.bernoulli(p=0.01)
-        self.update(kwargs)
-        return
-
-
-# Main class
-class BaseSTI(ss.Infection):
-    """
-    Base class for sexually transmitted infections.
-
-    Extends ``ss.Infection`` with STI-specific transmission logic, including
-    network-specific beta values, condom efficacy, and initial prevalence by
-    sex and risk group. All STIsim disease modules inherit from this class.
+    Initial prevalence by risk group, sex, and sex work, as a function of `(sim, uids)` for `init_prev=` (agents only)
 
     Args:
-        name (str): Module name used for results and parameter routing.
-        pars (dict): Override default parameters from ``BaseSTIPars``.
-        init_prev_data: Initial prevalence data (float or DataFrame by age/sex/risk group).
-        age_range (list): Age range used for the main (adult) prevalence results. Default: [15, 50].
-        age_bins (list): Bin edges for age-stratified results; ``None`` skips them entirely.
-        sex_keys (dict): Sex strata for results, mapping result suffix to a people attribute;
-            ``None`` skips sex-stratified results, keeping only the whole-population ones.
-        **kwargs: Additional parameters passed to ``update_pars``.
+        data (dataframe): columns `risk_group`, `sex` (`'female'` or `'male'`), `sw` (0 or 1), and `init_prev`; or a number
     """
-    def __init__(self, name=None, pars=None, init_prev_data=None, age_range=None,
+    if sc.isnumber(data):
+        return data
+    def init_prev(sim, uids):
+        nw = sim.networks.structuredsexual
+        ppl = sim.people
+        out = np.zeros(len(uids))
+        active = nw.active(ppl)[uids]
+        for row in data.sort_values('sw').itertuples(): # As in STIsim 3: by group, then sex workers and clients overwrite theirs
+            cond = ppl[row.sex][uids] & (nw.risk_group[uids] == row.risk_group) & active
+            if row.sw:
+                cond &= (nw.fsw if row.sex == 'female' else nw.client)[uids]
+            out[np.asarray(cond)] = row.init_prev
+        return np.clip(out, 0, 1)
+    return init_prev
+
+
+class BaseSTI(ss.Disease):
+    """
+    Base class for sexually transmitted infections declared as states and transitions
+
+    Transmission is given per network, as in STIsim 3: `beta_m2f` (and `rel_beta_f2m`) on
+    `structuredsexual`, `beta_m2c` on `maternal`, and `beta_m2m` on `msm`; other networks
+    do not transmit. These are turned into the beta of each network when the sim is
+    initialized. Give `beta` directly (a number, a rate, or a dict by network) to bypass
+    this, e.g. `beta=ss.peryear(2)` for homogeneous mixing with no networks.
+
+    Subclasses declare their states and transitions in the class body; `defaults` gives
+    the values of the parameters that differ from the parent's, in STIsim's forms (see
+    `sti.sexed()`).
+
+    Args:
+        pars (dict): parameter values
+        name (str): the name of the module
+        init_prev (float): the initial prevalence (or `ss.bernoulli(p=...)`)
+        init_prev_data (dataframe): initial prevalence by risk group, sex, and sex work (columns `risk_group`, `sex`, `sw`, `init_prev`), among the sexually active in `structuredsexual`; instead of init_prev
+        age_range (list): the ages of the adults that `prevalence` and `symp_prevalence` count (default [15, 65])
+        age_bins (list): the age groups `sti.Sim` stratifies by, if this disease is in it; None for none
+        sex_keys (dict): the sexes of the flat results (`prevalence_f`, ...); None for none
+        kwargs (dict): parameter values by name, or `label`, `dt`
+    """
+    beta_m2f = ss.par(0.0, doc='Per-act probability of transmission, male to female')
+    rel_beta_f2m = ss.par(0.5, doc='Relative per-act probability of transmission, female to male')
+    beta_m2c = ss.par(0.0, doc='Monthly probability of mother-to-child transmission')
+    beta_m2m = ss.par(0.0, doc='Per-act probability of transmission, male to male')
+    beta = ss.par(dict(
+        structuredsexual = ss.peract(m2f=beta_m2f, f2m=beta_m2f*rel_beta_f2m),
+        msm = ss.peract(beta_m2m),
+        maternalnet = beta_m2c*ss.permonth(1),
+        default = 0, # Other networks do not transmit
+    ), doc='Beta by network, from beta_m2f, rel_beta_f2m, beta_m2c, and beta_m2m; give it directly (e.g. ss.peryear(2) with no networks) to replace them')
+    eff_condom = ss.par(1.0, doc='Efficacy of condoms')
+    defaults = {}
+    standard_results = True # new_infections, cum_infections, and prevalence, as STIsim 3 had
+    transmits = True # False for a condition that is not transmitted (BV): it needs no networks
+
+    def __init__(self, pars=None, name=None, init_prev=None, init_prev_data=None, age_range=None,
                  age_bins=default_age_bins, sex_keys=default_sex_keys, **kwargs):
-        super().__init__(name=name)
-
-        # Handle parameters
-        default_pars = BaseSTIPars()
-        self.define_pars(**default_pars)
-        self.update_pars(pars, **kwargs)
-
-        self.define_states(
-            # Time of acquisition: S->E, or S->I for diseases with no exposed compartment.
-            # Written exactly once per infection and never rewritten, which is what makes
-            # `ti_exposed == ti` a correct one-shot test for incidence. In `SEIS` the time of
-            # becoming infectious is `ti_infectious`, which `step_state()` snaps forward to the
-            # realized transition step, so it cannot be used for that.
-            ss.FloatArr('ti_exposed'),
-            ss.FloatArr('ti_transmitted_sex'),
-            ss.FloatArr('ti_transmitted_mtc'),
-            ss.FloatArr('ti_transmitted'),
-            ss.FloatArr('new_transmissions'),
-            ss.FloatArr('new_transmissions_sex'),
-            ss.FloatArr('infection_net'),  # Network index at time of infection (NaN if uninfected)
-        )
-
-        # Set initial prevalence
-        self.init_prev_data = init_prev_data
-
-        # Results. age_bins=None skips age-stratified results; sex_keys=None skips
-        # sex-stratified results, leaving only the whole-population ones.
-        self.age_range = age_range if age_range is not None else [15, 50]  # Age range for main results e.g. prevalence
-        self.age_bins = np.array(age_bins) if age_bins is not None else None
-        self.sex_keys = dict(sex_keys) if sex_keys is not None else {'': 'alive'}
-
+        names = ss.transitions.class_members(type(self)).keys()
+        if init_prev_data is not None:
+            init_prev = init_prev_fn(init_prev_data)
+        given = sc.mergedicts(pars, {k:kwargs.pop(k) for k in list(kwargs) if k in names}, None if init_prev is None else dict(init_prev=init_prev))
+        if not self.transmits:
+            if given.get('init_prev') is not None:
+                errormsg = f'{type(self).__name__} is not transmitted, so has no init_prev; set the shares in its states instead'
+                raise ValueError(errormsg)
+            given.pop('init_prev', None)
+            pars = sc.mergedicts(self.defaults, given)
+            super().__init__(name=name, pars={k:sexed(v) for k,v in pars.items()}, **kwargs)
+        else:
+            pars = sc.mergedicts(dict(init_prev=0.01), self.defaults, given)
+            init_prev = sexed(pars.pop('init_prev'))
+            super().__init__(name=name, pars={k:sexed(v) for k,v in pars.items()}, init_prev=ss.par(init_prev, name='init_prev'), **kwargs)
+        self.age_range = age_range if age_range is not None else [15, 65]
+        self.age_bins = None if age_bins is None else list(age_bins)
+        self.sex_keys = {'': 'alive'} if sex_keys is None else dict(sex_keys)
         return
 
-    def make_init_prev(self, uids=None, data=None, active=True):
-        """ Initialize prevalence by sex and risk group """
-        sim = self.sim
-        if data is None: data = self.init_prev_data
-        if uids is None: uids = sim.people.auids  # Everyone
+    def modifiers(self, sim):
+        """ Modifiers that are part of the disease (e.g. syphilis latent infectiousness, BV risk factors from the network): added to the sim's connectors """
+        return []
 
-        if sc.isnumber(data):
-            init_prev = data
+    def add_modifiers(self, sim):
+        """ Add the disease's own modifiers to the sim, if they are not there already. TODO(v4-rs): a way for a module to declare its own modifiers """
+        for mod in self.modifiers(sim):
+            if mod.name not in sim.connectors:
+                sim.connectors[mod.name] = mod
+                mod.init_pre(sim)
+        return
 
-        elif isinstance(data, pd.DataFrame):
-
-            init_prev = np.zeros(len(uids), dtype=ss_float_)
-            df = data
-
-            nw = sim.networks.structuredsexual
-            n_risk_groups = nw.pars.n_risk_groups
-            for rg in range(n_risk_groups):
-                for sex in ['female', 'male']:
-                    for sw in [0, 1]:
-                        thisdf = df.loc[(df.risk_group==rg) & (df.sex==sex) & (df.sw==sw)]
-                        conditions = sim.people[sex] & (nw.risk_group==rg)
-                        if active:
-                            conditions = conditions & nw.active(sim.people)
-                        if sw:
-                            if sex == 'female': conditions = conditions & sim.networks.structuredsexual.fsw
-                            if sex == 'male':   conditions = conditions & sim.networks.structuredsexual.client
-                        init_prev[conditions[uids]] = thisdf.init_prev.values[0]
-
-        else:
-            errormsg = 'Format of init_prev_data must be float or dataframe.'
-            raise ValueError(errormsg)
-
-        # Scale and validate
-        init_prev = init_prev * self.pars.rel_init_prev
-        init_prev = np.clip(init_prev, a_min=0, a_max=1)
-
-        return init_prev
-
-    def validate_beta(self):
-        """
-        Map disease-specific transmission parameters onto the betamap.
-
-        The parent class (ss.Infection) builds a betamap keyed by standardized
-        network name, with [beta_p1→p2, beta_p2→p1] per network. Here we
-        override entries for STI-specific networks using disease parameters:
-
-            - structuredsexual: beta_m2f (and rel_beta_f2m for female→male)
-            - maternal: beta_m2c (prenatal MTCT)
-            - breastfeeding: beta_breastfeed (postnatal MTCT, HIV only)
-            - msm: beta_m2m (bidirectional)
-        """
-        betamap = super().validate_beta()
-        if self.pars.beta_m2f is not None and 'structuredsexual' in betamap:
-            betamap['structuredsexual'][0] = self.pars.beta_m2f
-            betamap['structuredsexual'][1] = self.pars.beta_m2f * self.pars.rel_beta_f2m
-        if self.pars.beta_m2c is not None and 'maternal' in betamap:
-            betamap['maternal'][0] = ss.permonth(self.pars.beta_m2c)
-        if self.pars.beta_breastfeed is not None and 'breastfeeding' in betamap:
-            betamap['breastfeeding'][0] = ss.permonth(self.pars.beta_breastfeed)
-        if self.pars.beta_m2m is not None and 'msm' in betamap:
-            betamap['msm'][0] = self.pars.beta_m2m
-            betamap['msm'][1] = self.pars.beta_m2m
-        return betamap
-
-    def agehist(self, a):
-        """ Return an age histogram """
-        aa = self.sim.people.age[a]
-        return np.histogram(aa, bins=self.age_bins)[0]
+    def init_pre(self, sim):
+        super().init_pre(sim)
+        self.add_modifiers(sim)
+        return
 
     @property
-    def treatable(self):
-        """ Assume infected people are treatable, can be overwritten in subclasses """
-        return self.infected
+    def strats(self):
+        """ The sim's stratifications, by name """
+        return {s.name:s for s in self.sim.strats}
 
-    def init_results(self):
-        """ Initialize results """
-        super().init_results()
-        results = sc.autolist()
+    def adult_levels(self):
+        """ The age groups within age_range, if the sim is stratified by age """
+        age = self.strats.get('age')
+        if age is None or age.edges is None:
+            return None
+        lo, hi = self.age_range
+        edges = list(age.edges) + [np.inf]
+        return [label for label,a,b in zip(age.labels, edges[:-1], edges[1:]) if a >= lo and b <= hi]
 
-        # Most results are stored by age and sex
-        for sk in self.sex_keys.keys():
-            skk = '' if sk == '' else f'_{sk}'
-            skl = '' if sk == '' else f' ({sk.upper()})'
-            is_subpop = skk != ''  # Sex-stratified results are not auto-plotted
-            results += [
-                ss.Result(f'incidence{skk}', scale=False, label=f"Incidence{skl}", auto_plot=not is_subpop),
-            ]
-            if is_subpop:
-                results += [
-                    ss.Result(f'new_infections{skk}', dtype=int, label=f"New infections{skl}", auto_plot=False),
-                    ss.Result(f'prevalence{skk}', scale=False, label=f"Prevalence{skl}", auto_plot=False),
-                    ss.Result(f'n_infected{skk}', dtype=int, label=f"Number infected{skl}", auto_plot=False),
-                ]
-
-            if self.age_bins is not None:
-                for ab1,ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
-                    ask = f'{skk}_{ab1}_{ab2}'
-                    asl = f' ({skl}, {ab2}-{ab2})'
-                    results += [
-                        ss.Result(f'new_infections{ask}', dtype=int, label=f"New infections{asl}", auto_plot=False),
-                        ss.Result(f'n_infected{ask}', dtype=int, label=f"Number infected{asl}", auto_plot=False),
-                        ss.Result(f'incidence{ask}', scale=False, label=f"Incidence{asl}", auto_plot=False),
-                        ss.Result(f'prevalence{ask}', scale=False, label=f"Prevalence{asl}", auto_plot=False),
-                    ]
-
-        if self.pars.include_care:
-            for sk in self.sex_keys.keys():
-                skk = '' if sk == '' else f'_{sk}'
-                skl = '' if sk == '' else f' ({sk.upper()})'
-                results += [
-                    ss.Result('new_care_seekers'+skk, dtype=int, label="New care seekers"+skl, auto_plot=False),
-                    ss.Result('new_false_pos'+skk, dtype=int, label="New false positives"+skl, auto_plot=False),
-                    ss.Result('new_true_pos'+skk, dtype=int, label="New true positives"+skl, auto_plot=False),
-                    ss.Result('new_false_neg'+skk, dtype=int, label="New false negatives"+skl, auto_plot=False),
-                    ss.Result('new_true_neg'+skk, dtype=int, label="New true negatives"+skl, auto_plot=False),
-                    ss.Result('new_treated_success'+skk, dtype=int, label="Successful treatments"+skl, auto_plot=False),
-                    ss.Result('new_treated_failure'+skk, dtype=int, label="Unsuccessful treatments"+skl, auto_plot=False),
-                    ss.Result('new_treated_unnecessary'+skk, dtype=int, label="Unnecessary treatments"+skl, auto_plot=False),
-                    ss.Result('new_treated'+skk, dtype=int, label="Treatments"+skl, auto_plot=False),
-                ]
-
-        # Transmission route results
-        results += [
-            ss.Result('new_infections_sex', dtype=int, label='New infections (sexual)', auto_plot=False),
-            ss.Result('new_infections_mtct', dtype=int, label='New infections (MTCT)', auto_plot=False),
-            ss.Result('new_infections_prenatal', dtype=int, label='New infections (prenatal MTCT)', auto_plot=False),
-            ss.Result('new_infections_postnatal', dtype=int, label='New infections (postnatal MTCT)', auto_plot=False),
+    def flat_results(self):
+        """ Results by sex as STIsim 3 named them, among adults where they are prevalences: (name, numerator, denominator or None, label) """
+        return [
+            ('new_infections', 'new_infections', None, 'New infections'),
+            ('n_infected', 'n_infected', None, 'Number infected'),
+            ('incidence', 'incidence', None, 'Incidence'),
         ]
 
-        self.define_results(*results)
-
-        return
-
-    def step(self):
-        """ Override to pass network indices to set_outcomes for MTCT tracking """
-        new_cases, sources, networks = self.infect()
-        if len(new_cases):
-            self.set_outcomes(new_cases, sources, net_ids=networks)
-        return new_cases, sources, networks
-
-    def set_outcomes(self, uids, sources, net_ids=None):
-        """
-        Set prognoses for newly infected agents and track transmission routes.
-
-        Args:
-            uids: UIDs of agents newly infected this timestep (not all agents)
-            sources: UIDs of the agents who transmitted to each new case
-            net_ids: array of network indices indicating which network each
-                     infection came from (used to distinguish prenatal vs
-                     postnatal MTCT). Passed from step() via infect().
-        """
-        super().set_outcomes(uids, sources=sources)
-        self.new_transmissions[:] = 0
-        self.new_transmissions_sex[:] = 0
-
-        # Classify each new infection by its transmission route.
-        # net_ids is an integer array (one per new infection) where each value
-        # is the index into sim.networks (in insertion order) of the network
-        # that caused that infection. We loop over the unique network indices,
-        # look up the actual network object, and use isinstance to classify
-        # as prenatal MTCT, postnatal MTCT, or horizontal (sexual) transmission.
-        is_prenatal = np.zeros(len(uids), dtype=bool)
-        is_postnatal = np.zeros(len(uids), dtype=bool)
-        if net_ids is not None:
-            net_list = list(self.sim.networks.values())
-            for idx in np.unique(net_ids):
-                net = net_list[idx]
-                mask = net_ids == idx
-                if isinstance(net, ss.PrenatalNet):
-                    is_prenatal |= mask
-                elif isinstance(net, ss.PostnatalNet):
-                    is_postnatal |= mask
-
-        is_mtct = is_prenatal | is_postnatal
-
-        # Store network index per agent for use in update_results
-        if net_ids is not None:
-            self.infection_net[uids] = net_ids.astype(float)
-
-        sex_transmission = sources[~is_mtct]
-        mtc_transmission = sources[is_mtct]
-
-        # Track per-source transmission counts
-        unique_sources, counts = np.unique(sources, return_counts=True)
-        self.ti_transmitted[unique_sources] = self.ti
-        unique_sources_sex, counts_sex = np.unique(sex_transmission, return_counts=True)
-        self.ti_transmitted_sex[sex_transmission] = self.ti
-        self.ti_transmitted_mtc[mtc_transmission] = self.ti
-        self.new_transmissions[unique_sources] = counts
-        self.new_transmissions_sex[unique_sources_sex] = counts_sex
-
-        return
-
-    def update_results(self):
-        super().update_results()
-        ti = self.ti
-        ppl = self.sim.people
-
-        adults = (self.sim.people.age >= self.age_range[0]) & (self.sim.people.age <= self.age_range[1])
-
-        # Incidence is counted at acquisition. The skk == '' pass deliberately overwrites the
-        # `new_infections` result that `ss.Infection.set_prognoses()` accumulates (starsim >=
-        # 3.6.0), which excludes seed infections as prevalent rather than incident; STIsim counts
-        # them, so that `new_infections` agrees with the stratified `new_infections_*` results.
-        newly_infected = self.ti_exposed == ti
-
-        # Main results, looping over people keys and attributes.
-        for pkey, pattr in self.sex_keys.items():
-            skk = '' if pkey == '' else f'_{pkey}'
-
-            # Collate results
-            new_inf = newly_infected & ppl[pattr]
-            n_sus = self.susceptible & ppl[pattr]
-            n_inf = self.infected & ppl[pattr]
-
-            # Store main results
-            self.results[f'prevalence{skk}'][ti] = ut.cond_prob(self.infected, adults & ppl[pattr])
-            self.results[f'new_infections{skk}'][ti] = ut.count(new_inf)
-            self.results[f'n_infected{skk}'][ti] = ut.count(n_inf)
-            self.results[f'incidence{skk}'][ti] = ut.countdiv(new_inf, n_sus)
-
-            # Compute and store age results
-            if self.age_bins is not None:
-                age_results = dict(
-                    new_infections  = self.agehist(new_inf),
-                    n_infected      = self.agehist(n_inf),
-                    incidence       = ut.div(self.agehist(new_inf), self.agehist(n_sus)),
-                    prevalence      = ut.div(self.agehist(n_inf), self.agehist(ppl[pattr])),
-                )
-
-                for akey, ares in age_results.items():
-                    ai = 0
-                    for ab1, ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
-                        ask = f'{skk}_{ab1}_{ab2}'
-                        self.results[f'{akey}{ask}'][ti] = ares[ai]
-                        ai += 1
-
-        # Transmission route results: classify new infections by the network
-        # they came from (stored in infection_net by set_outcomes).
-        # TODO: refactor once starsim tracks transmission route natively
-        #   (see https://github.com/starsimhub/starsim/issues/1232)
-        new_this_ti = newly_infected
-        n_prenatal = 0
-        n_postnatal = 0
-        n_horizontal = 0
-        if ut.count(new_this_ti):
-            for idx, net in enumerate(self.sim.networks.values()):
-                infected_via = new_this_ti & (self.infection_net == float(idx))
-                n = ut.count(infected_via)
-                if isinstance(net, ss.PrenatalNet):
-                    n_prenatal += n
-                elif isinstance(net, ss.PostnatalNet):
-                    n_postnatal += n
-                else:
-                    n_horizontal += n
-        self.results['new_infections_prenatal'][ti] = n_prenatal
-        self.results['new_infections_postnatal'][ti] = n_postnatal
-        self.results['new_infections_mtct'][ti] = n_prenatal + n_postnatal
-        self.results['new_infections_sex'][ti] = n_horizontal
-
+    def finalize_results(self):
+        """ Add results by sex (`prevalence_f`, ...), and make `prevalence` that of adults, as in STIsim 3 """
+        super().finalize_results()
+        res = self.results
+        strats = self.strats
+        adults = self.adult_levels()
+        sexes = [(k, v) for k,v in self.sex_keys.items() if k and 'sex' in strats]
+        for key,num,den,label in self.flat_results():
+            if getattr(res[num], 'strata', None) is None: # E.g. a ratio of results with different dimensions
+                continue
+            if adults is not None and den is not None: # A prevalence among adults
+                res[key].values[:] = res[key].select(age=adults).values
+            for sk,attr in sexes:
+                level = 'female' if attr == 'female' else 'male'
+                sel = dict(sex=level) if den is None or adults is None else dict(sex=level, age=adults)
+                vals = res[num].select(**sel).values
+                self.results += ss.Result(f'{key}_{sk}', values=vals, scale=False, label=f'{label} ({sk.upper()})', timevec=res[num].timevec, auto_plot=False, module=self.name)
         return
 
 
 class SEIS(BaseSTI):
     """
-    SEIS (Susceptible-Exposed-Infectious-Susceptible) disease template.
+    Template for bacterial STIs: an SEIS infection with symptoms, care seeking, and PID
 
-    Provides the standard natural history framework for bacterial STIs: latent
-    exposure period, sex-stratified symptom onset, symptomatic care-seeking,
-    PID complications in females, and natural clearance. Used as the base class
-    for chlamydia, gonorrhea, and trichomoniasis.
+    States (S susceptible, E exposed, P presymptomatic, A asymptomatic, Y symptomatic,
+    C sought care, PID pelvic inflammatory disease):
 
-    Naming follows starsim's ``ss.SEIR``: ``exposed`` and ``infectious`` are the literal E and I
-    compartments, and ``infected`` is derived as E plus I, so ``n_infected`` and ``prevalence``
-    count everyone carrying the infection while transmission depends on ``infectious`` alone.
-    Correspondingly, ``ti_exposed`` is the time of acquisition and ``ti_infectious`` the time of
-    becoming infectious. ``ti_infected`` is exposed as an alias for ``ti_exposed`` so cross-disease
-    code can read time of acquisition uniformly regardless of whether the disease has a latent
-    period; use ``ti_exposed`` inside SEIS itself to keep the E/I distinction unambiguous. Only
-    ``ti_exposed`` is written exactly once per infection, so incidence is counted off that (see
-    ``BaseSTI.update_results``). Unlike ``ss.SEIR``, ``step_state()`` below snaps ``ti_infectious``
-    forward to the timestep the transition actually happens, so it stays a truthful record of onset
-    even when ``dur_exp`` is a fraction of a timestep.
+        S -> E -> P (p_symp) | A
+        P -> Y                                   after dur_presymp
+        Y -> C (p_symp_care) | PID (women, p_pid), or -> S after dur_symp2clear
+        A -> PID (women, p_pid) | S persistent (women, 1 - p_clear) | S after dur_asymp2clear
+        PID -> C (p_pid_care), or -> S after dur_pid2clear
+        C -> S                                   after dur_symp2clear
+        (E | P | A | Y | C | PID) -> S           cure: moved only by treatment
 
-    Args:
-        pars (dict): Override default parameters from ``STIPars``.
-        name (str): Module name used for results and parameter routing.
-        init_prev_data: Optional initial prevalence data by age/sex.
-        age_range (list): Age range used for the main (adult) prevalence results. Default: [15, 65].
-        age_bins (list): Bin edges for age-stratified results; ``None`` skips them entirely.
-        sex_keys (dict): Sex strata for results; ``None`` skips sex-stratified results.
-        **kwargs: Additional parameters passed to ``update_pars``.
+    Values by sex are `ss.by(sex=dict(female=women, male=men))`; STIsim's forms (`[women, men]`, and
+    `[[mean, std], [mean, std]]` for durations) are converted by `sti.sexed()`. Seeking care
+    is entering C (`dis.C.enter`), the event that care-seeking interventions are triggered
+    by. Treatment moves people along `cure`; failures stay where they are.
+
+    Results: the counts and flows of the states and transitions; `new_infections`,
+    `n_infected`, `prevalence` (among adults in `age_range` when the sim is stratified by
+    age), `incidence`, `new_symptomatic`, `n_symptomatic`, `symp_prevalence`, and
+    `new_care_seekers`, with `.select(sex=..., age=...)` and `.by()` when the sim is
+    stratified, and flat `_f` and `_m` versions of each.
     """
+    S, E, P, A, Y, C, PID = ss.states('S E P A Y C PID')
 
-    def __init__(self, pars=None, name=None, init_prev_data=None, age_range=None,
-                 age_bins=default_age_bins, sex_keys=default_sex_keys, **kwargs):
-        super().__init__(name=name, init_prev_data=init_prev_data, age_bins=age_bins, sex_keys=sex_keys,
-                         age_range=age_range if age_range is not None else [15, 65])
+    # Natural history
+    dur_exp = ss.par(ss.constant(ss.weeks(1)), doc='Time from exposure to being infectious')
+    p_symp = ss.par(sexed([0.375, 0.375]), doc='Probability of symptoms')
+    dur_presymp = ss.par(sexed([[ss.weeks(1), ss.weeks(12)], [ss.weeks(0.25), ss.weeks(3)]]), doc='Time to symptoms, for those who develop them')
+    p_symp_care = ss.par(sexed([0.3, 0.2]), doc='Probability that the symptomatic seek care')
+    dur_symp2care = ss.par(sexed([[ss.weeks(4), ss.weeks(4)], [ss.weeks(6), ss.weeks(4)]]), doc='Time from symptoms to seeking care')
+    p_pid = ss.par(0.2, doc='Probability of PID (women)')
+    dur_prepid = ss.par(ss.lognorm_ex(ss.weeks(6), ss.weeks(4)), doc='Time to PID')
+    p_pid_care = ss.par(0.1, doc='Probability of seeking care for PID')
+    dur_pid2care = ss.par(ss.lognorm_ex(ss.weeks(2), ss.weeks(4)), doc='Time from PID to seeking care')
+    dur_asymp2clear = ss.par(sexed([[ss.weeks(52), ss.weeks(5)], [ss.weeks(52), ss.weeks(5)]]), doc='Duration of untreated asymptomatic infection')
+    dur_symp2clear = ss.par(sexed([[ss.weeks(52), ss.weeks(5)], [ss.weeks(52), ss.weeks(5)]]), doc='Duration of untreated symptomatic infection')
+    dur_pid2clear = ss.par(ss.lognorm_ex(ss.weeks(52), ss.weeks(5)), doc='Duration of untreated PID')
+    p_clear = ss.par(1.0, doc='Probability that an asymptomatic infection in a woman clears spontaneously (the rest persist)')
+    dur_persist = ss.par(ss.constant(ss.years(100)), doc='Duration of a persistent infection')
 
-        # Handle parameters
-        default_pars = STIPars()
-        self.define_pars(**default_pars)
-        self.update_pars(pars, **kwargs)
+    # Transitions
+    infection = S >> E @ BaseSTI.beta*(P + A + Y + C + PID)
+    latency   = ss.Transition(E, [P, A], p=[p_symp, None], dur=dur_exp)
+    onset     = ss.Transition(P, Y, dur=dur_presymp)
+    seek      = ss.Transition(Y, C, p=p_symp_care, dur=dur_symp2care)
+    pid_y     = ss.Transition(Y, PID, p=p_pid, dur=dur_prepid, where=female)
+    clear_y   = ss.Transition(Y, S, dur=dur_symp2clear)
+    pid_a     = ss.Transition(A, PID, p=p_pid, dur=dur_prepid, where=female)
+    persist   = ss.Transition(A, S, p=(1 - p_clear)*(1 - p_pid), dur=dur_persist, where=female)
+    clear_a   = ss.Transition(A, S, p=None, dur=dur_asymp2clear)
+    seek_pid  = ss.Transition(PID, C, p=p_pid_care, dur=dur_pid2care)
+    clear_pid = ss.Transition(PID, S, dur=dur_pid2clear)
+    clear_c   = ss.Transition(C, S, dur=dur_symp2clear)
+    cure      = ss.Transition(E + P + A + Y + C + PID, S, undriven=True)
 
-        self.define_states(
-            # Natural history. As ss.SEIR, the I compartment is `infectious` and `infected` is
-            # derived as E plus I. `ti_infected` is removed as a state and re-added as an alias
-            # for `ti_exposed`, so cross-disease code can rely on a single attribute for time of
-            # acquisition regardless of whether the disease has a latent period.
-            ss.BoolState('exposed', label='Exposed'),
-            ss.BoolState('infectious', label='Infectious'),
-            ss.BoolState('asymptomatic'),
-            ss.BoolState('symptomatic'),
-            ss.BoolState('pid'),
-            ss.BoolState('seeking_care'),
-            ss.FloatArr('dur_inf'),
-            ss.FloatArr('ti_infectious', label='Time of becoming infectious'),
-            ss.FloatArr('ti_symptomatic'),
-            ss.FloatArr('ti_symp_clear'),
-            ss.FloatArr('ti_seeks_care'),
-            ss.FloatArr('ti_pid'),
-            ss.FloatArr('ti_clearance'),
-            reset = ['infected', 'infectious', 'ti_infected'],
-            infected = lambda self: self.exposed | self.infectious, # Derived: E and I are both infected
-            ti_infected = 'ti_exposed', # Alias so cross-disease code can read time of acquisition uniformly
-        )
+    # Results
+    n_infected       = E + P + A + Y + C + PID
+    n_symptomatic    = Y + C
+    prevalence       = (E + P + A + Y + C + PID)/(S + E + P + A + Y + C + PID)
+    symp_prevalence  = (Y + C)/(S + E + P + A + Y + C + PID)
+    incidence        = infection/S
+    new_symptomatic  = ss.outcome(onset)
+    new_care_seekers = seek + seek_pid
 
-        return
+    def flat_results(self):
+        return super().flat_results() + [
+            ('prevalence', 'prevalence', True, 'Prevalence'),
+            ('new_symptomatic', 'new_symptomatic', None, 'New symptomatic'),
+            ('n_symptomatic', 'n_symptomatic', None, 'Number symptomatic'),
+            ('symp_prevalence', 'symp_prevalence', True, 'Symptomatic prevalence'),
+            ('new_care_seekers', 'new_care_seekers', None, 'New care seekers'),
+        ]
 
-    # `treatable` is inherited from BaseSTI: `infected` is now E plus I, which is exactly the
-    # active bacterial presence that responds to treatment.
-
-    def init_results(self):
-        """ Initialize results """
-        super().init_results()
-        results = sc.autolist()
-
-        # Most results are stored by age and sex
-        for sk in self.sex_keys.keys():
-            skk = '' if sk == '' else f'_{sk}'
-            skl = '' if sk == '' else f' ({sk.upper()})'
-            is_subpop = skk != ''
-            results += [
-                ss.Result(f'new_symptomatic{skk}', dtype=int, label=f"New symptomatic{skl}", auto_plot=not is_subpop),
-                ss.Result(f'symp_prevalence{skk}', scale=False, label=f"Symptomatic prevalence{skl}", auto_plot=not is_subpop),
-            ]
-            if is_subpop:
-                results += [
-                    ss.Result(f'n_symptomatic{skk}', dtype=int, label=f"Number symptomatic{skl}", auto_plot=False),
-                ]
-
-            if self.age_bins is not None:
-                for ab1,ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
-                    ask = f'{skk}_{ab1}_{ab2}'
-                    asl = f' ({skl}, {ab2}-{ab2})'
-                    results += [
-                        ss.Result(f'new_symptomatic{ask}', dtype=int, label=f"New symptomatic{asl}", auto_plot=False),
-                        ss.Result(f'symp_prevalence{ask}', scale=False, label=f"Symptomatic prevalence{asl}", auto_plot=False),
-                    ]
-
-        self.define_results(*results)
-
-        return
-
-    def clear_infection(self, uids):
-        self.exposed[uids] = False
-        self.infectious[uids] = False
-        self.symptomatic[uids] = False
-        self.asymptomatic[uids] = False
-        self.pid[uids] = False
-        self.seeking_care[uids] = False
-        self.susceptible[uids] = True
-        past_care_seekers = uids[(self.ti_seeks_care[uids] < self.ti).nonzero()[-1]]
-        self.ti_seeks_care[past_care_seekers] = np.nan
-        self.ti_clearance[uids] = self.ti
-        self.dur_inf[uids] = self.ti - self.ti_infectious[uids]
-
-    def step_state(self):
-        """ Updates for this timestep """
-        ti = self.ti
-
-        # Reset susceptibility and infectiousness
-        self.rel_sus[:] = 1
-        self.rel_trans[:] = 1
-
-        # Exposed -> infectious
-        new_infectious = (self.exposed & (self.ti_infectious <= ti)).uids
-        if len(new_infectious):
-            self.exposed[new_infectious] = False
-            self.infectious[new_infectious] = True
-            self.ti_infectious[new_infectious] = ti
-
-        # Presymptomatic -> symptomatic
-        new_symptomatic = (self.asymptomatic & (self.ti_symptomatic <= ti)).uids
-        if len(new_symptomatic):
-            self.asymptomatic[new_symptomatic] = False
-            self.symptomatic[new_symptomatic] = True
-            self.ti_symptomatic[new_symptomatic] = ti
-
-        # Clear infections
-        new_cleared = (self.infectious & (self.ti_clearance <= ti)).uids
-        self.clear_infection(new_cleared)
-
-        # Progress PID
-        new_pid = (~self.pid & (self.ti_pid <= ti)).uids
-        self.pid[new_pid] = True
-        self.ti_pid[new_pid] = ti
-
-        # Symptomatic/PID care seeking
-        old_seekers = (self.seeking_care).uids
-        self.seeking_care[old_seekers] = False
-        self.ti_seeks_care[old_seekers] = np.nan  # Remove the old
-        new_seekers = (self.infectious & (self.ti_seeks_care <= ti)).uids
-        self.seeking_care[new_seekers] = True
-        self.ti_seeks_care[new_seekers] = ti
-        # If we don't update this results here, it's possible that someone could seek care,
-        # then get reinfected, and the reinfection would wipe all their dates so we'd miss
-        # counting them in the results.
-        if self.pars.include_care:
-            for sk, sl in self.sex_keys.items():
-                skk = '' if sk == '' else f'_{sk}'
-                self.results['new_care_seekers'+skk][ti] = ut.count((self.ti_seeks_care == ti) & self.sim.people[sl])
-
-        return
-
-    def update_results(self):
-        super().update_results()
-        ti = self.ti
-        ppl = self.sim.people
-
-        adults = (self.sim.people.age >= self.age_range[0]) & (self.sim.people.age <= self.age_range[1])
-
-        # Main results, looping over people keys and attributes
-        for pkey, pattr in self.sex_keys.items():
-            skk = '' if pkey == '' else f'_{pkey}'
-
-            # Collate results
-            new_sym = (self.ti_symptomatic == ti) & ppl[pattr]
-            n_sym = self.symptomatic & ppl[pattr]
-
-            # Store main results
-            self.results[f'symp_prevalence{skk}'][ti] = ut.count(self.symptomatic & adults & ppl[pattr]) / ut.count(adults & ppl[pattr])
-            self.results[f'new_symptomatic{skk}'][ti] = ut.count(new_sym)
-            self.results[f'n_symptomatic{skk}'][ti] = ut.count(n_sym)
-
-            # Compute and store age results
-            if self.age_bins is not None:
-                age_results = dict(
-                    new_symptomatic=self.agehist(new_sym),
-                    symp_prevalence=ut.div(self.agehist(n_sym), self.agehist(ppl[pattr]))
-                )
-
-                for akey, ares in age_results.items():
-                    ai = 0
-                    for ab1, ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
-                        ask = f'{skk}_{ab1}_{ab2}'
-                        self.results[f'{akey}{ask}'][ti] = ares[ai]
-                        ai += 1
-        return
-
-    def set_exposure(self, uids):
-        self.susceptible[uids] = False
-        self.exposed[uids] = True
-        self.asymptomatic[uids] = True
-        self.ti_exposed[uids] = self.ti
-        dur_exp = self.pars.dur_exp.rvs(uids)
-        self.ti_infectious[uids] = self.ti + dur_exp
-        return
-
-    def set_pars(self, par, uids):
-        # Handle scalar calibration values by converting to [scalar, scalar]
-        if sc.isnumber(par):
-            par = [par, par]
-
-        if sc.isnumber(par[0]):  # Single par, e.g. for bernoulli
-            arr = np.full(len(uids), np.nan)
-            arr[self.sim.people.female[uids]] = par[0]
-            arr[self.sim.people.male[uids]] = par[1]
-        elif len(par[0]) > 1:
-            arr = np.full((len(uids), 2), np.nan)
-            for idx in range(2):
-                arr[self.sim.people.female[uids], idx] = par[0][idx].to_dt() if isinstance(par[0][idx], ss.TimePar) else par[0][idx]
-                arr[self.sim.people.male[uids], idx] = par[1][idx].to_dt() if isinstance(par[1][idx], ss.TimePar) else par[1][idx]
-        return arr
-
-    def set_symptoms(self, p, uids):
-        # Probability of symptoms
-        p_symp_vals = self.set_pars(p.p_symp, uids)
-        p.p_symp_dist.set(p_symp_vals)
-        symp, asymp = p.p_symp_dist.split(uids)
-
-        # Duration of presymptomatic period
-        dur_presymp_vals = self.set_pars(p.dur_presymp, symp)
-        p.dur_presymp_dist.set(mean=dur_presymp_vals[:,0], std=dur_presymp_vals[:,1])
-        dur_presymp = self.pars.dur_presymp_dist.rvs(symp)
-        self.ti_symptomatic[symp] = self.ti_infectious[symp] + dur_presymp
-        return symp, asymp
-
-    def set_care_seeking(self, p, symp):
-        # Probability of symptoms
-        p_care_vals = self.set_pars(p.p_symp_care, symp)
-        p.p_symp_care_dist.set(p_care_vals)
-        care, no_care = p.p_symp_care_dist.split(symp)
-
-        # Duration before seeking care
-        dur_precare_vals = self.set_pars(p.dur_symp2care, care)
-        p.dur_symp2care_dist.set(mean=dur_precare_vals[:, 0], std=dur_precare_vals[:, 1])
-        dur_symp2care = p.dur_symp2care_dist.rvs(care)
-        self.ti_seeks_care[care] = self.ti_symptomatic[care] + dur_symp2care
-        return
-
-    def set_pid(self, p, f_uids):
-        pid = p.p_pid.filter(f_uids)
-        dur_prepid = p.dur_prepid.rvs(pid)
-        self.ti_pid[pid] = self.ti_infectious[pid] + dur_prepid
-        return pid
-
-    def set_pid_care_seeking(self, p, pid):
-        pid_care = p.p_pid_care.filter(pid)
-        dur_pid2care = p.dur_pid2care.rvs(pid_care)
-        self.ti_seeks_care[pid_care] = np.minimum(self.ti_seeks_care[pid_care], self.ti_infectious[pid_care] + dur_pid2care)
-        return
-
-    def set_duration(self, p, symp, asymp, pid):
-        dur_symp2clear_vals = self.set_pars(p.dur_symp2clear, symp)
-        p.dur_symp2clear_dist.set(mean=dur_symp2clear_vals[:, 0], std=dur_symp2clear_vals[:, 1])
-        dur_symp2clear = p.dur_symp2clear_dist.rvs(symp)
-        self.ti_clearance[symp] = self.ti_symptomatic[symp] + dur_symp2clear
-
-        dur_asymp2clear_vals = self.set_pars(p.dur_asymp2clear, asymp)
-        p.dur_asymp2clear_dist.set(mean=dur_asymp2clear_vals[:, 0], std=dur_asymp2clear_vals[:, 1])
-        dur_asymp2clear = p.dur_asymp2clear_dist.rvs(asymp)
-        self.ti_clearance[asymp] = self.ti_infectious[asymp] + dur_asymp2clear
-
-        dur_inf_pid = p.dur_pid2clear.rvs(pid)
-        self.ti_clearance[pid] = np.maximum(self.ti_clearance[pid], dur_inf_pid + self.ti_pid[pid])
-        return
-
-    def wipe_dates(self, uids):
-        """ Clear all previous dates """
-        self.ti_exposed[uids] = np.nan
-        self.ti_infectious[uids] = np.nan
-        self.ti_symptomatic[uids] = np.nan
-        self.ti_symp_clear[uids] = np.nan
-        self.ti_pid[uids] = np.nan
-        # self.ti_seeks_care[uids] = np.nan
-        self.ti_clearance[uids] = np.nan
-        # self.dur_inf[uids] = np.nan
-        return
-
-    def set_prognoses(self, uids, sources=None):
-        """
-        Set initial prognoses for adults newly infected
-        """
-        super().set_prognoses(uids, sources)
-        self.wipe_dates(uids)
-        self.dur_inf[uids] = np.nan  # Overwrite. Not done in wipe_dates because that's also called during treatment
-
-        ppl = self.sim.people
-        p = self.pars
-        f_uids = ppl.female.uids.intersect(uids)  # For PID
-
-        self.set_exposure(uids)  # Set exposure
-        symp, asymp = self.set_symptoms(p, uids)  # Set symptoms & presymptomatic duration
-        self.set_care_seeking(p, symp)  # Determine who seeks care and when
-        pid = self.set_pid(p, f_uids)  # Determine who developes PID and when
-        self.set_pid_care_seeking(p, pid)
-        self.set_duration(p, symp, asymp, pid)
-
-        # Determine overall duration of infection, but don't set until clearance
-        dur_inf = self.ti_clearance[uids] - self.ti_infectious[uids]
-
-        if (dur_inf < 0).any():
-            errormsg = 'Invalid durations of infection'
-            raise ValueError(errormsg)
-
-        return
-
+    # States as STIsim 3 named them, as agents, for connectors and custom code
+    @property
+    def susceptible(self):  return self.S
+    @property
+    def exposed(self):      return self.E
+    @property
+    def infectious(self):   return self.P | self.A | self.Y | self.C | self.PID
+    @property
+    def infected(self):     return self.E | self.infectious
+    @property
+    def symptomatic(self):  return self.Y | self.C
+    @property
+    def asymptomatic(self): return self.E | self.P | self.A
+    @property
+    def pid(self):          return self.PID
+    @property
+    def seeking_care(self): # Entered C since this point in the last step
+        out = self.C.asnew(np.zeros(len(self.C.raw), dtype=bool))
+        out[self.graph.states.C.enter.uids] = True
+        return out
+    @property
+    def treatable(self):    return self.infected

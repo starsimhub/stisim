@@ -60,11 +60,12 @@ def test_single_connector_instance():
     sim = sti.Sim(
         diseases=[hiv, syph],
         connectors=sti.hiv_syph(hiv, syph),  # single instance, not a list
-        n_agents=200, dur=2, verbose=-1,
+        n_agents=200, dur=2, verbose=0,
     )
     sim.run()
-    assert len(sim.pars['connectors']) == 1, \
-        f'Expected exactly one connector, got {len(sim.pars["connectors"])}'
+    n = len(sti.hiv_syph(hiv, syph)) # A connector is a list of modifiers, one per effect
+    assert len(sim.pars['connectors']) == n, \
+        f'Expected the {n} modifiers of one connector, got {len(sim.pars["connectors"])}'
     return sim
 
 

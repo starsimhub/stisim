@@ -219,7 +219,7 @@ def test_hiv_syph():
     pars['start'] = 2020
     pars['stop'] = 2040
     pars['dt'] = 1 / 12
-    hiv = sti.HIV(init_prev=0, p_hiv_death=0, include_aids_deaths=False, beta={'structuredsexual': [0, 0], 'maternal': [0, 0]})
+    hiv = sti.HIV(init_prev=0, p_hiv_death=0, include_aids_deaths=False, beta={'structuredsexual': [0, 0], 'maternal': 0})
     syphilis = sti.SyphilisPlaceholder(prevalence=None)
 
     pars['diseases'] = [hiv, syphilis]

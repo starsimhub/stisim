@@ -58,6 +58,7 @@ class BaseNetwork(ss.SexualNetwork):
     and ``set_condom_use``. The MSM subclasses inherit this via
     ``MFNetwork``.
     """
+    sides = dict(m='male', f='female') # Partnerships between men and women, so a disease's beta on it is ss.peract(m2f=..., f2m=...)
 
     # Capability flag read by analyzers (e.g. PartnershipFormationAnalyzer):
     # True means every edge removal funnels through ``_on_edge_dissolution`` so
@@ -67,7 +68,6 @@ class BaseNetwork(ss.SexualNetwork):
 
     def __init__(self, name=None, record_expired: bool = False, **kwargs):
         super().__init__(name=name)
-        self.meta.condoms = ss_float
         self.meta.age_p1 = ss_float
         self.meta.age_p2 = ss_float
         self.meta.edge_type = ss_float
@@ -149,14 +149,6 @@ class BaseNetwork(ss.SexualNetwork):
         self.debut[f_uids] = self.pars.debut_f.rvs(f_uids)
         self.debut[m_uids] = self.pars.debut_m.rvs(m_uids)
         return
-
-    def net_beta(self, disease_beta=None, uids=None, disease=None):
-        if uids is None: uids = Ellipsis
-        p_condom = self.edges.condoms[uids]
-        eff_condom = disease.pars.eff_condom
-        p_trans_condom = (1 - disease_beta*(1-eff_condom))**(self.edges.acts[uids]*p_condom)
-        p_trans_no_condom = (1 - disease_beta)**(self.edges.acts[uids]*(1-p_condom))
-        return (1 - p_trans_condom * p_trans_no_condom) * self.edges.beta[uids]
 
     def step(self):
         self.end_pairs()

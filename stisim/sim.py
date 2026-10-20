@@ -10,6 +10,18 @@ from .data import loaders as stidata
 from .data import downloaders as stidl
 
 
+def flatten(connectors):
+    """ Connectors as a flat list: each coinfection connector (e.g. sti.hiv_syph()) is a list of modifiers """
+    if connectors is None:
+        return []
+    if isinstance(connectors, ss.Module):
+        return [connectors]
+    out = []
+    for conn in (connectors.values() if isinstance(connectors, dict) else connectors):
+        out += flatten(conn) if isinstance(conn, (list, tuple, dict)) else [conn]
+    return out
+
+
 class Sim(ss.Sim):
     """
     A subclass of starsim.Sim that is specifically designed for STI simulations.
@@ -103,10 +115,11 @@ class Sim(ss.Sim):
         sim_kwargs = {key: val for key, val in sim_kwargs.items() if val is not None}
         updated_pars = self.separate_pars(pars, sim_pars, sti_pars, nw_pars, dem_pars, sim_kwargs, **kwargs)
         self.pars.update(updated_pars)
+        self.given = [key for key,val in updated_pars.items() if val is not None] # Which parameters were supplied, as ss.Sim records them (else Starsim takes every one as a default, e.g. use_aging)
         return
 
     def separate_pars(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None, dem_pars=None,
-                      sim_kwargs=None, verbose=True, **kwargs):
+                      sim_kwargs=None, route_verbose=True, **kwargs):
         """
         Sort all incoming pars into per-category dicts (sim, sti, nw, dem,
         connector). Most of the work is delegated to ``sti.route_pars``; this
@@ -116,7 +129,7 @@ class Sim(ss.Sim):
         ``_user_connector_pars``) for the two-phase init's XOR checks.
 
         Args:
-            verbose (bool): If True, ``route_pars`` prints one line per
+            route_verbose (bool): If True, ``route_pars`` prints one line per
                 cross-category broadcast. See ``sti.route_pars`` for design.
         """
         merged = self.remap_pars(sc.mergedicts(pars, sim_kwargs, kwargs))
@@ -135,7 +148,7 @@ class Sim(ss.Sim):
             merged,
             sim_pars=sim_pars, sti_pars=sti_pars, nw_pars=nw_pars,
             dem_pars=dem_pars,
-            strict=True, verbose=verbose,
+            strict=True, verbose=route_verbose,
         )
 
         if 'dur' in routed.sim:
@@ -177,7 +190,7 @@ class Sim(ss.Sim):
         # Process the STIs
         self.pars['diseases'] = self.process_stis()
         connectors = self.process_connectors()
-        self.pars['connectors'] = ss.ndict(sc.tolist(self.pars['connectors']) + sc.tolist(connectors))
+        self.pars['connectors'] = ss.ndict(flatten(self.pars['connectors']) + connectors)
 
         # Process the network
         self.pars['networks'] = self.process_networks()
@@ -187,11 +200,15 @@ class Sim(ss.Sim):
         self.pars['demographics'] = demographics
         self.pars['people'] = people
         self.pars['total_pop'] = total_pop
-        if self.pars['demographics'] is not None:
+        if self.pars['demographics'] is not None and 'use_aging' not in self.given:
             self.pars.use_aging = True
+            self.given.append('use_aging')
 
         # Reset n_agents
         if self.pars['people'] is not None: self.pars['n_agents'] = len(self.pars['people'])
+
+        # Results of declared diseases by sex and age
+        self.process_stratify()
 
         super().init(force=force, **kwargs)  # Call the parent init method
 
@@ -217,10 +234,26 @@ class Sim(ss.Sim):
                     'hiv_new_deaths',
                     'hiv_n_infected',
                     'hiv_prevalence',
-                    'hiv_n_on_art',
                     'n_alive',
                 ]
+                if 'art' in self.interventions:
+                    key.insert(-1, 'art_n_on_art')
         return super().plot(key=key, **kwargs)
+
+    def process_stratify(self):
+        """
+        Stratify the sim by sex and by the age groups of its declared STIs (`age_bins`), unless
+        `stratify=` was given, so their results can be selected by sex and age
+        """
+        declared = [d for d in self.pars['diseases'] if isinstance(d, sti.BaseSTI)]
+        if self.pars.get('stratify') is not None or not declared:
+            return
+        strat = [dict(sex=['female', 'male'])]
+        age_bins = next((d.age_bins for d in declared if d.age_bins is not None), None)
+        if age_bins is not None:
+            strat.append(dict(age=age_bins))
+        self.pars['stratify'] = strat
+        return
 
     def process_networks(self):
         """
@@ -405,7 +438,7 @@ class Sim(ss.Sim):
 
         # Normalize before length check: pars['connectors'] may be a single
         # Connector instance (whose own __len__ can return 0), a list, or an ndict.
-        existing = sc.tolist(self.pars['connectors'])
+        existing = flatten(self.pars['connectors'])
         if len(existing) > 0:
             if user_pars:
                 raise ValueError(
@@ -418,16 +451,16 @@ class Sim(ss.Sim):
         consumed = set()
         diseases = [(m.name, m) for m in self.pars['diseases']]
         for (k1, m1), (k2, m2) in itertools.combinations(diseases, 2):
-            if (cls := getattr(sti, f'{k1}_{k2}', None)) is not None:
+            registry = sti.connector_register()
+            if (conn := registry.get(f'{k1}_{k2}')) is not None:
                 args = (m1, m2)
-            elif (cls := getattr(sti, f'{k2}_{k1}', None)) is not None:
-                args = (m2, m1)  # reversed to match class name
+            elif (conn := registry.get(f'{k2}_{k1}')) is not None:
+                args = (m2, m1)  # reversed to match the connector's name
             else:
                 continue
-            accepted = set(cls(None, None).pars.keys())
-            kwargs = {k: v for k, v in user_pars.items() if k in accepted}
+            kwargs = {k: v for k, v in user_pars.items() if k in conn.pars}
             consumed.update(kwargs)
-            connectors.append(cls(*args, **kwargs))
+            connectors += conn(*args, **kwargs) # A list of modifiers
 
         if (unused := set(user_pars) - consumed):
             raise ValueError(

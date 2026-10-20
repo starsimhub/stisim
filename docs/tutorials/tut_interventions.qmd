@@ -53,6 +53,7 @@ Key things to know:
 - `test_prob_data` is a **per-year** probability, automatically scaled by timestep. With monthly dt, `test_prob_data=0.1` means ~0.83% per month (~10% per year).
 - `ART(coverage=0.8)` will force-fit 80% of infected onto ART. `ART()` with no coverage treats everyone who is diagnosed.
 - `art_initiation` (default 90%) controls how many newly diagnosed agents are willing to start ART.
+- ART is a module of its own, passed in `interventions=`: who is on ART is `sim.interventions.art.on_art`, and its results (e.g. `n_on_art`, `p_on_art`) are in `sim.results.art`. ART's parameters, such as `dur_on_art`, are given to `sti.ART(...)`.
 
 ```{python}
 import hivsim
@@ -92,7 +93,7 @@ axes[1].set_xlabel('Year')
 axes[1].set_ylabel('New HIV infections')
 axes[1].set_title('Infections with ART')
 
-axes[2].plot(sim_intv.timevec, sim_intv.results.hiv.n_on_art)
+axes[2].plot(sim_intv.timevec, sim_intv.results.art.n_on_art)
 axes[2].set_xlabel('Year')
 axes[2].set_ylabel('Number on ART')
 axes[2].set_title('ART uptake')
@@ -130,7 +131,7 @@ sim = hivsim.demo('simple', run=False, plot=False, n_agents=3000,
                   networks=[sti.StructuredSexual(), ss.MaternalNet(), ss.BreastfeedingNet()])
 sim.pars.interventions = [fsw_test, gp_test, art2]
 sim.run(verbose=0)
-sim.plot(key=['hiv.prevalence_15_49', 'hiv.new_infections', 'hiv.n_on_art'])
+sim.plot(key=['hiv.prevalence_15_49', 'hiv.new_infections', 'art.n_on_art'])
 ```
 
 ## ART coverage formats and monitoring

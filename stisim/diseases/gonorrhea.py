@@ -3,92 +3,42 @@ Gonorrhea disease module
 """
 
 import starsim as ss
-from stisim.diseases.sti import SEIS, STIPars, default_age_bins, default_sex_keys
+from stisim.diseases.sti import SEIS
 
-__all__ = ['Gonorrhea', 'NGPars']
-
-
-class NGPars(STIPars):
-    """
-    Parameters for the gonorrhea disease module.
-
-    Extends ``STIPars`` with gonorrhea-specific symptom probabilities,
-    care-seeking rates, clearance durations, and PID progression values.
-    """
-    def __init__(self, **kwargs):
-        super().__init__()
-        self.dur_exp = ss.constant(0)  # How long after exposure before you can infect others
-
-        # Symptoms
-        self.p_symp = [0.35, 0.65]  # https://doi.org/10.1371/journal.pone.0143304
-        self.dur_presymp = [  # For those who develop symptoms, how long before symptoms appear
-            [ss.weeks(1), ss.weeks(12)],  # Women:
-            [ss.weeks(0.25), ss.weeks(1)],  # Men: symptoms should appear within days
-        ]
-
-        # Care seeking
-        self.p_symp_care = [0.66, 0.83]  # See Table 2: https://docs.google.com/document/d/16t46nTL2qMHmA0C1gSPz8OhI6ccy6vVv3OCfkmYFUtw/edit?tab=t.0
-        self.dur_symp2care = [  # For those who test, how long before they seek care
-            [ss.months(2), ss.months(1)],  # Women
-            [ss.weeks(1), ss.weeks(2)],  # Men
-        ]
-
-        # Clearance: lognormal distribution
-        self.dur_asymp2clear = [
-            [ss.months(8), ss.months(2)],  # Women
-            [ss.months(6), ss.months(3)],  # Men
-        ]
-        self.dur_symp2clear = [
-            [ss.months(9), ss.months(2)],  # Assumption
-            [ss.months(6), ss.months(3)],  # Assumption
-        ]
-
-        self.p_pid = ss.bernoulli(p=0.0)  # TODO
-        self.dur_prepid = ss.lognorm_ex(ss.months(1.5), ss.months(3))
-
-        # Transmission and initial conditions
-        self.beta_m2f = 0.06
-        self.init_prev = ss.bernoulli(p=0.01)
-        self.eff_condom = 0.9
-        self.update(kwargs)
-        return
+__all__ = ['Gonorrhea']
 
 
 class Gonorrhea(SEIS):
     """
-    Neisseria gonorrhoeae disease module.
+    Neisseria gonorrhoeae, as an SEIS infection (see `sti.SEIS`)
 
-    Models gonorrhea as an SEIS infection with sex-stratified symptom probabilities,
-    care-seeking behavior, PID complications, natural clearance, and optional
-    drug resistance tracking via the ``ng_tx`` intervention.
+    With `amr=True`, infections carry a strain, `amr` (`'sens'` or `'res'`), passed on by
+    whoever infected them; treatment can then fail more often for resistant strains, and
+    resistance can be acquired on failure (see `sti.GonorrheaTreatment`).
 
     Args:
-        name (str): Module name used for results and parameter routing. Default: ``'ng'``.
-        pars (dict): Override default parameters from ``NGPars``.
-        init_prev_data: Optional initial prevalence data by age/sex.
-        age_bins (list): Bin edges for age-stratified results; ``None`` skips them entirely.
-        sex_keys (dict): Sex strata for results; ``None`` skips sex-stratified results.
-        **kwargs: Additional parameters passed to ``update_pars``.
+        amr (bool/list): stratify infections by drug resistance: True for `['sens', 'res']`, or the levels
+        init_res (float): with `amr`, the share of initial infections that are resistant
+        kwargs (dict): passed to `sti.SEIS`
     """
+    defaults = dict(
+        dur_exp = ss.constant(0),
+        p_symp = [0.35, 0.65], # https://doi.org/10.1371/journal.pone.0143304
+        dur_presymp = [[ss.weeks(1), ss.weeks(12)], [ss.weeks(0.25), ss.weeks(1)]], # Women, men: symptoms appear within days
+        p_symp_care = [0.66, 0.83], # See Table 2: https://docs.google.com/document/d/16t46nTL2qMHmA0C1gSPz8OhI6ccy6vVv3OCfkmYFUtw/edit?tab=t.0
+        dur_symp2care = [[ss.months(2), ss.months(1)], [ss.weeks(1), ss.weeks(2)]],
+        dur_asymp2clear = [[ss.months(8), ss.months(2)], [ss.months(6), ss.months(3)]],
+        dur_symp2clear = [[ss.months(9), ss.months(2)], [ss.months(6), ss.months(3)]], # Assumption
+        p_pid = 0.0, # TODO
+        dur_prepid = ss.lognorm_ex(ss.months(1.5), ss.months(3)),
+        beta_m2f = 0.06,
+        init_prev = 0.01,
+        eff_condom = 0.9,
+    )
 
-    def __init__(self, name='ng', pars=None, init_prev_data=None,
-                 age_bins=default_age_bins, sex_keys=default_sex_keys, **kwargs):
-        super().__init__(name=name, init_prev_data=init_prev_data, age_bins=age_bins, sex_keys=sex_keys)
-        default_pars = NGPars()
-        self.define_pars(**default_pars)
-        self.update_pars(pars, **kwargs)
-        return
-
-    def init_results(self):
-        super().init_results()
-        self.define_results(
-            ss.Result('rel_treat', dtype=float, label='Drug resistance', auto_plot=False)
-        )
-        return
-
-    def set_prognoses(self, uids, sources=None):
-        super().set_prognoses(uids, sources)
-        # Also pass on the relative treatability
-        if 'ng_tx' in self.sim.interventions and sources is not None:
-            self.sim.people.ng_tx.rel_treat[uids] = self.sim.people.ng_tx.rel_treat[sources]
+    def __init__(self, name='ng', amr=False, init_res=0.0, **kwargs):
+        super().__init__(name=name, **kwargs)
+        if amr:
+            levels = ['sens', 'res'] if amr is True else list(amr)
+            self.stratify(amr=levels, kind='strain', split=[1 - init_res, init_res] + [0]*(len(levels) - 2))
         return

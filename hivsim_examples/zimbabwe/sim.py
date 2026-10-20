@@ -50,14 +50,18 @@ def make_interventions():
     gp_prob = np.concatenate([np.linspace(0, 0.5, n_scaleup), np.linspace(0.5, 0.6, n_future)])
     low_cd4_prob = np.concatenate([np.linspace(0, 0.85, n_scaleup), np.linspace(0.85, 0.95, n_future)])
 
+    def not_on_art(sim):
+        art = sim.interventions.get('art')
+        return ~art.on_art if art is not None else sim.people.alive
+
     def fsw_eligibility(sim):
-        return sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.diagnosed & ~sim.diseases.hiv.on_art
+        return sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.diagnosed & not_on_art(sim)
 
     def other_eligibility(sim):
-        return ~sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.diagnosed & ~sim.diseases.hiv.on_art
+        return ~sim.networks.structuredsexual.fsw & ~sim.diseases.hiv.diagnosed & not_on_art(sim)
 
     def low_cd4_eligibility(sim):
-        return (sim.diseases.hiv.cd4 < 200) & ~sim.diseases.hiv.diagnosed
+        return sim.diseases.hiv.aids & ~sim.diseases.hiv.diagnosed
 
     fsw_testing = sti.HIVTest(years=years, test_prob_data=fsw_prob, name='fsw_testing', eligibility=fsw_eligibility)
     other_testing = sti.HIVTest(years=years, test_prob_data=gp_prob, name='other_testing', eligibility=other_eligibility)

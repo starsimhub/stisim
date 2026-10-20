@@ -136,26 +136,26 @@ Treatment outcomes are tracked as successful (infection cleared), failed (infect
 
 ## HIV treatment pipeline
 
-HIV treatment in STIsim follows a specific pipeline. Understanding this flow is essential for setting up HIV interventions correctly:
+HIV treatment in STIsim follows a specific pipeline. ART is a module of its own (`sti.ART`, passed in `interventions=` and found at `sim.interventions.art`), whose effects on HIV are modifiers (see [HIV and ART as separate modules](../../design/hiv_art_split.md)). Understanding this flow is essential for setting up HIV interventions correctly:
 
 ```
 HIVTest                          ART
   │                               │
-  │ test eligible agents          │ check newly diagnosed
-  │ (per-year probability)        │ (ti_diagnosed == this step)
+  │ test eligible agents          │ check who is ready
+  │ (per-year probability)        │ (art.ti_ready <= this step)
   │                               │
   ▼                               ▼
 hiv.diagnosed = True    ──►   art_initiation filter (90% default)
 hiv.ti_diagnosed = ti         │
-                              ▼
+art.ti_ready = ti + dur_dx2tx ▼
                          If coverage specified:
                            prioritize by CD4, match target
                          If no coverage:
                            treat all who initiate
                               │
                               ▼
-                         hiv.on_art = True
-                         (reduces transmissibility, reconstitutes CD4)
+                         art.on_art = True
+                         (ART's modifiers reduce transmissibility, reconstitute CD4)
 ```
 
 **Key points:**
@@ -225,8 +225,11 @@ art = sti.ART(coverage={'year': [2000, 2025], 'value': [0, 0.9]}, smoothness=5)
 | `coverage` | None (no target; treat all who initiate) | Coverage target: scalar, dict, DataFrame, or stratified DataFrame. Dict values are interpolated between years (controlled by `smoothness`). DataFrame requires index=years and a column named `n_art` (absolute numbers) or `p_art` (proportion of infected). Dual-column DataFrames with both `n_art` and `p_art` support mixed format (use `format_priority` to resolve). Stratified DataFrames need columns Year, Sex, AgeBin `[lo,hi)`, and a numeric value column. Sex accepts: 0/f/female, 1/m/male. |
 | `art_initiation` | bernoulli(0.9) | Probability a newly diagnosed person initiates ART. Set to 1 to treat all diagnosed. |
 | `pmtct_efficacy` | 0.96 | Efficacy of maternal ART in reducing infant susceptibility to HIV, applied to both prenatal (MaternalNet) and postnatal (BreastfeedingNet) transmission. |
+| `vls_coverage` | None (all on ART suppressed, with the default `p_effective_art`) | Target for the share of people on ART who are virally suppressed (scalar, dict, DataFrame with `p_vls`, or stratified). |
 | `smoothness` | 0 | Interpolation smoothness for coverage data (0 = linear, higher = smoother S-curves). |
 | `format_priority` | 'n' | When both `n_art` and `p_art` are non-NaN, prefer this format (`'n'` or `'p'`). |
+
+ART's other parameters (`dur_on_art`, `rel_dur_on_art`, `dur_on_art_trend`, `effective_art_efficacy`, `nonsupp_art_efficacy`, `time_to_art_efficacy`, `p_effective_art`, `art_cd4_growth`, `rel_art_mortality_*`, `art_death_age`, `art_death_dur`, `maternal_care_scale`) are also given to `sti.ART(...)`; see the [HIV disease page](../diseases/hiv.md#art-parameters). Its states are `art.naive`, `art.on_art`, and `art.off_art` (with `art.on_effective_art`, `art.ti_on_art`), and its results (`n_on_art`, `p_on_art`, `new_agents_on_art`, `n_on_art_pregnant`) are in `sim.results.art`.
 
 ### VMMC
 
@@ -241,8 +244,12 @@ vmmc = sti.VMMC(coverage={'year': [2010, 2025], 'value': [0, 0.4]})
 |-----------|---------|-------------|
 | `coverage` | None (does nothing without coverage data) | Coverage target (same formats as ART). Required for VMMC to have any effect. |
 | `eligibility` | all males | Optional function to further restrict who is eligible |
+| `eff_circ` | 0.6 | Reduction in susceptibility to HIV from program (medical) circumcision |
+| `eff_circ_traditional` | 0.6 | Reduction in susceptibility to HIV from traditional circumcision |
+| `traditional_prob` | 0 | Probability of traditional circumcision, offered once to boys before sexual debut as they reach `traditional_age` |
+| `traditional_age` | 15 | Age of traditional circumcision |
 
-Circumcision status (`circumcised`/`circ_traditional`/`ti_circumcised`) and efficacy (`eff_circ`, `eff_circ_traditional`) change parameters carried by the `HIV` disease module, not on `VMMC` — set them via `sti.HIV(eff_circ=0.7)`. This lets other circumcision sources (e.g. non-program/traditional circumcision) share the same state as program VMMC.
+Circumcision is a product (`ss.Vaccine`) delivered to a stock target; its efficacy acts on HIV acquisition (`rel_sus`). Program and traditional circumcision share the same state, so someone circumcised by either pathway is excluded from the other. Who is circumcised is `sim.interventions.vmmc.circumcised`, a boolean array over all agents.
 
 ### PrEP
 
@@ -261,9 +268,7 @@ Two examples of how to parameterize PrEP:
 | Daily oral (adherence-sensitive) | 0.75 | 3 months | 1.0 | [DOI:10.1056/NEJMoa1108524](https://doi.org/10.1056/NEJMoa1108524) |
 | Long-acting cabotegravir (CAB-LA) | 0.95 | 12 months | 1.0 | [DOI:10.1016/S0140-6736(22)00538-4](https://doi.org/10.1016/S0140-6736(22)00538-4) |
 
-State (`prep_naive`/`on_prep`/`prep_discontinued`/`prep_eff`/`prep_source`/`ti_prep_start`/`ti_prep_stop`) lives on the `HIV` disease module. This lets multiple `Prep` instances (one per product) share the same PrEP history, so a person on one product is automatically excluded from starting another, and their history (naive/on/discontinued) is tracked consistently no matter which product they used.
-
-`prep_naive` flips to `False` once, permanently, on first-ever enrollment; `prep_discontinued` clears if a course is later restarted. `prep_discontinued` allows a user to target individuals who have already used PrEP for additional future PrEP initiation. `prep_source` is a per-agent number recording of which instance of `Prep` enrolled this agent.
+Each `Prep` instance is a product (`ss.Vaccine`, with efficacy `prep_eff*prep_adh`) delivered to a stock target. A course lapses after an exponential time with mean `prep_dur`; renewal is a new delivery. Someone on one PrEP product is excluded from starting another. Who is on PrEP is `sim.interventions.prep.on_prep` (or the instance's own name), a boolean array over all agents.
 
 Coverage is a *prevalence* (stock) target, like VMMC and ART.
 
@@ -338,9 +343,9 @@ sim = sti.Sim(diseases=[sti.HIV()], demographics=[ss.Pregnancy(), ss.Deaths()],
 
 1. When a woman becomes pregnant, `ANCTest` schedules one ANC visit at a random gestational month (1–7); `visit_prob` gates whether she actually attends.
 2. At the visit, she is tested for every disease in `ANCTest.active_diseases` (HIV and syphilis auto-detected from `sim.diseases` unless `disease_names` is given explicitly), each with its own `test_sensitivity` (default 1.0).
-3. **HIV positives are handled specially**: `ANCTest` sets `hiv.diagnosed` and schedules `hiv.ti_art = ti` — immediate ART start, no delay — the same mechanism `HIVTest` uses via its `dur_dx2tx` parameter (default `ss.constant(0)`). Any `ART` intervention present in the sim's `interventions` list picks these agents up passively; HIV is **not** routed through `disease_treatment_map` (that map is only consulted for non-HIV diseases such as syphilis).
+3. **HIV positives are handled specially**: `ANCTest` sets `hiv.diagnosed` and refers them to ART with `art.ti_ready = ti` — ready to start immediately, no delay — the same mechanism `HIVTest` uses via its `dur_dx2tx` parameter (default `ss.constant(0)`). Any `ART` intervention present in the sim's `interventions` list picks these agents up passively; HIV is **not** routed through `disease_treatment_map` (that map is only consulted for non-HIV diseases such as syphilis).
 4. If `newborn_tests` includes an entry for a disease the mother tested positive for, the corresponding test (e.g. `InfantHIVTest`) is scheduled for her unborn child at the modeled delivery timestep, via the `ss.MaternalNet` edge.
-5. Once a mother is on ART, `maternal_care_scale` (default 2, see the [HIV disease page](../diseases/hiv.md#care-seeking)) doubles her care-seeking behaviour for the duration of pregnancy, making her much less likely to default off treatment before delivery.
+5. `sti.ART`'s `maternal_care_scale` (default 2, see the [HIV disease page](../diseases/hiv.md#care-seeking)) doubles a woman's care-seeking during pregnancy, which raises her priority for starting ART and makes her less likely to be stopped when ART is over its coverage target.
 
 See the [PMTCT worked example](../../examples/pmtct_scenario.qmd) for a full runnable comparison of MTCT infections with and without ANC testing, and the API reference for [`interventions.hiv_interventions`](../../api/interventions.hiv_interventions.qmd) and [`interventions.syphilis_interventions`](../../api/interventions.syphilis_interventions.qmd).
 

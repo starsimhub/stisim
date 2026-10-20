@@ -296,7 +296,7 @@ This pattern works for any custom quantity: age-specific prevalence, risk-group-
 
 The calibration expects a DataFrame (or CSV) with a `time` column (integer years) and columns matching simulation result names:
 
-| time | hiv.prevalence | syph.symptomatic_prevalence | hiv.n_on_art |
+| time | hiv.prevalence | syph.symptomatic_prevalence | art.n_on_art |
 |------|---------------|----------------------|-------------|
 | 2010 | 0.12 | 0.03 | 50000 |
 | 2015 | 0.11 | 0.025 | 120000 |
@@ -310,7 +310,7 @@ Not all targets are equally informative. Use `weights` to tell the calibration w
 weights = {
     'hiv.prevalence': 2.0,              # Routine data -- moderate weight
     'syph.symptomatic_prevalence': 10.0,     # PHIA survey -- high weight
-    'hiv.n_on_art': 1.0,                # Program data -- default weight
+    'art.n_on_art': 1.0,                # Program data -- default weight
 }
 ```
 

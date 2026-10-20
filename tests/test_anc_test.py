@@ -38,8 +38,8 @@ def test_anctest_runs_and_detects_hiv():
 def test_anctest_schedules_immediate_art():
     """An HIV+ agent attending ANC should be diagnosed and have ART scheduled
     for the same timestep (no dx-to-tx delay). Uses a single manually-forced
-    ANC visit rather than a full stochastic run, since ART flips `on_art` to
-    True within the same step it's scheduled -- a full-sim analyzer can't
+    ANC visit rather than a full stochastic run, since ART starts within the
+    same step it's scheduled -- a full-sim analyzer can't
     distinguish "just scheduled" from "already treated" after the fact.
     """
     infant_hiv = sti.InfantHIVTest(name='infant_hiv')
@@ -56,16 +56,15 @@ def test_anctest_schedules_immediate_art():
 
     hiv = sim.diseases.hiv
     uid = sim.people.female.uids[0]
-    hiv.susceptible[uid] = False
-    hiv.infected[uid] = True
-    hiv.on_art[uid] = False
+    hiv.S[uid] = False
+    hiv.latent[uid] = True # Infected
     sim.interventions.anctest.ti_visit[uid] = sim.ti  # force an ANC visit this step
 
     sim.interventions.anctest.step()
 
     assert hiv.diagnosed[uid]
     assert hiv.ti_diagnosed[uid] == sim.ti
-    assert hiv.ti_art[uid] == sim.ti
+    assert sim.interventions.art.ti_ready[uid] == sim.ti # Ready to start ART at once
 
 
 def test_anctest_schedules_newborn_test():

@@ -23,6 +23,8 @@ Usually a **target** where reliable estimates exist. Cohort-based incidence is p
 
 **Observed ART coverage should generally be treated as a strong data constraint**, not freely predicted. HIVsim's `ART` intervention accepts a coverage series and corrects the on-ART population to match each timestep. Feeding the observed series in as a data input is usually correct; calibrating a scalar to reproduce it is usually wrong.
 
+ART is its own module (`sti.ART`, named `art`), not part of `sti.HIV`: its parameters are calibrated as `art.<par>` (e.g. `art.rel_dur_on_art`, `art.p_effective_art`), and its results are targets as `art.n_on_art` / `art.p_on_art` (data columns of the same names).
+
 **Diagnosed-pool constraint:** HIVsim can only place *diagnosed* people on ART. If simulated ART coverage falls short of target, the ART coverage series is not the knob — the testing configuration usually is. See main SKILL instruction 5.
 
 ## Testing and diagnosis
@@ -53,7 +55,7 @@ These are typically the **behavioral / network** category — poorly identifiabl
 
 ## VMMC
 
-**Coverage is a stock target, not a hazard.** Observed VMMC prevalence by age × year from SHIMS3 / PHIA / DHS should be fed in directly; do not calibrate a scalar to reproduce it. VMMC efficacy (`eff_circ`) is a **fixed literature parameter** anchored to Orange Farm / Rakai / Kisumu RCTs (~0.6 reduction in male acquisition), not a calibration knob.
+**Coverage is a stock target, not a hazard.** Observed VMMC prevalence by age × year from SHIMS3 / PHIA / DHS should be fed in directly; do not calibrate a scalar to reproduce it. VMMC efficacy (`eff_circ`, a parameter of `sti.VMMC`) is a **fixed literature parameter** anchored to Orange Farm / Rakai / Kisumu RCTs (~0.6 reduction in male acquisition), not a calibration knob.
 
 ## PrEP
 
@@ -61,7 +63,7 @@ Historical PrEP coverage where it has been rolled out (relatively recent, limite
 
 ## Mortality (HIV-specific)
 
-`pars.rel_death` and `pars.rel_death_f` on `sti.HIV` scale CD4-stratified mortality. On-ART mortality has its own age gradient (`art_death_age`) and adherence-specific multipliers. All are candidate knobs, but note the "on-ART never exceeds off-ART" invariant that STIsim enforces at init.
+`pars.rel_death` and `pars.rel_death_f` on `sti.HIV` scale CD4-stratified mortality. On-ART mortality is set by `sti.ART`'s modifiers on that rate: its own age gradient (`art_death_age`) and adherence-specific multipliers (`art.rel_art_mortality_effective`, `art.rel_art_mortality_unsupp_m/f`). All are candidate knobs, but note the "on-ART never exceeds off-ART" invariant that `sti.ART` enforces at init.
 
 **Also check the background-mortality double-count.** If `ss.Deaths` is being fed all-cause data and `sti.HIV` is also killing agents from AIDS, mortality is double-counted. Use `stisim.data.dedup_deaths` before calibrating any mortality knob — otherwise the calibration will chase a data artifact. This is a **data preprocessing** step, not a calibration step.
 

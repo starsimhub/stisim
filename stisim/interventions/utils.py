@@ -376,7 +376,7 @@ def age_sex_mask(age_bin, sex, people):
     Returns:
         BoolArr: True for agents in the stratum
     """
-    mask = ss.apply_age_range(age_bin, people.age)
+    mask = ss.utils.apply_age_range(age_bin, people.age)
     if sex is not None:
         sex_mask = people.female if sex == 0 else people.male
         mask = mask & sex_mask
