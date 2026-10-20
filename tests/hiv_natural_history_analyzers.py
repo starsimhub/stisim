@@ -60,6 +60,8 @@ class CD4ByUIDTracker(ss.Analyzer):
         self.results[self.result_name] = {}
 
     def update_results(self):
+        if self.ti == 0: # The start, before any step: the series begin after the first step, as in Starsim 3
+            return
         hiv = self.sim.diseases.hiv
         result_name = self.result_name
 
@@ -104,6 +106,8 @@ class RelativeInfectivityByUIDTracker(ss.Analyzer):
         self.results[self.result_name] = {}
 
     def update_results(self):
+        if self.ti == 0: # The start, before any step: the series begin after the first step, as in Starsim 3
+            return
         hiv = self.sim.diseases.hiv
         result_name = self.result_name
 
@@ -153,6 +157,10 @@ class RelativeInfectivityTracker(ss.Analyzer):
             self.define_results(ss.Result(state_dict['result_name'], dtype=list, scale=False))
 
     def update_results(self):
+        if self.ti == 0: # The start, before any step: rel_trans is not set until the first step
+            for state in self.states_to_track:
+                self.results[self.STATES[state]['result_name']][self.ti] = []
+            return
         hiv = self.sim.diseases.hiv
         for state in self.states_to_track:
             state_dict = self.STATES[state]

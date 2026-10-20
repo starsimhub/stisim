@@ -118,7 +118,7 @@ class GUD(BaseSTI):
     dur_inf = ss.par(ss.lognorm_ex(ss.months(3), ss.months(1)), doc='Duration of an ulcer')
     infection = S >> I @ BaseSTI.beta*I
     recovery = ss.Transition(I, S, dur=dur_inf)
-    n_infected = I + 0*S # UPSTREAM: a result that is one state (n_infected = I) is not made, and I.n is not stratified
+    n_infected = I
     prevalence = I/(S + I)
     incidence = infection/S
     defaults = dict(beta_m2f=1.0, rel_beta_f2m=1.0, init_prev=0) # Starsim 3: beta=1 on every network (a placeholder)
