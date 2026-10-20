@@ -115,6 +115,7 @@ class Sim(ss.Sim):
         sim_kwargs = {key: val for key, val in sim_kwargs.items() if val is not None}
         updated_pars = self.separate_pars(pars, sim_pars, sti_pars, nw_pars, dem_pars, sim_kwargs, **kwargs)
         self.pars.update(updated_pars)
+        self.given = [key for key,val in updated_pars.items() if val is not None] # Which parameters were supplied, as ss.Sim records them (else Starsim takes every one as a default, e.g. use_aging)
         return
 
     def separate_pars(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None, dem_pars=None,
@@ -199,8 +200,9 @@ class Sim(ss.Sim):
         self.pars['demographics'] = demographics
         self.pars['people'] = people
         self.pars['total_pop'] = total_pop
-        if self.pars['demographics'] is not None:
+        if self.pars['demographics'] is not None and 'use_aging' not in self.given:
             self.pars.use_aging = True
+            self.given.append('use_aging')
 
         # Reset n_agents
         if self.pars['people'] is not None: self.pars['n_agents'] = len(self.pars['people'])
