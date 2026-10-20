@@ -656,9 +656,9 @@ def test_art_dx2tx_delay(do_plot=do_plot):
     # No-one should be on ART before the delay elapses
     # The sim runs (delay_years + 2) years; check n_on_art ramp
     n_on_art = sim.results.hiv.n_on_art
-    early_ti = max(0, delay_ti - 1)
-    assert n_on_art[early_ti] == 0, f'No agents should be on ART before ti={delay_ti}, got {n_on_art[early_ti]}'
-    assert n_on_art[delay_ti] > 0, f'Agents should be on ART by ti={delay_ti}'
+    # n_on_art[ti] is the number after ti steps, so ART started on the step from ti=delay_ti is counted at delay_ti + 1
+    assert n_on_art[delay_ti] == 0, f'No agents should be on ART before the step from ti={delay_ti}, got {n_on_art[delay_ti]}'
+    assert n_on_art[delay_ti + 1] > 0, f'Agents should be on ART after the step from ti={delay_ti}'
 
     # Default (no delay): agents diagnosed at ti=0 should be on ART at ti=0
     sim2 = make_sim(0)
@@ -666,7 +666,7 @@ def test_art_dx2tx_delay(do_plot=do_plot):
     dx2 = hiv2.diagnosed.uids
     assert np.allclose(hiv2.ti_art[dx2], hiv2.ti_diagnosed[dx2]), \
         'Default dur_dx2tx=0 should leave ti_art == ti_diagnosed'
-    assert sim2.results.hiv.n_on_art[0] > 0, 'With no delay, agents should be on ART from ti=0'
+    assert sim2.results.hiv.n_on_art[1] > 0, 'With no delay, agents should be on ART after the first step' # n_on_art[0] is the start, before any step
 
     return sim, sim2
 
