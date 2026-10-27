@@ -154,35 +154,58 @@ class STIResults:
         self.define_results(*[res for res in results if res.name not in self.results and res.name not in declared])
         return
 
-    def update_sti_results(self):
-        """ Count infections by sex and age; incidence is counted at acquisition, including the infections seeded at the start """
-        ti = self.ti
+    def tally(self):
+        """
+        How this step's results count the living agents, each count in one pass: `vals(arr)`, their values as booleans; `count(mask)`, the
+        number for whom it holds (by weight, if agents' weights differ); `hist(mask)`, the same by age group (as `np.histogram()` gives it,
+        the last group including its upper edge); `div(a, b)` and `hdiv(a, b)`, a ratio of counts or of histograms (0 where b is); and
+        `adults`, who is in the age range of the main results
+        """
         ppl = self.sim.people
-        adults = self.adults()
-        new_inf = self.new_infected()
+        t = sc.objdict()
+        t.vals = lambda arr: np.asarray(arr.values, dtype=bool)
+        age = np.asarray(ppl.age.values)
+        w = ut.weights(ppl.alive)
+        t.adults = (age >= self.age_range[0]) & (age <= self.age_range[1])
+        t.count = lambda mask: np.count_nonzero(mask) if w is None else float(w[mask].sum())
+        t.div = lambda a, b: a/b if b else 0.0
+        bins = self.age_bins
+        if bins is not None:
+            n_bins = len(bins) - 1
+            band = np.searchsorted(bins, age, side='right') - 1
+            band[age == bins[-1]] = n_bins - 1
+            band[(band < 0) | (band >= n_bins) | np.isnan(age)] = n_bins # Outside the groups
+            t.hist = lambda mask: np.bincount(band[mask], weights=None if w is None else w[mask], minlength=n_bins + 1)[:n_bins]
+            t.hdiv = lambda a, b: np.divide(a, b, out=np.zeros(n_bins), where=b != 0)
+        return t
 
-        for skk, skl, attr in self.sex_strata():
-            new_inf_s = new_inf & ppl[attr]
-            sus_s = self.susceptible & ppl[attr]
-            inf_s = self.infected & ppl[attr]
-
-            self.results[f'prevalence{skk}'][ti] = ut.cond_prob(self.infected, adults & ppl[attr])
-            self.results[f'new_infections{skk}'][ti] = ut.count(new_inf_s)
-            self.results[f'infected{skk}'][ti] = ut.count(inf_s)
-            self.results[f'incidence{skk}'][ti] = ut.countdiv(new_inf_s, sus_s)
-
-            if self.age_bins is not None:
-                age_results = dict(
-                    new_infections = self.agehist(new_inf_s),
-                    infected       = self.agehist(inf_s),
-                    incidence      = ut.div(self.agehist(new_inf_s), self.agehist(sus_s)),
-                    prevalence     = ut.div(self.agehist(inf_s), self.agehist(ppl[attr])),
-                )
-                for akey, ares in age_results.items():
-                    for ai, (ab1, ab2) in enumerate(self.age_strata()):
-                        self.results[f'{akey}{skk}_{ab1}_{ab2}'][ti] = ares[ai]
+    def set_age_results(self, skk, **values):
+        """ Store results by age group (one value per group) for a sex stratum """
+        for akey, ares in values.items():
+            for ai, (ab1, ab2) in enumerate(self.age_strata()):
+                self.results[f'{akey}{skk}_{ab1}_{ab2}'][self.ti] = ares[ai]
         return
 
+    def update_sti_results(self, t=None):
+        """ Count infections by sex and age (with `t` from `tally()`); incidence is counted at acquisition, including the infections seeded at the start """
+        ti = self.ti
+        ppl = self.sim.people
+        t = t or self.tally()
+        infected, new, susceptible = t.vals(self.infected), t.vals(self.new_infected()), t.vals(self.susceptible)
+        for skk, skl, attr in self.sex_strata():
+            sex = t.vals(ppl[attr])
+            new_s = new & sex
+            sus_s = susceptible & sex
+            inf_s = infected & sex
+            n_new = t.count(new_s)
+            self.results[f'prevalence{skk}'][ti] = t.div(t.count(inf_s & t.adults), t.count(t.adults & sex))
+            self.results[f'new_infections{skk}'][ti] = n_new
+            self.results[f'infected{skk}'][ti] = t.count(inf_s)
+            self.results[f'incidence{skk}'][ti] = t.div(n_new, t.count(sus_s))
+            if self.age_bins is not None:
+                h_new, h_inf = t.hist(new_s), t.hist(inf_s)
+                self.set_age_results(skk, new_infections=h_new, infected=h_inf, incidence=t.hdiv(h_new, t.hist(sus_s)), prevalence=t.hdiv(h_inf, t.hist(sex)))
+        return
 
 def init_prev_by_group(sim, uids, data, rel_init_prev=1, active=True):
     """
@@ -394,30 +417,26 @@ class SEIS(ss.Disease, STIResults):
         ti = self.ti
         ppl = self.sim.people
         res = self.results
-        self.update_sti_results()
-        res.infectious[ti] = ut.count(self.infectious)
+        t = self.tally()
+        self.update_sti_results(t)
+        res.infectious[ti] = t.count(t.vals(self.infectious))
 
         # Symptoms and care seeking, by sex and age
-        adults = self.adults()
-        new_sym = ppl.uid.isin(self.symptoms.uids)
-        seekers = ppl.uid.isin(self.seek_care.uids | self.seek_care_pid.uids)
+        new_sym = t.vals(ppl.uid.isin(self.symptoms.uids))
+        seekers = t.vals(ppl.uid.isin(self.seek_care.uids | self.seek_care_pid.uids))
+        symptomatic = t.vals(self.symptomatic)
         for skk, skl, attr in self.sex_strata():
-            new_sym_s = new_sym & ppl[attr]
-            sym_s = self.symptomatic & ppl[attr]
-            res[f'symp_prevalence{skk}'][ti] = ut.cond_prob(self.symptomatic, adults & ppl[attr])
-            res[f'new_symptomatic{skk}'][ti] = ut.count(new_sym_s)
+            sex = t.vals(ppl[attr])
+            new_sym_s = new_sym & sex
+            sym_s = symptomatic & sex
+            res[f'symp_prevalence{skk}'][ti] = t.div(t.count(sym_s & t.adults), t.count(t.adults & sex))
+            res[f'new_symptomatic{skk}'][ti] = t.count(new_sym_s)
             if skk:
-                res[f'symptomatic{skk}'][ti] = ut.count(sym_s)
+                res[f'symptomatic{skk}'][ti] = t.count(sym_s)
             if self.include_care:
-                res[f'new_care_seekers{skk}'][ti] = ut.count(seekers & ppl[attr])
+                res[f'new_care_seekers{skk}'][ti] = t.count(seekers & sex)
             if self.age_bins is not None:
-                age_results = dict(
-                    new_symptomatic = self.agehist(new_sym_s),
-                    symp_prevalence = ut.div(self.agehist(sym_s), self.agehist(ppl[attr])),
-                )
-                for akey, ares in age_results.items():
-                    for ai, (ab1, ab2) in enumerate(self.age_strata()):
-                        res[f'{akey}{skk}_{ab1}_{ab2}'][ti] = ares[ai]
+                self.set_age_results(skk, new_symptomatic=t.hist(new_sym_s), symp_prevalence=t.hdiv(t.hist(sym_s), t.hist(sex)))
         return
 
     def finalize_results(self):
