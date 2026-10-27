@@ -20,7 +20,7 @@ class TimeToAIDSTracker(ss.Analyzer):
         if self.ti == 0: # The start of the run, before any step
             self.results['hiv.ti_to_aids'][self.ti] = np.array([])
             return
-        falling = (hiv.falling & (hiv.ti_falling < self.ti + 0.5) & (hiv.ti_falling >= self.ti - 0.5)).uids # Those who reached the falling stage in this step (due now and not at the last, as in ss.TimeArr.due())
+        falling = (hiv.falling & hiv.ti_falling.isclose(self.ti)).uids # Those who reached the falling stage in this step (as ss.TimeArr.due() takes it)
         self.results['hiv.ti_to_aids'][self.ti] = self.ti - hiv.ti_infected[falling]
 
 
