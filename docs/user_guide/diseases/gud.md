@@ -2,7 +2,7 @@
 
 GUD is a simple SIS infection model used as a syndromic proxy for ulcerative STIs. It can serve as a standalone module or as a placeholder for use with connectors (e.g., to model the interaction between GUD and HIV transmission).
 
-**Class:** `sti.GUD` | **Alias:** `'gud'` | **Base class:** `ss.Disease` (declared)
+**Class:** `sti.GUD` | **Alias:** `'gud'` | **Base class:** `ss.Infection`
 
 ## States and transitions
 

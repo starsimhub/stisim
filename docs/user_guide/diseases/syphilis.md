@@ -2,7 +2,7 @@
 
 Syphilis in STIsim progresses through exposed, primary, secondary, latent, and tertiary stages, with stage-dependent transmissibility and congenital syphilis outcomes. Treatment at any stage clears the infection but leaves the agent seropositive and susceptible to reinfection.
 
-**Class:** `sti.Syphilis` | **Alias:** `'syphilis'` / `'syph'` | **Base class:** `ss.Disease` (declared: its stages and transitions, with serology and visible symptoms as code)
+**Class:** `sti.Syphilis` | **Alias:** `'syphilis'` / `'syph'` | **Base class:** `ss.Infection`
 
 ## States and transitions
 
@@ -51,9 +51,9 @@ Syphilis in STIsim progresses through exposed, primary, secondary, latent, and t
                      └─────────────┘
 ```
 
-The stages are declared states (`exposed`, `primary`, `secondary`, `early`, `late`, `tertiary`), with the transitions `primary_onset`, `secondary_onset`, `latency`, `to_late`, `reactivation` and `tertiary_onset` (timed from the start of the latent stage, so moving from early to late latent does not restart them), and `death`. A fetus is infected at a rate `beta_m2c` per month while its mother is infectious (`mtct`), into a state by the outcome to come, which is decided by the mother's stage: `fetus_miscarriage` and `fetus_stillborn` die at the delivery (`miscarriage`, `stillbirth`), `fetus_nnd` dies once born (`nnd`), `fetus_congenital` is born with congenital syphilis (`born_congenital`, to `congenital`), and `fetus_normal` is born susceptible (`born_normal`).
+The stages are states (`exposed`, `primary`, `secondary`, `early`, `late`, `tertiary`). The time each one ends is drawn when it starts: at infection, the incubation and primary stage; on entering the secondary stage, its length; and on entering the latent stage, the time to late latent, and a relapse to secondary or tertiary syphilis (and death) to come, timed from the start of the latent stage, so moving from early to late latent does not restart them. A fetus is infected at a rate `beta_m2c` per month while its mother is infectious, into a state by the outcome to come, which is decided by the mother's stage: `fetus_miscarriage` and `fetus_stillborn` die at the delivery (in the step before it, while unborn), `fetus_nnd` dies once born, `fetus_congenital` is born with congenital syphilis (to `congenital`), and `fetus_normal` is born susceptible.
 
-**Treatment and reinfection:** Treatment (via `SyphTx`) moves the agent back to `susceptible` from any stage. The `ever_exposed` flag persists -- these agents are seropositive (detectable by treponemal tests) but can be reinfected. This reinfection cycle is a key driver of syphilis epidemics: symptomatic agents seek care, get treated, become susceptible again, and are reinfected by their partners. Treating a pregnant woman also moves an infected fetus to `fetus_normal`.
+**Treatment and reinfection:** Treatment (via `SyphTx`) moves the agent back to `susceptible` from any stage. The `ever_exposed` flag persists -- these agents are seropositive (detectable by treponemal tests) but can be reinfected. This reinfection cycle is a key driver of syphilis epidemics: symptomatic agents seek care, get treated, become susceptible again, and are reinfected by their partners. Treating a pregnant woman also makes an infected fetus's outcome `fetus_normal` (`syph.cure_fetuses()`).
 
 **Not stages:** serology (`trep`, `nontrep`, and their timers), whether the chancre and rash are visible (`chancre_visible`, `rash_visible`), and the decay of infectiousness in the latent stage are arrays of each person's, updated by code at the events of the stages.
 

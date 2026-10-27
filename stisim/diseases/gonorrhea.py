@@ -57,12 +57,10 @@ class Gonorrhea(SEIS):
         return
 
     def step(self):
-        """ Take the declared transitions; then the people infected take on the response to treatment of whoever infected them (see `sti.GonorrheaTreatment`) """
-        super().step()
+        """ Transmission; then the people infected take on the response to treatment of whoever infected them (see `sti.GonorrheaTreatment`) """
+        new, sources, networks = super().step()
         if 'ng_tx' in self.sim.interventions:
-            new = self.infection.uids
-            sources, _ = self.engine.sources(new)
-            known = ~np.isnan(sources)
+            known = sources >= 0
             rel_treat = self.sim.interventions.ng_tx.rel_treat
             rel_treat[new[known]] = rel_treat[ss.uids(sources[known])]
-        return
+        return new, sources, networks

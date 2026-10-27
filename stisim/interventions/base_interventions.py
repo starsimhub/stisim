@@ -763,7 +763,7 @@ class ANCTest(ss.Intervention):
         # Schedule a visit for each newly pregnant woman
         pregnancy = sim.get_module(ss.Pregnancy, die=False)
         if pregnancy is not None:
-            newly_preg = (pregnancy.ti_P == ti).uids
+            newly_preg = pregnancy.ti_P.isclose(ti).uids
             attendees  = self.visit_prob_dist.filter(newly_preg)
             months_dt  = ss.dur(1, 'months') / sim.t.dt   # timesteps per month
             offsets    = self.visit_timing.randround(self.visit_timing.rvs(attendees) * months_dt)

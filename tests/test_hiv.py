@@ -741,8 +741,8 @@ def test_mtct_rates_in_range():
     stochastic noise while still validating the parameterisation.
     """
     hiv = sti.HIV()
-    beta_prenatal  = hiv.value('beta_m2c')        # rate per month
-    beta_postnatal = hiv.value('beta_breastfeed')  # rate per month
+    beta_prenatal  = hiv.pars.beta_m2c        # rate per month
+    beta_postnatal = hiv.pars.beta_breastfeed  # rate per month
 
     dur_preg_mo = 9   # standard gestation
     dur_bf_mo   = 9   # ss.Pregnancy default: lognorm mean=0.75 yr = 9 mo
@@ -894,7 +894,7 @@ def test_art_efficacy_ramp_stays_in_bounds():
 
     min_rel_trans = min(mins)
     hiv = sim.diseases.hiv
-    min_possible = 1 - max(hiv.value('effective_art_efficacy'), hiv.value('nonsupp_art_efficacy'))
+    min_possible = 1 - max(hiv.pars.effective_art_efficacy, hiv.pars.nonsupp_art_efficacy)
     assert min_rel_trans >= min_possible - 1e-9, (
         f'rel_trans for on-ART agents should never drop below 1-full_eff={min_possible}, '
         f'got min {min_rel_trans} over the run. A dt/unit mismatch in the efficacy ramp would let this go negative.'

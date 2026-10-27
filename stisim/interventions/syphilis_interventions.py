@@ -131,7 +131,7 @@ class SyphTx(STITreatment):
         # Successfully treated fetuses who were infected will be born without complications; for the others, the treatment was unnecessary
         syph = sim.diseases.syph
         cured = treat_uids[(syph.fetal & ~syph.fetus_normal)[treat_uids]]
-        syph.move(cured, syph.fetus_normal)
+        syph.cure_fetuses(cured)
         sim.diseases.syph.results['new_fetus_treated_success'][self.ti] += len(cured)
         sim.diseases.syph.results['new_fetus_treated_unnecessary'][self.ti] -= len(cured)
 
@@ -180,7 +180,7 @@ class NewbornTreatment(SyphTx):
     def change_states(self, disease, treat_succ):
         """ Cure congenital cases: they are susceptible """
         d = self.sim.diseases[disease]
-        d.move(treat_succ, d.susceptible)
+        d.clear_infection(treat_succ)
 
     def administer(self, sim, uids, disease, return_format='dict'):
         """ Administer treatment to newborns """
@@ -380,7 +380,7 @@ class ANCSyphTest(SyphTest):
     def schedule_tests(self):
         """ Schedule a test for newly pregnant women """
         sim = self.sim
-        newly_preg = (sim.demographics.pregnancy.ti_P == (self.ti)).uids
+        newly_preg = sim.demographics.pregnancy.ti_P.isclose(self.ti).uids
         self.test_prob.pars['p'] = self.make_test_prob_fn(self, sim, newly_preg)
         will_test = self.test_prob.filter(newly_preg)
         ti_test = self.ti + self.test_timing.rvs(will_test)

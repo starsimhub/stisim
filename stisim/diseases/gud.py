@@ -3,7 +3,6 @@ Genital ulcer disease (GUD), and placeholder modules for non-specific STIs (geni
 """
 
 import numpy as np
-import sciris as sc
 import starsim as ss
 import stisim as sti
 
@@ -94,9 +93,9 @@ class GUDPlaceholder(Placeholder):
         return
 
 
-class GUD(ss.Disease):
+class GUD(ss.Infection):
     """
-    Genital ulcer disease (GUD), declared: a simple SIS infection, sexually transmitted, with a lognormal duration
+    Genital ulcer disease (GUD): a simple SIS infection, sexually transmitted, with a lognormal duration
 
     Typically used alongside a syphilis connector that drives GUD prevalence from active syphilis cases.
 
@@ -106,21 +105,37 @@ class GUD(ss.Disease):
         kwargs (dict): parameter values (``beta``, ``dur_inf``), ``init_prev``, or ``label``
     """
     def __init__(self, pars=None, name='gud', **kwargs):
-        beta = ss.par(1.0, doc='Probability of transmission per act on the sexual networks') # Placeholder
-        dur_inf = ss.par(ss.lognorm_ex(ss.months(3), ss.months(1)), doc='Duration of infection')
-        susceptible, infected = ss.states('susceptible infected')
-        infection = susceptible >> infected @ sti.sexual_beta(beta, beta, beta)*infected
-        recovery = infected >> susceptible @ dur_inf
-        super().__init__(infection=infection, recovery=recovery, prevalence=infected/(susceptible + infected), new_infections=1*infection,
-                         name=name, **sc.mergedicts(dict(init_prev=0), pars, kwargs))
+        super().__init__(name=name, label=kwargs.pop('label', None))
+        self.define_pars(
+            beta = 1.0, # Probability of transmission per act on the sexual networks (a placeholder)
+            dur_inf = ss.lognorm_ex(ss.months(3), ss.months(1)), # Duration of infection
+            init_prev = 0,
+        )
+        self.update_pars(pars, **kwargs)
+        self.define_states(ss.TimeArr('ti_clear', label='Time of clearance'))
         return
 
-    def init_results(self):
-        super().init_results()
-        self.define_results(ss.Result('cum_infections', dtype=int, label='Cumulative infections'))
+    def validate_beta(self):
+        """ The same beta on each sexual network, both ways, and none on the others """
+        beta = self.pars.beta
+        self.pars.beta = sti.sexual_beta(beta, beta, beta)
+        try:
+            return super().validate_beta()
+        finally:
+            self.pars.beta = beta
+
+    def set_prognoses(self, uids, sources=None):
+        super().set_prognoses(uids, sources)
+        self.infected[uids] = True
+        self.ti_infected[uids] = self.ti if self.sim.initialized else 0 # The infections seeded at the start are of its first point (see SEIS.set_prognoses())
+        start = self.ti + 1 if self.sim.initialized else self.ti # A course runs from when the infection happens: at the end of the step, in transmission (as a declared disease dates it), or as ss.Infection.init_post() dates those seeded at the start
+        self.ti_clear[uids] = start + self.pars.dur_inf.rvs(uids)
         return
 
-    def finalize_results(self):
-        super().finalize_results()
-        self.results.cum_infections[:] = np.cumsum(self.results.new_infections[:])
+    def step_state(self):
+        """ Clearance, back to susceptible """
+        uids = (self.infected & self.ti_clear.due()).uids
+        self.infected[uids] = False
+        self.susceptible[uids] = True
+        self.ti_clear[uids] = np.nan
         return

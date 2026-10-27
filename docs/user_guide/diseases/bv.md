@@ -2,7 +2,7 @@
 
 BV is modeled using community state types (CSTs) representing vaginal microbiome composition. Unlike the other STIs, BV can arise spontaneously (without sexual transmission) and is driven by behavioral risk factors.
 
-**Class:** `sti.BV` | **Alias:** `'bv'` | **Base class:** `ss.Disease` (declared: its CSTs and transitions, with the risk factors as code)
+**Class:** `sti.BV` | **Alias:** `'bv'` | **Base class:** `ss.Infection`
 
 ## States and transitions
 
@@ -38,7 +38,7 @@ BV is modeled using community state types (CSTs) representing vaginal microbiome
        - Uncircumcised partner (RR 4.0)
 ```
 
-CST transitions are spontaneous, with a probability per month raised by each woman's risk factors. CST 4 (polymicrobial/BV) is the "infected" state, as the declared states `presymptomatic`, `asymptomatic`, and `symptomatic` (`cst4` is their union, for women over 15); `cst1` and `cst3` are states too. The stable CST represents each woman's baseline microbiome, drawn at birth, which she returns to after clearance (a woman whose stable CST is 4 returns to CST 3, and starts there as a girl). The risk factors, and the probabilities of a worse CST they give, are code (as agents).
+CST transitions are spontaneous, with a probability per month raised by each woman's risk factors. CST 4 (polymicrobial/BV) is the "infected" state, as the states `presymptomatic`, `asymptomatic`, and `symptomatic` (`cst4` is their union, for women over 15); `cst1` and `cst3` are states too, and `bv.set_state(uids, bv.cst1)` puts women in one (as treatment does). The stable CST represents each woman's baseline microbiome, drawn at birth, which she returns to after clearance (a woman whose stable CST is 4 returns to CST 3, and starts there as a girl).
 
 ## Parameters
 
@@ -98,7 +98,7 @@ Pars of `sti.BV`. The Source column follows the conventions of the [parameter re
 
 | Parameter | Default | Description | Source |
 |-----------|---------|-------------|--------|
-| `init_prev` | 0 | Not used: each woman's CST is set by `assign` (from `stable_cst_distribution`), at the start and at birth | Not applicable |
+| `init_prev` | 0 | Not used: each woman's CST is set from `stable_cst_distribution`, at the start and at birth | Not applicable |
 
 ### Pregnancy outcomes
 

@@ -168,16 +168,16 @@ class treat_BV(ss.Intervention):
                     if len(tx_effective):
                         # Move to the CST that the treatment leads to
                         if stable_cst_val == "stable_cst1":
-                            bv.move(tx_effective, bv.cst1)
+                            bv.set_state(tx_effective, bv.cst1)
                         elif self.pars.durable_cst1_change: # A durable change to a stable CST 1, for a while
-                            bv.move(tx_effective, bv.cst1)
+                            bv.set_state(tx_effective, bv.cst1)
                             self.orig_CST[tx_effective] = bv.stable_cst[tx_effective]
                             bv.stable_cst[tx_effective] = 1
                             dur_stable_cst_change = self.tx_cst1_change_duration(tx_effective)
                             self.ti_return_stable_cst[tx_effective] = np.round(self.ti + dur_stable_cst_change)
                             self.post_tx_effect[tx_effective] = True
                         else:
-                            bv.move(tx_effective, bv.cst3)
+                            bv.set_state(tx_effective, bv.cst3)
 
             # Return agents to their original CST state
             treatment_waned = (

@@ -2,9 +2,9 @@
 
 Trichomoniasis (*Trichomonas vaginalis*) follows the SEIS pattern with a key feature: most women do not spontaneously clear the infection, leading to very long durations.
 
-**Class:** `sti.Trichomoniasis` | **Alias:** `'tv'` | **Base class:** `sti.SEIS` (declared: its states and transitions)
+**Class:** `sti.Trichomoniasis` | **Alias:** `'tv'` | **Base class:** `sti.SEIS` (each infection's course is drawn when it starts)
 
-## States and transitions
+## States and course
 
 ```
 susceptible ──infection──▶ exposed ──onset──▶ presymptomatic ──symptoms──▶ symptomatic ──clear_symp──▶ susceptible
@@ -15,7 +15,7 @@ symptomatic ──seek_care──▶ symptomatic                   (a share seek
 presymptomatic, asymptomatic, symptomatic ──pid_onset──▶ pid ──clear_pid──▶ susceptible   (women)
 ```
 
-Women may also develop pelvic inflammatory disease (`pid`, with probability `p_pid`), which clears after `dur_pid2clear`; a share of them seek care (`seek_care_pid`). `seek_care` and `seek_care_pid` are events that interventions can be triggered by (e.g. `who=ng.seek_care` for an `ss.treat`, or `eligibility=lambda sim: sim.diseases.ng.seek_care.uids` for an STIsim treatment); `infected` and `infectious` are conditions over the states.
+Women may also develop pelvic inflammatory disease (`pid`, with probability `p_pid`), which clears after `dur_pid2clear`; a share of them seek care (`seek_care_pid`). `seek_care` and `seek_care_pid` are the people who sought care in the step, for interventions to act on (e.g. `who=ng.seek_care` for an `ss.treat`, or `eligibility=lambda sim: sim.diseases.ng.seek_care.uids` for an STIsim treatment); `symptoms` are those whose symptoms started in it.
 
 Values that differ by sex are given with `sti.by_sex(female, male)`, and lognormal durations that do with `sti.lognorm_by_sex([mean, sd], [mean, sd])`.
 

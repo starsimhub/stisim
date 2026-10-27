@@ -26,7 +26,7 @@ def test_bounded_pars(do_plot=do_plot):
     sim.init()
     fitted, _ = ss.fit.bounded_pars(sim)
     assert set(fitted) == {'beta_m2f', 'prop_f0'}, f'Expected beta_m2f and prop_f0 to be found with their bounds, got {list(fitted)}'
-    assert sim.diseases.hiv.value('beta_m2f') == 0.035, 'Expected the module to see the value'
+    assert sim.diseases.hiv.pars.beta_m2f == 0.035, 'Expected the module to see the value'
     return sim
 
 

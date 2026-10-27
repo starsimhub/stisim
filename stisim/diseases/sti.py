@@ -1,6 +1,6 @@
 """
 What STIsim's diseases share: results by sex and age (`STIResults`), initial prevalence by group, and `SEIS`,
-the declared natural history of the curable STIs (chlamydia, gonorrhea, and trichomoniasis)
+the natural history of the curable STIs (chlamydia, gonorrhea, and trichomoniasis)
 """
 
 import numpy as np
@@ -8,6 +8,7 @@ import starsim as ss
 import sciris as sc
 import stisim.utils as ut
 import pandas as pd
+import scipy.special as sps
 
 ss_float_ = ss.dtypes.float
 
@@ -73,6 +74,8 @@ class STIResults:
     A disease that uses it calls `set_strata()` when it is made; in a sim, it provides `infected` and
     `susceptible` (boolean arrays) and `new_infected()`, the people infected in the current step.
     """
+    sexual_sources = ss.uids() # Who infected someone sexually in this step, as the disease's step() records them: see transmitters()
+
     def set_strata(self, age_range, age_bins, sex_keys):
         """ The adult ages of the main results (e.g. prevalence), the age groups (or None), and the sex strata (or None, for the whole population only) """
         self.age_range = age_range
@@ -101,9 +104,8 @@ class STIResults:
         return (age >= self.age_range[0]) & (age <= self.age_range[1])
 
     def transmitters(self):
-        """ Who infected others sexually in this step, and how many each: by the sexual transmission, `infection` """
-        sources, _ = self.engine.sources(self.infection.uids)
-        uids, counts = np.unique(sources[~np.isnan(sources)].astype(int), return_counts=True)
+        """ Who infected others sexually in this step, and how many each (from `sexual_sources`, which the disease's `step()` records) """
+        uids, counts = np.unique(self.sexual_sources, return_counts=True)
         return ss.uids(uids), counts
 
     def define_sti_results(self, include_care=True):
@@ -150,8 +152,7 @@ class STIResults:
             ss.Result('new_infections_postnatal', dtype=int, label='New infections (postnatal MTCT)', auto_plot=False),
         ]
 
-        declared = set(self.graph.exprs) | set(self.graph.outcomes) if self.graph is not None else set() # Those declared as results of the states and flows, made by the engine
-        self.define_results(*[res for res in results if res.name not in self.results and res.name not in declared])
+        self.define_results(*[res for res in results if res.name not in self.results])
         return
 
     def tally(self):
@@ -199,7 +200,8 @@ class STIResults:
             inf_s = infected & sex
             n_new = t.count(new_s)
             self.results[f'prevalence{skk}'][ti] = t.div(t.count(inf_s & t.adults), t.count(t.adults & sex))
-            self.results[f'new_infections{skk}'][ti] = n_new
+            if skk or ti == 0: # For everyone, ss.Infection counts the infections as they happen (including those of people who die in the step), but not those seeded at the start
+                self.results[f'new_infections{skk}'][ti] = n_new
             self.results[f'infected{skk}'][ti] = t.count(inf_s)
             self.results[f'incidence{skk}'][ti] = t.div(n_new, t.count(sus_s))
             if self.age_bins is not None:
@@ -239,9 +241,9 @@ def init_prev_by_group(sim, uids, data, rel_init_prev=1, active=True):
     return np.clip(init_prev * rel_init_prev, a_min=0, a_max=1)
 
 
-class SEIS(ss.Disease, STIResults):
+class SEIS(ss.Infection, STIResults):
     """
-    The natural history of a curable STI, declared: susceptible, exposed, infectious, and susceptible again
+    The natural history of a curable STI: susceptible, exposed, infectious, and susceptible again
 
     People infected go through a latent period (`exposed`), then become infectious, with symptoms
     to come (`presymptomatic`) or with none (`asymptomatic`). Those with symptoms may seek care,
@@ -249,30 +251,23 @@ class SEIS(ss.Disease, STIResults):
     everyone who clears is susceptible again. Used for chlamydia, gonorrhea, and trichomoniasis,
     which differ only in their parameters.
 
-    States:
+    Each infection's course is drawn when it starts (`set_prognoses()`): when it becomes infectious,
+    whether and when symptoms start, care is sought, and PID starts, and when it clears. Each step
+    then takes the people whose time has come (`step_state()`), in the order of the course, so
+    someone can pass through several stages in one step.
 
-    - `susceptible`
-    - `exposed`: infected, not yet infectious
-    - `presymptomatic`: infectious, with symptoms to come
-    - `asymptomatic`: infectious, with no symptoms to come
-    - `symptomatic`: infectious, with symptoms
-    - `pid`: pelvic inflammatory disease (women)
+    States: `susceptible`, `exposed`, `presymptomatic`, `asymptomatic`, `symptomatic`, `pid`, and
+    `infected` and `infectious` (`exposed` and the rest, and all but `exposed`). The people who
+    sought care in the step are `seek_care` (with symptoms) and `seek_care_pid` (with PID), and
+    those whose symptoms started, `symptoms`: e.g. `who=ng.seek_care` for an `ss.treat`, or
+    `eligibility=lambda sim: sim.diseases.ng.seek_care.uids` for an STIsim treatment.
 
-    `infectious` and `infected` (`exposed` too) are conditions over these.
+    The course, by its parameters:
 
-    Transitions (each is an event that interventions can be triggered by, e.g. `who=ng.seek_care`):
-
-    - `infection`: sexual transmission, from someone infectious
-    - `mtct`: transmission from mother to child in pregnancy (if `beta_m2c` is given)
-    - `onset`: the end of the latent period, `dur_exp` after infection, to `presymptomatic` (with probability `p_symp`) or `asymptomatic`
-    - `symptoms`: `dur_presymp` after becoming infectious
-    - `seek_care`: a share `p_symp_care` of the symptomatic seek care, `dur_symp2care` after their symptoms start, if they still have them; they stay symptomatic
-    - `clear_symp`: `dur_symp2clear` after symptoms start, whether or not they sought care
-    - `clear_asymp`: `dur_asymp2clear` after becoming infectious
-    - `persist`: a share `1 - p_clear` of asymptomatic women do not clear, for `dur_persist` (100 years by default)
-    - `pid_onset`: a share `p_pid` of infected women develop PID, `dur_prepid` after becoming infectious
-    - `seek_care_pid`: a share `p_pid_care` of women with PID seek care, `dur_pid2care` after PID starts
-    - `clear_pid`: `dur_pid2clear` after PID starts
+    - `dur_exp` after infection, infectious, with symptoms to come with probability `p_symp`
+    - `dur_presymp` after that, symptoms; a share `p_symp_care` seek care `dur_symp2care` after their symptoms start, if they still have them
+    - clearance: `dur_symp2clear` after symptoms start, or `dur_asymp2clear` after becoming infectious without symptoms; a share `1 - p_clear` of asymptomatic women do not clear, for `dur_persist` (100 years by default)
+    - PID: a share `p_pid` of infected women, `dur_prepid` after becoming infectious, if still infected; a share `p_pid_care` of them seek care `dur_pid2care` after it starts; it clears `dur_pid2clear` after it starts
 
     Values that differ by sex are given with `sti.by_sex()` (e.g. `p_symp=sti.by_sex(0.35, 0.65)`), and
     lognormal durations that do with `sti.lognorm_by_sex()`.
@@ -292,105 +287,182 @@ class SEIS(ss.Disease, STIResults):
         sim = sti.Sim(diseases=ng, n_agents=5000)
         ```
     """
+    durs = ['dur_exp', 'dur_presymp', 'dur_symp2care', 'dur_symp2clear', 'dur_asymp2clear', 'dur_persist', 'dur_prepid', 'dur_pid2care', 'dur_pid2clear']
+    chances = ['p_symp', 'p_symp_care', 'p_clear', 'p_pid', 'p_pid_care']
+
     def __init__(self, pars=None, name=None, age_range=None, age_bins=default_age_bins,
-                 sex_keys=default_sex_keys, include_care=True, **kwargs):
+                 sex_keys=default_sex_keys, include_care=True, label=None, **kwargs):
+        super().__init__(name=name, label=label)
+        self.define_pars(
+            dt = 'month',
+            init_prev = 0.01,
 
-        # Transmission: a probability per act on the sexual networks, and a rate per month from mother to child
-        beta_m2f = ss.par(0.0, doc='Probability of transmission per act from a man to a woman')
-        rel_beta_f2m = ss.par(0.5, doc='Transmission from a woman to a man, relative to from a man to a woman')
-        beta_m2m = ss.par(0.0, doc='Probability of transmission per act between men')
-        beta_m2c = ss.par(0.0, doc='Rate of transmission from mother to child in pregnancy, per month')
+            # Transmission: a probability per act on the sexual networks, and a rate per month from mother to child
+            beta = 0.0, # On each network, from the ones below (see validate_beta())
+            beta_m2f = 0.0, # From a man to a woman
+            rel_beta_f2m = 0.5, # From a woman to a man, relative to from a man to a woman
+            beta_m2m = 0.0, # Between men
+            beta_m2c = 0.0, # From mother to child in pregnancy, per month
+            eff_condom = 1.0, # Read by the sexual networks (see sti.BaseNetwork.net_beta())
 
-        # Natural history
-        dur_exp = ss.par(ss.constant(ss.weeks(1)), doc='Latent period: time from infection to being infectious')
-        p_symp = ss.par(by_sex(0.375, 0.375), doc='Probability that an infection becomes symptomatic')
-        dur_presymp = ss.par(lognorm_by_sex([ss.weeks(1), ss.weeks(12)], [ss.weeks(0.25), ss.weeks(3)]), doc='Time from being infectious to symptoms')
-        p_symp_care = ss.par(by_sex(0.3, 0.2), doc='Probability that someone with symptoms seeks care')
-        dur_symp2care = ss.par(lognorm_by_sex([ss.weeks(4), ss.weeks(4)], [ss.weeks(6), ss.weeks(4)]), name='dur_symp2care', doc='Time from symptoms to seeking care')
-        dur_symp2clear = ss.par(lognorm_by_sex([ss.weeks(52), ss.weeks(5)], [ss.weeks(52), ss.weeks(5)]), name='dur_symp2clear', doc='Time from symptoms to clearance')
-        dur_asymp2clear = ss.par(lognorm_by_sex([ss.weeks(52), ss.weeks(5)], [ss.weeks(52), ss.weeks(5)]), doc='Time from being infectious to clearance, without symptoms')
-        p_clear = ss.par(1.0, doc='Probability that an asymptomatic infection in a woman clears (the rest persist)')
-        dur_persist = ss.par(ss.constant(ss.years(100)), doc='Duration of a persistent infection')
-        p_pid = ss.par(0.2, doc='Probability that an infected woman develops pelvic inflammatory disease (PID)')
-        dur_prepid = ss.par(ss.lognorm_ex(ss.weeks(6), ss.weeks(4)), name='dur_prepid', doc='Time from being infectious to PID')
-        p_pid_care = ss.par(0.1, doc='Probability that a woman with PID seeks care')
-        dur_pid2care = ss.par(ss.lognorm_ex(ss.weeks(2), ss.weeks(4)), name='dur_pid2care', doc='Time from PID to seeking care')
-        dur_pid2clear = ss.par(ss.lognorm_ex(ss.weeks(52), ss.weeks(5)), doc='Time from PID to clearance')
-
-        # States
-        susceptible, exposed, presymptomatic, asymptomatic, symptomatic, pid = ss.states('susceptible exposed presymptomatic asymptomatic symptomatic pid')
-        infectious = presymptomatic + asymptomatic + symptomatic + pid
-        female = ss.ppl.female
-
-        # Transmission
-        sexual = sexual_beta(beta_m2f, beta_m2f*rel_beta_f2m, beta_m2m)
-        infection = susceptible >> exposed @ sexual*infectious
-        mtct = susceptible >> exposed @ beta_m2c*dict(maternalnet=ss.permonth(1), default=0)*infectious
-
-        # Natural history
-        onset = ss.Transition(exposed, [presymptomatic, asymptomatic], p=[p_symp, None], dur=dur_exp)
-        symptoms = presymptomatic >> symptomatic @ dur_presymp
-        seek_care = ss.Transition(symptomatic, [symptomatic, ss.stay], p=[p_symp_care, None], on=symptoms, dur=dur_symp2care) # A share seek care, and stay symptomatic
-        clear_symp = ss.Transition(symptomatic, susceptible, on=symptoms, dur=dur_symp2clear) # Timed from the symptoms, so seeking care does not restart it
-        clear_asymp = asymptomatic >> susceptible @ dur_asymp2clear
-        persist = ss.Transition(asymptomatic, susceptible, p=1 - p_clear, dur=dur_persist, where=female) # The rest of the asymptomatic clear by clear_asymp
-        pid_onset = ss.Transition(presymptomatic + asymptomatic + symptomatic, [pid, ss.stay], p=[p_pid, None], on=onset, dur=dur_prepid, where=female)
-        seek_care_pid = ss.Transition(pid, [pid, ss.stay], p=[p_pid_care, None], on=pid_onset, dur=dur_pid2care)
-        clear_pid = pid >> susceptible @ dur_pid2clear
-
-        # The parameters that the transitions do not read: the condoms' efficacy, which the sexual networks read (see sti.BaseNetwork.net_beta());
-        # and, as the graph does not yet register them [PROPOSAL ST-D], the times after an event (on=), named above, whose values are set once it is built
-        values = sc.mergedicts(dict(init_prev=0.01), pars, kwargs)
-        delays = dict(dur_symp2care=dur_symp2care, dur_symp2clear=dur_symp2clear, dur_prepid=dur_prepid, dur_pid2care=dur_pid2care)
-        given = {key:values.pop(key) for key in list(delays) + ['eff_condom'] if key in values}
-
-        # [PROPOSAL ST-A] Declared here rather than in the class body, since on= a sibling transition does not yet work there
-        super().__init__(
-            infection=infection, mtct=mtct, onset=onset, symptoms=symptoms, seek_care=seek_care,
-            clear_symp=clear_symp, clear_asymp=clear_asymp, persist=persist,
-            pid_onset=pid_onset, seek_care_pid=seek_care_pid, clear_pid=clear_pid,
-            new_infections_sex=1*infection, new_infections_prenatal=1*mtct, new_infections_mtct=1*mtct, # Results of the flows, by route
-            name=name, **sc.mergedicts(dict(dt='month'), values), # Monthly unless dt is given
+            # Natural history
+            dur_exp = ss.constant(ss.weeks(1)), # Latent period: time from infection to being infectious
+            p_symp = by_sex(0.375, 0.375), # Probability that an infection becomes symptomatic
+            dur_presymp = lognorm_by_sex([ss.weeks(1), ss.weeks(12)], [ss.weeks(0.25), ss.weeks(3)]), # Time from being infectious to symptoms
+            p_symp_care = by_sex(0.3, 0.2), # Probability that someone with symptoms seeks care
+            dur_symp2care = lognorm_by_sex([ss.weeks(4), ss.weeks(4)], [ss.weeks(6), ss.weeks(4)]), # Time from symptoms to seeking care
+            dur_symp2clear = lognorm_by_sex([ss.weeks(52), ss.weeks(5)], [ss.weeks(52), ss.weeks(5)]), # Time from symptoms to clearance
+            dur_asymp2clear = lognorm_by_sex([ss.weeks(52), ss.weeks(5)], [ss.weeks(52), ss.weeks(5)]), # Time from being infectious to clearance, without symptoms
+            p_clear = 1.0, # Probability that an asymptomatic infection in a woman clears (the rest persist)
+            dur_persist = ss.constant(ss.years(100)), # Duration of a persistent infection
+            p_pid = 0.2, # Probability that an infected woman develops pelvic inflammatory disease (PID)
+            dur_prepid = ss.lognorm_ex(ss.weeks(6), ss.weeks(4)), # Time from being infectious to PID
+            p_pid_care = 0.1, # Probability that a woman with PID seeks care
+            dur_pid2care = ss.lognorm_ex(ss.weeks(2), ss.weeks(4)), # Time from PID to seeking care
+            dur_pid2clear = ss.lognorm_ex(ss.weeks(52), ss.weeks(5)), # Time from PID to clearance
         )
-        self.define_pars(eff_condom=1.0, **delays)
-        self.pars.update(given)
+        self.update_pars(pars, **kwargs)
+        self.define_states(
+            ss.BoolState('exposed', label='Exposed'),
+            ss.BoolState('infectious', label='Infectious'),
+            ss.BoolState('presymptomatic', label='Presymptomatic'),
+            ss.BoolState('asymptomatic', label='Asymptomatic'),
+            ss.BoolState('symptomatic', label='Symptomatic'),
+            ss.BoolState('pid', label='PID'),
+            ss.BoolArr('will_symp', label='Symptoms to come'),
+            ss.BoolArr('symptoms', label='Symptoms started this step'),
+            ss.BoolArr('seek_care', label='Sought care this step, with symptoms'),
+            ss.BoolArr('seek_care_pid', label='Sought care this step, with PID'),
+            *[ss.TimeArr(f'ti_{key}') for key in ['infectious', 'symptoms', 'seek_care', 'clear', 'pid', 'seek_care_pid', 'clear_pid']], # When each happens, drawn at infection (NaN for never), due at the nearest step
+            overwrite = True, # In place of ss.Infection's alias, infectious='infected'
+        )
+        self.u = sc.objdict({key:ss.random(name=f'u_{key}') for key in self.durs + self.chances}) # A uniform for each draw of the course, so each person's is their own
         self.set_strata(age_range if age_range is not None else [15, 65], age_bins, sex_keys)
         self.include_care = include_care
         return
-
-    @property
-    def infectious(self):
-        """ Who is infectious: all but the latent period """
-        return self.presymptomatic | self.asymptomatic | self.symptomatic | self.pid
-
-    @property
-    def infected(self):
-        """ Who is infected, including the latent period """
-        return self.exposed | self.infectious
 
     @property
     def treatable(self):
         """ Who a treatment can cure: everyone infected """
         return self.infected
 
-    def new_infected(self):
-        """ Who was infected in this step: by transmission, or seeded at the start """
-        new = self.infection.uids | self.mtct.uids
-        if self.ti == 0:
-            new = new | self.infected.uids
-        return self.sim.people.uid.isin(new) # As a boolean array
+    def validate_beta(self):
+        """ The betas of the sexual networks and the maternal one, from the parameters (so a fitted beta_m2f is read as it is now) """
+        p = self.pars
+        self.pars.beta = sexual_beta(p.beta_m2f, p.beta_m2f*p.rel_beta_f2m, p.beta_m2m) | dict(maternalnet=ss.permonth(p.beta_m2c))
+        return super().validate_beta()
+
+    def sexed(self, val, uids):
+        """ A value for some agents: for each one's sex if it is by sex (`sti.by_sex()`), or as it is; a duration in steps """
+        step = lambda v: v/self.t.dt if isinstance(v, ss.dur) else v
+        if isinstance(val, ss.by):
+            sex = val.given['sex']
+            return np.where(self.sim.people.female.raw[uids], step(sex['female']), step(sex['male']))
+        return step(val)
+
+    def draw(self, key, uids):
+        """ A draw of the course for some agents: a chance (True with the probability) or a duration in steps (a lognormal by sex, or any distribution) """
+        val = self.pars[key]
+        if key in self.chances:
+            return self.u[key].rvs(uids) < self.sexed(val, uids)
+        if isinstance(val, ss.lognorm_ex) and isinstance(val.pars.mean, ss.by): # By sex: as the lognormal draws, from each one's mean and standard deviation
+            mean, std = self.sexed(val.pars.mean, uids), self.sexed(val.pars.std, uids)
+            sigma = np.sqrt(np.log1p((std/mean)**2))
+            return np.exp(np.log(mean) - sigma**2/2 + sigma*sps.ndtri(self.u[key].rvs(uids)))
+        return val.rvs(uids) if isinstance(val, ss.Dist) else np.full(len(uids), self.sexed(val, uids), dtype=float)
+
+    def set_prognoses(self, uids, sources=None):
+        """ Infect some people, and draw their course: when each stage starts, and whether it does """
+        super().set_prognoses(uids, sources)
+        ti = self.ti
+        female = self.sim.people.female.raw
+        self.infected[uids] = True
+        self.exposed[uids] = True
+        self.ti_infected[uids] = ti if self.sim.initialized else 0 # The infections seeded at the start are of its first point, though their course runs from the first step, as ss.Infection.init_post() dates it
+        start = self.ti + 1 if self.sim.initialized else self.ti # A course runs from when the infection happens: at the end of the step, in transmission (as a declared disease dates it), or as ss.Infection.init_post() dates those seeded at the start
+        infectious = start + self.draw('dur_exp', uids)
+        self.ti_infectious[uids] = infectious
+
+        # Symptoms, and seeking care for them; or none, and clearing (or, for some women, persisting)
+        symp = self.draw('p_symp', uids)
+        self.will_symp[uids] = symp
+        s, a = uids[symp], uids[~symp]
+        symptoms = infectious[symp] + self.draw('dur_presymp', s)
+        self.ti_symptoms[s] = symptoms
+        self.ti_seek_care[s] = np.where(self.draw('p_symp_care', s), symptoms + self.draw('dur_symp2care', s), np.nan)
+        self.ti_clear[s] = symptoms + self.draw('dur_symp2clear', s)
+        persist = female[a] & ~self.draw('p_clear', a)
+        self.ti_clear[a] = infectious[~symp] + np.where(persist, self.draw('dur_persist', a), self.draw('dur_asymp2clear', a))
+
+        # PID, for some women, and seeking care for it
+        women = female[uids]
+        w = uids[women]
+        pid = self.draw('p_pid', w)
+        w, pid_start = w[pid], infectious[women][pid] + self.draw('dur_prepid', w[pid])
+        self.ti_pid[w] = pid_start
+        self.ti_seek_care_pid[w] = np.where(self.draw('p_pid_care', w), pid_start + self.draw('dur_pid2care', w), np.nan)
+        self.ti_clear_pid[w] = pid_start + self.draw('dur_pid2clear', w)
+        return
+
+    def step_state(self):
+        """ Take the people whose time has come through their course, in its order """
+        due = lambda state, when: (state & when.due()).uids
+        for arr in [self.symptoms, self.seek_care, self.seek_care_pid]: # Events of the step only
+            arr[:] = False
+
+        uids = due(self.exposed, self.ti_infectious) # Infectious
+        self.exposed[uids] = False
+        self.infectious[uids] = True
+        symp = self.will_symp[uids]
+        self.presymptomatic[uids[symp]] = True
+        self.asymptomatic[uids[~symp]] = True
+
+        uids = due(self.presymptomatic, self.ti_symptoms) # Symptoms
+        self.presymptomatic[uids] = False
+        self.symptomatic[uids] = True
+        self.symptoms[uids] = True
+
+        uids = due(self.infectious & ~self.pid, self.ti_pid) # PID, from any other infectious stage
+        for state in [self.presymptomatic, self.asymptomatic, self.symptomatic]:
+            state[uids] = False
+        self.pid[uids] = True
+
+        for state, when, event in [(self.symptomatic, self.ti_seek_care, self.seek_care), (self.pid, self.ti_seek_care_pid, self.seek_care_pid)]: # Seeking care, once
+            uids = due(state, when)
+            event[uids] = True
+            when[uids] = np.nan
+
+        cleared = due(self.infectious & ~self.pid, self.ti_clear) | due(self.pid, self.ti_clear_pid)
+        self.clear_infection(cleared)
+        return
 
     def clear_infection(self, uids):
-        """ Cure people (e.g. treated): they are susceptible again """
-        self.move(uids, self.susceptible)
+        """ Cure people (on their own, or treated): they are susceptible again """
+        for state in [self.infected, self.exposed, self.infectious, self.presymptomatic, self.asymptomatic, self.symptomatic, self.pid, self.will_symp]:
+            state[uids] = False
+        self.susceptible[uids] = True
+        for key in ['infectious', 'symptoms', 'seek_care', 'clear', 'pid', 'seek_care_pid', 'clear_pid']:
+            self[f'ti_{key}'][uids] = np.nan
         return
+
+    def step(self):
+        """ Transmission (see `ss.Infection.step()`), and the new infections by route """
+        new, sources, networks = super().step()
+        maternal = np.isin(networks, [i for i,net in enumerate(self.sim.networks.values()) if isinstance(net, ss.PrenatalNet)])
+        self.sexual_sources = sources[~maternal]
+        ti = self.ti
+        self.results.new_infections_sex[ti] = np.count_nonzero(~maternal)
+        self.results.new_infections_prenatal[ti] = self.results.new_infections_mtct[ti] = np.count_nonzero(maternal)
+        return new, sources, networks
+
+    def new_infected(self):
+        """ Who was infected in this step, including those seeded at the start, as a boolean array """
+        return self.ti_infected == self.ti
 
     def init_results(self):
         """ Initialize results """
         super().init_results()
-        self.define_results(ss.Result('infectious', dtype=int, label='Number infectious', auto_plot=False))
         self.define_sti_results(include_care=self.include_care)
-        self.define_results(ss.Result('cum_infections', dtype=int, label='Cumulative infections'))
 
         # Symptoms, by sex and age
         results = sc.autolist()
@@ -409,7 +481,7 @@ class SEIS(ss.Disease, STIResults):
                     ss.Result(f'new_symptomatic{ask}', dtype=int, label=f"New symptomatic{asl}", auto_plot=False),
                     ss.Result(f'symp_prevalence{ask}', scale=False, label=f"Symptomatic prevalence{asl}", auto_plot=False),
                 ]
-        self.define_results(*results)
+        self.define_results(*[res for res in results if res.name not in self.results])
         return
 
     def update_results(self):
@@ -419,11 +491,10 @@ class SEIS(ss.Disease, STIResults):
         res = self.results
         t = self.tally()
         self.update_sti_results(t)
-        res.infectious[ti] = t.count(t.vals(self.infectious))
 
         # Symptoms and care seeking, by sex and age
-        new_sym = t.vals(ppl.uid.isin(self.symptoms.uids))
-        seekers = t.vals(ppl.uid.isin(self.seek_care.uids | self.seek_care_pid.uids))
+        new_sym = t.vals(self.symptoms)
+        seekers = t.vals(self.seek_care) | t.vals(self.seek_care_pid)
         symptomatic = t.vals(self.symptomatic)
         for skk, skl, attr in self.sex_strata():
             sex = t.vals(ppl[attr])
@@ -437,9 +508,4 @@ class SEIS(ss.Disease, STIResults):
                 res[f'new_care_seekers{skk}'][ti] = t.count(seekers & sex)
             if self.age_bins is not None:
                 self.set_age_results(skk, new_symptomatic=t.hist(new_sym_s), symp_prevalence=t.hdiv(t.hist(sym_s), t.hist(sex)))
-        return
-
-    def finalize_results(self):
-        super().finalize_results()
-        self.results.cum_infections[:] = np.cumsum(self.results.new_infections[:])
         return
