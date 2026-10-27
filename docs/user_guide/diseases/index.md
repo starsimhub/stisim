@@ -14,9 +14,9 @@ STIsim includes the following disease modules:
 
 ## Infected vs. infectious
 
-The SEIS diseases (chlamydia, gonorrhea, trichomoniasis) follow starsim's `ss.SEIR` naming: `exposed` and `infectious` are the literal E and I compartments, and `infected` is derived as E plus I. So `n_infected` and `prevalence` count everyone carrying the infection, including those still in the latent period, while transmission depends on `infectious` alone. Use `n_infectious` if you want the transmitting compartment on its own.
+The SEIS diseases (chlamydia, gonorrhea, trichomoniasis) follow starsim's `ss.SEIR` naming: `exposed` and `infectious` are the literal E and I compartments, and `infected` is derived as E plus I. So `infected` and `prevalence` count everyone carrying the infection, including those still in the latent period, while transmission depends on `infectious` alone. Use `infectious` if you want the transmitting compartment on its own.
 
-Correspondingly, `ti_exposed` is the time of acquisition and `ti_infectious` the time of becoming infectious; there is no `ti_infected` on an SEIS disease. Incidence (`new_infections`, `incidence`) is counted at acquisition, off `ti_exposed`.
+Correspondingly, the transition `infection` (`ng.infection.uids`, the people infected in the step) is acquisition, and `onset` is becoming infectious. Incidence (`new_infections`, `incidence`) is counted at acquisition.
 
 HIV, syphilis and BV set `infected` at acquisition already, so the same reading applies to them: `infected` means "has the infection", not "is transmitting".
 

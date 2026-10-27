@@ -147,6 +147,8 @@ Pars of `sti.StructuredSexual`, including those inherited from `sti.MFNetwork`, 
 | `condom_data` | None | Condom use probability: scalar, or time series stratified by risk-group pair and sex-work edges | Not applicable |
 | `condom_smoothness` | None | Smoothing applied when interpolating time-varying `condom_data` | Not applicable |
 | `recall_prior` | False | Whether former partners are stored for partner notification (requires `sti.PriorPartners`) | Not applicable |
+| `between` | 'mf' | Who partnerships are between, from `ss.SexualNet`: men and women (`'mf'`), or men (`'mm'`, the MSM networks) | Not applicable |
+| `memory` | None | How long the network remembers partnerships that have ended, from `ss.Network`, for contact tracing by `find_contacts()` | Not applicable |
 ## Other networks
 
 STIsim also includes:

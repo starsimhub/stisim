@@ -31,7 +31,7 @@ class AgeMatchedMSM(MFNetwork):
     """
 
     def __init__(self, pars=None, **kwargs):
-        super().__init__(name='msm')
+        super().__init__(name='msm', between='mm')
         self.define_pars(
             p_msm=ss.bernoulli(p=0.015),
         )
@@ -135,7 +135,7 @@ class MSMScaleFreeNetwork(BaseNetwork):
     records_all_expirations = False
 
     def __init__(self, pars=None, name=None, **kwargs):
-        super().__init__(name=name)
+        super().__init__(name=name, between='mm')
         self.define_pars(
             p_msm=ss.bernoulli(p=0.015),  # fraction of males in the MSM pool
             target_mean_degree=2.0,
@@ -520,7 +520,7 @@ class AgeApproxMSM(MFNetwork):
     """
 
     def __init__(self, pars=None, **kwargs):
-        super().__init__(name='msm')
+        super().__init__(name='msm', between='mm')
         self.define_pars(
             p_msm=ss.bernoulli(p=0.015),
         )

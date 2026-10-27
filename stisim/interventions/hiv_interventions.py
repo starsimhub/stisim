@@ -95,9 +95,8 @@ class HIVTest(STITest):
             test_prob_data=0.9,
             dt_scale=False,
             name='anc_test',
-            eligibility=lambda sim: sim.demographics.pregnancy.tri1_uids[
-                ~sim.diseases.hiv.diagnosed[sim.demographics.pregnancy.tri1_uids]
-            ],
+            eligibility=lambda sim: (sim.demographics.pregnancy.P & (sim.demographics.pregnancy.P.time < ss.weeks(13))
+                                     & ~sim.diseases.hiv.diagnosed),
         )
     """
     def __init__(self, product=None, pars=None, test_prob_data=None, years=None, start=None,
@@ -147,7 +146,7 @@ class HIVTest(STITest):
                 )
             pos_mask  = np.isin(mn.p1, pos_uids)
             unborn    = mn.p2[pos_mask]
-            ti_births = pregnancy.ti_delivery[mn.p1[pos_mask]]
+            ti_births = np.ceil(pregnancy.ti_exit_P[mn.p1[pos_mask]]) # The step of the delivery
             valid     = ~np.isnan(ti_births)
             if valid.any():
                 self.newborn_test.schedule(unborn[valid], ti_births[valid].astype(int))
@@ -356,12 +355,8 @@ class ART(ss.Intervention):
         n_target = int(np.clip(round(target), 0, len(uids)))
         order = uids[np.argsort(-self.adherence[uids])]
         keep, drop = order[:n_target], order[n_target:]
-        if len(keep):
-            hiv.on_effective_art[keep] = True
-            hiv.on_nonsuppressive_art[keep] = False
-        if len(drop):
-            hiv.on_effective_art[drop] = False
-            hiv.on_nonsuppressive_art[drop] = True
+        hiv.set_suppression(keep, effective=True)
+        hiv.set_suppression(drop, effective=False)
 
     def vls_stock_correction(self, sim):
         """
@@ -453,14 +448,14 @@ class ART(ss.Intervention):
 
             # Prenatal: protect unborn infants of pregnant mothers on ART
             if hasattr(sim.networks, 'maternalnet'):
-                art_pregnant = (hiv.on_art & preg.pregnant).uids
+                art_pregnant = (hiv.on_art & preg.P).uids
                 if len(art_pregnant):
                     unborn = sim.networks.maternalnet.find_contacts(art_pregnant)
                     hiv.rel_sus[ss.uids(unborn)] *= 1 - pmtct_eff
 
             # Postnatal: protect breastfed infants of breastfeeding mothers on ART
             if hasattr(sim.networks, 'breastfeedingnet'):
-                art_breastfeeding = (hiv.on_art & preg.breastfeeding).uids
+                art_breastfeeding = (hiv.on_art & preg.lactating).uids
                 if len(art_breastfeeding):
                     breastfed = sim.networks.breastfeedingnet.find_contacts(art_breastfeeding)
                     hiv.rel_sus[ss.uids(breastfed)] *= 1 - pmtct_eff
@@ -576,7 +571,7 @@ class VMMC(ss.Intervention):
     """
     Voluntary medical male circumcision.
 
-    Reduces male susceptibility to HIV acquisition (see ``HIVPars.eff_circ``).
+    Reduces male susceptibility to HIV acquisition (see HIV's ``eff_circ``).
     Unlike ART, VMMC does not require diagnosis — it circumcises males up to a
     coverage target, prioritized by willingness (a random per-agent score).
 
@@ -589,7 +584,7 @@ class VMMC(ss.Intervention):
 
     Circumcision status (``circumcised``/``circ_traditional``/``ti_circumcised``) and
     efficacy (``eff_circ``) live on :class:`~stisim.diseases.hiv.HIV`, not on
-    this intervention — see ``HIV.circumcise()`` and ``HIVPars.eff_circ``. This
+    this intervention — see ``HIV.circumcise()`` and HIV's ``eff_circ``. This
     lets other circumcision sources (e.g. non-program/traditional circumcision)
     share the same state and be included in this intervention's "already
     circumcised" checks without going through VMMC at all.

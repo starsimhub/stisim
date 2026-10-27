@@ -48,7 +48,7 @@ class NetworkPars(ss.Pars):
         return
 
 
-class BaseNetwork(ss.SexualNetwork):
+class BaseNetwork(ss.SexualNet):
     """Shared infrastructure for the heterosexual and sex-work networks.
 
     Provides the common edge meta layout, condom-data processing, debut
@@ -65,8 +65,8 @@ class BaseNetwork(ss.SexualNetwork):
     # path (e.g. a custom delete inside ``add_pairs``) MUST set this to False.
     records_all_expirations = True
 
-    def __init__(self, name=None, record_expired: bool = False, **kwargs):
-        super().__init__(name=name)
+    def __init__(self, name=None, record_expired: bool = False, between='mf', **kwargs):
+        super().__init__(name=name, between=between)
         self.meta.condoms = ss_float
         self.meta.age_p1 = ss_float
         self.meta.age_p2 = ss_float
@@ -153,7 +153,7 @@ class BaseNetwork(ss.SexualNetwork):
     def net_beta(self, disease_beta=None, uids=None, disease=None):
         if uids is None: uids = Ellipsis
         p_condom = self.edges.condoms[uids]
-        eff_condom = disease.pars.eff_condom
+        eff_condom = disease.value('eff_condom') if 'eff_condom' in disease.pars else 0.0 # A number for a disease written as code or declared; no protection for one without it
         p_trans_condom = (1 - disease_beta*(1-eff_condom))**(self.edges.acts[uids]*p_condom)
         p_trans_no_condom = (1 - disease_beta)**(self.edges.acts[uids]*(1-p_condom))
         return (1 - p_trans_condom * p_trans_no_condom) * self.edges.beta[uids]

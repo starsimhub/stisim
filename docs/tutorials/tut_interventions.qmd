@@ -23,11 +23,11 @@ sim_base = sti.Sim(diseases='ng', n_agents=2000, start=2010, stop=2030)
 sim_base.run(verbose=0)
 
 # With treatment: symptomatic care-seekers get treated
-# ti_seeks_care is the time when an agent seeks care
+# seek_care is the transition of seeking care, and .uids those who did in this step
 ng = sti.Gonorrhea(init_prev=0.01)
 ng_tx = sti.GonorrheaTreatment(
     name='ng_tx',
-    eligibility=lambda sim: sim.diseases.ng.symptomatic & (sim.diseases.ng.ti_seeks_care == sim.ti),
+    eligibility=lambda sim: sim.diseases.ng.seek_care.uids,
 )
 sim_intv = sti.Sim(diseases=ng, interventions=[ng_tx], n_agents=2000, start=2010, stop=2030)
 sim_intv.run(verbose=0)
@@ -92,7 +92,7 @@ axes[1].set_xlabel('Year')
 axes[1].set_ylabel('New HIV infections')
 axes[1].set_title('Infections with ART')
 
-axes[2].plot(sim_intv.timevec, sim_intv.results.hiv.n_on_art)
+axes[2].plot(sim_intv.timevec, sim_intv.results.hiv.on_art)
 axes[2].set_xlabel('Year')
 axes[2].set_ylabel('Number on ART')
 axes[2].set_title('ART uptake')
@@ -130,7 +130,7 @@ sim = hivsim.demo('simple', run=False, plot=False, n_agents=3000,
                   networks=[sti.StructuredSexual(), ss.MaternalNet(), ss.BreastfeedingNet()])
 sim.pars.interventions = [fsw_test, gp_test, art2]
 sim.run(verbose=0)
-sim.plot(key=['hiv.prevalence_15_49', 'hiv.new_infections', 'hiv.n_on_art'])
+sim.plot(key=['hiv.prevalence_15_49', 'hiv.new_infections', 'hiv.on_art'])
 ```
 
 ## ART coverage formats and monitoring

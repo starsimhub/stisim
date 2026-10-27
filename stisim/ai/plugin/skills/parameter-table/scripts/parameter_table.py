@@ -25,6 +25,7 @@ import re
 import csv
 import sys
 import argparse
+import inspect
 import urllib.request
 from pathlib import Path
 
@@ -103,7 +104,10 @@ def parse(docs=None, ref='main'):
 
 
 def _fmt(value):
-    """ Compact string for a parameter value, e.g. ``ss.normal(loc=800, scale=50)`` -> ``normal(loc=800, scale=50)`` """
+    """ Compact string for a parameter value, e.g. ``ss.normal(loc=800, scale=50)`` -> ``normal(loc=800, scale=50)``; for a declared parameter (``ss.par``), its value """
+    import starsim as ss
+    if isinstance(value, ss.par):
+        value = value.raw
     return re.sub(r'\bss\.', '', repr(value)).replace('\n', ' ')
 
 
@@ -214,13 +218,17 @@ def check_coverage(rows, exclude=()):
     Returns:
         dict of {module class name: (undocumented, unknown)}
     """
+    import starsim as ss
     import stisim as sti
     classes = dict(hiv=sti.HIV, syph=sti.Syphilis, ct=sti.Chlamydia, ng=sti.Gonorrhea, tv=sti.Trichomoniasis,
                    bv=sti.BV, gud=sti.GUD, structuredsexual=sti.StructuredSexual)
     out = {}
     for modname, cls in classes.items():
         documented = {r['name'] for r in rows if r['modname'] == modname}
-        defined = set(cls().pars)
+        defined = {k for k, v in cls().pars.items() if not getattr(v, 'slot_named', False)} # Not those a declared model names after a slot (e.g. "dur" for a dur=0)
+        if issubclass(cls, ss.Disease): # And the keywords of a declared disease, e.g. init_prev or birth_outcomes
+            not_pars = ['pars', 'name', 'kwargs', 'age_bins', 'age_range', 'sex_keys', 'include_care', 'init_prev_data'] # What a disease is made with that is not one of its parameters
+            defined |= {'init_prev'} | {k for k in inspect.signature(cls).parameters if k not in not_pars}
         out[cls.__name__] = (sorted(defined - documented - set(exclude)), sorted(documented - defined))
     return out
 

@@ -66,32 +66,16 @@ class SyphTx(STITreatment):
         return
 
     def change_states(self, disease, treat_succ):
-        """ Change the states of people who are treated """
+        """ Cure the people successfully treated, and update their serology """
         d = self.sim.diseases[disease]
 
-        # Identify early-stage treated agents BEFORE clearing stage flags.
-        # Treatment in primary, secondary, or early latent yields RPR
-        # sero-reversion within 6-12 months; late-latent treatment does not
-        # reliably clear the non-trep test.
-        early_stage_mask = (d.primary[treat_succ]
-                             | d.secondary[treat_succ]
-                             | d.early[treat_succ])
-        early_stage_treated = treat_succ[early_stage_mask]
-
-        d.primary[treat_succ] = False
-        d.secondary[treat_succ] = False
-        d.early[treat_succ] = False
-        d.late[treat_succ] = False
-        d.latent[treat_succ] = False
-        d.tertiary[treat_succ] = False
+        # Treatment in primary, secondary, or early latent yields RPR sero-reversion
+        # within 6-12 months; late-latent treatment does not reliably clear the
+        # non-trep test. Found before they are cured.
+        early_stage_treated = treat_succ[(d.primary | d.secondary | d.early)[treat_succ]]
+        d.clear_infection(treat_succ)
         d.chancre_visible[treat_succ] = False
         d.rash_visible[treat_succ] = False
-        d.ti_primary[treat_succ] = np.nan
-        d.ti_secondary[treat_succ] = np.nan
-        d.ti_latent[treat_succ] = np.nan
-        d.ti_tertiary[treat_succ] = np.nan
-        d.susceptible[treat_succ] = True
-        d.infected[treat_succ] = False
 
         # Schedule post-treatment non-trep sero-reversion for early-stage
         # treated agents currently RPR-positive. Without this, treated
@@ -116,6 +100,7 @@ class SyphTx(STITreatment):
         ]
         if len(window_period_treated) > 0:
             d.ti_trep_start[window_period_treated] = np.nan
+        return
 
     def treat_fetus(self, sim, mother_uids):
         """
@@ -143,25 +128,12 @@ class SyphTx(STITreatment):
         # Store results - Unnecessary. Subtract successful uids below
         sim.diseases.syph.results['new_fetus_treated_unnecessary'][self.ti] += len(treat_uids)
 
-        # Change birth outcomes for successfully treated unborn babies
-        # If fetus is not yet infected, this will do nothing
-        if len(treat_uids):
-            # Birth outcomes must be modified to add probability of susceptible birth
-            birth_outcomes = sim.diseases.syph.pars.birth_outcome_keys
-
-            # Change states
-            for oi, outcome in enumerate(birth_outcomes):
-                if outcome != 'normal':
-                    ti_outcome = f'ti_{outcome}'
-                    vals = getattr(sim.diseases.syph, ti_outcome)
-                    successful_uids = treat_uids & vals.notnan.uids
-                    vals[successful_uids] = np.nan
-                    sim.diseases.syph.setattribute(ti_outcome, vals)
-
-                # Store results - Success
-                sim.diseases.syph.results['new_fetus_treated_success'][self.ti] += len(successful_uids)
-                # Store results - Unnecessary. Subtract the uids that were successful
-                sim.diseases.syph.results['new_fetus_treated_unnecessary'][self.ti] -= len(successful_uids)
+        # Successfully treated fetuses who were infected will be born without complications; for the others, the treatment was unnecessary
+        syph = sim.diseases.syph
+        cured = treat_uids[(syph.fetal & ~syph.fetus_normal)[treat_uids]]
+        syph.move(cured, syph.fetus_normal)
+        sim.diseases.syph.results['new_fetus_treated_success'][self.ti] += len(cured)
+        sim.diseases.syph.results['new_fetus_treated_unnecessary'][self.ti] -= len(cured)
 
         return
 
@@ -173,8 +145,8 @@ class SyphTx(STITreatment):
         treat_uids = super().step()
         # Treat unborn babies of successfully treated mothers (only if pregnancy is modeled)
         if hasattr(sim.people, 'pregnancy'):
-            treat_pregnant_uids = sim.people.pregnancy.pregnant.uids & self.outcomes['successful']
-            overtreat_pregnant_uids = sim.people.pregnancy.pregnant.uids & self.outcomes['unnecessary']
+            treat_pregnant_uids = sim.people.pregnancy.P.uids & self.outcomes['successful']
+            overtreat_pregnant_uids = sim.people.pregnancy.P.uids & self.outcomes['unnecessary']
             sim.diseases.syph.results['new_treated_unnecessary_pregnant'][self.ti] += len(overtreat_pregnant_uids)
             if len(treat_pregnant_uids):
                 self.treat_fetus(sim, mother_uids=treat_pregnant_uids)
@@ -206,23 +178,17 @@ class NewbornTreatment(SyphTx):
         return
 
     def change_states(self, disease, treat_succ):
-        """ Change states of congenital cases """
-        self.sim.diseases[disease].congenital[treat_succ] = False
-        self.sim.diseases[disease].ti_congenital[treat_succ] = np.nan
-        self.sim.diseases[disease].cs_outcome[treat_succ] = 4  # Reset to 'normal' outcome
+        """ Cure congenital cases: they are susceptible """
+        d = self.sim.diseases[disease]
+        d.move(treat_succ, d.susceptible)
 
     def administer(self, sim, uids, disease, return_format='dict'):
         """ Administer treatment to newborns """
-        sus = sim.diseases[disease].susceptible
-        con = sim.diseases[disease].congenital
-        sus_uids = uids[sus[uids]]
-        con_uids = uids[con[uids]]
+        d = sim.diseases[disease]
+        sus_uids = uids[d.susceptible[uids]]
 
-        # Babies that are neither susceptible nor congenital are MTC-infected
-        # (susceptible cleared during pregnancy, congenital not yet fired).
-        # Treat them as congenital cases.
-        mtc_uids = uids[~sus[uids] & ~con[uids]]
-        all_con = con_uids | mtc_uids
+        # Congenital cases, including those infected in utero whose birth outcome has not yet been taken (in the step of the birth)
+        all_con = uids[(d.congenital | d.fetal)[uids]]
 
         successful = self.pars.treat_eff.filter(all_con)
         unsuccessful = np.setdiff1d(np.asarray(all_con), np.asarray(successful))
@@ -335,9 +301,9 @@ class SyphTest(STITest):
             if self.newborn_test is not None and hasattr(sim.networks, 'maternalnet') and hasattr(sim.people, 'pregnancy'):
                 new_pos = self.ti_positive == self.ti
                 if new_pos.any():
-                    pos_mother_inds = np.in1d(sim.networks.maternalnet.p1, new_pos.uids)
+                    pos_mother_inds = np.isin(sim.networks.maternalnet.p1, new_pos.uids)
                     unborn_uids = sim.networks.maternalnet.p2[pos_mother_inds]
-                    ti_births = sim.demographics.pregnancy.ti_delivery[sim.networks.maternalnet.p1[pos_mother_inds]]
+                    ti_births = np.ceil(sim.demographics.pregnancy.ti_exit_P[sim.networks.maternalnet.p1[pos_mother_inds]]) # The step of the delivery
                     valid = ~np.isnan(ti_births)
                     if valid.any():
                         self.newborn_test.schedule(unborn_uids[valid], ti_births[valid].astype(int))
@@ -404,7 +370,7 @@ class ANCSyphTest(SyphTest):
         self.update_pars(pars, **kwargs)
         self.test_timing = ss.randint(1, 8)
         if self.eligibility is None:
-            self.eligibility = lambda sim: sim.demographics.pregnancy.pregnant
+            self.eligibility = lambda sim: sim.demographics.pregnancy.P
         return
 
     def get_testers(self, sim):
@@ -414,7 +380,7 @@ class ANCSyphTest(SyphTest):
     def schedule_tests(self):
         """ Schedule a test for newly pregnant women """
         sim = self.sim
-        newly_preg = (sim.demographics.pregnancy.ti_pregnant == (self.ti)).uids
+        newly_preg = (sim.demographics.pregnancy.ti_P == (self.ti)).uids
         self.test_prob.pars['p'] = self.make_test_prob_fn(self, sim, newly_preg)
         will_test = self.test_prob.filter(newly_preg)
         ti_test = self.ti + self.test_timing.rvs(will_test)

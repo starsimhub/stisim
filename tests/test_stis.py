@@ -20,7 +20,7 @@ def test_syph_epi():
     """ Test that syphilis epi parameters affect dynamics in the expected direction """
     sc.heading('Test epi dynamics of syphilis')
 
-    base_pars = dict(n_agents=n_agents)
+    base_pars = dict(n_agents=4*n_agents) # The effect of rel_trans_primary is within the noise of one run at 500 agents (Starsim 3 and 4 alike)
 
     # Define the parameters to vary
     par_effects = dict(
@@ -76,7 +76,7 @@ def test_syph_congenital_death_timing():
     sim_still = make_sim(2)
     sim_still.run()
     n_stillborn = sim_still.results.syph.new_stillborns.sum()
-    n_pregnancy_losses = sim_still.results.pregnancy.stillbirths.sum() + sim_still.results.pregnancy.miscarriages.sum()
+    n_pregnancy_losses = sim_still.results.pregnancy.stillbirth.sum() + sim_still.results.pregnancy.miscarriage.sum()
     assert n_stillborn > 0, 'Expected some congenital stillbirths with birth_outcomes forced to stillborn'
     # Every syph-flagged stillbirth should register as a Pregnancy fetal loss too;
     # a large gap means deaths are firing at/after ti_delivery and being

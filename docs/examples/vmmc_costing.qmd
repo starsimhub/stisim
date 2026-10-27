@@ -60,7 +60,7 @@ scenario, and zero coverage in the comparator.
 
 ```{python}
 sim_kwargs = dict(
-    n_agents=5_000, dur=20, start=2005, verbose=-1,
+    n_agents=5_000, dur=20, start=2005, verbose=0,
     init_prev=0.05, beta_m2f=0.05,
     networks=[sti.StructuredSexual(), ss.MaternalNet(), ss.BreastfeedingNet()],
 )

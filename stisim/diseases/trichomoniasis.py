@@ -2,8 +2,9 @@
 Trichomoniasis disease module
 """
 
+import sciris as sc
 import starsim as ss
-from stisim.diseases.sti import SEIS, default_age_bins, default_sex_keys
+from stisim.diseases.sti import SEIS, by_sex, lognorm_by_sex
 
 __all__ = ['Trichomoniasis']
 
@@ -12,79 +13,42 @@ class Trichomoniasis(SEIS):
     """
     Trichomonas vaginalis disease module.
 
-    Models trichomoniasis as an SEIS infection with sex-stratified symptom
-    probabilities and clearance durations. Females may develop persistent
-    asymptomatic infections that do not spontaneously clear.
+    Models trichomoniasis as an SEIS infection (see `sti.SEIS`) with sex-specific symptoms and
+    clearance. Most asymptomatic infections in women do not clear on their own (`p_clear`), and
+    persist for `dur_persist`.
 
     Args:
-        pars (dict): Override default parameters (defined inline).
-        name (str): Module name used for results and parameter routing. Default: ``'tv'``.
-        init_prev_data: Optional initial prevalence data by age/sex.
-        age_bins (list): Bin edges for age-stratified results; ``None`` skips them entirely.
-        sex_keys (dict): Sex strata for results; ``None`` skips sex-stratified results.
-        **kwargs: Additional parameters passed to ``update_pars``.
+        pars (dict): parameter values, as for the keywords
+        name (str): the name of the module (default ``'tv'``)
+        kwargs (dict): parameter values (e.g. ``beta_m2f=0.1``), and the arguments of `sti.SEIS`
     """
-
-    def __init__(self, pars=None, name='tv', init_prev_data=None,
-                 age_bins=default_age_bins, sex_keys=default_sex_keys, **kwargs):
-        super().__init__(name=name, init_prev_data=init_prev_data, age_bins=age_bins, sex_keys=sex_keys)
-        self.requires = 'structuredsexual'
-
-        self.define_pars(
-            dt='month',
-            dur_exp=ss.constant(0),
+    def __init__(self, pars=None, name='tv', **kwargs):
+        defaults = dict(
+            dur_exp = ss.constant(0), # Infectious at once
 
             # Symptoms
-            p_symp=[0.4, 0.5],  # https://sti.bmj.com/content/76/4/248
-            dur_presymp=[  # For those who develop symptoms, how long before symptoms appear
-                [ss.weeks(1), ss.weeks(12)],  # Women:
-                [ss.weeks(0.25), ss.weeks(1)],  # Men: symptoms should appear within days
-            ],
+            p_symp = by_sex(0.4, 0.5), # https://sti.bmj.com/content/76/4/248
+            dur_presymp = lognorm_by_sex([ss.weeks(1), ss.weeks(12)], [ss.weeks(0.25), ss.weeks(1)]), # Men: symptoms should appear within days
 
             # Care seeking
-            p_symp_care=[0.39, 0.27],
-            dur_symp2care=[  # For those who test, how long before they seek care
-                [ss.months(2), ss.months(1)],  # Women
-                [ss.weeks(1), ss.weeks(2)],  # Men
-            ],
+            p_symp_care = by_sex(0.39, 0.27),
+            dur_symp2care = lognorm_by_sex([ss.months(2), ss.months(1)], [ss.weeks(1), ss.weeks(2)]),
 
-            # Clearance
-            dur_asymp2clear=[
-                # Average duration of infection in women is at least 3–5 years and approximately 4 months for men
-                # Source: https://sti.bmj.com/content/76/4/248
-                [ss.months(48), ss.months(6)],  # Women
-                [ss.weeks(26), ss.weeks(4)],  # Men
-            ],
-            dur_symp2clear=[
-                [ss.weeks(20), ss.weeks(4)],  # Women - assumptions
-                [ss.weeks(18), ss.weeks(4)],  # Men - assumptions
-            ],
-            p_clear=ss.bernoulli(p=0.1),  # Most women do not spontaneously clear, men do (https://sti.bmj.com/content/76/4/248)
-            dur_persist=ss.years(100),
+            # Clearance. The average duration of infection in women is at least 3–5 years, and about 4 months in men (https://sti.bmj.com/content/76/4/248)
+            dur_asymp2clear = lognorm_by_sex([ss.months(48), ss.months(6)], [ss.weeks(26), ss.weeks(4)]),
+            dur_symp2clear = lognorm_by_sex([ss.weeks(20), ss.weeks(4)], [ss.weeks(18), ss.weeks(4)]), # Assumptions
+            p_clear = 0.1, # Most women do not spontaneously clear, men do (https://sti.bmj.com/content/76/4/248)
+            dur_persist = ss.constant(ss.years(100)),
 
-            p_pid=ss.bernoulli(p=0.00),
-            dur_prepid=ss.lognorm_ex(ss.weeks(6), ss.weeks(4)),
-            eff_condom=0.0,
+            # PID
+            p_pid = 0.0,
+            dur_prepid = ss.lognorm_ex(ss.weeks(6), ss.weeks(4)),
 
             # Transmission and initial conditions
-            beta_m2f=0.1,
-            init_prev=ss.bernoulli(p=0.01)
+            beta_m2f = 0.1,
+            init_prev = 0.01,
+            eff_condom = 0.0,
         )
-        self.update_pars(pars, **kwargs)
-
-        return
-
-    def set_duration(self, p, symp, asymp, pid):
-        """ Overwrite duration setting with persistence for female asymptomatic infection """
-        # Firstly, set clearance time as per base class
-        super().set_duration(p, symp, asymp, pid)
-
-        # Next, overwrite time of clearance for a subset of asymptomatic women
-        potential_persist = asymp[self.sim.people.female[asymp]]
-        _, f_persist = p.p_clear.split(potential_persist)
-        # Convert to timesteps before adding: ti_infectious is an index, so the duration has to
-        # be expressed in timesteps, not years. The base class does this via set_pars(); this
-        # override has to do it explicitly.
-        dur_persist = self.pars.dur_persist.to_dt()
-        self.ti_clearance[f_persist] = self.ti_infectious[f_persist] + dur_persist
+        super().__init__(name=name, **sc.mergedicts(defaults, pars, kwargs))
+        self.requires = 'structuredsexual'
         return

@@ -23,7 +23,7 @@ def _make_sim(intervention_pars=None, n_agents=3_000, dur=15, rand_seed=1):
         networks=[sti.StructuredSexual(), ss.MaternalNet(), ss.BreastfeedingNet()],
         demographics=[ss.Pregnancy(), ss.Deaths()],
         interventions=[sti.PregnancyRiskReduction(intervention_pars or {})],
-        n_agents=n_agents, dur=dur, start=2005, verbose=-1, rand_seed=rand_seed,
+        n_agents=n_agents, dur=dur, start=2005, verbose=0, rand_seed=rand_seed,
     )
 
 
@@ -35,7 +35,7 @@ def test_pregnant_agents_are_not_fsw():
     """
     sim = _make_sim()
     sim.run()
-    preg = sim.demographics.pregnancy.pregnant
+    preg = sim.demographics.pregnancy.P
     fsw  = sim.networks.structuredsexual.fsw
     n_preg_fsw = (preg & fsw).count()
     n_preg = preg.count()
@@ -50,7 +50,7 @@ def test_pregnant_agents_have_zero_concurrency():
     """Pregnant agents should have concurrency 0 when concurrency_redux=1.0."""
     sim = _make_sim()
     sim.run()
-    preg = sim.demographics.pregnancy.pregnant
+    preg = sim.demographics.pregnancy.P
     conc = sim.networks.structuredsexual.concurrency
     if preg.count() == 0:
         return  # no pregnant agents in this run; nothing to assert
@@ -63,7 +63,7 @@ def test_pregnant_agents_not_in_high_risk_group():
     """Pregnant agents should not be in high_risk_group when high_risk_redux=1.0."""
     sim = _make_sim()
     sim.run()
-    preg = sim.demographics.pregnancy.pregnant
+    preg = sim.demographics.pregnancy.P
     rg   = sim.networks.structuredsexual.risk_group
     high = sim.interventions.pregnancyriskreduction.pars.high_risk_group
     assert (preg & (rg == high)).count() == 0, \
@@ -79,7 +79,7 @@ def test_redux_zero_means_no_change():
         concurrency_redux=ss.bernoulli(p=0.0),
     ))
     sim_off.run()
-    preg = sim_off.demographics.pregnancy.pregnant
+    preg = sim_off.demographics.pregnancy.P
     nw = sim_off.networks.structuredsexual
     intv = sim_off.interventions.pregnancyriskreduction
     if preg.count() == 0:
@@ -113,7 +113,7 @@ def test_postpartum_restoration():
     nw = sim.networks.structuredsexual
     preg = sim.demographics.pregnancy
     intv = sim.interventions.pregnancyriskreduction
-    post = ~preg.pregnant & intv.ever_pregnant
+    post = ~preg.P & intv.ever_pregnant
     if post.count() == 0:
         return  # too few agents/years to observe a post-pregnancy window
     post_uids = post.uids
@@ -135,13 +135,13 @@ def test_runs_without_breastfeedingnet():
         networks=[sti.StructuredSexual(), ss.MaternalNet()],
         demographics=[ss.Pregnancy(), ss.Deaths()],
         interventions=[sti.PregnancyRiskReduction()],
-        n_agents=3_000, dur=15, start=2005, verbose=-1, rand_seed=1,
+        n_agents=3_000, dur=15, start=2005, verbose=0, rand_seed=1,
     )
     sim.run()
     intv = sim.interventions.pregnancyriskreduction
     nw = sim.networks.structuredsexual
     preg = sim.demographics.pregnancy
-    post = ~preg.pregnant & intv.ever_pregnant
+    post = ~preg.P & intv.ever_pregnant
     if post.count() == 0:
         return
     post_uids = post.uids

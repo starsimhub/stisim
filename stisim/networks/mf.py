@@ -123,8 +123,8 @@ class MFNetwork(BaseNetwork):
         **kwargs: Additional parameter overrides forwarded to ``update_pars``.
     """
 
-    def __init__(self, pars=None, condom_data=None, name=None, **kwargs):
-        super().__init__(name=name)
+    def __init__(self, pars=None, condom_data=None, name=None, between='mf', **kwargs):
+        super().__init__(name=name, between=between)
         self.define_pars(**MFPars())
         self.update_pars(pars, **kwargs)
         self.edge_types = {'stable': 0, 'casual': 1, 'onetime': 2}

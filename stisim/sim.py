@@ -106,7 +106,7 @@ class Sim(ss.Sim):
         return
 
     def separate_pars(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None, dem_pars=None,
-                      sim_kwargs=None, verbose=True, **kwargs):
+                      sim_kwargs=None, **kwargs):
         """
         Sort all incoming pars into per-category dicts (sim, sti, nw, dem,
         connector). Most of the work is delegated to ``sti.route_pars``; this
@@ -115,9 +115,8 @@ class Sim(ss.Sim):
         (``_user_sti_pars``, ``_user_nw_pars``, ``_user_dem_pars``,
         ``_user_connector_pars``) for the two-phase init's XOR checks.
 
-        Args:
-            verbose (bool): If True, ``route_pars`` prints one line per
-                cross-category broadcast. See ``sti.route_pars`` for design.
+        ``route_pars`` prints one line per cross-category broadcast if the sim
+        is verbose; see ``sti.route_pars`` for design.
         """
         merged = self.remap_pars(sc.mergedicts(pars, sim_kwargs, kwargs))
 
@@ -135,11 +134,11 @@ class Sim(ss.Sim):
             merged,
             sim_pars=sim_pars, sti_pars=sti_pars, nw_pars=nw_pars,
             dem_pars=dem_pars,
-            strict=True, verbose=verbose,
+            strict=True, verbose=bool(merged.get('verbose', self.pars.verbose)),
         )
 
-        if 'dur' in routed.sim:
-            self.pars['stop'] = None
+        if 'dur' in routed.sim: # A dur replaces the default stop, or with a stop given, the default start (stop=2035, dur=10 runs 2025-2035); all three given must agree
+            self.pars['start' if 'stop' in routed.sim and 'start' not in routed.sim else 'stop'] = None
 
         self.sti_pars = sc.mergedicts(routed.sti, nested_sti, _copy=True)
         self.nw_pars  = sc.mergedicts(sti.NetworkPars(), routed.nw, _copy=True)
@@ -150,7 +149,7 @@ class Sim(ss.Sim):
         self._user_sti_pars = {**routed.sti, **nested_sti}
         self._user_nw_pars  = dict(routed.nw)
         self._user_dem_pars = dict(routed.dem)
-        self._user_connector_pars = dict(routed.connector)
+        self._user_connector_pars = {k:v for k,v in routed.connector.items() if k not in routed.sim} # Not those that are the sim's too, e.g. dt
 
         return routed.sim
 
@@ -215,10 +214,10 @@ class Sim(ss.Sim):
                 key = [
                     'hiv_new_infections',
                     'hiv_new_deaths',
-                    'hiv_n_infected',
+                    'hiv_infected',
                     'hiv_prevalence',
-                    'hiv_n_on_art',
-                    'n_alive',
+                    'hiv_on_art',
+                    'alive',
                 ]
         return super().plot(key=key, **kwargs)
 
@@ -274,7 +273,7 @@ class Sim(ss.Sim):
             # Load birth or fertility rates and turn into module
             if self.pars['use_pregnancy']:
                 fertility_rates = stidata.get_rates(location, 'asfr', self.datafolder)
-                preg_pars = {k: v for k, v in self.dem_pars.items() if k in ss.PregnancyPars()}
+                preg_pars = {k: v for k, v in self.dem_pars.items() if k in ss.Pregnancy().pars and k != 'fertility'}
                 metadata = dict(data_cols=dict(year='Time', age='AgeStart', value='Value'))
                 pregnancy = ss.Pregnancy(fertility_rate=fertility_rates, pars=preg_pars, metadata=metadata)
                 demographics += pregnancy
@@ -381,7 +380,7 @@ class Sim(ss.Sim):
                     )
                 stis += stidis
             else:
-                raise ValueError(f"Invalid STI type: {type(stidis)}. Must be str or sti.BaseSTI.")
+                raise ValueError(f"Invalid STI type: {type(stidis)}. Must be a str or a disease (e.g. sti.HIV()).")
 
         return stis
 

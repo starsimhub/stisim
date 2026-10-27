@@ -66,7 +66,6 @@ class treat_BV(ss.Intervention):
             ss.FloatArr("ti_treated"),
             ss.FloatArr("orig_CST"),
             ss.BoolArr("on_tx"),
-            ss.FloatArr("ti_clearance"),
             ss.FloatArr(
                 "ti_return_stable_cst"
             ),  # Timestep to return to original stable CST when post-treatment effect wanes
@@ -106,7 +105,7 @@ class treat_BV(ss.Intervention):
 
     def check_eligibility(self):
         if self.eligibility is None:
-            return (self.sim.diseases.bv.ti_symptomatic == self.ti).uids
+            return self.sim.diseases.bv.symptoms.uids # Those whose symptoms began
         else:
             return self.eligibility(self.sim)
 
@@ -167,43 +166,18 @@ class treat_BV(ss.Intervention):
                         treated_cst
                     )
                     if len(tx_effective):
-                        # Transition CST states
+                        # Move to the CST that the treatment leads to
                         if stable_cst_val == "stable_cst1":
-                            bv.cst[tx_effective] = 1
+                            bv.move(tx_effective, bv.cst1)
+                        elif self.pars.durable_cst1_change: # A durable change to a stable CST 1, for a while
+                            bv.move(tx_effective, bv.cst1)
+                            self.orig_CST[tx_effective] = bv.stable_cst[tx_effective]
+                            bv.stable_cst[tx_effective] = 1
+                            dur_stable_cst_change = self.tx_cst1_change_duration(tx_effective)
+                            self.ti_return_stable_cst[tx_effective] = np.round(self.ti + dur_stable_cst_change)
+                            self.post_tx_effect[tx_effective] = True
                         else:
-                            bv.cst[tx_effective] = 3
-                            if self.pars.durable_cst1_change:
-                                bv.cst[tx_effective] = 1
-                                if len(tx_effective):
-                                    self.orig_CST[tx_effective] = bv.stable_cst[
-                                        tx_effective
-                                    ]
-                                    bv.stable_cst[tx_effective] = 1
-                                    dur_stable_cst_change = (
-                                        self.tx_cst1_change_duration(tx_effective)
-                                    )
-                                    self.ti_return_stable_cst[tx_effective] = np.round(
-                                        self.ti + dur_stable_cst_change
-                                    )
-                                    self.post_tx_effect[tx_effective] = True
-
-                        # Update symptomatic and clearance times
-                        bv.symptomatic[tx_effective] = False
-                        self.ti_clearance[tx_effective] = np.nan
-                        bv.ti_clearance[tx_effective] = np.nan
-
-                        # Update pregnancy module
-                        if "pregnancy" in self.sim.demographics:
-                            self.sim.demographics.pregnancy.rel_sus_ptb[
-                                tx_effective
-                            ] = 1
-                            cst_pregnant_uids = tx_effective[
-                                self.sim.demographics.pregnancy.pregnant[tx_effective]
-                            ]
-                            if len(cst_pregnant_uids):
-                                self.sim.demographics.pregnancy.set_prognoses(
-                                    cst_pregnant_uids, bv_update=True
-                                )
+                            bv.move(tx_effective, bv.cst3)
 
             # Return agents to their original CST state
             treatment_waned = (

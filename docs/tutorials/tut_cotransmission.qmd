@@ -140,7 +140,6 @@ fig
 | `sti.hiv_ct` | HIV-Chlamydia | CT increases HIV susceptibility 1.0x (placeholder) |
 | `sti.hiv_tv` | HIV-Trichomonas | TV increases HIV susceptibility 1.5x |
 | `sti.hiv_bv` | HIV-BV | BV (CST4) increases HIV susceptibility and transmissibility 2x |
-| `sti.gud_syph` | GUD-Syphilis | Bidirectional: each increases susceptibility and transmissibility 2x |
 
 All connector parameters can be overridden at creation time, e.g.:
 ```python

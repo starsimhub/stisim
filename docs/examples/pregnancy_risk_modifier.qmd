@@ -55,7 +55,7 @@ class PregnantFswAnalyzer(ss.Analyzer):
     def step(self):
         nw = self.sim.networks.structuredsexual
         preg = self.sim.demographics.pregnancy
-        self.results['n'][self.ti] = int((preg.pregnant & nw.fsw).count())
+        self.results['n'][self.ti] = int((preg.P & nw.fsw).count())
 ```
 
 ## Building the sims
@@ -66,7 +66,7 @@ included.
 
 ```{python}
 sim_kwargs = dict(
-    n_agents=10_000, dur=20, start=2005, verbose=-1, rand_seed=1,
+    n_agents=10_000, dur=20, start=2005, verbose=0, rand_seed=1,
     networks=[sti.StructuredSexual(), ss.MaternalNet(), ss.BreastfeedingNet()],
     demographics=[ss.Pregnancy(), ss.Deaths()],
 )

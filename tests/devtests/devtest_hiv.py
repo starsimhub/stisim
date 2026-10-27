@@ -147,7 +147,7 @@ class PerformTest(ss.Intervention):
         self.initiate_ART(self.art_start[ti])
         self.end_ART(self.art_stop[ti])
         if 'hiv' in sim.diseases:
-            self.sim.diseases.hiv.set_prognoses(ss.uids(self.hiv_infections[ti]))
+            self.sim.diseases.hiv.infect(ss.uids(self.hiv_infections[ti]))
         if 'syphilis' in sim.diseases:
             self.sim.diseases.syphilis.set_prognoses(ss.uids(self.syphilis_infections[ti]))
 
@@ -184,8 +184,7 @@ def test_hiv():
     pars['start'] = 2020
     pars['stop'] = 2040
     pars['init_prev'] = 0
-    pars['p_hiv_death'] = 0
-    pars['include_aids_deaths'] = False
+    pars['hiv'] = dict(rel_death=0, p_aids_death=0) # No deaths from HIV
     pars['demographics'] = [ss.Pregnancy(fertility_rate=0), ss.Deaths(death_rate=0)]
     pars['interventions'] = PerformTest(events)
     output = TrackValues()
@@ -219,7 +218,7 @@ def test_hiv_syph():
     pars['start'] = 2020
     pars['stop'] = 2040
     pars['dt'] = 1 / 12
-    hiv = sti.HIV(init_prev=0, p_hiv_death=0, include_aids_deaths=False, beta={'structuredsexual': [0, 0], 'maternal': [0, 0]})
+    hiv = sti.HIV(init_prev=0, rel_death=0, p_aids_death=0, beta_m2f=0, beta_m2c=0) # No deaths or transmission from HIV
     syphilis = sti.SyphilisPlaceholder(prevalence=None)
 
     pars['diseases'] = [hiv, syphilis]
@@ -230,7 +229,7 @@ def test_hiv_syph():
     pars['analyzers'] = output
     pars['connectors'] = sti.hiv_syph(hiv, syphilis, rel_sus_hiv_syph=100, rel_trans_hiv_syph=100)
 
-    sim = ss.Sim(pars, copy_inputs=False).run()
+    sim = ss.Sim(pars).run()
 
     sim.analyzers.trackvalues.plot(agents)
 
@@ -257,7 +256,7 @@ def test_early_outbreak_is_exponential():
         sim.run()
 
         hiv = sim.diseases.hiv
-        n_infected = hiv.results.n_infected
+        n_infected = hiv.results.infected
         log_n_infected = [log(n_infected[i]) for i in range(len(n_infected))]
 
         # determining how much variance of log_n_infected is explained by a linear trend (linear trending log data => source is exponential)

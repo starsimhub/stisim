@@ -49,7 +49,7 @@ def test_art_specs(do_plot=do_plot):
 
     results = dict()
     for sim in msim.sims:
-        n_art = sim.results.hiv.n_on_art[-1]
+        n_art = sim.results.hiv.on_art[-1]
         results[sim.label] = n_art
         assert n_art > 0, f'Expected people on ART with {sim.label} format, got {n_art}'
 
@@ -92,7 +92,7 @@ def test_art_mixed_coverage(do_plot=do_plot):
 
     msim = ss.parallel([sim1, sim2])
     for sim in msim.sims:
-        assert sim.results.hiv.n_on_art[-1] > 0, f'Expected people on ART with {sim.label}'
+        assert sim.results.hiv.on_art[-1] > 0, f'Expected people on ART with {sim.label}'
 
     return msim
 
@@ -193,7 +193,7 @@ def test_art_stratified_coverage(do_plot=do_plot):
     sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=5)
     sim.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), sti.ART(coverage=strat_df)]
     sim.run()
-    assert sim.results.hiv.n_on_art[-1] > 0, 'Expected people on ART with stratified coverage (canonical names)'
+    assert sim.results.hiv.on_art[-1] > 0, 'Expected people on ART with stratified coverage (canonical names)'
 
     # Test with lowercase column names + Sex alias + string gender values
     rows_lc = []
@@ -206,7 +206,7 @@ def test_art_stratified_coverage(do_plot=do_plot):
     sim2 = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=5)
     sim2.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), sti.ART(coverage=pd.DataFrame(rows_lc))]
     sim2.run()
-    assert sim2.results.hiv.n_on_art[-1] > 0, 'Expected people on ART with stratified coverage (string sex values)'
+    assert sim2.results.hiv.on_art[-1] > 0, 'Expected people on ART with stratified coverage (string sex values)'
 
     return sim, sim2
 
@@ -300,7 +300,7 @@ def test_art_vls_coverage_stratified_stock():
             for g, p in [(0, target_f), (1, target_m)]]
     vls_df = pd.DataFrame(rows)
 
-    sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=10)
+    sim = hivsim.demo('simple', run=False, plot=False, n_agents=5_000, dur=10) # About 140 on ART (about 25 with 1,000 agents), so the gap isn't noise
     sim.pars.interventions = [
         sti.HIVTest(name='hiv_test', test_prob_data=0.5),
         sti.ART(coverage=0.7, vls_coverage=vls_df),
@@ -328,7 +328,7 @@ def test_art_effects(do_plot=do_plot):
     # With testing → people on ART
     sim_with = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=5)
     sim_with.run()
-    n_art = sim_with.results.hiv.n_on_art[-1]
+    n_art = sim_with.results.hiv.on_art[-1]
     assert n_art > 0, f'Expected people on ART with the default demo, got {n_art}'
 
     # Without testing → warning raised and no-one on ART
@@ -339,22 +339,22 @@ def test_art_effects(do_plot=do_plot):
             networks=sti.StructuredSexual(),
             demographics=[ss.Pregnancy(fertility_rate=10), ss.Deaths(death_rate=10)],
             interventions=[sti.ART(coverage=0.9)],
-            n_agents=n_agents, dur=5, verbose=-1,
+            n_agents=n_agents, dur=5, verbose=0,
         )
         sim_without.run()
         warn_texts = [str(x.message) for x in w]
         has_testing_warn = any('testing' in t.lower() for t in warn_texts)
 
     assert has_testing_warn, 'Expected a warning about missing HIV testing intervention'
-    n_art_no_test = sim_without.results.hiv.n_on_art[-1]
+    n_art_no_test = sim_without.results.hiv.on_art[-1]
     assert n_art_no_test == 0, f'Expected no-one on ART without testing, got {n_art_no_test}'
 
     if do_plot:
         fig, axes = pl.subplots(1, 2, figsize=(12, 5))
-        axes[0].plot(sim_with.t.yearvec, sim_with.results.hiv.n_on_art)
+        axes[0].plot(sim_with.t.yearvec, sim_with.results.hiv.on_art)
         axes[0].set_title('With testing')
         axes[0].set_ylabel('People on ART')
-        axes[1].plot(sim_without.t.yearvec, sim_without.results.hiv.n_on_art)
+        axes[1].plot(sim_without.t.yearvec, sim_without.results.hiv.on_art)
         axes[1].set_title('Without testing')
 
     return sim_with, sim_without
@@ -373,10 +373,10 @@ def test_art_no_pregnancy(do_plot=do_plot):
             sti.HIVTest(name='hiv_test', test_prob_data=0.3),
             sti.ART(coverage=0.8),
         ],
-        n_agents=n_agents, dur=20, verbose=-1,
+        n_agents=n_agents, dur=20, verbose=0,
     )
     sim.run()
-    assert sim.results.hiv.n_on_art[-1] > 0, 'Expected people on ART without pregnancy module'
+    assert sim.results.hiv.on_art[-1] > 0, 'Expected people on ART without pregnancy module'
 
     return sim
 
@@ -425,7 +425,8 @@ def test_art_stratified_coverage_matching(do_plot=do_plot):
 
     # Build stratified coverage data: higher coverage for older age groups and women.
     # 4 strata (2 age bins × 2 sexes) keeps enough infected agents per stratum at
-    # n_agents=1k for the per-stratum assertion to be meaningful.
+    # n_agents=3k for the per-stratum assertion to be meaningful (at 1k, the infected
+    # men 15-30 were 1 to 6 agents, so a seed could fail on Starsim 3 and 4 alike).
     age_bins = [15, 30, 100]
     targets = {}
     rows = []
@@ -444,7 +445,7 @@ def test_art_stratified_coverage_matching(do_plot=do_plot):
                     targets[(ab, gender)] = p
 
     strat_df = pd.DataFrame(rows)
-    sim = hivsim.demo('simple', run=False, plot=False, n_agents=1_000, dur=5)
+    sim = hivsim.demo('simple', run=False, plot=False, n_agents=3_000, dur=5)
     sim.pars.interventions = [
         sti.HIVTest(name='hiv_test', test_prob_data=0.5),
         sti.ART(coverage=strat_df),
@@ -460,11 +461,11 @@ def test_art_stratified_coverage_matching(do_plot=do_plot):
 
     # Per-stratum coverage should approximately match the supplied targets — this is the
     # whole point of stratified input. Tolerance is generous to allow for finite-population
-    # noise (1k agents split across 4 strata) and for diagnosis lag (newly-eligible agents
+    # noise (3k agents split across 4 strata) and for diagnosis lag (newly-eligible agents
     # must first be diagnosed by HIVTest before ART can initiate them).
     tol = 0.20
     for (ab, gender), target_p in targets.items():
-        lo, hi = ss.parse_age_range(ab)
+        lo, hi = sti.parse_age_range(ab)
         sex = 'f' if gender == 0 else 'm'
         key = f'p_art_{sex}_{int(lo)}_{int(hi)}'
         measured_p = np.mean(ac[key][-24:])
@@ -556,7 +557,7 @@ def test_art_parameter_sensitivity(do_plot=do_plot):
     msim = ss.parallel(sims)
 
     for sim in msim.sims:
-        n_on_art = sim.results.hiv.n_on_art[-1]
+        n_on_art = sim.results.hiv.on_art[-1]
         results[sim.label] = n_on_art
 
     for par, (lo, hi) in par_effects.items():
@@ -575,7 +576,7 @@ def test_art_duration(do_plot=do_plot):
     # Set a known constant ART duration and create a mini sim
     dur_years = 5
     run_years = dur_years - 1
-    sim_kwargs = dict(n_agents=10, dur=run_years, start=1990, verbose=-1)
+    sim_kwargs = dict(n_agents=10, dur=run_years, start=1990, verbose=0)
 
     # HIV parameters: everyone starts infected and with a fixed duration on ART
     hiv_pars = dict(init_prev=1.0, dur_on_art=ss.constant(v=ss.years(dur_years)))
@@ -625,7 +626,7 @@ def test_art_dx2tx_delay(do_plot=do_plot):
 
     # Build two sims that only differ in the dx→tx delay
     delay_years = 2
-    sim_kwargs = dict(n_agents=200, dur=delay_years + 2, start=1990, verbose=-1)
+    sim_kwargs = dict(n_agents=200, dur=delay_years + 2, start=1990, verbose=0)
     hiv_pars = dict(init_prev=1.0, dur_on_art=ss.constant(v=ss.years(10)))
 
     def make_sim(delay):
@@ -640,7 +641,7 @@ def test_art_dx2tx_delay(do_plot=do_plot):
             **hiv_pars, **sim_kwargs,
         )
 
-    # With delay: agents diagnosed at ti=0 should start ART at ti = delay_ti
+    # With delay: agents diagnosed in the first step (ti=1) should start ART at ti = 1 + delay_ti
     sim = make_sim(delay_years)
     hiv = sim.diseases.hiv
     dx_uids = hiv.diagnosed.uids
@@ -654,19 +655,18 @@ def test_art_dx2tx_delay(do_plot=do_plot):
         f'Expected ti_art == ti_diagnosed + {delay_ti} for on-ART agents'
 
     # No-one should be on ART before the delay elapses
-    # The sim runs (delay_years + 2) years; check n_on_art ramp
-    n_on_art = sim.results.hiv.n_on_art
-    early_ti = max(0, delay_ti - 1)
-    assert n_on_art[early_ti] == 0, f'No agents should be on ART before ti={delay_ti}, got {n_on_art[early_ti]}'
-    assert n_on_art[delay_ti] > 0, f'Agents should be on ART by ti={delay_ti}'
+    # The sim runs (delay_years + 2) years; check the on_art ramp (index 0 is the start, before the first step)
+    n_on_art = sim.results.hiv.on_art
+    assert n_on_art[delay_ti] == 0, f'No agents should be on ART before ti={delay_ti + 1}, got {n_on_art[delay_ti]}'
+    assert n_on_art[delay_ti + 1] > 0, f'Agents should be on ART by ti={delay_ti + 1}'
 
-    # Default (no delay): agents diagnosed at ti=0 should be on ART at ti=0
+    # Default (no delay): agents diagnosed in the first step should be on ART after it
     sim2 = make_sim(0)
     hiv2 = sim2.diseases.hiv
     dx2 = hiv2.diagnosed.uids
     assert np.allclose(hiv2.ti_art[dx2], hiv2.ti_diagnosed[dx2]), \
         'Default dur_dx2tx=0 should leave ti_art == ti_diagnosed'
-    assert sim2.results.hiv.n_on_art[0] > 0, 'With no delay, agents should be on ART from ti=0'
+    assert sim2.results.hiv.on_art[1] > 0, 'With no delay, agents should be on ART from the first step'
 
     return sim, sim2
 
@@ -695,7 +695,7 @@ def test_pn():
             ))
         return hivsim.demo(
             'simple', run=False, plot=False,
-            n_agents=n_agents, dur=5, rand_seed=rand_seed, verbose=-1,
+            n_agents=n_agents, dur=5, rand_seed=rand_seed, verbose=0,
             networks=[sti.StructuredSexual(recall_prior=True),
                       sti.PriorPartners(dur_recall=ss.years(0.5))],
             interventions=intvs,
@@ -782,7 +782,7 @@ def test_pn_rates_sim():
         if use_prior:
             networks.append(sti.PriorPartners(dur_recall=ss.years(0.5)))
         return hivsim.demo('simple', run=False, plot=False, n_agents=n_agents,
-                           dur=5, rand_seed=1, verbose=-1,
+                           dur=5, rand_seed=1, verbose=0,
                            networks=networks, interventions=[hiv_test, pn])
 
     edge_types = sti.StructuredSexual().edge_types

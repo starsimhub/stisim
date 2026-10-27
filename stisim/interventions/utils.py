@@ -7,6 +7,7 @@ intervention classes (ART, VMMC, etc.).
 
 import starsim as ss
 import numpy as np
+from ..utils import parse_age_range, apply_age_range
 import pandas as pd
 import sciris as sc
 
@@ -331,7 +332,7 @@ def _parse_stratified_df(data, yearvec, smoothness=0, missing_fill=0.0, **interp
     fmt = 'p' if data[val_col].dropna().max() <= 1.0 else 'n'
 
     # Extract unique age bins (sort numerically, not lexicographically)
-    age_bins = sorted(data['AgeBin'].unique(), key=lambda ab: ss.parse_age_range(ab)[0])
+    age_bins = sorted(data['AgeBin'].unique(), key=lambda ab: parse_age_range(ab)[0])
     sex_keys = sorted(data['Gender'].unique()) if has_sex else None
 
     # Build interpolated arrays for each stratum
@@ -376,7 +377,7 @@ def age_sex_mask(age_bin, sex, people):
     Returns:
         BoolArr: True for agents in the stratum
     """
-    mask = ss.apply_age_range(age_bin, people.age)
+    mask = apply_age_range(age_bin, people.age)
     if sex is not None:
         sex_mask = people.female if sex == 0 else people.male
         mask = mask & sex_mask

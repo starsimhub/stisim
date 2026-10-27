@@ -56,9 +56,7 @@ def test_anctest_schedules_immediate_art():
 
     hiv = sim.diseases.hiv
     uid = sim.people.female.uids[0]
-    hiv.susceptible[uid] = False
-    hiv.infected[uid] = True
-    hiv.on_art[uid] = False
+    hiv.move(ss.uids([uid]), hiv.latent) # Infected, not on ART
     sim.interventions.anctest.ti_visit[uid] = sim.ti  # force an ANC visit this step
 
     sim.interventions.anctest.step()

@@ -4,30 +4,19 @@ jupyter: python3
 ---
 
 
-STIsim provides a streamlined calibration framework designed for the practical realities of fitting HIV and STI models to data. It's built on [Starsim's calibration tools](https://docs.starsim.org/user_guide/workflows_calibration.html) and [Optuna](https://optuna.org), but makes a number of opinionated choices so you can go from data to calibrated model with minimal boilerplate.
+STIsim models are calibrated with Starsim's own fitting, `sim.fit()`: give the parameters to fit bounds, attach the data to the sim, and fit. It uses [Optuna](https://optuna.org) for agent-based sims by default; see the [Starsim fitting guide](https://docs.starsim.org) for the other methods (including posteriors by approximate Bayesian computation).
 
-## How it works (and what choices we've made)
+## How it works (and what choices are made)
 
-STIsim's calibration uses **approximate Bayesian computation (ABC)** -- the idea is to find parameters that minimize the difference between model output and observed data. For each trial, Optuna proposes a set of parameters, the model runs, and we compute a goodness-of-fit (GOF) score. After many trials, the best-scoring parameter sets approximate the posterior distribution.
+For each trial, Optuna proposes a set of parameter values, the model runs, and a goodness-of-fit (GOF) score compares it with the data. After many trials, the best-scoring parameter sets approximate the best fit, and their spread gives an indication of the uncertainty.
 
-Specifically, `sti.Calibration` makes these choices for you:
-
-- **GOF metric**: Normalized absolute error between model and data, summed across all targets. You can weight targets differently (e.g., weight syphilis prevalence 10x higher than HIV incidence).
-- **Parameter routing**: Dot notation (`'hiv.beta_m2f'`) automatically finds and sets the right module parameter -- no custom `build_fn` needed.
-- **Data format**: A simple CSV/DataFrame with `time` (year) and columns matching sim result names.
-
-This approach has been used extensively in [HPVsim](https://hpvsim.org) and [Covasim](https://covasim.org) and tends to perform well for STI/HIV fitting. But it's not the only approach:
-
-- **Want a different GOF metric?** Pass a custom `eval_fn` to `sti.Calibration` (e.g., mean squared error, log-likelihood).
-- **Want statistically rigorous components?** Use Starsim's `CalibComponent` system directly (Normal, BetaBinomial, etc.) -- see the [Starsim calibration tutorial](https://docs.starsim.org/user_guide/workflows_calibration.html).
-- **Want full Bayesian inference?** Starsim supports sampling-importance resampling -- see the [Starsim calibration tutorial](https://docs.starsim.org/user_guide/workflows_calibration.html).
-
-The rest of this tutorial covers the streamlined STIsim workflow.
-
+- **GOF metric**: by default, the normalized absolute error between model and data, summed across all targets. You can weight targets differently (`weights=`), pick another metric (`gof='rmse'`), give a likelihood for each data series (`likelihood=`), or write your own (`gof=` a function of the sim).
+- **Parameters**: any parameter given as `ss.par(value, bounds=[low, high])` is fitted, wherever it is: a disease, the network, a connector, or an intervention. No routing or build function is needed.
+- **Data format**: a dataframe with a `time` (or `year`) column and a column named after each result to fit, e.g. `ng.prevalence`.
 
 ## Setup: generate synthetic data
 
-To demonstrate calibration without external data files, we'll generate synthetic targets from a simulation with known "true" parameters. In practice, you'd load survey data (e.g., DHS, PHIA) instead.
+To demonstrate calibration without external data files, we'll generate synthetic targets from a simulation with known "true" parameters, with `sim.to_data()`. In practice, you'd load survey data (e.g., DHS, PHIA) instead.
 
 ```{python}
 import numpy as np
@@ -37,216 +26,150 @@ import starsim as ss
 import stisim as sti
 
 # "True" parameters we'll try to recover
-true_beta = 0.08
+true_beta = 0.12
 true_condom = 0.6
 
 # Create and run a sim with the true parameters
 true_sim = sti.Sim(
     diseases=sti.Gonorrhea(beta_m2f=true_beta, eff_condom=true_condom),
-    n_agents=2000, start=2010, stop=2030,
+    n_agents=2000, start=2010, stop=2030, verbose=0,
 )
-true_sim.run(verbose=0)
+true_sim.run()
 
-# Extract yearly prevalence and incidence as our "data"
-df = true_sim.to_df(resample='year', use_years=True, sep='.')
-data = df[['timevec', 'ng.prevalence', 'ng.new_infections']].dropna()
-data = data.rename(columns={'timevec': 'time'})
-data['time'] = data['time'].astype(int)
+# Extract yearly prevalence and new infections as our "data"
+data = true_sim.to_data(['ng.prevalence', 'ng.new_infections'], resample='year', noise=None)
 print(f'Generated {len(data)} data points')
 data.head()
 ```
 
 ## Defining calibration parameters
 
-STIsim uses **dot notation** to route parameters to the right module: `'module_name.par_name'`. The module name is whatever `sim.get_module()` would find -- typically the disease name (`ng`, `hiv`, `syph`), network name (`structuredsexual`), connector name (`hiv_syph`), or intervention name (`art`, `fsw_testing`).
-
-You can write parameters in two equivalent formats:
+A parameter to fit is given as `ss.par()` with its starting value and bounds, in place of its value. It can be given to the module itself, or to `sti.Sim` by name, as any other parameter:
 
 ```{python}
-# Nested format -- group parameters by module (Pythonic, uses keyword syntax)
-calib_pars = dict(
-    ng=dict(
-        beta_m2f=  dict(low=0.03, high=0.15, guess=0.06),
-        eff_condom=dict(low=0.3,  high=0.9,  guess=0.5),
-    ),
+ng = sti.Gonorrhea(
+    beta_m2f=ss.par(0.08, bounds=[0.04, 0.2]),
+    eff_condom=ss.par(0.5, bounds=[0.3, 0.9]),
 )
-
-# Flat format -- equivalent, uses string keys
-calib_pars_flat = {
-    'ng.beta_m2f':   dict(low=0.03, high=0.15, guess=0.06),
-    'ng.eff_condom':  dict(low=0.3,  high=0.9,  guess=0.5),
-}
-
-# Both produce the same result after flattening
-print(sti.flatten_calib_pars(calib_pars))
-print(calib_pars_flat)
 ```
 
-Each parameter spec requires `low` and `high` bounds. The optional `guess` is used as the starting point for the "before" comparison in `check_fit()`. 
-
-The nested format is particularly convenient when calibrating multiple modules -- parameters are visually grouped:
+The same works for every module, so calibrating several modules at once is a matter of giving each parameter its bounds:
 
 ```{python}
 # Multi-module example (not run here -- just to show the pattern)
-multi_pars = dict(
-    hiv=dict(
-        beta_m2f=dict(low=0.002, high=0.014, guess=0.006),
-        eff_condom=dict(low=0.5, high=0.9, guess=0.75),
-    ),
-    structuredsexual=dict(
-        prop_f0=dict(low=0.55, high=0.9, guess=0.7),
-        m1_conc=dict(low=0.05, high=0.3, guess=0.15),
-    ),
-    syph=dict(
-        beta_m2f=dict(low=0.15, high=0.35, guess=0.2),
-    ),
+multi_sim = sti.Sim(
+    diseases=['hiv', 'syph'],
+    hiv=dict(beta_m2f=ss.par(0.006, bounds=[0.002, 0.014]), eff_condom=ss.par(0.75, bounds=[0.5, 0.9])),
+    syph=dict(beta_m2f=ss.par(0.2, bounds=[0.15, 0.35])),
+    prop_f0=ss.par(0.7, bounds=[0.55, 0.9]), # A network parameter
+    m1_conc=ss.par(0.15, bounds=[0.05, 0.3]),
 )
-print(f'{len(sti.flatten_calib_pars(multi_pars))} parameters across 3 modules')
 ```
 
 ## Running a calibration
 
-Create a `Calibration` with the sim, parameters, and data. No custom `build_fn` is needed -- STIsim's default automatically routes parameters using dot notation.
+Attach the data to the sim, and fit:
 
 ```{python}
-sim = sti.Sim(diseases=sti.Gonorrhea(), n_agents=500, start=2010, stop=2030, verbose=-1)
-
-calib = sti.Calibration(
-    sim=sim,
-    calib_pars=calib_pars,
-    data=data,
-    total_trials=10,
-    n_workers=1,
-)
-calib.calibrate()
-print(f'Best parameters: {calib.best_pars}')
+sim = sti.Sim(diseases=ng, n_agents=2000, start=2010, stop=2030, data=data, verbose=0)
+fit = sim.fit(n_trials=20)
 ```
 
-The calibration found parameters that minimize the mismatch between model output and data. Let's see how they compare to the true values:
+The fit found parameters that minimize the mismatch between model output and data. Let's see how they compare to the true values:
 
 ```{python}
-true_pars = {'ng.beta_m2f': true_beta, 'ng.eff_condom': true_condom}
+true_pars = {'beta_m2f': true_beta, 'eff_condom': true_condom}
 for par, true_val in true_pars.items():
-    best_val = calib.best_pars[par]
-    print(f'{par}: true={true_val:.3f}, calibrated={best_val:.3f}')
+    print(f'{par}: true={true_val:.3f}, calibrated={fit.pars[par]:.3f}')
 ```
 
 ## Visualizing the calibration
 
-STIsim inherits several diagnostic tools from Starsim for inspecting calibration results:
-
-- `check_fit()` runs sims with the guess parameters and the best-fit parameters side by side, comparing GOF scores
-- `plot_final()` runs the best-fit parameters and plots the resulting sim
-- `plot_optuna()` shows Optuna diagnostic plots (optimization history, parameter importance, etc.)
-
-**Note**: `plot_param_importances` requires `scikit-learn` (`pip install scikit-learn`). If it's not installed, the plot will be skipped with a warning.
+`fit.summarize()` gives the goodness of fit before and after, and the estimates; `fit.plot()` plots each result that has data, with the initial and the best-fit values.
 
 ```{python}
-# Compare GOF scores: guess parameters vs best-fit parameters
-calib.check_fit(do_plot=False)
+fit.summarize()
 ```
 
 ```{python}
-# Plot the sim with best-fit parameters
-calib.plot_final()
+fit.plot()
 ```
+
+`fit.sim` is the calibrated sim, already run, so it can be plotted or analyzed as any other:
 
 ```{python}
-# Optuna diagnostics: optimization history and parameter importance
-calib.plot_optuna(['plot_optimization_history', 'plot_param_importances'])
+fit.sim.plot('ng')
 ```
 
-With only 10 trials and 500 agents, recovery won't be perfect. In practice, you'd use 1000-2000 trials with 5000-10000 agents.
+With only 20 trials and 2000 agents, recovery won't be perfect. In practice, you'd use 1000-2000 trials with 5000-10000 agents (and `n_workers=` to run the trials in parallel).
 
 ## Extracting calibrated parameters
 
-After calibration, use `get_pars()` to extract the top parameter sets as flat dicts ready to feed back into a sim:
+The best-fit values are `fit.pars`, ready to feed back into a sim (`sim.new(pars=fit.pars)`). Every trial is in `fit.to_df()`, with its score (`objective`), so the top parameter sets are:
 
 ```{python}
-# Get top 3 parameter sets (sorted by mismatch)
-par_sets = calib.get_pars(n=3)
-for i, pars in enumerate(par_sets):
-    print(f'Set {i}: {pars}')
+trials = fit.to_df()
+top = trials.nsmallest(3, 'objective')
+top
 ```
 
-You can also access the full results DataFrame via `calib.df`, which includes all parameters plus the mismatch value for every trial.
+## Running calibrated sims
 
-## Running calibrated sims with `make_calib_sims`
-
-The most common post-calibration task is running the top N parameter sets to generate results with uncertainty. `make_calib_sims()` handles this in one call:
+The most common post-calibration task is running the top N parameter sets to generate results with uncertainty. `ss.parallel()` runs a sim with each set of values given as `pars=` (each set is a scenario of its own, labeled by its values):
 
 ```{python}
-# Run top 3 parameter sets
-msim = sti.make_calib_sims(calib=calib, n_parsets=3, verbose=-1)
+par_sets = top.drop(columns='objective').to_dict('records')
+msim = ss.parallel(fit.sim, pars=par_sets, verbose=0)
 print(f'Ran {len(msim.sims)} simulations')
-print(f'Each sim has par_idx: {[s.par_idx for s in msim.sims]}')
 ```
 
-You can also pass calibration parameters directly -- useful when loading saved results:
+### Multiple seeds per parameter set
+
+For stochastic robustness, run each parameter set with several random seeds, with `n_runs=`:
 
 ```{python}
-# From a list of parameter dicts
-msim = sti.make_calib_sims(
-    calib_pars=par_sets,
-    sim=sti.Sim(diseases=sti.Gonorrhea(), n_agents=500, start=2010, stop=2030, verbose=-1),
-    verbose=-1,
-)
-
-# From a DataFrame (like calib.df)
-msim = sti.make_calib_sims(
-    calib_pars=calib.df,
-    sim=sti.Sim(diseases=sti.Gonorrhea(), n_agents=500, start=2010, stop=2030, verbose=-1),
-    n_parsets=3, verbose=-1,
-)
+msim = ss.parallel(fit.sim, pars=par_sets, n_runs=2, verbose=0)
+print(f'Ran {len(msim.sims)} simulations')
+msim.plot('ng_prevalence')
 ```
 
-### Filtering with `check_fn`
+### Filtering implausible runs
 
-Some parameter combinations may produce epidemiologically implausible results (e.g., disease die-out). Pass a `check_fn` to filter:
+Some parameter combinations may produce epidemiologically implausible results (e.g., disease die-out). Filter the runs afterwards:
 
 ```{python}
 def check_ng_alive(sim):
     """Reject sims where gonorrhea died out."""
     return float(sim.results.ng.new_infections[-12:].sum()) > 0
 
-msim = sti.make_calib_sims(
-    calib=calib, n_parsets=3,
-    check_fn=check_ng_alive, verbose=-1,
-)
-print(f'Kept {len(msim.sims)} sims after filtering')
+kept = [s for s in msim.sims if check_ng_alive(s)]
+print(f'Kept {len(kept)} of {len(msim.sims)} sims after filtering')
 ```
 
-### Multiple seeds per parameter set
-
-For stochastic robustness, run each parameter set with multiple random seeds. When combined with `check_fn`, only the first surviving seed per parameter set is kept:
+Or reject them during the calibration itself, with a goodness of fit of your own that scores them as infinitely bad and the rest as the default does:
 
 ```{python}
-msim = sti.make_calib_sims(
-    calib=calib, n_parsets=3,
-    seeds_per_par=2,
-    check_fn=check_ng_alive, verbose=-1,
-)
-print(f'Kept {len(msim.sims)} sims (1 per par set, best surviving seed)')
+def gof(sim):
+    return ss.fit.mismatch(sim) if check_ng_alive(sim) else np.inf
 ```
 
-## Saving and loading
+and `sim.fit(gof=gof)`.
 
-After calibration, use `calib.save()` to save the calibration object and parameter DataFrame. This handles shrinking (keeping only the top results to reduce file size) automatically:
+## Saving and resuming
 
-```{python}
-# Save with shrinking (keeps top 10% by default)
-calib.save('tutorial_output/my_calib.obj')
+Give `storage=` to keep the trials in a file: calling the fit again with the same storage resumes it, e.g. after a crash, running only the trials still to do. The fit itself can be saved as any object:
 
-# Load back and use
-loaded = sc.load('tutorial_output/my_calib.obj')
-print(f'Loaded calibration with {len(loaded.df)} parameter sets')
+```python
+fit = sim.fit(n_trials=2000, n_workers=8, storage='results/fit.log')
+sc.save('results/fit.obj', fit)
+fit.to_df().to_csv('results/trials.csv')
 ```
 
 ## Fitting to any target: if you can measure it, you can fit to it
 
-The key idea behind STIsim's calibration is simple: **any result that appears in `sim.to_df()` can be a calibration target**. You just need to include a column with the same name in your data file.
+Any result of the sim can be a calibration target: you just need to include a column with the same name in your data.
 
-Built-in disease results (prevalence, incidence, etc.) are always available. But what if you need something custom -- say, HIV-syphilis coinfection prevalence among adolescent girls? Any module (analyzers, interventions, connectors, etc.) can define custom results using `define_results` -- see [Custom results](tut_results.qmd#custom-results) for the full explanation. Add the result to your sim, add a matching column to your data, and the calibration fits to it automatically.
+Built-in disease results (prevalence, incidence, etc.) are always available. But what if you need something custom -- say, HIV-syphilis coinfection prevalence among adolescent girls? Any module (analyzers, interventions, connectors, etc.) can define custom results using `define_results` -- see [Custom results](tut_results.qmd#custom-results) for the full explanation. Add the result to your sim, add a matching column to your data, and the fit uses it.
 
 Here's an example using an analyzer:
 
@@ -277,42 +200,45 @@ Now include this analyzer when creating your sim, and add the corresponding colu
 # Add the analyzer to your sim
 sim = sti.Sim(
     diseases=[sti.HIV(), sti.Syphilis()],
-    n_agents=500, start=2010, stop=2030, verbose=-1,
+    n_agents=500, start=2010, stop=2030, verbose=0,
     analyzers=[CoinfectionPrev()],
+    data='data/calibration_targets.csv',
 )
 
 # Your data CSV just needs a matching column:
 #
 # time, hiv.prevalence, syph.symptomatic_prevalence, coinfectionprev.coinf_prev_f_15_24
-# 2016, 0.12,           0.03,                   0.005
-# 2020, 0.11,           0.025,                  0.004
+# 2016, 0.12,           0.03,                        0.005
+# 2020, 0.11,           0.025,                       0.004
 ```
 
-The column name follows the same dot notation: `analyzer_name.result_name`. When the calibration runs, it will automatically compare the model's coinfection prevalence against your data, alongside the other targets. No changes to the calibration code are needed -- just add the column to the data and the analyzer to the sim.
+The column name follows the same dot notation: `analyzer_name.result_name`. When the fit runs, it compares the model's coinfection prevalence with your data, alongside the other targets.
 
 This pattern works for any custom quantity: age-specific prevalence, risk-group-stratified incidence, treatment coverage by pathway, etc. If you can compute it in an analyzer, you can fit to it.
 
 ## Data format and weights
 
-The calibration expects a DataFrame (or CSV) with a `time` column (integer years) and columns matching simulation result names:
+The fit expects a dataframe (or CSV) with a `time` or `year` column (integer years) and columns matching simulation result names:
 
-| time | hiv.prevalence | syph.symptomatic_prevalence | hiv.n_on_art |
+| year | hiv.prevalence | syph.symptomatic_prevalence | hiv.on_art |
 |------|---------------|----------------------|-------------|
 | 2010 | 0.12 | 0.03 | 50000 |
 | 2015 | 0.11 | 0.025 | 120000 |
 | 2020 | 0.098 | 0.02 | 180000 |
 
-Missing years are fine -- the calibration only compares at timepoints where data exists. To see what result names are available, run `sim.to_df().columns`.
+Missing years are fine: the fit only compares at the times where data exists. With whole years, a flow (e.g. new infections) is summed over the year, and a stock or ratio averaged over it. A column that matches no result is an error, which lists the closest result names.
 
-Not all targets are equally informative. Use `weights` to tell the calibration which data points matter most -- for example, if you have high-quality survey data for syphilis but only routine program data for HIV:
+Not all targets are equally informative. Use `weights` to tell the fit which data series matter most -- for example, if you have high-quality survey data for syphilis but only routine program data for HIV:
 
 ```{python}
 weights = {
-    'hiv.prevalence': 2.0,              # Routine data -- moderate weight
-    'syph.symptomatic_prevalence': 10.0,     # PHIA survey -- high weight
-    'hiv.n_on_art': 1.0,                # Program data -- default weight
+    'hiv.prevalence': 2.0,                # Routine data -- moderate weight
+    'syph.symptomatic_prevalence': 10.0,  # PHIA survey -- high weight
+    'hiv.on_art': 1.0,                    # Program data -- default weight
 }
 ```
+
+and `sim.fit(weights=weights)`.
 
 ## Typical production workflow
 
@@ -320,46 +246,30 @@ A complete calibration analysis typically has three scripts:
 
 ```python
 # 1. run_calibrations.py -- find best parameters
-sim = sti.Sim(diseases=sti.Gonorrhea(), n_agents=500, start=2010, stop=2030, verbose=-1)
-data = pd.read_csv('data/calibration_targets.csv')
-
-calib = sti.Calibration(
-    sim=sim,
-    calib_pars=dict(
-        hiv=dict(beta_m2f=dict(low=0.002, high=0.014, guess=0.006)),
-        structuredsexual=dict(prop_f0=dict(low=0.55, high=0.9, guess=0.7)),
-    ),
-    data=data,
-    weights={'hiv.prevalence': 5.0},
-    total_trials=2000,
+sim = sti.Sim(
+    diseases='hiv', n_agents=5000, start=1990, stop=2025, verbose=0,
+    hiv=dict(beta_m2f=ss.par(0.006, bounds=[0.002, 0.014])),
+    prop_f0=ss.par(0.7, bounds=[0.55, 0.9]),
+    data=pd.read_csv('data/calibration_targets.csv'),
 )
-calib.calibrate()
-calib.save('results/calib.obj')
+fit = sim.fit(n_trials=2000, n_workers=8, weights={'hiv.prevalence': 5.0}, storage='results/fit.log')
+fit.to_df().to_csv('results/trials.csv', index=False)
 ```
 
 ```python
 # 2. run_msim.py -- run top parameter sets with full results
-pars_df = sc.load('results/calib_pars.df')
-sim = sti.Sim(diseases=sti.Gonorrhea(), n_agents=500, start=2010, stop=2030, verbose=-1)
-msim = sti.make_calib_sims(
-    calib_pars=pars_df, sim=sim, n_parsets=3,
-)
+trials = pd.read_csv('results/trials.csv')
+par_sets = trials.nsmallest(50, 'objective').drop(columns='objective').to_dict('records')
+msim = ss.parallel(sim, pars=par_sets)
 ```
 
 ```python
 # 3. run_scenarios.py -- compare interventions
-for scenario in ['baseline', 'intervention']:
-    interventions = [sti.ART(coverage=0.9)] if scenario == 'intervention' else []
-    sim = sti.Sim(diseases=sti.Gonorrhea(), n_agents=500, start=2010, stop=2030,
-                  verbose=-1, interventions=interventions)
-    msim = sti.make_calib_sims(
-        calib_pars=pars_df, sim=sim,
-        n_parsets=3, seeds_per_par=2,
-    )
+scenarios = dict(baseline=sim, intervention=sim.new(interventions=[sti.HIVTest(), sti.ART(coverage=0.9)]))
+msim = ss.parallel(scenarios, pars=par_sets, n_runs=2)
 ```
 
 ## Further reading
 
-- **[Starsim calibration tutorial](https://docs.starsim.org/user_guide/workflows_calibration.html)**: Calibration components, Bayesian sampling, Optuna diagnostics
+- **[Starsim documentation](https://docs.starsim.org)**: `sim.fit()`, its methods and likelihoods, and `ss.parallel()`
 - **[Optuna documentation](https://optuna.org)**: Pruning, samplers, distributed optimization
-

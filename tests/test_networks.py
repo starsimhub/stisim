@@ -9,7 +9,7 @@ import sciris as sc
 import hivsim
 
 
-def test_msm_network(n_agents=500):
+def test_msm_network(n_agents=2000): # 500 agents gave no infections for some seeds, on Starsim 3 too
     """ Test MSM HIV transmission via AgeMatchedMSM network """
     hiv = sti.HIV(beta_m2m=0.1, init_prev=0.05)
     pregnancy = ss.Pregnancy(fertility_rate=10)

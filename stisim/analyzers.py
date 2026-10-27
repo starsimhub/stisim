@@ -164,19 +164,15 @@ class sw_stats(result_grouper):
                 client = nw.client & adult
                 non_fsw = sim.people.female & ~nw.fsw & adult
                 non_client = sim.people.male & ~nw.client & adult
-                newly_infected = (dis.ti_exposed == ti) & adult
-                new_trans = dis.ti_transmitted_sex == ti
-                total_acq = len(newly_infected.uids)
+                newly_infected = dis.new_infected() & adult
 
-                newly_transmitting_fsw = (dis.ti_transmitted_sex == ti) & fsw
-                newly_transmitting_clients = (dis.ti_transmitted_sex == ti) & client
-                newly_transmitting_non_fsw = (dis.ti_transmitted_sex == ti) & non_fsw
-                newly_transmitting_non_client = (dis.ti_transmitted_sex == ti) & non_client
-
-                new_transmissions_fsw = dis.new_transmissions_sex[newly_transmitting_fsw]
-                new_transmissions_client = dis.new_transmissions_sex[newly_transmitting_clients]
-                new_transmissions_non_fsw = dis.new_transmissions_sex[newly_transmitting_non_fsw]
-                new_transmissions_non_client = dis.new_transmissions_sex[newly_transmitting_non_client]
+                # Sexual transmissions, by who transmitted them
+                transmitters, counts = dis.transmitters()
+                new_transmissions = lambda group: counts[group[transmitters]].sum()
+                new_transmissions_fsw = new_transmissions(fsw)
+                new_transmissions_client = new_transmissions(client)
+                new_transmissions_non_fsw = new_transmissions(non_fsw)
+                new_transmissions_non_client = new_transmissions(non_client)
 
                 self.results['share_new_infections_fsw_'+d][ti] = self.cond_prob(fsw, newly_infected)
                 self.results['share_new_infections_client_'+d][ti] = self.cond_prob(client, newly_infected)
@@ -186,10 +182,10 @@ class sw_stats(result_grouper):
                 self.results['new_infections_non_fsw_'+d][ti] = len((non_fsw & newly_infected).uids)
                 self.results['new_infections_non_client_'+d][ti] = len((non_client & newly_infected).uids)
 
-                self.results['new_transmissions_fsw_'+d][ti] = sum(new_transmissions_fsw)
-                self.results['new_transmissions_client_'+d][ti] = sum(new_transmissions_client)
-                self.results['new_transmissions_non_fsw_'+d][ti] = sum(new_transmissions_non_fsw)
-                self.results['new_transmissions_non_client_'+d][ti] = sum(new_transmissions_non_client)
+                self.results['new_transmissions_fsw_'+d][ti] = new_transmissions_fsw
+                self.results['new_transmissions_client_'+d][ti] = new_transmissions_client
+                self.results['new_transmissions_non_fsw_'+d][ti] = new_transmissions_non_fsw
+                self.results['new_transmissions_non_client_'+d][ti] = new_transmissions_non_client
 
                 # Note: total_trans only counts sexual transmission, not MTC (congenital).
                 # So we don't validate against newly_infected which includes MTC.
@@ -905,7 +901,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
         window (half-open interval test).
 
     Args:
-        age_bins (list[str]): Age bin strings parsable by ``ss.parse_age_range``
+        age_bins (list[str]): Age bin strings parsable by ``sti.parse_age_range``
             (e.g. ``['0-5', '5-10', ..., '70-75']``). Bins may overlap; a
             partner is counted in every bin containing its age. Defaults to
             five-year bins from ``'0-5'`` through ``'70-75'``.
@@ -938,7 +934,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
         if len(dups) > 0:
             raise ValueError(f"PartnershipFormationAnalyzer: duplicate age_bins are not allowed: {dups}")
 
-        self.age_ranges = [ss.parse_age_range(b) for b in self.age_bins]
+        self.age_ranges = [sti.parse_age_range(b) for b in self.age_bins]
         self.target_nw_names = networks
         self._tracked_nw_names = []                     # populated in init_results
         self._skipped_nw_names = []                  # networks skipped (can't record expirations)
@@ -953,7 +949,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
         # Validate passed-in network names for tracking. The analyzer requires a
         # stisim BaseNetwork-derived sexual network (it reads BaseNetwork-only
         # edge meta -- ti_formed, age_p1, age_p2 -- and the expired_this_loop
-        # buffer), so a plain ss.SexualNetwork is not enough.
+        # buffer), so a plain ss.SexualNet is not enough.
         all_nw_names = self.sim.networks.keys()
         if self.target_nw_names is None:
             # default to all BaseNetwork-derived sexual networks
@@ -1179,7 +1175,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
             #                   '40-50': array([1])}}
         """
         bins = self.age_bins if age_bins is None else age_bins
-        ranges = self.age_ranges if age_bins is None else [ss.parse_age_range(b) for b in bins]
+        ranges = self.age_ranges if age_bins is None else [sti.parse_age_range(b) for b in bins]
         n_ti = self._final_ti + 1
         threshold = self._threshold(window_months)
         lo_ti = 0 if threshold is None else max(0, threshold)

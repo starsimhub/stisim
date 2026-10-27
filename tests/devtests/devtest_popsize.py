@@ -37,7 +37,7 @@ def test_n_agents():
     for n_agents in n_agent_list:
         sim = make_sim(n_agents=n_agents, dt=1)
         sim.run()
-        results[n_agents] = sim.results.n_alive
+        results[n_agents] = sim.results.alive
         sims += sim
 
     fig, ax = pl.subplots(1, 1)

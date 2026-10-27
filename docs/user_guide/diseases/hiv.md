@@ -2,7 +2,9 @@
 
 HIV in STIsim is modeled with CD4-based disease progression through acute, latent, and late-stage phases, with ART treatment effects.
 
-**Class:** `sti.HIV` | **Alias:** `'hiv'` | **Base class:** `BaseSTI`
+**Class:** `sti.HIV` | **Alias:** `'hiv'` | **Base class:** `ss.Disease`
+
+**Declared and coded.** The natural history and care are declared states and transitions: `susceptible`, `acute`, `latent`, `falling`, `on_effective_art`, `on_nonsuppressive_art`, and `art_discontinued`, with the transitions `infection`, `mtct_prenatal`, `mtct_postnatal`, `latency`, `progression`, `aids_death` (when the CD4 count reaches zero), `post_art_death`, `hiv_death` and `art_death` (at a rate by CD4 count), and `art_dropout` (stopping ART early, at `rate_art_dropout`, none by default). ART's reduction of transmission at full efficacy (`effective_art_efficacy`, `nonsupp_art_efficacy`) is part of the declared infection rates, so a modifier (`ss.modify(hiv.pars.effective_art_efficacy, ...)`) changes it. The continuous CD4 count, the rise to ART's full efficacy over its first months, susceptibility (PrEP, circumcision, age), care seeking and diagnosis are code in the same class; starting and stopping ART (`start_art()`, `stop_art()`) move people between the declared states. `infected`, `on_art` and `aids` are conditions over the states. Other modules read and change HIV through these: e.g. MIGHTI's competing risks of death read the hazards of `hiv_death` and `art_death` (`hiv.hiv_death.hazard(uids)`), and its adherence model is a modifier of `rate_art_dropout`.
 
 ## States and transitions
 
@@ -114,7 +116,7 @@ Agents on ART may still die from HIV-related causes. Mortality while on ART depe
 - **Non-suppressive ART → higher mortality than effective ART.** Failing to achieve viral suppression carries a mortality penalty on top of the CD4-based risk.
 - **Men on non-suppressive ART → higher mortality than women on non-suppressive ART** Failing treatment carries a proportionally worse mortality penalty for men than for women. The non-suppressive/effective mortality ratio is roughly 2x higher for men than for women by default (2.8x vs. 1.4x).
 
-`get_art_mortality_hazard()` computes a per-timestep hazard **bounded from above by the off-ART CD4-based hazard** for the same age/sex/cd4 count demographic subgroup:
+`on_art_death_rate()` computes the rate of `art_death`, **bounded from above by the off-ART CD4-based rate** for the same age/sex/cd4 count demographic subgroup:
 
 ```
 rate = off_art_rate(cd4) * rel_art_mortality[effective? / sex] * age_mult(age) * rel_death_f?
@@ -168,7 +170,7 @@ Pars of `sti.HIV`. The Source column follows the conventions of the [parameter r
 | `dur_acute` | lognorm(1.7 mo, 1 mo) | Duration of acute infection | [Bellan 2015](https://doi.org/10.1371/journal.pmed.1001801) |
 | `dur_latent` | lognorm(10 yr, 3 yr) | Duration of latent infection (untreated) | Not recorded |
 | `dur_falling` | lognorm(3 yr, 1 yr) | Duration of late-stage CD4 decline | Not recorded |
-| `include_aids_deaths` | True | Whether HIV-related mortality is modeled | Not applicable |
+| `p_aids_death` | 1.0 | Probability of dying of AIDS when the CD4 count reaches zero (0 turns AIDS deaths off) | Not applicable |
 | `cd4_death_bins` | [1000, 500, 350, 200, 50, 0] | Lower edges of the off-ART CD4 mortality bins (descending) | Not recorded |
 | `cd4_death_rates` | [0.003, 0.003, 0.005, 0.01, 0.05, 0.30] | Off-ART annual mortality rate in each CD4 bin | Not recorded |
 | `rel_death` | 1.0 | Multiplier on all HIV death probabilities, off and on ART | Not applicable |
@@ -179,9 +181,9 @@ Pars of `sti.HIV`. The Source column follows the conventions of the [parameter r
 |-----------|---------|-------------|--------|
 | `beta_m2f` | 0.05 | Per-act male-to-female transmission probability; usually calibrated | Not recorded |
 | `rel_beta_f2m` | 0.5 | Female-to-male per-act probability relative to `beta_m2f` | Not recorded |
-| `beta_m2c` | 0.025/mo | Prenatal mother-to-child transmission probability | Not recorded |
-| `beta_breastfeed` | 0.005/mo | Postnatal (breastfeeding) transmission probability | Not recorded |
-| `beta_m2m` | None | Per-act male-to-male transmission probability (used on an `msm` network) | Not applicable |
+| `beta_m2c` | 0.025 | Prenatal mother-to-child transmission rate, per month | Not recorded |
+| `beta_breastfeed` | 0.005 | Postnatal (breastfeeding) transmission rate, per month | Not recorded |
+| `beta_m2m` | 0 | Per-act male-to-male transmission probability (used on an `msm` network) | Not applicable |
 | `rel_trans_acute` | normal(5.3, 0.5) | Relative transmissibility during the acute phase | [Bellan 2015](https://doi.org/10.1371/journal.pmed.1001801) |
 | `rel_trans_falling` | normal(8, 0.5) | Relative transmissibility during late-stage CD4 decline | Not recorded |
 | `eff_condom` | 0.9 | Condom efficacy against transmission | Not recorded |
@@ -211,6 +213,7 @@ Pars of `sti.HIV`. The Source column follows the conventions of the [parameter r
 | `dur_on_art` | lognorm(3 yr, 1.5 yr) | Duration on ART before discontinuation | Not recorded |
 | `rel_dur_on_art` | 1.0 | Multiplier on `dur_on_art`; usually calibrated | Not applicable |
 | `dur_on_art_trend` | None | Time-varying multiplier on `dur_on_art` (years and values) | Not applicable |
+| `rate_art_dropout` | 0/yr | Rate of stopping ART early (e.g. from poor adherence), besides at the end of `dur_on_art` | Not applicable |
 | `dur_post_art_scale_factor` | 0.1 | Standard deviation of post-ART CD4 decline duration, as a fraction of its mean | Not recorded |
 | `rel_art_mortality_effective` | 0.25 | Fraction of off-ART CD4-based mortality retained on effective ART, both sexes (see "On-ART mortality" above) | Not recorded |
 | `rel_art_mortality_unsupp_m` | 0.7 | Fraction of off-ART CD4-based mortality retained on non-suppressive ART, males | Not recorded |
@@ -228,7 +231,7 @@ Pars of `sti.HIV`. The Source column follows the conventions of the [parameter r
 
 ## Results
 
-HIV produces the standard BaseSTI results (`new_infections`, `prevalence`, `incidence`, etc.) plus HIV-specific results:
+HIV produces STIsim's standard results (`new_infections`, `prevalence`, `incidence`, etc.), one for each state and transition (e.g. `acute`, `art_dropout`), plus HIV-specific results:
 
 ### HIV-specific results
 
@@ -293,9 +296,8 @@ anc_test = sti.HIVTest(
     test_prob_data=0.9,
     dt_scale=False,
     name='anc_test',
-    eligibility=lambda sim: sim.demographics.pregnancy.tri1_uids[
-        ~sim.diseases.hiv.diagnosed[sim.demographics.pregnancy.tri1_uids]
-    ],
+    eligibility=lambda sim: (sim.demographics.pregnancy.P & (sim.demographics.pregnancy.P.time < ss.weeks(13)) # First trimester
+                             & ~sim.diseases.hiv.diagnosed),
 )
 ```
 

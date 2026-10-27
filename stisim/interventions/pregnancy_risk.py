@@ -136,7 +136,7 @@ class PregnancyRiskReduction(ss.Intervention):
             self.was_fsw[:] = self.was_fsw[:] | nw.ever_fsw
         self.was_high_risk[:] = self.was_high_risk[:] | (nw.risk_group == self.pars.high_risk_group)
         self.default_concurrency[:] = np.maximum(nw.concurrency, self.default_concurrency)
-        self.ever_pregnant[:] = self.ever_pregnant[:] | preg.pregnant
+        self.ever_pregnant[:] = self.ever_pregnant[:] | preg.P
 
         # End-of-pregnancy restore: anyone who has been pregnant at some
         # prior step and is no longer pregnant gets ``paused`` cleared and
@@ -144,14 +144,14 @@ class PregnancyRiskReduction(ss.Intervention):
         # agent back into the derived-``fsw`` set provided she is still
         # inside her SW window; if she has aged out during pregnancy,
         # ``nw.fsw`` correctly stays False.
-        is_post = ~preg.pregnant & self.ever_pregnant
+        is_post = ~preg.P & self.ever_pregnant
         if has_pause:
             nw.paused[is_post] = False
         nw.risk_group[self.was_high_risk & is_post] = self.pars.high_risk_group
         nw.concurrency[is_post] = self.default_concurrency[is_post]
 
         # Pregnancy-time reductions, sampled per-agent.
-        is_preg = preg.pregnant
+        is_preg = preg.P
         preg_fsw = (is_preg & nw.fsw).uids
         preg_hr  = (is_preg & (nw.risk_group == self.pars.high_risk_group)).uids
         fsw_quitters  = self.pars.fsw_redux.filter(preg_fsw)

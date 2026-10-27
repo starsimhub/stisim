@@ -1,8 +1,8 @@
-cpu_performance: 0.9597191025570829
+cpu_performance: 0.9587256216680449
 parameters:
   dt: 0.08333333333333333
   dur: 20.0
   n_agents: 2000
 time:
-  initialize: 0.26
-  run: 3.43
+  initialize: 0.363
+  run: 2.013

@@ -613,14 +613,14 @@ class SyndromicManagement(STITest):
                     miss_outcomes   = in_mtnz         if is_cerv_disease else in_all3_or_ngct
                     for pkey, pattr in disease.sex_keys.items():
                         skk = '' if pkey == '' else f'_{pkey}'
-                        disease.results[f'new_true_pos{skk}'][self.ti]  += len(outcomes['all3'] & disease.treatable & ppl[pattr])
-                        disease.results[f'new_false_pos{skk}'][self.ti] += len(outcomes['all3'] & disease.susceptible & ppl[pattr])
-                        disease.results[f'new_true_neg{skk}'][self.ti]  += len(outcomes['none'] & disease.susceptible & ppl[pattr])
-                        disease.results[f'new_false_neg{skk}'][self.ti] += len(outcomes['none'] & disease.treatable & ppl[pattr])
-                        disease.results[f'new_true_pos{skk}'][self.ti]  += len(treat_outcomes & disease.treatable & ppl[pattr])
-                        disease.results[f'new_false_pos{skk}'][self.ti] += len(treat_outcomes & disease.susceptible & ppl[pattr])
-                        disease.results[f'new_false_neg{skk}'][self.ti] += len(miss_outcomes & disease.treatable & ppl[pattr])
-                        disease.results[f'new_true_neg{skk}'][self.ti]  += len(miss_outcomes & disease.susceptible & ppl[pattr])
+                        disease.results[f'new_true_pos{skk}'][disease.ti] += len(outcomes['all3'] & disease.treatable & ppl[pattr])
+                        disease.results[f'new_false_pos{skk}'][disease.ti] += len(outcomes['all3'] & disease.susceptible & ppl[pattr])
+                        disease.results[f'new_true_neg{skk}'][disease.ti] += len(outcomes['none'] & disease.susceptible & ppl[pattr])
+                        disease.results[f'new_false_neg{skk}'][disease.ti] += len(outcomes['none'] & disease.treatable & ppl[pattr])
+                        disease.results[f'new_true_pos{skk}'][disease.ti] += len(treat_outcomes & disease.treatable & ppl[pattr])
+                        disease.results[f'new_false_pos{skk}'][disease.ti] += len(treat_outcomes & disease.susceptible & ppl[pattr])
+                        disease.results[f'new_false_neg{skk}'][disease.ti] += len(miss_outcomes & disease.treatable & ppl[pattr])
+                        disease.results[f'new_true_neg{skk}'][disease.ti] += len(miss_outcomes & disease.susceptible & ppl[pattr])
 
                 # Route to treatments
                 for outcome, txs in self.outcome_tx_map.items():
@@ -763,7 +763,7 @@ class ANCTest(ss.Intervention):
         # Schedule a visit for each newly pregnant woman
         pregnancy = sim.get_module(ss.Pregnancy, die=False)
         if pregnancy is not None:
-            newly_preg = (pregnancy.ti_pregnant == ti).uids
+            newly_preg = (pregnancy.ti_P == ti).uids
             attendees  = self.visit_prob_dist.filter(newly_preg)
             months_dt  = ss.dur(1, 'months') / sim.t.dt   # timesteps per month
             offsets    = self.visit_timing.randround(self.visit_timing.rvs(attendees) * months_dt)
@@ -796,9 +796,9 @@ class ANCTest(ss.Intervention):
                 # Set diagnosed flag and schedule ART start (no delay by default)
                 # so an ART intervention picks them up automatically
                 disease.diagnosed[pos_uids]    = True
-                disease.ti_diagnosed[pos_uids] = ti
+                disease.ti_diagnosed[pos_uids] = disease.ti # In the disease's own steps, which may differ from this intervention's
                 to_schedule = pos_uids[~disease.on_art[pos_uids]]
-                disease.ti_art[to_schedule] = ti
+                disease.ti_art[to_schedule] = disease.ti
             elif dname in self.disease_treatment_map:
                 tx = self.disease_treatment_map[dname]
                 tx.eligibility = tx.eligibility | pos_uids
@@ -820,7 +820,7 @@ class ANCTest(ss.Intervention):
             )
         pos_mask  = np.isin(mn.p1, pos_mother_uids)
         unborn    = mn.p2[pos_mask]
-        ti_births = pregnancy.ti_delivery[mn.p1[pos_mask]]
+        ti_births = np.ceil(pregnancy.ti_exit_P[mn.p1[pos_mask]]) # The step of the delivery
         valid     = ~np.isnan(ti_births)
         if valid.any():
             newborn_test.schedule(unborn[valid], ti_births[valid].astype(int))
@@ -935,9 +935,8 @@ class STITreatment(ss.Intervention):
         return output
 
     def change_states(self, disease, treat_succ):
-        """ Change the states of people who are treated """
+        """ Cure the people successfully treated """
         self.sim.diseases[disease].clear_infection(treat_succ)
-        self.sim.diseases[disease].wipe_dates(treat_succ)
         return
 
     def step(self):
@@ -1004,20 +1003,12 @@ class STITreatment(ss.Intervention):
             self.results['new_treated_unnecessary'+skk][ti] = len(self.outcomes['unnecessary'+skk])
             self.results['new_treated'+skk][ti] = count(just_treated & self.sim.people[sl])
             for disease in self.diseases:
-                try:
-                    self.sim.diseases[disease].results['new_treated_success'+skk][ti] += len(self.outcomes[disease]['successful'+skk])
-                    self.sim.diseases[disease].results['new_treated_failure'+skk][ti] += len(self.outcomes[disease]['unsuccessful'+skk])
-                    self.sim.diseases[disease].results['new_treated_unnecessary'+skk][ti] += len(self.outcomes[disease]['unnecessary'+skk])
-                    self.sim.diseases[disease].results['new_treated'+skk][ti] += count(just_treated & self.sim.people[sl])
-                except:
-                    print('error')
-
-        # Debugging
-        if self.name in ['ng_tx', 'ct_tx']:
-            for oc in ['new_treated_success', 'new_treated_failure', 'new_treated_unnecessary']:
-                if self.sim.diseases[disease].results[oc][ti] != self.results[oc][ti]:
-                    errormsg = 'Inconsistent treatment outcomes'
-                    raise ValueError(errormsg)
+                dis = self.sim.diseases[disease]
+                dti = dis.ti # In the disease's own steps, which may differ from this intervention's (e.g. a yearly sim and a monthly disease)
+                dis.results['new_treated_success'+skk][dti] += len(self.outcomes[disease]['successful'+skk])
+                dis.results['new_treated_failure'+skk][dti] += len(self.outcomes[disease]['unsuccessful'+skk])
+                dis.results['new_treated_unnecessary'+skk][dti] += len(self.outcomes[disease]['unnecessary'+skk])
+                dis.results['new_treated'+skk][dti] += count(just_treated & self.sim.people[sl])
 
         return
 

@@ -13,7 +13,7 @@ import pylab as pl
 
 def test_gon(n_agents=500, dt=1/12, start=2000, dur=40):
 
-    default_beta = dict(structuredsexual=[1, 1], maternal=[0.99, 0])
+    default_beta = dict(structuredsexual=[1, 1], maternal=0.99)
 
     ng = sti.Gonorrhea(
         beta_m2f=0.038,

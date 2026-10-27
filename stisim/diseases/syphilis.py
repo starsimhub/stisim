@@ -7,8 +7,8 @@ import sciris as sc
 from sciris import randround as rr # Since used frequently
 import starsim as ss
 import stisim as sti
-from stisim.diseases.sti import BaseSTI, BaseSTIPars, default_age_bins, default_sex_keys
-from stisim.utils import count, div, countdiv, cond_prob
+from stisim.diseases.sti import STIResults, default_age_bins, default_sex_keys
+from stisim.utils import count, div, cond_prob
 
 __all__ = ['Syphilis', 'SyphilisPlaceholder']
 
@@ -74,209 +74,185 @@ class SyphilisPlaceholder(ss.Disease):
             self.active[self._prev_dist.filter(uids)] = False
 
 
-class SyphPars(BaseSTIPars):
-    def __init__(self, **kwargs):
-        # Adult syphilis natural history
-        self.dur_exposed = ss.normal(ss.days(50), ss.days(10))  # https://pubmed.ncbi.nlm.nih.gov/9101629/
-        self.dur_primary = ss.normal(ss.weeks(6), ss.weeks(1))  # https://pubmed.ncbi.nlm.nih.gov/9101629/
-        self.dur_secondary = ss.lognorm_ex(ss.months(3.6), ss.months(1.5))  # https://pubmed.ncbi.nlm.nih.gov/9101629/
-        self.dur_early = ss.uniform(ss.months(22), ss.months(24))  # Early-latent boundary matches WHO Europe definition (≤2 years post-infection)
-        self.p_reactivate = ss.bernoulli(p=0.35)  # Probability of reactivating from latent to secondary
-        self.time_to_reactivate = ss.lognorm_ex(ss.years(1), ss.years(1))  # Time to reactivation
-        self.p_tertiary = ss.bernoulli(p=0.35)  # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4917057/
-        self.time_to_tertiary = ss.normal(ss.years(20), ss.years(2))  # Time to tertiary
-        self.p_death = ss.bernoulli(p=0.05)  # probability of dying of tertiary syphilis
-        self.time_to_death = ss.lognorm_ex(ss.years(5), ss.years(5))  # Time to death
+# Probabilities of the birth outcomes of a congenital infection, by the mother's stage when it happened:
+# miscarriage, neonatal death, stillbirth, congenital syphilis, and a live birth without complications (which may be
+# preterm or of low birth weight). Sources: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5973824/, https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2819963/
+default_birth_outcomes = sc.objdict(
+    mat_active = [0.00, 0.25, 0.25, 0.45, 0.05], # Mothers with primary or secondary infection
+    early      = [0.00, 0.05, 0.10, 0.40, 0.45], # Mothers with early latent infection
+    late       = [0.00, 0.00, 0.10, 0.10, 0.80], # Mothers with late latent infection
+)
 
-        # Time from late-latent onset until non-treponemal titre falls below
-        # detection threshold on serological tests
-        self.time_to_undetectable = ss.lognorm_ex(ss.years(15), ss.years(5))
 
-        # Treponemal-test seroconversion + persistence
-        #   - dur_to_trep: time from infection to trep antibody detection
-        #     (window period during which the agent is infected but the
-        #     trep test is still negative; ~2-3 weeks for IgM/IgG)
-        #   - p_trep_persists: 80% of trep-positive agents remain trep+
-        #     for life. The other 20% sero-revert eventually.
-        #   - time_to_trep_revert: timing for the 20% who do sero-revert
-        #     (slow, variable; mean ~10y post-seroconversion)
-        # Agents treated BEFORE ti_trep_start (window-period treatment)
-        # never become trep+ — SyphTx handles that case in change_states.
-        self.dur_to_trep = ss.normal(ss.weeks(3), ss.weeks(1))
-        self.p_trep_persists = ss.bernoulli(p=0.80)
-        self.time_to_trep_revert = ss.normal(ss.years(10), ss.years(5))
+class Syphilis(ss.Disease, STIResults):
+    """
+    Syphilis: exposed, primary, secondary, early and late latent, and tertiary stages, and congenital syphilis, declared
 
-        # Transmission by stage
-        self.beta_m2f = 0.1
-        self.eff_condom = 0.0
-        self.rel_trans_primary = 1
-        self.rel_trans_secondary = 1
-        self.rel_trans_tertiary = 0.0
-        self.rel_trans_latent_half_life = ss.years(1)
+    People infected are exposed (incubating) for `dur_exposed`, then have a primary chancre for `dur_primary`, then
+    secondary syphilis for `dur_secondary`, then latent syphilis: early for `dur_early`, then late. A share of the
+    latent (`p_reactivate`) relapse to secondary `time_to_reactivate` after the latent stage began; of the rest, a
+    share (`p_tertiary`) progress to tertiary syphilis `time_to_tertiary` after it began, and of those a share
+    (`p_death`) die `time_to_death` later. Infectiousness is by stage, and in the latent stages decays with a
+    half-life of `rel_trans_latent_half_life` from the start of the latent stage (as agents).
 
-        # Symptom visibility by stage [female, male]
-        # Primary: chancres are internal in women (less visible), external in men (more visible)
-        # ~60% of primary chancres overall go unnoticed
-        self.p_symp_primary = [0.3, 0.5]
-        self.p_symp_primary_dist = ss.bernoulli(p=0)  # Placeholder, set per-agent in set_prognoses
-        # Secondary: disseminated rash — visible for both sexes
-        self.p_symp_secondary = [0.85, 0.85]
-        self.p_symp_secondary_dist = ss.bernoulli(p=0)
+    A fetus is infected in pregnancy at a rate `beta_m2c` (per month) while its mother is infectious, and its outcome
+    at delivery (miscarriage, stillbirth, neonatal death, congenital syphilis, or none) depends on the mother's stage
+    when it was infected (`birth_outcomes`). Fetal losses happen at the delivery (`ss.Pregnancy`'s `delivery`), and
+    neonatal deaths and congenital syphilis at the birth.
 
-        # Congenital syphilis outcomes
-        # Birth outcomes coded as:
-        #   0: Miscarriage
-        #   1: Neonatal death
-        #   2: Stillborn
-        #   3: Congenital syphilis
-        #   4: Live birth without syphilis-related complications - may be preterm or low birth weight
-        # Sources:
-        #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5973824/)
-        #   - https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2819963/
-        self.birth_outcomes = sc.objdict(
-            mat_active=ss.choice(a=5, p=np.array([0.00, 0.25, 0.25, 0.45, 0.05])),  # Outcomes for babies born to mothers with primary or secondary infection
-            early=ss.choice(a=5, p=np.array([0.00, 0.05, 0.10, 0.40, 0.45])),  # Outcomes for babies born to mothers with early latent infection
-            late=ss.choice(a=5, p=np.array([0.00, 0.00, 0.10, 0.10, 0.80])),  # Outcomes for babies born to mothers with late latent infection
+    Serology (treponemal and non-treponemal test status) and whether symptoms are visible are not stages: they are
+    arrays of each person's, updated at the events of the stages.
+
+    States: `susceptible`, `exposed`, `primary`, `secondary`, `early`, `late`, `tertiary`, the fetal states
+    (`fetus_miscarriage`, `fetus_nnd`, `fetus_stillborn`, `fetus_congenital`, `fetus_normal`: infected in utero,
+    by the outcome to come), and `congenital` (born with congenital syphilis). `latent` (`early | late`),
+    `infected`, `infectious`, `symptomatic`, and the others below are conditions over them.
+
+    Args:
+        pars (dict): parameter values, as for the keywords
+        name (str): the name of the module (default ``'syph'``)
+        birth_outcomes (dict): the probabilities of the five birth outcomes for a mother with active (`mat_active`), `early` latent, and `late` latent syphilis, each a list or an `ss.choice(a=5, p=...)`
+        init_latent_prev (float): the share of people who start in early latent syphilis
+        age_range (list): age range of the main (adult) results (default [15, 50])
+        age_bins (list): bin edges for age-stratified results; ``None`` skips them
+        sex_keys (dict): sex strata for results; ``None`` skips sex-stratified results
+        include_care (bool): whether to define the results of care
+        kwargs (dict): parameter values (e.g. ``beta_m2f=0.2``), `init_prev`, or `label`
+    """
+    def __init__(self, pars=None, name='syph', birth_outcomes=None, init_latent_prev=None, age_range=None,
+                 age_bins=default_age_bins, sex_keys=default_sex_keys, include_care=True, **kwargs):
+
+        # Transmission: a probability per act on the sexual networks, by stage, and a rate per month from mother to fetus
+        beta_m2f = ss.par(0.1, doc='Probability of transmission per act from a man to a woman')
+        rel_beta_f2m = ss.par(0.5, doc='Transmission from a woman to a man, relative to from a man to a woman')
+        beta_m2m = ss.par(0.0, doc='Probability of transmission per act between men')
+        beta_m2c = ss.par(0.0, doc='Rate of transmission from mother to fetus in pregnancy, per month')
+        rel_trans_primary = ss.par(1.0, doc='Infectiousness in the primary stage')
+        rel_trans_secondary = ss.par(1.0, doc='Infectiousness in the secondary stage, and at the start of the latent stage')
+        rel_trans_tertiary = ss.par(0.0, doc='Infectiousness in the tertiary stage')
+
+        # Natural history
+        dur_exposed = ss.par(ss.normal(ss.days(50), ss.days(10)), doc='Incubation period') # https://pubmed.ncbi.nlm.nih.gov/9101629/
+        dur_primary = ss.par(ss.normal(ss.weeks(6), ss.weeks(1)), doc='Duration of the primary stage') # https://pubmed.ncbi.nlm.nih.gov/9101629/
+        dur_secondary = ss.par(ss.lognorm_ex(ss.months(3.6), ss.months(1.5)), doc='Duration of the secondary stage') # https://pubmed.ncbi.nlm.nih.gov/9101629/
+        dur_early = ss.par(ss.uniform(ss.months(22), ss.months(24)), doc='Duration of the early latent stage') # Matches WHO Europe's definition (up to 2 years after infection)
+        p_reactivate = ss.par(0.35, doc='Probability of relapsing from latent to secondary syphilis')
+        time_to_reactivate = ss.par(ss.lognorm_ex(ss.years(1), ss.years(1)), name='time_to_reactivate', doc='Time from the start of the latent stage to relapse')
+        p_tertiary = ss.par(0.35, doc='Probability of progressing to tertiary syphilis, for those who do not relapse') # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4917057/
+        time_to_tertiary = ss.par(ss.normal(ss.years(20), ss.years(2)), name='time_to_tertiary', doc='Time from the start of the latent stage to tertiary syphilis')
+        p_death = ss.par(0.05, doc='Probability of dying of tertiary syphilis')
+        time_to_death = ss.par(ss.lognorm_ex(ss.years(5), ss.years(5)), doc='Time from tertiary syphilis to death')
+
+        # States
+        susceptible, exposed, primary, secondary, early, late, tertiary = ss.states('susceptible exposed primary secondary early late tertiary')
+        fetal = ss.states('fetus_miscarriage fetus_nnd fetus_stillborn fetus_congenital fetus_normal') # Infected in utero, by the outcome to come
+        fetus_miscarriage, fetus_nnd, fetus_stillborn, fetus_congenital, fetus_normal = fetal
+        congenital = ss.State('congenital')
+        latent = early + late
+
+        # Transmission
+        sexual = sti.sexual_beta(beta_m2f, beta_m2f*rel_beta_f2m, beta_m2m)
+        infection = susceptible >> exposed @ sexual*(rel_trans_primary*primary + rel_trans_secondary*(secondary + latent) + rel_trans_tertiary*tertiary)
+
+        # Natural history
+        primary_onset = exposed >> primary @ dur_exposed
+        secondary_onset = primary >> secondary @ dur_primary
+        latency = secondary >> early @ dur_secondary
+        to_late = early >> late @ dur_early
+        reactivation = ss.Transition(latent, [secondary, ss.stay], p=[p_reactivate, None], on=latency, dur=time_to_reactivate) # Timed from the start of the latent stage, early or late
+        tertiary_onset = ss.Transition(latent, [tertiary, ss.stay], p=[p_tertiary, None], on=latency, dur=time_to_tertiary)
+        death = ss.Transition(tertiary, [ss.null, ss.stay], p=[p_death, None], dur=time_to_death)
+
+        # Congenital syphilis: the outcome is decided by the mother's stage when the fetus is infected
+        mat_active = ss.mother(exposed | primary | secondary) # As Starsim 3 classed the mothers
+        mat_early = ss.mother(early)
+        mat_late = ss.mother(late)
+        outcomes = sc.mergedicts(default_birth_outcomes, birth_outcomes)
+        probs = {stage:np.asarray(val.pars.p if isinstance(val, ss.choice) else val) for stage,val in outcomes.items()} # The probabilities, also from Starsim 3's ss.choice
+        p_outcomes = [probs['mat_active'][i]*mat_active + probs['early'][i]*mat_early + probs['late'][i]*mat_late for i in range(4)] + [None] # A live birth without complications is the rest
+        mtct = ss.Transition(susceptible, fetal, rate=ss.permonth(1)*beta_m2c*ss.mother(primary | secondary | latent), p=p_outcomes, acquisition=True)
+        delivery = ss.state('pregnancy.delivery') # The events of ss.Pregnancy, which is made separately
+        birth = ss.state('pregnancy.birth')
+        miscarriage = ss.Transition(fetus_miscarriage, ss.null, on=delivery) # A fetal loss, at the delivery
+        stillbirth = ss.Transition(fetus_stillborn, ss.null, on=delivery)
+        nnd = ss.Transition(fetus_nnd, ss.null, on=birth) # A neonatal death, once born
+        born_congenital = ss.Transition(fetus_congenital, congenital, on=birth)
+        born_normal = ss.Transition(fetus_normal, susceptible, on=birth)
+
+        # The parameters that the transitions do not read, which its own code does (below); and, as the graph does not yet register
+        # them [PROPOSAL ST-D], the times after an event (on=), named above, whose values are set once it is built
+        values = sc.mergedicts(dict(init_prev=0.0), pars, kwargs)
+        code_pars = dict(
+            eff_condom = 0.0, # Read by the sexual networks (see sti.BaseNetwork.net_beta())
+            rel_trans_latent_half_life = ss.years(1),
+            p_symp_primary = [0.3, 0.5], # [female, male]: primary chancres are internal in women (less visible), external in men; ~60% go unnoticed
+            p_symp_primary_dist = ss.bernoulli(p=0), # Set for each person
+            p_symp_secondary = [0.85, 0.85], # A disseminated rash, visible in both sexes
+            p_symp_secondary_dist = ss.bernoulli(p=0),
+            time_to_undetectable = ss.lognorm_ex(ss.years(15), ss.years(5)), # From late latent until the non-treponemal titre is below detection
+            dur_to_trep = ss.normal(ss.weeks(3), ss.weeks(1)), # Window period: from infection until treponemal antibodies are detected
+            p_trep_persists = ss.bernoulli(p=0.80), # The other 20% sero-revert eventually
+            time_to_trep_revert = ss.normal(ss.years(10), ss.years(5)),
+            anc_detection = 0.8,
         )
-        self.birth_outcome_keys = ['miscarriage', 'nnd', 'stillborn', 'congenital', 'normal']
-        self.anc_detection = 0.8
+        delays = dict(time_to_reactivate=time_to_reactivate, time_to_tertiary=time_to_tertiary)
+        given = {key:values.pop(key) for key in list(code_pars) + list(delays) if key in values}
+        if init_latent_prev:
+            values['init'] = sc.mergedicts(values.get('init'), dict(early=init_latent_prev))
 
-        # Initial conditions
-        self.init_prev = ss.bernoulli(p=0)
-        self.init_latent_prev = ss.bernoulli(p=0)
-        self.dist_ti_init_infected = ss.constant(0)  # Experimented with negative values, but safer to use 0
-        self.rel_init_prev = 1
+        # [PROPOSAL ST-A] Declared here rather than in the class body, since on= a sibling transition does not yet work there
+        super().__init__(
+            infection=infection, primary_onset=primary_onset, secondary_onset=secondary_onset, latency=latency, to_late=to_late,
+            reactivation=reactivation, tertiary_onset=tertiary_onset, death=death,
+            mtct=mtct, miscarriage=miscarriage, stillbirth=stillbirth, nnd=nnd, born_congenital=born_congenital, born_normal=born_normal,
+            n_active=primary + secondary, new_infections_sex=1*infection, new_infections_prenatal=1*mtct, new_infections_mtct=1*mtct, # Results of the states and flows
+            new_nnds=1*nnd, new_stillborns=1*stillbirth, new_miscarriages=1*miscarriage, new_congenital=1*born_congenital,
+            new_congenital_deaths=nnd + stillbirth + miscarriage, new_deaths=1*death,
+            name=name, **sc.mergedicts(dict(dt='month'), values), # Monthly unless dt is given
+        )
+        self.define_pars(**code_pars, **delays)
+        self.pars.update(given)
 
-        # Update
-        self.update(kwargs)
-
-
-class Syphilis(BaseSTI):
-
-    def __init__(self, pars=None, name='syph', init_prev_data=None, init_prev_latent_data=None, age_range=None,
-                 age_bins=default_age_bins, sex_keys=default_sex_keys, **kwargs):
-        super().__init__(name=name, age_range=age_range, age_bins=age_bins, sex_keys=sex_keys)
-
-        # Define default parameters
-        default_pars = SyphPars()
-        self.define_pars(**default_pars)
-        self.update_pars(pars, **kwargs)
-
-        # Set initial prevalence
-        self.init_prev_data = init_prev_data
-        self.init_prev_latent_data = init_prev_latent_data
-
-        # Whether to store detailed results
-        self.store_sw = False
-        self.store_risk_groups = False
-
+        # Not stages: serology and visible symptoms, each person's own, updated at the events of the stages (see step_state())
         self.define_states(
-            # Adult syphilis states
-            ss.BoolState('exposed'),      # In incubation period
-            ss.BoolState('primary'),      # Primary chancres
-            ss.BoolState('secondary'),    # Inclusive of those who may still have primary chancres
-            ss.BoolState('early'),        # Early latent
-            ss.BoolState('late'),         # Late latent
-            ss.BoolState('latent'),       # Can relapse to secondary, remain in latent, or progress to tertiary,
-            ss.BoolState('tertiary'),     # Includes complications (cardio/neuro/disfigurement)
-            ss.BoolState('immune'),       # After effective treatment people may acquire temp immunity
-            ss.BoolState('ever_exposed'), # Biological: ever infected (lifetime); used for is_naive/sus_not_naive logic
-            ss.BoolState('trep'),         # Treponemal test positive (matches what a real trep RDT would detect: 80% persist for life, 20% sero-revert eventually)
-            ss.BoolState('nontrep'),      # Non-treponemal (RPR/VDRL) test positive
-            ss.IntArr('n_infections', default=0),  # Lifetime infection count (incremented each time infected)
-
-            # Symptom visibility — determined at infection/stage entry, reflects anatomical site
-            ss.BoolState('chancre_visible'),  # Whether primary chancre is at a visible site (set in set_prognoses)
-            ss.BoolState('rash_visible'),     # Whether secondary rash is noticeable (set in step_state)
-
-            # Congenital syphilis states
-            ss.BoolState('congenital'),
-            ss.FloatArr('cs_outcome'),
-            ss.BoolArr('mtct_from_mat_active'),  # For maternal transmission, track the mother's stage when transmission occurs
-            ss.BoolArr('mtct_from_early'),  # For maternal transmission, track the mother's stage when transmission occurs
-            ss.BoolArr('mtct_from_late'),  # For maternal transmission, track the mother's stage when transmission occurs
-
-            # Timestep of state changes (`ti_exposed` is inherited from BaseSTI)
-            ss.FloatArr('ti_primary'),
-            ss.FloatArr('ti_secondary'),
-            ss.FloatArr('ti_latent'),
-            ss.FloatArr('dur_early'),
-            ss.FloatArr('ti_tertiary'),
-            ss.FloatArr('ti_nontrep_end'),  # When non-trep titre drops below test threshold (sero-reversion on RPR/VDRL)
-            ss.FloatArr('ti_trep_start'),   # When trep antibodies appear (post-seroconversion); NaN if treated in window period
-            ss.FloatArr('ti_trep_end'),     # When trep test reverts to negative (NaN for the 80% who persist for life)
-            ss.FloatArr('ti_dead'),
-            ss.FloatArr('ti_immune'),
-            ss.FloatArr('ti_miscarriage'),
-            ss.FloatArr('ti_nnd'),
-            ss.FloatArr('ti_stillborn'),
-            ss.FloatArr('ti_congenital'),
-            ss.FloatArr('ti_normal'),
+            ss.BoolState('ever_exposed'), # Ever infected
+            ss.IntArr('n_infections', default=0), # Infections in a lifetime
+            ss.BoolState('trep'), # Treponemal test positive: 80% stay so for life, 20% sero-revert eventually
+            ss.BoolState('nontrep'), # Non-treponemal (RPR/VDRL) test positive
+            ss.BoolState('chancre_visible'), # Whether the primary chancre is at a visible site
+            ss.BoolState('rash_visible'), # Whether the secondary rash is noticed
+            ss.FloatArr('ti_latent'), # When the latent stage began, for the decay of infectiousness
+            ss.FloatArr('ti_nontrep_end'), # When the non-treponemal titre falls below detection
+            ss.FloatArr('ti_trep_start'), # When treponemal antibodies appear; NaN if treated in the window period
+            ss.FloatArr('ti_trep_end'), # When the treponemal test reverts (NaN for those for whom it persists)
         )
 
+        # Results
+        self.set_strata(age_range if age_range is not None else [15, 50], age_bins, sex_keys)
+        self.include_care = include_care
+        self.store_sw = False # Whether to store results for sex workers and their clients
+        self.store_risk_groups = False # Whether to store results by risk group
         return
 
-    def infect(self):
-        """
-        Override to use rel_trans=1 for maternal transmission.
-        Stage-specific rel_trans (primary >> latent) only applies to sexual
-        transmission. For MTC, all infected stages transmit equally since
-        spirochetemia during pregnancy affects the fetus regardless of the
-        mother's clinical stage.
-        """
-        new_cases = []
-        sources = []
-        networks = []
-        betamap = self.validate_beta()
+    @property
+    def latent(self):
+        """ Latent: early or late """
+        return self.early | self.late
 
-        # Sexual rel_trans: stage-specific (set in step_state)
-        rel_trans_sexual = self.rel_trans.asnew(self.infectious * self.rel_trans)
-        # MTC rel_trans: all infected stages transmit equally
-        rel_trans_mtc = self.rel_trans.asnew(self.infectious * 1.0)
-        rel_sus = self.rel_sus.asnew(self.susceptible * self.rel_sus)
+    @property
+    def infected(self):
+        """ Infected (not in utero) """
+        return self.exposed | self.primary | self.secondary | self.latent | self.tertiary
 
-        for i, (nkey, route) in enumerate(self.sim.networks.items()):
-            nk = ss.standardize_netkey(nkey)
+    @property
+    def infectious(self):
+        """ Infectious: primary, secondary, or latent """
+        return self.symptomatic | self.latent
 
-            # Use MTC rel_trans for maternal network, sexual for everything else
-            is_maternal = isinstance(route, ss.MaternalNet)
-            rel_trans = rel_trans_mtc if is_maternal else rel_trans_sexual
-
-            if isinstance(route, ss.Network):
-                if len(route):
-                    edges = route.edges
-                    p1p2b0 = [edges.p1, edges.p2, betamap[nk][0]]
-                    p2p1b1 = [edges.p2, edges.p1, betamap[nk][1]]
-                    for src, trg, beta in [p1p2b0, p2p1b1]:
-                        if beta:
-                            disease_beta = beta.to_prob(self.t.dt) if isinstance(beta, ss.Rate) else beta
-                            beta_per_dt = route.net_beta(disease_beta=disease_beta, disease=self)
-                            randvals = self.trans_rng.rvs(src, trg)
-                            args = (src, trg, rel_trans, rel_sus, beta_per_dt, randvals)
-                            target_uids, source_uids = self.compute_transmission(*args)
-                            new_cases.append(target_uids)
-                            sources.append(source_uids)
-                            networks.append(np.full(len(target_uids), dtype=ss.dtypes.int, fill_value=i))
-
-            elif isinstance(route, ss.Route):
-                disease_beta = betamap[nk][0].to_prob(self.t.dt) if isinstance(betamap[nk][0], ss.Rate) else betamap[nk][0]
-                target_uids = route.compute_transmission(rel_sus, rel_trans, disease_beta, disease=self)
-                new_cases.append(target_uids)
-                sources.append(np.full(len(target_uids), dtype=ss.dtypes.float, fill_value=np.nan))
-                networks.append(np.full(len(target_uids), dtype=ss.dtypes.int, fill_value=i))
-
-        # Finalize: concatenate, deduplicate
-        if len(new_cases) and len(sources):
-            new_cases = ss.uids.cat(new_cases)
-            new_cases, inds = new_cases.unique(return_index=True)
-            sources = ss.uids.cat(sources)[inds]
-            networks = np.concatenate(networks)[inds]
-        else:
-            new_cases = ss.uids()
-            sources = ss.uids()
-            networks = np.empty(0, dtype=ss.dtypes.int)
-
-        return new_cases, sources, networks
+    @property
+    def treatable(self):
+        """ Who a treatment can cure: everyone infected """
+        return self.infected
 
     @property
     def naive(self):
@@ -290,13 +266,8 @@ class Syphilis(BaseSTI):
 
     @property
     def mat_active(self):
-        """ Definition of infection used for maternal transmission, includes exposed + primary + secondary stages """
+        """ Definition of infection used for maternal outcomes, includes exposed + primary + secondary stages """
         return self.exposed | self.primary | self.secondary
-
-    @property
-    def infectious(self):
-        """ Infectious """
-        return self.symptomatic | self.latent
 
     @property
     def sexually_transmissible(self):
@@ -324,36 +295,95 @@ class Syphilis(BaseSTI):
         Used by care-seeking pathways. """
         return self.ulcerative | (self.rash_visible & self.secondary)
 
+    @property
+    def fetal(self):
+        """ Infected in utero, whatever the outcome to come """
+        return self.fetus_miscarriage | self.fetus_nnd | self.fetus_stillborn | self.fetus_congenital | self.fetus_normal
+
+    def by_sex(self, pair, uids):
+        """ The value of a [female, male] pair for each of these people """
+        return np.where(self.sim.people.female[uids], pair[0], pair[1])
+
+    def new_infected(self):
+        """ Who was infected (not in utero) in this step: by transmission, or seeded at the start """
+        new = self.infection.uids
+        if self.ti == 0:
+            new = new | self.infected.uids
+        return self.sim.people.uid.isin(new) # As a boolean array
+
+    def clear_infection(self, uids):
+        """ Cure people (e.g. treated): they are susceptible again, and their serology stays as it is """
+        self.move(uids, self.susceptible)
+        return
+
     def init_post(self):
-        """ Make initial cases """
-        ss.Module.init_post(self)  # Avoid super().init_post() since we create infections here
+        """ Those infected at the start have the serology and symptoms of a new infection """
+        super().init_post()
+        self.set_infection(self.infected.uids)
+        return
 
-        # Initial active cases
-        if self.init_prev_data is not None:
-            p_init_infection = self.make_init_prev()
-            self.pars.init_prev.set(p_init_infection)  # Set the initial prevalence function
-        initial_active_cases = self.pars.init_prev.filter()
-        self.set_prognoses(initial_active_cases)
-        still_sus = self.susceptible.uids
+    def set_infection(self, uids):
+        """ At infection: serology to come, and whether the chancre will be visible """
+        p = self.pars
+        self.ever_exposed[uids] = True
+        self.n_infections[uids] += 1
 
-        # Natural history for initial latent cases
-        if self.init_prev_latent_data is not None:
-            p_init_latent = self.make_init_prev(data=self.init_prev_latent_data)
-            self.pars.init_latent_prev.set(p_init_latent[still_sus])  # Set the initial prevalence function
-        initial_latent_cases = self.pars.init_latent_prev.filter(still_sus)
-        ti_init_cases = self.pars.dist_ti_init_infected.rvs(initial_latent_cases).astype(int)
-        self.set_prognoses(initial_latent_cases, ti=ti_init_cases)
-        self.set_secondary_prognoses(initial_latent_cases)
-        time_to_tertiary = self.pars.time_to_tertiary.rvs(initial_latent_cases)
-        self.ti_tertiary[initial_latent_cases] = self.ti_latent[initial_latent_cases] + rr(time_to_tertiary)
+        # Treponemal seroconversion after the window period; 80% stay positive for life, the others sero-revert later
+        self.ti_trep_start[uids] = self.ti + rr(p.dur_to_trep.rvs(uids))
+        reverters = uids[~p.p_trep_persists.rvs(uids)]
+        self.ti_trep_end[reverters] = self.ti_trep_start[reverters] + rr(p.time_to_trep_revert.rvs(reverters))
 
+        # Whether the primary chancre will be at a visible site
+        p.p_symp_primary_dist.set(self.by_sex(p.p_symp_primary, uids))
+        self.chancre_visible[uids] = p.p_symp_primary_dist.rvs(uids)
+        return
+
+    def step_state(self):
+        """ Take the declared transitions; then update serology, visible symptoms, and the infectiousness of latent syphilis """
+        super().step_state()
+        ti = self.ti
+        p = self.pars
+
+        # Entering the secondary stage (from primary, or a relapse): the non-treponemal titre rises, and the rash may be noticed
+        secondary = self.secondary_onset.uids | self.reactivation.uids
+        self.nontrep[secondary] = True
+        p.p_symp_secondary_dist.set(self.by_sex(p.p_symp_secondary, secondary))
+        self.rash_visible[secondary] = p.p_symp_secondary_dist.rvs(secondary)
+
+        # Entering the latent stage: the rash clears, and infectiousness begins to decay
+        latent = self.latency.uids
+        self.rash_visible[latent] = False
+        self.ti_latent[latent] = ti
+
+        # Entering late latent: the non-treponemal titre falls below detection some years later
+        late = self.to_late.uids
+        self.ti_nontrep_end[late] = ti + rr(p.time_to_undetectable.rvs(late))
+
+        # Serology over time
+        self.nontrep[self.nontrep & (self.ti_nontrep_end <= ti)] = False
+        self.trep[~self.trep & (self.ti_trep_start <= ti)] = True
+        self.trep[self.trep & (self.ti_trep_end <= ti)] = False
+
+        # Susceptibility and infectiousness of each person (which connectors change after this), with the decay in the latent stage
+        self.rel_sus[:] = 1
+        self.rel_trans[:] = 1
+        latent = self.latent.uids
+        half_life = p.rel_trans_latent_half_life.to_dt()
+        self.rel_trans[latent] = 0.5**((ti - self.ti_latent[latent])/half_life)
+        return
+
+    def step(self):
+        """ Transmission; then the people infected have the serology and symptoms of a new infection """
+        super().step()
+        self.set_infection(self.infection.uids)
         return
 
     def init_results(self):
         """ Initialize results """
         super().init_results()
+        self.define_sti_results(include_care=self.include_care)
         results = [
-            ss.Result('n_active', dtype=int, label="Number of active cases", auto_plot=False),
+            ss.Result('cum_infections', dtype=int, label='Cumulative infections'),
             ss.Result('trep_prevalence', dtype=float, scale=False, label="Treponemal-test positive (ever-exposed proxy)"),
             ss.Result('pregnant_prevalence', dtype=float, scale=False, label="Pregnant prevalence", auto_plot=False),
             ss.Result('detected_pregnant_prevalence', dtype=float, scale=False, label="ANC prevalence", auto_plot=False),
@@ -362,17 +392,11 @@ class Syphilis(BaseSTI):
             ss.Result('symptomatic_prevalence', dtype=float, scale=False, label="Symptomatic stage prevalence (primary + secondary)"),
             ss.Result('primary_prevalence', dtype=float, scale=False, label="Primary stage prevalence"),
             ss.Result('nontrep_prevalence', dtype=float, scale=False, label="Non-treponemal (RPR) positive"),
-            ss.Result('new_nnds', dtype=int, label="Neonatal deaths", auto_plot=False),
-            ss.Result('new_stillborns', dtype=int, label="Stillbirths", auto_plot=False),
-            ss.Result('new_miscarriages', dtype=int, label="Miscarriages", auto_plot=False),
-            ss.Result('new_congenital', dtype=int, label="Congenital cases"),
-            ss.Result('new_congenital_deaths', dtype=int, label="Congenital deaths", auto_plot=False),
             ss.Result('cum_congenital', dtype=int, label="Cumulative congenital cases", auto_plot=False),
             ss.Result('cum_congenital_deaths', dtype=int, label="Cumulative congenital deaths", auto_plot=False),
-            ss.Result('new_deaths', dtype=int, label="Deaths"),
             ss.Result('new_reinfections', dtype=int, scale=True, label="Reinfections"),
 
-            # Add fetus testing and treatment results, which might be assembled from numerous interventions
+            # Fetal testing and treatment, which might be assembled from several interventions
             ss.Result('new_fetus_treated_success', dtype=int, label="Fetal treatment success", auto_plot=False),
             ss.Result('new_fetus_treated_unnecessary', dtype=int, label="Fetal overtreatment", auto_plot=False),
             ss.Result('new_fetus_treated_failure', dtype=int, label="Fetal treatment failure", auto_plot=False),
@@ -380,9 +404,7 @@ class Syphilis(BaseSTI):
         ]
 
         # Most results are stored by age and sex
-        for sk in self.sex_keys.keys():
-            skk = '' if sk == '' else f'_{sk}'
-            skl = '' if sk == '' else f' ({sk.upper()})'
+        for skk, skl, attr in self.sex_strata():
             if skk != '':
                 results += [
                     ss.Result(f'trep_prevalence{skk}', scale=False, label=f"Treponemal-test positive{skl}", auto_plot=False),
@@ -391,18 +413,16 @@ class Syphilis(BaseSTI):
                     ss.Result(f'primary_prevalence{skk}', scale=False, label=f"Primary stage prevalence{skl}", auto_plot=False),
                     ss.Result(f'nontrep_prevalence{skk}', scale=False, label=f"Non-treponemal positive{skl}", auto_plot=False),
                 ]
-
-            if self.age_bins is not None:
-                for ab1,ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
-                    ask = f'{skk}_{ab1}_{ab2}'
-                    asl = f' ({skl}, {ab1}-{ab2})'
-                    results += [
-                        ss.Result(f'sexually_transmissible_prevalence{ask}', scale=False, label=f"Sexually transmissible prevalence{asl}", auto_plot=False),
-                        ss.Result(f'symptomatic_prevalence{ask}', scale=False, label=f"Symptomatic prevalence{asl}", auto_plot=False),
-                        ss.Result(f'primary_prevalence{ask}', scale=False, label=f"Primary stage prevalence{asl}", auto_plot=False),
-                        ss.Result(f'trep_prevalence{ask}', scale=False, label=f"Treponemal positive{asl}", auto_plot=False),
-                        ss.Result(f'nontrep_prevalence{ask}', scale=False, label=f"Non-treponemal positive{asl}", auto_plot=False),
-                    ]
+            for ab1, ab2 in self.age_strata():
+                ask = f'{skk}_{ab1}_{ab2}'
+                asl = f' ({skl}, {ab1}-{ab2})'
+                results += [
+                    ss.Result(f'sexually_transmissible_prevalence{ask}', scale=False, label=f"Sexually transmissible prevalence{asl}", auto_plot=False),
+                    ss.Result(f'symptomatic_prevalence{ask}', scale=False, label=f"Symptomatic prevalence{asl}", auto_plot=False),
+                    ss.Result(f'primary_prevalence{ask}', scale=False, label=f"Primary stage prevalence{asl}", auto_plot=False),
+                    ss.Result(f'trep_prevalence{ask}', scale=False, label=f"Treponemal positive{asl}", auto_plot=False),
+                    ss.Result(f'nontrep_prevalence{ask}', scale=False, label=f"Non-treponemal positive{asl}", auto_plot=False),
+                ]
 
         # Add FSW and clients to results:
         if self.store_sw:
@@ -425,437 +445,87 @@ class Syphilis(BaseSTI):
                     ]
 
         self.define_results(*results)
-
         return
-
-    def step_state(self):
-        """ Updates to states """
-        ti = self.ti
-
-        # Reset susceptibility and infectiousness
-        self.rel_sus[:] = 1
-        self.rel_trans[:] = 1
-
-        # Primary from exposed
-        primary_from_exposed = self.exposed & (self.ti_primary <= ti)
-        if len(primary_from_exposed.uids) > 0:
-            self.primary[primary_from_exposed] = True
-            self.exposed[primary_from_exposed] = False
-
-        # Secondary from primary
-        secondary_from_primary = self.primary & (self.ti_secondary <= ti)
-        if len(secondary_from_primary.uids) > 0:
-            self.secondary[secondary_from_primary] = True
-            self.primary[secondary_from_primary] = False
-            self.set_secondary_prognoses(secondary_from_primary.uids)
-            self._set_rash_visible(secondary_from_primary.uids)
-
-        # Secondary reactivation from latent
-        secondary_from_latent = self.latent & (self.ti_secondary <= ti)
-        if len(secondary_from_latent.uids) > 0:
-            self.secondary[secondary_from_latent] = True
-            self.latent[secondary_from_latent] = False
-            # early/late are sub-flags of latent; clear them so set_congenital's
-            # outcome loop doesn't overwrite the mat_active-table draw with the
-            # (now-stale) early/late-table draw.
-            self.early[secondary_from_latent] = False
-            self.late[secondary_from_latent] = False
-            self.set_secondary_prognoses(secondary_from_latent.uids)
-            self._set_rash_visible(secondary_from_latent.uids)
-
-        # Latent — clear rash visibility
-        latent = self.secondary & (self.ti_latent <= ti)
-        if len(latent.uids) > 0:
-            self.latent[latent] = True
-            self.secondary[latent] = False
-            self.rash_visible[latent] = False
-            self.set_latent_prognoses(latent.uids)
-
-        # Tertiary
-        tertiary = self.latent & (self.ti_tertiary <= ti)
-        self.tertiary[tertiary] = True
-        self.latent[tertiary] = False
-        self.early[tertiary] = False
-        self.late[tertiary] = False
-
-        # Trigger deaths
-        deaths = (self.ti_dead <= ti).uids
-        if len(deaths):
-            self.sim.people.request_death(deaths)
-
-        # Congenital syphilis deaths
-        nnd = (self.ti_nnd <= ti).uids
-        stillborn = (self.ti_stillborn <= ti).uids
-        miscarriage = (self.ti_miscarriage <= ti).uids
-        # Store counts for update_results: ti_nnd / ti_stillborn / ti_miscarriage
-        # are cleared below so an `== ti` check in update_results would always read 0.
-        self._new_nnd_count = len(nnd)
-        self._new_stillborn_count = len(stillborn)
-        self._new_miscarriage_count = len(miscarriage)
-        if len(nnd):
-            self.sim.people.request_death(nnd)
-            self.ti_nnd[nnd] = np.nan  # Clear after firing
-        if len(stillborn):
-            self.sim.people.request_death(stillborn)
-            self.ti_stillborn[stillborn] = np.nan  # Clear after firing
-        if len(miscarriage):
-            self.sim.people.request_death(miscarriage)
-            self.ti_miscarriage[miscarriage] = np.nan  # Clear after firing
-
-        # Congenital syphilis transmission outcomes
-        congenital = (self.ti_congenital <= ti).uids
-        self.congenital[congenital] = True
-        self._new_congenital_count = len(congenital)  # Store for update_results (before clearing)
-        self.ti_congenital[congenital] = np.nan  # Clear after firing to prevent re-counting
-
-        # Set rel_trans
-        self.rel_trans[self.primary] = self.pars.rel_trans_primary
-        self.rel_trans[self.secondary] = self.pars.rel_trans_secondary
-        self.rel_trans[self.tertiary] = self.pars.rel_trans_tertiary
-        # Latent rel_trans decays with duration of latent infection
-        if len(self.latent.uids) > 0:
-            self.set_latent_trans()
-
-            # Set people to early
-            lu = self.latent.uids
-            is_early = lu[(ti - self.ti_latent[lu]) <= self.dur_early[lu]]
-            is_late = lu[(ti - self.ti_latent[lu]) > self.dur_early[lu]]
-            self.early[is_early] = True
-            self.early[is_late] = False
-            self.late[is_early] = False
-            self.late[is_late] = True
-
-        # Non-trep sero-reversion: non-trep titre falls below test threshold at
-        # the per-agent ti_nontrep_end (drawn from time_to_undetectable in
-        # set_latent_prognoses). Reactivation back to secondary re-sets
-        # nontrep=True in set_secondary_prognoses.
-        becomes_nontrep_neg = self.nontrep & (self.ti_nontrep_end <= ti)
-        if len(becomes_nontrep_neg.uids) > 0:
-            self.nontrep[becomes_nontrep_neg] = False
-
-        # Treponemal seroconversion (post-window-period appearance of trep+)
-        becomes_trep_pos = (~self.trep) & (self.ti_trep_start <= ti)
-        if len(becomes_trep_pos.uids) > 0:
-            self.trep[becomes_trep_pos] = True
-        # Treponemal sero-reversion (for the 20% with ti_trep_end set)
-        becomes_trep_neg = self.trep & (self.ti_trep_end <= ti)
-        if len(becomes_trep_neg.uids) > 0:
-            self.trep[becomes_trep_neg] = False
-
-        return
-
-    def step_die(self, uids):
-        """ Clear all states and dates for dead agents (including NND/stillborn babies) """
-        # Boolean states
-        self.susceptible[uids] = False
-        self.infected[uids] = False
-        self.exposed[uids] = False
-        self.primary[uids] = False
-        self.secondary[uids] = False
-        self.latent[uids] = False
-        self.early[uids] = False
-        self.late[uids] = False
-        self.tertiary[uids] = False
-        self.immune[uids] = False
-        self.congenital[uids] = False
-        self.ever_exposed[uids] = False
-        self.trep[uids] = False
-        self.nontrep[uids] = False
-        self.n_infections[uids] = 0
-        self.chancre_visible[uids] = False
-        self.rash_visible[uids] = False
-
-        # Clear future scheduled events (but keep ti_dead, ti_nnd, ti_stillborn, ti_miscarriage for records)
-        self.ti_exposed[uids] = np.nan
-        self.ti_infected[uids] = np.nan
-        self.ti_primary[uids] = np.nan
-        self.ti_secondary[uids] = np.nan
-        self.ti_latent[uids] = np.nan
-        self.ti_tertiary[uids] = np.nan
-        self.ti_congenital[uids] = np.nan
-        self.ti_nontrep_end[uids] = np.nan
-        self.ti_trep_start[uids] = np.nan
-        self.ti_trep_end[uids] = np.nan
 
     def update_results(self):
         super().update_results()
+        self.update_sti_results()
         ti = self.ti
         res = self.results
         ppl = self.sim.people
+        new_inf = self.new_infected()
 
-        n_active = res['n_primary'][ti] + res['n_secondary'][ti]
         adults = (ppl.age >= self.age_range[0]) & (ppl.age < self.age_range[1])
         sexually_active_adults = adults & self.sim.networks.structuredsexual.active(self.sim.people)
 
-        # Overwrite prevalence so we're always storing prevalence of syphilis among sexually active adults
-        self.results['prevalence'][ti] = cond_prob(self.infected, sexually_active_adults)
-        self.results['trep_prevalence'][ti] = cond_prob(self.trep, sexually_active_adults)
-        self.results['nontrep_prevalence'][ti] = cond_prob(self.nontrep, sexually_active_adults)
-        self.results['sexually_transmissible_prevalence'][ti] = cond_prob(self.sexually_transmissible, sexually_active_adults)
-        self.results['symptomatic_prevalence'][ti] = cond_prob(self.symptomatic, sexually_active_adults)
-        self.results['primary_prevalence'][ti] = cond_prob(self.primary, sexually_active_adults)
-        self.results['n_active'][ti] = n_active
+        # Prevalence among sexually active adults
+        res['prevalence'][ti] = cond_prob(self.infected, sexually_active_adults)
+        res['trep_prevalence'][ti] = cond_prob(self.trep, sexually_active_adults)
+        res['nontrep_prevalence'][ti] = cond_prob(self.nontrep, sexually_active_adults)
+        res['sexually_transmissible_prevalence'][ti] = cond_prob(self.sexually_transmissible, sexually_active_adults)
+        res['symptomatic_prevalence'][ti] = cond_prob(self.symptomatic, sexually_active_adults)
+        res['primary_prevalence'][ti] = cond_prob(self.primary, sexually_active_adults)
 
-        # Pregnant women prevalence, if present
+        # Pregnant women, if there is pregnancy
         if 'pregnancy' in self.sim.demographics.keys():
-            preg_prev = cond_prob(self.infected, ppl.pregnancy.pregnant)
-            self.results['pregnant_prevalence'][ti] = preg_prev
-            self.results['detected_pregnant_prevalence'][ti] = preg_prev * self.pars.anc_detection
-            deliv_prev = cond_prob(self.infected, ppl.pregnancy.ti_delivery == ti)
-            self.results['delivery_prevalence'][ti] = deliv_prev
+            preg_prev = cond_prob(self.infected, ppl.pregnancy.P)
+            res['pregnant_prevalence'][ti] = preg_prev
+            res['detected_pregnant_prevalence'][ti] = preg_prev * self.pars.anc_detection
+            res['delivery_prevalence'][ti] = cond_prob(self.infected, ppl.pregnancy.ti_delivered == ti)
 
-        # Congenital results: read from stashes set in step_state before
-        # ti_nnd / ti_stillborn / ti_miscarriage / ti_congenital were cleared to nan.
-        self.results['new_nnds'][ti]         = getattr(self, '_new_nnd_count', 0)
-        self.results['new_stillborns'][ti]   = getattr(self, '_new_stillborn_count', 0)
-        self.results['new_miscarriages'][ti] = getattr(self, '_new_miscarriage_count', 0)
-        self.results['new_congenital'][ti] = getattr(self, '_new_congenital_count', 0)
-        self.results['new_congenital_deaths'][ti] = (
-            self.results['new_nnds'][ti] + self.results['new_stillborns'][ti] + self.results['new_miscarriages'][ti]
-        )
-        self.results['new_deaths'][ti] = np.count_nonzero(self.ti_dead == ti)
-        self.results['new_reinfections'][ti] = np.count_nonzero((self.ti_infected == ti) & (self.n_infections > 1))
+        res['new_reinfections'][ti] = count(new_inf & (self.n_infections > 1))
 
         # Add FSW and clients to results:
         if self.store_sw:
             fsw = self.sim.networks.structuredsexual.fsw
             clients = self.sim.networks.structuredsexual.client
-            self.results['prevalence_sw'][ti] = cond_prob(self.infected, fsw)
-            self.results['new_infections_sw'][ti] = np.count_nonzero((self.ti_infected == ti) & fsw)
-            self.results['new_infections_not_sw'][ti] = np.count_nonzero((self.ti_infected == ti) & ~fsw)
-            self.results['prevalence_client'][ti] = cond_prob(self.infected, clients)
-            self.results['new_infections_client'][ti] = np.count_nonzero((self.ti_infected == ti) & clients)
-            self.results['new_infections_not_client'][ti] = np.count_nonzero((self.ti_infected == ti) & ~clients)
+            res['prevalence_sw'][ti] = cond_prob(self.infected, fsw)
+            res['new_infections_sw'][ti] = count(new_inf & fsw)
+            res['new_infections_not_sw'][ti] = count(new_inf & ~fsw)
+            res['prevalence_client'][ti] = cond_prob(self.infected, clients)
+            res['new_infections_client'][ti] = count(new_inf & clients)
+            res['new_infections_not_client'][ti] = count(new_inf & ~clients)
 
         # Add risk groups
         if self.store_risk_groups:
             for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
                 for sex in ['female', 'male']:
                     prev_denom = (self.sim.networks.structuredsexual.risk_group == risk_group) & (self.sim.people[sex])
-                    risk_group_new_inf = (self.ti_infected == ti) & (self.sim.networks.structuredsexual.risk_group == risk_group) & (self.sim.people[sex])
+                    risk_group_new_inf = new_inf & (self.sim.networks.structuredsexual.risk_group == risk_group) & (self.sim.people[sex])
                     if risk_group_new_inf.any():
-                        self.results['prevalence_risk_group_' + str(risk_group) + '_' + sex][ti] = cond_prob(self.infected, prev_denom)
-                        self.results['new_infections_risk_group_' + str(risk_group) + '_' + sex][ti] = np.count_nonzero(risk_group_new_inf)
+                        res['prevalence_risk_group_' + str(risk_group) + '_' + sex][ti] = cond_prob(self.infected, prev_denom)
+                        res['new_infections_risk_group_' + str(risk_group) + '_' + sex][ti] = count(risk_group_new_inf)
 
         # Results by age and sex
-        for pkey, pattr in self.sex_keys.items():
-            skk = '' if pkey == '' else f'_{pkey}'
-
-            sex_denom = sexually_active_adults & ppl[pattr]
+        for skk, skl, attr in self.sex_strata():
+            sex_denom = sexually_active_adults & ppl[attr]
             if skk != '':
-                self.results[f'prevalence{skk}'][ti] = cond_prob(self.infected, sex_denom)
-                self.results[f'trep_prevalence{skk}'][ti] = cond_prob(self.trep, sex_denom)
-                self.results[f'nontrep_prevalence{skk}'][ti] = cond_prob(self.nontrep, sex_denom)
-                self.results[f'symptomatic_prevalence{skk}'][ti] = cond_prob(self.symptomatic, sex_denom)
-                self.results[f'sexually_transmissible_prevalence{skk}'][ti] = cond_prob(self.sexually_transmissible, sex_denom)
-                self.results[f'primary_prevalence{skk}'][ti] = cond_prob(self.primary, sex_denom)
+                res[f'prevalence{skk}'][ti] = cond_prob(self.infected, sex_denom)
+                res[f'trep_prevalence{skk}'][ti] = cond_prob(self.trep, sex_denom)
+                res[f'nontrep_prevalence{skk}'][ti] = cond_prob(self.nontrep, sex_denom)
+                res[f'symptomatic_prevalence{skk}'][ti] = cond_prob(self.symptomatic, sex_denom)
+                res[f'sexually_transmissible_prevalence{skk}'][ti] = cond_prob(self.sexually_transmissible, sex_denom)
+                res[f'primary_prevalence{skk}'][ti] = cond_prob(self.primary, sex_denom)
 
-            # Compute age-binned prevalences (denominator = all people of that sex in each age bin)
+            # Age-binned prevalences (denominator = all people of that sex in each age bin)
             if self.age_bins is not None:
-                ppl_pattr_hist = self.agehist(ppl[pattr])
+                ppl_hist = self.agehist(ppl[attr])
                 age_results = dict(
-                    sexually_transmissible_prevalence = div(self.agehist(self.sexually_transmissible & ppl[pattr]), ppl_pattr_hist),
-                    symptomatic_prevalence = div(self.agehist(self.symptomatic & ppl[pattr]), ppl_pattr_hist),
-                    primary_prevalence = div(self.agehist(self.primary & ppl[pattr]), ppl_pattr_hist),
-                    trep_prevalence = div(self.agehist(self.trep & ppl[pattr]), ppl_pattr_hist),
-                    nontrep_prevalence = div(self.agehist(self.nontrep & ppl[pattr]), ppl_pattr_hist),
+                    sexually_transmissible_prevalence = div(self.agehist(self.sexually_transmissible & ppl[attr]), ppl_hist),
+                    symptomatic_prevalence = div(self.agehist(self.symptomatic & ppl[attr]), ppl_hist),
+                    primary_prevalence = div(self.agehist(self.primary & ppl[attr]), ppl_hist),
+                    trep_prevalence = div(self.agehist(self.trep & ppl[attr]), ppl_hist),
+                    nontrep_prevalence = div(self.agehist(self.nontrep & ppl[attr]), ppl_hist),
                 )
-
                 for akey, ares in age_results.items():
-                    ai = 0
-                    for ab1, ab2 in zip(self.age_bins[:-1], self.age_bins[1:]):
-                        ask = f'{skk}_{ab1}_{ab2}'
-                        self.results[f'{akey}{ask}'][ti] = ares[ai]
-                        ai += 1
-
+                    for ai, (ab1, ab2) in enumerate(self.age_strata()):
+                        res[f'{akey}{skk}_{ab1}_{ab2}'][ti] = ares[ai]
         return
 
     def finalize_results(self):
         super().finalize_results()
-        self.results['cum_congenital'][:] = np.cumsum(self.results['new_congenital'])
-        self.results['cum_congenital_deaths'][:] = np.cumsum(self.results['new_congenital_deaths'])
+        res = self.results
+        res['cum_infections'][:] = np.cumsum(res['new_infections'][:])
+        res['cum_congenital'][:] = np.cumsum(res['new_congenital'])
+        res['cum_congenital_deaths'][:] = np.cumsum(res['new_congenital_deaths'])
         return
-
-    def _set_rash_visible(self, uids):
-        """ Determine whether secondary rash is noticeable (sex-specific) """
-        ppl = self.sim.people
-        p_vis = np.full(len(uids), np.nan)
-        p_vis[ppl.female[uids]] = self.pars.p_symp_secondary[0]
-        p_vis[ppl.male[uids]] = self.pars.p_symp_secondary[1]
-        self.pars.p_symp_secondary_dist.set(p_vis)
-        self.rash_visible[uids] = self.pars.p_symp_secondary_dist.rvs(uids)
-
-    def set_latent_trans(self, ti=None):
-        if ti is None: ti = self.ti
-        dur_latent = ti - self.ti_latent[self.latent] # In timesteps, so the half-life must be too
-        hl = self.pars.rel_trans_latent_half_life
-        decay_rate = np.log(2) / hl.to_dt() if ~np.isnan(hl) else 0.
-        starting = self.pars.rel_trans_secondary
-        latent_trans = starting * np.exp(-decay_rate * dur_latent)
-        self.rel_trans[self.latent] = latent_trans
-        return
-
-    def set_prognoses(self, uids, source_uids=None, ti=None):
-        """
-        Set initial prognoses for adults newly infected with syphilis.
-        Note: congenital infections are routed to set_congenital by starsim's
-        set_outcomes(), so only adult infections reach this method.
-        """
-
-        if ti is None:
-            ti = self.ti
-        else:
-            # Check that ti is consistent with uids
-            if not (sc.isnumber(ti) or len(ti) == len(uids)):
-                errormsg = 'ti for set_prognoses must be int or array of length uids'
-                raise ValueError(errormsg)
-
-        # Call super method, which records transmissions
-        super().set_prognoses(uids, source_uids)
-
-        # Set initial states upon exposure
-        self.susceptible[uids] = False
-        self.n_infections[uids] += 1
-        self.ever_exposed[uids] = True
-        self.exposed[uids] = True
-        self.infected[uids] = True
-        self.ti_exposed[uids] = ti
-        self.ti_infected[uids] = ti
-
-        # Treponemal seroconversion: trep+ appears ~3 weeks post-infection,
-        # so during the window period agents are infected but trep-negative.
-        # 80% remain trep+ for life; the other 20% sero-revert ~10y later.
-        dur_to_trep = self.pars.dur_to_trep.rvs(uids)
-        self.ti_trep_start[uids] = self.ti_exposed[uids] + rr(dur_to_trep)
-        persists = self.pars.p_trep_persists.rvs(uids)
-        reverters = uids[~persists]
-        if len(reverters) > 0:
-            revert_delay = self.pars.time_to_trep_revert.rvs(reverters)
-            self.ti_trep_end[reverters] = self.ti_trep_start[reverters] + rr(revert_delay)
-        # Persisters keep ti_trep_end at default NaN (never reverts)
-
-        # Exposed to primary
-        dur_exposed = self.pars.dur_exposed.rvs(uids)
-        self.ti_primary[uids] = self.ti_exposed[uids] + rr(dur_exposed)
-
-        # Primary to secondary
-        dur_primary = self.pars.dur_primary.rvs(uids)
-        self.ti_secondary[uids] = self.ti_primary[uids] + rr(dur_primary)
-        self.dur_early[uids] = self.pars.dur_early.rvs(uids)
-
-        # Determine whether primary chancre will be at a visible site (sex-specific)
-        ppl = self.sim.people
-        p_vis = np.full(len(uids), np.nan)
-        p_vis[ppl.female[uids]] = self.pars.p_symp_primary[0]
-        p_vis[ppl.male[uids]] = self.pars.p_symp_primary[1]
-        self.pars.p_symp_primary_dist.set(p_vis)
-        self.chancre_visible[uids] = self.pars.p_symp_primary_dist.rvs(uids)
-
-        return
-
-    def set_secondary_prognoses(self, uids):
-        """ Set prognoses for people who have just progressed to secondary infection """
-        dur_secondary = self.pars.dur_secondary.rvs(uids)
-        self.ti_latent[uids] = self.ti_secondary[uids] + rr(dur_secondary)
-        # Non-treponemal titre rises by secondary; RPR becomes positive.
-        # Also covers reactivation from late latent (titre climbs again).
-        self.nontrep[uids] = True
-        return
-
-    def set_latent_prognoses(self, uids):
-        # Late-latent non-trep sero-reversion: draw the time at which
-        # non-trep titre is expected to fall below test threshold.
-        # ti_nontrep_end is measured from the *start of late latent* =
-        # ti_latent + dur_early.
-        late_start = self.ti_latent[uids] + self.dur_early[uids]
-        self.ti_nontrep_end[uids] = late_start + rr(self.pars.time_to_undetectable.rvs(uids))
-
-        # Reactivators
-        will_reactivate = self.pars.p_reactivate.rvs(uids)
-        reactivate_uids = uids[will_reactivate]
-        if len(reactivate_uids) > 0:
-            time_to_reactivate = self.pars.time_to_reactivate.rvs(reactivate_uids)
-            self.ti_secondary[reactivate_uids] = self.ti_latent[reactivate_uids] + rr(time_to_reactivate)
-
-        # Latent to tertiary
-        nonreactivate_uids = uids[~will_reactivate]
-        if len(nonreactivate_uids) > 0:
-            # Invalidate the stale ti_secondary from the primary/reactivation transition that
-            # led here, so secondary_from_latent doesn't misfire on these agents next step
-            self.ti_secondary[nonreactivate_uids] = np.nan
-            is_tertiary = self.pars.p_tertiary.rvs(nonreactivate_uids)
-            tertiary_uids = nonreactivate_uids[is_tertiary]
-            if len(tertiary_uids) > 0:
-                time_to_tertiary = self.pars.time_to_tertiary.rvs(tertiary_uids)
-                self.ti_tertiary[tertiary_uids] = self.ti_latent[tertiary_uids] + rr(time_to_tertiary)
-
-                # Tertiary to dead
-                will_die = self.pars.p_death.rvs(tertiary_uids)
-                dead_uids = tertiary_uids[will_die]
-                if len(dead_uids) > 0:
-                    time_to_death = self.pars.time_to_death.rvs(dead_uids)
-                    self.ti_dead[dead_uids] = self.ti_tertiary[dead_uids] + rr(time_to_death)
-
-        return
-
-    def set_congenital(self, target_uids, source_uids=None):
-        """
-        Natural history of syphilis for congenital infection.
-        Birth outcomes depend on the mother's disease stage:
-          mat_active (exposed|primary|secondary), early latent, late latent.
-        """
-        ti = self.ti
-        new_outcomes = {k:0 for k in self.pars.birth_outcome_keys}
-
-        # Mark all babies as no longer susceptible to prevent repeated MTC
-        # transmission every timestep of pregnancy. Even normal-outcome babies
-        # stay non-susceptible (they're babies, no sexual transmission).
-        self.susceptible[target_uids] = False
-
-        # Determine outcomes based on mother's stage
-        for state in ['mat_active', 'early', 'late']:
-
-            source_state_inds = getattr(self, state)[source_uids].nonzero()[-1]
-            uids = target_uids[source_state_inds]
-            source_state_uids = source_uids[source_state_inds]
-
-            if len(uids) > 0:
-
-                birth_outcomes = self.pars.birth_outcomes[state]
-                assigned_outcomes = birth_outcomes.rvs(uids)
-                self.cs_outcome[uids] = assigned_outcomes
-                timesteps_til_delivery = self.sim.demographics.pregnancy.ti_delivery - self.ti
-
-                # Flag mother's stage at MTCT (per-fetus, for downstream analysis)
-                mat_stage = f'mtct_from_{state}'
-                mat_flag = getattr(self, mat_stage)
-                mat_flag[uids] = True
-                self.setattribute(mat_stage, mat_flag)
-
-                # Schedule events. Fetal losses (miscarriage/stillborn) fire one
-                # timestep before ti_delivery so the baby's age is still <0 when
-                # request_death is called: Pregnancy.process_prenatal_deaths only
-                # classifies a death as a fetal loss if age<0, and age flips to 0
-                # exactly at ti_delivery. Scheduling at ti_delivery itself would
-                # misclassify the death as a live birth (see issue #588).
-                for oi, outcome in enumerate(self.pars.birth_outcome_keys):
-                    m_uids = source_state_uids[assigned_outcomes == oi]
-                    o_uids = uids[assigned_outcomes == oi]
-                    if len(o_uids) > 0:
-                        ti_outcome = f'ti_{outcome}'
-                        vals = getattr(self, ti_outcome)
-                        ti_event = ti + timesteps_til_delivery[m_uids]
-                        if outcome in self.prenatal_death_keys:
-                            ti_event = np.maximum(ti_event - 1, ti)
-                        vals[o_uids] = ti_event
-
-                        self.setattribute(ti_outcome, vals)
-                        new_outcomes[outcome] += len(o_uids)
-
-        # Check that every baby in this batch got exactly one outcome
-        if sum(new_outcomes.values()) != len(target_uids):
-            raise ValueError(f'Birth outcomes do not sum to target: {new_outcomes} vs {len(target_uids)} babies')
-
-        return
-
-

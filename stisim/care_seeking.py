@@ -75,5 +75,5 @@ class CareSeeking(ss.Module):
 
         # Future: apply temporary modifiers, e.g.:
         # if 'pregnancy' in self.sim.demographics:
-        #     pregnant = self.sim.demographics.pregnancy.pregnant
+        #     pregnant = self.sim.demographics.pregnancy.P
         #     self.propensity[pregnant] *= pregnancy_scale

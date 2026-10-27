@@ -28,7 +28,7 @@ The wrong answer is usually a factor of `n_timesteps_per_year` off (flows aggreg
 
 Common failure modes this skill prevents:
 - `df.groupby('year')['new_infections'].mean()` — silently divides annual incidence by the number of timesteps per year.
-- `df.groupby('year')['n_alive'].sum()` — silently multiplies population by the number of timesteps per year.
+- `df.groupby('year')['alive'].sum()` — silently multiplies population by the number of timesteps per year.
 - Reading a saved parquet, losing the `ss.Result` wrapper, then guessing the aggregation method from column names alone.
 
 ## Instructions

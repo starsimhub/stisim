@@ -2,7 +2,7 @@
 
 BV is modeled using community state types (CSTs) representing vaginal microbiome composition. Unlike the other STIs, BV can arise spontaneously (without sexual transmission) and is driven by behavioral risk factors.
 
-**Class:** `sti.BV` | **Alias:** `'bv'` | **Base class:** `BaseSTI`
+**Class:** `sti.BV` | **Alias:** `'bv'` | **Base class:** `ss.Disease` (declared: its CSTs and transitions, with the risk factors as code)
 
 ## States and transitions
 
@@ -38,7 +38,7 @@ BV is modeled using community state types (CSTs) representing vaginal microbiome
        - Uncircumcised partner (RR 4.0)
 ```
 
-CST transitions are spontaneous and probabilistic. CST 4 (polymicrobial/BV) is the "infected" state. The stable CST represents each woman's baseline microbiome, which she tends to return to after clearance.
+CST transitions are spontaneous, with a probability per month raised by each woman's risk factors. CST 4 (polymicrobial/BV) is the "infected" state, as the declared states `presymptomatic`, `asymptomatic`, and `symptomatic` (`cst4` is their union, for women over 15); `cst1` and `cst3` are states too. The stable CST represents each woman's baseline microbiome, drawn at birth, which she returns to after clearance (a woman whose stable CST is 4 returns to CST 3, and starts there as a girl). The risk factors, and the probabilities of a worse CST they give, are code (as agents).
 
 ## Parameters
 
@@ -58,9 +58,9 @@ Pars of `sti.BV`. The Source column follows the conventions of the [parameter re
 
 | Parameter | Default | Description | Source |
 |-----------|---------|-------------|--------|
-| `dur2clear` (cst3) | uniform(1 wk, 18 wk) | Time to return to the stable CST from CST 3 | Not recorded |
-| `dur2clear` (cst4) | uniform(5 wk, 50 wk) | Time to return to the stable CST from CST 4 | [Klebanoff 2004](https://doi.org/10.1016/j.ajog.2003.08.020) |
-| `dur2clear` (male) | uniform(1 wk, 18 wk) | Duration of male colonization | Not recorded |
+| `dur_cst3` | uniform(1 wk, 18 wk) | Time in CST 3 before a woman whose stable CST is 1 returns to it | Not recorded |
+| `dur_cst4` | uniform(5 wk, 50 wk) | Time in CST 4 before it clears (from symptom onset, for those with symptoms) | [Klebanoff 2004](https://doi.org/10.1016/j.ajog.2003.08.020) |
+| `dur_male` | uniform(1 wk, 18 wk) | Duration of male colonization | Not recorded |
 | `spontaneous_clearance` | cst1→1, cst3→3, cst4→3 | CST reached after spontaneous clearance, by stable CST | [Tamarelle 2022](https://doi.org/10.1097/OLQ.0000000000001662) |
 
 ### Symptoms
@@ -90,20 +90,15 @@ Pars of `sti.BV`. The Source column follows the conventions of the [parameter re
 
 | Parameter | Default | Description | Source |
 |-----------|---------|-------------|--------|
-| `sexual_transmission` | False | Whether BV-associated bacteria are sexually transmitted | Not applicable |
-| `beta_m2f` | None | Per-act male-to-female transmission probability (used if `sexual_transmission` is True) | Not applicable |
+| `beta_m2f` | 0 | Per-act male-to-female transmission probability of BV-associated bacteria (none by default) | Not applicable |
 | `rel_beta_f2m` | 0.5 | Female-to-male per-act probability relative to `beta_m2f` | Not applicable |
-| `beta_m2c` | None | Mother-to-child transmission probability per timestep | Not applicable |
-| `beta_breastfeed` | None | Breastfeeding transmission probability per timestep | Not applicable |
-| `beta_m2m` | None | Per-act male-to-male transmission probability | Not applicable |
 | `eff_condom` | 0.45 | Condom effectiveness in reducing BV risk | [Hutchinson 2007](https://doi.org/10.1097/EDE.0b013e3181567eaa) |
 
 ### Initialization
 
 | Parameter | Default | Description | Source |
 |-----------|---------|-------------|--------|
-| `init_prev` | 0.23 | Initial BV prevalence | [WHO BV fact sheet](https://www.who.int/news-room/fact-sheets/detail/bacterial-vaginosis) |
-| `rel_init_prev` | 1 | Multiplier on initial prevalence | Not applicable |
+| `init_prev` | 0 | Not used: each woman's CST is set by `assign` (from `stable_cst_distribution`), at the start and at birth | Not applicable |
 
 ### Pregnancy outcomes
 

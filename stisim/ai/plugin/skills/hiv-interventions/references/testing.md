@@ -61,9 +61,8 @@ A `HIVTest` instance whose eligibility is *pregnant, first-trimester, undiagnose
 
 ```python
 anc_testing = sti.HIVTest(
-    eligibility=lambda sim: sim.demographics.pregnancy.tri1_uids[
-        ~sim.diseases.hiv.diagnosed[sim.demographics.pregnancy.tri1_uids]
-    ],
+    eligibility=lambda sim: (sim.demographics.pregnancy.P & (sim.demographics.pregnancy.P.time < ss.weeks(13)) # First trimester
+                             & ~sim.diseases.hiv.diagnosed),
     test_prob_data=anc_ramp,
     dt_scale=False,   # per-timestep probability, not annualized
     years=years,
