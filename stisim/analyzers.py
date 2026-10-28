@@ -136,8 +136,8 @@ class sw_stats(result_grouper):
         results = sc.autolist()
         for d in self.diseases:
             results += [
-                ss.Result('share_new_infections_fsw_'+d, scale=False, summarize_by='mean', auto_plot=False),
-                ss.Result('share_new_infections_client_'+d,scale=False, summarize_by='mean', auto_plot=False),
+                ss.Result('share_new_infections_fsw_'+d, scale=False, kind='ratio', auto_plot=False),
+                ss.Result('share_new_infections_client_'+d,scale=False, kind='ratio', auto_plot=False),
                 ss.Result('new_infections_fsw_'+d, dtype=int, auto_plot=False),
                 ss.Result('new_infections_client_'+d, dtype=int, auto_plot=False),
                 ss.Result('new_infections_non_fsw_'+d, dtype=int, auto_plot=False),
