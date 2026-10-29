@@ -117,14 +117,14 @@ class STIResults:
                 ss.Result(f'incidence{skk}', scale=False, label=f"Incidence{skl}", auto_plot=not is_subpop),
                 ss.Result(f'new_infections{skk}', dtype=int, label=f"New infections{skl}", auto_plot=False),
                 ss.Result(f'prevalence{skk}', scale=False, label=f"Prevalence{skl}", auto_plot=not is_subpop),
-                ss.Result(f'infected{skk}', dtype=int, label=f"Number infected{skl}", auto_plot=False),
+                ss.Result(f'infected{skk}', dtype=int, kind='stock', label=f"Number infected{skl}", auto_plot=False),
             ]
             for ab1, ab2 in self.age_strata():
                 ask = f'{skk}_{ab1}_{ab2}'
                 asl = f' ({skl}, {ab2}-{ab2})'
                 results += [
                     ss.Result(f'new_infections{ask}', dtype=int, label=f"New infections{asl}", auto_plot=False),
-                    ss.Result(f'infected{ask}', dtype=int, label=f"Number infected{asl}", auto_plot=False),
+                    ss.Result(f'infected{ask}', dtype=int, kind='stock', label=f"Number infected{asl}", auto_plot=False),
                     ss.Result(f'incidence{ask}', scale=False, label=f"Incidence{asl}", auto_plot=False),
                     ss.Result(f'prevalence{ask}', scale=False, label=f"Prevalence{asl}", auto_plot=False),
                 ]
@@ -473,7 +473,7 @@ class SEIS(ss.Infection, STIResults):
                 ss.Result(f'symp_prevalence{skk}', scale=False, label=f"Symptomatic prevalence{skl}", auto_plot=not is_subpop),
             ]
             if is_subpop:
-                results += ss.Result(f'symptomatic{skk}', dtype=int, label=f"Number symptomatic{skl}", auto_plot=False)
+                results += ss.Result(f'symptomatic{skk}', dtype=int, kind='stock', label=f"Number symptomatic{skl}", auto_plot=False)
             for ab1, ab2 in self.age_strata():
                 ask = f'{skk}_{ab1}_{ab2}'
                 asl = f' ({skl}, {ab2}-{ab2})'

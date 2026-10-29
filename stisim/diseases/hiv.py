@@ -622,7 +622,7 @@ class HIV(ss.Infection, STIResults):
         super().init_results()
         self.define_sti_results(include_care=self.include_care)
         results = [
-            ss.Result('on_art', dtype=int, label='On ART'),
+            ss.Result('on_art', dtype=int, kind='stock', label='On ART'),
             ss.Result('new_deaths', dtype=int, label='Deaths'),
             ss.Result('cum_deaths', dtype=int, label='Cumulative deaths', auto_plot=False),
             ss.Result('new_diagnoses', dtype=int, label='Diagnoses'),
