@@ -40,6 +40,8 @@ class HIV(ss.Infection, STIResults):
     """
     hetero_networks = hetero_networks # The sexual networks between men and women, by name, which a subclass can add to
 
+    allow_modifiers = ('rate_art_dropout',) # Which can differ between people, e.g. by adherence
+
     def __init__(self, pars=None, name='hiv', init_prev_data=None, age_bins=default_age_bins,
                  sex_keys=default_sex_keys, include_care=True, label=None, **kwargs):
         super().__init__(name=name, label=label)
@@ -405,10 +407,9 @@ class HIV(ss.Infection, STIResults):
         self.update_cd4()
 
         # Stopping ART early
-        rate = self.pars.rate_art_dropout
-        if rate.value > 0:
-            on_art = self.on_art.uids
-            self.stop_art(on_art[self.u_dropout.rvs(on_art) < rate.to_prob(self.dt)])
+        on_art = self.on_art.uids
+        rate = self.current_value('rate_art_dropout', on_art)
+        self.stop_art(on_art[self.u_dropout.rvs(on_art) < rate.to_prob(self.dt)])
 
         # Death: of AIDS once the CD4 count reaches zero, and at any time at a rate by CD4 count, lower on ART
         infected = self.infected.uids
