@@ -9,25 +9,36 @@ from stisim.diseases.sti import STIResults, init_prev_by_group, sexual_beta, het
 
 __all__ = ['HIV']
 
+# The parameters of sti.ART, which HIV takes and passes on to it (see sti.ART.init_pre()), as STIsim 3 gave them to HIV
+art_pars = ['rel_art_mortality_effective', 'rel_art_mortality_unsupp_m', 'rel_art_mortality_unsupp_f', 'art_death_age', 'art_death_dur',
+            'art_cd4_growth', 'art_cd4_pars', 'care_seeking', 'maternal_care_scale', 'effective_art_efficacy', 'nonsupp_art_efficacy',
+            'rate_art_dropout', 'time_to_art_efficacy', 'p_effective_art', 'dur_on_art', 'rel_dur_on_art', 'dur_on_art_trend',
+            'dur_post_art', 'dur_post_art_scale_factor']
+
+# The states and methods of sti.ART that can be read through HIV (e.g. hiv.on_effective_art), as in STIsim 3
+art_attrs = ['on_effective_art', 'on_nonsuppressive_art', 'art_discontinued', 'art_naive', 'ti_art', 'ti_stop_art', 'cd4_preart',
+             'cd4_potential', 'cd4_postart', 'dur_post_art', 'care_seeking', 'baseline_care_seeking', 'start_art', 'stop_art',
+             'set_suppression', 'art_factor', 'on_art_death_rate']
+
 
 class HIV(ss.Infection, STIResults):
     """
-    HIV: its natural history, CD4 count, care seeking, diagnosis, treatment, PrEP, and circumcision
+    HIV: its natural history, CD4 count, transmission, diagnosis, PrEP, and circumcision
 
     People infected are in acute infection for `dur_acute`, then latent for `dur_latent`, then have a falling
     CD4 count for `dur_falling`, after which they die of AIDS (with probability `p_aids_death`); these times
-    are drawn at infection. On ART, they are virally suppressed (`on_effective_art`) or not
-    (`on_nonsuppressive_art`); after stopping (`art_discontinued`), they die of AIDS once their CD4 count falls
-    to zero, a time worked out from their CD4 count when they stop. Throughout, they die of HIV-related illness
-    at a rate by CD4 count (`cd4_death_rates`), lower on ART (`rel_art_mortality_*`). Infection is by sexual
-    transmission (`beta_m2f`), and from mother to child in pregnancy (`beta_m2c`) and breastfeeding (`beta_breastfeed`).
+    are drawn at infection. Throughout, they die of HIV-related illness at a rate by CD4 count (`cd4_death_rates`).
+    Infection is by sexual transmission (`beta_m2f`), and from mother to child in pregnancy (`beta_m2c`) and
+    breastfeeding (`beta_breastfeed`). The CD4 count falls in acute and late infection (by the share of the stage
+    elapsed). Infectiousness is by stage, and susceptibility by PrEP, circumcision, and age.
 
-    The CD4 count falls in acute and late infection (by the share of the stage elapsed), rises on ART, and falls
-    after it. Infectiousness is by stage and ART, and susceptibility by PrEP, circumcision, and age. The ART
-    intervention calls `start_art()` and `stop_art()`.
+    Treatment is a module of its own (`sti.ART`), which registers itself with `add_treatment()`. HIV asks each
+    treatment, at set points in its step, for the CD4 counts of the people it treats, and for multipliers of their
+    death rates and infectiousness; a treatment takes people out of the natural history when it starts them (see
+    `sti.ART`). `on_art` and the other states of treatment (`on_effective_art`, `ti_art`, ...) are read from it.
+    Testing refers people to treatment with `refer()`.
 
-    States: `susceptible`, `infected`, `acute`, `latent`, `falling`, `on_effective_art`, `on_nonsuppressive_art`,
-    and `art_discontinued`; `on_art` and `aids` are conditions over them.
+    States: `susceptible`, `infected`, `acute`, `latent`, and `falling`; `on_art` and `aids` are conditions.
 
     Args:
         pars (dict): parameter values, as for the keywords
@@ -39,8 +50,6 @@ class HIV(ss.Infection, STIResults):
         kwargs (dict): parameter values (e.g. ``beta_m2f=0.02``), `init_prev`, or `label`
     """
     hetero_networks = hetero_networks # The sexual networks between men and women, by name, which a subclass can add to
-
-    allow_modifiers = ('rate_art_dropout',) # Which can differ between people, e.g. by adherence
 
     def __init__(self, pars=None, name='hiv', init_prev_data=None, age_bins=default_age_bins,
                  sex_keys=default_sex_keys, include_care=True, label=None, **kwargs):
@@ -70,20 +79,9 @@ class HIV(ss.Infection, STIResults):
             rel_death = 1.0, # Scales all HIV death rates (off- and on-ART)
             rel_death_f = 0.74, # Additional mortality multiplier for females, on- and off-ART alike
 
-            # Mortality on ART, relative to the off-ART CD4-based rate, so that being on ART is never more dangerous than being
-            # off it at the same CD4 count (as long as the largest of these times the largest age and duration multipliers is
-            # at most 1, which init_pre() checks)
-            rel_art_mortality_effective = 0.25, # Fraction of off-ART mortality retained on effective (suppressive) ART
-            rel_art_mortality_unsupp_m = 0.7, # ... on non-suppressive ART, males
-            rel_art_mortality_unsupp_f = 0.35, # ... females: the non-suppressive/effective ratio is 2x higher for men than for women
-            art_death_age = [(0, 25, 1.0), (25, 35, 1.10), (35, 45, 1.21), (45, 125, 1.32)], # (age_lo, age_hi, mult)
-            art_death_dur = None, # (dur_lo, dur_hi, mult) list, days since ti_art; None = no-op
-
             # CD4 count
             cd4_start = ss.normal(loc=800, scale=50),
             cd4_latent = ss.normal(loc=500, scale=50),
-            art_cd4_growth = 0.1, # Unitless parameter of how CD4 reconstitutes after starting ART, in a logistic growth function
-            art_cd4_pars = dict(cd4_max=1000, cd4_healthy=500),
 
             # Infectiousness and susceptibility
             rel_trans_acute = ss.normal(loc=5.3, scale=0.5), # Bellan 2015: RH=5.3, EHM≈7.3
@@ -97,21 +95,8 @@ class HIV(ss.Infection, STIResults):
             init_diagnosed = ss.bernoulli(p=0),
             dist_ti_init_infected = ss.uniform(low=-10*12, high=-5), # When the infections at the start began, in steps
 
-            # Care seeking
-            care_seeking = ss.normal(loc=1, scale=0.5), # Relative care-seeking behavior (wide spread for low-care-seeking extremes)
-            maternal_care_scale = 2, # Factor for scaling up care-seeking behavior during pregnancy
-
-            # Treatment
-            effective_art_efficacy = 0.99, # Reduction in transmission on effective (virally suppressive) ART: PARTNER/PARTNER2/Opposites Attract ("U=U"), less a small residual
-            nonsupp_art_efficacy = 0.35, # Reduction in transmission on non-suppressive ART: Quinn (Rakai 2000), applied to an assumed non-suppressed viral load distribution
-            rate_art_dropout = ss.peryear(0), # Rate of stopping ART early (e.g. from poor adherence), besides at the end of dur_on_art; none by default
-            time_to_art_efficacy = ss.months(6), # Time to reach full ART efficacy: a linear increase in efficacy
-            p_effective_art = ss.bernoulli(p=1.0), # Probability that a newly-initiated agent achieves viral suppression
-            dur_on_art = ss.lognorm_ex(ss.years(3), ss.years(1.5)), # Base ART duration (scaled by rel_dur_on_art and trend)
-            rel_dur_on_art = 1.0, # Calibratable scalar that scales ART duration
-            dur_on_art_trend = None, # Optional time-varying scale, e.g. sc.objdict(years=np.array([2004, 2015, 2030]), vals=np.array([0.5, 1.0, 1.5]))
-            dur_post_art = ss.normal(), # Time from stopping ART until the CD4 count reaches zero; set for each person as they stop (see stop_art()), in years
-            dur_post_art_scale_factor = 0.1,
+            # Treatment: sti.ART's parameters, which it takes from here if they are given to HIV (as in STIsim 3)
+            **{key: None for key in art_pars},
         )
         self.update_pars(pars, **kwargs)
         self.init_prev_data = init_prev_data
@@ -123,30 +108,16 @@ class HIV(ss.Infection, STIResults):
             ss.BoolState('acute'),
             ss.BoolState('latent'),
             ss.BoolState('falling'),
-            ss.BoolState('on_effective_art'), # On ART and virally suppressed
-            ss.BoolState('on_nonsuppressive_art'), # On ART but not suppressed
-            ss.BoolState('art_discontinued'), # Off ART, having been on it
             ss.TimeArr('ti_latent'), # When each stage starts, drawn at infection
             ss.TimeArr('ti_falling'),
-            ss.TimeArr('ti_zero'), # When the CD4 count reaches zero, at the end of late infection or after stopping ART: an AIDS death
+            ss.TimeArr('ti_zero'), # When the CD4 count reaches zero, at the end of late infection or after stopping treatment: an AIDS death
             ss.FloatArr('ti_dead'), # Time of death of HIV
-            ss.FloatArr('dur_post_art'), # The time from stopping ART until the CD4 count reaches zero, in steps
-
-            # Care and treatment
-            ss.FloatArr('baseline_care_seeking'),
-            ss.FloatArr('care_seeking'),
-            ss.BoolState('art_naive', default=True), # Never initiated ART
-            ss.FloatArr('ti_art'), # Time of starting ART, or of a scheduled start (see sti.HIVTest)
-            ss.TimeArr('ti_stop_art'),
 
             # CD4 count
             ss.FloatArr('cd4'), # Current CD4 count
             ss.FloatArr('cd4_start'), # Initial CD4 count for each agent before an infection
-            ss.FloatArr('cd4_preart'), # CD4 immediately before initiating ART
             ss.FloatArr('cd4_latent'), # CD4 count during latent infection
             ss.FloatArr('cd4_nadir'), # Lowest CD4
-            ss.FloatArr('cd4_potential'), # Potential CD4 count if continually treated
-            ss.FloatArr('cd4_postart'), # CD4 after stopping ART
 
             # Knowledge of HIV status
             ss.BoolState('diagnosed'),
@@ -169,7 +140,7 @@ class HIV(ss.Infection, STIResults):
             ss.FloatArr('ti_circumcised'),
         )
         self.u_death = ss.random(name='u_death') # One uniform a step for each person infected, for death
-        self.u_dropout = ss.random(name='u_dropout')
+        self.treatment_names = [] # The modules that treat HIV (e.g. sti.ART), which register themselves (see add_treatment()), by name, so that their random numbers stay their own
         self.set_strata([15, 50], age_bins, sex_keys)
         self.include_care = include_care
         return
@@ -185,8 +156,47 @@ class HIV(ss.Infection, STIResults):
 
     @property
     def on_art(self):
-        """ On ART, suppressed or not """
-        return self.on_effective_art | self.on_nonsuppressive_art
+        """ On treatment (e.g. ART, suppressed or not), by any treatment """
+        out = self.infected & ~self.infected
+        for tx in self.treatments:
+            out = out | tx.on_treatment
+        return out
+
+    # Treatment: the interface for the modules that treat HIV (e.g. sti.ART)
+    def add_treatment(self, treatment):
+        """
+        Register a module that treats HIV. It provides `on_treatment` (a state), and is called at set points in
+        HIV's step: `update_cd4()` sets the CD4 counts of those it treats (or has treated), `step_treatment()`
+        runs before deaths (e.g. stopping early), `death_multiplier(uids)` and `trans_multiplier(uids)` scale the
+        death rates and infectiousness of those on it, `refer(uids, ti)` schedules a start after a diagnosis, and
+        `step_die(uids)` clears those who die
+        """
+        if treatment.name not in self.treatment_names:
+            self.treatment_names.append(treatment.name)
+        return
+
+    @property
+    def treatments(self):
+        """ The modules that treat HIV """
+        return [self.sim.interventions[name] for name in self.treatment_names] if self.treatment_names else []
+
+    @property
+    def art(self):
+        """ The treatment that holds the states of ART (`sti.ART`), if any """
+        return next((tx for tx in self.treatments if hasattr(tx, 'on_effective_art')), None)
+
+    def refer(self, uids, ti=None):
+        """ Refer people diagnosed to treatment, to start at `ti` (by default now) """
+        for tx in self.treatments:
+            tx.refer(uids, self.ti if ti is None else ti)
+        return
+
+    def death_multiplier(self, uids):
+        """ The treatments' multiplier of the death rates of some infected agents (1 for those not on treatment) """
+        mult = np.ones(len(uids))
+        for tx in self.treatments:
+            mult *= tx.death_multiplier(uids)
+        return mult
 
     @property
     def aids(self):
@@ -229,61 +239,17 @@ class HIV(ss.Infection, STIResults):
         rate[~self.sim.people.male[uids]] *= self.pars.rel_death_f
         return rate
 
-    def on_art_death_rate(self, uids):
-        """
-        The annual rate of death of each agent on ART: the off-ART rate at the same CD4 count, times rel_art_mortality
-        (by suppression, and by sex if not suppressed) and the multipliers by age (art_death_age) and time on ART (art_death_dur)
-        """
-        male = self.sim.people.male[uids]
-        effective = self.on_effective_art[uids]
-        age = self.sim.people.age[uids]
-        rate = self.off_art_death_rate(uids)
-        rate[effective] *= self.pars.rel_art_mortality_effective
-        rate[~effective & male] *= self.pars.rel_art_mortality_unsupp_m
-        rate[~effective & ~male] *= self.pars.rel_art_mortality_unsupp_f
-
-        age_mult = np.ones(len(uids))
-        for age_lo, age_hi, mult in self.pars.art_death_age:
-            age_mult[(age >= age_lo) & (age < age_hi)] *= mult
-        rate = rate * age_mult
-
-        if self.pars.art_death_dur is not None:
-            dur_days = (self.ti - self.ti_art[uids]) * self.dt.days
-            dur_mult = np.ones(len(uids))
-            for dur_lo, dur_hi, mult in self.pars.art_death_dur:
-                dur_mult[(dur_days >= dur_lo) & (dur_days < dur_hi)] *= mult
-            rate = rate * dur_mult
-        return rate
-
     def death_hazard(self, uids):
         """ The annual hazard of death from HIV-related illness of each agent, by CD4 count, lower on ART (not the AIDS death when the CD4 count reaches zero, at a set time), e.g. for MIGHTI's competing risks of death """
         uids = ss.uids(uids)
         h = np.zeros(len(uids))
-        off, on = self.infected[uids] & ~self.on_art[uids], self.on_art[uids]
-        h[off] = self.off_art_death_rate(uids[off])
-        h[on] = self.on_art_death_rate(uids[on])
+        infected = uids[self.infected[uids]]
+        h[self.infected[uids]] = self.off_art_death_rate(infected)*self.death_multiplier(infected)
         return h
-
-    def init_pre(self, sim):
-        super().init_pre(sim)
-        # On-ART mortality is anchored to the off-ART CD4-based rate so it can never exceed it by construction, as long as
-        # the largest combination of multipliers stays <= 1. Catch a violation here rather than let a calibration silently
-        # invert the treatment effect.
-        p = self.pars
-        age_mult = max(mult for *_, mult in p.art_death_age) if p.art_death_age else 1.0
-        dur_mult = max(mult for *_, mult in p.art_death_dur) if p.art_death_dur else 1.0
-        worst = max(p.rel_art_mortality_effective, p.rel_art_mortality_unsupp_m, p.rel_art_mortality_unsupp_f) * age_mult * dur_mult
-        if worst > 1:
-            errormsg = (f'On-ART mortality can exceed off-ART mortality at the same CD4 count: max(rel_art_mortality_effective, '
-                        f'rel_art_mortality_unsupp_m, rel_art_mortality_unsupp_f) * max(art_death_age mult) * max(art_death_dur mult) '
-                        f'= {worst:.3f} > 1. Reduce these pars so the product stays <= 1.')
-            raise ValueError(errormsg)
-        return
 
     def init_post(self):
         """ CD4 counts and care seeking; and the infections at the start, which began before it (`dist_ti_init_infected`) """
         self.init_cd4()
-        self.init_care_seeking()
         ss.Disease.init_post(self) # Not ss.Infection's, which seeds the infections at the start of the run
         ppl = self.sim.people
         seeds = self.pars.init_prev.filter(ppl.auids[ppl.age.raw[ppl.auids] >= 0]) # Not the fetuses of pregnancies under way
@@ -291,7 +257,11 @@ class HIV(ss.Infection, STIResults):
         diagnosed = self.pars.init_diagnosed.filter(seeds)
         self.diagnosed[diagnosed] = True
         self.ti_diagnosed[diagnosed] = 0
-        self.ti_art[diagnosed] = 0 # Scheduled to start ART at once, so an ART intervention picks them up
+        self.refer(diagnosed, ti=0) # To start ART at once
+        unused = [key for key in art_pars if self.pars[key] is not None] # Taken by sti.ART when there is one (see its init_pre())
+        if unused:
+            errormsg = f'ART parameters were given to HIV ({sc.strjoin(unused)}), but there is no ART in the sim to use them: add sti.ART()'
+            raise ValueError(errormsg)
         return
 
     # CD4 count and care seeking
@@ -302,33 +272,8 @@ class HIV(ss.Infection, STIResults):
         self.cd4_nadir[uids] = sc.dcp(self.cd4_start[uids])
         return
 
-    def init_care_seeking(self):
-        """ Set the care-seeking behavior of new agents """
-        uids = ss.uids(self.care_seeking.isnan)
-        self.care_seeking[uids] = self.pars.care_seeking.rvs(uids)
-        self.care_seeking[uids] = np.maximum(self.care_seeking[uids], 0.01) # Floor to prevent division by zero
-        self.baseline_care_seeking[uids] = sc.dcp(self.care_seeking[uids]) # Copy it so pregnancy can modify it
-        return
-
-    def cd4_increase(self, uids):
-        """
-        Increase CD4 counts for people who are receiving treatment.
-        Growth curves are calculated to match EMODs CD4 reconstitution equation for people who initiate treatment
-        with a CD4 count of 50 (https://docs.idmod.org/projects/emod-hiv/en/latest/hiv-model-healthcare-systems.html)
-        However, here we use a logistic growth function and assume that ART CD4 count depends on CD4 at initiation.
-        Sources:
-
-            - https://i-base.info/guides/starting/cd4-increase
-            - https://www.sciencedirect.com/science/article/pii/S1876034117302022
-            - https://bmcinfectdis.biomedcentral.com/articles/10.1186/1471-2334-8-20
-        """
-        dur_art = self.ti - self.ti_art[uids]
-        cd4_preart = self.cd4_preart[uids]
-        cd4_total_gain = self.cd4_potential[uids] - cd4_preart
-        return 2*cd4_total_gain/(1 + np.exp(-dur_art*self.pars.art_cd4_growth)) - cd4_total_gain + cd4_preart # Concave logistic
-
     def update_cd4(self):
-        """ CD4 counts: falling from the start of infection to the latent level in acute infection, and from it to 1 in late infection; rising on ART; and falling to 1 after it """
+        """ CD4 counts: falling from the start of infection to the latent level in acute infection, and from it to 1 in late infection; and those of the people treatments have taken over, from them """
         ti = self.ti
         share = lambda start, end: np.clip(np.divide(ti - start, end - start, out=np.ones(len(start)), where=end > start), 0, 1) # Of a stage elapsed
         acute = self.acute.uids
@@ -338,10 +283,8 @@ class HIV(ss.Infection, STIResults):
         self.cd4[latent] = self.cd4_latent[latent]
         falling = self.falling.uids
         self.cd4[falling] = np.maximum(1, self.cd4_latent[falling] - (self.cd4_latent[falling] - 1)*share(self.ti_falling[falling], self.ti_zero[falling]))
-        on_art = self.on_art.uids
-        self.cd4[on_art] = self.cd4_increase(on_art)
-        stopped = self.art_discontinued.uids
-        self.cd4[stopped] = np.maximum(1, self.cd4_postart[stopped] - (self.cd4_postart[stopped] - 1)*share(self.ti_stop_art[stopped], self.ti_zero[stopped]))
+        for tx in self.treatments:
+            tx.update_cd4()
         untreated = (self.infected & ~self.on_art).uids
         self.cd4_nadir[untreated] = np.minimum(self.cd4_nadir[untreated], self.cd4[untreated])
         return
@@ -372,32 +315,22 @@ class HIV(ss.Infection, STIResults):
         # Infectiousness in acute and late infection, and on ART
         self.rel_trans[self.acute] *= p.rel_trans_acute.rvs(self.acute.uids)
         self.rel_trans[self.aids] *= p.rel_trans_falling.rvs(self.aids.uids)
-        art_uids = self.on_art.uids
-        if len(art_uids):
-            self.rel_trans[art_uids] *= self.art_factor(art_uids)
+        for tx in self.treatments:
+            treated = tx.on_treatment.uids
+            if len(treated):
+                self.rel_trans[treated] *= tx.trans_multiplier(treated)
         return
-
-    def art_factor(self, uids):
-        """ The multiplier of ART on the infectiousness of some agents on it, which reaches its full efficacy by a linear rise over time_to_art_efficacy """
-        p = self.pars
-        full_eff = np.where(self.on_effective_art[uids], p.effective_art_efficacy, p.nonsupp_art_efficacy)
-        return 1 - full_eff*np.minimum((self.ti - self.ti_art[uids])/(p.time_to_art_efficacy/self.dt), 1)
 
     def infectiousness(self, uids=None):
         """ How infectious each agent is, all told, relative to untreated latent infection (their rel_trans) """
         return self.rel_trans[self.sim.people.auids if uids is None else ss.uids(uids)]
 
     def step_state(self):
-        """ CD4 counts and care seeking; the natural history; death; then each agent's susceptibility and infectiousness """
+        """ CD4 counts; the natural history; treatment's own steps; death; then each agent's susceptibility and infectiousness """
         ti = self.ti
         self.init_cd4()
-        self.init_care_seeking()
-        if self.include_mtct: # Pregnant women seek care more, which makes them much less likely to stop treatment
-            pregnant = self.sim.demographics.pregnancy.P
-            self.care_seeking[pregnant] = self.baseline_care_seeking[pregnant] * self.pars.maternal_care_scale
-            self.care_seeking[~pregnant] = self.baseline_care_seeking[~pregnant]
 
-        # The natural history, untreated: ART takes people out of it (see start_art())
+        # The natural history, untreated: treatment takes people out of it (see sti.ART.start_art())
         latent = (self.acute & self.ti_latent.due()).uids
         self.acute[latent] = False
         self.latent[latent] = True
@@ -406,17 +339,14 @@ class HIV(ss.Infection, STIResults):
         self.falling[falling] = True
         self.update_cd4()
 
-        # Stopping ART early
-        on_art = self.on_art.uids
-        rate = self.current_value('rate_art_dropout', on_art)
-        self.stop_art(on_art[self.u_dropout.rvs(on_art) < rate.to_prob(self.dt)])
+        # Treatment's own steps (e.g. stopping early)
+        for tx in self.treatments:
+            tx.step_treatment()
 
-        # Death: of AIDS once the CD4 count reaches zero, and at any time at a rate by CD4 count, lower on ART
+        # Death: of AIDS once the CD4 count reaches zero, and at any time at a rate by CD4 count, scaled by treatment
         infected = self.infected.uids
         on_art = self.on_art[infected]
-        p_death = np.empty(len(infected))
-        p_death[~on_art] = ss.peryear(self.off_art_death_rate(infected[~on_art])).to_prob(self.dt)
-        p_death[on_art] = ss.peryear(self.on_art_death_rate(infected[on_art])).to_prob(self.dt)
+        p_death = ss.peryear(self.off_art_death_rate(infected)*self.death_multiplier(infected)).to_prob(self.dt)
         zero = self.ti_zero.due().raw[infected] & ~on_art
         p_death[zero] = 1 - (1 - p_death[zero])*(1 - self.pars.p_aids_death)
         died = infected[self.u_death.rvs(infected) < p_death]
@@ -468,100 +398,16 @@ class HIV(ss.Infection, STIResults):
 
     def step_die(self, uids):
         """ The people who died leave the states of HIV """
-        for state in [self.infected, self.acute, self.latent, self.falling, self.on_effective_art, self.on_nonsuppressive_art, self.art_discontinued, self.on_prep, self.susceptible]:
+        for state in [self.infected, self.acute, self.latent, self.falling, self.on_prep, self.susceptible]:
             state[uids] = False
+        for tx in self.treatments:
+            tx.step_die(uids)
         return
 
     def new_infected(self):
         """ Who was infected in this step (not those at the start, whose infections began before it) """
         return self.ti_infected == self.ti
 
-
-    # Treatment, called by the interventions
-    def start_art(self, uids, p_effective_art=None):
-        """
-        Put agents on ART: suppressed, or not; it takes them out of the natural history
-
-        Args:
-            uids: agents starting ART treatment
-            p_effective_art (float/ss.Dist, optional): probability that each agent achieves viral suppression (effective
-                ART) rather than non-suppressive ART. Pass a float to override `self.pars.p_effective_art`'s probability,
-                or an already-initialized `ss.Dist` (e.g. an intervention's own par) to use it directly. Defaults to
-                `self.pars.p_effective_art` (default: always effective).
-        """
-        ti = self.ti
-        p = self.pars
-        newly_treated = uids[self.art_naive[uids]]
-        self.art_naive[newly_treated] = False
-        self.ti_art[uids] = ti
-        self.cd4_preart[uids] = self.cd4[uids]
-
-        # Whether each achieves viral suppression (effective ART) or not, e.g. due to poor adherence or drug resistance
-        if isinstance(p_effective_art, ss.Dist):
-            effective = p_effective_art.filter(uids)
-        else:
-            if p_effective_art is not None:
-                p.p_effective_art.set(p=p_effective_art)
-            effective = p.p_effective_art.filter(uids)
-        for state in [self.acute, self.latent, self.falling, self.art_discontinued]:
-            state[uids] = False
-        self.on_effective_art[uids] = False
-        self.on_effective_art[effective] = True
-        self.on_nonsuppressive_art[uids] = True
-        self.on_nonsuppressive_art[effective] = False
-        later = uids[self.ti_zero[uids] > ti] # Those due to die of AIDS now still do
-        self.ti_zero[later] = np.nan
-        self.ti_latent[uids] = self.ti_falling[uids] = np.nan
-
-        # When they will stop
-        dur_on_art = p.dur_on_art.rvs(uids) * p.rel_dur_on_art
-        trend = p.dur_on_art_trend
-        if trend is not None:
-            dur_on_art = dur_on_art * np.interp(self.t.now('year'), trend.years, trend.vals)
-        self.ti_stop_art[uids] = ti + dur_on_art.astype(int)
-
-        # The CD4 count they can reach on treatment, set at their first start: growth follows the concave part of a logistic function, and the total gain depends on the CD4 count at initiation
-        if len(newly_treated):
-            cd4_max = p.art_cd4_pars['cd4_max']
-            cd4_healthy = p.art_cd4_pars['cd4_healthy']
-            cd4_preart = self.cd4_preart[newly_treated]
-            if (cd4_preart == 0).any():
-                raise ValueError('CD4 count is zero at initiation of ART')
-            cd4_scale_factor = (cd4_max - cd4_preart)/cd4_healthy*np.log(cd4_max/cd4_preart)
-            self.cd4_potential[newly_treated] = cd4_preart + cd4_preart*cd4_scale_factor
-        return
-
-    def stop_art(self, uids=None):
-        """ Take agents off ART (by default, those whose time on it is up): they die of AIDS once their CD4 count falls to zero, a time that depends on it """
-        ti = self.ti
-        uids = (self.on_art & self.ti_stop_art.due()).uids if uids is None else ss.uids(uids)
-        on = uids[self.on_art[uids]]
-        factor = self.art_factor(on)
-        self.rel_trans[on] = np.divide(self.rel_trans[on], factor, out=np.ones(len(on)), where=factor > 0) # Off ART from this step's transmission on, as they are put on it (see update_transmission())
-        self.on_effective_art[uids] = False
-        self.on_nonsuppressive_art[uids] = False
-        self.art_discontinued[uids] = True
-        self.ti_stop_art[uids] = ti
-        self.cd4_postart[uids] = self.cd4[uids]
-        dur_mean = np.log(self.cd4_preart[uids])*self.cd4[uids]/self.cd4_potential[uids]
-        dur_scale = dur_mean*self.pars.dur_post_art_scale_factor
-        self.pars.dur_post_art.set(loc=ss.years(dur_mean), scale=ss.years(np.maximum(dur_scale, 1e-3))) # Not zero
-        dur_post_art = self.pars.dur_post_art.rvs(uids)
-        if np.isnan(dur_post_art).any():
-            bad = uids[np.isnan(dur_post_art)]
-            errormsg = f'Invalid post-ART duration for {bad}: CD4 {self.cd4[bad]}, before ART {self.cd4_preart[bad]}, potential {self.cd4_potential[bad]}'
-            raise ValueError(errormsg)
-        self.dur_post_art[uids] = np.maximum(dur_post_art.astype(int), 0)
-        self.ti_zero[uids] = ti + self.dur_post_art[uids]
-        return
-
-    def set_suppression(self, uids, effective):
-        """ Make agents on ART virally suppressed (effective=True), or not """
-        uids = ss.uids(uids)
-        uids = uids[self.on_art[uids]]
-        self.on_effective_art[uids] = effective
-        self.on_nonsuppressive_art[uids] = not effective
-        return
 
     def start_prep(self, uids, eff, dur, source_id, adh=1.0):
         """
@@ -665,7 +511,7 @@ class HIV(ss.Infection, STIResults):
         res['on_art'][ti] = t.count(on_art)
         res['new_deaths'][ti] = np.count_nonzero(self.ti_dead.raw == ti)
         res['new_diagnoses'][ti] = t.count(t.vals(self.ti_diagnosed == ti))
-        res['new_agents_on_art'][ti] = t.count(t.vals(self.ti_art == ti) & on_art) # Gated on on_art, since ti_art may also hold a scheduled future start
+        res['new_agents_on_art'][ti] = t.count(t.vals(self.art.ti_art == ti) & on_art) if self.art is not None else 0 # Gated on on_art, since ti_art may also hold a scheduled future start
         if self.include_mtct:
             pregnant = t.vals(ppl.pregnancy.P)
             res['n_on_art_pregnant'][ti] = t.count(on_art & pregnant)
@@ -697,3 +543,17 @@ class HIV(ss.Infection, STIResults):
         res['cum_deaths'][:] = np.cumsum(res['new_deaths'][:])
         res['cum_diagnoses'][:] = np.cumsum(res['new_diagnoses'][:])
         return
+
+
+def _art_attr(name):
+    def get(self):
+        art = self.art
+        if art is None:
+            errormsg = f'hiv.{name} is a state of treatment, held by sti.ART, and there is no ART in this sim'
+            raise AttributeError(errormsg)
+        return getattr(art, name)
+    get.__doc__ = f'The ART module\'s `{name}` (see sti.ART)'
+    return property(get)
+
+for _name in art_attrs:
+    setattr(HIV, _name, _art_attr(_name))

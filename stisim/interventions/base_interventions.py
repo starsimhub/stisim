@@ -797,8 +797,7 @@ class ANCTest(ss.Intervention):
                 # so an ART intervention picks them up automatically
                 disease.diagnosed[pos_uids]    = True
                 disease.ti_diagnosed[pos_uids] = disease.ti # In the disease's own steps, which may differ from this intervention's
-                to_schedule = pos_uids[~disease.on_art[pos_uids]]
-                disease.ti_art[to_schedule] = disease.ti
+                disease.refer(pos_uids)
             elif dname in self.disease_treatment_map:
                 tx = self.disease_treatment_map[dname]
                 tx.eligibility = tx.eligibility | pos_uids
