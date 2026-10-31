@@ -227,6 +227,9 @@ art = sti.ART(coverage={'year': [2000, 2025], 'value': [0, 0.9]}, smoothness=5)
 | `pmtct_efficacy` | 0.96 | Efficacy of maternal ART in reducing infant susceptibility to HIV, applied to both prenatal (MaternalNet) and postnatal (BreastfeedingNet) transmission. |
 | `smoothness` | 0 | Interpolation smoothness for coverage data (0 = linear, higher = smoother S-curves). |
 | `format_priority` | 'n' | When both `n_art` and `p_art` are non-NaN, prefer this format (`'n'` or `'p'`). |
+| `art_priority` | None | Under a coverage target, a function `f(sim, uids)` giving each agent a priority: higher starts first, lower stops first. By default, the lowest CD4 count over care seeking. |
+| `rate_failure` | peryear(0) | Rate at which people suppressed on ART become unsuppressed (or a function `f(sim, uids)` giving a rate per year for each). |
+| `rate_regain` | peryear(0) | Rate at which people unsuppressed on ART become suppressed again (or a function, as above). |
 
 ### HIVCare
 

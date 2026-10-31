@@ -416,6 +416,11 @@ class ART(ss.Intervention):
             # Care seeking, which sets priority for ART
             care_seeking = ss.normal(loc=1, scale=0.5), # Relative care-seeking behavior (wide spread for low-care-seeking extremes)
             maternal_care_scale = 2, # Factor for scaling up care-seeking behavior during pregnancy
+            art_priority = None, # Under a coverage target, a function of the sim and agents giving each a priority (higher starts first, and lower stops first); by default, lowest CD4 count over care seeking
+
+            # Viral suppression on ART, after its start (each a rate, or a function of the sim and agents giving a rate per year for each)
+            rate_failure = ss.peryear(0), # Of becoming unsuppressed
+            rate_regain = ss.peryear(0), # Of becoming suppressed again
         )
         self.update_pars(pars, **kwargs)
         self.given_pars = set(sc.mergedicts(pars, kwargs)) # To tell those given here from those given to HIV (see init_pre())
@@ -450,6 +455,8 @@ class ART(ss.Intervention):
             ss.FloatArr('care_seeking'),
         )
         self.u_dropout = ss.random(name='u_dropout')
+        self.u_failure = ss.random(name='u_failure')
+        self.u_regain = ss.random(name='u_regain')
 
         return
 
@@ -796,6 +803,7 @@ class ART(ss.Intervention):
         self.update_care_seeking()
         if self.care is not None:
             self.care.update(self)
+        self.step_suppression()
 
         # Determine treatment target (None = no capacity constraint). When
         # stratum_targets is set, correct within each stratum so age/sex
@@ -865,6 +873,22 @@ class ART(ss.Intervention):
 
         return
 
+    def priority(self, uids):
+        """ Each agent's priority for ART under a coverage target (higher starts first, and lower stops first): art_priority, or by default the lowest CD4 count over care seeking """
+        if self.pars.art_priority is not None:
+            return np.asarray(self.pars.art_priority(self.sim, uids), dtype=float)
+        return -self.hiv.cd4[uids]/self.care_seeking[uids]
+
+    def step_suppression(self):
+        """ Becoming unsuppressed (rate_failure), and suppressed again (rate_regain), on ART """
+        for rate, dist, frm, effective in [('rate_failure', self.u_failure, self.on_effective_art, False), ('rate_regain', self.u_regain, self.on_nonsuppressive_art, True)]:
+            uids = frm.uids
+            par = self.pars[rate]
+            prob = -np.expm1(-np.asarray(par(self.sim, uids), dtype=float)*self.hiv.dt.years) if callable(par) and not isinstance(par, ss.Rate) else par.to_prob(self.hiv.dt)
+            if np.any(prob):
+                self.set_suppression(uids[dist.rvs(uids) < prob], effective)
+        return
+
     def prioritize_art(self, sim, n=None, awaiting_art_uids=None):
         """ Prioritize ART to n agents among those awaiting treatment """
         hiv = sim.diseases.hiv
@@ -878,10 +902,7 @@ class ART(ss.Intervention):
 
         # Not enough spots — prioritize lowest-CD4, highest-care-seeking
         else:
-            cd4_counts   = hiv.cd4[awaiting_art_uids]
-            care_seeking = self.care_seeking[awaiting_art_uids]
-            weights = cd4_counts / care_seeking
-            start_uids = top_n_by(awaiting_art_uids, -weights, n)
+            start_uids = top_n_by(awaiting_art_uids, self.priority(awaiting_art_uids), n)
 
         self.start_art(start_uids, p_effective_art=self.pars.p_effective_art)
 
@@ -911,10 +932,7 @@ class ART(ss.Intervention):
         if len(on_art.uids) > target_coverage:
             n_to_stop    = int(len(on_art.uids) - target_coverage)
             on_art_uids  = on_art.uids
-            cd4_counts   = hiv.cd4[on_art_uids]
-            care_seeking = self.care_seeking[on_art_uids]
-            weights      = cd4_counts / care_seeking
-            stop_uids    = top_n_by(on_art_uids, weights, n_to_stop)
+            stop_uids    = top_n_by(on_art_uids, -self.priority(on_art_uids), n_to_stop)
             self.ti_stop_art[stop_uids] = self.ti
             self.stop_art(stop_uids)
 
@@ -954,10 +972,7 @@ class ART(ss.Intervention):
             # Too many on treatment in this stratum → remove highest-CD4
             if n_on_art > target_n:
                 n_to_stop    = n_on_art - target_n
-                cd4_counts   = hiv.cd4[on_art_in_stratum]
-                care_seeking = self.care_seeking[on_art_in_stratum]
-                weights      = cd4_counts / care_seeking
-                stop_uids    = top_n_by(on_art_in_stratum, weights, n_to_stop)
+                stop_uids    = top_n_by(on_art_in_stratum, -self.priority(on_art_in_stratum), n_to_stop)
                 self.ti_stop_art[stop_uids] = self.ti
                 self.stop_art(stop_uids)
 
