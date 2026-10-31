@@ -3,6 +3,7 @@ User API for creating an STI simulation
 """
 
 import itertools
+import numpy as np
 import starsim as ss
 import stisim as sti
 import sciris as sc
@@ -212,7 +213,7 @@ class Sim(ss.Sim):
         if isinstance(key, str) and key in self.diseases:
             if key == 'hiv':
                 key = [
-                    'hiv_infection',
+                    'hiv_new_infections',
                     'hiv_new_deaths',
                     'hiv_infected',
                     'hiv_prevalence',
@@ -220,6 +221,26 @@ class Sim(ss.Sim):
                     'alive',
                 ]
         return super().plot(key=key, **kwargs)
+
+    def init_results(self):
+        """ Initialize the results, also keeping the sim's deaths and emigrants under their STIsim names (see `finalize_results()`) """
+        super().init_results()
+        if 'died' in self.results:
+            kw = dict(module='People', shape=self.t.npts, timevec=self.t.timevec, dtype=float, scale=False, auto_plot=False)
+            self.results += [ss.Result('new_deaths', label='Deaths', kind='flow', **kw),
+                             ss.Result('new_emigrants', label='Emigrants', kind='flow', **kw),
+                             ss.Result('cum_deaths', label='Cumulative deaths', kind='stock', **kw)]
+        return
+
+    def finalize_results(self):
+        """ Copy Starsim's died and emigrated to the names kept in `init_results()`, once they are scaled """
+        super().finalize_results()
+        res = self.results
+        if 'died' in res:
+            res.new_deaths[:] = res.died
+            res.new_emigrants[:] = res.emigrated
+            res.cum_deaths[:] = np.cumsum(res.died)
+        return
 
     def process_networks(self):
         """

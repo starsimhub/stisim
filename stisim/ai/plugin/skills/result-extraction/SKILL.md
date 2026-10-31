@@ -27,7 +27,7 @@ Every `ss.Result` carries a `summarize_by` field, or falls back to a name-based 
 The wrong answer is usually a factor of `n_timesteps_per_year` off (flows aggregated as means, or stocks aggregated as sums). At weekly or monthly timesteps that is a 12–52× error, but it still looks plausible for calibration ranges — the errors don't scream, and they compound with any downstream per-capita or per-year calculation that uses the wrong quantity as its numerator.
 
 Common failure modes this skill prevents:
-- `df.groupby('year')['infection'].mean()` — silently divides annual incidence by the number of timesteps per year.
+- `df.groupby('year')['new_infections'].mean()` — silently divides annual incidence by the number of timesteps per year.
 - `df.groupby('year')['alive'].sum()` — silently multiplies population by the number of timesteps per year.
 - Reading a saved parquet, losing the `ss.Result` wrapper, then guessing the aggregation method from column names alone.
 

@@ -113,7 +113,7 @@ plt.show()
 ```{python}
 fig, ax = plt.subplots(figsize=(8, 4.5))
 for label, sim in results.items():
-    ax.plot(yearvec, sim.results.hiv.infection, label=label, lw=2)
+    ax.plot(yearvec, sim.results.hiv.new_infections, label=label, lw=2)
 ax.set_xlabel('Year')
 ax.set_ylabel('New HIV infections per timestep')
 ax.set_title('HIV incidence with and without the pregnancy modifier')

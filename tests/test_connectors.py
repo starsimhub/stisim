@@ -39,8 +39,8 @@ def test_hiv_syph():
 
     ss.parallel(s0, s1, debug=debug)
 
-    r0 = s0.results.hiv.infection.cum[-1]
-    r1 = s1.results.hiv.infection.cum[-1]
+    r0 = s0.results.hiv.cum_infections[-1]
+    r1 = s1.results.hiv.cum_infections[-1]
 
     assert r0 <= r1, f'The hiv-syph connector should increase HIV infections, but {r1}<{r0}'
     print(f'✓ hiv-syph connector increased HIV infections ({r0} <= {r1})')

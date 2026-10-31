@@ -235,7 +235,7 @@ def test_mtct(do_plot=do_plot):
                       beta_breastfeed=ss.permonth(0.1), init_prev=0.3)
     sim.run()
 
-    total = sim.results.hiv.infection.sum()
+    total = sim.results.hiv.new_infections.sum()
     sex = sim.results.hiv.new_infections_sex.sum()
     mtct = sim.results.hiv.new_infections_mtct.sum()
     prenatal = sim.results.hiv.new_infections_prenatal.sum()
@@ -653,8 +653,8 @@ def test_par_ranges(n_agents=medium_pop):
 
     # [lo, hi, result_key, dur] — higher par values should produce higher result values
     par_effects = dict(
-        beta_m2f              = [0.01,  0.2,  'infection.cum', 10],
-        init_prev              = [0.01,  0.1,  'infection.cum', 10],
+        beta_m2f              = [0.01,  0.2,  'cum_infections', 10],
+        init_prev              = [0.01,  0.1,  'cum_infections', 10],
         effective_art_efficacy = [0.96,  0.5,  'cum_deaths',     10],
     )
 
@@ -670,8 +670,8 @@ def test_par_ranges(n_agents=medium_pop):
     for i, (par, (lo, hi, result_key, _)) in enumerate(par_effects.items()):
         s0, s1 = sims[2*i], sims[2*i+1]
         ind = 1 if par == 'init_prev' else -1
-        v0 = s0.results.hiv.find(result_key)[ind]
-        v1 = s1.results.hiv.find(result_key)[ind]
+        v0 = s0.results.hiv[result_key][ind]
+        v1 = s1.results.hiv[result_key][ind]
 
         print(f'Checking {result_key:18s} with varying {par:15s} ... ', end='')
         assert v0 <= v1, f'Expected {result_key} to be lower with {par}={lo} than {hi}, but {v0} > {v1}'

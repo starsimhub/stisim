@@ -37,7 +37,7 @@ true_sim = sti.Sim(
 true_sim.run()
 
 # Extract yearly prevalence and new infections as our "data"
-data = true_sim.to_data(['ng.prevalence', 'ng.infection'], resample='year', noise=None)
+data = true_sim.to_data(['ng.prevalence', 'ng.new_infections'], resample='year', noise=None)
 print(f'Generated {len(data)} data points')
 data.head()
 ```
@@ -140,7 +140,7 @@ Some parameter combinations may produce epidemiologically implausible results (e
 ```{python}
 def check_ng_alive(sim):
     """Reject sims where gonorrhea died out."""
-    return float(sim.results.ng.infection[-12:].sum()) > 0
+    return float(sim.results.ng.new_infections[-12:].sum()) > 0
 
 kept = [s for s in msim.sims if check_ng_alive(s)]
 print(f'Kept {len(kept)} of {len(msim.sims)} sims after filtering')

@@ -28,7 +28,7 @@ After running a sim, all results are stored in `sim.results`. Each disease has i
 prev = sim.results.ng.prevalence
 print(f'{prev.label}: min={prev.values.min():.3f}, mean={prev.values.mean():.3f}, max={prev.values.max():.3f}')
 
-new_inf = sim.results.ng.infection
+new_inf = sim.results.ng.new_infections
 print(f'{new_inf.label}: min={new_inf.values.min():.0f}, mean={new_inf.values.mean():.1f}, max={new_inf.values.max():.0f}')
 
 # There are many more -- including by sex and age group
@@ -56,7 +56,7 @@ To plot specific results, pass the `key` argument. You can use a single key or a
 
 ```{python}
 # Plot just prevalence and new infections
-sim.plot(key=['ng.prevalence', 'ng.infection'])
+sim.plot(key=['ng.prevalence', 'ng.new_infections'])
 ```
 
 You can also plot results that are hidden from the default view. For example, sex-stratified prevalence:
@@ -90,7 +90,7 @@ STIsim runs with monthly timesteps by default, but you'll often want annual resu
 
 ```{python}
 # Monthly new infections (raw)
-monthly = sim.results.ng.infection
+monthly = sim.results.ng.new_infections
 print(f'Monthly: {len(monthly.values)} timesteps')
 
 # Resample to annual (sums monthly counts)
@@ -99,10 +99,10 @@ print(f'Annual:  {len(annual)} years')
 print(annual)
 ```
 
-The `resample()` method automatically chooses the right aggregation: **sum** for counts (like `infection`) and **mean** for rates/proportions (like `prevalence`). You can also resample to a DataFrame:
+The `resample()` method automatically chooses the right aggregation: **sum** for counts (like `new_infections`) and **mean** for rates/proportions (like `prevalence`). You can also resample to a DataFrame:
 
 ```{python}
-annual_df = sim.results.ng.infection.resample('year')
+annual_df = sim.results.ng.new_infections.resample('year')
 print(f'Annual result: {len(annual_df.values)} years')
 print(annual_df)
 ```
@@ -130,7 +130,7 @@ axes[0].set_title('NG prevalence by sex')
 axes[0].legend()
 
 # Right: annual new infections (resampled)
-annual_inf = sim.results.ng.infection.resample('year', use_years=True)
+annual_inf = sim.results.ng.new_infections.resample('year', use_years=True)
 axes[1].bar(annual_inf.timevec, annual_inf.values)
 axes[1].set_xlabel('Year')
 axes[1].set_ylabel('New infections')
@@ -217,7 +217,7 @@ print(df[['timevec', 'youthprev.ng_prev_15_24']].head())
 | List all result keys | `sim.results.ng.keys()` |
 | Access a result's values | `sim.results.ng.prevalence.values` |
 | Auto-plot high-level results | `sim.plot()` |
-| Plot specific results | `sim.plot(key=['ng.prevalence', 'ng.infection'])` |
+| Plot specific results | `sim.plot(key=['ng.prevalence', 'ng.new_infections'])` |
 | Plot hidden results | `sim.plot(key='ng.prevalence_f')` |
 | Export all to DataFrame | `sim.to_df()` |
 | Export one result | `sim.results.ng.prevalence.to_df()` |

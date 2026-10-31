@@ -90,13 +90,13 @@ results = {sim.label: sim for sim in sims}
 ## Per-timestep counts
 
 VMMC publishes `new_circumcisions` each timestep; HIV publishes
-`infection`. Those are the only quantities we need.
+`new_infections`. Those are the only quantities we need.
 
 ```{python}
 vmmc_sim = results['With VMMC']
 yearvec  = vmmc_sim.t.yearvec
 new_circ = vmmc_sim.results.vmmc.new_circumcisions
-new_inf  = {label: sim.results.hiv.infection for label, sim in results.items()}
+new_inf  = {label: sim.results.hiv.new_infections for label, sim in results.items()}
 
 print(f'Total VMMCs:                    {int(new_circ.sum()):n}')
 print(f'New HIV infections, No VMMC:    {int(new_inf["No VMMC"].sum()):n}')

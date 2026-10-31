@@ -115,11 +115,10 @@ class STIResults:
             is_subpop = skk != ''  # Sex-stratified results are not auto-plotted
             results += [
                 ss.Result(f'incidence{skk}', scale=False, label=f"Incidence{skl}", auto_plot=not is_subpop),
+                ss.Result(f'new_infections{skk}', dtype=int, label=f"New infections{skl}", auto_plot=False),
                 ss.Result(f'prevalence{skk}', scale=False, label=f"Prevalence{skl}", auto_plot=not is_subpop),
                 ss.Result(f'infected{skk}', dtype=int, kind='stock', label=f"Number infected{skl}", auto_plot=False),
             ]
-            if is_subpop: # For everyone, it is `infection`, from ss.Infection
-                results += [ss.Result(f'new_infections{skk}', dtype=int, label=f"New infections{skl}", auto_plot=False)]
             for ab1, ab2 in self.age_strata():
                 ask = f'{skk}_{ab1}_{ab2}'
                 asl = f' ({skl}, {ab2}-{ab2})'
@@ -147,6 +146,7 @@ class STIResults:
 
         # Transmission route results
         results += [
+            ss.Result('cum_infections', dtype=float, label='Cumulative infections', auto_plot=False),
             ss.Result('new_infections_sex', dtype=int, label='New infections (sexual)', auto_plot=False),
             ss.Result('new_infections_mtct', dtype=int, label='New infections (MTCT)', auto_plot=False),
             ss.Result('new_infections_prenatal', dtype=int, label='New infections (prenatal MTCT)', auto_plot=False),
@@ -203,13 +203,20 @@ class STIResults:
             self.results[f'prevalence{skk}'][ti] = t.div(t.count(inf_s & t.adults), t.count(t.adults & sex))
             if skk:
                 self.results[f'new_infections{skk}'][ti] = n_new
-            elif ti == 0: # For everyone, ss.Infection counts the infections as they happen (including those of people who die in the step), but not those seeded at the start
-                self.results.infection[ti] = n_new
+            else: # For everyone, ss.Infection counts the infections as they happen (including those of people who die in the step), but not those seeded at the start; new_infections is that result under STIsim's name
+                if ti == 0:
+                    self.results.infection[ti] = n_new
+                self.results.new_infections[ti] = self.results.infection[ti]
             self.results[f'infected{skk}'][ti] = t.count(inf_s)
             self.results[f'incidence{skk}'][ti] = t.div(n_new, t.count(sus_s))
             if self.age_bins is not None:
                 h_new, h_inf = t.hist(new_s), t.hist(inf_s)
                 self.set_age_results(skk, new_infections=h_new, infected=h_inf, incidence=t.hdiv(h_new, t.hist(sus_s)), prevalence=t.hdiv(h_inf, t.hist(sex)))
+        return
+
+    def finalize_sti_results(self):
+        """ Total the new infections, once they are scaled """
+        self.results.cum_infections[:] = np.cumsum(self.results.new_infections[:])
         return
 
 def init_prev_by_group(sim, uids, data, rel_init_prev=1, active=True):
@@ -512,4 +519,9 @@ class SEIS(ss.Infection, STIResults):
                 res[f'new_care_seekers{skk}'][ti] = t.count(seekers & sex)
             if self.age_bins is not None:
                 self.set_age_results(skk, new_symptomatic=t.hist(new_sym_s), symp_prevalence=t.hdiv(t.hist(sym_s), t.hist(sex)))
+        return
+
+    def finalize_results(self):
+        super().finalize_results()
+        self.finalize_sti_results()
         return

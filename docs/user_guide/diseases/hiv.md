@@ -231,7 +231,7 @@ Pars of `sti.HIV`. The Source column follows the conventions of the [parameter r
 
 ## Results
 
-HIV produces STIsim's standard results (`infection`, `prevalence`, `incidence`, etc.), one for each state and transition (e.g. `acute`, `art_dropout`), plus HIV-specific results:
+HIV produces STIsim's standard results (`new_infections`, `prevalence`, `incidence`, etc.), one for each state and transition (e.g. `acute`, `art_dropout`), plus HIV-specific results:
 
 ### HIV-specific results
 
@@ -253,11 +253,11 @@ All STI diseases (including HIV) track infections by transmission route:
 
 | Result | Description |
 |--------|-------------|
-| `infection` | Total new infections (sexual + MTCT) |
+| `new_infections` | Total new infections (sexual + MTCT) |
 | `new_infections_sex` | New infections via sexual transmission |
 | `new_infections_mtct` | New infections via mother-to-child transmission |
 
-These are always consistent: `new_infections_sex + new_infections_mtct == infection`.
+These are always consistent: `new_infections_sex + new_infections_mtct == new_infections`.
 
 When pregnancy is modeled, prenatal and postnatal MTCT are tracked separately:
 
