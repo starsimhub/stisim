@@ -150,13 +150,13 @@ class BaseNetwork(ss.SexualNet):
         self.debut[m_uids] = self.pars.debut_m.rvs(m_uids)
         return
 
-    def net_beta(self, disease_beta=None, uids=None, disease=None):
-        if uids is None: uids = Ellipsis
-        p_condom = self.edges.condoms[uids]
+    def net_beta(self, disease_beta=None, inds=None, disease=None):
+        if inds is None: inds = Ellipsis
+        p_condom = self.edges.condoms[inds]
         eff_condom = float(disease.pars.eff_condom) if 'eff_condom' in disease.pars else 0.0 # No protection for a disease without it
-        p_trans_condom = (1 - disease_beta*(1-eff_condom))**(self.edges.acts[uids]*p_condom)
-        p_trans_no_condom = (1 - disease_beta)**(self.edges.acts[uids]*(1-p_condom))
-        return (1 - p_trans_condom * p_trans_no_condom) * self.edges.beta[uids]
+        p_trans_condom = (1 - disease_beta*(1-eff_condom))**(self.edges.acts[inds]*p_condom)
+        p_trans_no_condom = (1 - disease_beta)**(self.edges.acts[inds]*(1-p_condom))
+        return (1 - p_trans_condom * p_trans_no_condom) * self.edges.beta[inds]
 
     def step(self):
         self.end_pairs()
