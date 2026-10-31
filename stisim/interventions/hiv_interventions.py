@@ -16,7 +16,7 @@ from stisim.utils import count
 
 
 # %% HIV classes
-__all__ = ["HIVDx", "HIVTest", "InfantHIVTest", "ART", "VMMC", "Prep"]
+__all__ = ["HIVDx", "HIVTest", "InfantHIVTest", "HIVCare", "ART", "VMMC", "Prep"]
 
 
 class HIVDx(ss.Product):
@@ -176,6 +176,107 @@ class InfantHIVTest(HIVTest):
         # Only test infants at their scheduled timestep
         scheduled_now = (self.ti_scheduled == self.ti).uids
         return self.test_prob_dist.filter(scheduled_now)
+
+
+class HIVCare(ss.Intervention):
+    """
+    HIV care: being in care after referral (e.g. a diagnosis), being lost to follow-up, and returning. With it, ART
+    starts only for people in care (see sti.ART, which runs it at the start of its own step).
+
+    Its defaults reproduce sti.ART without it: people referred (by sti.HIVTest, after its dur_dx2tx) are in care at once,
+    and stay in care, through ART and after it.
+
+    Each rate can be a rate (e.g. ``ss.peryear(0.1)``) or a function of the sim and the agents giving a rate per year for
+    each (e.g. higher with AIDS).
+
+    Args:
+        dur_link (ss.Dist): time from referral to being in care, when ART can start
+        rate_loss: loss to follow-up of people in care and not on ART
+        rate_loss_art: loss to follow-up of people on ART, who stop it
+        rate_return: return to care of people lost to follow-up, who can start ART again at once
+        p_lost_at_stop (ss.bernoulli): of being lost to follow-up on stopping ART for any other reason (otherwise they stay in care, and can restart it)
+    """
+    def __init__(self, pars=None, **kwargs):
+        super().__init__()
+        self.define_pars(
+            dur_link = ss.constant(0),
+            rate_loss = ss.peryear(0),
+            rate_loss_art = ss.peryear(0),
+            rate_return = ss.peryear(0),
+            p_lost_at_stop = ss.bernoulli(p=0),
+        )
+        self.update_pars(pars, **kwargs)
+        self.define_states(
+            ss.BoolState('in_care'),
+            ss.BoolState('lost'), # Lost to follow-up
+            ss.FloatArr('ti_link'), # When those referred will be in care
+            ss.FloatArr('ti_in_care'),
+            ss.FloatArr('ti_lost'),
+        )
+        self.u_loss = ss.random(name='u_loss')
+        self.u_loss_art = ss.random(name='u_loss_art')
+        self.u_return = ss.random(name='u_return')
+        return
+
+    def prob(self, key, uids):
+        """ The probability in a step of HIV's of each agent's rate `key` """
+        rate, dt = self.pars[key], self.sim.diseases.hiv.dt
+        if callable(rate) and not isinstance(rate, ss.Rate):
+            return -np.expm1(-np.asarray(rate(self.sim, uids), dtype=float)*dt.years)
+        return rate.to_prob(dt)
+
+    def refer(self, uids, ti, art):
+        """ People referred at `ti` are in care after dur_link, when ART can start (ART's ti_art) """
+        self.ti_link[uids] = ti + self.pars.dur_link.rvs(uids, round=True)
+        art.ti_art[uids] = self.ti_link[uids]
+        return
+
+    def update(self, art):
+        """ Linkage, loss to follow-up, and return to care, in this step (called by sti.ART) """
+        ti = art.hiv.ti
+        linked = (self.ti_link <= ti).uids
+        self.in_care[linked] = True
+        self.lost[linked] = False
+        self.ti_in_care[linked] = ti
+        self.ti_link[linked] = np.nan
+
+        waiting = (self.in_care & ~art.on_treatment).uids
+        lost = waiting[self.u_loss.rvs(waiting) < self.prob('rate_loss', waiting)]
+        on_art = art.on_treatment.uids
+        lost_art = on_art[self.u_loss_art.rvs(on_art) < self.prob('rate_loss_art', on_art)]
+        if len(lost_art): # Only if anyone is: a draw of ART's in this step would change those after it
+            art.stop_art(lost_art)
+        self.lose(lost)
+        self.lose(lost_art)
+
+        lost_now = self.lost.uids
+        back = lost_now[self.u_return.rvs(lost_now) < self.prob('rate_return', lost_now)]
+        self.in_care[back] = True
+        self.lost[back] = False
+        self.ti_in_care[back] = ti
+        art.ti_art[back] = ti # Ready to start ART again
+        return
+
+    def lose(self, uids):
+        """ Lose people to follow-up """
+        self.in_care[uids] = False
+        self.lost[uids] = True
+        self.ti_lost[uids] = self.sim.diseases.hiv.ti
+        return
+
+    def on_stop(self, uids):
+        """ People stopping ART are lost to follow-up with probability p_lost_at_stop """
+        self.lose(self.pars.p_lost_at_stop.filter(uids[self.in_care[uids]]))
+        return
+
+    def step(self):
+        """ Run by sti.ART at the start of its step (see update()) """
+        return
+
+    def step_die(self, uids):
+        self.in_care[uids] = False
+        self.lost[uids] = False
+        return
 
 
 class ART(ss.Intervention):
@@ -366,6 +467,10 @@ class ART(ss.Intervention):
         super().init_pre(sim)
         hiv.add_treatment(self)
         self.hiv = hiv
+        cares = [m.name for m in sim.interventions() if isinstance(m, HIVCare)]
+        if len(cares) > 1:
+            raise ValueError(f'At most one sti.HIVCare, not {len(cares)}')
+        self.care_name = cares[0] if cares else None
 
         # On-ART mortality is anchored to the off-ART CD4-based rate so it can never exceed it by construction, as long as
         # the largest combination of multipliers stays <= 1. Catch a violation here rather than let a calibration silently
@@ -421,10 +526,24 @@ class ART(ss.Intervention):
         """ On ART, suppressed or not """
         return self.on_effective_art | self.on_nonsuppressive_art
 
+    @property
+    def care(self):
+        """ The care module (sti.HIVCare), if any: then ART starts only for those in care """
+        return self.sim.interventions[self.care_name] if self.care_name else None
+
+    @property
+    def in_care(self):
+        """ Who can start ART: those in care, if there is a care module, else everyone """
+        care = self.care
+        return care.in_care if care is not None else self.hiv.infected | ~self.hiv.infected
+
     def refer(self, uids, ti):
-        """ Schedule ART to start at `ti` for those referred (e.g. diagnosed) and not on it already """
+        """ Schedule ART to start at `ti` for those referred (e.g. diagnosed) and not on it already: through care, if there is a care module """
         uids = uids[~self.on_treatment[uids]]
-        self.ti_art[uids] = ti
+        if self.care is not None:
+            self.care.refer(uids, ti, self)
+        else:
+            self.ti_art[uids] = ti
         return
 
     def update_cd4(self):
@@ -457,9 +576,11 @@ class ART(ss.Intervention):
         return self.art_factor(uids)
 
     def step_die(self, uids):
-        """ The people who died leave the states of ART """
+        """ The people who died leave the states of ART, and of care """
         for state in [self.on_effective_art, self.on_nonsuppressive_art, self.art_discontinued]:
             state[uids] = False
+        if self.care is not None:
+            self.care.step_die(uids)
         return
 
     def init_care_seeking(self):
@@ -611,6 +732,8 @@ class ART(ss.Intervention):
             raise ValueError(errormsg)
         self.dur_post_art[uids] = np.maximum(dur_post_art.astype(int), 0)
         hiv.ti_zero[uids] = ti + self.dur_post_art[uids]
+        if self.care is not None:
+            self.care.on_stop(uids)
         return
 
     def set_suppression(self, uids, effective):
@@ -671,6 +794,8 @@ class ART(ss.Intervention):
         hiv = sim.diseases.hiv
         inf_uids = hiv.infected.uids
         self.update_care_seeking()
+        if self.care is not None:
+            self.care.update(self)
 
         # Determine treatment target (None = no capacity constraint). When
         # stratum_targets is set, correct within each stratum so age/sex
@@ -691,7 +816,7 @@ class ART(ss.Intervention):
                     raise ValueError(errormsg)
 
         # Initiate ART for agents whose scheduled start time has arrived
-        ready = ((self.ti_art == self.ti) & ~hiv.on_art).uids
+        ready = ((self.ti_art == self.ti) & ~hiv.on_art & self.in_care).uids
         if len(ready):
             dx_to_treat = self.pars.art_initiation.filter(ready)
 
@@ -745,7 +870,7 @@ class ART(ss.Intervention):
         hiv = sim.diseases.hiv
         if awaiting_art_uids is None:
             # Agents whose scheduled ART start has arrived but who aren't on ART yet
-            awaiting_art_uids = ((self.ti_art <= self.ti) & ~hiv.on_art).uids
+            awaiting_art_uids = ((self.ti_art <= self.ti) & ~hiv.on_art & self.in_care).uids
 
         # Enough spots for everyone
         if n > len(awaiting_art_uids):
@@ -796,7 +921,7 @@ class ART(ss.Intervention):
         # Not enough on treatment → add (only those whose scheduled start has arrived)
         elif len(on_art.uids) < target_coverage:
             n_to_add = target_coverage - len(on_art.uids)
-            awaiting_art_uids = ((self.ti_art <= self.ti) & ~hiv.on_art).uids
+            awaiting_art_uids = ((self.ti_art <= self.ti) & ~hiv.on_art & self.in_care).uids
             self.prioritize_art(sim, n=n_to_add, awaiting_art_uids=awaiting_art_uids)
 
         return

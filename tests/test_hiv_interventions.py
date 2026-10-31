@@ -672,6 +672,29 @@ def test_art_dx2tx_delay(do_plot=do_plot):
 
 
 @sc.timer()
+def test_hiv_care():
+    """ HIV care's defaults change nothing; with loss to follow-up, fewer are on ART, and returning to care (where ART is offered again) raises it """
+    sc.heading('Testing HIV care (linkage, loss to follow-up, return)...')
+
+    def make_sim(care=None):
+        intvs = [sti.HIVTest(test_prob_data=0.3)] + ([care] if care is not None else []) + [sti.ART()]
+        return sti.Sim(diseases='hiv', interventions=intvs, n_agents=n_agents, start=2000, stop=2015, rand_seed=2, verbose=0).run()
+
+    base = make_sim()
+    default = make_sim(sti.HIVCare())
+    for key in ['infected', 'on_art', 'new_deaths', 'diagnosed']:
+        assert np.array_equal(base.results.hiv[key], default.results.hiv[key]), f'HIVCare() with its defaults changed hiv.{key}'
+
+    lost = make_sim(sti.HIVCare(rate_loss=ss.peryear(2), rate_loss_art=ss.peryear(0.5)))
+    back = make_sim(sti.HIVCare(rate_loss=ss.peryear(2), rate_loss_art=ss.peryear(0.5), rate_return=ss.peryear(1)))
+    n = lambda sim: sim.results.hiv.on_art[-12:].mean()
+    assert n(lost) < n(base), f'Loss to follow-up should lower the number on ART ({n(lost)} vs {n(base)})'
+    assert n(back) > n(lost), f'Returning to care, where ART is offered again, should raise it ({n(back)} vs {n(lost)})'
+    assert back.interventions.hivcare.lost.any(), 'Some should be lost to follow-up'
+    return base, lost, back
+
+
+@sc.timer()
 def test_pn():
     """ PartnerNotification: with PN, more HIV diagnoses occur than without """
     sc.heading('Testing PartnerNotification...')
@@ -821,6 +844,7 @@ if __name__ == '__main__':
     r11 = test_art_duration(do_plot=do_plot)
     r11a = test_art_vls_coverage_stock_tracks_over_time(do_plot=do_plot)
     r11b = test_art_vls_coverage_stratified_stock()
+    r11c = test_hiv_care()
     r12 = test_pn()
     r13 = test_pn_rates()
     r14 = test_pn_rates_sim()
