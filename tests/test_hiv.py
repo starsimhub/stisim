@@ -846,7 +846,7 @@ def test_on_art_mortality_invariant_enforced():
 
     def _init(**kwargs):
         hiv = sti.HIV(**kwargs)
-        sim = ss.Sim(diseases=hiv, networks=sti.StructuredSexual(), n_agents=tiny_pop,
+        sim = ss.Sim(diseases=hiv, networks=sti.StructuredSexual(), interventions=sti.ART(), n_agents=tiny_pop,
                      start=2015, stop=2016, verbose=0)
         sim.init()
 
@@ -893,8 +893,8 @@ def test_art_efficacy_ramp_stays_in_bounds():
         sti.HIV.update_transmission = orig
 
     min_rel_trans = min(mins)
-    hiv = sim.diseases.hiv
-    min_possible = 1 - max(hiv.pars.effective_art_efficacy, hiv.pars.nonsupp_art_efficacy)
+    art = sim.interventions.art
+    min_possible = 1 - max(art.pars.effective_art_efficacy, art.pars.nonsupp_art_efficacy)
     assert min_rel_trans >= min_possible - 1e-9, (
         f'rel_trans for on-ART agents should never drop below 1-full_eff={min_possible}, '
         f'got min {min_rel_trans} over the run. A dt/unit mismatch in the efficacy ramp would let this go negative.'
