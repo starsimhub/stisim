@@ -691,6 +691,11 @@ def test_hiv_care():
     assert n(lost) < n(base), f'Loss to follow-up should lower the number on ART ({n(lost)} vs {n(base)})'
     assert n(back) > n(lost), f'Returning to care, where ART is offered again, should raise it ({n(back)} vs {n(lost)})'
     assert back.interventions.hivcare.lost.any(), 'Some should be lost to follow-up'
+
+    women = lambda sim, uids: np.where(sim.people.female[uids], 0.5, 0.0) # Testing probability for each agent
+    sim = sti.Sim(diseases='hiv', interventions=[sti.HIVTest(test_prob_data=women), sti.HIVCare(), sti.ART()], n_agents=n_agents, start=2000, stop=2010, verbose=0).run()
+    hiv = sim.diseases.hiv
+    assert (hiv.diagnosed & sim.people.female).any() and not (hiv.diagnosed & sim.people.male).any(), 'A testing probability by agent should test only those it gives one to'
     return base, lost, back
 
 

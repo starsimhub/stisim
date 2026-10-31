@@ -76,7 +76,7 @@ class STITest(ss.Intervention):
                         test outcomes (sensitivity, specificity). If None,
                         subclasses supply a default (e.g. HIVTest uses a perfect
                         HIVDx). For STITest, a product is required.
-        test_prob_data: annual testing probability (if dt_scale=True, the default)
+        test_prob_data: annual testing probability (if dt_scale=True, the default): a number, an array by year (see years), or a function f(sim, uids) giving one for each agent
                         or per-timestep probability (if dt_scale=False). Accepts a
                         scalar (constant probability), an array (one value per
                         entry in ``years``), or a DataFrame (subclass-specific,
@@ -184,11 +184,14 @@ class STITest(ss.Intervention):
         if sc.isnumber(self.test_prob_data):
             test_prob = self.test_prob_data
 
+        elif callable(self.test_prob_data): # A probability for each agent, e.g. by group or CD4 count
+            test_prob = np.asarray(self.test_prob_data(sim, uids), dtype=float)
+
         elif sc.checktype(self.test_prob_data, 'arraylike'):
             year_ind = sc.findnearest(self.years, self.t.now('year'))
             test_prob = self.test_prob_data[year_ind]
         else:
-            errormsg = 'Format of test_prob_data must be float or array.'
+            errormsg = 'Format of test_prob_data must be a float, an array, or a function of the sim and agents.'
             raise ValueError(errormsg)
 
         # Scale and validate
