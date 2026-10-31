@@ -43,8 +43,8 @@ def test_syph_epi():
     for i, (par, (lo, hi)) in enumerate(par_effects.items()):
         s0, s1 = sims[2*i], sims[2*i+1]
         ind = 1 if par == 'init_prev' else -1
-        v0 = s0.results.syph.cum_infections[ind]
-        v1 = s1.results.syph.cum_infections[ind]
+        v0 = s0.results.syph.infection.cum[ind]
+        v1 = s1.results.syph.infection.cum[ind]
         print(f'Checking with varying {par:10s} ... ', end='')
         assert v0 <= v1, f'Expected infections to be lower with {par}={lo} than with {par}={hi}, but {v0} > {v1})'
         print(f'✓ ({v0} <= {v1})')
@@ -151,7 +151,7 @@ def test_optional_stratification(n_agents=500):
         assert len(r_none) < len(r_full), f'{name}: expected fewer results without stratification'
         assert not [k for k in r_none.keys() if k.endswith(('_f', '_m')) or '_15_20' in k], \
             f'{name}: stratified results should not be defined'
-        assert 'prevalence' in r_none and 'new_infections' in r_none, f'{name}: main results should remain'
+        assert 'prevalence' in r_none and 'infection' in r_none, f'{name}: main results should remain'
 
         # Everything still computed must be bit-identical to the fully stratified run
         for key in r_none.keys():

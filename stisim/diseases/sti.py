@@ -115,10 +115,11 @@ class STIResults:
             is_subpop = skk != ''  # Sex-stratified results are not auto-plotted
             results += [
                 ss.Result(f'incidence{skk}', scale=False, label=f"Incidence{skl}", auto_plot=not is_subpop),
-                ss.Result(f'new_infections{skk}', dtype=int, label=f"New infections{skl}", auto_plot=False),
                 ss.Result(f'prevalence{skk}', scale=False, label=f"Prevalence{skl}", auto_plot=not is_subpop),
                 ss.Result(f'infected{skk}', dtype=int, kind='stock', label=f"Number infected{skl}", auto_plot=False),
             ]
+            if is_subpop: # For everyone, it is `infection`, from ss.Infection
+                results += [ss.Result(f'new_infections{skk}', dtype=int, label=f"New infections{skl}", auto_plot=False)]
             for ab1, ab2 in self.age_strata():
                 ask = f'{skk}_{ab1}_{ab2}'
                 asl = f' ({skl}, {ab2}-{ab2})'
@@ -200,8 +201,10 @@ class STIResults:
             inf_s = infected & sex
             n_new = t.count(new_s)
             self.results[f'prevalence{skk}'][ti] = t.div(t.count(inf_s & t.adults), t.count(t.adults & sex))
-            if skk or ti == 0: # For everyone, ss.Infection counts the infections as they happen (including those of people who die in the step), but not those seeded at the start
+            if skk:
                 self.results[f'new_infections{skk}'][ti] = n_new
+            elif ti == 0: # For everyone, ss.Infection counts the infections as they happen (including those of people who die in the step), but not those seeded at the start
+                self.results.infection[ti] = n_new
             self.results[f'infected{skk}'][ti] = t.count(inf_s)
             self.results[f'incidence{skk}'][ti] = t.div(n_new, t.count(sus_s))
             if self.age_bins is not None:
@@ -225,6 +228,7 @@ def init_prev_by_group(sim, uids, data, rel_init_prev=1, active=True):
     elif isinstance(data, pd.DataFrame):
         init_prev = np.zeros(len(uids), dtype=ss_float_)
         nw = sim.networks.structuredsexual
+        nw.init_post() # A disease's init_post() comes before its networks', and this needs their risk groups and sex work
         for rg in range(nw.pars.n_risk_groups):
             for sex in ['female', 'male']:
                 for sw in [0, 1]:

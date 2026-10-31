@@ -151,7 +151,7 @@ with sc.options.with_style('fancy'):
     labels, totals, bar_colors = [], [], []
     for (label, sim), color in zip(results.items(), colors):
         mask = (sim.t.yearvec >= 2025) & (sim.t.yearvec < 2030)
-        totals.append(float(sim.results.hiv.new_infections[mask].sum()))
+        totals.append(float(sim.results.hiv.infection[mask].sum()))
         labels.append(label)
         bar_colors.append(color)
     axes[1].bar(labels, totals, color=bar_colors, edgecolor='white', linewidth=0.5)

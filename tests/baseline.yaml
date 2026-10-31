@@ -16,7 +16,6 @@ hiv_circ_traditional: 0.0
 hiv_circumcised: 9980.999
 hiv_cum_deaths: 309410.96900000004
 hiv_cum_diagnoses: 1072957.3924999991
-hiv_cum_infections: 1307510.8689999983
 hiv_diagnosed: 688688.931
 hiv_falling: 44914.4955
 hiv_incidence: 0.0004505926080403394
@@ -73,6 +72,7 @@ hiv_infected_m_30_35: 79847.992
 hiv_infected_m_35_50: 109790.989
 hiv_infected_m_50_65: 29942.997
 hiv_infected_m_65_100: 9980.999
+hiv_infection: 1307510.869
 hiv_latent: 329372.967
 hiv_n_on_art_pregnant: 34933.4965
 hiv_new_agents_on_art: 494059.4505
@@ -87,7 +87,6 @@ hiv_new_false_neg_m: 0.0
 hiv_new_false_pos: 0.0
 hiv_new_false_pos_f: 0.0
 hiv_new_false_pos_m: 0.0
-hiv_new_infections: 1307510.869
 hiv_new_infections_0_15: 54895.4945
 hiv_new_infections_15_20: 104800.4895
 hiv_new_infections_20_25: 349334.96499999997

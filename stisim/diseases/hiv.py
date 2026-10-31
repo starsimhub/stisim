@@ -211,7 +211,7 @@ class HIV(ss.Infection, STIResults):
         """ Plot key HIV results """
         import matplotlib.pyplot as plt
         res = self.results
-        keys = ['new_infections', 'new_deaths', 'prevalence', 'prevalence_15_49', 'new_diagnoses', 'p_on_art']
+        keys = ['infection', 'new_deaths', 'prevalence', 'prevalence_15_49', 'new_diagnoses', 'p_on_art']
         keys = [k for k in keys if k in res] # Only plot keys that exist
         with sc.options.with_style('fancy'):
             fig, axs = sc.getrowscols(len(keys), make=True)

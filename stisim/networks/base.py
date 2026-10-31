@@ -119,8 +119,10 @@ class BaseNetwork(ss.SexualNet):
         return
 
     def init_post(self):
-        super().init_post(add_pairs=False)
-        self.set_network_states()
+        """ Set the first network states, once: a disease that seeds infections by these states calls this before the sim does (see `sti.init_prev_by_group()`) """
+        if not self.initialized:
+            super().init_post(add_pairs=False)
+            self.set_network_states()
         return
 
     def set_network_states(self, upper_age=None):

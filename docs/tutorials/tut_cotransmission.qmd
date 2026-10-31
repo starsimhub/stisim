@@ -122,8 +122,8 @@ s1.run(verbose=0)
 
 # Compare cumulative HIV infections
 fig, ax = plt.subplots()
-ax.plot(s0.timevec, s0.results.hiv.cum_infections, label='Without connector')
-ax.plot(s1.timevec, s1.results.hiv.cum_infections, label='With hiv_syph connector')
+ax.plot(s0.timevec, s0.results.hiv.infection.cum, label='Without connector')
+ax.plot(s1.timevec, s1.results.hiv.infection.cum, label='With hiv_syph connector')
 ax.set_xlabel('Year')
 ax.set_ylabel('Cumulative HIV infections')
 ax.set_title('Effect of syphilis coinfection on HIV acquisition')

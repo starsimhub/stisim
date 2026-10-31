@@ -25,7 +25,7 @@ def test_msm_network(n_agents=2000): # 500 agents gave no infections for some se
     )
     sim.run(verbose=1/12)
 
-    assert sim.results.hiv.cum_infections[-1] > 0, "MSM network should produce HIV infections"
+    assert sim.results.hiv.infection.cum[-1] > 0, "MSM network should produce HIV infections"
     return sim
 
 
@@ -209,7 +209,7 @@ def test_match_pairs_refactor_preserves_output():
     import numpy as np
     import starsim as ss
     import stisim as sti
-    sim = ss.Sim(n_agents=2_000, networks=sti.StructuredSexual(), diseases='sis',
+    sim = ss.Sim(n_agents=2_000, networks=sti.StructuredSexual(), diseases=ss.SIS(beta=ss.peract(0.05)),
                  start='2000-01-01', stop='2001-01-01', rand_seed=42)
     sim.init()
     net = sim.networks.structuredsexual

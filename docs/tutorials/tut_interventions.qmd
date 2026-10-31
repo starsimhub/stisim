@@ -87,7 +87,7 @@ axes[0].set_xlabel('Year')
 axes[0].set_ylabel('HIV prevalence (15-49)')
 axes[0].legend()
 
-axes[1].plot(sim_intv.timevec, sim_intv.results.hiv.new_infections, alpha=0.7)
+axes[1].plot(sim_intv.timevec, sim_intv.results.hiv.infection, alpha=0.7)
 axes[1].set_xlabel('Year')
 axes[1].set_ylabel('New HIV infections')
 axes[1].set_title('Infections with ART')
@@ -130,7 +130,7 @@ sim = hivsim.demo('simple', run=False, plot=False, n_agents=3000,
                   networks=[sti.StructuredSexual(), ss.MaternalNet(), ss.BreastfeedingNet()])
 sim.pars.interventions = [fsw_test, gp_test, art2]
 sim.run(verbose=0)
-sim.plot(key=['hiv.prevalence_15_49', 'hiv.new_infections', 'hiv.on_art'])
+sim.plot(key=['hiv.prevalence_15_49', 'hiv.infection', 'hiv.on_art'])
 ```
 
 ## ART coverage formats and monitoring

@@ -228,7 +228,7 @@ def check_coverage(rows, exclude=()):
         defined = {k for k, v in cls().pars.items() if not getattr(v, 'slot_named', False)} # Not those a declared model names after a slot (e.g. "dur" for a dur=0)
         if issubclass(cls, ss.Disease): # And the keywords of a declared disease, e.g. init_prev or birth_outcomes
             not_pars = ['pars', 'name', 'label', 'kwargs', 'age_bins', 'age_range', 'sex_keys', 'include_care', 'init_prev_data'] # What a disease is made with that is not one of its parameters
-            defined |= {'init_prev'} | {k for k in inspect.signature(cls).parameters if k not in not_pars}
+            defined |= {'init_prev'} | {k for k in list(inspect.signature(cls.__init__).parameters)[1:] if k not in not_pars}
         out[cls.__name__] = (sorted(defined - documented - set(exclude)), sorted(documented - defined))
     return out
 

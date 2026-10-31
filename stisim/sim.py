@@ -212,7 +212,7 @@ class Sim(ss.Sim):
         if isinstance(key, str) and key in self.diseases:
             if key == 'hiv':
                 key = [
-                    'hiv_new_infections',
+                    'hiv_infection',
                     'hiv_new_deaths',
                     'hiv_infected',
                     'hiv_prevalence',

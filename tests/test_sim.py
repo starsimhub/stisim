@@ -20,7 +20,7 @@ def test_minimal_hiv():
     """ Simplest possible HIV sim — no manually specified modules """
     sim = sti.Sim(diseases='hiv', n_agents=500, dur=10)
     sim.run()
-    assert sim.results.hiv.cum_infections[-1] > 0
+    assert sim.results.hiv.infection.cum[-1] > 0
     return sim
 
 
@@ -28,7 +28,7 @@ def test_minimal_sti():
     """ Simplest possible non-HIV STI sim """
     sim = sti.Sim(diseases='ng', n_agents=500, dur=10)
     sim.run()
-    assert sim.results.ng.cum_infections[-1] > 0
+    assert sim.results.ng.infection.cum[-1] > 0
     return sim
 
 
@@ -127,7 +127,7 @@ def test_hivsim_defaults():
     assert 'hiv' in sim.diseases, "HIV disease not added"
 
     sim.run()
-    assert sim.results.hiv.cum_infections[-1] > 0
+    assert sim.results.hiv.infection.cum[-1] > 0
     return sim
 
 
