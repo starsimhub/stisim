@@ -2,6 +2,10 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Version 1.7.2 (2026-11-01)
+
+Require Starsim below 4 (`starsim<4`), since this version does not run on Starsim 4.
+
 ## Version 1.7.1 (2026-10-12)
 
 ### Parameter tables
