@@ -15,6 +15,10 @@ STIsim now runs on Starsim 4 (`starsim>=4.0.0`), and is about 1.4 times faster w
 - `sti.gud_syph` is removed: it could not be made (it passed `requires=`, which Starsim no longer takes), and its `update()` was never called, so it never had an effect.
 - Fixes: connectors given module objects (`sti.hiv_syph(hiv, syph)`) act on the sim's own copies (before, on stale copies, so silently not at all), through the new base class `sti.Coinfection`; `sti.Sim(verbose=...)` reaches the sim; the MSM networks are networks between men (`between='mm'`); treatments write into a disease's results at the disease's own timestep; BV no longer clears everyone ever cleared at every step; demographic rates given every decade are interpolated to every year.
 
+## Version 1.7.2 (2026-11-01)
+
+Require Starsim below 4 (`starsim<4`), since this version does not run on Starsim 4.
+
 ## Version 1.7.1 (2026-10-12)
 
 ### Parameter tables
