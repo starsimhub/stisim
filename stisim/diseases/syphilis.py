@@ -576,6 +576,7 @@ class Syphilis(ss.Infection, STIResults):
 
     def finalize_results(self):
         super().finalize_results()
+        self.finalize_sti_results()
         res = self.results
         res['cum_congenital'][:] = np.cumsum(res['new_congenital'])
         res['cum_congenital_deaths'][:] = np.cumsum(res['new_congenital_deaths'])

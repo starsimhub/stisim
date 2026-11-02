@@ -539,6 +539,7 @@ class HIV(ss.Infection, STIResults):
 
     def finalize_results(self):
         super().finalize_results()
+        self.finalize_sti_results()
         res = self.results
         res['cum_deaths'][:] = np.cumsum(res['new_deaths'][:])
         res['cum_diagnoses'][:] = np.cumsum(res['new_diagnoses'][:])

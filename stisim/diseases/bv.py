@@ -360,3 +360,8 @@ class BV(ss.Infection, STIResults):
             res[f'{key}_prevalence'][ti] = t.div(t.count(t.vals(state) & women), n_women)
         res.new_symptomatic[ti] = t.count(t.vals(self.symptoms))
         return
+
+    def finalize_results(self):
+        super().finalize_results()
+        self.finalize_sti_results()
+        return
