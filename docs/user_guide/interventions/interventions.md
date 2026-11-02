@@ -227,6 +227,29 @@ art = sti.ART(coverage={'year': [2000, 2025], 'value': [0, 0.9]}, smoothness=5)
 | `pmtct_efficacy` | 0.96 | Efficacy of maternal ART in reducing infant susceptibility to HIV, applied to both prenatal (MaternalNet) and postnatal (BreastfeedingNet) transmission. |
 | `smoothness` | 0 | Interpolation smoothness for coverage data (0 = linear, higher = smoother S-curves). |
 | `format_priority` | 'n' | When both `n_art` and `p_art` are non-NaN, prefer this format (`'n'` or `'p'`). |
+| `art_priority` | None | Under a coverage target, a function `f(sim, uids)` giving each agent a priority: higher starts first, lower stops first. By default, the lowest CD4 count over care seeking. |
+| `rate_failure` | peryear(0) | Rate at which people suppressed on ART become unsuppressed (or a function `f(sim, uids)` giving a rate per year for each). |
+| `rate_regain` | peryear(0) | Rate at which people unsuppressed on ART become suppressed again (or a function, as above). |
+
+### HIVCare
+
+`sti.HIVCare` adds being in care to the pipeline: people referred by testing are in care after `dur_link`, and can be lost to follow-up and return. With it, ART starts only for people in care. ART runs it at the start of its own step, so its place in the list doesn't matter. Its defaults reproduce the pipeline without it: people are in care as soon as they are referred, and stay.
+
+```python
+# A year to link to care on average, 10% a year lost before ART, 5% a year lost on ART (stopping it), 30% a year returning
+care = sti.HIVCare(dur_link=ss.expon(ss.years(1)), rate_loss=ss.peryear(0.1), rate_loss_art=ss.peryear(0.05), rate_return=ss.peryear(0.3))
+sim = sti.Sim(diseases='hiv', interventions=[sti.HIVTest(test_prob_data=0.2), care, sti.ART()])
+```
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `dur_link` | constant(0) | Time from referral to being in care, when ART can start |
+| `rate_loss` | peryear(0) | Loss to follow-up of people in care and not on ART |
+| `rate_loss_art` | peryear(0) | Loss to follow-up of people on ART, who stop it |
+| `rate_return` | peryear(0) | Return to care of people lost to follow-up, who are offered ART again |
+| `p_lost_at_stop` | bernoulli(0) | Probability of being lost to follow-up on stopping ART for any other reason (otherwise people stay in care, and a coverage target can restart them) |
+
+Each rate can also be a function of the sim and the agents, giving a rate per year for each (e.g. higher with AIDS). Its states are `in_care` and `lost`.
 
 ### VMMC
 

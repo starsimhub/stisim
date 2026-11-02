@@ -202,6 +202,8 @@ Pars of `sti.HIV`. The Source column follows the conventions of the [parameter r
 
 ### Treatment (ART)
 
+These are parameters of `sti.ART`. Given to `sti.HIV` (as in earlier versions), they are passed on to ART.
+
 | Parameter | Default | Description | Source |
 |-----------|---------|-------------|--------|
 | `effective_art_efficacy` | 0.99 | Reduction in transmission on effective (virally suppressive) ART | [Rodger 2016](https://doi.org/10.1001/jama.2016.5148); [Rodger 2019](https://doi.org/10.1016/S0140-6736(19)30418-0); [Bavinton 2018](https://doi.org/10.1016/S2352-3018(18)30132-2) |

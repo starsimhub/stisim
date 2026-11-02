@@ -672,6 +672,54 @@ def test_art_dx2tx_delay(do_plot=do_plot):
 
 
 @sc.timer()
+def test_hiv_care():
+    """ HIV care's defaults change nothing; with loss to follow-up, fewer are on ART, and returning to care (where ART is offered again) raises it """
+    sc.heading('Testing HIV care (linkage, loss to follow-up, return)...')
+
+    def make_sim(care=None):
+        intvs = [sti.HIVTest(test_prob_data=0.3)] + ([care] if care is not None else []) + [sti.ART()]
+        return sti.Sim(diseases='hiv', interventions=intvs, n_agents=n_agents, start=2000, stop=2015, rand_seed=2, verbose=0).run()
+
+    base = make_sim()
+    default = make_sim(sti.HIVCare())
+    for key in ['infected', 'on_art', 'new_deaths', 'diagnosed']:
+        assert np.array_equal(base.results.hiv[key], default.results.hiv[key]), f'HIVCare() with its defaults changed hiv.{key}'
+
+    lost = make_sim(sti.HIVCare(rate_loss=ss.peryear(2), rate_loss_art=ss.peryear(0.5)))
+    back = make_sim(sti.HIVCare(rate_loss=ss.peryear(2), rate_loss_art=ss.peryear(0.5), rate_return=ss.peryear(1)))
+    n = lambda sim: sim.results.hiv.on_art[-12:].mean()
+    assert n(lost) < n(base), f'Loss to follow-up should lower the number on ART ({n(lost)} vs {n(base)})'
+    assert n(back) > n(lost), f'Returning to care, where ART is offered again, should raise it ({n(back)} vs {n(lost)})'
+    assert back.interventions.hivcare.lost.any(), 'Some should be lost to follow-up'
+
+    women = lambda sim, uids: np.where(sim.people.female[uids], 0.5, 0.0) # Testing probability for each agent
+    sim = sti.Sim(diseases='hiv', interventions=[sti.HIVTest(test_prob_data=women), sti.HIVCare(), sti.ART()], n_agents=n_agents, start=2000, stop=2010, verbose=0).run()
+    hiv = sim.diseases.hiv
+    assert (hiv.diagnosed & sim.people.female).any() and not (hiv.diagnosed & sim.people.male).any(), 'A testing probability by agent should test only those it gives one to'
+    return base, lost, back
+
+
+@sc.timer()
+def test_art_suppression_and_priority():
+    """ Treatment failure lowers the share suppressed and regaining suppression raises it; a custom priority decides who starts under a target """
+    sc.heading('Testing ART suppression rates and priority...')
+
+    def make_sim(**art_pars):
+        art = sti.ART(coverage=0.5, **art_pars)
+        return sti.Sim(diseases='hiv', interventions=[sti.HIVTest(test_prob_data=0.5), art], n_agents=n_agents, start=2000, stop=2012, rand_seed=2, verbose=0).run()
+
+    share = lambda sim: sim.interventions.art.on_effective_art.sum()/max(sim.interventions.art.on_treatment.sum(), 1)
+    base, fail, both = make_sim(), make_sim(rate_failure=ss.peryear(0.5)), make_sim(rate_failure=ss.peryear(0.5), rate_regain=ss.peryear(2))
+    assert share(base) == 1, 'All on ART are suppressed by default'
+    assert share(fail) < share(both) < 1, f'Failure lowers the share suppressed, and regaining raises it ({share(fail):.2f}, {share(both):.2f})'
+
+    high_cd4 = make_sim(art_priority=lambda sim, uids: sim.diseases.hiv.cd4[uids]) # Highest CD4 count first: the opposite of the default
+    cd4_at_start = lambda sim: np.nanmean(sim.interventions.art.cd4_preart[sim.interventions.art.on_treatment.uids])
+    assert cd4_at_start(high_cd4) > cd4_at_start(base), 'A priority of the highest CD4 count should treat people with higher CD4 counts'
+    return base, fail, both, high_cd4
+
+
+@sc.timer()
 def test_pn():
     """ PartnerNotification: with PN, more HIV diagnoses occur than without """
     sc.heading('Testing PartnerNotification...')
@@ -821,6 +869,8 @@ if __name__ == '__main__':
     r11 = test_art_duration(do_plot=do_plot)
     r11a = test_art_vls_coverage_stock_tracks_over_time(do_plot=do_plot)
     r11b = test_art_vls_coverage_stratified_stock()
+    r11c = test_hiv_care()
+    r11d = test_art_suppression_and_priority()
     r12 = test_pn()
     r13 = test_pn_rates()
     r14 = test_pn_rates_sim()
