@@ -25,13 +25,13 @@ def make_sim(**kwargs):
     for k in nw_kwargs: kwargs.pop(k)  # consumed here, don't re-route in sti.Sim
 
     if 'networks' not in kwargs:
-        nets = [sti.MFNetwork(**nw_kwargs), ss.MaternalNet()]
-        # BreastfeedingNet only makes sense if Pregnancy is in demographics.
+        nets = [sti.MFNetwork(**nw_kwargs)]
+        # MaternalNet and BreastfeedingNet need Pregnancy in demographics.
         # User-supplied demographics: respect them. Otherwise hivsim.Sim defaults
-        # to Pregnancy + Deaths, so include BreastfeedingNet.
+        # to Pregnancy + Deaths, so include them.
         demog = kwargs.get('demographics')
         if demog is None or any(isinstance(m, ss.Pregnancy) for m in sc.tolist(demog)):
-            nets.append(ss.BreastfeedingNet())
+            nets += [ss.MaternalNet(), ss.BreastfeedingNet()]
         kwargs['networks'] = nets
     kwargs.setdefault('interventions', [sti.HIVTest(), sti.ART(), sti.VMMC()])
     return hivsim.Sim(**kwargs)

@@ -260,10 +260,15 @@ class Sim(ss.Sim):
 
         else:
             # If no networks are provided, create them based on the network parameters
-            networks = ss.ndict(
-                sti.StructuredSexual(pars=self.nw_pars),
-                ss.MaternalNet(),
-            )
+            networks = ss.ndict(sti.StructuredSexual(pars=self.nw_pars))
+            demographics = self.pars['demographics']
+            if sc.checktype(demographics, str): # A location, whose demographics are built next
+                has_pregnancy = self.pars['use_pregnancy']
+            else:
+                modules = demographics.values() if isinstance(demographics, dict) else sc.tolist(demographics)
+                has_pregnancy = any(isinstance(mod, ss.Pregnancy) for mod in modules)
+            if has_pregnancy: # ss.Pregnancy makes the maternal network's edges
+                networks.append(ss.MaternalNet())
         return networks
 
     def process_demographics(self):

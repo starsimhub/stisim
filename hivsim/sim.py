@@ -16,11 +16,15 @@ def _default_interventions():
 
 
 def _default_networks(demographics):
-    """Default networks: sexual + maternal, + breastfeeding if Pregnancy is present."""
-    nets = [sti.StructuredSexual(), ss.MaternalNet()]
+    """Default networks: sexual, + maternal and breastfeeding if Pregnancy is present."""
+    return [sti.StructuredSexual()] + _pregnancy_networks(demographics)
+
+
+def _pregnancy_networks(demographics):
+    """The networks that ss.Pregnancy makes the edges of, if it is present."""
     if any(isinstance(m, ss.Pregnancy) for m in sc.tolist(demographics)):
-        nets.append(ss.BreastfeedingNet())
-    return nets
+        return [ss.MaternalNet(), ss.BreastfeedingNet()]
+    return []
 
 
 class Sim(sti.Sim):
@@ -83,9 +87,7 @@ class Sim(sti.Sim):
                     nw_kwargs[k] = pars.pop(k)
             if nw_kwargs:
                 # Apply user's nw_pars to the default StructuredSexual.
-                pars['networks'] = [sti.StructuredSexual(**nw_kwargs), ss.MaternalNet()]
-                if any(isinstance(m, ss.Pregnancy) for m in sc.tolist(demographics)):
-                    pars['networks'].append(ss.BreastfeedingNet())
+                pars['networks'] = [sti.StructuredSexual(**nw_kwargs)] + _pregnancy_networks(demographics)
             else:
                 pars['networks'] = _default_networks(demographics)
 

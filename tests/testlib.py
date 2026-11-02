@@ -34,8 +34,10 @@ def build_testing_sim(n_agents: int = 500,
     if prior_network is not None:
         networks.append(prior_network)
 
-    if maternal_network == DEFAULT_STR:
+    if maternal_network == DEFAULT_STR and pregnancy is not None: # ss.Pregnancy makes its edges
         maternal_network = ss.MaternalNet()
+    elif maternal_network == DEFAULT_STR:
+        maternal_network = None
     if maternal_network is not None:
         networks.append(maternal_network)
 
