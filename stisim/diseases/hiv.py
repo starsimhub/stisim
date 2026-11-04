@@ -466,7 +466,7 @@ class HIV(ss.Infection, STIResults):
         self.ti_zero[uids] = self.ti_falling[uids] + p.dur_falling.rvs(uids)
         return
 
-    def step_die(self, uids):
+    def on_death(self, uids):
         """ The people who died leave the states of HIV """
         for state in [self.infected, self.acute, self.latent, self.falling, self.on_effective_art, self.on_nonsuppressive_art, self.art_discontinued, self.on_prep, self.susceptible]:
             state[uids] = False
