@@ -662,7 +662,7 @@ class ART(ss.Intervention):
         cd4_total_gain = self.cd4_potential[uids] - cd4_preart
         return 2*cd4_total_gain/(1 + np.exp(-dur_art*self.pars.art_cd4_growth)) - cd4_total_gain + cd4_preart # Concave logistic
 
-    def start_art(self, uids, p_effective_art=None):
+    def start_art(self, uids, p_effective_art=None, effective=None):
         """
         Put agents on ART: suppressed, or not; it takes them out of HIV's natural history
 
@@ -672,6 +672,8 @@ class ART(ss.Intervention):
                 ART) rather than non-suppressive ART. Pass a float to override `self.pars.p_effective_art`'s probability,
                 or an already-initialized `ss.Dist` to use it directly. Defaults to `self.pars.p_effective_art` (default:
                 always effective).
+            effective (array, optional): whether each achieves viral suppression, chosen by the caller (e.g. a cascade
+                of care with its own arms), in place of a draw; then `p_effective_art` is not used.
         """
         hiv = self.hiv
         ti = hiv.ti
@@ -682,7 +684,9 @@ class ART(ss.Intervention):
         self.cd4_preart[uids] = hiv.cd4[uids]
 
         # Whether each achieves viral suppression (effective ART) or not, e.g. due to poor adherence or drug resistance
-        if isinstance(p_effective_art, ss.Dist):
+        if effective is not None:
+            effective = uids[np.asarray(effective, dtype=bool)]
+        elif isinstance(p_effective_art, ss.Dist):
             effective = p_effective_art.filter(uids)
         else:
             if p_effective_art is not None:
