@@ -62,7 +62,7 @@ class Sim(ss.Sim):
         ```python
         sim = sti.Sim(network_pars={
                     'structuredsexual': dict(sw_seeking_rate=0.5),
-                    'maternalnet': dict(maternal_age=30),
+                    'prenatalnet': dict(maternal_age=30),
         })
         ```
 
@@ -83,7 +83,7 @@ class Sim(ss.Sim):
 
     def __init__(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None, dem_pars=None,
                  label=None, people=None, demographics=None, diseases=None, networks=None,
-                 interventions=None, analyzers=None, connectors=None, custom=None,
+                 interventions=None, analyzers=None, connectors=None, modules=None,
                  datafolder=None, data=None, **kwargs):
 
         # Inputs and defaults
@@ -100,7 +100,7 @@ class Sim(ss.Sim):
 
         # Separate the parameters, storing sim pars now and saving module pars to process in init
         sim_kwargs = dict(label=label, people=people, demographics=demographics, diseases=diseases, networks=networks,
-                    interventions=interventions, analyzers=analyzers, connectors=connectors, custom=custom)
+                    interventions=interventions, analyzers=analyzers, connectors=connectors, modules=modules)
         sim_kwargs = {key: val for key, val in sim_kwargs.items() if val is not None}
         updated_pars = self.separate_pars(pars, sim_pars, sti_pars, nw_pars, dem_pars, sim_kwargs, **kwargs)
         self.pars.update(updated_pars)
@@ -188,7 +188,7 @@ class Sim(ss.Sim):
         self.pars['people'] = people
         self.pars['total_pop'] = total_pop
         if self.pars['demographics'] is not None:
-            self.pars.use_aging = True
+            self.pars.aging = True
 
         # Reset n_agents
         if self.pars['people'] is not None: self.pars['n_agents'] = len(self.pars['people'])
@@ -268,7 +268,7 @@ class Sim(ss.Sim):
                 modules = demographics.values() if isinstance(demographics, dict) else sc.tolist(demographics)
                 has_pregnancy = any(isinstance(mod, ss.Pregnancy) for mod in modules)
             if has_pregnancy: # ss.Pregnancy makes the maternal network's edges
-                networks.append(ss.MaternalNet())
+                networks.append(ss.PrenatalNet())
         return networks
 
     def process_demographics(self):
@@ -300,21 +300,21 @@ class Sim(ss.Sim):
             if self.pars['use_pregnancy']:
                 fertility_rates = stidata.get_rates(location, 'asfr', self.datafolder)
                 preg_pars = {k: v for k, v in self.dem_pars.items() if k in ss.Pregnancy().pars and k != 'fertility'}
-                metadata = dict(data_cols=dict(year='Time', age='AgeStart', value='Value'))
-                pregnancy = ss.Pregnancy(fertility_rate=fertility_rates, pars=preg_pars, metadata=metadata)
+                columns = dict(year='Time', age='AgeStart', value='Value')
+                pregnancy = ss.Pregnancy(fertility_rate=fertility_rates, pars=preg_pars, columns=columns)
                 demographics += pregnancy
             else:
                 birth_rates = stidata.get_rates(location, 'birth', self.datafolder)
                 birth_pars = {k: v for k, v in self.dem_pars.items() if k in ss.Births().pars.keys()}
-                metadata = dict(data_cols=dict(year='Time', value='Value'))
-                births = ss.Births(birth_rate=birth_rates, pars=birth_pars, metadata=metadata)
+                columns = dict(year='Time', value='Value')
+                births = ss.Births(birth_rate=birth_rates, pars=birth_pars, columns=columns)
                 demographics += births
 
             # Load death rates and turn into a module
             death_rates = stidata.get_rates(location, 'death', self.datafolder)
             death_pars = {k: v for k, v in self.dem_pars.items() if k in ss.Deaths().pars.keys()}
-            metadata = dict(data_cols=dict(year='Time', sex='Sex', age='AgeStart', value='Value'))
-            deaths = ss.Deaths(death_rate=death_rates, rate_units=1, pars=death_pars, metadata=metadata)
+            columns = dict(year='Time', sex='Sex', age='AgeStart', value='Value')
+            deaths = ss.Deaths(death_rate=death_rates, rate_per=1, pars=death_pars, columns=columns)
             demographics += deaths
 
             # Optionally add migration

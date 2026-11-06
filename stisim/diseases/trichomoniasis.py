@@ -42,7 +42,7 @@ class Trichomoniasis(SEIS):
 
             # PID
             p_pid = 0.0,
-            dur_prepid = ss.lognorm_ex(ss.weeks(6), ss.weeks(4)),
+            dur_prepid = ss.lognormal(ss.weeks(6), ss.weeks(4)),
 
             # Transmission and initial conditions
             beta_m2f = 0.1,

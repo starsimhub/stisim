@@ -149,7 +149,7 @@ def test_partner_seeking_rates():
     s2 = sti.Sim(networks=[high_p_pair_form], analyzers=[sti.TimeBetweenRelationships()], **kw)
 
     # Run the simulation
-    ss.parallel(s1, s2, debug=True)
+    ss.parallel(s1, s2, parallel=False)
 
     # compute the mean time between relationships for both sims, excluding the time until first relationship because some agents
     # take a long time to get their initial pairing, and some never do. This effect is magnified in higher probability

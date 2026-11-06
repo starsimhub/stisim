@@ -222,7 +222,7 @@ def test_hiv_syph():
     syphilis = sti.SyphilisPlaceholder(prevalence=None)
 
     pars['diseases'] = [hiv, syphilis]
-    pars['networks'] = [sti.StructuredSexual(), ss.MaternalNet()]
+    pars['networks'] = [sti.StructuredSexual(), ss.PrenatalNet()]
     pars['demographics'] = [ss.Pregnancy(fertility_rate=0), ss.Deaths(death_rate=0)]
     pars['interventions'] = PerformTest(events)
     output = TrackValues()

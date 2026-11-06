@@ -60,7 +60,7 @@ class BV(ss.Disease, STIResults):
         lifelong = lambda func, **kw: ss.lifelong(partial(func, **kw)) # By the stable CST alone, which each woman has from birth, so worked out once for each
         susceptible, cst1, cst3, presymptomatic, asymptomatic, symptomatic, colonized = ss.states('susceptible cst1 cst3 presymptomatic asymptomatic symptomatic colonized')
         cst4 = presymptomatic + asymptomatic + symptomatic
-        female = ss.ppl.female
+        female = ss.person.female
 
         # Girls take their stable CST at birth, and everyone at the start (see p_assign())
         assign = ss.Transition(susceptible, [cst1, cst3, presymptomatic, asymptomatic], p=[partial(self.p_assign, cst=1), partial(self.p_assign, cst=3), partial(self.p_assign, cst=4), None], dur=0, where=female)
@@ -251,7 +251,7 @@ class BV(ss.Disease, STIResults):
         preg = self.sim.demographics.pregnancy
         uids = uids.intersect(preg.P.uids)
         if len(uids):
-            trimester = np.digitize(preg.P.time[uids].weeks, [13, 27]) + 1
+            trimester = np.digitize(preg.P.time_in[uids].weeks, [13, 27]) + 1
             preg.preterm_risk(uids, rel=[self.pars.or_ptb[t] for t in trimester]) # For this redraw, on top of her own risk
         return
 
@@ -298,16 +298,21 @@ class BV(ss.Disease, STIResults):
         )
         return
 
-    def update_results(self):
-        super().update_results()
+    def record_stocks(self):
+        super().record_stocks()
         t = self.tally()
-        self.update_sti_results(t)
+        self.record_sti_stocks(t)
         ti = self.ti
         res = self.results
         women = t.vals(self.sim.people.female) & (np.asarray(self.sim.people.age.values) >= 15)
         n_women = t.count(women)
         for key, state in [('cst1', self.cst1), ('cst3', self.cst3), ('cst4', self.cst4), ('symp', self.symptomatic)]:
             res[f'{key}_prevalence'][ti] = t.div(t.count(t.vals(state) & women), n_women)
+        return
+
+    def record_flows(self):
+        super().record_flows()
+        self.record_sti_flows()
         return
 
     def finalize_results(self):

@@ -21,9 +21,9 @@ class BasePars(ss.Pars):
     def __init__(self, **kwargs):
         super().__init__()
         self.recall_prior = False
-        self.debut_f = ss.lognorm_ex(20, 3)
-        self.debut_m = ss.lognorm_ex(21, 3)
-        self.acts = ss.lognorm_ex(ss.freqperyear(80), ss.freqperyear(30))
+        self.debut_f = ss.lognormal(20, 3)
+        self.debut_m = ss.lognormal(21, 3)
+        self.acts = ss.lognormal(ss.freqperyear(80), ss.freqperyear(30))
         self.condom_data = None
         self.condom_smoothness = None  # Smoothness for sc.smoothinterp on time-varying condom_data
         self.update(kwargs)

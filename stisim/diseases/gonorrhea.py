@@ -41,7 +41,7 @@ class Gonorrhea(SEIS):
 
             # PID
             p_pid = 0.0, # TODO
-            dur_prepid = ss.lognorm_ex(ss.months(1.5), ss.months(3)),
+            dur_prepid = ss.lognormal(ss.months(1.5), ss.months(3)),
 
             # Transmission and initial conditions
             beta_m2f = 0.06,

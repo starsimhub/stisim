@@ -51,9 +51,9 @@ class SWPars(ss.Pars):
 
         # Per-agent age window — placeholders; tune to context
         self.age_sw_start = ss.normal(loc=20, scale=3)
-        self.dur_sw = ss.lognorm_ex(mean=5, std=3)
+        self.dur_sw = ss.lognormal(mean=5, std=3)
         self.age_client_start = ss.normal(loc=25, scale=5)
-        self.dur_client = ss.lognorm_ex(mean=10, std=5)
+        self.dur_client = ss.lognormal(mean=10, std=5)
 
         self.update(kwargs)
         return

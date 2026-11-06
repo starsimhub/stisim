@@ -63,7 +63,7 @@ def lognorm_by_sex(female, male):
         dur = sti.lognorm_by_sex(female=[ss.months(8), ss.months(2)], male=[ss.months(6), ss.months(3)])
         ```
     """
-    return ss.lognorm_ex(mean=by_sex(female[0], male[0]), std=by_sex(female[1], male[1]))
+    return ss.lognormal(mean=by_sex(female[0], male[0]), std=by_sex(female[1], male[1]))
 
 
 class STIResults:
@@ -161,7 +161,7 @@ class STIResults:
         number for whom it holds (by weight, if agents' weights differ); `hist(mask)`, the same by age group (as `np.histogram()` gives it,
         the last group including its upper edge); `div(a, b)` and `hdiv(a, b)`, a ratio of counts or of histograms (0 where b is); and
         `adults`, who is in the age range of the main results; `events(*transitions)`, who went through any of them in the step. A disease
-        that works out who is infected itself can give it as `t.infected`, for `update_sti_results()`
+        that works out who is infected itself can give it as `t.infected`, for `record_sti_stocks()`
         """
         ppl = self.sim.people
         t = sc.objdict()
@@ -194,26 +194,41 @@ class STIResults:
                 self.results[f'{akey}{skk}_{ab1}_{ab2}'][self.ti] = ares[ai]
         return
 
-    def update_sti_results(self, t=None):
-        """ Count infections by sex and age (with `t` from `tally()`); incidence is counted at acquisition, including the infections seeded at the start """
+    def record_sti_stocks(self, t=None):
+        """ Count infections by sex and age at the start of the step (with `t` from `tally()`), and the susceptible, for the incidence over the step """
         ti = self.ti
         ppl = self.sim.people
         t = t or self.tally()
         infected = t.infected if 'infected' in t else t.vals(self.infected)
-        new, susceptible = t.vals(self.new_infected()), t.vals(self.susceptible)
+        susceptible = t.vals(self.susceptible)
+        self._susceptible = {} # The number susceptible at the start of the step, by sex (and by age), for record_sti_flows()
         for skk, skl, attr in self.sex_strata():
             sex = t.vals(ppl[attr])
-            new_s = new & sex
             sus_s = susceptible & sex
             inf_s = infected & sex
-            n_new = t.count(new_s)
             self.results[f'prevalence{skk}'][ti] = t.div(t.count(inf_s & t.adults), t.count(t.adults & sex))
-            self.results[f'new_infections{skk}'][ti] = n_new
             self.results[f'infected{skk}'][ti] = t.count(inf_s)
-            self.results[f'incidence{skk}'][ti] = t.div(n_new, t.count(sus_s))
+            self._susceptible[skk] = (t.count(sus_s), t.hist(sus_s) if self.age_bins is not None else None)
             if self.age_bins is not None:
-                h_new, h_inf = t.hist(new_s), t.hist(inf_s)
-                self.set_age_results(skk, new_infections=h_new, infected=h_inf, incidence=t.hdiv(h_new, t.hist(sus_s)), prevalence=t.hdiv(h_inf, t.hist(sex)))
+                h_inf = t.hist(inf_s)
+                self.set_age_results(skk, infected=h_inf, prevalence=t.hdiv(h_inf, t.hist(sex)))
+        return
+
+    def record_sti_flows(self, t=None):
+        """ Count the new infections of the step by sex and age (with `t` from `tally()`), and the incidence among those susceptible at its start; incidence is counted at acquisition, including the infections seeded at the start """
+        ti = self.ti
+        ppl = self.sim.people
+        t = t or self.tally()
+        new = t.vals(self.new_infected())
+        for skk, skl, attr in self.sex_strata():
+            new_s = new & t.vals(ppl[attr])
+            n_new = t.count(new_s)
+            n_sus, h_sus = self._susceptible[skk]
+            self.results[f'new_infections{skk}'][ti] = n_new
+            self.results[f'incidence{skk}'][ti] = t.div(n_new, n_sus)
+            if self.age_bins is not None:
+                h_new = t.hist(new_s)
+                self.set_age_results(skk, new_infections=h_new, incidence=t.hdiv(h_new, h_sus))
         return
 
     def finalize_sti_results(self):
@@ -328,30 +343,30 @@ class SEIS(ss.Disease, STIResults):
         p_clear = ss.par(1.0, doc='Probability that an asymptomatic infection in a woman clears (the rest persist)')
         dur_persist = ss.par(ss.constant(ss.years(100)), doc='Duration of a persistent infection')
         p_pid = ss.par(0.2, doc='Probability that an infected woman develops pelvic inflammatory disease (PID)')
-        dur_prepid = ss.par(ss.lognorm_ex(ss.weeks(6), ss.weeks(4)), name='dur_prepid', doc='Time from being infectious to PID')
+        dur_prepid = ss.par(ss.lognormal(ss.weeks(6), ss.weeks(4)), name='dur_prepid', doc='Time from being infectious to PID')
         p_pid_care = ss.par(0.1, doc='Probability that a woman with PID seeks care')
-        dur_pid2care = ss.par(ss.lognorm_ex(ss.weeks(2), ss.weeks(4)), name='dur_pid2care', doc='Time from PID to seeking care')
-        dur_pid2clear = ss.par(ss.lognorm_ex(ss.weeks(52), ss.weeks(5)), doc='Time from PID to clearance')
+        dur_pid2care = ss.par(ss.lognormal(ss.weeks(2), ss.weeks(4)), name='dur_pid2care', doc='Time from PID to seeking care')
+        dur_pid2clear = ss.par(ss.lognormal(ss.weeks(52), ss.weeks(5)), doc='Time from PID to clearance')
 
         # States
         susceptible, exposed, presymptomatic, asymptomatic, symptomatic, pid = ss.states('susceptible exposed presymptomatic asymptomatic symptomatic pid')
         infectious = presymptomatic + asymptomatic + symptomatic + pid
-        female = ss.ppl.female
+        female = ss.person.female
 
         # Transmission
         sexual = sexual_beta(beta_m2f, beta_m2f*rel_beta_f2m, beta_m2m)
         infection = susceptible >> exposed @ sexual*infectious
-        mtct = susceptible >> exposed @ beta_m2c*dict(maternalnet=ss.permonth(1), default=0)*infectious
+        mtct = susceptible >> exposed @ beta_m2c*dict(prenatalnet=ss.permonth(1), default=0)*infectious
 
         # Natural history
         onset = ss.Transition(exposed, [presymptomatic, asymptomatic], p=[p_symp, None], dur=dur_exp)
         symptoms = presymptomatic >> symptomatic @ dur_presymp
-        seek_care = ss.Transition(symptomatic, [symptomatic, ss.stay], p=[p_symp_care, None], where=symptoms, dur=dur_symp2care) # A share seek care, and stay symptomatic
-        clear_symp = ss.Transition(symptomatic, susceptible, where=symptoms, dur=dur_symp2clear) # Timed from the symptoms, so seeking care does not restart it
+        seek_care = ss.Transition(symptomatic, [symptomatic, ss.stay], p=[p_symp_care, None], on=symptoms, dur=dur_symp2care) # A share seek care, and stay symptomatic
+        clear_symp = ss.Transition(symptomatic, susceptible, on=symptoms, dur=dur_symp2clear) # Timed from the symptoms, so seeking care does not restart it
         clear_asymp = asymptomatic >> susceptible @ dur_asymp2clear
         persist = ss.Transition(asymptomatic, susceptible, p=1 - p_clear, dur=dur_persist, where=female) # The rest of the asymptomatic clear by clear_asymp
-        pid_onset = ss.Transition(presymptomatic + asymptomatic + symptomatic, [pid, ss.stay], p=[p_pid, None], where=onset & female, dur=dur_prepid)
-        seek_care_pid = ss.Transition(pid, [pid, ss.stay], p=[p_pid_care, None], where=pid_onset, dur=dur_pid2care)
+        pid_onset = ss.Transition(presymptomatic + asymptomatic + symptomatic, [pid, ss.stay], p=[p_pid, None], on=onset, where=female, dur=dur_prepid)
+        seek_care_pid = ss.Transition(pid, [pid, ss.stay], p=[p_pid_care, None], on=pid_onset, dur=dur_pid2care)
         clear_pid = pid >> susceptible @ dur_pid2clear
 
         # The parameters that the transitions do not read: the condoms' efficacy, which the sexual networks read (see sti.BaseNetwork.net_beta());
@@ -424,33 +439,48 @@ class SEIS(ss.Disease, STIResults):
         self.define_results(*results)
         return
 
-    def update_results(self):
-        super().update_results()
+    def record_stocks(self):
+        super().record_stocks()
         ti = self.ti
         ppl = self.sim.people
         res = self.results
         t = self.tally()
         infectious = t.vals(self.infectious)
         t.infected = infectious | t.vals(self.exposed) # As self.infected, without working out infectious again
-        self.update_sti_results(t)
+        self.record_sti_stocks(t)
         res.infectious[ti] = t.count(infectious)
 
-        # Symptoms and care seeking, by sex and age
-        new_sym = t.events(self.symptoms)
-        seekers = t.events(self.seek_care, self.seek_care_pid)
+        # Symptoms, by sex and age
         symptomatic = t.vals(self.symptomatic)
         for skk, skl, attr in self.sex_strata():
             sex = t.vals(ppl[attr])
-            new_sym_s = new_sym & sex
             sym_s = symptomatic & sex
             res[f'symp_prevalence{skk}'][ti] = t.div(t.count(sym_s & t.adults), t.count(t.adults & sex))
-            res[f'new_symptomatic{skk}'][ti] = t.count(new_sym_s)
             if skk:
                 res[f'symptomatic{skk}'][ti] = t.count(sym_s)
+            if self.age_bins is not None:
+                self.set_age_results(skk, symp_prevalence=t.hdiv(t.hist(sym_s), t.hist(sex)))
+        return
+
+    def record_flows(self):
+        super().record_flows()
+        ti = self.ti
+        ppl = self.sim.people
+        res = self.results
+        t = self.tally()
+        self.record_sti_flows(t)
+
+        # New symptoms and care seeking, by sex and age
+        new_sym = t.events(self.symptoms)
+        seekers = t.events(self.seek_care, self.seek_care_pid)
+        for skk, skl, attr in self.sex_strata():
+            sex = t.vals(ppl[attr])
+            new_sym_s = new_sym & sex
+            res[f'new_symptomatic{skk}'][ti] = t.count(new_sym_s)
             if self.include_care:
                 res[f'new_care_seekers{skk}'][ti] = t.count(seekers & sex)
             if self.age_bins is not None:
-                self.set_age_results(skk, new_symptomatic=t.hist(new_sym_s), symp_prevalence=t.hdiv(t.hist(sym_s), t.hist(sex)))
+                self.set_age_results(skk, new_symptomatic=t.hist(new_sym_s))
         return
 
     def finalize_results(self):

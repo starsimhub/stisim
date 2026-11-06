@@ -61,9 +61,9 @@ class HIV(ss.Disease, STIResults):
         beta_breastfeed = ss.par(0.005, doc='Rate of transmission from mother to child by breastfeeding, per month (about 14% over 12 months without ART)')
 
         # Natural history
-        dur_acute = ss.par(ss.lognorm_ex(ss.months(1.7), ss.months(1)), doc='Duration of acute infection') # Bellan 2015: central estimate 1.7 months
-        dur_latent = ss.par(ss.lognorm_ex(ss.years(10), ss.years(3)), doc='Duration of latent, untreated infection')
-        dur_falling = ss.par(ss.lognorm_ex(ss.years(3), ss.years(1)), doc='Duration of late-stage infection, as the CD4 count falls to zero')
+        dur_acute = ss.par(ss.lognormal(ss.months(1.7), ss.months(1)), doc='Duration of acute infection') # Bellan 2015: central estimate 1.7 months
+        dur_latent = ss.par(ss.lognormal(ss.years(10), ss.years(3)), doc='Duration of latent, untreated infection')
+        dur_falling = ss.par(ss.lognormal(ss.years(3), ss.years(1)), doc='Duration of late-stage infection, as the CD4 count falls to zero')
         p_aids_death = ss.par(1.0, doc='Probability of dying of AIDS when the CD4 count reaches zero')
 
         # Treatment: how much ART reduces transmission, and stopping it early (e.g. from poor adherence), besides at the end of dur_on_art
@@ -90,7 +90,7 @@ class HIV(ss.Disease, STIResults):
         sexual = sexual_beta(beta_m2f, beta_m2f*rel_beta_f2m, beta_m2m, hetero=self.hetero_networks)
         self.define_transitions(
             infection = self.susceptible >> acute @ sexual*infectious,
-            mtct_prenatal = self.susceptible >> acute @ beta_m2c*dict(maternalnet=ss.permonth(1), default=0)*infectious,
+            mtct_prenatal = self.susceptible >> acute @ beta_m2c*dict(prenatalnet=ss.permonth(1), default=0)*infectious,
             mtct_postnatal = self.susceptible >> acute @ beta_breastfeed*dict(breastfeedingnet=ss.permonth(1), default=0)*infectious,
         )
 
@@ -212,7 +212,7 @@ class HIV(ss.Disease, STIResults):
             # Treatment
             time_to_art_efficacy = ss.months(6), # Time to reach full ART efficacy: a linear increase in efficacy
             p_effective_art = ss.bernoulli(p=1.0), # Probability that a newly-initiated agent achieves viral suppression
-            dur_on_art = ss.lognorm_ex(ss.years(3), ss.years(1.5)), # Base ART duration (scaled by rel_dur_on_art and trend)
+            dur_on_art = ss.lognormal(ss.years(3), ss.years(1.5)), # Base ART duration (scaled by rel_dur_on_art and trend)
             rel_dur_on_art = 1.0, # Calibratable scalar that scales ART duration
             dur_on_art_trend = None, # Optional time-varying scale, e.g. sc.objdict(years=np.array([2004, 2015, 2030]), vals=np.array([0.5, 1.0, 1.5]))
             dur_post_art = ss.normal(), # Time from stopping ART until the CD4 count reaches zero; set for each person as they stop (see post_art_dwell()), in years
@@ -523,7 +523,7 @@ class HIV(ss.Disease, STIResults):
         known = ~np.isnan(mothers)
         self.cd4_start[children[known]] = self.cd4_start[ss.uids(mothers[known])]
         self.cd4_nadir[children] = self.cd4_start[children]
-        infections = [self[name].uids for name,tr in self.graph.transitions.items() if 'acute' in [state.name for state in tr.dst]] # However they were infected (e.g. by a transition a subclass adds)
+        infections = [self[name].uids for name,tr in self.graph.transitions.items() if 'acute' in [state.name for state in tr.dest]] # However they were infected (e.g. by a transition a subclass adds)
         self.set_infection(ss.uids.concatenate(*infections))
         return
 
@@ -608,7 +608,7 @@ class HIV(ss.Disease, STIResults):
         Args:
             uids: agents to start
             eff: base efficacy (0-1) of this course when fully adherent
-            dur: course duration (an ss.dur/Time value) before renewal is needed
+            dur: course duration (an ss.Duration/Time value) before renewal is needed
             source_id: numeric id of the enrolling Prep instance (for that instance's own coverage-target accounting)
             adh: adherence level (0-1), multiplied into eff to get the realized efficacy (default 1.0 = fully adherent)
 
@@ -692,19 +692,17 @@ class HIV(ss.Disease, STIResults):
         self.define_results(*[res for res in results if res.name not in self.results and res.name not in self.graph.exprs and res.name not in self.graph.outcomes])
         return
 
-    def update_results(self):
-        super().update_results()
+    def record_stocks(self):
+        super().record_stocks()
         ti = self.ti
         res = self.results
         ppl = self.sim.people
         t = self.tally()
-        self.update_sti_results(t)
-        infected, new_inf, on_art, diagnosed = t.vals(self.infected), t.vals(self.new_infected()), t.vals(self.on_art), t.vals(self.diagnosed)
+        self.record_sti_stocks(t)
+        infected, on_art, diagnosed = t.vals(self.infected), t.vals(self.on_art), t.vals(self.diagnosed)
         res['prevalence'][ti] = t.div(t.count(infected), t.count(t.vals(ppl.alive))) # For the whole population
         res['on_art'][ti] = t.count(on_art)
         res['diagnosed'][ti] = t.count(diagnosed)
-        res['new_diagnoses'][ti] = t.count(t.vals(self.ti_diagnosed == ti))
-        res['new_agents_on_art'][ti] = t.count(t.vals(self.ti_art == ti) & on_art) # Gated on on_art, since ti_art may also hold a scheduled future start
         if self.include_mtct:
             pregnant = t.vals(ppl.pregnancy.P)
             res['n_on_art_pregnant'][ti] = t.count(on_art & pregnant)
@@ -720,13 +718,35 @@ class HIV(ss.Disease, STIResults):
             for group, key in [(t.vals(nw.fsw), 'sw'), (t.vals(nw.client), 'client')]:
                 if t.count(group):
                     res[f'prevalence_{key}'][ti] = t.div(t.count(infected & group), t.count(group))
+            risk_group = np.asarray(nw.risk_group.values)
+            for rg in range(nw.pars.n_risk_groups):
+                for sex in ['female', 'male']:
+                    in_group = (risk_group == rg) & t.vals(ppl[sex])
+                    res[f'prevalence_risk_group_{rg}_{sex}'][ti] = t.div(t.count(infected & in_group), t.count(in_group))
+        return
+
+    def record_flows(self):
+        super().record_flows()
+        ti = self.ti
+        res = self.results
+        ppl = self.sim.people
+        t = self.tally()
+        self.record_sti_flows(t)
+        new_inf, on_art = t.vals(self.new_infected()), t.vals(self.on_art)
+        res['new_diagnoses'][ti] = t.count(t.vals(self.ti_diagnosed == ti))
+        res['new_agents_on_art'][ti] = t.count(t.vals(self.ti_art == ti) & on_art) # Gated on on_art, since ti_art may also hold a scheduled future start
+
+        # By sex work and risk group
+        if 'structuredsexual' in self.sim.networks.keys():
+            nw = self.sim.networks.structuredsexual
+            for group, key in [(t.vals(nw.fsw), 'sw'), (t.vals(nw.client), 'client')]:
+                if t.count(group):
                     res[f'new_infections_{key}'][ti] = t.count(new_inf & group)
                     res[f'new_infections_not_{key}'][ti] = t.count(new_inf & ~group)
             risk_group = np.asarray(nw.risk_group.values)
             for rg in range(nw.pars.n_risk_groups):
                 for sex in ['female', 'male']:
                     in_group = (risk_group == rg) & t.vals(ppl[sex])
-                    res[f'prevalence_risk_group_{rg}_{sex}'][ti] = t.div(t.count(infected & in_group), t.count(in_group))
                     res[f'new_infections_risk_group_{rg}_{sex}'][ti] = t.count(new_inf & in_group)
         return
 

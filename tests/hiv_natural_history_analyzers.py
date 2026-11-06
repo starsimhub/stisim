@@ -15,11 +15,8 @@ class TimeToAIDSTracker(ss.Analyzer):
         # results are a list of times to AIDS for agents reaching it at each timestep
         self.define_results(ss.Result('hiv.ti_to_aids', dtype=list, scale=False))
 
-    def update_results(self):
+    def record_flows(self):
         hiv = self.sim.diseases.hiv
-        if self.ti == 0: # The start of the run, before any step
-            self.results['hiv.ti_to_aids'][self.ti] = np.array([])
-            return
         falling = hiv.progression.uids # Those who reached the falling stage in this step
         self.results['hiv.ti_to_aids'][self.ti] = self.ti - hiv.ti_infected[falling]
 
@@ -48,9 +45,7 @@ class CD4ByUIDTracker(ss.Analyzer):
         super().init_results()
         self.results[self.result_name] = {}
 
-    def update_results(self):
-        if self.ti == 0: # The start of the run, before any step: record after each step
-            return
+    def record_flows(self): # After each step
         hiv = self.sim.diseases.hiv
         result_name = self.result_name
 
@@ -94,9 +89,7 @@ class RelativeInfectivityByUIDTracker(ss.Analyzer):
         super().init_results()
         self.results[self.result_name] = {}
 
-    def update_results(self):
-        if self.ti == 0: # The start of the run, before any step: record after each step
-            return
+    def record_flows(self): # After each step
         hiv = self.sim.diseases.hiv
         result_name = self.result_name
 
@@ -145,13 +138,10 @@ class RelativeInfectivityTracker(ss.Analyzer):
             state_dict = self.STATES[state]
             self.define_results(ss.Result(state_dict['result_name'], dtype=list, scale=False))
 
-    def update_results(self):
+    def record_flows(self):
         hiv = self.sim.diseases.hiv
         for state in self.states_to_track:
             state_dict = self.STATES[state]
-            if self.ti == 0: # The start of the run, before rel_trans is first set
-                self.results[state_dict['result_name']][self.ti] = np.array([])
-                continue
             # we ignore ti_infected == self.ti because relative transmission is updated BEFORE infection in the model
             # timestep and all just-infected agents have rel_trans == 1 (but this value is not used in any infection
             # events, as rel_trans will be properly updated for the NEXT transmission step)
@@ -174,7 +164,7 @@ class SexualTransmissionCountTracker(ss.Analyzer):
         super().init_results()
         self.define_results(ss.Result(self.result_name, dtype=list, scale=False))
 
-    def update_results(self):
+    def record_flows(self):
         self.results[self.result_name][self.ti] = self.sim.diseases.hiv.results['new_infections_sex'][self.ti]
 
 
@@ -193,7 +183,7 @@ class MTCTransmissionCountTracker(ss.Analyzer):
         super().init_results()
         self.define_results(ss.Result(self.result_name, dtype=list, scale=False))
 
-    def update_results(self):
+    def record_flows(self):
         self.results[self.result_name][self.ti] = self.sim.diseases.hiv.results['new_infections_mtct'][self.ti]
 
 

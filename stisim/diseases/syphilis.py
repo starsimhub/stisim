@@ -135,14 +135,14 @@ class Syphilis(ss.Disease, STIResults):
         # Natural history
         dur_exposed = ss.par(ss.normal(ss.days(50), ss.days(10)), doc='Incubation period') # https://pubmed.ncbi.nlm.nih.gov/9101629/
         dur_primary = ss.par(ss.normal(ss.weeks(6), ss.weeks(1)), doc='Duration of the primary stage') # https://pubmed.ncbi.nlm.nih.gov/9101629/
-        dur_secondary = ss.par(ss.lognorm_ex(ss.months(3.6), ss.months(1.5)), doc='Duration of the secondary stage') # https://pubmed.ncbi.nlm.nih.gov/9101629/
+        dur_secondary = ss.par(ss.lognormal(ss.months(3.6), ss.months(1.5)), doc='Duration of the secondary stage') # https://pubmed.ncbi.nlm.nih.gov/9101629/
         dur_early = ss.par(ss.uniform(ss.months(22), ss.months(24)), doc='Duration of the early latent stage') # Matches WHO Europe's definition (up to 2 years after infection)
         p_reactivate = ss.par(0.35, doc='Probability of relapsing from latent to secondary syphilis')
-        time_to_reactivate = ss.par(ss.lognorm_ex(ss.years(1), ss.years(1)), name='time_to_reactivate', doc='Time from the start of the latent stage to relapse')
+        time_to_reactivate = ss.par(ss.lognormal(ss.years(1), ss.years(1)), name='time_to_reactivate', doc='Time from the start of the latent stage to relapse')
         p_tertiary = ss.par(0.35, doc='Probability of progressing to tertiary syphilis, for those who do not relapse') # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4917057/
         time_to_tertiary = ss.par(ss.normal(ss.years(20), ss.years(2)), name='time_to_tertiary', doc='Time from the start of the latent stage to tertiary syphilis')
         p_death = ss.par(0.05, doc='Probability of dying of tertiary syphilis')
-        time_to_death = ss.par(ss.lognorm_ex(ss.years(5), ss.years(5)), doc='Time from tertiary syphilis to death')
+        time_to_death = ss.par(ss.lognormal(ss.years(5), ss.years(5)), doc='Time from tertiary syphilis to death')
 
         # States
         susceptible, exposed, primary, secondary, early, late, tertiary = ss.states('susceptible exposed primary secondary early late tertiary')
@@ -160,8 +160,8 @@ class Syphilis(ss.Disease, STIResults):
         secondary_onset = primary >> secondary @ dur_primary
         latency = secondary >> early @ dur_secondary
         to_late = early >> late @ dur_early
-        reactivation = ss.Transition(latent, [secondary, ss.stay], p=[p_reactivate, None], where=latency, dur=time_to_reactivate) # Timed from the start of the latent stage, early or late
-        tertiary_onset = ss.Transition(latent, [tertiary, ss.stay], p=[p_tertiary, None], where=latency, dur=time_to_tertiary)
+        reactivation = ss.Transition(latent, [secondary, ss.stay], p=[p_reactivate, None], on=latency, dur=time_to_reactivate) # Timed from the start of the latent stage, early or late
+        tertiary_onset = ss.Transition(latent, [tertiary, ss.stay], p=[p_tertiary, None], on=latency, dur=time_to_tertiary)
         death = ss.Transition(tertiary, [ss.null, ss.stay], p=[p_death, None], dur=time_to_death)
 
         # Congenital syphilis: the outcome is decided by the mother's stage when the fetus is infected
@@ -172,13 +172,13 @@ class Syphilis(ss.Disease, STIResults):
         probs = {stage:np.asarray(val.pars.p if isinstance(val, ss.choice) else val) for stage,val in outcomes.items()} # The probabilities, also from Starsim 3's ss.choice
         p_outcomes = [probs['mat_active'][i]*mat_active + probs['early'][i]*mat_early + probs['late'][i]*mat_late for i in range(4)] + [None] # A live birth without complications is the rest
         mtct = ss.Transition(susceptible, fetal, rate=ss.permonth(1)*beta_m2c*ss.mother(primary | secondary | latent), p=p_outcomes, acquisition=True)
-        delivery = ss.state('pregnancy.delivery') # The events of ss.Pregnancy, which is made separately
-        birth = ss.state('pregnancy.birth')
-        miscarriage = ss.Transition(fetus_miscarriage, ss.null, where=delivery) # A fetal loss, at the delivery
-        stillbirth = ss.Transition(fetus_stillborn, ss.null, where=delivery)
-        nnd = ss.Transition(fetus_nnd, ss.null, where=birth) # A neonatal death, once born
-        born_congenital = ss.Transition(fetus_congenital, congenital, where=birth)
-        born_normal = ss.Transition(fetus_normal, susceptible, where=birth)
+        delivery = ss.ref('pregnancy.delivery') # The events of ss.Pregnancy, which is made separately
+        birth = ss.ref('pregnancy.birth')
+        miscarriage = ss.Transition(fetus_miscarriage, ss.null, on=delivery) # A fetal loss, at the delivery
+        stillbirth = ss.Transition(fetus_stillborn, ss.null, on=delivery)
+        nnd = ss.Transition(fetus_nnd, ss.null, on=birth) # A neonatal death, once born
+        born_congenital = ss.Transition(fetus_congenital, congenital, on=birth)
+        born_normal = ss.Transition(fetus_normal, susceptible, on=birth)
 
         # The parameters that the transitions do not read, which its own code does (below); and, as the graph does not yet register
         # them [PROPOSAL ST-D], the times after an event (on=), named above, whose values are set once it is built
@@ -190,7 +190,7 @@ class Syphilis(ss.Disease, STIResults):
             p_symp_primary_dist = ss.bernoulli(p=0), # Set for each person
             p_symp_secondary = [0.85, 0.85], # A disseminated rash, visible in both sexes
             p_symp_secondary_dist = ss.bernoulli(p=0),
-            time_to_undetectable = ss.lognorm_ex(ss.years(15), ss.years(5)), # From late latent until the non-treponemal titre is below detection
+            time_to_undetectable = ss.lognormal(ss.years(15), ss.years(5)), # From late latent until the non-treponemal titre is below detection
             dur_to_trep = ss.normal(ss.weeks(3), ss.weeks(1)), # Window period: from infection until treponemal antibodies are detected
             p_trep_persists = ss.bernoulli(p=0.80), # The other 20% sero-revert eventually
             time_to_trep_revert = ss.normal(ss.years(10), ss.years(5)),
@@ -456,14 +456,13 @@ class Syphilis(ss.Disease, STIResults):
         self.define_results(*results)
         return
 
-    def update_results(self):
-        super().update_results()
+    def record_stocks(self):
+        super().record_stocks()
         ti = self.ti
         res = self.results
         ppl = self.sim.people
         t = self.tally()
-        self.update_sti_results(t)
-        new_inf = t.vals(self.new_infected())
+        self.record_sti_stocks(t)
 
         # Prevalence among sexually active adults
         age = np.asarray(ppl.age.values)
@@ -479,17 +478,12 @@ class Syphilis(ss.Disease, STIResults):
             infected, preg = stages['prevalence'], t.vals(ppl.pregnancy.P)
             res['pregnant_prevalence'][ti] = preg_prev = t.div(t.count(infected & preg), t.count(preg))
             res['detected_pregnant_prevalence'][ti] = preg_prev * self.pars.anc_detection
-            delivered = t.vals(ppl.pregnancy.ti_delivered == ti)
-            res['delivery_prevalence'][ti] = t.div(t.count(infected & delivered), t.count(delivered))
-        res['new_reinfections'][ti] = t.count(new_inf & (np.asarray(self.n_infections.values) > 1))
 
         # Add FSW and clients to results:
         nw = self.sim.networks.structuredsexual
         if self.store_sw:
             for key, group in [('sw', t.vals(nw.fsw)), ('client', t.vals(nw.client))]:
                 res[f'prevalence_{key}'][ti] = t.div(t.count(stages['prevalence'] & group), t.count(group))
-                res[f'new_infections_{key}'][ti] = t.count(new_inf & group)
-                res[f'new_infections_not_{key}'][ti] = t.count(new_inf & ~group)
 
         # Add risk groups
         if self.store_risk_groups:
@@ -497,9 +491,7 @@ class Syphilis(ss.Disease, STIResults):
             for risk_group in range(nw.pars.n_risk_groups):
                 for sex in ['female', 'male']:
                     group = (rg == risk_group) & t.vals(ppl[sex])
-                    if (new_inf & group).any():
-                        res[f'prevalence_risk_group_{risk_group}_{sex}'][ti] = t.div(t.count(stages['prevalence'] & group), t.count(group))
-                        res[f'new_infections_risk_group_{risk_group}_{sex}'][ti] = t.count(new_inf & group)
+                    res[f'prevalence_risk_group_{risk_group}_{sex}'][ti] = t.div(t.count(stages['prevalence'] & group), t.count(group))
 
         # Results by age and sex
         for skk, skl, attr in self.sex_strata():
@@ -510,6 +502,37 @@ class Syphilis(ss.Disease, STIResults):
             if self.age_bins is not None:
                 h = t.hist(sex)
                 self.set_age_results(skk, **{key:t.hdiv(t.hist(stages[key] & sex), h) for key in ['sexually_transmissible_prevalence', 'symptomatic_prevalence', 'primary_prevalence', 'trep_prevalence', 'nontrep_prevalence']})
+        return
+
+    def record_flows(self):
+        super().record_flows()
+        ti = self.ti
+        res = self.results
+        ppl = self.sim.people
+        t = self.tally()
+        self.record_sti_flows(t)
+        new_inf = t.vals(self.new_infected())
+
+        # Women who delivered in the step
+        if 'pregnancy' in self.sim.demographics.keys():
+            delivered = t.vals(ppl.pregnancy.ti_delivered == ti)
+            res['delivery_prevalence'][ti] = t.div(t.count(t.vals(self.infected) & delivered), t.count(delivered))
+        res['new_reinfections'][ti] = t.count(new_inf & (np.asarray(self.n_infections.values) > 1))
+
+        # Add FSW and clients to results:
+        nw = self.sim.networks.structuredsexual
+        if self.store_sw:
+            for key, group in [('sw', t.vals(nw.fsw)), ('client', t.vals(nw.client))]:
+                res[f'new_infections_{key}'][ti] = t.count(new_inf & group)
+                res[f'new_infections_not_{key}'][ti] = t.count(new_inf & ~group)
+
+        # Add risk groups
+        if self.store_risk_groups:
+            rg = np.asarray(nw.risk_group.values)
+            for risk_group in range(nw.pars.n_risk_groups):
+                for sex in ['female', 'male']:
+                    group = (rg == risk_group) & t.vals(ppl[sex])
+                    res[f'new_infections_risk_group_{risk_group}_{sex}'][ti] = t.count(new_inf & group)
         return
 
     def finalize_results(self):

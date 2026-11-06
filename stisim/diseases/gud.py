@@ -107,7 +107,7 @@ class GUD(ss.Disease):
     """
     def __init__(self, pars=None, name='gud', **kwargs):
         beta = ss.par(1.0, doc='Probability of transmission per act on the sexual networks') # Placeholder
-        dur_inf = ss.par(ss.lognorm_ex(ss.months(3), ss.months(1)), doc='Duration of infection')
+        dur_inf = ss.par(ss.lognormal(ss.months(3), ss.months(1)), doc='Duration of infection')
         susceptible, infected = ss.states('susceptible infected')
         infection = susceptible >> infected @ sti.sexual_beta(beta, beta, beta)*infected
         recovery = infected >> susceptible @ dur_inf

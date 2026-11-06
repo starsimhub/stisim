@@ -20,7 +20,7 @@ import stisim as sti
 def _make_sim(intervention_pars=None, n_agents=3_000, dur=15, rand_seed=1):
     return sti.Sim(
         diseases=[sti.HIV(init_prev=0.05, beta_m2f=0.05)],
-        networks=[sti.StructuredSexual(), ss.MaternalNet(), ss.BreastfeedingNet()],
+        networks=[sti.StructuredSexual(), ss.PrenatalNet(), ss.BreastfeedingNet()],
         demographics=[ss.Pregnancy(), ss.Deaths()],
         interventions=[sti.PregnancyRiskReduction(intervention_pars or {})],
         n_agents=n_agents, dur=dur, start=2005, verbose=0, rand_seed=rand_seed,
@@ -132,7 +132,7 @@ def test_runs_without_breastfeedingnet():
     sim = sti.Sim(
         diseases=[sti.HIV(init_prev=0.05, beta_m2f=0.05)],
         # Note: NO BreastfeedingNet here
-        networks=[sti.StructuredSexual(), ss.MaternalNet()],
+        networks=[sti.StructuredSexual(), ss.PrenatalNet()],
         demographics=[ss.Pregnancy(), ss.Deaths()],
         interventions=[sti.PregnancyRiskReduction()],
         n_agents=3_000, dur=15, start=2005, verbose=0, rand_seed=1,

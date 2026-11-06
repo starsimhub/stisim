@@ -550,18 +550,18 @@ def test_network_nonsexual_warns_and_skips():
 
     # Explicitly naming the non-sexual maternal network -> warning + skip.
     sim = sti.Sim(n_agents=100, dur=1, diseases=[sti.HIV(init_prev=0.05)],
-                  networks=[sti.MFNetwork(), ss.MaternalNet()], demographics=ss.Pregnancy(),
-                  analyzers=[sti.PartnershipFormationAnalyzer(networks=['maternalnet'])])
+                  networks=[sti.MFNetwork(), ss.PrenatalNet()], demographics=ss.Pregnancy(),
+                  analyzers=[sti.PartnershipFormationAnalyzer(networks=['prenatalnet'])])
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter('always')
         sim.init()
     ana = sim.analyzers['partnershipformationanalyzer']
-    assert any('maternalnet' in str(w.message) for w in caught), [str(w.message) for w in caught]
+    assert any('prenatalnet' in str(w.message) for w in caught), [str(w.message) for w in caught]
     assert len(ana._tracked_nw_names) == 0, ana._tracked_nw_names
 
-    # Default None -> only the sexual network is tracked (no maternalnet, no warning).
+    # Default None -> only the sexual network is tracked (no prenatalnet, no warning).
     sim2 = sti.Sim(n_agents=100, dur=1, diseases=[sti.HIV(init_prev=0.05)],
-                   networks=[sti.MFNetwork(), ss.MaternalNet()], demographics=ss.Pregnancy(),
+                   networks=[sti.MFNetwork(), ss.PrenatalNet()], demographics=ss.Pregnancy(),
                    analyzers=[sti.PartnershipFormationAnalyzer()])
     sim2.init()
     ana2 = sim2.analyzers['partnershipformationanalyzer']

@@ -110,7 +110,7 @@ class SyphTx(STITreatment):
         with reduced treatment efficacy above the cut off age
         """
         # Get Fetuses
-        children_uids = ss.uids(sim.networks.maternalnet.find_contacts(mother_uids))  # Children and Fetuses of treated mothers
+        children_uids = ss.uids(sim.networks.prenatalnet.find_contacts(mother_uids))  # Children and Fetuses of treated mothers
         fetus_gt_cutoff = children_uids[sim.people.age[children_uids] > self.pars.fetus_age_cutoff_treat_eff]  # Fetuses above cutoff age
         fetus_st_cutoff = children_uids[sim.people.age[children_uids] <= self.pars.fetus_age_cutoff_treat_eff]  # Fetuses below cutoff age
 
@@ -298,21 +298,21 @@ class SyphTest(STITest):
 
         if (after_start & before_stop):
             # Schedule newborn tests if the mother is positive
-            if self.newborn_test is not None and hasattr(sim.networks, 'maternalnet') and hasattr(sim.people, 'pregnancy'):
+            if self.newborn_test is not None and hasattr(sim.networks, 'prenatalnet') and hasattr(sim.people, 'pregnancy'):
                 new_pos = self.ti_positive == self.ti
                 if new_pos.any():
-                    pos_mother_inds = np.isin(sim.networks.maternalnet.p1, new_pos.uids)
-                    unborn_uids = sim.networks.maternalnet.p2[pos_mother_inds]
-                    ti_births = np.ceil(sim.demographics.pregnancy.ti_exit_P[sim.networks.maternalnet.p1[pos_mother_inds]]) # The step of the delivery
+                    pos_mother_inds = np.isin(sim.networks.prenatalnet.p1, new_pos.uids)
+                    unborn_uids = sim.networks.prenatalnet.p2[pos_mother_inds]
+                    ti_births = np.ceil(sim.demographics.pregnancy.ti_exit_P[sim.networks.prenatalnet.p1[pos_mother_inds]]) # The step of the delivery
                     valid = ~np.isnan(ti_births)
                     if valid.any():
                         self.newborn_test.schedule(unborn_uids[valid], ti_births[valid].astype(int))
 
         return
 
-    def update_results(self):
+    def record_flows(self):
         ti = self.ti
-        super().update_results()
+        super().record_flows()
         if 'positive' in self.outcomes.keys() and (self.ti_positive == ti).any():
             self.update_positives()
         if 'negative' in self.outcomes.keys() and (self.ti_negative == ti).any():

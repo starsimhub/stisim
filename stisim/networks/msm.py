@@ -117,10 +117,10 @@ class MSMScaleFreeNetwork(BaseNetwork):
     Args:
         target_mean_degree (float): target mean number of concurrent
             partners per agent in the pool (default 2.0).
-        target_mean_dur (ss.dur or int): target mean edge duration. Accepts
-            an ``ss.dur`` (converted to integer steps at ``init_pre`` via
+        target_mean_dur (ss.Duration or int): target mean edge duration. Accepts
+            an ``ss.Duration`` (converted to integer steps at ``init_pre`` via
             ``self.t.dt``) or a raw integer step count. Default ``ss.years(2)``.
-        max_edge_dur (ss.dur or int): hard cap on edge persistence. Default
+        max_edge_dur (ss.Duration or int): hard cap on edge persistence. Default
             ``ss.years(10)``.
         phi (float): Whittles-2019 turnover parameter. Default 1.0. Sets
             the q0 initial-network density via ``q0 = 1/(1+phi)``.
@@ -163,9 +163,9 @@ class MSMScaleFreeNetwork(BaseNetwork):
         return
 
     def init_pre(self, sim):
-        """Convert ``ss.dur`` parameters to integer step counts.
+        """Convert ``ss.Duration`` parameters to integer step counts.
 
-        Uses ``ss.dur / ss.dur`` arithmetic (sciris-native unit conversion).
+        Uses ``ss.Duration / ss.Duration`` arithmetic (sciris-native unit conversion).
         """
         super().init_pre(sim)
         self._target_mean_dur_steps = int(round(self.pars.target_mean_dur / self.t.dt))

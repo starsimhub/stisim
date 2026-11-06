@@ -31,7 +31,7 @@ def make_sim(**kwargs):
         # to Pregnancy + Deaths, so include them.
         demog = kwargs.get('demographics')
         if demog is None or any(isinstance(m, ss.Pregnancy) for m in sc.tolist(demog)):
-            nets += [ss.MaternalNet(), ss.BreastfeedingNet()]
+            nets += [ss.PrenatalNet(), ss.BreastfeedingNet()]
         kwargs['networks'] = nets
     kwargs.setdefault('interventions', [sti.HIVTest(), sti.ART(), sti.VMMC()])
     return hivsim.Sim(**kwargs)

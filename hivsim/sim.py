@@ -23,7 +23,7 @@ def _default_networks(demographics):
 def _pregnancy_networks(demographics):
     """The networks that ss.Pregnancy makes the edges of, if it is present."""
     if any(isinstance(m, ss.Pregnancy) for m in sc.tolist(demographics)):
-        return [ss.MaternalNet(), ss.BreastfeedingNet()]
+        return [ss.PrenatalNet(), ss.BreastfeedingNet()]
     return []
 
 
@@ -36,7 +36,7 @@ class Sim(sti.Sim):
         sti.Sim(
             diseases='hiv',
             demographics=[ss.Pregnancy(), ss.Deaths()],
-            networks=[sti.StructuredSexual(), ss.MaternalNet(), ss.BreastfeedingNet()],
+            networks=[sti.StructuredSexual(), ss.PrenatalNet(), ss.BreastfeedingNet()],
             interventions=[sti.HIVTest(), sti.ART(), sti.VMMC(), sti.Prep()],
         )
 

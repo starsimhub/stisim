@@ -37,7 +37,7 @@ def test_syph_epi():
         sims.append(sti.Sim(sc.mergedicts(base_pars, dict(diseases=sti.Syphilis(**simpardict_lo), dur=10)), label=f'{par}={lo}'))
         sims.append(sti.Sim(sc.mergedicts(base_pars, dict(diseases=sti.Syphilis(**simpardict_hi), dur=10)), label=f'{par}={hi}'))
 
-    ss.parallel(*sims, debug=debug)
+    ss.parallel(*sims, parallel=not debug)
 
     # Check results pairwise
     for i, (par, (lo, hi)) in enumerate(par_effects.items()):
@@ -136,12 +136,12 @@ def test_optional_stratification(n_agents=500):
     def make_sim(**kw):
         dis = [sti.Gonorrhea(init_prev=0.1, **kw), sti.Syphilis(init_prev=0.1, **kw), sti.HIV(init_prev=0.1, **kw)]
         return ss.Sim(n_agents=n_agents, start=2000, stop=2005, rand_seed=1, diseases=dis,
-                      networks=[sti.StructuredSexual(), ss.MaternalNet()],
+                      networks=[sti.StructuredSexual(), ss.PrenatalNet()],
                       demographics=[ss.Pregnancy(fertility_rate=50), ss.Deaths(death_rate=10)])
 
     s_full = make_sim()
     s_none = make_sim(age_bins=None, sex_keys=None)
-    ss.parallel(s_full, s_none, debug=debug)
+    ss.parallel(s_full, s_none, parallel=not debug)
 
     for name in ['ng', 'syph', 'hiv']:
         r_full = s_full.diseases[name].results
@@ -199,7 +199,7 @@ def test_bv(include_hiv=False, n_agents=500):
             init_prev=0.1,
         )
 
-        nets += [sti.StructuredSexual(store_register=True), ss.MaternalNet()]
+        nets += [sti.StructuredSexual(store_register=True), ss.PrenatalNet()]
 
         pregnancy = ss.Pregnancy(fertility_rate=10)
         death = ss.Deaths(death_rate=10)
@@ -217,7 +217,7 @@ def test_bv(include_hiv=False, n_agents=500):
 
     s0 = ss.Sim(**sim_args, interventions=intvs)
     s1 = ss.Sim(**sim_args, interventions=intvs + [menstrual_hygiene(start=2020, new_val=0.1)])
-    ss.parallel(s0, s1, debug=debug)
+    ss.parallel(s0, s1, parallel=not debug)
     return s0, s1
 
 

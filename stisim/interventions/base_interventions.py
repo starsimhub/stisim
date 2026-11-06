@@ -248,7 +248,7 @@ class STITest(ss.Intervention):
 
         return outcomes
 
-    def update_results(self):
+    def record_flows(self):
         # Store results
         ti = self.ti
         self.results['new_diagnoses'][ti] += count(self.ti_positive == ti)
@@ -419,8 +419,8 @@ class SymptomaticTesting(STITest):
 
             return
 
-    def update_results(self):
-        super().update_results()
+    def record_flows(self):
+        super().record_flows()
         ti = self.ti
         just_tested = self.ti_tested == ti
         self.results['new_care_seekers'][ti] += count(just_tested)
@@ -668,7 +668,7 @@ class ANCTest(ss.Intervention):
     HIV positives have ``diagnosed`` / ``ti_diagnosed`` set, so ART links up
     automatically. Other diseases route positives to ``disease_treatment_map``.
     Newborn/infant tests, if provided in ``newborn_tests``, are scheduled on
-    the unborn via the maternal network (sim must include ``ss.MaternalNet``
+    the unborn via the maternal network (sim must include ``ss.PrenatalNet``
     and ``ss.Pregnancy``).
 
     Args:
@@ -765,7 +765,7 @@ class ANCTest(ss.Intervention):
         if pregnancy is not None:
             newly_preg = pregnancy.ti_P.isclose(ti).uids
             attendees  = self.visit_prob_dist.filter(newly_preg)
-            months_dt  = ss.dur(1, 'months') / sim.t.dt   # timesteps per month
+            months_dt  = ss.Duration(1, 'months') / sim.t.dt   # timesteps per month
             offsets    = self.visit_timing.randround(self.visit_timing.rvs(attendees) * months_dt)
             self.ti_visit[attendees] = ti + offsets
 
@@ -811,11 +811,11 @@ class ANCTest(ss.Intervention):
     @staticmethod
     def _schedule_newborn(sim, pos_mother_uids, newborn_test):
         """Schedule a newborn/infant test for unborn children of positive mothers."""
-        mn        = sim.get_module(ss.MaternalNet, die=False)
+        mn        = sim.get_module(ss.PrenatalNet, die=False)
         pregnancy = sim.get_module(ss.Pregnancy, die=False)
         if mn is None or pregnancy is None:
             raise RuntimeError(
-                'ANCTest: cannot schedule newborn tests without ss.MaternalNet '
+                'ANCTest: cannot schedule newborn tests without ss.PrenatalNet '
                 'and ss.Pregnancy in the sim'
             )
         pos_mask  = np.isin(mn.p1, pos_mother_uids)
@@ -991,7 +991,7 @@ class STITreatment(ss.Intervention):
 
         return treat_uids
 
-    def update_results(self):
+    def record_flows(self):
         ti = self.ti
         just_treated = self.ti_treated == ti
 

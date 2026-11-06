@@ -276,7 +276,7 @@ def test_pmtct():
     dur = 10
     def anc_eligibility(sim): # Undiagnosed women in the first trimester
         preg = sim.demographics.pregnancy
-        return preg.P & (preg.P.time < ss.weeks(13)) & ~sim.diseases.hiv.diagnosed
+        return preg.P & (preg.P.time_in < ss.weeks(13)) & ~sim.diseases.hiv.diagnosed
 
     def make_sim(label, anc_prob=0, pmtct_eff=0.96, dur_bf=ss.years(0.75)):
         pregnancy = ss.Pregnancy(dur_breastfeed=dur_bf)
@@ -336,7 +336,7 @@ def test_cd4_rises_on_ART():
     initial_art_intervention = sti.ART(art_initiation=1.0)  # everyone diagnosed starts ART.
 
     duration = 1  # years
-    hiv = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=1.0, dur_on_art=ss.constant(v=ss.years(duration)))
+    hiv = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=1.0, dur_on_art=ss.constant(value=ss.years(duration)))
     sim = build_testing_sim(analyzers=[analyzer], diseases=[hiv],
                             death=None, maternal_network=None, prior_network=None, sexual_network=None,
                             interventions=[test_intervention, initial_art_intervention],
@@ -367,7 +367,7 @@ def test_art_increases_longevity():
     # agents are on art for the full sim length
     #   ... and more (due to bug: https://github.com/starsimhub/stisim/issues/336)
     duration = 20  # years by default
-    disease = sti.HIV(init_prev=1.0, dur_on_art=ss.constant(v=ss.years(duration*100)))
+    disease = sti.HIV(init_prev=1.0, dur_on_art=ss.constant(value=ss.years(duration*100)))
 
     sim = build_testing_sim(n_agents=tiny_pop, duration=duration, pregnancy=None, death=None,
                             interventions=interventions, diseases=[disease])
@@ -420,7 +420,7 @@ def test_cd4_falls_after_ART_dropout():
 
     duration = 2  # years
     art_duration = ss.years(duration / 2)
-    hiv = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=1.0, dur_on_art=ss.constant(v=art_duration))
+    hiv = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=1.0, dur_on_art=ss.constant(value=art_duration))
     sim = build_testing_sim(analyzers=[analyzer], diseases=[hiv],
                             death=None, maternal_network=None, prior_network=None, sexual_network=None,
                             interventions=[test_intervention, initial_art_intervention],
@@ -457,7 +457,7 @@ def test_rel_trans_rises_after_ART_dropout():
 
     duration = 1  # years
     art_duration = ss.years(duration / 2)
-    hiv = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=1.0, dur_on_art=ss.constant(v=art_duration))
+    hiv = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=1.0, dur_on_art=ss.constant(value=art_duration))
     sim = build_testing_sim(analyzers=[analyzer], diseases=[hiv],
                             death=None, maternal_network=None, prior_network=None, sexual_network=None,
                             interventions=[test_intervention, initial_art_intervention],
@@ -778,7 +778,7 @@ def test_rel_death_scales_hiv_mortality(n_agents=3000):
         test_intv = sti.HIVTest(test_prob_data=1, dt_scale=False)
         art = sti.ART(art_initiation=art_initiation)
         hiv = sti.HIV(init_prev=1.0, beta_m2f=0.0, rel_death=rel_death,
-                      dur_on_art=ss.constant(v=ss.years(50)))
+                      dur_on_art=ss.constant(value=ss.years(50)))
         sim = build_testing_sim(n_agents=n_agents, duration=15,
                                 pregnancy=None, death=None,
                                 diseases=[hiv], interventions=[test_intv, art])

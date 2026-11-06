@@ -215,7 +215,7 @@ class RelationshipDurations(ss.Analyzer):
     def step(self):
         pass
 
-    def update_results(self):
+    def record_stocks(self):
         sim = self.sim
         ti = self.ti
         nw = sim.networks.structuredsexual

@@ -39,7 +39,7 @@ class Chlamydia(SEIS):
 
             # PID
             p_pid = 0.0, # Assumption used in https://doi.org/10.1086/598983, based on https://doi.org/10.1016/s0029-7844(02)02118-x
-            dur_prepid = ss.lognorm_ex(ss.months(1.5), ss.months(3)),
+            dur_prepid = ss.lognormal(ss.months(1.5), ss.months(3)),
 
             # Transmission and initial conditions
             beta_m2f = 0.06,

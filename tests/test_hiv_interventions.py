@@ -579,7 +579,7 @@ def test_art_duration(do_plot=do_plot):
     sim_kwargs = dict(n_agents=10, dur=run_years, start=1990, verbose=0)
 
     # HIV parameters: everyone starts infected and with a fixed duration on ART
-    hiv_pars = dict(init_prev=1.0, dur_on_art=ss.constant(v=ss.years(dur_years)))
+    hiv_pars = dict(init_prev=1.0, dur_on_art=ss.constant(value=ss.years(dur_years)))
 
     # Interventions: 100% testing and ART initiation to ensure everyone starts ART at ti~0
     interventions=[
@@ -627,7 +627,7 @@ def test_art_dx2tx_delay(do_plot=do_plot):
     # Build two sims that only differ in the dx→tx delay
     delay_years = 2
     sim_kwargs = dict(n_agents=200, dur=delay_years + 2, start=1990, verbose=0)
-    hiv_pars = dict(init_prev=1.0, dur_on_art=ss.constant(v=ss.years(10)))
+    hiv_pars = dict(init_prev=1.0, dur_on_art=ss.constant(value=ss.years(10)))
 
     def make_sim(delay):
         return hivsim.demo(
