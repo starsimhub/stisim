@@ -1,24 +1,21 @@
+# Last verified on: Starsim 4.0.0rc3 (84f1803ee)
+
 from .version import __version__, __versiondate__, __license__
 
-from .calibration   import *
-from .care_seeking  import *
-from .connectors    import *
-from .diseases      import *
-from .demographics  import *
-from .interventions import *
-from .logistics     import *
-from .networks      import *
 from .utils         import *
-from .analyzers     import *
 from .parameters    import *
+from .demographics  import *
+from .networks      import *
+from .diseases      import *
+from .connectors    import *
+from .care_seeking  import *
+from .logistics     import *
+from .interventions import *
+from .analyzers     import *
 from .sim           import *
 
-# Assign the root folder
+# Assign the root and data folders
 import sciris as sc
 root = sc.thispath(__file__).parent
 data = root/'data'
-
-# Double-check key requirements -- should match pyproject.toml
-sc.require(['starsim>=3.6.0'], message=f'The following dependencies for STIsim {__version__} were not met: <MISSING>.', die=False)
 del sc # Don't keep this in the module
-

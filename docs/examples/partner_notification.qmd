@@ -83,7 +83,7 @@ def make_sim(use_pn=False, rand_seed=1):
 
     sim = hivsim.demo(
         'simple', run=False, plot=False,
-        n_agents=2_000, dur=10, rand_seed=rand_seed, verbose=-1,
+        n_agents=2_000, dur=10, rand_seed=rand_seed, verbose=0,
         networks=networks,
         interventions=interventions,
     )

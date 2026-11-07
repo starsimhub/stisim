@@ -21,9 +21,9 @@ class BasePars(ss.Pars):
     def __init__(self, **kwargs):
         super().__init__()
         self.recall_prior = False
-        self.debut_f = ss.lognorm_ex(20, 3)
-        self.debut_m = ss.lognorm_ex(21, 3)
-        self.acts = ss.lognorm_ex(ss.freqperyear(80), ss.freqperyear(30))
+        self.debut_f = ss.lognormal(20, 3)
+        self.debut_m = ss.lognormal(21, 3)
+        self.acts = ss.lognormal(ss.freqperyear(80), ss.freqperyear(30))
         self.condom_data = None
         self.condom_smoothness = None  # Smoothness for sc.smoothinterp on time-varying condom_data
         self.update(kwargs)
@@ -48,7 +48,7 @@ class NetworkPars(ss.Pars):
         return
 
 
-class BaseNetwork(ss.SexualNetwork):
+class BaseNetwork(ss.SexualNet):
     """Shared infrastructure for the heterosexual and sex-work networks.
 
     Provides the common edge meta layout, condom-data processing, debut
@@ -65,8 +65,8 @@ class BaseNetwork(ss.SexualNetwork):
     # path (e.g. a custom delete inside ``add_pairs``) MUST set this to False.
     records_all_expirations = True
 
-    def __init__(self, name=None, record_expired: bool = False, **kwargs):
-        super().__init__(name=name)
+    def __init__(self, name=None, record_expired: bool = False, between='mf', **kwargs):
+        super().__init__(name=name, between=between)
         self.meta.condoms = ss_float
         self.meta.age_p1 = ss_float
         self.meta.age_p2 = ss_float
@@ -119,8 +119,10 @@ class BaseNetwork(ss.SexualNetwork):
         return
 
     def init_post(self):
-        super().init_post(add_pairs=False)
-        self.set_network_states()
+        """ Set the first network states, once: a disease that seeds infections by these states calls this before the sim does (see `sti.init_prev_by_group()`) """
+        if not self.initialized:
+            super().init_post(add_pairs=False)
+            self.set_network_states()
         return
 
     def set_network_states(self, upper_age=None):
@@ -150,13 +152,13 @@ class BaseNetwork(ss.SexualNetwork):
         self.debut[m_uids] = self.pars.debut_m.rvs(m_uids)
         return
 
-    def net_beta(self, disease_beta=None, uids=None, disease=None):
-        if uids is None: uids = Ellipsis
-        p_condom = self.edges.condoms[uids]
-        eff_condom = disease.pars.eff_condom
-        p_trans_condom = (1 - disease_beta*(1-eff_condom))**(self.edges.acts[uids]*p_condom)
-        p_trans_no_condom = (1 - disease_beta)**(self.edges.acts[uids]*(1-p_condom))
-        return (1 - p_trans_condom * p_trans_no_condom) * self.edges.beta[uids]
+    def net_beta(self, disease_beta=None, inds=None, disease=None):
+        if inds is None: inds = Ellipsis
+        p_condom = self.edges.condoms[inds]
+        eff_condom = float(disease.pars.eff_condom) if 'eff_condom' in disease.pars else 0.0 # No protection for a disease without it
+        p_trans_condom = (1 - disease_beta*(1-eff_condom))**(self.edges.acts[inds]*p_condom)
+        p_trans_no_condom = (1 - disease_beta)**(self.edges.acts[inds]*(1-p_condom))
+        return (1 - p_trans_condom * p_trans_no_condom) * self.edges.beta[inds]
 
     def step(self):
         self.end_pairs()

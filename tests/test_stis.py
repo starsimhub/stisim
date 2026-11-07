@@ -20,7 +20,7 @@ def test_syph_epi():
     """ Test that syphilis epi parameters affect dynamics in the expected direction """
     sc.heading('Test epi dynamics of syphilis')
 
-    base_pars = dict(n_agents=n_agents)
+    base_pars = dict(n_agents=4*n_agents) # The effect of rel_trans_primary is within the noise of one run at 500 agents (Starsim 3 and 4 alike)
 
     # Define the parameters to vary
     par_effects = dict(
@@ -37,7 +37,7 @@ def test_syph_epi():
         sims.append(sti.Sim(sc.mergedicts(base_pars, dict(diseases=sti.Syphilis(**simpardict_lo), dur=10)), label=f'{par}={lo}'))
         sims.append(sti.Sim(sc.mergedicts(base_pars, dict(diseases=sti.Syphilis(**simpardict_hi), dur=10)), label=f'{par}={hi}'))
 
-    ss.parallel(*sims, debug=debug)
+    ss.parallel(*sims, parallel=not debug)
 
     # Check results pairwise
     for i, (par, (lo, hi)) in enumerate(par_effects.items()):
@@ -76,7 +76,7 @@ def test_syph_congenital_death_timing():
     sim_still = make_sim(2)
     sim_still.run()
     n_stillborn = sim_still.results.syph.new_stillborns.sum()
-    n_pregnancy_losses = sim_still.results.pregnancy.stillbirths.sum() + sim_still.results.pregnancy.miscarriages.sum()
+    n_pregnancy_losses = sim_still.results.pregnancy.stillbirth.sum() + sim_still.results.pregnancy.miscarriage.sum()
     assert n_stillborn > 0, 'Expected some congenital stillbirths with birth_outcomes forced to stillborn'
     # Every syph-flagged stillbirth should register as a Pregnancy fetal loss too;
     # a large gap means deaths are firing at/after ti_delivery and being
@@ -136,12 +136,12 @@ def test_optional_stratification(n_agents=500):
     def make_sim(**kw):
         dis = [sti.Gonorrhea(init_prev=0.1, **kw), sti.Syphilis(init_prev=0.1, **kw), sti.HIV(init_prev=0.1, **kw)]
         return ss.Sim(n_agents=n_agents, start=2000, stop=2005, rand_seed=1, diseases=dis,
-                      networks=[sti.StructuredSexual(), ss.MaternalNet()],
+                      networks=[sti.StructuredSexual(), ss.PrenatalNet()],
                       demographics=[ss.Pregnancy(fertility_rate=50), ss.Deaths(death_rate=10)])
 
     s_full = make_sim()
     s_none = make_sim(age_bins=None, sex_keys=None)
-    ss.parallel(s_full, s_none, debug=debug)
+    ss.parallel(s_full, s_none, parallel=not debug)
 
     for name in ['ng', 'syph', 'hiv']:
         r_full = s_full.diseases[name].results
@@ -199,7 +199,7 @@ def test_bv(include_hiv=False, n_agents=500):
             init_prev=0.1,
         )
 
-        nets += [sti.StructuredSexual(store_register=True), ss.MaternalNet()]
+        nets += [sti.StructuredSexual(store_register=True), ss.PrenatalNet()]
 
         pregnancy = ss.Pregnancy(fertility_rate=10)
         death = ss.Deaths(death_rate=10)
@@ -217,7 +217,7 @@ def test_bv(include_hiv=False, n_agents=500):
 
     s0 = ss.Sim(**sim_args, interventions=intvs)
     s1 = ss.Sim(**sim_args, interventions=intvs + [menstrual_hygiene(start=2020, new_val=0.1)])
-    ss.parallel(s0, s1, debug=debug)
+    ss.parallel(s0, s1, parallel=not debug)
     return s0, s1
 
 

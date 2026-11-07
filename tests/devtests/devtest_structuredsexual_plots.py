@@ -110,7 +110,7 @@ class count_partners(ss.Analyzer):
         self.counts = np.zeros((self.n, self.count))
         for u in self.uids:
             for i, raw in enumerate(self.raw):
-                contacts = ss.find_contacts(raw.p1.values, raw.p2.values, np.array([u]))
+                contacts = ss.utils.find_contacts(raw.p1.values, raw.p2.values, np.array([u]))
                 self.sets[u] = self.sets[u] | contacts
                 self.counts[u,i] = len(self.sets[u])
         
@@ -148,7 +148,7 @@ if __name__ == '__main__':
     if 'plot_pairs' in torun or 'animate_pairs' in torun:
         animnet = animate_network()
         nw = ['random', sti.StructuredSexual()][1] # To debug, use random here
-        sim = ss.Sim(networks=nw, analyzers=animnet, copy_inputs=False, **kw)
+        sim = ss.Sim(networks=nw, analyzers=animnet, **kw)
         sim.run()
         if 'plot_pairs' in torun:
             animnet.plot()
@@ -159,7 +159,7 @@ if __name__ == '__main__':
         # ckw = sc.mergedicts(kw, n_agents=100)
         countpart = count_partners()
         nw = sti.StructuredSexual()
-        sim = ss.Sim(networks=nw, analyzers=countpart, copy_inputs=False, **kw)
+        sim = ss.Sim(networks=nw, analyzers=countpart, **kw)
         sim.run()
         # countpart.plot_stats()
         countpart.plot_growth()

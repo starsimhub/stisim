@@ -92,7 +92,7 @@ class MFPars(ss.Pars):
 
         # Distributions populated by other methods at runtime
         self.age_diffs = ss.normal()
-        self.dur_dist = ss.lognorm_ex()
+        self.dur_dist = ss.lognormal()
 
         # relationship search taper for older women -- used only for match method closest_age_tapered_seeking
         self.p_actually_looking = ss.bernoulli(p=0)  # Placeholder to be replaced by agent-based calculation per-timestep
@@ -123,8 +123,8 @@ class MFNetwork(BaseNetwork):
         **kwargs: Additional parameter overrides forwarded to ``update_pars``.
     """
 
-    def __init__(self, pars=None, condom_data=None, name=None, **kwargs):
-        super().__init__(name=name)
+    def __init__(self, pars=None, condom_data=None, name=None, between='mf', **kwargs):
+        super().__init__(name=name, between=between)
         self.define_pars(**MFPars())
         self.update_pars(pars, **kwargs)
         self.edge_types = {'stable': 0, 'casual': 1, 'onetime': 2}
@@ -153,7 +153,7 @@ class MFNetwork(BaseNetwork):
                 p1 = par[a_label][rg][1]
                 # Scale the parameters by the time step if specified
                 # TODO: fix this
-                if isinstance(p0, ss.dur):
+                if isinstance(p0, ss.Duration):
                     p0 = p0.months
                     p1 = p1.months
                 loc[in_risk_group] = p0

@@ -115,7 +115,7 @@ seed = 42
 
 for label, cov_df in scenarios.items():
     sim = hivsim.demo('simple', run=False, plot=False, n_agents=2_000, stop=2035,
-                       verbose=-1, rand_seed=seed)
+                       verbose=0, rand_seed=seed)
     
     # Replace the default ART with our scenario-specific coverage
     sim.pars.interventions = [
@@ -124,7 +124,7 @@ for label, cov_df in scenarios.items():
     ]
     sim.run()
     results[label] = sim
-    print(f'{label}: {sim.results.hiv.n_on_art[-1]:.0f} on ART at end')
+    print(f'{label}: {sim.results.hiv.on_art[-1]:.0f} on ART at end')
 ```
 
 ## Comparing outcomes
@@ -140,7 +140,7 @@ with sc.options.with_style('fancy'):
 
     # Left panel: ART coverage over time
     for (label, sim), color in zip(results.items(), colors):
-        axes[0].plot(sim.t.yearvec, sim.results.hiv.n_on_art, label=label, color=color, lw=2)
+        axes[0].plot(sim.t.yearvec, sim.results.hiv.on_art, label=label, color=color, lw=2)
     axes[0].axvspan(2025, 2030, alpha=0.1, color='red', zorder=0)
     axes[0].set_xlabel('Year')
     axes[0].set_ylabel('People on ART')

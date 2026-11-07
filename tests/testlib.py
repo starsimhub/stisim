@@ -9,7 +9,7 @@ DEFAULT_STR = 'default'
 def build_testing_sim(n_agents: int = 500,
                       duration: int = 40,  # years
                       diseases:         Union[str, list, None]                 = DEFAULT_STR,
-                      maternal_network: Union[str, ss.MaternalNet, None]       = DEFAULT_STR,
+                      maternal_network: Union[str, ss.PrenatalNet, None]       = DEFAULT_STR,
                       prior_network:    Union[str, sti.PriorPartners, None]    = DEFAULT_STR,
                       sexual_network:   Union[str, sti.StructuredSexual, None] = DEFAULT_STR,
                       pregnancy:        Union[str, ss.Pregnancy, None]         = DEFAULT_STR,
@@ -34,8 +34,10 @@ def build_testing_sim(n_agents: int = 500,
     if prior_network is not None:
         networks.append(prior_network)
 
-    if maternal_network == DEFAULT_STR:
-        maternal_network = ss.MaternalNet()
+    if maternal_network == DEFAULT_STR and pregnancy is not None: # ss.Pregnancy makes its edges
+        maternal_network = ss.PrenatalNet()
+    elif maternal_network == DEFAULT_STR:
+        maternal_network = None
     if maternal_network is not None:
         networks.append(maternal_network)
 

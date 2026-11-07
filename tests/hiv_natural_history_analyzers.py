@@ -5,34 +5,20 @@ import starsim as ss
 
 class TimeToAIDSTracker(ss.Analyzer):
     """
-    Records the time to AIDS (falling) for each infected model agent. Results are obtainable from the analyzer by key 'hiv.ti_to_aids' .
+    Records the time from infection to AIDS (the falling stage) of each agent who reaches it. Results are obtainable from the analyzer by key 'hiv.ti_to_aids' .
     """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # This is a toggle that allows the first time step to count pre-simulation infections (once)
-        self.has_results = False
-
     def step(self):
         pass
 
     def init_results(self):
         super().init_results()
-        # results are a list of times to AIDS for agents infected at each timestep
+        # results are a list of times to AIDS for agents reaching it at each timestep
         self.define_results(ss.Result('hiv.ti_to_aids', dtype=list, scale=False))
 
-    def update_results(self):
+    def record_flows(self):
         hiv = self.sim.diseases.hiv
-        infected = hiv.infected
-
-        if self.has_results:
-            infected_this_step = infected & (hiv.ti_infected == self.ti)
-        else:
-            infected_this_step = infected & (hiv.ti_infected <= self.ti)
-            self.has_results = True
-
-        times_to_aids = hiv.ti_falling[infected_this_step] - hiv.ti_infected[infected_this_step]
-        self.results['hiv.ti_to_aids'][self.ti] = times_to_aids
+        falling = hiv.progression.uids # Those who reached the falling stage in this step
+        self.results['hiv.ti_to_aids'][self.ti] = self.ti - hiv.ti_infected[falling]
 
 
 class CD4ByUIDTracker(ss.Analyzer):
@@ -59,7 +45,7 @@ class CD4ByUIDTracker(ss.Analyzer):
         super().init_results()
         self.results[self.result_name] = {}
 
-    def update_results(self):
+    def record_flows(self): # After each step
         hiv = self.sim.diseases.hiv
         result_name = self.result_name
 
@@ -103,7 +89,7 @@ class RelativeInfectivityByUIDTracker(ss.Analyzer):
         super().init_results()
         self.results[self.result_name] = {}
 
-    def update_results(self):
+    def record_flows(self): # After each step
         hiv = self.sim.diseases.hiv
         result_name = self.result_name
 
@@ -115,12 +101,12 @@ class RelativeInfectivityByUIDTracker(ss.Analyzer):
         else:
             raise Exception(f"Unknown sub-population specified for analyzer RelativeInfectivityByUIDTracker: {self.subpop}")
 
-        # record rel_trans for agents of interest
-        for uid in uids:
+        # record how infectious the agents of interest are, all told (rel_trans, and ART's reduction at full efficacy)
+        infectiousness = hiv.infectiousness(uids)
+        for uid, value in zip(uids, infectiousness):
             if uid not in self.results[result_name]:
                 self.results[result_name][uid] = []
-            rel_trans = hiv.rel_trans[uid]
-            self.results[result_name][uid].append(rel_trans)
+            self.results[result_name][uid].append(value)
 
 
 # TODO: consider replacing usage of this analyzer with RelativeInfectivityByUIDTracker usage & updates
@@ -152,7 +138,7 @@ class RelativeInfectivityTracker(ss.Analyzer):
             state_dict = self.STATES[state]
             self.define_results(ss.Result(state_dict['result_name'], dtype=list, scale=False))
 
-    def update_results(self):
+    def record_flows(self):
         hiv = self.sim.diseases.hiv
         for state in self.states_to_track:
             state_dict = self.STATES[state]
@@ -178,16 +164,14 @@ class SexualTransmissionCountTracker(ss.Analyzer):
         super().init_results()
         self.define_results(ss.Result(self.result_name, dtype=list, scale=False))
 
-    def update_results(self):
-        hiv = self.sim.diseases.hiv
-        transmissions = sum(hiv.new_transmissions_sex.notnanvals)
-        self.results[self.result_name][self.ti] = transmissions
+    def record_flows(self):
+        self.results[self.result_name][self.ti] = self.sim.diseases.hiv.results['new_infections_sex'][self.ti]
 
 
 class MTCTransmissionCountTracker(ss.Analyzer):
     """
     Records the number of mother-to-child HIV transmissions per timestep, results obtainable by analyzer key
-    'hiv.n_mtc_transmissions'. Uses the built-in new_infections_mtct result from BaseSTI.
+    'hiv.n_mtc_transmissions'. Uses the built-in new_infections_mtct result.
     """
 
     result_name = 'hiv.n_mtc_transmissions'
@@ -199,7 +183,7 @@ class MTCTransmissionCountTracker(ss.Analyzer):
         super().init_results()
         self.define_results(ss.Result(self.result_name, dtype=list, scale=False))
 
-    def update_results(self):
+    def record_flows(self):
         self.results[self.result_name][self.ti] = self.sim.diseases.hiv.results['new_infections_mtct'][self.ti]
 
 

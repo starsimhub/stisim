@@ -9,7 +9,7 @@ import sciris as sc
 import hivsim
 
 
-def test_msm_network(n_agents=500):
+def test_msm_network(n_agents=2000): # 500 agents gave no infections for some seeds, on Starsim 3 too
     """ Test MSM HIV transmission via AgeMatchedMSM network """
     hiv = sti.HIV(beta_m2m=0.1, init_prev=0.05)
     pregnancy = ss.Pregnancy(fertility_rate=10)
@@ -149,7 +149,7 @@ def test_partner_seeking_rates():
     s2 = sti.Sim(networks=[high_p_pair_form], analyzers=[sti.TimeBetweenRelationships()], **kw)
 
     # Run the simulation
-    ss.parallel(s1, s2, debug=True)
+    ss.parallel(s1, s2, parallel=False)
 
     # compute the mean time between relationships for both sims, excluding the time until first relationship because some agents
     # take a long time to get their initial pairing, and some never do. This effect is magnified in higher probability
@@ -209,7 +209,7 @@ def test_match_pairs_refactor_preserves_output():
     import numpy as np
     import starsim as ss
     import stisim as sti
-    sim = ss.Sim(n_agents=2_000, networks=sti.StructuredSexual(), diseases='sis',
+    sim = ss.Sim(n_agents=2_000, networks=sti.StructuredSexual(), diseases=ss.SIS(beta=ss.peract(0.05)),
                  start='2000-01-01', stop='2001-01-01', rand_seed=42)
     sim.init()
     net = sim.networks.structuredsexual
