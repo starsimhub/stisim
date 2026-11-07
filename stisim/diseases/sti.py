@@ -107,7 +107,7 @@ class STIResults:
         return ss.uids(uids), counts
 
     def define_sti_results(self, include_care=True):
-        """ Define the results of infection by sex and age, of care, and of the routes of transmission (those already defined, e.g. by `ss.Infection`, are kept) """
+        """ Define the results of infection by sex and age, of care, and of the routes of transmission (those already defined, e.g. by `ss.AgentDisease`, are kept) """
         results = sc.autolist()
         for skk, skl, attr in self.sex_strata():
             is_subpop = skk != ''  # Sex-stratified results are not auto-plotted

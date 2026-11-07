@@ -98,10 +98,10 @@ class HIV(ss.Disease, STIResults):
         self.define_transitions(
             latency = acute >> latent @ dur_acute,
             progression = latent >> falling @ dur_latent,
-            aids_death = ss.Transition(falling, [ss.null, ss.stay], p=[p_aids_death, None], dur=dur_falling),
-            post_art_death = ss.Transition(self.art_discontinued, [ss.null, ss.stay], p=[p_aids_death, None], dur=ss.constant(self.post_art_dwell)), # The time drawn as they stop ART (see post_art_dwell())
-            hiv_death = ss.Transition(off_art, ss.null, rate=self.death_rate),
-            art_death = ss.Transition(on_art, ss.null, rate=self.art_death_rate),
+            aids_death = ss.Transition(falling, [ss.dead, ss.stay], p=[p_aids_death, None], dur=dur_falling),
+            post_art_death = ss.Transition(self.art_discontinued, [ss.dead, ss.stay], p=[p_aids_death, None], dur=ss.constant(self.post_art_dwell)), # The time drawn as they stop ART (see post_art_dwell())
+            hiv_death = ss.Transition(off_art, ss.dead, rate=self.death_rate),
+            art_death = ss.Transition(on_art, ss.dead, rate=self.art_death_rate),
         )
 
         # Stopping ART early (e.g. ss.modify(hiv.pars.rate_art_dropout, set=...) for poor adherence); stop_art() takes people off it otherwise

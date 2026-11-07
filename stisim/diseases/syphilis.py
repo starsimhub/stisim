@@ -162,7 +162,7 @@ class Syphilis(ss.Disease, STIResults):
         to_late = early >> late @ dur_early
         reactivation = ss.Transition(latent, [secondary, ss.stay], p=[p_reactivate, None], on=latency, dur=time_to_reactivate) # Timed from the start of the latent stage, early or late
         tertiary_onset = ss.Transition(latent, [tertiary, ss.stay], p=[p_tertiary, None], on=latency, dur=time_to_tertiary)
-        death = ss.Transition(tertiary, [ss.null, ss.stay], p=[p_death, None], dur=time_to_death)
+        death = ss.Transition(tertiary, [ss.dead, ss.stay], p=[p_death, None], dur=time_to_death)
 
         # Congenital syphilis: the outcome is decided by the mother's stage when the fetus is infected
         mat_active = ss.mother(exposed | primary | secondary) # As Starsim 3 classed the mothers
@@ -174,9 +174,9 @@ class Syphilis(ss.Disease, STIResults):
         mtct = ss.Transition(susceptible, fetal, rate=ss.permonth(1)*beta_m2c*ss.mother(primary | secondary | latent), p=p_outcomes, acquisition=True)
         delivery = ss.ref('pregnancy.delivery') # The events of ss.Pregnancy, which is made separately
         birth = ss.ref('pregnancy.birth')
-        miscarriage = ss.Transition(fetus_miscarriage, ss.null, on=delivery) # A fetal loss, at the delivery
-        stillbirth = ss.Transition(fetus_stillborn, ss.null, on=delivery)
-        nnd = ss.Transition(fetus_nnd, ss.null, on=birth) # A neonatal death, once born
+        miscarriage = ss.Transition(fetus_miscarriage, ss.dead, on=delivery) # A fetal loss, at the delivery
+        stillbirth = ss.Transition(fetus_stillborn, ss.dead, on=delivery)
+        nnd = ss.Transition(fetus_nnd, ss.dead, on=birth) # A neonatal death, once born
         born_congenital = ss.Transition(fetus_congenital, congenital, on=birth)
         born_normal = ss.Transition(fetus_normal, susceptible, on=birth)
 
