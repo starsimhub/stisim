@@ -199,6 +199,15 @@ class STITest(ss.Intervention):
 
         return test_prob
 
+    @property
+    def eligibility(self):
+        """ Who it can reach: a function of the sim (or UIDs), kept as Starsim's who=, which check_eligibility() reads """
+        return self.who
+
+    @eligibility.setter
+    def eligibility(self, value):
+        self.who = value
+
     def get_testers(self, sim):
         """
         Find who tests by applying eligibility and coverage/uptake
@@ -885,6 +894,15 @@ class STITreatment(ss.Intervention):
             ]
         self.define_results(*results)
         return
+
+    @property
+    def eligibility(self):
+        """ Who it can reach: a function of the sim (or UIDs), kept as Starsim's who=, which check_eligibility() reads """
+        return self.who
+
+    @eligibility.setter
+    def eligibility(self, value):
+        self.who = value
 
     def get_candidates(self, sim):
         """

@@ -620,7 +620,7 @@ class VMMC(ss.Intervention):
     """
 
     def __init__(self, pars=None, coverage=None, eligibility=None, smoothness=0, format_priority='n', **kwargs):
-        super().__init__(eligibility=eligibility)
+        super().__init__(who=eligibility)
 
         self.define_pars(
             traditional_prob=ss.bernoulli(p=0),

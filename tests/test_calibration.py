@@ -35,7 +35,7 @@ def test_calibration(do_plot=do_plot):
     """Test end-to-end calibration, and running the best parameter sets."""
     sc.heading('Testing calibration')
     sim = make_sim(beta_m2f=ss.par(0.035, bounds=[0.01, 0.10]), eff_condom=ss.par(0.95, bounds=[0.5, 0.99]))
-    fit = sim.fit(n_trials=3, verbose=False)
+    fit = sim.fit(method=ss.fit.method('optuna', n_trials=3), verbose=False)
     assert set(fit.pars) == {'beta_m2f', 'eff_condom'}, f'Expected both parameters to be fitted, got {list(fit.pars)}'
     trials = fit.to_df()
     assert len(trials) == 3, f'Expected 3 trials, got {len(trials)}'

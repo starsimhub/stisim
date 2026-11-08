@@ -91,13 +91,12 @@ class UpdateDrugs(ss.Intervention):
         **kwargs: Additional parameter overrides.
     """
     def __init__(self, pars=None, eligibility=None, years=None, *args, **kwargs):
-        super().__init__(*args)
+        super().__init__(*args, who=eligibility)
         self.requires = ['ng', 'gonorrheatreatment']
         self.define_pars(
             threshold_amr=0.05
         )
         self.update_pars(pars, **kwargs)
-        self.eligibility = eligibility
         self.years = years
         self.define_states(
             ss.FloatArr('rel_treat_prev'),  # Store a copy of AMR to the previous regimen
@@ -111,7 +110,7 @@ class UpdateDrugs(ss.Intervention):
 
     def step(self):
         sim = self.sim
-        target_uids = self.check_eligibility(sim)
+        target_uids = self.check_eligibility()
         pop_rel_treat = np.mean(self.sim.people.rel_treat[target_uids])
         if pop_rel_treat < self.pars.threshold_amr:
             self.sim.people.rel_treat_prev = sc.dcp(self.sim.people.rel_treat)

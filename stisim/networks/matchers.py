@@ -377,7 +377,7 @@ def closest_age_tapered_seeking(net):
         raise NoPartnersFound()
 
     loc, scale = net.get_age_risk_pars(f_looking, net.pars.age_diff_pars)
-    net.pars.age_diffs.set(loc=loc, scale=scale)
+    net.pars.age_diffs.set(mean=loc, std=scale)
 
     # Extreme age-gap relationships beyond this limit will be trimmed after matching
     max_allowed_age_delta = np.max(loc + 3*scale)

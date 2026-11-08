@@ -48,7 +48,7 @@ age of first sex from the same distribution.
 For simple overrides, you can pass a scalar (e.g. `debut_f=18`) and the
 default standard deviation is preserved. For anything more flexible
 (custom std, a different distribution family, or a callable mean), pass
-a full `ss.lognorm_ex(...)` instead — see the next cell.
+a full `ss.lognormal(...)` instead — see the next cell.
 
 ```{python}
 def make_sim(debut_f, debut_m, label):
@@ -85,8 +85,8 @@ def mean_afs_m(sim):
 
 
 sim_dynamic = make_sim(
-    debut_f=ss.lognorm_ex(mean=mean_afs_f, std=3),
-    debut_m=ss.lognorm_ex(mean=mean_afs_m, std=3),
+    debut_f=ss.lognormal(mean=mean_afs_f, std=3),
+    debut_m=ss.lognormal(mean=mean_afs_m, std=3),
     label='Dynamic',
 )
 ```

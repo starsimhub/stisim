@@ -72,12 +72,12 @@ class coinfection_stats(result_grouper):
     def init_results(self):
         super().init_results()
         results = [
-            ss.Result(f'{self.disease1}_prev_no_{self.disease2}', dtype=float, scale=False),
-            ss.Result(f'{self.disease1}_prev_has_{self.disease2}', dtype=float, scale=False),
-            ss.Result(f'{self.disease1}_prev_no_{self.disease2}_f', dtype=float, scale=False),
-            ss.Result(f'{self.disease1}_prev_has_{self.disease2}_f', dtype=float, scale=False),
-            ss.Result(f'{self.disease1}_prev_no_{self.disease2}_m', dtype=float, scale=False),
-            ss.Result(f'{self.disease1}_prev_has_{self.disease2}_m', dtype=float, scale=False),
+            ss.Result(f'{self.disease1}_prev_no_{self.disease2}', kind='ratio', dtype=float, scale=False),
+            ss.Result(f'{self.disease1}_prev_has_{self.disease2}', kind='ratio', dtype=float, scale=False),
+            ss.Result(f'{self.disease1}_prev_no_{self.disease2}_f', kind='ratio', dtype=float, scale=False),
+            ss.Result(f'{self.disease1}_prev_has_{self.disease2}_f', kind='ratio', dtype=float, scale=False),
+            ss.Result(f'{self.disease1}_prev_no_{self.disease2}_m', kind='ratio', dtype=float, scale=False),
+            ss.Result(f'{self.disease1}_prev_has_{self.disease2}_m', kind='ratio', dtype=float, scale=False),
         ]
         self.define_results(*results)
         return
@@ -207,8 +207,8 @@ class RelationshipDurations(ss.Analyzer):
     def init_results(self):
         super().init_results()
         self.define_results(
-            ss.Result('mean_duration', dtype=float, scale=False, auto_plot=False),
-            ss.Result('median_duration', dtype=float, scale=False, auto_plot=False),
+            ss.Result('mean_duration', kind='ratio', dtype=float, scale=False, auto_plot=False),
+            ss.Result('median_duration', kind='ratio', dtype=float, scale=False, auto_plot=False),
         )
         return
 
@@ -325,8 +325,8 @@ class NetworkDegree(ss.Analyzer):
         super().init_results()
         for relationship_type in self.relationship_types:
             self.results += [
-                ss.Result(f'{relationship_type}_f', dtype=int, scale=False, shape=len(self.bins), auto_plot=False),
-                ss.Result(f'{relationship_type}_m', dtype=int, scale=False, shape=len(self.bins), auto_plot=False),
+                ss.Result(f'{relationship_type}_f', kind='stock', dtype=int, scale=False, shape=len(self.bins), auto_plot=False),
+                ss.Result(f'{relationship_type}_m', kind='stock', dtype=int, scale=False, shape=len(self.bins), auto_plot=False),
             ]
         return
 
@@ -476,9 +476,9 @@ class partner_age_diff(ss.Analyzer):
         """
         super().init_results()
         self.define_results(
-            ss.Result('age_diff_mean', dtype=float, scale=False, auto_plot=False),
-            ss.Result('age_diff_median', dtype=float, scale=False, auto_plot=False),
-            ss.Result('age_diff_std', dtype=float, scale=False, auto_plot=False),
+            ss.Result('age_diff_mean', kind='ratio', dtype=float, scale=False, auto_plot=False),
+            ss.Result('age_diff_median', kind='ratio', dtype=float, scale=False, auto_plot=False),
+            ss.Result('age_diff_std', kind='ratio', dtype=float, scale=False, auto_plot=False),
         )
         return
 
@@ -567,8 +567,8 @@ class DebutAge(ss.Analyzer):
     def init_results(self):
         super().init_results()
         self.define_results(
-            ss.Result('prop_active_f', dtype=float, scale=False, shape=len(self.cohort_starts), auto_plot=False),
-            ss.Result('prop_active_m', dtype=float, scale=False, shape=len(self.cohort_starts), auto_plot=False),
+            ss.Result('prop_active_f', kind='ratio', dtype=float, scale=False, shape=len(self.cohort_starts), auto_plot=False),
+            ss.Result('prop_active_m', kind='ratio', dtype=float, scale=False, shape=len(self.cohort_starts), auto_plot=False),
         )
         return
 
@@ -648,11 +648,11 @@ class art_coverage(ss.Analyzer):
 
         # Aggregate results
         results.append(ss.Result('n_art',   dtype=int,   label='Total on ART'))
-        results.append(ss.Result('p_art',   scale=False, label='ART coverage (proportion of infected)'))
+        results.append(ss.Result('p_art', kind='ratio',   scale=False, label='ART coverage (proportion of infected)'))
         results.append(ss.Result('n_art_f', dtype=int,   label='Women on ART'))
         results.append(ss.Result('n_art_m', dtype=int,   label='Men on ART'))
-        results.append(ss.Result('p_art_f', scale=False, label='ART coverage (women)'))
-        results.append(ss.Result('p_art_m', scale=False, label='ART coverage (men)'))
+        results.append(ss.Result('p_art_f', kind='ratio', scale=False, label='ART coverage (women)'))
+        results.append(ss.Result('p_art_m', kind='ratio', scale=False, label='ART coverage (men)'))
 
         # Viral suppression. HIV maintains on_effective_art and
         # on_nonsuppressive_art, and the difference between them is large
@@ -667,22 +667,22 @@ class art_coverage(ss.Analyzer):
         # is the quantity ART's `vls_coverage` sets as an INPUT. Conflating them
         # double-counts the coverage ramp.
         results.append(ss.Result('n_vls',             dtype=int,   label='Total virally suppressed'))
-        results.append(ss.Result('p_vls',             scale=False, label='Viral suppression (proportion of infected)'))
-        results.append(ss.Result('p_vls_given_art',   scale=False, label='Viral suppression (proportion on ART)'))
+        results.append(ss.Result('p_vls', kind='ratio',             scale=False, label='Viral suppression (proportion of infected)'))
+        results.append(ss.Result('p_vls_given_art', kind='ratio',   scale=False, label='Viral suppression (proportion on ART)'))
         for sex in ['f', 'm']:
             results.append(ss.Result(f'n_vls_{sex}',           dtype=int,   label=f'Virally suppressed ({sex.upper()})'))
-            results.append(ss.Result(f'p_vls_{sex}',           scale=False, label=f'Viral suppression ({sex.upper()})'))
-            results.append(ss.Result(f'p_vls_given_art_{sex}', scale=False, label=f'Viral suppression given ART ({sex.upper()})'))
+            results.append(ss.Result(f'p_vls_{sex}', kind='ratio',           scale=False, label=f'Viral suppression ({sex.upper()})'))
+            results.append(ss.Result(f'p_vls_given_art_{sex}', kind='ratio', scale=False, label=f'Viral suppression given ART ({sex.upper()})'))
 
         # Per age bin × sex
         for i in range(len(self.age_bins) - 1):
             lo, hi = self.age_bins[i], self.age_bins[i + 1]
             for sex in ['f', 'm']:
                 results.append(ss.Result(f'n_art_{sex}_{lo}_{hi}', dtype=int, label=f'On ART {sex.upper()} {lo}-{hi}'))
-                results.append(ss.Result(f'p_art_{sex}_{lo}_{hi}', scale=False, label=f'ART coverage {sex.upper()} {lo}-{hi}'))
+                results.append(ss.Result(f'p_art_{sex}_{lo}_{hi}', kind='ratio', scale=False, label=f'ART coverage {sex.upper()} {lo}-{hi}'))
                 results.append(ss.Result(f'n_vls_{sex}_{lo}_{hi}', dtype=int, label=f'Virally suppressed {sex.upper()} {lo}-{hi}'))
-                results.append(ss.Result(f'p_vls_{sex}_{lo}_{hi}', scale=False, label=f'Viral suppression {sex.upper()} {lo}-{hi}'))
-                results.append(ss.Result(f'p_vls_given_art_{sex}_{lo}_{hi}', scale=False, label=f'Viral suppression given ART {sex.upper()} {lo}-{hi}'))
+                results.append(ss.Result(f'p_vls_{sex}_{lo}_{hi}', kind='ratio', scale=False, label=f'Viral suppression {sex.upper()} {lo}-{hi}'))
+                results.append(ss.Result(f'p_vls_given_art_{sex}_{lo}_{hi}', kind='ratio', scale=False, label=f'Viral suppression given ART {sex.upper()} {lo}-{hi}'))
 
                 # Banded incidence inputs. Without a per-band new_infections
                 # there is no way to compute age-stratified incidence from
@@ -692,7 +692,7 @@ class art_coverage(ss.Analyzer):
                 # using the whole band understates incidence by (1 - prevalence).
                 results.append(ss.Result(f'new_infections_{sex}_{lo}_{hi}', dtype=int, label=f'New infections {sex.upper()} {lo}-{hi}'))
                 results.append(ss.Result(f'n_susceptible_{sex}_{lo}_{hi}', dtype=int, label=f'Susceptible {sex.upper()} {lo}-{hi}'))
-                results.append(ss.Result(f'incidence_{sex}_{lo}_{hi}', scale=False, label=f'Incidence {sex.upper()} {lo}-{hi}'))
+                results.append(ss.Result(f'incidence_{sex}_{lo}_{hi}', kind='ratio', scale=False, label=f'Incidence {sex.upper()} {lo}-{hi}'))
 
         self.define_results(*results)
         return

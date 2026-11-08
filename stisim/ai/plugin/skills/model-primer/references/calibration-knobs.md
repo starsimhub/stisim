@@ -117,9 +117,9 @@ Base parameters (`stisim/networks/base.py`):
 
 | Parameter | Default | Notes |
 |---|---|---|
-| `debut_f` | `ss.lognorm_ex(20, 3)` | Female age at sexual debut. Country-specific; fill from DHS. |
-| `debut_m` | `ss.lognorm_ex(21, 3)` | Male age at sexual debut. Country-specific; fill from DHS. |
-| `acts` | `ss.lognorm_ex(freqperyear(80), freqperyear(30))` | Annual coital frequency per partnership. Country-specific; fill from behavioral surveys where available. |
+| `debut_f` | `ss.lognormal(20, 3)` | Female age at sexual debut. Country-specific; fill from DHS. |
+| `debut_m` | `ss.lognormal(21, 3)` | Male age at sexual debut. Country-specific; fill from DHS. |
+| `acts` | `ss.lognormal(freqperyear(80), freqperyear(30))` | Annual coital frequency per partnership. Country-specific; fill from behavioral surveys where available. |
 
 ### Risk-group composition and partnership dynamics
 
@@ -131,8 +131,8 @@ MF-network parameters (`stisim/networks/mf.py`):
 | `prop_m0` | 0.80 | Proportion of men in the low-risk group. |
 | `prop_f2` | 0.01 | Proportion of women in the high-risk group. |
 | `prop_m2` | 0.02 | Proportion of men in the high-risk group. |
-| `concurrency_dist` | `ss.poisson(lam=1)` | Concurrent-partnership distribution. Country- and population-specific. |
-| `dur_dist` | `ss.lognorm_ex()` | Partnership duration distribution. |
+| `concurrency_dist` | `ss.poisson(mean=1)` | Concurrent-partnership distribution. Country- and population-specific. |
+| `dur_dist` | `ss.lognormal()` | Partnership duration distribution. |
 | `p_matched_stable`, `p_mismatched_casual` | see source | Assortative-mixing probabilities by risk group. |
 
 ### Sex-work-specific parameters
@@ -141,8 +141,8 @@ FSW-network parameters (`stisim/networks/fsw.py`):
 
 | Parameter | Default | Notes |
 |---|---|---|
-| `dur_sw` | `ss.lognorm_ex(mean=5, std=3)` years | Duration in sex work. Highly country-specific; fill from IBBS. |
-| `dur_client` | `ss.lognorm_ex(mean=10, std=5)` years | Duration as a client of sex work. |
+| `dur_sw` | `ss.lognormal(mean=5, std=3)` years | Duration in sex work. Highly country-specific; fill from IBBS. |
+| `dur_client` | `ss.lognormal(mean=10, std=5)` years | Duration as a client of sex work. |
 | `age_sw_start` | derived | Age of entry into sex work. |
 
 Canonical source: `stisim/networks/base.py`, `mf.py`, `fsw.py`, `msm.py`.

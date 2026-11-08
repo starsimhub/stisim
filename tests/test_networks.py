@@ -149,7 +149,7 @@ def test_partner_seeking_rates():
     s2 = sti.Sim(networks=[high_p_pair_form], analyzers=[sti.TimeBetweenRelationships()], **kw)
 
     # Run the simulation
-    ss.parallel(s1, s2, parallel=False)
+    ss.parallel(s1, s2, workers=1)
 
     # compute the mean time between relationships for both sims, excluding the time until first relationship because some agents
     # take a long time to get their initial pairing, and some never do. This effect is magnified in higher probability
@@ -250,7 +250,7 @@ def test_decrement_partners_duplicate_edges():
     p2 = ss.uids([1, 2])
     n = len(p1)
     net.append(
-        p1=p1, p2=p2, beta=np.ones(n), condoms=np.zeros(n), dur=np.ones(n),
+        p1=p1, p2=p2, weight=np.ones(n), condoms=np.zeros(n), dur=np.ones(n),
         acts=np.ones(n), age_p1=np.zeros(n), age_p2=np.zeros(n),
         edge_type=np.full(n, net.edge_types['stable'], dtype=float),
         ti_formed=np.zeros(n, dtype=int),

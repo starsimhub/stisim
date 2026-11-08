@@ -104,7 +104,7 @@ def parse(docs=None, ref='main'):
 
 
 def _fmt(value):
-    """ Compact string for a parameter value, e.g. ``ss.normal(loc=800, scale=50)`` -> ``normal(loc=800, scale=50)``; for a declared parameter (``ss.par``), its value """
+    """ Compact string for a parameter value, e.g. ``ss.normal(mean=800, std=50)`` -> ``normal(mean=800, std=50)``; for a declared parameter (``ss.par``), its value """
     import starsim as ss
     if isinstance(value, ss.par):
         value = value.raw

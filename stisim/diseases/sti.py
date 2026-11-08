@@ -112,9 +112,9 @@ class STIResults:
         for skk, skl, attr in self.sex_strata():
             is_subpop = skk != ''  # Sex-stratified results are not auto-plotted
             results += [
-                ss.Result(f'incidence{skk}', scale=False, label=f"Incidence{skl}", auto_plot=not is_subpop),
+                ss.Result(f'incidence{skk}', kind='ratio', scale=False, label=f"Incidence{skl}", auto_plot=not is_subpop),
                 ss.Result(f'new_infections{skk}', dtype=int, label=f"New infections{skl}", auto_plot=False),
-                ss.Result(f'prevalence{skk}', scale=False, label=f"Prevalence{skl}", auto_plot=not is_subpop),
+                ss.Result(f'prevalence{skk}', kind='ratio', scale=False, label=f"Prevalence{skl}", auto_plot=not is_subpop),
                 ss.Result(f'infected{skk}', dtype=int, kind='stock', label=f"Number infected{skl}", auto_plot=False),
             ]
             for ab1, ab2 in self.age_strata():
@@ -123,8 +123,8 @@ class STIResults:
                 results += [
                     ss.Result(f'new_infections{ask}', dtype=int, label=f"New infections{asl}", auto_plot=False),
                     ss.Result(f'infected{ask}', dtype=int, kind='stock', label=f"Number infected{asl}", auto_plot=False),
-                    ss.Result(f'incidence{ask}', scale=False, label=f"Incidence{asl}", auto_plot=False),
-                    ss.Result(f'prevalence{ask}', scale=False, label=f"Prevalence{asl}", auto_plot=False),
+                    ss.Result(f'incidence{ask}', kind='ratio', scale=False, label=f"Incidence{asl}", auto_plot=False),
+                    ss.Result(f'prevalence{ask}', kind='ratio', scale=False, label=f"Prevalence{asl}", auto_plot=False),
                 ]
 
         # Results of care, which the testing and treatment interventions write
@@ -322,7 +322,7 @@ class SEIS(ss.Disease, STIResults):
         sim = sti.Sim(diseases=ng, n_agents=5000)
         ```
     """
-    suggested_solver = 'abm-wholestep' # As agents, rates over whole steps, as STIsim's diseases took them when written as code (faster; a sim's solver='abm-midstep' overrides it)
+    suggested_solver = ss.solvers.abm(step='wholestep') # As agents, rates over whole steps, as STIsim's diseases took them when written as code (faster; a sim's solver=ss.solvers.abm(step='midstep') overrides it)
     def __init__(self, pars=None, name=None, age_range=None, age_bins=default_age_bins,
                  sex_keys=default_sex_keys, include_care=True, **kwargs):
 
@@ -359,23 +359,23 @@ class SEIS(ss.Disease, STIResults):
         mtct = susceptible >> exposed @ beta_m2c*dict(prenatalnet=ss.permonth(1), default=0)*infectious
 
         # Natural history
-        onset = ss.Transition(exposed, [presymptomatic, asymptomatic], p=[p_symp, None], dur=dur_exp)
+        onset = ss.Transition(exposed, {presymptomatic: p_symp, asymptomatic: None}, dur=dur_exp)
         symptoms = presymptomatic >> symptomatic @ dur_presymp
-        seek_care = ss.Transition(symptomatic, [symptomatic, ss.stay], p=[p_symp_care, None], on=symptoms, dur=dur_symp2care) # A share seek care, and stay symptomatic
-        clear_symp = ss.Transition(symptomatic, susceptible, on=symptoms, dur=dur_symp2clear) # Timed from the symptoms, so seeking care does not restart it
+        seek_care = ss.Transition(symptomatic, {symptomatic: p_symp_care, ss.stay: None}, when=ss.on(symptoms, delay=dur_symp2care)) # A share seek care, and stay symptomatic
+        clear_symp = ss.Transition(symptomatic, susceptible, when=ss.on(symptoms, delay=dur_symp2clear)) # Timed from the symptoms, so seeking care does not restart it
         clear_asymp = asymptomatic >> susceptible @ dur_asymp2clear
-        persist = ss.Transition(asymptomatic, susceptible, p=1 - p_clear, dur=dur_persist, where=female) # The rest of the asymptomatic clear by clear_asymp
-        pid_onset = ss.Transition(presymptomatic + asymptomatic + symptomatic, [pid, ss.stay], p=[p_pid, None], on=onset, where=female, dur=dur_prepid)
-        seek_care_pid = ss.Transition(pid, [pid, ss.stay], p=[p_pid_care, None], on=pid_onset, dur=dur_pid2care)
+        persist = ss.Transition(asymptomatic, susceptible, p=1 - p_clear, dur=dur_persist, who=female) # The rest of the asymptomatic clear by clear_asymp
+        pid_onset = ss.Transition(presymptomatic + asymptomatic + symptomatic, {pid: p_pid, ss.stay: None}, when=ss.on(onset, delay=dur_prepid), who=female)
+        seek_care_pid = ss.Transition(pid, {pid: p_pid_care, ss.stay: None}, when=ss.on(pid_onset, delay=dur_pid2care))
         clear_pid = pid >> susceptible @ dur_pid2clear
 
         # The parameters that the transitions do not read: the condoms' efficacy, which the sexual networks read (see sti.BaseNetwork.net_beta());
-        # and, as the graph does not yet register them [PROPOSAL ST-D], the times after an event (on=), named above, whose values are set once it is built
+        # and, as the graph does not yet register them [PROPOSAL ST-D], the times after an event (ss.on(delay=)), named above, whose values are set once it is built
         values = sc.mergedicts(dict(init_prev=0.01), pars, kwargs)
         delays = dict(dur_symp2care=dur_symp2care, dur_symp2clear=dur_symp2clear, dur_prepid=dur_prepid, dur_pid2care=dur_pid2care)
         given = {key:values.pop(key) for key in list(delays) + ['eff_condom'] if key in values}
 
-        # [PROPOSAL ST-A] Declared here rather than in the class body, since on= a sibling transition does not yet work there
+        # [PROPOSAL ST-A] Declared here rather than in the class body, since when= a sibling transition does not yet work there
         super().__init__(
             infection=infection, mtct=mtct, onset=onset, symptoms=symptoms, seek_care=seek_care,
             clear_symp=clear_symp, clear_asymp=clear_asymp, persist=persist,
@@ -416,7 +416,7 @@ class SEIS(ss.Disease, STIResults):
     def init_results(self):
         """ Initialize results """
         super().init_results()
-        self.define_results(ss.Result('infectious', dtype=int, label='Number infectious', auto_plot=False))
+        self.define_results(ss.Result('infectious', kind='stock', dtype=int, label='Number infectious', auto_plot=False))
         self.define_sti_results(include_care=self.include_care)
 
         # Symptoms, by sex and age
@@ -425,7 +425,7 @@ class SEIS(ss.Disease, STIResults):
             is_subpop = skk != ''
             results += [
                 ss.Result(f'new_symptomatic{skk}', dtype=int, label=f"New symptomatic{skl}", auto_plot=not is_subpop),
-                ss.Result(f'symp_prevalence{skk}', scale=False, label=f"Symptomatic prevalence{skl}", auto_plot=not is_subpop),
+                ss.Result(f'symp_prevalence{skk}', kind='ratio', scale=False, label=f"Symptomatic prevalence{skl}", auto_plot=not is_subpop),
             ]
             if is_subpop:
                 results += ss.Result(f'symptomatic{skk}', dtype=int, kind='stock', label=f"Number symptomatic{skl}", auto_plot=False)
@@ -434,7 +434,7 @@ class SEIS(ss.Disease, STIResults):
                 asl = f' ({skl}, {ab2}-{ab2})'
                 results += [
                     ss.Result(f'new_symptomatic{ask}', dtype=int, label=f"New symptomatic{asl}", auto_plot=False),
-                    ss.Result(f'symp_prevalence{ask}', scale=False, label=f"Symptomatic prevalence{asl}", auto_plot=False),
+                    ss.Result(f'symp_prevalence{ask}', kind='ratio', scale=False, label=f"Symptomatic prevalence{asl}", auto_plot=False),
                 ]
         self.define_results(*results)
         return

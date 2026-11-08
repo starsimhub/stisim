@@ -37,7 +37,7 @@ def test_hiv_syph():
     pars['connectors'] = sti.hiv_syph(hiv, syphilis, rel_sus_hiv_syph=20, rel_trans_hiv_syph=20) # Was set before pars was made again, so s1 had no connector
     s1 = sti.Sim(pars)
 
-    ss.parallel(s0, s1, parallel=not debug)
+    ss.parallel(s0, s1, workers=1 if debug else None)
 
     r0 = s0.results.hiv.cum_infections[-1]
     r1 = s1.results.hiv.cum_infections[-1]

@@ -40,7 +40,7 @@ class HIV(ss.Disease, STIResults):
         include_care (bool): whether to define the results of care
         kwargs (dict): parameter values (e.g. ``beta_m2f=0.02``), `init_prev`, or `label`
     """
-    suggested_solver = 'abm-wholestep' # As agents, rates over whole steps, as STIsim's diseases took them when written as code (faster; a sim's solver='abm-midstep' overrides it)
+    suggested_solver = ss.solvers.abm(step='wholestep') # As agents, rates over whole steps, as STIsim's diseases took them when written as code (faster; a sim's solver=ss.solvers.abm(step='midstep') overrides it)
     hetero_networks = hetero_networks # The sexual networks between men and women, by name, which a subclass can add to
 
     def __init__(self, pars=None, name='hiv', init_prev_data=None, age_bins=default_age_bins,
@@ -98,8 +98,8 @@ class HIV(ss.Disease, STIResults):
         self.define_transitions(
             latency = acute >> latent @ dur_acute,
             progression = latent >> falling @ dur_latent,
-            aids_death = ss.Transition(falling, [ss.dead, ss.stay], p=[p_aids_death, None], dur=dur_falling),
-            post_art_death = ss.Transition(self.art_discontinued, [ss.dead, ss.stay], p=[p_aids_death, None], dur=ss.constant(self.post_art_dwell)), # The time drawn as they stop ART (see post_art_dwell())
+            aids_death = ss.Transition(falling, {ss.dead: p_aids_death, ss.stay: None}, dur=dur_falling),
+            post_art_death = ss.Transition(self.art_discontinued, {ss.dead: p_aids_death, ss.stay: None}, dur=ss.constant(self.post_art_dwell)), # The time drawn as they stop ART (see post_art_dwell())
             hiv_death = ss.Transition(off_art, ss.dead, rate=self.death_rate),
             art_death = ss.Transition(on_art, ss.dead, rate=self.art_death_rate),
         )
@@ -187,15 +187,15 @@ class HIV(ss.Disease, STIResults):
             art_death_dur = None, # (dur_lo, dur_hi, mult) list, days since ti_art; None = no-op
 
             # CD4 count
-            cd4_start = ss.normal(loc=800, scale=50),
-            cd4_latent = ss.normal(loc=500, scale=50),
+            cd4_start = ss.normal(mean=800, std=50),
+            cd4_latent = ss.normal(mean=500, std=50),
             art_cd4_growth = 0.1, # Unitless parameter of how CD4 reconstitutes after starting ART, in a logistic growth function
             art_cd4_pars = dict(cd4_max=1000, cd4_healthy=500),
 
             # Infectiousness and susceptibility
             eff_condom = 0.9, # Read by the sexual networks (see sti.BaseNetwork.net_beta())
-            rel_trans_acute = ss.normal(loc=5.3, scale=0.5), # Bellan 2015: RH=5.3, EHM≈7.3
-            rel_trans_falling = ss.normal(loc=8, scale=0.5), # Increase in late infection (a CD4 count below 200)
+            rel_trans_acute = ss.normal(mean=5.3, std=0.5), # Bellan 2015: RH=5.3, EHM≈7.3
+            rel_trans_falling = ss.normal(mean=8, std=0.5), # Increase in late infection (a CD4 count below 200)
             rel_sus_age = None, # Age/sex-stratified rel_sus multipliers: (age_lo, age_hi, sex, multiplier) tuples; sex is 'f', 'm', or None for both. E.g. [(15, 25, 'f', 1.7), (25, 50, 'f', 1.0), (15, 50, 'm', 1.0)]
             eff_circ = 0.6, # Program (medical) VMMC: reduction in HIV acquisition susceptibility
             eff_circ_traditional = 0.6, # Traditional (non-program) circumcision: reduction in HIV acquisition susceptibility
@@ -206,7 +206,7 @@ class HIV(ss.Disease, STIResults):
             dist_ti_init_infected = ss.uniform(low=-10*12, high=-5), # When the infections at the start began, in steps
 
             # Care seeking
-            care_seeking = ss.normal(loc=1, scale=0.5), # Relative care-seeking behavior (wide spread for low-care-seeking extremes)
+            care_seeking = ss.normal(mean=1, std=0.5), # Relative care-seeking behavior (wide spread for low-care-seeking extremes)
             maternal_care_scale = 2, # Factor for scaling up care-seeking behavior during pregnancy
 
             # Treatment
@@ -319,7 +319,7 @@ class HIV(ss.Disease, STIResults):
         self.cd4_postart[uids] = self.cd4[uids]
         dur_mean = np.log(self.cd4_preart[uids])*self.cd4[uids]/self.cd4_potential[uids]
         dur_scale = dur_mean*self.pars.dur_post_art_scale_factor
-        self.pars.dur_post_art.set(loc=ss.years(dur_mean), scale=ss.years(np.maximum(dur_scale, 1e-3))) # Not zero
+        self.pars.dur_post_art.set(mean=ss.years(dur_mean), std=ss.years(np.maximum(dur_scale, 1e-3))) # Not zero
         dur_post_art = self.pars.dur_post_art.rvs(uids)
         if np.isnan(dur_post_art).any():
             bad = uids[np.isnan(dur_post_art)]
@@ -663,30 +663,30 @@ class HIV(ss.Disease, STIResults):
         results = [
             ss.Result('infected', dtype=int, kind='stock', label='Number infected'),
             ss.Result('on_art', dtype=int, kind='stock', label='On ART'),
-            ss.Result('diagnosed', dtype=int, label='Diagnosed', auto_plot=False),
+            ss.Result('diagnosed', kind='stock', dtype=int, label='Diagnosed', auto_plot=False),
             ss.Result('cum_deaths', dtype=int, label='Cumulative deaths', auto_plot=False),
             ss.Result('new_diagnoses', dtype=int, label='Diagnoses'),
             ss.Result('cum_diagnoses', dtype=int, label='Cumulative diagnoses', auto_plot=False),
             ss.Result('new_agents_on_art', dtype=int, label='New treated', auto_plot=False),
-            ss.Result('prevalence_15_49', dtype=float, label='Prevalence 15-49', scale=False),
-            ss.Result('prevalence_sw', dtype=float, label='FSW prevalence', scale=False, auto_plot=False),
+            ss.Result('prevalence_15_49', kind='ratio', dtype=float, label='Prevalence 15-49', scale=False),
+            ss.Result('prevalence_sw', kind='ratio', dtype=float, label='FSW prevalence', scale=False, auto_plot=False),
             ss.Result('new_infections_sw', dtype=int, label='New infections - FSW', auto_plot=False),
             ss.Result('new_infections_not_sw', dtype=int, label='New infections - Other F', auto_plot=False),
-            ss.Result('prevalence_client', dtype=float, label='Client prevalence', scale=False, auto_plot=False),
+            ss.Result('prevalence_client', kind='ratio', dtype=float, label='Client prevalence', scale=False, auto_plot=False),
             ss.Result('new_infections_client', dtype=int, label='New infections - Clients', auto_plot=False),
             ss.Result('new_infections_not_client', dtype=int, label='New infections - Other M', auto_plot=False),
-            ss.Result('p_on_art', dtype=float, label='Proportion on ART', scale=False),
+            ss.Result('p_on_art', kind='ratio', dtype=float, label='Proportion on ART', scale=False),
         ]
         if self.include_mtct:
             results += [
                 ss.Result('n_on_art_pregnant', dtype=int, auto_plot=False),
-                ss.Result('p_diagnosed_pregnant', dtype=float, label='Proportion of HIV+ pregnant women diagnosed', scale=False, auto_plot=False),
+                ss.Result('p_diagnosed_pregnant', kind='ratio', dtype=float, label='Proportion of HIV+ pregnant women diagnosed', scale=False, auto_plot=False),
             ]
         if 'structuredsexual' in self.sim.networks.keys():
             for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
                 for sex in ['female', 'male']:
                     results += [
-                        ss.Result('prevalence_risk_group_' + str(risk_group) + '_' + sex, scale=False, auto_plot=False),
+                        ss.Result('prevalence_risk_group_' + str(risk_group) + '_' + sex, kind='ratio', scale=False, auto_plot=False),
                         ss.Result('new_infections_risk_group_' + str(risk_group) + '_' + sex, dtype=int, auto_plot=False),
                     ]
         self.define_results(*[res for res in results if res.name not in self.results and res.name not in self.graph.exprs and res.name not in self.graph.outcomes])

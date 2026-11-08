@@ -255,7 +255,7 @@ def test_implicit_sw_via_thresholds():
 def test_sw_window_dynamics():
     """Tight age window — current FSW count should sit below ever_fsw."""
     sw = sti.SWNetwork(
-        age_sw_start=ss.normal(loc=22, scale=2),
+        age_sw_start=ss.normal(mean=22, std=2),
         dur_sw=ss.lognormal(mean=4, std=1),
     )
     sim = sti.Sim(

@@ -37,8 +37,8 @@ class SimPars(ss.SimPars):
         self.n_agents  = 1e3   # Number of agents
 
         # Simulation parameters
-        self.start     = ss.years(2000)   # Start of the simulation
-        self.stop      = ss.years(2030)   # End of the simulation
+        self.start     = 2000   # Start of the simulation (a calendar year)
+        self.stop      = 2030   # End of the simulation (a calendar year)
         self.dur       = None   # Duration of time to run, if stop isn't specified
         self.dt        = ss.years(1/12)   # Timestep
         self.rand_seed = 1      # Random seed; if None, don't reset

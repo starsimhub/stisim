@@ -449,14 +449,14 @@ def compute_coverage_target(coverage, coverage_format, age_bins, sex_keys,
                 # Count eligible agents and convert to a target number
                 n = (age_sex_mask(ab, sex, sim.people) & eligible_uids).count()
                 total += coverage_to_number(cov_val, fmt,
-                                            pop_scale=sim.pars.pop_scale, n_eligible=n)
+                                            pop_scale=sim.pop_scale, n_eligible=n)
         return total
 
     # Aggregate coverage: single value for the whole population
     cov_val = coverage[ti]
     n_eligible = len(eligible_uids)
     return coverage_to_number(cov_val, fmt,
-                              pop_scale=sim.pars.pop_scale, n_eligible=n_eligible)
+                              pop_scale=sim.pop_scale, n_eligible=n_eligible)
 
 
 def compute_stratum_targets(coverage, coverage_format, age_bins, sex_keys,
@@ -489,7 +489,7 @@ def compute_stratum_targets(coverage, coverage_format, age_bins, sex_keys,
 
             n = (age_sex_mask(ab, sex, sim.people) & eligible_uids).count()
             targets[key] = coverage_to_number(cov_val, fmt,
-                                              pop_scale=sim.pars.pop_scale, n_eligible=n)
+                                              pop_scale=sim.pop_scale, n_eligible=n)
     return targets
 
 

@@ -52,7 +52,7 @@ class MFPars(ss.Pars):
         )
 
         # Concurrency
-        self.concurrency_dist = ss.poisson(lam=1)
+        self.concurrency_dist = ss.poisson(mean=1)
         self.f0_conc = 0.0001
         self.f1_conc = 0.01
         self.f2_conc = 0.1
@@ -214,19 +214,16 @@ class MFNetwork(BaseNetwork):
         # populates self.fsw AFTER set_concurrency runs in the MF flow.
 
         # `mu` is the target *mean* concurrency, but the two supported dists
-        # are parameterized differently: ss.poisson takes the mean directly as
-        # `lam`, whereas ss.nbinom takes (n, p) and must be reparameterized from
-        # the mean at fixed dispersion n via p = n/(n+mu). Calling .set(lam=...)
-        # on an nbinom is silently ignored (it has no `lam` parameter), so we
-        # branch on the dist type to avoid a no-op that would leave the dist at
-        # its construction default.
+        # are parameterized differently: ss.poisson takes the mean directly,
+        # whereas ss.nbinom is set by (n, p), reparameterized from the mean at
+        # fixed dispersion n via p = n/(n+mu).
         dist = self.pars.concurrency_dist
         if isinstance(dist, ss.nbinom):
             n = dist.pars['n']
             p = n / (n + mu)
             dist.set(n=n, p=p)
         else:
-            dist.set(lam=mu)
+            dist.set(mean=mu)
         self.concurrency[uids] = dist.rvs(uids) + 1
 
         return
@@ -246,7 +243,7 @@ class MFNetwork(BaseNetwork):
     def _sample_desired_ages(self, f_looking):
         """Sample desired male partner ages for the given f_looking uids."""
         loc, scale = self.get_age_risk_pars(f_looking, self.pars.age_diff_pars)
-        self.pars.age_diffs.set(loc=loc, scale=scale)
+        self.pars.age_diffs.set(mean=loc, std=scale)
         age_gaps = self.pars.age_diffs.rvs(f_looking)
         return self.sim.people.age[f_looking] + age_gaps
 
@@ -292,7 +289,7 @@ class MFNetwork(BaseNetwork):
 
         match_count = len(p1)
 
-        beta = np.ones(match_count, dtype=ss_float)
+        weight = np.ones(match_count, dtype=ss_float)
         condoms = np.zeros(match_count, dtype=ss_float)
         acts = (self.pars.acts.rvs(p2)).astype(int)
         dur = np.full(match_count, fill_value=1)  # Measured in timesteps
@@ -326,7 +323,7 @@ class MFNetwork(BaseNetwork):
             self.relationship_durs[pair].append({'start': self.ti, 'dur': reldur, 'edge_type': int(etype)}) # set dur to intended duration. When the relationship actually ends, this will be updated
 
         ti_formed = np.full(match_count, self.ti, dtype=int)
-        self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types, ti_formed=ti_formed)
+        self.append(p1=p1, p2=p2, weight=weight, condoms=condoms, dur=dur, acts=acts, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types, ti_formed=ti_formed)
 
         # Checks
         if (self.sim.people.female[p1].any() or self.sim.people.male[p2].any()) and (self.name == 'structuredsexual'):
@@ -377,8 +374,8 @@ class MFNetwork(BaseNetwork):
         ended_p1 = self.edges.p1[~active]
         ended_p2 = self.edges.p2[~active]
         durs = np.zeros_like(ended_p1, dtype=ss_float)
-        betas = np.zeros_like(ended_p1, dtype=ss_float)
-        prior_network.append(p1=ended_p1, p2=ended_p2, dur=durs, beta=betas)
+        weights = np.zeros_like(ended_p1, dtype=ss_float)
+        prior_network.append(p1=ended_p1, p2=ended_p2, dur=durs, weight=weights)
 
     def _decrement_partners(self, active):
         """Decrement partner counters for expired non-SW edges.

@@ -407,7 +407,7 @@ class MSMScaleFreeNetwork(BaseNetwork):
         ages = self.sim.people.age
         self.append(
             p1=p1, p2=p2,
-            beta=np.ones(n, dtype=float),
+            weight=np.ones(n, dtype=float),
             dur=np.full(n, float(self._max_edge_dur_steps), dtype=float),
             acts=np.ones(n, dtype=int),
             condoms=np.zeros(n, dtype=float),
@@ -561,7 +561,7 @@ class AgeApproxMSM(MFNetwork):
         group1 = m_looking[::2]
         group2 = m_looking[1::2]
         loc, scale = self.get_age_risk_pars(group1, self.pars.age_diff_pars)
-        self.pars.age_diffs.set(loc=loc, scale=scale)
+        self.pars.age_diffs.set(mean=loc, std=scale)
         age_gaps = self.pars.age_diffs.rvs(group1)
         desired_ages = ppl.age[group1] + age_gaps
         g2_ages = ppl.age[group2]

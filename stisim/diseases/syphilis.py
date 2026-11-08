@@ -119,7 +119,7 @@ class Syphilis(ss.Disease, STIResults):
         include_care (bool): whether to define the results of care
         kwargs (dict): parameter values (e.g. ``beta_m2f=0.2``), `init_prev`, or `label`
     """
-    suggested_solver = 'abm-wholestep' # As agents, rates over whole steps, as STIsim's diseases took them when written as code (faster; a sim's solver='abm-midstep' overrides it)
+    suggested_solver = ss.solvers.abm(step='wholestep') # As agents, rates over whole steps, as STIsim's diseases took them when written as code (faster; a sim's solver=ss.solvers.abm(step='midstep') overrides it)
     def __init__(self, pars=None, name='syph', birth_outcomes=None, init_latent_prev=None, age_range=None,
                  age_bins=default_age_bins, sex_keys=default_sex_keys, include_care=True, **kwargs):
 
@@ -160,9 +160,9 @@ class Syphilis(ss.Disease, STIResults):
         secondary_onset = primary >> secondary @ dur_primary
         latency = secondary >> early @ dur_secondary
         to_late = early >> late @ dur_early
-        reactivation = ss.Transition(latent, [secondary, ss.stay], p=[p_reactivate, None], on=latency, dur=time_to_reactivate) # Timed from the start of the latent stage, early or late
-        tertiary_onset = ss.Transition(latent, [tertiary, ss.stay], p=[p_tertiary, None], on=latency, dur=time_to_tertiary)
-        death = ss.Transition(tertiary, [ss.dead, ss.stay], p=[p_death, None], dur=time_to_death)
+        reactivation = ss.Transition(latent, {secondary: p_reactivate, ss.stay: None}, when=ss.on(latency, delay=time_to_reactivate)) # Timed from the start of the latent stage, early or late
+        tertiary_onset = ss.Transition(latent, {tertiary: p_tertiary, ss.stay: None}, when=ss.on(latency, delay=time_to_tertiary))
+        death = ss.Transition(tertiary, {ss.dead: p_death, ss.stay: None}, dur=time_to_death)
 
         # Congenital syphilis: the outcome is decided by the mother's stage when the fetus is infected
         mat_active = ss.mother(exposed | primary | secondary) # As Starsim 3 classed the mothers
@@ -170,18 +170,19 @@ class Syphilis(ss.Disease, STIResults):
         mat_late = ss.mother(late)
         outcomes = sc.mergedicts(default_birth_outcomes, birth_outcomes)
         probs = {stage:np.asarray(val.pars.p if isinstance(val, ss.choice) else val) for stage,val in outcomes.items()} # The probabilities, also from Starsim 3's ss.choice
-        p_outcomes = [probs['mat_active'][i]*mat_active + probs['early'][i]*mat_early + probs['late'][i]*mat_late for i in range(4)] + [None] # A live birth without complications is the rest
-        mtct = ss.Transition(susceptible, fetal, rate=ss.permonth(1)*beta_m2c*ss.mother(primary | secondary | latent), p=p_outcomes, acquisition=True)
+        p_outcomes = {state:probs['mat_active'][i]*mat_active + probs['early'][i]*mat_early + probs['late'][i]*mat_late for i,state in enumerate(fetal[:4])}
+        p_outcomes[fetus_normal] = None # A live birth without complications is the rest
+        mtct = ss.Transition(susceptible, p_outcomes, rate=ss.permonth(1)*beta_m2c*ss.mother(primary | secondary | latent), acquisition=True)
         delivery = ss.ref('pregnancy.delivery') # The events of ss.Pregnancy, which is made separately
         birth = ss.ref('pregnancy.birth')
-        miscarriage = ss.Transition(fetus_miscarriage, ss.dead, on=delivery) # A fetal loss, at the delivery
-        stillbirth = ss.Transition(fetus_stillborn, ss.dead, on=delivery)
-        nnd = ss.Transition(fetus_nnd, ss.dead, on=birth) # A neonatal death, once born
-        born_congenital = ss.Transition(fetus_congenital, congenital, on=birth)
-        born_normal = ss.Transition(fetus_normal, susceptible, on=birth)
+        miscarriage = ss.Transition(fetus_miscarriage, ss.dead, when=delivery) # A fetal loss, at the delivery
+        stillbirth = ss.Transition(fetus_stillborn, ss.dead, when=delivery)
+        nnd = ss.Transition(fetus_nnd, ss.dead, when=birth) # A neonatal death, once born
+        born_congenital = ss.Transition(fetus_congenital, congenital, when=birth)
+        born_normal = ss.Transition(fetus_normal, susceptible, when=birth)
 
         # The parameters that the transitions do not read, which its own code does (below); and, as the graph does not yet register
-        # them [PROPOSAL ST-D], the times after an event (on=), named above, whose values are set once it is built
+        # them [PROPOSAL ST-D], the times after an event (ss.on(delay=)), named above, whose values are set once it is built
         values = sc.mergedicts(dict(init_prev=0.0), pars, kwargs)
         code_pars = dict(
             eff_condom = 0.0, # Read by the sexual networks (see sti.BaseNetwork.net_beta())
@@ -201,7 +202,7 @@ class Syphilis(ss.Disease, STIResults):
         if init_latent_prev:
             values['init'] = sc.mergedicts(values.get('init'), dict(early=init_latent_prev))
 
-        # [PROPOSAL ST-A] Declared here rather than in the class body, since on= a sibling transition does not yet work there
+        # [PROPOSAL ST-A] Declared here rather than in the class body, since when= a sibling transition does not yet work there
         super().__init__(
             infection=infection, primary_onset=primary_onset, secondary_onset=secondary_onset, latency=latency, to_late=to_late,
             reactivation=reactivation, tertiary_onset=tertiary_onset, death=death,
@@ -416,30 +417,30 @@ class Syphilis(ss.Disease, STIResults):
         for skk, skl, attr in self.sex_strata():
             if skk != '':
                 results += [
-                    ss.Result(f'trep_prevalence{skk}', scale=False, label=f"Treponemal-test positive{skl}", auto_plot=False),
-                    ss.Result(f'sexually_transmissible_prevalence{skk}', scale=False, label=f"Sexually transmissible prevalence{skl}", auto_plot=False),
-                    ss.Result(f'symptomatic_prevalence{skk}', scale=False, label=f"Symptomatic prevalence{skl}", auto_plot=False),
-                    ss.Result(f'primary_prevalence{skk}', scale=False, label=f"Primary stage prevalence{skl}", auto_plot=False),
-                    ss.Result(f'nontrep_prevalence{skk}', scale=False, label=f"Non-treponemal positive{skl}", auto_plot=False),
+                    ss.Result(f'trep_prevalence{skk}', kind='ratio', scale=False, label=f"Treponemal-test positive{skl}", auto_plot=False),
+                    ss.Result(f'sexually_transmissible_prevalence{skk}', kind='ratio', scale=False, label=f"Sexually transmissible prevalence{skl}", auto_plot=False),
+                    ss.Result(f'symptomatic_prevalence{skk}', kind='ratio', scale=False, label=f"Symptomatic prevalence{skl}", auto_plot=False),
+                    ss.Result(f'primary_prevalence{skk}', kind='ratio', scale=False, label=f"Primary stage prevalence{skl}", auto_plot=False),
+                    ss.Result(f'nontrep_prevalence{skk}', kind='ratio', scale=False, label=f"Non-treponemal positive{skl}", auto_plot=False),
                 ]
             for ab1, ab2 in self.age_strata():
                 ask = f'{skk}_{ab1}_{ab2}'
                 asl = f' ({skl}, {ab1}-{ab2})'
                 results += [
-                    ss.Result(f'sexually_transmissible_prevalence{ask}', scale=False, label=f"Sexually transmissible prevalence{asl}", auto_plot=False),
-                    ss.Result(f'symptomatic_prevalence{ask}', scale=False, label=f"Symptomatic prevalence{asl}", auto_plot=False),
-                    ss.Result(f'primary_prevalence{ask}', scale=False, label=f"Primary stage prevalence{asl}", auto_plot=False),
-                    ss.Result(f'trep_prevalence{ask}', scale=False, label=f"Treponemal positive{asl}", auto_plot=False),
-                    ss.Result(f'nontrep_prevalence{ask}', scale=False, label=f"Non-treponemal positive{asl}", auto_plot=False),
+                    ss.Result(f'sexually_transmissible_prevalence{ask}', kind='ratio', scale=False, label=f"Sexually transmissible prevalence{asl}", auto_plot=False),
+                    ss.Result(f'symptomatic_prevalence{ask}', kind='ratio', scale=False, label=f"Symptomatic prevalence{asl}", auto_plot=False),
+                    ss.Result(f'primary_prevalence{ask}', kind='ratio', scale=False, label=f"Primary stage prevalence{asl}", auto_plot=False),
+                    ss.Result(f'trep_prevalence{ask}', kind='ratio', scale=False, label=f"Treponemal positive{asl}", auto_plot=False),
+                    ss.Result(f'nontrep_prevalence{ask}', kind='ratio', scale=False, label=f"Non-treponemal positive{asl}", auto_plot=False),
                 ]
 
         # Add FSW and clients to results:
         if self.store_sw:
             results += [
-                ss.Result('prevalence_sw', dtype=float, scale=False, label="Prevalence - FSW", auto_plot=False),
+                ss.Result('prevalence_sw', kind='ratio', dtype=float, scale=False, label="Prevalence - FSW", auto_plot=False),
                 ss.Result('new_infections_sw', dtype=int, label="Infections - FSW", auto_plot=False),
                 ss.Result('new_infections_not_sw', dtype=int, label="Infections - other F", auto_plot=False),
-                ss.Result('prevalence_client', dtype=float, scale=False, label="Prevalence - clients", auto_plot=False),
+                ss.Result('prevalence_client', kind='ratio', dtype=float, scale=False, label="Prevalence - clients", auto_plot=False),
                 ss.Result('new_infections_client', dtype=int, label="Infections - clients", auto_plot=False),
                 ss.Result('new_infections_not_client', dtype=int, label="Infections - other M", auto_plot=False),
             ]
@@ -449,7 +450,7 @@ class Syphilis(ss.Disease, STIResults):
             for risk_group in range(self.sim.networks.structuredsexual.pars.n_risk_groups):
                 for sex in ['female', 'male']:
                     results += [
-                        ss.Result('prevalence_risk_group_' + str(risk_group) + '_' + sex, scale=False, auto_plot=False),
+                        ss.Result('prevalence_risk_group_' + str(risk_group) + '_' + sex, kind='ratio', scale=False, auto_plot=False),
                         ss.Result('new_infections_risk_group_' + str(risk_group) + '_' + sex, dtype=int, auto_plot=False),
                     ]
 

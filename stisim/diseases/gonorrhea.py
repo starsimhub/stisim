@@ -53,7 +53,7 @@ class Gonorrhea(SEIS):
 
     def init_results(self):
         super().init_results()
-        self.define_results(ss.Result('rel_treat', dtype=float, label='Drug resistance', auto_plot=False)) # Written by sti.GonorrheaTreatment
+        self.define_results(ss.Result('rel_treat', kind='ratio', dtype=float, label='Drug resistance', auto_plot=False)) # Written by sti.GonorrheaTreatment
         return
 
     def step(self):

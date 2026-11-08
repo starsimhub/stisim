@@ -40,7 +40,7 @@ sc.options(dpi=110)
 `PregnancyRiskReduction` doesn't publish its own per-timestep results.
 A small analyzer records the number of agents who are simultaneously
 pregnant and FSW each step. ``scale=True`` on the ``Result`` ensures
-the count is multiplied by ``sim.pars.pop_scale`` when reading via
+the count is multiplied by ``sim.pop_scale`` when reading via
 ``sim.results`` — so the trajectory plot is interpretable as a real
 population count, not an agent count.
 

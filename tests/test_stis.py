@@ -37,7 +37,7 @@ def test_syph_epi():
         sims.append(sti.Sim(sc.mergedicts(base_pars, dict(diseases=sti.Syphilis(**simpardict_lo), dur=10)), label=f'{par}={lo}'))
         sims.append(sti.Sim(sc.mergedicts(base_pars, dict(diseases=sti.Syphilis(**simpardict_hi), dur=10)), label=f'{par}={hi}'))
 
-    ss.parallel(*sims, parallel=not debug)
+    ss.parallel(*sims, workers=1 if debug else None)
 
     # Check results pairwise
     for i, (par, (lo, hi)) in enumerate(par_effects.items()):
@@ -141,7 +141,7 @@ def test_optional_stratification(n_agents=500):
 
     s_full = make_sim()
     s_none = make_sim(age_bins=None, sex_keys=None)
-    ss.parallel(s_full, s_none, parallel=not debug)
+    ss.parallel(s_full, s_none, workers=1 if debug else None)
 
     for name in ['ng', 'syph', 'hiv']:
         r_full = s_full.diseases[name].results
@@ -217,7 +217,7 @@ def test_bv(include_hiv=False, n_agents=500):
 
     s0 = ss.Sim(**sim_args, interventions=intvs)
     s1 = ss.Sim(**sim_args, interventions=intvs + [menstrual_hygiene(start=2020, new_val=0.1)])
-    ss.parallel(s0, s1, parallel=not debug)
+    ss.parallel(s0, s1, workers=1 if debug else None)
     return s0, s1
 
 

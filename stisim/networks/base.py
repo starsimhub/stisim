@@ -158,7 +158,7 @@ class BaseNetwork(ss.SexualNet):
         eff_condom = float(disease.pars.eff_condom) if 'eff_condom' in disease.pars else 0.0 # No protection for a disease without it
         p_trans_condom = (1 - disease_beta*(1-eff_condom))**(self.edges.acts[inds]*p_condom)
         p_trans_no_condom = (1 - disease_beta)**(self.edges.acts[inds]*(1-p_condom))
-        return (1 - p_trans_condom * p_trans_no_condom) * self.edges.beta[inds]
+        return (1 - p_trans_condom * p_trans_no_condom) * self.edges.weight[inds]
 
     def step(self):
         self.end_pairs()

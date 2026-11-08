@@ -28,6 +28,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import sciris as sc
+import starsim as ss
 import stisim as sti
 import sys
 

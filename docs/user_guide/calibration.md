@@ -17,8 +17,7 @@ sim = sti.Sim(
 )
 fit = sim.fit(
     weights={'hiv.prevalence': 1.0, 'hiv.on_art': 0.5},
-    n_trials=200,
-    n_workers=4,
+    method=ss.fit.method('optuna', n_trials=200, workers=4),
 )
 ```
 
@@ -41,7 +40,7 @@ By default, the fit compares each result in the data with the corresponding colu
 
 ## Running the calibration
 
-`sim.fit()` runs Optuna trials (in parallel with `n_workers=`), and returns a fit with the best values as `fit.pars` and the calibrated sim, already run, as `fit.sim`. After calibration:
+`sim.fit()` runs Optuna trials for an agent-based sim (in parallel with `ss.fit.method('optuna', workers=...)`), and returns a fit with the best values as `fit.pars` and the calibrated sim, already run, as `fit.sim`. After calibration:
 
 ```python
 fit.summarize()               # Goodness of fit before and after, and the estimates
@@ -50,7 +49,7 @@ sim2 = sim.new(pars=fit.pars) # A new sim with the best-fit values
 trials = fit.to_df()          # Every trial: the values and the score (objective)
 ```
 
-With `storage='fit.log'`, the trials are kept in a file, and calling the fit again resumes it.
+With `ss.fit.method('optuna', storage='fit.log')`, the trials are kept in a file, and calling the fit again resumes it.
 
 ## Running the best parameter sets
 

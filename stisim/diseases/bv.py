@@ -42,7 +42,7 @@ class BV(ss.Disease, STIResults):
         include_care (bool): whether to define the results of care
         kwargs (dict): parameter values, or `label`
     """
-    suggested_solver = 'abm-wholestep' # As agents, rates over whole steps, as STIsim's diseases took them when written as code (faster; a sim's solver='abm-midstep' overrides it)
+    suggested_solver = ss.solvers.abm(step='wholestep') # As agents, rates over whole steps, as STIsim's diseases took them when written as code (faster; a sim's solver=ss.solvers.abm(step='midstep') overrides it)
     def __init__(self, pars=None, name='bv', age_bins=default_age_bins, sex_keys=default_sex_keys, include_care=True, **kwargs):
 
         # Natural history
@@ -63,22 +63,22 @@ class BV(ss.Disease, STIResults):
         female = ss.person.female
 
         # Girls take their stable CST at birth, and everyone at the start (see p_assign())
-        assign = ss.Transition(susceptible, [cst1, cst3, presymptomatic, asymptomatic], p=[partial(self.p_assign, cst=1), partial(self.p_assign, cst=3), partial(self.p_assign, cst=4), None], dur=0, where=female)
+        assign = ss.Transition(susceptible, {cst1: partial(self.p_assign, cst=1), cst3: partial(self.p_assign, cst=3), presymptomatic: partial(self.p_assign, cst=4), asymptomatic: None}, dur=0, who=female)
 
         # Women move to a worse CST, with a probability per month raised by their risk factors (see p_worse())
         worse1 = ss.Transition(cst1, cst3, rate=partial(self.p_worse, cst=1))
-        worse3 = ss.Transition(cst3, [presymptomatic, asymptomatic], rate=partial(self.p_worse, cst=3), p=[lifelong(self.p_symp_now), None])
-        recover3 = ss.Transition(cst3, cst1, dur=dur_cst3, where=lifelong(self.stable_is, cst=1)) # Only those whose stable CST is 1 leave CST 3 on their own
+        worse3 = ss.Transition(cst3, {presymptomatic: lifelong(self.p_symp_now), asymptomatic: None}, rate=partial(self.p_worse, cst=3))
+        recover3 = ss.Transition(cst3, cst1, dur=dur_cst3, who=lifelong(self.stable_is, cst=1)) # Only those whose stable CST is 1 leave CST 3 on their own
 
         # CST 4: symptoms, and clearance to the CST that follows it (see p_clear_to())
         symptoms = presymptomatic >> symptomatic @ dur_presymp
-        clear_symp = ss.Transition(symptomatic, [cst1, cst3], p=[lifelong(self.p_clear_to, cst=1), None], dur=dur_cst4)
-        clear_asymp = ss.Transition(asymptomatic, [cst1, cst3], p=[lifelong(self.p_clear_to, cst=1), None], dur=dur_cst4)
+        clear_symp = ss.Transition(symptomatic, {cst1: lifelong(self.p_clear_to, cst=1), cst3: None}, dur=dur_cst4)
+        clear_asymp = ss.Transition(asymptomatic, {cst1: lifelong(self.p_clear_to, cst=1), cst3: None}, dur=dur_cst4)
 
         # Sexual transmission: men from women in CST 4, and women in CST 1 or 3 from men
         sexual = sexual_beta(beta_m2f, beta_m2f*rel_beta_f2m)
-        male_infection = ss.Transition(susceptible, colonized, rate=sexual*cst4, where=~female)
-        female_infection = ss.Transition(cst1 + cst3, [presymptomatic, asymptomatic], rate=sexual*colonized, p=[lifelong(self.p_symp_now), None])
+        male_infection = ss.Transition(susceptible, colonized, rate=sexual*cst4, who=~female)
+        female_infection = ss.Transition(cst1 + cst3, {presymptomatic: lifelong(self.p_symp_now), asymptomatic: None}, rate=sexual*colonized)
         male_clearance = colonized >> susceptible @ dur_male
 
         # Parameters read by its own code
@@ -94,7 +94,7 @@ class BV(ss.Disease, STIResults):
             rr_stable_cst4 = 2, # ... stable CST 4
             p_douching = ss.bernoulli(p=0.64), # Nigeria (https://www.sciencedirect.com/science/article/abs/pii/S1083318820302400), Ghana (https://pmc.ncbi.nlm.nih.gov/articles/PMC6368746/)
             p_poor_menstrual_hygiene = ss.bernoulli(p=0.55), # https://pmc.ncbi.nlm.nih.gov/articles/PMC9817285/
-            n_partners = ss.poisson(lam=0.05), # Number of current partners
+            n_partners = ss.poisson(mean=0.05), # Number of current partners
             count_partners = False, # Count current partners from the sexual network to determine concurrency
             rr_douching = 1.21, # https://pmc.ncbi.nlm.nih.gov/articles/PMC2574994/
             rr_poor_menstrual_hygiene = 4.1, # From the best fit of the Kenya calibration
@@ -166,7 +166,7 @@ class BV(ss.Disease, STIResults):
     # The values of the declared transitions that depend on each woman's stable CST and risk factors: functions of the
     # agents, as methods (with functools.partial for an argument), so that they read the sim's own copy of the disease
     def stable_is(self, sim, cst):
-        """ Whether each woman's stable CST is this one (as where= reads it, for everyone) """
+        """ Whether each woman's stable CST is this one (as who= reads it, for everyone) """
         return self.stable_cst == cst
 
     def p_assign(self, sim, uids, cst):
