@@ -404,6 +404,23 @@ class ART(ss.Disease):
 
     has_product = False # A module of its own, not a delivery of a product
 
+    # A ready-made art_death_table: EMOD's ARTMortalityTable for men aged 25-35 on suppressive ART (from IeDEA-SA cohorts),
+    # annual HIV death rates by time since starting ART (rows, from the lower edges `dur`, in years) and CD4 count at the start
+    # (columns, interpolated between the points `cd4`). Like any table, they are multiplied by art_death_age (by default 1.10 at
+    # ages 25-35; EMOD's own pattern by age, 0.9-1.3 relative to 25-35, is close to it) and by rel_death_f for women (EMOD's rates
+    # for women are 0.7-1 times these).
+    emod_death_table = dict(
+        dur = (0, 0.5, 1, 2, 3),
+        cd4 = (0, 25, 74.5, 149.5, 274.5, 424.5, 624.5),
+        rates = (
+            (0.2176, 0.2176, 0.1219, 0.0675, 0.0337, 0.0223, 0.0175), # 0-6 months
+            (0.0945, 0.0945, 0.0529, 0.0293, 0.0146, 0.0067, 0.0044), # 6-12 months
+            (0.0288, 0.0288, 0.0204, 0.0145, 0.0096, 0.0065, 0.0043), # 1-2 years
+            (0.0186, 0.0186, 0.0131, 0.0093, 0.0062, 0.0042, 0.0042), # 2-3 years
+            (0.0135, 0.0135, 0.0092, 0.0074, 0.0037, 0.0037, 0.0037), # 3 years or more
+        ),
+    )
+
     def __init__(self, pars=None, coverage=None, vls_coverage=None, smoothness=0, format_priority='n', name='art', **kwargs):
         super().__init__(name=name, init_prev=0) # The same timestep as HIV's (see init_pre())
 
@@ -449,6 +466,7 @@ class ART(ss.Disease):
 
             # Time on ART, and after it
             rate_art_dropout = ss.peryear(0), # Rate of stopping ART early (e.g. from poor adherence), besides at the end of dur_on_art; none by default (or a function of the sim and agents giving a rate per year for each)
+            dur_reengage = None, # Time from stopping ART (for any reason) to being ready to start it again, when ti_art is set (e.g. ss.expon(ss.years(2))); None = ready again at once
             dur_on_art = ss.lognormal(ss.years(3), ss.years(1.5)), # Base ART duration (scaled by rel_dur_on_art and trend)
             rel_dur_on_art = 1.0, # Calibratable scalar that scales ART duration
             dur_on_art_trend = None, # Optional time-varying scale, e.g. sc.objdict(years=np.array([2004, 2015, 2030]), vals=np.array([0.5, 1.0, 1.5]))
@@ -467,6 +485,8 @@ class ART(ss.Disease):
             rel_art_mortality_unsupp_f = 0.35, # ... females: the non-suppressive/effective ratio is 2x higher for men than for women
             art_death_age = [(0, 25, 1.0), (25, 35, 1.10), (35, 45, 1.21), (45, 125, 1.32)], # (age_lo, age_hi, mult)
             art_death_dur = None, # (dur_lo, dur_hi, mult) list, days since ti_art; None = no-op
+            art_death_table = None, # Annual rates of death on suppressive ART by time since the latest start and CD4 count at it, in place of the off-ART rate at the current CD4 count (see on_art_death_rate(); e.g. ART.emod_death_table); None = not used
+            rel_art_death_unsupp = 2.0, # With art_death_table: the multiplier of its rates on non-suppressive ART
 
             # Care seeking, which sets priority for ART
             care_seeking = ss.normal(mean=1, std=0.5), # Relative care-seeking behavior (wide spread for low-care-seeking extremes)
@@ -534,14 +554,19 @@ class ART(ss.Disease):
         # On-ART mortality is anchored to the off-ART CD4-based rate so it can never exceed it by construction, as long as
         # the largest combination of multipliers stays <= 1. Catch a violation here rather than let a calibration silently
         # invert the treatment effect.
+        # With art_death_table, mortality on ART is not relative to the off-ART rate, so this does not apply.
         p = self.pars
         age_mult = max(mult for *_, mult in p.art_death_age) if p.art_death_age else 1.0
         dur_mult = max(mult for *_, mult in p.art_death_dur) if p.art_death_dur else 1.0
         worst = max(p.rel_art_mortality_effective, p.rel_art_mortality_unsupp_m, p.rel_art_mortality_unsupp_f) * age_mult * dur_mult
-        if worst > 1:
+        if p.art_death_table is None and worst > 1:
             errormsg = (f'On-ART mortality can exceed off-ART mortality at the same CD4 count: max(rel_art_mortality_effective, '
                         f'rel_art_mortality_unsupp_m, rel_art_mortality_unsupp_f) * max(art_death_age mult) * max(art_death_dur mult) '
                         f'= {worst:.3f} > 1. Reduce these pars so the product stays <= 1.')
+            raise ValueError(errormsg)
+        table = p.art_death_table
+        if table is not None and (np.shape(table['rates']) != (len(table['dur']), len(table['cd4'])) or table['dur'][0] != 0):
+            errormsg = f"art_death_table needs a row of rates for each lower edge of time on ART in 'dur' (the first 0), and a rate for each CD4 count in 'cd4' in each row, not rates of shape {np.shape(table['rates'])}"
             raise ValueError(errormsg)
 
         # Warn if no HIV testing intervention found, or if it comes after ART
@@ -644,17 +669,33 @@ class ART(ss.Disease):
 
     def on_art_death_rate(self, uids):
         """
-        The annual rate of death of each agent on ART: the off-ART rate at the same CD4 count, times rel_art_mortality
-        (by suppression, and by sex if not suppressed) and the multipliers by age (art_death_age) and time on ART (art_death_dur)
+        The annual rate of death of each agent on ART, times the multipliers by age (art_death_age) and time on ART (art_death_dur):
+
+            - by default, the off-ART rate at the same CD4 count, times rel_art_mortality (by suppression, and by sex if not suppressed)
+            - with art_death_table: its rate by time since the latest start of ART (`ti_art`; the row whose lower edge it has
+              reached) and CD4 count at that start (`cd4_preart`, interpolated), times rel_art_death_unsupp if not suppressed,
+              and HIV's rel_death, and rel_death_f for women
         """
         hiv = self.hiv
         male = self.sim.people.male[uids]
         effective = self.on_effective_art[uids]
         age = self.sim.people.age[uids]
-        rate = hiv.off_art_death_rate(uids)
-        rate[effective] *= self.pars.rel_art_mortality_effective
-        rate[~effective & male] *= self.pars.rel_art_mortality_unsupp_m
-        rate[~effective & ~male] *= self.pars.rel_art_mortality_unsupp_f
+        table = self.pars.art_death_table
+        if table is None:
+            rate = hiv.off_art_death_rate(uids)
+            rate[effective] *= self.pars.rel_art_mortality_effective
+            rate[~effective & male] *= self.pars.rel_art_mortality_unsupp_m
+            rate[~effective & ~male] *= self.pars.rel_art_mortality_unsupp_f
+        else:
+            years = (hiv.ti - self.ti_art[uids]) * hiv.dt.years
+            row = np.searchsorted(table['dur'], years, side='right') - 1
+            rate = np.zeros(len(uids))
+            for i, rates in enumerate(table['rates']):
+                on_row = row == i
+                rate[on_row] = np.interp(self.cd4_preart[uids[on_row]], table['cd4'], rates)
+            rate[~effective] *= self.pars.rel_art_death_unsupp
+            rate[~male] *= hiv.pars.rel_death_f
+            rate *= hiv.pars.rel_death
 
         age_mult = np.ones(len(uids))
         for age_lo, age_hi, mult in self.pars.art_death_age:
@@ -698,6 +739,8 @@ class ART(ss.Disease):
             raise ValueError(errormsg)
         self.dur_post_art[uids] = np.maximum(dur_post_art.astype(int), 0)
         self.ti_zero[uids] = ti + self.dur_post_art[uids]
+        if self.pars.dur_reengage is not None:
+            self.ti_art[uids] = ti + self.pars.dur_reengage.rvs(uids, round=True) # Not ready to restart until then
         if self.care is not None:
             self.care.on_stop(uids)
         return hiv.dt*self.dur_post_art[uids]
@@ -1039,6 +1082,8 @@ class ART(ss.Disease):
             elif n_on_art < target_n:
                 n_to_add = target_n - n_on_art
                 awaiting_art_uids = (in_stratum & hiv.diagnosed & ~hiv.on_art).uids
+                if self.pars.dur_reengage is not None: # Not those who stopped and are not yet ready to restart
+                    awaiting_art_uids = awaiting_art_uids[~(self.ti_art[awaiting_art_uids] > self.ti)]
                 awaiting_art_uids = awaiting_art_uids[self.ready(awaiting_art_uids)]
                 self.prioritize_art(sim, n=n_to_add, awaiting_art_uids=awaiting_art_uids)
 
