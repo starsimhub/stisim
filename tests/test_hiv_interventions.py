@@ -721,6 +721,34 @@ def test_art_suppression_and_priority():
 
 
 @sc.timer()
+def test_art_death_table():
+    """ With art_death_table, a cohort on ART dies at the table's rates by time since starting ART and CD4 count at the start """
+    sc.heading('Testing ART mortality by time on ART and CD4 count at the start...')
+    rates = np.array([[0.4, 0.1], [0.1, 0.03], [0.2, 0.06]]) # Rows: 0-1, 1-2, 2+ years on ART; columns: CD4 below/above 450 at the start
+    table = dict(dur=[0, 1, 2], cd4=[0, 449, 451, 2000], rates=rates[:, [0, 0, 1, 1]])
+    hiv = sti.HIV(init_prev=1.0, init_diagnosed=ss.bernoulli(p=1), beta_m2f=0, rel_death_f=1) # Everyone starts ART at the start, and stays on it
+    art = sti.ART(art_initiation=ss.bernoulli(p=1), dur_on_art=ss.constant(ss.years(100)), art_death_table=table, art_death_age=[(0, 200, 1.0)])
+    sim = sti.Sim(n_agents=20e3, start=2000, stop=2003, diseases=hiv, interventions=[sti.HIVTest(test_prob_data=0), art], demographics=False, rand_seed=1, verbose=0).run()
+
+    art = sim.interventions.art
+    n = len(sim.people.uid)
+    assert np.all(art.ti_art.raw[:n] == 0), 'Everyone should start ART at the start'
+    dt = float(sim.t.dt.years)
+    steps = np.arange(sim.t.npts)
+    ti_dead = sim.people.ti_dead.raw[:n]
+    last = np.where(np.isnan(ti_dead), steps[-1], ti_dead) # The last step each is alive at the start of
+    high = art.cd4_preart.raw[:n] > 450
+    for i, (lo, hi) in enumerate([(0, 1), (1, 2), (2, np.inf)]):
+        band = steps[(steps*dt >= lo) & (steps*dt < hi)]
+        for j, group in enumerate([~high, high]):
+            years = dt*np.clip(last[group] + 1 - band[0], 0, len(band)).sum()
+            deaths = np.isin(ti_dead[group], band).sum()
+            est, se = deaths/years, np.sqrt(deaths)/years
+            assert abs(est - rates[i, j]) < 4*se, f'Death rate {est:.3f} ± {se:.3f} on ART for {lo}-{hi} years, {"high" if j else "low"} CD4 at the start, should be {rates[i, j]}'
+    return sim
+
+
+@sc.timer()
 def test_art_pars_given_to_hiv():
     """ ART's parameters can be given to HIV, which passes them on to ART, but not to both, nor without an ART """
     sc.heading('Testing ART parameters given to HIV...')
@@ -890,6 +918,7 @@ if __name__ == '__main__':
     r11c = test_hiv_care()
     r11d = test_art_suppression_and_priority()
     r11e = test_art_pars_given_to_hiv()
+    r11f = test_art_death_table()
     r12 = test_pn()
     r13 = test_pn_rates()
     r14 = test_pn_rates_sim()

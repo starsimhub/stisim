@@ -125,6 +125,12 @@ On-ART mortality is bounded by `off_art_rate` such that someone who is on ART wi
 
 `rel_art_mortality_effective` (default 0.25) is the fraction of off-ART mortality rate while on effective ART - a 75% mortality reduction relative to being off ART for both male and female. For individuals on non-suppressive ART, there is an additional parameter – `rel_art_mortality_unsupp_m` (default 0.7) for males or `rel_art_mortality_unsupp_f` (default 0.35) for females - which parameterizes how nonsuppressed males are at higher mortality risk than nonsuppressed females.
 
+**By time on ART and CD4 count at the start.** With `art_death_table` (e.g. `sti.ART(art_death_table=sti.ART.emod_death_table)`), the rate on suppressive ART is instead read from a table, by time since the latest ART start (rows, from their lower edges `dur` in years) and the CD4 count at that start (columns, interpolated between the CD4 counts `cd4`), times `rel_art_death_unsupp` on non-suppressive ART, HIV's `rel_death`, `rel_death_f` for women, and `art_death_age`. It is not bounded by the off-ART rate. `sti.ART.emod_death_table` is EMOD's `ARTMortalityTable` for men aged 25-35 on suppressive ART, from IeDEA-SA cohorts: e.g. 21.8%/yr in the first 6 months after a start at CD4 25 (9.4%/yr at 6-12 months), and 0.37%/yr after 3 years for a start above CD4 275.
+
+```python
+table = dict(dur=[0, 0.5, 1, 2, 3], cd4=[0, 25, 74.5, 149.5, 274.5, 424.5, 624.5], rates=[[...], ...]) # One row of rates per dur, one rate per CD4 count
+```
+
 ## On-ART transmission
 
 ART adherence status also affects transmission. Individuals who achieve viral load suppression on effective ART have lower transmission rates than individuals on non-suppressive ART. (That is to say, "undetectable = untransmissible.") 
@@ -230,6 +236,8 @@ These are parameters of `sti.ART`, which holds everything about treatment. Given
 | `rel_death_f` | 0.74 | Mortality multiplier for females, on and off ART | Not recorded |
 | `art_death_age` | (0, 25, 1.0), (25, 35, 1.10), (35, 45, 1.21), (45, 125, 1.32) | On-ART mortality multipliers by age, as `(age_lo, age_hi, mult)` | Not recorded |
 | `art_death_dur` | None | Reserved for on-ART mortality multipliers by time since initiation; currently unused | Not applicable |
+| `art_death_table` | None | Annual death rates on suppressive ART by time since the latest ART start × CD4 count at that start, in place of the off-ART rate at the current CD4 count (see "On-ART mortality" above); `sti.ART.emod_death_table` is EMOD's | [EMOD](https://docs.idmod.org/projects/emod-hiv/en/latest/hiv-model-healthcare-systems.html) (IeDEA-SA cohorts), for `emod_death_table` |
+| `rel_art_death_unsupp` | 2.0 | With `art_death_table`: multiplier of its rates on non-suppressive ART | EMOD's non-suppressed/suppressed ratio after 6 months on ART |
 
 ### Care seeking
 
