@@ -7,7 +7,7 @@ import numpy as np
 import starsim as ss
 import sciris as sc
 import stisim.utils as ut
-from stisim.diseases.sti import STIResults, sexual_beta, default_age_bins, default_sex_keys
+from stisim.diseases.sti import STIResults, sexual_beta, condoms, default_age_bins, default_sex_keys
 
 __all__ = ['BV']
 
@@ -84,7 +84,7 @@ class BV(ss.Disease, STIResults):
         # Parameters read by its own code
         values = sc.mergedicts(dict(init_prev=0), pars, kwargs) # Nobody is seeded: women start in their stable CST
         code_pars = dict(
-            eff_condom = 0.45, # Read by the sexual networks (see sti.BaseNetwork.net_beta()); https://journals.lww.com/epidem/Fulltext/2007/11000/Condom_Use_and_its_Association_With_Bacterial.9.aspx
+            eff_condom = 0.45, # Read by sti.condoms; https://journals.lww.com/epidem/Fulltext/2007/11000/Condom_Use_and_its_Association_With_Bacterial.9.aspx
             stable_cst_distribution = ss.choice([1, 3, 4], p=[0.10, 0.30, 0.60]), # https://microbiomejournal.biomedcentral.com/articles/10.1186/s40168-021-01096-9
             p_symp = sc.objdict(stable_cst1=0.8, stable_cst3=0.7, stable_cst4=0.1), # Probability that CST 4 is symptomatic, by stable CST
             spontaneous_clearance = sc.objdict(stable_cst1=1, stable_cst3=3, stable_cst4=3), # The CST reached when CST 4 clears, by stable CST: https://pmc.ncbi.nlm.nih.gov/articles/PMC9387550/
@@ -109,6 +109,7 @@ class BV(ss.Disease, STIResults):
             assign=assign, worse1=worse1, worse3=worse3, recover3=recover3, symptoms=symptoms,
             clear_symp=clear_symp, clear_asymp=clear_asymp,
             male_infection=male_infection, female_infection=female_infection, male_clearance=male_clearance,
+            male_condoms=condoms(male_infection), female_condoms=condoms(female_infection),
             new_sexually_acquired_infections=1*female_infection, new_symptomatic=1*symptoms, new_infections_sex=female_infection + male_infection, # Results of the flows
             name=name, **sc.mergedicts(dict(dt='month'), values), # Monthly unless dt is given
         )
