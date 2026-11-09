@@ -867,7 +867,7 @@ def test_art_efficacy_ramp_stays_in_bounds():
     default monthly resolution (time_to_art_efficacy is authored in months and
     must be converted to timesteps via dt, not used as a raw timestep count).
 
-    Checks rel_trans right after update_transmission() runs each step (via a
+    Checks rel_trans right after treat_infectiousness() runs each step (via a
     class-level wrap), rather than via an end-of-timestep Analyzer: some of the
     agents that briefly go out of bounds are later excluded from on_art by ART's
     own coverage-matching logic within the same timestep, which would hide the
@@ -876,13 +876,13 @@ def test_art_efficacy_ramp_stays_in_bounds():
     sc.heading('Testing ART efficacy ramp stays within bounds at non-monthly dt')
 
     mins = []
-    orig = sti.HIV.update_transmission
+    orig = sti.HIV.treat_infectiousness
     def wrapped(self):
         orig(self)
         art_uids = self.on_art.uids
         if len(art_uids):
             mins.append(self.infectiousness(art_uids).min())
-    sti.HIV.update_transmission = wrapped
+    sti.HIV.treat_infectiousness = wrapped
     try:
         hiv = sti.HIV(init_prev=0.5, dt=ss.weeks(1))
         sim = ss.Sim(diseases=hiv, networks=sti.StructuredSexual(),
@@ -890,11 +890,11 @@ def test_art_efficacy_ramp_stays_in_bounds():
                      n_agents=small_pop, start=2015, stop=2017, verbose=0)
         sim.run()
     finally:
-        sti.HIV.update_transmission = orig
+        sti.HIV.treat_infectiousness = orig
 
     min_rel_trans = min(mins)
-    hiv = sim.diseases.hiv
-    min_possible = 1 - max(hiv.current_value('effective_art_efficacy'), hiv.current_value('nonsupp_art_efficacy'))
+    art = sim.interventions.art
+    min_possible = 1 - max(art.pars.effective_art_efficacy, art.pars.nonsupp_art_efficacy)
     assert min_rel_trans >= min_possible - 1e-9, (
         f'rel_trans for on-ART agents should never drop below 1-full_eff={min_possible}, '
         f'got min {min_rel_trans} over the run. A dt/unit mismatch in the efficacy ramp would let this go negative.'

@@ -4,7 +4,7 @@ HIV in STIsim is modeled with CD4-based disease progression through acute, laten
 
 **Class:** `sti.HIV` | **Alias:** `'hiv'` | **Base class:** `ss.Disease`
 
-**Declared and coded.** The natural history and care are declared states and transitions: `susceptible`, `acute`, `latent`, `falling`, `on_effective_art`, `on_nonsuppressive_art`, and `art_discontinued`, with the transitions `infection`, `mtct_prenatal`, `mtct_postnatal`, `latency`, `progression`, `aids_death` (when the CD4 count reaches zero), `post_art_death`, `hiv_death` and `art_death` (at a rate by CD4 count), and `art_dropout` (stopping ART early, at `rate_art_dropout`, none by default). ART's reduction of transmission at full efficacy (`effective_art_efficacy`, `nonsupp_art_efficacy`) is part of the declared infection rates, so a modifier (`ss.modify(hiv.pars.effective_art_efficacy, ...)`) changes it. The continuous CD4 count, the rise to ART's full efficacy over its first months, susceptibility (PrEP, circumcision, age), care seeking and diagnosis are code in the same class; starting and stopping ART (`start_art()`, `stop_art()`) move people between the declared states. `infected`, `on_art` and `aids` are conditions over the states. Other modules read and change HIV through these: e.g. MIGHTI's competing risks of death read the hazards of `hiv_death` and `art_death` (`hiv.hiv_death.hazard(uids)`), and its adherence model is a modifier of `rate_art_dropout`.
+**Declared and coded.** The natural history and care are declared states and transitions: `susceptible`, `acute`, `latent`, `falling`, `on_effective_art`, `on_nonsuppressive_art`, and `art_discontinued`, with the transitions `infection`, `mtct_prenatal`, `mtct_postnatal`, `latency`, `progression`, `aids_death` (when the CD4 count reaches zero), `post_art_death`, `hiv_death` and `art_death` (at a rate by CD4 count), and `art_dropout` (stopping ART early, at `rate_art_dropout`, none by default). The continuous CD4 count, susceptibility (PrEP, circumcision, age) and diagnosis are code in the same class. Treatment is a module of its own, `sti.ART`, which holds its parameters, its states (`ti_art`, `cd4_preart`, ...), care seeking, and starting and stopping ART (`art.start_art()`, `art.stop_art()`), which move people between HIV's declared states of treatment; HIV asks it for the CD4 counts, rates of `art_death` and `art_dropout`, time to a CD4 count of zero after stopping, and infectiousness (ART's reduction of transmission, rising to its full efficacy over its first months) of the people in them. ART's parameters can be given to HIV, which passes them on, and its states and methods read through HIV (`hiv.ti_art`, `hiv.start_art()`). `infected`, `on_art` and `aids` are conditions over the states. Other modules read and change HIV through these: e.g. MIGHTI's competing risks of death read the hazards of `hiv_death` and `art_death` (`hiv.hiv_death.hazard(uids)`), and its adherence model is a modifier of `rate_art_dropout`.
 
 ## States and transitions
 
@@ -129,7 +129,7 @@ On-ART mortality is bounded by `off_art_rate` such that someone who is on ART wi
 
 ART adherence status also affects transmission. Individuals who achieve viral load suppression on effective ART have lower transmission rates than individuals on non-suppressive ART. (That is to say, "undetectable = untransmissible.") 
 
-In `HIV.update_transmission()`, `rel_trans` for an on-ART agent ramps linearly (over `time_to_art_efficacy`, default 6 months, starting from `ti_art`) down to `1 - efficacy`, where `efficacy` is `effective_art_efficacy` (default 0.99, i.e. a 99% reduction — consistent with "U=U": PARTNER/PARTNER2/Opposites Attract found zero linked transmissions from virally suppressed partners across thousands of couple-years) for virally-suppressed agents, or `nonsupp_art_efficacy` (default 0.35, i.e. only a 35% reduction) for non-suppressive agents. In other words: a non-suppressive agent remains substantially infectious despite nominally being "on ART," at roughly `0.65/0.01 = 65x` the transmissibility of an effective-ART agent once both are fully ramped. This mirrors the mortality story above — both mortality and transmission risk are much closer to untreated levels for agents who fail to achieve viral suppression, even though they're recorded as being on ART.
+In `ART.trans_multiplier()`, which HIV applies to `rel_trans` just before transmission, the infectiousness of an on-ART agent ramps linearly (over `time_to_art_efficacy`, default 6 months, starting from `ti_art`) down to `1 - efficacy`, where `efficacy` is `effective_art_efficacy` (default 0.99, i.e. a 99% reduction — consistent with "U=U": PARTNER/PARTNER2/Opposites Attract found zero linked transmissions from virally suppressed partners across thousands of couple-years) for virally-suppressed agents, or `nonsupp_art_efficacy` (default 0.35, i.e. only a 35% reduction) for non-suppressive agents. In other words: a non-suppressive agent remains substantially infectious despite nominally being "on ART," at roughly `0.65/0.01 = 65x` the transmissibility of an effective-ART agent once both are fully ramped. This mirrors the mortality story above — both mortality and transmission risk are much closer to untreated levels for agents who fail to achieve viral suppression, even though they're recorded as being on ART.
 
 **Where does `nonsupp_art_efficacy = 0.35` come from?** It's anchored to a viral-load-based estimate rather than measured directly (there's no equivalent trial data for "non-suppressive ART" the way PARTNER/PARTNER2 give us "suppressive ART"). Using the Quinn (Rakai 2000) hazard ratio of ~2.45x transmission risk per +1 log10 viral load, and assuming a non-suppressed viral load distribution of log10(VL) ~ N(3.75, 0.8²) relative to untreated chronic infection at ~4.5 log10:
 
@@ -202,6 +202,8 @@ Pars of `sti.HIV`. The Source column follows the conventions of the [parameter r
 
 ### Treatment (ART)
 
+These are parameters of `sti.ART`, which holds everything about treatment. Given to `sti.HIV` (e.g. `sti.HIV(dur_on_art=...)` or `sti.Sim(hiv=dict(dur_on_art=...))`), they are passed on to ART; a sim with them needs an `sti.ART`.
+
 | Parameter | Default | Description | Source |
 |-----------|---------|-------------|--------|
 | `effective_art_efficacy` | 0.99 | Reduction in transmission on effective (virally suppressive) ART | [Rodger 2016](https://doi.org/10.1001/jama.2016.5148); [Rodger 2019](https://doi.org/10.1016/S0140-6736(19)30418-0); [Bavinton 2018](https://doi.org/10.1016/S2352-3018(18)30132-2) |
@@ -226,7 +228,7 @@ Pars of `sti.HIV`. The Source column follows the conventions of the [parameter r
 
 | Parameter | Default | Description | Source |
 |-----------|---------|-------------|--------|
-| `care_seeking` | normal(1, 0.5) | Relative care-seeking propensity (per agent) | Not recorded |
+| `care_seeking` | normal(1, 0.5) | Relative care-seeking propensity (per agent), which sets priority for ART under a coverage target; a parameter of `sti.ART` | Not recorded |
 | `maternal_care_scale` | 2 | Multiplier on care seeking during pregnancy | Not recorded |
 
 ## Results
