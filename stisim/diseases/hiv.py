@@ -16,7 +16,7 @@ art_pars = ['effective_art_efficacy', 'nonsupp_art_efficacy', 'rate_art_dropout'
             'time_to_art_efficacy', 'p_effective_art', 'dur_on_art', 'rel_dur_on_art', 'dur_on_art_trend', 'dur_post_art', 'dur_post_art_scale_factor']
 
 # The states and methods of sti.ART that can be read through HIV (e.g. hiv.ti_art)
-art_attrs = ['art_naive', 'ti_art', 'ti_stop_art', 'ti_zero', 'cd4_preart', 'cd4_potential', 'cd4_postart', 'dur_post_art', 'care_seeking',
+art_attrs = ['art_naive', 'on_effective_art', 'on_nonsuppressive_art', 'art_discontinued', 'ti_art', 'ti_stop_art', 'ti_zero', 'cd4_preart', 'cd4_potential', 'cd4_postart', 'dur_post_art', 'care_seeking',
              'baseline_care_seeking', 'start_art', 'stop_art', 'set_suppression', 'on_art_death_rate']
 
 
@@ -393,7 +393,7 @@ class HIV(ss.Disease, STIResults):
         uids = self.sim.people.auids if uids is None else ss.uids(uids)
         rel_trans = self.rel_trans[uids]
         if self.treatment is not None:
-            rel_trans = rel_trans*self.treatment.trans_multiplier(uids)
+            rel_trans = rel_trans*self.treatment.rel_trans_multiplier(self.sim)[uids]
         return rel_trans
 
     def step_state(self):

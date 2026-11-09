@@ -867,22 +867,22 @@ def test_art_efficacy_ramp_stays_in_bounds():
     default monthly resolution (time_to_art_efficacy is authored in months and
     must be converted to timesteps via dt, not used as a raw timestep count).
 
-    Checks rel_trans right after treat_infectiousness() runs each step (via a
-    class-level wrap), rather than via an end-of-timestep Analyzer: some of the
-    agents that briefly go out of bounds are later excluded from on_art by ART's
-    own coverage-matching logic within the same timestep, which would hide the
-    violation from a same-timestep results/Analyzer snapshot despite it having
-    been real and used for transmission that step. """
+    Checks the multiplier of ART on rel_trans each time transmission reads it (via a class-level wrap of
+    sti.ART.rel_trans_multiplier()), rather than via an end-of-timestep Analyzer: some of the agents that
+    briefly go out of bounds are later excluded from on_art by ART's own coverage-matching logic within the
+    same timestep, which would hide the violation from a same-timestep results/Analyzer snapshot despite it
+    having been real and used for transmission that step. """
     sc.heading('Testing ART efficacy ramp stays within bounds at non-monthly dt')
 
     mins = []
-    orig = sti.HIV.treat_infectiousness
-    def wrapped(self):
-        orig(self)
-        art_uids = self.on_art.uids
+    orig = sti.ART.rel_trans_multiplier
+    def wrapped(self, sim):
+        mult = orig(self, sim)
+        art_uids = self.on_treatment.uids
         if len(art_uids):
-            mins.append(self.infectiousness(art_uids).min())
-    sti.HIV.treat_infectiousness = wrapped
+            mins.append(mult[art_uids].min())
+        return mult
+    sti.ART.rel_trans_multiplier = wrapped
     try:
         hiv = sti.HIV(init_prev=0.5, dt=ss.weeks(1))
         sim = ss.Sim(diseases=hiv, networks=sti.StructuredSexual(),
@@ -890,7 +890,7 @@ def test_art_efficacy_ramp_stays_in_bounds():
                      n_agents=small_pop, start=2015, stop=2017, verbose=0)
         sim.run()
     finally:
-        sti.HIV.treat_infectiousness = orig
+        sti.ART.rel_trans_multiplier = orig
 
     min_rel_trans = min(mins)
     art = sim.interventions.art

@@ -414,8 +414,8 @@ class ART(ss.Disease):
 
     has_product = False # A module of its own, not a delivery of a product
 
-    def __init__(self, pars=None, coverage=None, vls_coverage=None, smoothness=0, format_priority='n', name='art', dt='month', **kwargs):
-        super().__init__(name=name, init_prev=0, dt=dt) # The same timestep as HIV's
+    def __init__(self, pars=None, coverage=None, vls_coverage=None, smoothness=0, format_priority='n', name='art', **kwargs):
+        super().__init__(name=name, init_prev=0) # The same timestep as HIV's (see init_pre())
 
         # States of treatment
         self.define_states(
@@ -523,6 +523,7 @@ class ART(ss.Disease):
     def init_pre(self, sim):
         # ART's parameters given to HIV are taken from there, unless given here too
         hiv = sim.diseases.hiv
+        self.t.dt = sc.dcp(hiv.t.dt) # Treatment's timestep is HIV's
         from_hiv = hiv.given_art_pars()
         both = [key for key in from_hiv if key in self.given_pars]
         if both:
