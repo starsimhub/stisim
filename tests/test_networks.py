@@ -299,6 +299,17 @@ def test_partner_counts_match_active_degree():
         f"partners disagrees with active edge degree for {int((np.abs(mismatch) > 0).sum())} agents"
 
 
+def test_single_network_module_is_used():
+    """ sti.Sim uses a network given as a bare module, not a list; a network's len() is its edge count, so it once looked like no networks and was replaced by the default """
+    nw = sti.StructuredSexual(condom_data=0.5)
+    sim = sti.Sim(n_agents=2000, dur=1, diseases='hiv', networks=nw, rand_seed=1, verbose=0)
+    sim.init()
+    sim.run_one_step()
+    net = sim.networks.structuredsexual
+    assert net.pars.condom_data == 0.5, f"condom_data of the given network was lost: {net.pars.condom_data}"
+    assert len(net) and np.allclose(net.edges.condoms, 0.5), "No edges, or they do not carry the given network's condom use"
+
+
 if __name__ == '__main__':
     test_msm_network()
     test_network_degrees()
@@ -310,3 +321,4 @@ if __name__ == '__main__':
     test_match_pairs_refactor_preserves_output()
     test_decrement_partners_duplicate_edges()
     test_partner_counts_match_active_degree()
+    test_single_network_module_is_used()

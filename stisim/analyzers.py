@@ -654,7 +654,7 @@ class art_coverage(ss.Analyzer):
         results.append(ss.Result('p_art_f', kind='ratio', scale=False, label='ART coverage (women)'))
         results.append(ss.Result('p_art_m', kind='ratio', scale=False, label='ART coverage (men)'))
 
-        # Viral suppression. HIV maintains on_effective_art and
+        # Viral suppression. ART maintains on_effective_art and
         # on_nonsuppressive_art, and the difference between them is large
         # (effective_art_efficacy 0.99 vs nonsupp_art_efficacy 0.35, a ~65x
         # difference in residual transmission), but no result reports the split:

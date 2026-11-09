@@ -63,8 +63,8 @@ def test_single_connector_instance():
         n_agents=200, dur=2, verbose=0,
     )
     sim.run()
-    assert len(sim.pars['connectors']) == 1, \
-        f'Expected exactly one connector, got {len(sim.pars["connectors"])}'
+    connectors = [c for c in sim.connectors.values() if not isinstance(c, ss.modify)] # Not the diseases' own modifiers (e.g. sti.condoms)
+    assert len(connectors) == 1, f'Expected exactly one connector, got {len(connectors)}'
     return sim
 
 

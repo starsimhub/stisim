@@ -3,8 +3,10 @@ Define HIV interventions for STIsim
 By default, these all have units of a year and timesteps of 1/12
 """
 
+import sciris as sc
 import starsim as ss
 import numpy as np
+from stisim.diseases.hiv import art_pars
 from stisim.interventions.base_interventions import STITest
 from stisim.interventions.utils import (
     parse_coverage, compute_coverage_target, compute_stratum_targets,
@@ -14,7 +16,7 @@ from stisim.utils import count
 
 
 # %% HIV classes
-__all__ = ["HIVDx", "HIVTest", "InfantHIVTest", "ART", "VMMC", "Prep"]
+__all__ = ["HIVDx", "HIVTest", "InfantHIVTest", "HIVCare", "ART", "VMMC", "Prep"]
 
 
 class HIVDx(ss.Product):
@@ -50,7 +52,7 @@ class HIVTest(STITest):
 
         1. HIVTest tests eligible agents each timestep (annual probability, converted via ss.probperyear)
         2. Positive results set hiv.diagnosed=True and hiv.ti_diagnosed
-        3. HIVTest samples dur_dx2tx and sets hiv.ti_art = ti + delay (scheduled start)
+        3. HIVTest samples dur_dx2tx and refers them to treatment, to start at ti + delay (hiv.refer(), which sets ART's ti_art)
         4. ART picks up agents whose ti_art == current ti (and not yet on_art),
            filters by art_initiation, and puts them on ART
         5. If coverage data is provided, ART corrects to match targets
@@ -61,6 +63,8 @@ class HIVTest(STITest):
         test_prob_data: annual testing probability (if ``dt_scale=True``, the default).
             A value of 0.1 means ~10% of eligible agents tested per year. To
             specify a per-timestep probability instead, set ``dt_scale=False``.
+            May also be a function ``f(sim, uids)`` giving a probability for each agent
+            (e.g. by group or CD4 count).
         years (array): years over which testing is active (mutually exclusive with ``start``).
         start (float): calendar year when testing begins.
         eligibility (func): who can be tested. Default: undiagnosed agents.
@@ -133,7 +137,7 @@ class HIVTest(STITest):
         to_schedule = pos_uids[~hiv.on_art[pos_uids]]
         if len(to_schedule):
             delay = self.pars.dur_dx2tx.rvs(to_schedule, round=True)
-            hiv.ti_art[to_schedule] = self.ti + delay
+            hiv.refer(to_schedule, self.ti + delay)
 
         # Schedule infant HIV test for unborn children of newly diagnosed mothers
         if self.newborn_test is not None and len(pos_uids):
@@ -176,28 +180,146 @@ class InfantHIVTest(HIVTest):
         return self.test_prob_dist.filter(scheduled_now)
 
 
-class ART(ss.Intervention):
+class HIVCare(ss.Intervention):
     """
-    Antiretroviral therapy intervention.
+    HIV care: being in care after referral (e.g. a diagnosis), being lost to follow-up, and returning. With it, ART
+    starts only for people in care (see sti.ART, which runs it at the start of its own step, so its place in the list
+    of interventions doesn't matter).
+
+    Its defaults reproduce sti.ART without it: people referred (by sti.HIVTest, after its dur_dx2tx) are in care at once,
+    and stay in care, through ART and after it.
+
+    Each rate can be a rate (e.g. ``ss.peryear(0.1)``) or a function of the sim and the agents giving a rate per year for
+    each (e.g. higher with AIDS).
+
+    Args:
+        dur_link (ss.Dist): time from referral to being in care, when ART can start
+        rate_loss: loss to follow-up of people in care and not on ART
+        rate_loss_art: loss to follow-up of people on ART, who stop it
+        rate_return: return to care of people lost to follow-up, who can start ART again at once
+        p_lost_at_stop (ss.bernoulli): of being lost to follow-up on stopping ART for any other reason (otherwise they stay in care, and can restart it)
+
+    Example::
+
+        care = sti.HIVCare(dur_link=ss.expon(ss.years(1)), rate_loss=ss.peryear(0.1), rate_loss_art=ss.peryear(0.05), rate_return=ss.peryear(0.3))
+        sim = sti.Sim(diseases='hiv', interventions=[sti.HIVTest(test_prob_data=0.2), care, sti.ART()])
+    """
+    def __init__(self, pars=None, **kwargs):
+        super().__init__()
+        self.define_pars(
+            dur_link = ss.constant(0),
+            rate_loss = ss.peryear(0),
+            rate_loss_art = ss.peryear(0),
+            rate_return = ss.peryear(0),
+            p_lost_at_stop = ss.bernoulli(p=0),
+        )
+        self.update_pars(pars, **kwargs)
+        self.define_states(
+            ss.BoolState('in_care'),
+            ss.BoolState('lost'), # Lost to follow-up
+            ss.FloatArr('ti_link'), # When those referred will be in care
+            ss.FloatArr('ti_in_care'),
+            ss.FloatArr('ti_lost'),
+        )
+        self.u_loss = ss.random(name='u_loss')
+        self.u_loss_art = ss.random(name='u_loss_art')
+        self.u_return = ss.random(name='u_return')
+        return
+
+    def prob(self, key, uids):
+        """ The probability in a step of HIV's of each agent's rate `key` """
+        return rate_prob(self.sim, self.pars[key], uids, self.sim.diseases.hiv.dt)
+
+    def refer(self, uids, ti, art):
+        """ People referred at `ti` are in care after dur_link, when ART can start (ART's ti_art) """
+        self.ti_link[uids] = ti + self.pars.dur_link.rvs(uids, round=True)
+        art.ti_art[uids] = self.ti_link[uids]
+        return
+
+    def update(self, art):
+        """ Linkage, loss to follow-up, and return to care, in this step (called by sti.ART) """
+        ti = art.hiv.ti
+        linked = (self.ti_link <= ti).uids
+        self.in_care[linked] = True
+        self.lost[linked] = False
+        self.ti_in_care[linked] = ti
+        self.ti_link[linked] = np.nan
+
+        waiting = (self.in_care & ~art.on_treatment).uids
+        lost = waiting[self.u_loss.rvs(waiting) < self.prob('rate_loss', waiting)]
+        on_art = art.on_treatment.uids
+        lost_art = on_art[self.u_loss_art.rvs(on_art) < self.prob('rate_loss_art', on_art)]
+        if len(lost_art):
+            art.stop_art(lost_art)
+        self.lose(lost)
+        self.lose(lost_art)
+
+        lost_now = self.lost.uids
+        back = lost_now[self.u_return.rvs(lost_now) < self.prob('rate_return', lost_now)]
+        self.in_care[back] = True
+        self.lost[back] = False
+        self.ti_in_care[back] = ti
+        art.ti_art[back] = ti # Ready to start ART again
+        return
+
+    def lose(self, uids):
+        """ Lose people to follow-up """
+        self.in_care[uids] = False
+        self.lost[uids] = True
+        self.ti_lost[uids] = self.sim.diseases.hiv.ti
+        return
+
+    def on_stop(self, uids):
+        """ People stopping ART are lost to follow-up with probability p_lost_at_stop """
+        self.lose(self.pars.p_lost_at_stop.filter(uids[self.in_care[uids]]))
+        return
+
+    def step(self):
+        """ Run by sti.ART at the start of its step (see update()) """
+        return
+
+
+def rate_prob(sim, rate, uids, dt):
+    """ The probability over `dt` of a rate (an ss.Rate, or a function of the sim and agents giving a rate per year for each), for each agent """
+    if callable(rate) and not isinstance(rate, ss.Rate):
+        return -np.expm1(-np.asarray(rate(sim, uids), dtype=float)*dt.years)
+    return rate.to_prob(dt)
+
+
+class ART(ss.Disease):
+    """
+    Antiretroviral therapy: the treatment of HIV.
+
+    ART is a declared module of its own, given with the interventions (``interventions=[sti.HIVTest(), sti.ART()]``).
+    Its states are those of treatment: never treated (`art_naive`), on ART and virally suppressed (`on_effective_art`)
+    or not (`on_nonsuppressive_art`), and off it after being on it (`art_discontinued`). Its transitions are death on
+    ART (`art_death`), stopping it early (`dropout`, at `rate_art_dropout`), and death of AIDS after stopping it,
+    once the CD4 count falls to zero (`post_art_death`, with probability `p_post_art_death`). It modifies HIV: those it has treated stay in the stage of HIV
+    they were in, which no longer progresses (HIV's `latency`, `progression`, and `aids_death` are stopped for them),
+    those on it do not die at HIV's rate by CD4 count (`hiv_death`) but at its own, and their infectiousness is
+    multiplied by its efficacy (`trans_multiplier()`). It also holds the CD4 count on it and after stopping it, and
+    starting and stopping it (`start_art()`, `stop_art()`). It registers itself with HIV (`sti.HIV.add_treatment()`).
+    ART's parameters can also be given to HIV (e.g. ``sti.HIV(dur_on_art=...)``), which passes them on.
 
     Requires HIVTest (or equivalent) to diagnose agents first — ART only
-    initiates agents who have hiv.diagnosed=True. A warning is raised if no
-    HIVTest is found in the sim.
+    initiates agents who have been referred (HIV's `refer()`) after a diagnosis.
+    A warning is raised if no HIVTest is found in the sim.
 
     Processing flow each timestep:
-        1. Agents scheduled to stop ART are removed
-        2. Agents whose scheduled ART start has arrived (ti_art == this timestep
+        1. Care seeking is updated, and HIV care (`sti.HIVCare`, if any) and changes of suppression on ART are run
+        2. Agents scheduled to stop ART are removed
+        3. Agents whose scheduled ART start has arrived (ti_art == this timestep
            and not on_art) are filtered by art_initiation probability
-        3. If coverage is specified: agents are added/removed to match the target
-           number, prioritized by CD4 count and care-seeking propensity
-        4. If no coverage is specified: all who pass art_initiation go on ART
+        4. If coverage is specified: agents are added/removed to match the target
+           number, prioritized by `art_priority` (by default, CD4 count and care-seeking propensity)
+        5. If no coverage is specified: all who pass art_initiation go on ART
            (no capacity constraint)
-        5. Mothers on ART reduce infant susceptibility (prenatal via MaternalNet,
+        6. Mothers on ART reduce infant susceptibility (prenatal via PrenatalNet,
            postnatal via BreastfeedingNet) by pmtct_efficacy
 
     The scheduling (setting ti_art) is owned by the testing intervention that
-    diagnoses the agent (HIVTest, ANCTest). ART here is passive: it picks up
-    whoever is ready to start.
+    diagnoses the agent (HIVTest, ANCTest), through HIV's `refer()`. ART here is passive:
+    it picks up whoever is ready to start.
 
     Coverage is parsed by :func:`parse_coverage` and accepts:
         - ``None``: no coverage target; treat all who initiate (default)
@@ -219,7 +341,7 @@ class ART(ss.Intervention):
                           (default: ss.bernoulli(p=0.9)). Set to 1 to treat all
                           diagnosed.
         pmtct_efficacy:   efficacy of maternal ART in reducing infant susceptibility
-                          to HIV (default 0.96). Applied to both prenatal (MaternalNet)
+                          to HIV (default 0.96). Applied to both prenatal (PrenatalNet)
                           and postnatal (BreastfeedingNet) transmission. Set to 1.0 for
                           complete protection (previous default behavior).
         vls_coverage:     stock target for the fraction of agents on ART who are
@@ -227,8 +349,7 @@ class ART(ss.Intervention):
                           ``coverage`` (scalar, time-varying dict, DataFrame, or
                           age/sex-stratified DataFrame) but must be a proportion.
                           Corrected each step by :meth:`vls_stock_correction`.
-                          Operates in tandem with ``p_effective_art`` (see
-                          ``pars`` above), the same way ``coverage`` operates
+                          Operates in tandem with ``p_effective_art``, the same way ``coverage`` operates
                           alongside ``art_initiation``: ``p_effective_art`` sets
                           the per-initiate probability of starting suppressed,
                           ``vls_coverage`` reconciles the resulting stock to
@@ -237,6 +358,9 @@ class ART(ss.Intervention):
         smoothness:       interpolation smoothness (0=linear, default)
         format_priority:  when both n_art and p_art are non-NaN, prefer this format
                           ('n' or 'p', default 'n')
+        pars (dict):      the other parameters, as listed in ``define_pars()`` below (e.g. ``dur_on_art``,
+                          ``effective_art_efficacy``, ``rel_art_mortality_effective``, ``art_priority``,
+                          ``rate_failure``, ``rate_regain``), also as keywords
 
     Examples::
 
@@ -272,19 +396,89 @@ class ART(ss.Intervention):
         df['p_art'] = np.nan
         df.loc[2023:, 'p_art'] = 0.90
         art = sti.ART(coverage=df)
+
+        # Treatment failure and regaining suppression, and starting those with AIDS first under a target
+        art = sti.ART(coverage=0.5, rate_failure=ss.peryear(0.05), rate_regain=ss.peryear(0.5),
+                      art_priority=lambda sim, uids: sim.diseases.hiv.aids[uids])
     """
 
-    def __init__(self, pars=None, coverage=None, vls_coverage=None, smoothness=0, format_priority='n', **kwargs):
-        super().__init__()
+    has_product = False # A module of its own, not a delivery of a product
+
+    def __init__(self, pars=None, coverage=None, vls_coverage=None, smoothness=0, format_priority='n', name='art', **kwargs):
+        super().__init__(name=name, init_prev=0) # The same timestep as HIV's (see init_pre())
+
+        # States of treatment
+        self.define_states(
+            ss.State('art_naive'), # Never initiated ART
+            ss.State('on_effective_art'), # On treatment and virally suppressed
+            ss.State('on_nonsuppressive_art'), # On treatment but not suppressed
+            ss.State('art_discontinued', keep_time=True), # Off treatment, having been on it (the time is kept for the CD4 count, see update_cd4())
+        )
+        on_art = self.on_effective_art + self.on_nonsuppressive_art
+        treated = on_art + self.art_discontinued
+        p_post_art_death = ss.par(1.0, doc='Probability of dying of AIDS when the CD4 count reaches zero after stopping ART')
+
+        # Death on ART, at a rate relative to HIV's by CD4 count (see on_art_death_rate()); stopping early (dropout, at rate_art_dropout), besides at the end of dur_on_art (see stop_art()); and death of AIDS after stopping, once the CD4 count falls to zero
+        self.define_transitions(
+            art_death = ss.Transition(on_art, ss.dead, rate=self.art_death_rate),
+            dropout = ss.Transition(on_art, self.art_discontinued, rate=self.dropout_rate),
+            post_art_death = ss.Transition(self.art_discontinued, {ss.dead: p_post_art_death, ss.stay: None}, dur=ss.constant(self.post_art_dwell)), # The time drawn as they stop (see post_art_dwell())
+        )
+
+        # ART replaces HIV's natural history for those it has treated, and its deaths by CD4 count for those on it; and multiplies their infectiousness
+        self.define_transitions(
+            no_latency = ss.modify('hiv.latency', multiply=0, who=treated),
+            no_progression = ss.modify('hiv.progression', multiply=0, who=treated),
+            no_aids_death = ss.modify('hiv.aids_death', multiply=0, who=treated),
+            no_hiv_death = ss.modify('hiv.hiv_death', multiply=0, who=on_art),
+            infectiousness = ss.modify('hiv.rel_trans', multiply=self.rel_trans_multiplier),
+        )
+        self.define_results(new_deaths = self.art_death + self.post_art_death)
 
         self.define_pars(
             art_initiation=ss.bernoulli(p=0.9),
             pmtct_efficacy=0.96,  # How much maternal ART reduces infant susceptibility
-                                   # to HIV via MaternalNet (prenatal) and BreastfeedingNet
+                                   # to HIV via PrenatalNet (prenatal) and BreastfeedingNet
                                    # (postnatal). Conceptually like infant PrEP.
             p_effective_art=ss.bernoulli(p=1.0),  # Probability a newly-initiated agent achieves viral suppression
+
+            # Infectiousness on ART
+            effective_art_efficacy = 0.99, # Reduction in transmission on effective (virally suppressive) ART: PARTNER/PARTNER2/Opposites Attract ("U=U"), less a small residual
+            nonsupp_art_efficacy = 0.35, # Reduction in transmission on non-suppressive ART: Quinn (Rakai 2000), applied to an assumed non-suppressed viral load distribution
+            time_to_art_efficacy = ss.months(6), # Time to reach full ART efficacy: a linear increase in efficacy
+
+            # Time on ART, and after it
+            rate_art_dropout = ss.peryear(0), # Rate of stopping ART early (e.g. from poor adherence), besides at the end of dur_on_art; none by default (or a function of the sim and agents giving a rate per year for each)
+            dur_on_art = ss.lognormal(ss.years(3), ss.years(1.5)), # Base ART duration (scaled by rel_dur_on_art and trend)
+            rel_dur_on_art = 1.0, # Calibratable scalar that scales ART duration
+            dur_on_art_trend = None, # Optional time-varying scale, e.g. sc.objdict(years=np.array([2004, 2015, 2030]), vals=np.array([0.5, 1.0, 1.5]))
+            dur_post_art = ss.normal(), # Time from stopping ART until the CD4 count reaches zero; set for each person as they stop (see post_art_dwell()), in years
+            dur_post_art_scale_factor = 0.1,
+
+            # CD4 count on ART
+            art_cd4_growth = 0.1, # Unitless parameter of how CD4 reconstitutes after starting ART, in a logistic growth function
+            art_cd4_pars = dict(cd4_max=1000, cd4_healthy=500),
+
+            # Mortality on ART, relative to the off-ART CD4-based rate, so that being on ART is never more dangerous than being
+            # off it at the same CD4 count (as long as the largest of these times the largest age and duration multipliers is
+            # at most 1, which init_pre() checks)
+            rel_art_mortality_effective = 0.25, # Fraction of off-ART mortality retained on effective (suppressive) ART
+            rel_art_mortality_unsupp_m = 0.7, # ... on non-suppressive ART, males
+            rel_art_mortality_unsupp_f = 0.35, # ... females: the non-suppressive/effective ratio is 2x higher for men than for women
+            art_death_age = [(0, 25, 1.0), (25, 35, 1.10), (35, 45, 1.21), (45, 125, 1.32)], # (age_lo, age_hi, mult)
+            art_death_dur = None, # (dur_lo, dur_hi, mult) list, days since ti_art; None = no-op
+
+            # Care seeking, which sets priority for ART
+            care_seeking = ss.normal(mean=1, std=0.5), # Relative care-seeking behavior (wide spread for low-care-seeking extremes)
+            maternal_care_scale = 2, # Factor for scaling up care-seeking behavior during pregnancy
+            art_priority = None, # Under a coverage target, a function of the sim and agents giving each a priority (higher starts first, and lower stops first); by default, lowest CD4 count over care seeking
+
+            # Viral suppression on ART, after its start (each a rate, or a function of the sim and agents giving a rate per year for each)
+            rate_failure = ss.peryear(0), # Of becoming unsuppressed
+            rate_regain = ss.peryear(0), # Of becoming suppressed again
         )
         self.update_pars(pars, **kwargs)
+        self.given_pars = set(sc.mergedicts(pars, kwargs)) # To tell those given here from those given to HIV (see init_pre())
 
         self._raw_coverage     = coverage
         self._raw_vls_coverage = vls_coverage
@@ -299,15 +493,56 @@ class ART(ss.Intervention):
         self.vls_age_bins      = None  # For stratified VLS coverage
         self.vls_sex_keys      = None  # For stratified VLS coverage
 
-        # States
+        # As code
         self.define_states(
-            ss.FloatArr('adherence', default=ss.random())
+            ss.FloatArr('adherence', default=ss.random()),
+            ss.FloatArr('ti_art'), # Time of starting ART, or of a scheduled start (see sti.HIVTest)
+            ss.FloatArr('ti_stop_art'),
+            ss.FloatArr('ti_zero'), # Time the CD4 count reaches zero after stopping ART, which is generally an AIDS death
+            ss.FloatArr('dur_post_art'), # The time from stopping ART until then, in steps
+            ss.FloatArr('cd4_preart'), # CD4 immediately before initiating ART
+            ss.FloatArr('cd4_potential'), # Potential CD4 count if continually treated
+            ss.FloatArr('cd4_postart'), # CD4 after stopping ART
+            ss.FloatArr('baseline_care_seeking'),
+            ss.FloatArr('care_seeking'),
         )
-
+        self.u_failure = ss.random(name='u_failure')
+        self.u_regain = ss.random(name='u_regain')
         return
 
     def init_pre(self, sim):
+        # ART's parameters given to HIV are taken from there, unless given here too
+        hiv = sim.diseases.hiv
+        self.t.dt = sc.dcp(hiv.t.dt) # Treatment's timestep is HIV's
+        from_hiv = hiv.given_art_pars()
+        both = [key for key in from_hiv if key in self.given_pars]
+        if both:
+            errormsg = f'ART parameters given to both HIV and ART: {sc.strjoin(both)}. Give them to ART only.'
+            raise ValueError(errormsg)
+        for key, val in from_hiv.items():
+            self.pars[key] = sc.dcp(val)
+            if key in hiv.pars:
+                hiv.pars[key] = None # Now ART's
+        hiv.art_given = {}
         super().init_pre(sim)
+        hiv.add_treatment(self)
+        cares = [m.name for m in sim.interventions() if isinstance(m, HIVCare)]
+        if len(cares) > 1:
+            raise ValueError(f'At most one sti.HIVCare, not {len(cares)}')
+        self.care_name = cares[0] if cares else None
+
+        # On-ART mortality is anchored to the off-ART CD4-based rate so it can never exceed it by construction, as long as
+        # the largest combination of multipliers stays <= 1. Catch a violation here rather than let a calibration silently
+        # invert the treatment effect.
+        p = self.pars
+        age_mult = max(mult for *_, mult in p.art_death_age) if p.art_death_age else 1.0
+        dur_mult = max(mult for *_, mult in p.art_death_dur) if p.art_death_dur else 1.0
+        worst = max(p.rel_art_mortality_effective, p.rel_art_mortality_unsupp_m, p.rel_art_mortality_unsupp_f) * age_mult * dur_mult
+        if worst > 1:
+            errormsg = (f'On-ART mortality can exceed off-ART mortality at the same CD4 count: max(rel_art_mortality_effective, '
+                        f'rel_art_mortality_unsupp_m, rel_art_mortality_unsupp_f) * max(art_death_age mult) * max(art_death_dur mult) '
+                        f'= {worst:.3f} > 1. Reduce these pars so the product stays <= 1.')
+            raise ValueError(errormsg)
 
         # Warn if no HIV testing intervention found, or if it comes after ART
         intvs = list(sim.interventions())
@@ -344,6 +579,249 @@ class ART(ss.Intervention):
         self.initialized = True
         return
 
+    def init_post(self):
+        super().init_post()
+        self.init_care_seeking()
+        return
+
+    @property
+    def hiv(self):
+        return self.sim.diseases.hiv
+
+    @property
+    def on_treatment(self):
+        """ On ART, suppressed or not """
+        return self.on_effective_art | self.on_nonsuppressive_art
+
+    @property
+    def care(self):
+        """ The care module (sti.HIVCare), if any: then ART starts only for those in care """
+        return self.sim.interventions[self.care_name] if self.care_name else None
+
+    def ready(self, uids=None):
+        """ Who can start ART: those in care, if there is a care module, else everyone (as a mask over `uids`, or all agents) """
+        care = self.care
+        if uids is None:
+            return care.in_care if care is not None else self.art_naive | ~self.art_naive
+        return care.in_care[uids] if care is not None else np.ones(len(uids), dtype=bool)
+
+    # Treatment of HIV: what HIV calls (see sti.HIV.add_treatment())
+    def refer(self, uids, ti):
+        """ Schedule ART to start at `ti` for those referred (e.g. diagnosed) and not on it already: through care, if there is a care module """
+        uids = uids[~self.on_treatment[uids]]
+        if self.care is not None:
+            self.care.refer(uids, ti, self)
+        else:
+            self.ti_art[uids] = ti
+        return
+
+    def update_cd4(self):
+        """ CD4 counts: rising on ART, and falling to 1 after it """
+        hiv = self.hiv
+        on_art = self.on_treatment.uids
+        hiv.cd4[on_art] = self.cd4_increase(on_art)
+        stopped = self.art_discontinued.uids
+        progress = self.engine.clock_values(self.graph.states['art_discontinued'].progress, stopped) # The share of the time to a CD4 count of zero elapsed
+        hiv.cd4[stopped] = np.maximum(1, self.cd4_postart[stopped] - (self.cd4_postart[stopped] - 1)*progress)
+        return
+
+    def cd4_increase(self, uids):
+        """
+        Increase CD4 counts for people who are receiving treatment.
+        Growth curves are calculated to match EMODs CD4 reconstitution equation for people who initiate treatment
+        with a CD4 count of 50 (https://docs.idmod.org/projects/emod-hiv/en/latest/hiv-model-healthcare-systems.html)
+        However, here we use a logistic growth function and assume that ART CD4 count depends on CD4 at initiation.
+        Sources:
+
+            - https://i-base.info/guides/starting/cd4-increase
+            - https://www.sciencedirect.com/science/article/pii/S1876034117302022
+            - https://bmcinfectdis.biomedcentral.com/articles/10.1186/1471-2334-8-20
+        """
+        dur_art = self.hiv.ti - self.ti_art[uids]
+        cd4_preart = self.cd4_preart[uids]
+        cd4_total_gain = self.cd4_potential[uids] - cd4_preart
+        return 2*cd4_total_gain/(1 + np.exp(-dur_art*self.pars.art_cd4_growth)) - cd4_total_gain + cd4_preart # Concave logistic
+
+    def on_art_death_rate(self, uids):
+        """
+        The annual rate of death of each agent on ART: the off-ART rate at the same CD4 count, times rel_art_mortality
+        (by suppression, and by sex if not suppressed) and the multipliers by age (art_death_age) and time on ART (art_death_dur)
+        """
+        hiv = self.hiv
+        male = self.sim.people.male[uids]
+        effective = self.on_effective_art[uids]
+        age = self.sim.people.age[uids]
+        rate = hiv.off_art_death_rate(uids)
+        rate[effective] *= self.pars.rel_art_mortality_effective
+        rate[~effective & male] *= self.pars.rel_art_mortality_unsupp_m
+        rate[~effective & ~male] *= self.pars.rel_art_mortality_unsupp_f
+
+        age_mult = np.ones(len(uids))
+        for age_lo, age_hi, mult in self.pars.art_death_age:
+            age_mult[(age >= age_lo) & (age < age_hi)] *= mult
+        rate = rate * age_mult
+
+        if self.pars.art_death_dur is not None:
+            dur_days = (hiv.ti - self.ti_art[uids]) * hiv.dt.days
+            dur_mult = np.ones(len(uids))
+            for dur_lo, dur_hi, mult in self.pars.art_death_dur:
+                dur_mult[(dur_days >= dur_lo) & (dur_days < dur_hi)] *= mult
+            rate = rate * dur_mult
+        return rate
+
+    def art_death_rate(self, sim, uids):
+        """ The rate of the transition art_death (see on_art_death_rate()) """
+        return ss.peryear(self.on_art_death_rate(uids))
+
+    def dropout_rate(self, sim, uids):
+        """ The rate of the transition dropout: of stopping ART early (rate_art_dropout) """
+        rate = self.pars.rate_art_dropout
+        if callable(rate) and not isinstance(rate, ss.Rate):
+            return ss.peryear(np.asarray(rate(self.sim, uids), dtype=float))
+        return ss.peryear(np.full(len(uids), rate.to('year').value, dtype=float))
+
+    def post_art_dwell(self, sim, uids):
+        """
+        As people stop ART (by stop_art() or dropout): the time until their CD4 count falls to zero, which depends on it, and when they die of AIDS (post_art_death)
+        """
+        hiv = self.hiv
+        ti = hiv.ti
+        self.ti_stop_art[uids] = ti
+        self.cd4_postart[uids] = hiv.cd4[uids]
+        dur_mean = np.log(self.cd4_preart[uids])*hiv.cd4[uids]/self.cd4_potential[uids]
+        dur_scale = dur_mean*self.pars.dur_post_art_scale_factor
+        self.pars.dur_post_art.set(mean=ss.years(dur_mean), std=ss.years(np.maximum(dur_scale, 1e-3))) # Not zero
+        dur_post_art = self.pars.dur_post_art.rvs(uids)
+        if np.isnan(dur_post_art).any():
+            bad = uids[np.isnan(dur_post_art)]
+            errormsg = f'Invalid post-ART duration for {bad}: CD4 {hiv.cd4[bad]}, before ART {self.cd4_preart[bad]}, potential {self.cd4_potential[bad]}'
+            raise ValueError(errormsg)
+        self.dur_post_art[uids] = np.maximum(dur_post_art.astype(int), 0)
+        self.ti_zero[uids] = ti + self.dur_post_art[uids]
+        if self.care is not None:
+            self.care.on_stop(uids)
+        return hiv.dt*self.dur_post_art[uids]
+
+    def trans_multiplier(self, uids):
+        """
+        The multiplier of ART on the infectiousness of some agents on it: it reaches its full efficacy by a linear rise over
+        time_to_art_efficacy (with an efficacy of 1, they do not transmit from the start)
+        """
+        p, hiv = self.pars, self.hiv
+        full_eff = np.where(self.on_effective_art[uids], p.effective_art_efficacy, p.nonsupp_art_efficacy)
+        steps_on_art = hiv.ti - self.ti_art[uids]
+        steps_to_full = p.time_to_art_efficacy / hiv.dt
+        efficacy = full_eff*np.minimum(steps_on_art/steps_to_full, 1)
+        return np.where(full_eff < 1, 1 - efficacy, 0.0)
+
+    def rel_trans_multiplier(self, sim):
+        """ The multiplier of HIV's rel_trans of every agent (by UID), the modifier `infectiousness`: trans_multiplier() for those on ART, 1 for everyone else """
+        mult = np.ones(len(self.ti_art.raw))
+        uids = self.on_treatment.uids
+        mult[uids] = self.trans_multiplier(uids)
+        return mult
+
+    # Care seeking
+    def init_care_seeking(self):
+        """ Set the care-seeking behavior of new agents """
+        uids = ss.uids(self.care_seeking.isnan)
+        self.care_seeking[uids] = self.pars.care_seeking.rvs(uids)
+        self.care_seeking[uids] = np.maximum(self.care_seeking[uids], 0.01) # Floor to prevent division by zero
+        self.baseline_care_seeking[uids] = sc.dcp(self.care_seeking[uids]) # Copy it so pregnancy can modify it
+        return
+
+    def update_care_seeking(self):
+        """ Care seeking of new agents; pregnant women seek care more, which makes them much less likely to stop treatment """
+        self.init_care_seeking()
+        if self.hiv.include_mtct:
+            pregnant = self.sim.demographics.pregnancy.P
+            self.care_seeking[pregnant] = self.baseline_care_seeking[pregnant] * self.pars.maternal_care_scale
+            self.care_seeking[~pregnant] = self.baseline_care_seeking[~pregnant]
+        return
+
+    # Starting and stopping
+    def start_art(self, uids, p_effective_art=None, effective=None):
+        """
+        Put agents on ART: suppressed, or not; it takes them out of HIV's natural history
+
+        Args:
+            uids: agents starting ART treatment
+            p_effective_art (float/ss.Dist, optional): probability that each agent achieves viral suppression (effective
+                ART) rather than non-suppressive ART. Pass a float to override `self.pars.p_effective_art`'s probability,
+                or an already-initialized `ss.Dist` to use it directly. Defaults to `self.pars.p_effective_art` (default:
+                always effective).
+            effective (array, optional): whether each achieves viral suppression, chosen by the caller (e.g. a cascade
+                of care with its own arms), in place of a draw; then `p_effective_art` is not used.
+        """
+        hiv = self.hiv
+        ti = hiv.ti
+        p = self.pars
+        uids = ss.uids(uids)
+        newly_treated = uids[self.art_naive[uids]]
+        self.ti_art[uids] = ti
+        self.cd4_preart[uids] = hiv.cd4[uids]
+
+        # Whether each achieves viral suppression (effective ART) or not, e.g. due to poor adherence or drug resistance
+        if effective is not None:
+            effective = uids[np.asarray(effective, dtype=bool)]
+        elif isinstance(p_effective_art, ss.Dist):
+            effective = p_effective_art.filter(uids)
+        else:
+            if p_effective_art is not None:
+                p.p_effective_art.set(p=p_effective_art)
+            effective = p.p_effective_art.filter(uids)
+        self.move(effective, self.on_effective_art)
+        self.move(uids.remove(effective), self.on_nonsuppressive_art)
+
+        # When they will stop
+        dur_on_art = p.dur_on_art.rvs(uids) * p.rel_dur_on_art
+        trend = p.dur_on_art_trend
+        if trend is not None:
+            dur_on_art = dur_on_art * np.interp(hiv.t.now('year'), trend.years, trend.vals)
+        self.ti_stop_art[uids] = ti + dur_on_art.astype(int)
+
+        # The CD4 count they can reach on treatment, set at their first start: growth follows the concave part of a logistic function, and the total gain depends on the CD4 count at initiation
+        if len(newly_treated):
+            cd4_max = p.art_cd4_pars['cd4_max']
+            cd4_healthy = p.art_cd4_pars['cd4_healthy']
+            cd4_preart = self.cd4_preart[newly_treated]
+            if (cd4_preart == 0).any():
+                raise ValueError('CD4 count is zero at initiation of ART')
+            cd4_scale_factor = (cd4_max - cd4_preart)/cd4_healthy*np.log(cd4_max/cd4_preart)
+            self.cd4_potential[newly_treated] = cd4_preart + cd4_preart*cd4_scale_factor
+        return
+
+    def stop_art(self, uids=None):
+        """ Take agents off ART (by default, those whose time on it is up); see post_art_dwell() for what follows """
+        if uids is None:
+            uids = (self.on_treatment & (self.ti_stop_art <= self.hiv.ti)).uids
+        self.move(ss.uids(uids), self.art_discontinued)
+        return
+
+    def set_suppression(self, uids, effective):
+        """ Make agents on ART virally suppressed (effective=True), or not """
+        uids = ss.uids(uids)
+        if effective:
+            self.move(uids[self.on_nonsuppressive_art[uids]], self.on_effective_art)
+        else:
+            self.move(uids[self.on_effective_art[uids]], self.on_nonsuppressive_art)
+        return
+
+    def step_suppression(self):
+        """ Becoming unsuppressed (rate_failure), and suppressed again (rate_regain), on ART """
+        for rate, dist, frm, effective in [('rate_failure', self.u_failure, self.on_effective_art, False), ('rate_regain', self.u_regain, self.on_nonsuppressive_art, True)]:
+            uids = frm.uids
+            prob = rate_prob(self.sim, self.pars[rate], uids, self.hiv.dt)
+            if np.any(prob):
+                self.set_suppression(uids[dist.rvs(uids) < prob], effective)
+        return
+
+    def priority(self, uids):
+        """ Each agent's priority for ART under a coverage target (higher starts first, and lower stops first): art_priority, or by default the lowest CD4 count over care seeking """
+        if self.pars.art_priority is not None:
+            return np.asarray(self.pars.art_priority(self.sim, uids), dtype=float)
+        return -(self.hiv.cd4[uids]/self.care_seeking[uids])
+
     def _suppress_to_target(self, hiv, pool, target):
         """
         Suppress the top ``target`` agents in ``pool`` by ``adherence``;
@@ -355,8 +833,8 @@ class ART(ss.Intervention):
         n_target = int(np.clip(round(target), 0, len(uids)))
         order = uids[np.argsort(-self.adherence[uids])]
         keep, drop = order[:n_target], order[n_target:]
-        hiv.set_suppression(keep, effective=True)
-        hiv.set_suppression(drop, effective=False)
+        self.set_suppression(keep, effective=True)
+        self.set_suppression(drop, effective=False)
 
     def vls_stock_correction(self, sim):
         """
@@ -393,6 +871,10 @@ class ART(ss.Intervention):
         sim = self.sim
         hiv = sim.diseases.hiv
         inf_uids = hiv.infected.uids
+        self.update_care_seeking()
+        if self.care is not None:
+            self.care.update(self)
+        self.step_suppression()
 
         # Determine treatment target (None = no capacity constraint). When
         # stratum_targets is set, correct within each stratum so age/sex
@@ -404,22 +886,23 @@ class ART(ss.Intervention):
 
         # Check who is stopping ART
         if hiv.on_art.any():
-            stopping = hiv.on_art & (hiv.ti_stop_art <= self.ti)
+            stopping = hiv.on_art & (self.ti_stop_art <= self.ti)
             if stopping.any():
                 try:
-                    hiv.stop_art(stopping.uids)
+                    self.stop_art(stopping.uids)
                 except:
                     errormsg = f'Error stopping ART for {stopping.uids}'
                     raise ValueError(errormsg)
 
         # Initiate ART for agents whose scheduled start time has arrived
-        ready = ((hiv.ti_art == self.ti) & ~hiv.on_art).uids
+        ready = ((self.ti_art == self.ti) & ~hiv.on_art).uids
+        ready = ready[self.ready(ready)]
         if len(ready):
             dx_to_treat = self.pars.art_initiation.filter(ready)
 
             if n_to_treat is None:
                 # No coverage target — treat all who initiate
-                hiv.start_art(dx_to_treat, p_effective_art=self.pars.p_effective_art)
+                self.start_art(dx_to_treat, p_effective_art=self.pars.p_effective_art)
             else:
                 # Coverage target — only treat if spots available
                 on_art = hiv.on_art
@@ -460,6 +943,7 @@ class ART(ss.Intervention):
                     breastfed = sim.networks.breastfeedingnet.find_contacts(art_breastfeeding)
                     hiv.rel_sus[ss.uids(breastfed)] *= 1 - pmtct_eff
 
+        super().step() # The transitions of treatment: death on it, stopping it early, and death after it
         return
 
     def prioritize_art(self, sim, n=None, awaiting_art_uids=None):
@@ -467,20 +951,18 @@ class ART(ss.Intervention):
         hiv = sim.diseases.hiv
         if awaiting_art_uids is None:
             # Agents whose scheduled ART start has arrived but who aren't on ART yet
-            awaiting_art_uids = ((hiv.ti_art <= self.ti) & ~hiv.on_art).uids
+            awaiting_art_uids = ((self.ti_art <= self.ti) & ~hiv.on_art).uids
+            awaiting_art_uids = awaiting_art_uids[self.ready(awaiting_art_uids)]
 
         # Enough spots for everyone
         if n > len(awaiting_art_uids):
             start_uids = awaiting_art_uids
 
-        # Not enough spots — prioritize lowest-CD4, highest-care-seeking
+        # Not enough spots — prioritize by art_priority (by default lowest-CD4, highest-care-seeking)
         else:
-            cd4_counts   = hiv.cd4[awaiting_art_uids]
-            care_seeking = hiv.care_seeking[awaiting_art_uids]
-            weights = cd4_counts / care_seeking
-            start_uids = top_n_by(awaiting_art_uids, -weights, n)
+            start_uids = top_n_by(awaiting_art_uids, self.priority(awaiting_art_uids), n)
 
-        hiv.start_art(start_uids, p_effective_art=self.pars.p_effective_art)
+        self.start_art(start_uids, p_effective_art=self.pars.p_effective_art)
 
         return
 
@@ -504,21 +986,19 @@ class ART(ss.Intervention):
         hiv = sim.diseases.hiv
         on_art = hiv.on_art
 
-        # Too many on treatment → remove highest-CD4, lowest-care-seeking
+        # Too many on treatment → remove the lowest priority (by default highest-CD4, lowest-care-seeking)
         if len(on_art.uids) > target_coverage:
             n_to_stop    = int(len(on_art.uids) - target_coverage)
             on_art_uids  = on_art.uids
-            cd4_counts   = hiv.cd4[on_art_uids]
-            care_seeking = hiv.care_seeking[on_art_uids]
-            weights      = cd4_counts / care_seeking
-            stop_uids    = top_n_by(on_art_uids, weights, n_to_stop)
-            hiv.ti_stop_art[stop_uids] = self.ti
-            hiv.stop_art(stop_uids)
+            stop_uids    = top_n_by(on_art_uids, -self.priority(on_art_uids), n_to_stop)
+            self.ti_stop_art[stop_uids] = self.ti
+            self.stop_art(stop_uids)
 
         # Not enough on treatment → add (only those whose scheduled start has arrived)
         elif len(on_art.uids) < target_coverage:
             n_to_add = target_coverage - len(on_art.uids)
-            awaiting_art_uids = ((hiv.ti_art <= self.ti) & ~hiv.on_art).uids
+            awaiting_art_uids = ((self.ti_art <= self.ti) & ~hiv.on_art).uids
+            awaiting_art_uids = awaiting_art_uids[self.ready(awaiting_art_uids)]
             self.prioritize_art(sim, n=n_to_add, awaiting_art_uids=awaiting_art_uids)
 
         return
@@ -530,9 +1010,9 @@ class ART(ss.Intervention):
         This preserves the age/sex differentials in the stratified coverage
         input — e.g. young men and older women each reach their own target
         rather than being averaged out by a global CD4-priority allocation.
-        Within a stratum, removals still drop the highest-CD4 agents first
-        and additions still prioritize the lowest-CD4 agents (same priority
-        rule as the global path).
+        Within a stratum, removals and additions follow the same priority
+        rule as the global path (``art_priority``; by default, highest-CD4
+        agents are removed first and lowest-CD4 agents added first).
         """
         hiv = sim.diseases.hiv
         ppl = sim.people
@@ -551,17 +1031,15 @@ class ART(ss.Intervention):
             # Too many on treatment in this stratum → remove highest-CD4
             if n_on_art > target_n:
                 n_to_stop    = n_on_art - target_n
-                cd4_counts   = hiv.cd4[on_art_in_stratum]
-                care_seeking = hiv.care_seeking[on_art_in_stratum]
-                weights      = cd4_counts / care_seeking
-                stop_uids    = top_n_by(on_art_in_stratum, weights, n_to_stop)
-                hiv.ti_stop_art[stop_uids] = self.ti
-                hiv.stop_art(stop_uids)
+                stop_uids    = top_n_by(on_art_in_stratum, -self.priority(on_art_in_stratum), n_to_stop)
+                self.ti_stop_art[stop_uids] = self.ti
+                self.stop_art(stop_uids)
 
             # Not enough in this stratum → add from diagnosed in same stratum
             elif n_on_art < target_n:
                 n_to_add = target_n - n_on_art
                 awaiting_art_uids = (in_stratum & hiv.diagnosed & ~hiv.on_art).uids
+                awaiting_art_uids = awaiting_art_uids[self.ready(awaiting_art_uids)]
                 self.prioritize_art(sim, n=n_to_add, awaiting_art_uids=awaiting_art_uids)
 
         return
