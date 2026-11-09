@@ -161,6 +161,24 @@ def test_no_sexual_transmission_without_network():
     return sim
 
 
+@sc.timer()
+def test_condoms_reduce_sexual_transmission():
+    sc.heading("Ensuring condoms in every act cut sexual transmission by about eff_condom.")
+
+    def new_infections(condom_use):
+        hiv = sti.HIV(beta_m2f=0.01, init_prev=0.2, eff_condom=0.9)
+        nw = sti.StructuredSexual(pars=dict(condom_data=condom_use))
+        sim = ss.Sim(n_agents=large_pop, start=2000, stop=2003, dt=ss.months(1), diseases=hiv, networks=nw, rand_seed=1, verbose=0)
+        sim.run()
+        return sim.results.hiv.new_infections_sex.values.sum()
+
+    without, with_condoms = new_infections(0.0), new_infections(1.0)
+    ratio = with_condoms/without
+    assert without > 100, f"Cannot assess condoms: only {without} sexual infections without them"
+    assert ratio < 0.3, f"Condoms in every act (90% effective) left {ratio:.0%} of sexual infections ({with_condoms} vs {without}); expected about 20% (more than 10%, as more partnerships stay serodiscordant)"
+    return ratio
+
+
 def _run_beta_test(baseline_m2f, baseline_m2c, mode: str, multiplier=2, result_tolerance=0.16,
                    n_agents=50000, duration=1, init_prev=0.2, fertility=10, rand_seed=1):
     if mode == 'sexual':
@@ -921,6 +939,7 @@ if __name__ == '__main__':
     test_cd4_rises_on_ART()
     test_art_increases_longevity()
     test_no_hiv_with_no_outbreaks()
+    test_condoms_reduce_sexual_transmission()
     test_increased_testing_speeds_diagnosis()
     test_vmmc_reduces_male_infections()
     test_vmmc_is_male_only()

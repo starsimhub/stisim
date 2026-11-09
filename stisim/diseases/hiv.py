@@ -6,7 +6,7 @@ import numpy as np
 import sciris as sc
 import starsim as ss
 import stisim.utils as ut
-from stisim.diseases.sti import STIResults, init_prev_by_group, sexual_beta, hetero_networks, default_age_bins, default_sex_keys
+from stisim.diseases.sti import STIResults, init_prev_by_group, sexual_beta, condoms, hetero_networks, default_age_bins, default_sex_keys
 
 __all__ = ['HIV']
 
@@ -95,6 +95,7 @@ class HIV(ss.Disease, STIResults):
             mtct_prenatal = self.susceptible >> acute @ beta_m2c*dict(prenatalnet=ss.permonth(1), default=0)*infectious,
             mtct_postnatal = self.susceptible >> acute @ beta_breastfeed*dict(breastfeedingnet=ss.permonth(1), default=0)*infectious,
         )
+        self.define_transitions(condoms=condoms(self.infection)) # Fewer infections in the acts with a condom (eff_condom)
 
         # Natural history, and death: of AIDS once the CD4 count reaches zero, and at any time at a rate by CD4 count (see death_rate()); treatment (sti.ART) stops these for those it treats
         self.define_transitions(
@@ -171,7 +172,7 @@ class HIV(ss.Disease, STIResults):
             cd4_latent = ss.normal(mean=500, std=50),
 
             # Infectiousness and susceptibility
-            eff_condom = 0.9, # Read by the sexual networks (see sti.BaseNetwork.net_beta())
+            eff_condom = 0.9, # Read by sti.condoms
             rel_trans_acute = ss.normal(mean=5.3, std=0.5), # Bellan 2015: RH=5.3, EHM≈7.3
             rel_trans_falling = ss.normal(mean=8, std=0.5), # Increase in late infection (a CD4 count below 200)
             rel_sus_age = None, # Age/sex-stratified rel_sus multipliers: (age_lo, age_hi, sex, multiplier) tuples; sex is 'f', 'm', or None for both. E.g. [(15, 25, 'f', 1.7), (25, 50, 'f', 1.0), (15, 50, 'm', 1.0)]
