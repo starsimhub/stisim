@@ -247,7 +247,7 @@ class Sim(ss.Sim):
         Process the network parameters to create network module.
         If networks are provided, they will be used; otherwise, use default networks (usual case)
         """
-        if len(self.pars['networks']) > 0:
+        if isinstance(self.pars['networks'], ss.Module) or len(self.pars['networks']) > 0: # A network's len() is its edge count, 0 before init
             # XOR: user provided network instances AND network pars — refuse to guess.
             if self._user_nw_pars:
                 raise ValueError(
