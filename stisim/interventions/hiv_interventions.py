@@ -286,16 +286,30 @@ def rate_prob(sim, rate, uids, dt):
     return rate.to_prob(dt)
 
 
-class ART(ss.Intervention):
+class modify_hiv(ss.modify):
+    """ A modifier of HIV's quantities that is a member of ART, which keeps the module of its target (e.g. 'hiv.latency') rather than taking ART's as its own """
+    def own(self, module, name):
+        target = self.target_module
+        super().own(module, name)
+        if isinstance(target, str): # [PROPOSAL ST-G] ss.modify.own() keeps a target given by its path to another module
+            self.target_module = target
+        return
+
+
+class ART(ss.Disease):
     """
     Antiretroviral therapy: the treatment of HIV.
 
-    ART holds everything about treatment: its parameters, who is on it and since when, the CD4 count on it and after
-    stopping it, mortality and infectiousness on it, and starting and stopping it (`start_art()`, `stop_art()`). It
-    registers itself with HIV (`sti.HIV.add_treatment()`), whose states of treatment (`on_effective_art`,
-    `on_nonsuppressive_art`, `art_discontinued`) it moves people into and out of, and which asks it for the CD4
-    counts, rates of death and dropout, and infectiousness of the people in them. ART's parameters can also be given
-    to HIV (e.g. ``sti.HIV(dur_on_art=...)``), which passes them on.
+    ART is a declared module of its own, given with the interventions (``interventions=[sti.HIVTest(), sti.ART()]``).
+    Its states are those of treatment: never treated (`art_naive`), on ART and virally suppressed (`on_effective_art`)
+    or not (`on_nonsuppressive_art`), and off it after being on it (`art_discontinued`). Its transitions are death on
+    ART (`art_death`), stopping it early (`art_dropout`, at `rate_art_dropout`), and death of AIDS after stopping it,
+    once the CD4 count falls to zero (`post_art_death`). It modifies HIV: those it has treated stay in the stage of HIV
+    they were in, which no longer progresses (HIV's `latency`, `progression`, and `aids_death` are stopped for them),
+    those on it do not die at HIV's rate by CD4 count (`hiv_death`) but at its own, and their infectiousness is
+    multiplied by its efficacy (`trans_multiplier()`). It also holds the CD4 count on it and after stopping it, and
+    starting and stopping it (`start_art()`, `stop_art()`). It registers itself with HIV (`sti.HIV.add_treatment()`).
+    ART's parameters can also be given to HIV (e.g. ``sti.HIV(dur_on_art=...)``), which passes them on.
 
     Requires HIVTest (or equivalent) to diagnose agents first — ART only
     initiates agents who have been referred (HIV's `refer()`) after a diagnosis.
@@ -398,8 +412,38 @@ class ART(ss.Intervention):
                       art_priority=lambda sim, uids: sim.diseases.hiv.aids[uids])
     """
 
-    def __init__(self, pars=None, coverage=None, vls_coverage=None, smoothness=0, format_priority='n', **kwargs):
-        super().__init__()
+    has_product = False # A module of its own, not a delivery of a product
+
+    def __init__(self, pars=None, coverage=None, vls_coverage=None, smoothness=0, format_priority='n', name='art', dt='month', **kwargs):
+        super().__init__(name=name, init_prev=0, dt=dt) # The same timestep as HIV's
+
+        # States of treatment
+        self.define_states(
+            ss.State('art_naive'), # Never initiated ART
+            ss.State('on_effective_art'), # On treatment and virally suppressed
+            ss.State('on_nonsuppressive_art'), # On treatment but not suppressed
+            ss.State('art_discontinued', keep_time=True), # Off treatment, having been on it (the time is kept for the CD4 count, see update_cd4())
+        )
+        on_art = self.on_effective_art + self.on_nonsuppressive_art
+        treated = on_art + self.art_discontinued
+        p_post_art_death = ss.par(1.0, doc='Probability of dying of AIDS when the CD4 count reaches zero after stopping ART')
+
+        # Death on ART, at a rate relative to HIV's by CD4 count (see on_art_death_rate()); stopping early (dropout, at rate_art_dropout), besides at the end of dur_on_art (see stop_art()); and death of AIDS after stopping, once the CD4 count falls to zero
+        self.define_transitions(
+            art_death = ss.Transition(on_art, ss.dead, rate=self.art_death_rate),
+            dropout = ss.Transition(on_art, self.art_discontinued, rate=self.dropout_rate),
+            post_art_death = ss.Transition(self.art_discontinued, {ss.dead: p_post_art_death, ss.stay: None}, dur=ss.constant(self.post_art_dwell)), # The time drawn as they stop (see post_art_dwell())
+        )
+
+        # ART replaces HIV's natural history for those it has treated, and its deaths by CD4 count for those on it; and multiplies their infectiousness
+        self.define_transitions(
+            no_latency = modify_hiv('hiv.latency', multiply=0, who=treated),
+            no_progression = modify_hiv('hiv.progression', multiply=0, who=treated),
+            no_aids_death = modify_hiv('hiv.aids_death', multiply=0, who=treated),
+            no_hiv_death = modify_hiv('hiv.hiv_death', multiply=0, who=on_art),
+            infectiousness = modify_hiv('hiv.rel_trans', multiply=self.rel_trans_multiplier),
+        )
+        self.define_results(new_deaths = self.art_death + self.post_art_death)
 
         self.define_pars(
             art_initiation=ss.bernoulli(p=0.9),
@@ -459,10 +503,9 @@ class ART(ss.Intervention):
         self.vls_age_bins      = None  # For stratified VLS coverage
         self.vls_sex_keys      = None  # For stratified VLS coverage
 
-        # States
+        # As code
         self.define_states(
             ss.FloatArr('adherence', default=ss.random()),
-            ss.BoolState('art_naive', default=True), # Never initiated ART
             ss.FloatArr('ti_art'), # Time of starting ART, or of a scheduled start (see sti.HIVTest)
             ss.FloatArr('ti_stop_art'),
             ss.FloatArr('ti_zero'), # Time the CD4 count reaches zero after stopping ART, which is generally an AIDS death
@@ -550,30 +593,14 @@ class ART(ss.Intervention):
         self.init_care_seeking()
         return
 
-    # The states of treatment, which are HIV's (see sti.HIV)
     @property
     def hiv(self):
         return self.sim.diseases.hiv
 
     @property
-    def on_effective_art(self):
-        """ On ART and virally suppressed """
-        return self.hiv.on_effective_art
-
-    @property
-    def on_nonsuppressive_art(self):
-        """ On ART but not suppressed """
-        return self.hiv.on_nonsuppressive_art
-
-    @property
-    def art_discontinued(self):
-        """ Off ART, having been on it """
-        return self.hiv.art_discontinued
-
-    @property
     def on_treatment(self):
         """ On ART, suppressed or not """
-        return self.hiv.on_art
+        return self.on_effective_art | self.on_nonsuppressive_art
 
     @property
     def care(self):
@@ -603,7 +630,8 @@ class ART(ss.Intervention):
         on_art = self.on_treatment.uids
         hiv.cd4[on_art] = self.cd4_increase(on_art)
         stopped = self.art_discontinued.uids
-        hiv.cd4[stopped] = np.maximum(1, self.cd4_postart[stopped] - (self.cd4_postart[stopped] - 1)*hiv.progress('art_discontinued', stopped))
+        progress = self.engine.clock_values(self.graph.states['art_discontinued'].progress, stopped) # The share of the time to a CD4 count of zero elapsed
+        hiv.cd4[stopped] = np.maximum(1, self.cd4_postart[stopped] - (self.cd4_postart[stopped] - 1)*progress)
         return
 
     def cd4_increase(self, uids):
@@ -650,16 +678,20 @@ class ART(ss.Intervention):
             rate = rate * dur_mult
         return rate
 
-    def dropout_rate(self, uids):
-        """ The rate of stopping ART early of each agent on it (rate_art_dropout), for HIV's transition art_dropout """
+    def art_death_rate(self, sim, uids):
+        """ The rate of the transition art_death (see on_art_death_rate()) """
+        return ss.peryear(self.on_art_death_rate(uids))
+
+    def dropout_rate(self, sim, uids):
+        """ The rate of the transition dropout: of stopping ART early (rate_art_dropout) """
         rate = self.pars.rate_art_dropout
         if callable(rate) and not isinstance(rate, ss.Rate):
             return ss.peryear(np.asarray(rate(self.sim, uids), dtype=float))
         return ss.peryear(np.full(len(uids), rate.to('year').value, dtype=float))
 
-    def post_art_dwell(self, uids):
+    def post_art_dwell(self, sim, uids):
         """
-        As people stop ART (by stop_art() or HIV's art_dropout): the time until their CD4 count falls to zero, which depends on it, and when they die of AIDS (HIV's post_art_death)
+        As people stop ART (by stop_art() or dropout): the time until their CD4 count falls to zero, which depends on it, and when they die of AIDS (post_art_death)
         """
         hiv = self.hiv
         ti = hiv.ti
@@ -690,6 +722,13 @@ class ART(ss.Intervention):
         steps_to_full = p.time_to_art_efficacy / hiv.dt
         efficacy = full_eff*np.minimum(steps_on_art/steps_to_full, 1)
         return np.where(full_eff < 1, 1 - efficacy, 0.0)
+
+    def rel_trans_multiplier(self, sim):
+        """ The multiplier of HIV's rel_trans of every agent (by UID), the modifier `infectiousness`: trans_multiplier() for those on ART, 1 for everyone else """
+        mult = np.ones(len(self.ti_art.raw))
+        uids = self.on_treatment.uids
+        mult[uids] = self.trans_multiplier(uids)
+        return mult
 
     # Care seeking
     def init_care_seeking(self):
@@ -728,7 +767,6 @@ class ART(ss.Intervention):
         p = self.pars
         uids = ss.uids(uids)
         newly_treated = uids[self.art_naive[uids]]
-        self.art_naive[newly_treated] = False
         self.ti_art[uids] = ti
         self.cd4_preart[uids] = hiv.cd4[uids]
 
@@ -741,8 +779,8 @@ class ART(ss.Intervention):
             if p_effective_art is not None:
                 p.p_effective_art.set(p=p_effective_art)
             effective = p.p_effective_art.filter(uids)
-        hiv.move(effective, hiv.on_effective_art)
-        hiv.move(uids.remove(effective), hiv.on_nonsuppressive_art)
+        self.move(effective, self.on_effective_art)
+        self.move(uids.remove(effective), self.on_nonsuppressive_art)
 
         # When they will stop
         dur_on_art = p.dur_on_art.rvs(uids) * p.rel_dur_on_art
@@ -766,16 +804,16 @@ class ART(ss.Intervention):
         """ Take agents off ART (by default, those whose time on it is up); see post_art_dwell() for what follows """
         if uids is None:
             uids = (self.on_treatment & (self.ti_stop_art <= self.hiv.ti)).uids
-        self.hiv.move(ss.uids(uids), self.hiv.art_discontinued)
+        self.move(ss.uids(uids), self.art_discontinued)
         return
 
     def set_suppression(self, uids, effective):
         """ Make agents on ART virally suppressed (effective=True), or not """
-        uids, hiv = ss.uids(uids), self.hiv
+        uids = ss.uids(uids)
         if effective:
-            hiv.move(uids[self.on_nonsuppressive_art[uids]], hiv.on_effective_art)
+            self.move(uids[self.on_nonsuppressive_art[uids]], self.on_effective_art)
         else:
-            hiv.move(uids[self.on_effective_art[uids]], hiv.on_nonsuppressive_art)
+            self.move(uids[self.on_effective_art[uids]], self.on_nonsuppressive_art)
         return
 
     def step_suppression(self):
@@ -914,6 +952,7 @@ class ART(ss.Intervention):
                     breastfed = sim.networks.breastfeedingnet.find_contacts(art_breastfeeding)
                     hiv.rel_sus[ss.uids(breastfed)] *= 1 - pmtct_eff
 
+        super().step() # The transitions of treatment: death on it, stopping it early, and death after it
         return
 
     def prioritize_art(self, sim, n=None, awaiting_art_uids=None):

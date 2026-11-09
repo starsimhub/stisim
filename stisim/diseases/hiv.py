@@ -32,18 +32,15 @@ class HIV(ss.Disease, STIResults):
     As code: the CD4 count, which declines in acute and falling infection (by the share of the stage elapsed);
     infectiousness by stage, and susceptibility by PrEP, circumcision, and age; and diagnosis.
 
-    Treatment is a module of its own (`sti.ART`), which registers itself with `add_treatment()`. Treatment takes
-    people out of the natural history, into the states of treatment: virally suppressed (`on_effective_art`) or
-    not (`on_nonsuppressive_art`), and after stopping (`art_discontinued`), when they die of AIDS once their CD4
-    count falls to zero. These states are HIV's, since a person is in one state of HIV at a time, but everything
-    about them comes from the treatment: who enters and leaves them (`sti.ART.start_art()`, `stop_art()`), the
-    rates of death and of stopping early in them, the time from stopping to a CD4 count of zero, the CD4 counts
-    of those in them, and the multiplier of their infectiousness. HIV has no parameters of treatment of its own; those
+    Treatment is a module of its own (`sti.ART`), which registers itself with `add_treatment()`. It holds the states
+    of treatment (`on_effective_art`, `on_nonsuppressive_art`, `art_discontinued`) and the deaths in them, and
+    modifies HIV: those it has treated stay in the stage of HIV they were in, which no longer progresses, and their
+    infectiousness is multiplied by treatment's. HIV asks it for the CD4 counts of those it has treated, and leaves
+    the rise in infectiousness of acute infection out for them. HIV has no parameters of treatment of its own; those
     given to it are passed on to `sti.ART`, and treatment's states and methods can be read through it
     (`hiv.ti_art`, `hiv.start_art()`, ...). Testing refers people to treatment with `refer()`.
 
-    States: `susceptible`, `acute`, `latent`, `falling`, `on_effective_art`, `on_nonsuppressive_art`, and
-    `art_discontinued`; `infected`, `on_art`, and `aids` are conditions over them.
+    States: `susceptible`, `acute`, `latent`, and `falling`; `infected`, `on_art`, and `aids` are conditions over them.
 
     Args:
         pars (dict): parameter values, as for the keywords
@@ -87,14 +84,9 @@ class HIV(ss.Disease, STIResults):
             ss.State('acute', keep_time=True), # The times are kept for the CD4 count (see step_state())
             ss.State('latent'),
             ss.State('falling', keep_time=True),
-            ss.State('on_effective_art'), # On treatment and virally suppressed (moved into and out of by the treatment, e.g. sti.ART)
-            ss.State('on_nonsuppressive_art'), # On treatment but not suppressed
-            ss.State('art_discontinued', keep_time=True), # Off treatment, having been on it
         )
         acute, latent, falling = self.acute, self.latent, self.falling
-        on_art = self.on_effective_art + self.on_nonsuppressive_art
-        off_art = acute + latent + falling + self.art_discontinued
-        infectious = off_art + on_art # Treatment's reduction of infectiousness is in rel_trans (see treat_infectiousness())
+        infectious = acute + latent + falling # Treatment's reduction of infectiousness is a modifier of rel_trans (see sti.ART)
 
         # Transmission
         sexual = sexual_beta(beta_m2f, beta_m2f*rel_beta_f2m, beta_m2m, hetero=self.hetero_networks)
@@ -104,24 +96,17 @@ class HIV(ss.Disease, STIResults):
             mtct_postnatal = self.susceptible >> acute @ beta_breastfeed*dict(breastfeedingnet=ss.permonth(1), default=0)*infectious,
         )
 
-        # Natural history, and death: of AIDS once the CD4 count reaches zero, and at any time at a rate by CD4 count (see death_rate()), on treatment at the treatment's rate
+        # Natural history, and death: of AIDS once the CD4 count reaches zero, and at any time at a rate by CD4 count (see death_rate()); treatment (sti.ART) stops these for those it treats
         self.define_transitions(
             latency = acute >> latent @ dur_acute,
             progression = latent >> falling @ dur_latent,
             aids_death = ss.Transition(falling, {ss.dead: p_aids_death, ss.stay: None}, dur=dur_falling),
-            post_art_death = ss.Transition(self.art_discontinued, {ss.dead: p_aids_death, ss.stay: None}, dur=ss.constant(self.post_art_dwell)), # The time drawn by the treatment as they stop (see post_art_dwell())
-            hiv_death = ss.Transition(off_art, ss.dead, rate=self.death_rate),
-            art_death = ss.Transition(on_art, ss.dead, rate=self.art_death_rate),
+            hiv_death = ss.Transition(infectious, ss.dead, rate=self.death_rate),
         )
 
-        # Stopping treatment early, at the treatment's rate (sti.ART's rate_art_dropout); sti.ART.stop_art() takes people off it otherwise
-        self.define_transitions(
-            art_dropout = ss.Transition(on_art, self.art_discontinued, rate=self.dropout_rate),
-        )
-
-        # Results of the flows
+        # Results of the flows (deaths on and after treatment are added by it: see finalize_results())
         self.define_results(
-            new_deaths = self.aids_death + self.post_art_death + self.hiv_death + self.art_death,
+            new_deaths = self.aids_death + self.hiv_death,
             new_infections_sex = 1*self.infection,
             new_infections_prenatal = 1*self.mtct_prenatal,
             new_infections_postnatal = 1*self.mtct_postnatal,
@@ -210,7 +195,7 @@ class HIV(ss.Disease, STIResults):
     @property
     def infected(self):
         """ Infected: in any state but susceptible """
-        return self.acute | self.latent | self.falling | self.on_art | self.art_discontinued
+        return self.acute | self.latent | self.falling
 
     @property
     def infectious(self):
@@ -226,18 +211,16 @@ class HIV(ss.Disease, STIResults):
 
     @property
     def on_art(self):
-        """ On ART, suppressed or not """
-        return self.on_effective_art | self.on_nonsuppressive_art
+        """ On ART, suppressed or not (the treatment's states) """
+        tx = self.treatment
+        return tx.on_treatment if tx is not None else self.susceptible & ~self.susceptible
 
     # Treatment: the interface for the module that treats HIV (e.g. sti.ART)
     def add_treatment(self, treatment):
         """
-        Register the module that treats HIV, which moves people into and out of the states of treatment
-        (`on_effective_art`, `on_nonsuppressive_art`, `art_discontinued`). HIV calls it for: `update_cd4()`, the CD4
-        counts of those it treats or has treated; `on_art_death_rate(uids)`, the annual rate of death of those on it;
-        `dropout_rate(uids)`, the rate at which they stop it early; `post_art_dwell(uids)`, as they stop, the time until
-        their CD4 count falls to zero; `trans_multiplier(uids)`, the multiplier of the infectiousness of those on it;
-        and `refer(uids, ti)`, to schedule a start after a diagnosis
+        Register the module that treats HIV (e.g. sti.ART). HIV calls it for: `update_cd4()`, the CD4 counts of those
+        it treats or has treated; `art_naive`, who it has never treated (only they have the higher infectiousness of
+        acute infection); `on_treatment`, who is on it; and `refer(uids, ti)`, to schedule a start after a diagnosis
         """
         if self.treatment_name not in [None, treatment.name]:
             errormsg = f'HIV is treated by "{self.treatment_name}" already, so cannot be treated by "{treatment.name}" too: a sim has one sti.ART'
@@ -303,20 +286,6 @@ class HIV(ss.Disease, STIResults):
     def death_rate(self, sim, uids):
         """ The rate of the declared transition hiv_death """
         return ss.peryear(self.off_art_death_rate(uids))
-
-    def art_death_rate(self, sim, uids):
-        """ The rate of the declared transition art_death: the treatment's (see sti.ART.on_art_death_rate()) """
-        tx = self.treatment
-        return ss.peryear(tx.on_art_death_rate(uids) if tx is not None else np.zeros(len(uids)))
-
-    def dropout_rate(self, sim, uids):
-        """ The rate of the declared transition art_dropout: the treatment's (see sti.ART.dropout_rate()) """
-        tx = self.treatment
-        return tx.dropout_rate(uids) if tx is not None else ss.peryear(np.zeros(len(uids)))
-
-    def post_art_dwell(self, sim, uids):
-        """ As people stop treatment (by sti.ART.stop_art() or art_dropout): the time until their CD4 count falls to zero, when they die of AIDS (post_art_death), from the treatment """
-        return self.treatment.post_art_dwell(uids)
 
     def init_post(self):
         """ CD4 counts; and the infections at the start, which began before it """
@@ -413,22 +382,19 @@ class HIV(ss.Disease, STIResults):
 
     def stage_infectiousness(self):
         """ Infectiousness in acute and late infection, by the stage people are in after the step's declared transitions (a multiplier, as the connectors' are) """
-        p = self.pars
-        self.rel_trans[self.acute] *= p.rel_trans_acute.rvs(self.acute.uids)
+        p, tx = self.pars, self.treatment
+        acute = self.acute if tx is None else self.acute & tx.art_naive # Treatment takes away the higher infectiousness of acute infection
+        self.rel_trans[acute] *= p.rel_trans_acute.rvs(acute.uids)
         self.rel_trans[self.aids] *= p.rel_trans_falling.rvs(self.aids.uids)
         return
 
-    def treat_infectiousness(self):
-        """ The infectiousness of those on treatment, times the treatment's multiplier (see sti.ART.trans_multiplier()); applied just before transmission, after the interventions that start treatment in the step """
-        uids = self.on_art.uids
-        if len(uids) and self.treatment is not None:
-            self.rel_trans[uids] *= self.treatment.trans_multiplier(uids)
-        return
-
     def infectiousness(self, uids=None):
-        """ How infectious each agent is, all told, relative to untreated infection (their rel_trans, which includes treatment's effect) """
+        """ How infectious each agent is, all told, relative to untreated infection: their rel_trans, times treatment's multiplier (see sti.ART.trans_multiplier()) """
         uids = self.sim.people.auids if uids is None else ss.uids(uids)
-        return self.rel_trans[uids]
+        rel_trans = self.rel_trans[uids]
+        if self.treatment is not None:
+            rel_trans = rel_trans*self.treatment.trans_multiplier(uids)
+        return rel_trans
 
     def step_state(self):
         """ At the start of the step: CD4 counts, first symptoms, the end of PrEP courses that no Prep intervention ends, and each agent's susceptibility (the declared transitions are taken in step()) """
@@ -442,13 +408,11 @@ class HIV(ss.Disease, STIResults):
         return
 
     def step(self):
-        """ The declared transitions; infectiousness by stage, and with ART's rise to full efficacy; transmission; then the CD4 counts of those infected (a child's from its mother) """
+        """ The declared transitions; infectiousness by stage; transmission; then the CD4 counts of those infected (a child's from its mother) """
         eng = self.engine
         eng.step_state() # [PROPOSAL ST-F] The transitions not by contact: done here, so that infectiousness can follow them before transmission
-        died = self.aids_death.uids | self.post_art_death.uids | self.hiv_death.uids | self.art_death.uids
-        self.ti_dead[died] = self.ti
+        self.ti_dead[self.aids_death.uids | self.hiv_death.uids] = self.ti
         self.stage_infectiousness()
-        self.treat_infectiousness()
         self.apply_pmtct()
         eng.step() # Transmission
         eng.step_funcs()
@@ -665,6 +629,8 @@ class HIV(ss.Disease, STIResults):
         super().finalize_results()
         self.finalize_sti_results()
         res = self.results
+        if self.treatment is not None: # Deaths on and after treatment, which are the treatment's
+            res['new_deaths'][:] += self.treatment.results['new_deaths'][:]
         res['cum_deaths'][:] = np.cumsum(res['new_deaths'][:])
         res['cum_diagnoses'][:] = np.cumsum(res['new_diagnoses'][:])
         return
