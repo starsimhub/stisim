@@ -303,8 +303,8 @@ class ART(ss.Disease):
     ART is a declared module of its own, given with the interventions (``interventions=[sti.HIVTest(), sti.ART()]``).
     Its states are those of treatment: never treated (`art_naive`), on ART and virally suppressed (`on_effective_art`)
     or not (`on_nonsuppressive_art`), and off it after being on it (`art_discontinued`). Its transitions are death on
-    ART (`art_death`), stopping it early (`art_dropout`, at `rate_art_dropout`), and death of AIDS after stopping it,
-    once the CD4 count falls to zero (`post_art_death`). It modifies HIV: those it has treated stay in the stage of HIV
+    ART (`art_death`), stopping it early (`dropout`, at `rate_art_dropout`), and death of AIDS after stopping it,
+    once the CD4 count falls to zero (`post_art_death`, with probability `p_post_art_death`). It modifies HIV: those it has treated stay in the stage of HIV
     they were in, which no longer progresses (HIV's `latency`, `progression`, and `aids_death` are stopped for them),
     those on it do not die at HIV's rate by CD4 count (`hiv_death`) but at its own, and their infectiousness is
     multiplied by its efficacy (`trans_multiplier()`). It also holds the CD4 count on it and after stopping it, and
