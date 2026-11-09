@@ -229,6 +229,7 @@ These are parameters of `sti.ART`, which holds everything about treatment. Given
 | `rel_dur_on_art` | 1.0 | Multiplier on `dur_on_art`; usually calibrated | Not applicable |
 | `dur_on_art_trend` | None | Time-varying multiplier on `dur_on_art` (years and values) | Not applicable |
 | `rate_art_dropout` | 0/yr | Rate of stopping ART early (e.g. from poor adherence), besides at the end of `dur_on_art` | Not applicable |
+| `dur_reengage` | None | Time from stopping ART (for any reason) until ready to restart it (`ti_art`), so that a coverage target does not restart them at once; None = ready at once | Not applicable |
 | `dur_post_art_scale_factor` | 0.1 | Standard deviation of post-ART CD4 decline duration, as a fraction of its mean | Not recorded |
 | `rel_art_mortality_effective` | 0.25 | Fraction of off-ART CD4-based mortality retained on effective ART, both sexes (see "On-ART mortality" above) | Not recorded |
 | `rel_art_mortality_unsupp_m` | 0.7 | Fraction of off-ART CD4-based mortality retained on non-suppressive ART, males | Not recorded |

@@ -749,6 +749,28 @@ def test_art_death_table():
 
 
 @sc.timer()
+def test_art_dur_reengage():
+    """ With dur_reengage, those who stop ART are not restarted by a coverage target until it has passed, and then restart """
+    sc.heading('Testing the time to restarting ART after stopping...')
+    stratified = pd.DataFrame({'Year': [2000, 2000], 'AgeBin': ['[0,30)', '[30,200)'], 'p_art': [0.9, 0.9]})
+
+    def make_sim(coverage, **kw):
+        hiv = sti.HIV(init_prev=1.0, init_diagnosed=ss.bernoulli(p=1), beta_m2f=0)
+        art = sti.ART(coverage=coverage, art_initiation=ss.bernoulli(p=1), dur_on_art=ss.constant(ss.years(1)), rel_art_mortality_effective=0, **kw)
+        return sti.Sim(n_agents=2000, start=2000, stop=2004, diseases=hiv, interventions=[sti.HIVTest(test_prob_data=0), art], demographics=False, rand_seed=1, verbose=0)
+
+    wait = dict(dur_reengage=ss.constant(ss.years(2)))
+    sims = ss.parallel(make_sim(0.9), make_sim(0.9, **wait), make_sim(stratified, **wait), make_sim(None, **wait)).sims
+    share = lambda sim, years: (sim.results.hiv.on_art/sim.results.hiv.infected)[(sim.t.yearvec >= years[0]) & (sim.t.yearvec < years[1])].mean()
+    base, waits = sims[0], sims[1:]
+    assert share(base, [2001.1, 2003]) > 0.85, 'Without dur_reengage, a coverage target restarts those who stop at once'
+    for sim, label in zip(waits, ['a coverage target', 'a stratified coverage target', 'no coverage target']):
+        assert share(sim, [2001.1, 2003]) < 0.15, f'Under {label}, those who stop ART should stay off it for dur_reengage, not {share(sim, [2001.1, 2003]):.2f} on it'
+        assert share(sim, [2003.1, 2004]) > 0.85, f'Under {label}, those who stop ART should restart after dur_reengage, not {share(sim, [2003.1, 2004]):.2f} on it'
+    return sims
+
+
+@sc.timer()
 def test_art_pars_given_to_hiv():
     """ ART's parameters can be given to HIV, which passes them on to ART, but not to both, nor without an ART """
     sc.heading('Testing ART parameters given to HIV...')
@@ -919,6 +941,7 @@ if __name__ == '__main__':
     r11d = test_art_suppression_and_priority()
     r11e = test_art_pars_given_to_hiv()
     r11f = test_art_death_table()
+    r11g = test_art_dur_reengage()
     r12 = test_pn()
     r13 = test_pn_rates()
     r14 = test_pn_rates_sim()

@@ -14,7 +14,7 @@ __all__ = ['HIV']
 art_pars = ['effective_art_efficacy', 'nonsupp_art_efficacy', 'rate_art_dropout', 'rel_art_mortality_effective', 'rel_art_mortality_unsupp_m',
             'rel_art_mortality_unsupp_f', 'art_death_age', 'art_death_dur', 'art_cd4_growth', 'art_cd4_pars', 'care_seeking', 'maternal_care_scale',
             'time_to_art_efficacy', 'p_effective_art', 'dur_on_art', 'rel_dur_on_art', 'dur_on_art_trend', 'dur_post_art', 'dur_post_art_scale_factor',
-            'art_death_table', 'rel_art_death_unsupp']
+            'art_death_table', 'rel_art_death_unsupp', 'dur_reengage']
 
 # The states and methods of sti.ART that can be read through HIV (e.g. hiv.ti_art)
 art_attrs = ['art_naive', 'on_effective_art', 'on_nonsuppressive_art', 'art_discontinued', 'ti_art', 'ti_stop_art', 'ti_zero', 'cd4_preart', 'cd4_potential', 'cd4_postart', 'dur_post_art', 'care_seeking',

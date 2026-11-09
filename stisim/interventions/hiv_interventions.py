@@ -466,6 +466,7 @@ class ART(ss.Disease):
 
             # Time on ART, and after it
             rate_art_dropout = ss.peryear(0), # Rate of stopping ART early (e.g. from poor adherence), besides at the end of dur_on_art; none by default (or a function of the sim and agents giving a rate per year for each)
+            dur_reengage = None, # Time from stopping ART (for any reason) to being ready to start it again, when ti_art is set (e.g. ss.expon(ss.years(2))); None = ready again at once
             dur_on_art = ss.lognormal(ss.years(3), ss.years(1.5)), # Base ART duration (scaled by rel_dur_on_art and trend)
             rel_dur_on_art = 1.0, # Calibratable scalar that scales ART duration
             dur_on_art_trend = None, # Optional time-varying scale, e.g. sc.objdict(years=np.array([2004, 2015, 2030]), vals=np.array([0.5, 1.0, 1.5]))
@@ -738,6 +739,8 @@ class ART(ss.Disease):
             raise ValueError(errormsg)
         self.dur_post_art[uids] = np.maximum(dur_post_art.astype(int), 0)
         self.ti_zero[uids] = ti + self.dur_post_art[uids]
+        if self.pars.dur_reengage is not None:
+            self.ti_art[uids] = ti + self.pars.dur_reengage.rvs(uids, round=True) # Not ready to restart until then
         if self.care is not None:
             self.care.on_stop(uids)
         return hiv.dt*self.dur_post_art[uids]
@@ -1079,6 +1082,8 @@ class ART(ss.Disease):
             elif n_on_art < target_n:
                 n_to_add = target_n - n_on_art
                 awaiting_art_uids = (in_stratum & hiv.diagnosed & ~hiv.on_art).uids
+                if self.pars.dur_reengage is not None: # Not those who stopped and are not yet ready to restart
+                    awaiting_art_uids = awaiting_art_uids[~(self.ti_art[awaiting_art_uids] > self.ti)]
                 awaiting_art_uids = awaiting_art_uids[self.ready(awaiting_art_uids)]
                 self.prioritize_art(sim, n=n_to_add, awaiting_art_uids=awaiting_art_uids)
 
