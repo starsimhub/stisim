@@ -116,6 +116,20 @@ def test_sim_creation():
     return
 
 
+def test_demographics_location_vs_modules():
+    """ A location's demographics passed in as the modules sti.Sim builds for it give the same run as the location """
+    kw = dict(n_agents=1000, start=2010, stop=2020, datafolder=TEST_DATA_DIR, rand_seed=1)
+    sim1 = sti.Sim(**kw, demographics='zimbabwe')
+    demographics, people, total_pop = sti.Sim(**kw, demographics='zimbabwe').process_demographics()
+    sim2 = sti.Sim(**kw, demographics=list(demographics), people=people, total_pop=total_pop)
+    for sim in [sim1, sim2]:
+        sim.run()
+    assert sorted(sim1.dists.dists) == sorted(sim2.dists.dists), "Demographic modules' distributions are traced differently"
+    for key in ['alive', 'new_deaths', 'pregnancy_birth']:
+        assert np.array_equal(sim1.results[key], sim2.results[key]), f'"{key}" differs between the two forms'
+    return
+
+
 # %% hivsim.Sim tests
 
 def test_hivsim_defaults():
@@ -203,6 +217,7 @@ if __name__ == '__main__':
     test_multi_disease()
     test_time()
     test_sim_creation()
+    test_demographics_location_vs_modules()
     test_hivsim_defaults()
     test_hivsim_pars()
     test_hivsim_custom_modules()
