@@ -154,6 +154,11 @@ class HIV(ss.Disease, STIResults):
             ss.FloatArr('ti_prep_start'),
             ss.FloatArr('ti_prep_stop'), # Scheduled course expiry (renewal/lapse), like ti_stop_art
 
+            # First HIV-related symptoms (see new_symptoms()), and PMTCT for mothers not on treatment (see start_pmtct())
+            ss.FloatArr('ti_symptoms'),
+            ss.FloatArr('pmtct_eff', default=0.0),
+            ss.FloatArr('ti_pmtct_stop'),
+
             # Circumcision (VMMC)
             ss.BoolState('circumcised'),
             ss.BoolState('circ_traditional', default=False), # True=traditional (non-program), False=program (medical) VMMC
@@ -187,6 +192,10 @@ class HIV(ss.Disease, STIResults):
             rel_sus_age = None, # Age/sex-stratified rel_sus multipliers: (age_lo, age_hi, sex, multiplier) tuples; sex is 'f', 'm', or None for both. E.g. [(15, 25, 'f', 1.7), (25, 50, 'f', 1.0), (15, 50, 'm', 1.0)]
             eff_circ = 0.6, # Program (medical) VMMC: reduction in HIV acquisition susceptibility
             eff_circ_traditional = 0.6, # Traditional (non-program) circumcision: reduction in HIV acquisition susceptibility
+
+            # Clinical stage, from the CD4 count (for care that needs it, e.g. an eligibility rule; see who_stage() and new_symptoms())
+            who_stage_cd4 = [500, 350, 200], # WHO stages 2, 3 and 4 start below these CD4 counts (WHO's immunological classification)
+            cd4_symptoms = 200, # First HIV-related symptoms: when the CD4 count first falls below this, off treatment
 
             # Initial conditions
             rel_init_prev = 1, # Scales init_prev_data
@@ -422,9 +431,13 @@ class HIV(ss.Disease, STIResults):
         return self.rel_trans[uids]
 
     def step_state(self):
-        """ At the start of the step: CD4 counts, and each agent's susceptibility (the declared transitions are taken in step()) """
+        """ At the start of the step: CD4 counts, first symptoms, the end of PrEP courses that no Prep intervention ends, and each agent's susceptibility (the declared transitions are taken in step()) """
         self.init_cd4()
         self.update_cd4()
+        untreated = (self.infected & ~self.on_art).uids
+        self.ti_symptoms[untreated[np.isnan(self.ti_symptoms[untreated]) & (self.cd4[untreated] < self.pars.cd4_symptoms)]] = self.ti
+        if self.on_prep.any():
+            self.stop_prep((self.on_prep & (self.prep_source == 0) & (self.ti_prep_stop <= self.ti)).uids) # Courses started without a Prep intervention (see start_prep())
         self.update_transmission()
         return
 
@@ -436,6 +449,7 @@ class HIV(ss.Disease, STIResults):
         self.ti_dead[died] = self.ti
         self.stage_infectiousness()
         self.treat_infectiousness()
+        self.apply_pmtct()
         eng.step() # Transmission
         eng.step_funcs()
         if self.callbacks:
@@ -460,7 +474,44 @@ class HIV(ss.Disease, STIResults):
         """ Who was infected in this step (not those at the start, whose infections began before it) """
         return self.ti_infected == self.ti
 
-    def start_prep(self, uids, eff, dur, source_id, adh=1.0):
+    # Care: what care outside the HIV interventions (e.g. a cascade of care) reads and does
+    def who_stage(self, uids):
+        """ WHO clinical stage (1-4) of each agent infected, from the CD4 count (`who_stage_cd4`); 0 for those not infected """
+        uids = ss.uids(uids)
+        stage = 1 + np.sum(self.cd4[uids][:, None] < np.asarray(self.pars.who_stage_cd4)[None, :], axis=1)
+        return np.where(self.infected[uids], stage, 0)
+
+    def new_symptoms(self):
+        """ Who has first HIV-related symptoms this step: their CD4 count first fell below `cd4_symptoms`, off treatment """
+        return (self.ti_symptoms == self.ti).uids
+
+    def start_pmtct(self, uids, eff, dur):
+        """
+        PMTCT for mothers not on ART (e.g. single-dose nevirapine): reduces the susceptibility of their unborn and
+        breastfed children by `eff` for `dur` (a duration); a mother keeps the larger of two courses running at once.
+        Mothers on ART are protected by ART's `pmtct_efficacy` instead.
+        """
+        uids = ss.uids(uids)
+        on = self.ti_pmtct_stop[uids] > self.ti
+        self.pmtct_eff[uids] = np.maximum(np.where(on, self.pmtct_eff[uids], 0), eff)
+        self.ti_pmtct_stop[uids] = self.ti + int(dur/self.dt)
+        return
+
+    def apply_pmtct(self):
+        """ The children of mothers on PMTCT (see start_pmtct()) are less susceptible, before transmission """
+        mothers = (self.ti_pmtct_stop > self.ti).uids
+        if not len(mothers):
+            return
+        mothers = mothers[~self.on_art[mothers]]
+        for name in ['prenatalnet', 'breastfeedingnet']:
+            net = self.sim.networks.get(name)
+            if net is not None and len(mothers):
+                edges = np.isin(net.edges.p1, mothers)
+                children, eff = net.edges.p2[edges], self.pmtct_eff[ss.uids(net.edges.p1[edges])]
+                self.rel_sus[ss.uids(children)] *= 1 - eff
+        return
+
+    def start_prep(self, uids, eff, dur, source_id=0, adh=1.0):
         """
         Start a PrEP course for uids not already on PrEP
 
@@ -468,7 +519,7 @@ class HIV(ss.Disease, STIResults):
             uids: agents to start
             eff: base efficacy (0-1) of this course when fully adherent
             dur: course duration (an ss.Duration/Time value) before renewal is needed
-            source_id: numeric id of the enrolling Prep instance (for that instance's own coverage-target accounting)
+            source_id: numeric id of the enrolling Prep instance (for that instance's own coverage-target accounting); 0 (default) for a course started otherwise, which HIV ends when it is due
             adh: adherence level (0-1), multiplied into eff to get the realized efficacy (default 1.0 = fully adherent)
 
         Returns:

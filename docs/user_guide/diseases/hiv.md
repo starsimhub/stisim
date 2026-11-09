@@ -191,6 +191,13 @@ Pars of `sti.HIV`. The Source column follows the conventions of the [parameter r
 | `eff_circ_traditional` | 0.6 | Reduction in male susceptibility from traditional circumcision | Not recorded |
 | `rel_sus_age` | None | Age- and sex-stratified susceptibility multipliers | Not applicable |
 
+### Clinical stage
+
+| Parameter | Default | Description | Source |
+|-----------|---------|-------------|--------|
+| `who_stage_cd4` | [500, 350, 200] | CD4 counts below which WHO stages 2, 3 and 4 start (`hiv.who_stage()`) | WHO immunological classification |
+| `cd4_symptoms` | 200 | CD4 count below which, off treatment, people first have HIV-related symptoms (`hiv.new_symptoms()`) | Not recorded |
+
 ### Initialization
 
 | Parameter | Default | Description | Source |
