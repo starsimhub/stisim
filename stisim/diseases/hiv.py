@@ -187,8 +187,8 @@ class HIV(ss.Disease, STIResults):
             init_diagnosed = ss.bernoulli(p=0),
             dist_ti_init_infected = ss.uniform(low=-10*12, high=-5), # When the infections at the start began, in steps
 
-            # Treatment: sti.ART's parameters, which it takes from here if they are given to HIV (rate_art_dropout is the rate of the transition art_dropout, which is the treatment's)
-            **{key: None for key in art_pars if key != 'rate_art_dropout'},
+            # Treatment: sti.ART's parameters, which it takes from here if they are given to HIV
+            **{key: None for key in art_pars},
         )
 
     # Conditions over the states
@@ -280,7 +280,7 @@ class HIV(ss.Disease, STIResults):
 
     def given_art_pars(self):
         """ The parameters of sti.ART given to HIV, which ART takes (see sti.ART.init_pre()) """
-        placeholders = {key: self.pars[key] for key in art_pars if key != 'rate_art_dropout' and self.pars[key] is not None}
+        placeholders = {key: self.pars[key] for key in art_pars if self.pars[key] is not None}
         return sc.mergedicts(placeholders, self.art_given)
 
     def death_rate(self, sim, uids):

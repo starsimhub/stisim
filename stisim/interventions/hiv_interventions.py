@@ -531,7 +531,7 @@ class ART(ss.Disease):
             raise ValueError(errormsg)
         for key, val in from_hiv.items():
             self.pars[key] = sc.dcp(val)
-            if key in hiv.pars and key != 'rate_art_dropout':
+            if key in hiv.pars:
                 hiv.pars[key] = None # Now ART's
         hiv.art_given = {}
         super().init_pre(sim)
