@@ -782,6 +782,7 @@ class ART(ss.Disease):
             effective = p.p_effective_art.filter(uids)
         self.move(effective, self.on_effective_art)
         self.move(uids.remove(effective), self.on_nonsuppressive_art)
+        self.hold_hiv_exits(uids)
 
         # When they will stop
         dur_on_art = p.dur_on_art.rvs(uids) * p.rel_dur_on_art
@@ -799,6 +800,18 @@ class ART(ss.Disease):
                 raise ValueError('CD4 count is zero at initiation of ART')
             cd4_scale_factor = (cd4_max - cd4_preart)/cd4_healthy*np.log(cd4_max/cd4_preart)
             self.cd4_potential[newly_treated] = cd4_preart + cd4_preart*cd4_scale_factor
+        return
+
+    def hold_hiv_exits(self, uids):
+        """
+        Those starting ART leave HIV's natural history at once: an exit from their stage that is due in this step (e.g. aids_death) is
+        put off to the next, so that ART's modifiers of it stop it, as they stop the exits due later
+        """
+        hiv = self.hiv
+        for state in ['acute', 'latent', 'falling']:
+            ti_exit = hiv[f'ti_exit_{state}'].raw
+            due = uids[hiv[state][uids] & (ti_exit[uids] <= hiv.ti)]
+            ti_exit[due] = hiv.ti + 1 # [PROPOSAL ST-H] A speed of 0 from a modifier stops an exit that is due in the step it starts to apply
         return
 
     def stop_art(self, uids=None):
