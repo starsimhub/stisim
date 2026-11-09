@@ -286,16 +286,6 @@ def rate_prob(sim, rate, uids, dt):
     return rate.to_prob(dt)
 
 
-class modify_hiv(ss.modify):
-    """ A modifier of HIV's quantities that is a member of ART, which keeps the module of its target (e.g. 'hiv.latency') rather than taking ART's as its own """
-    def own(self, module, name):
-        target = self.target_module
-        super().own(module, name)
-        if isinstance(target, str): # [PROPOSAL ST-G] ss.modify.own() keeps a target given by its path to another module
-            self.target_module = target
-        return
-
-
 class ART(ss.Disease):
     """
     Antiretroviral therapy: the treatment of HIV.
@@ -437,11 +427,11 @@ class ART(ss.Disease):
 
         # ART replaces HIV's natural history for those it has treated, and its deaths by CD4 count for those on it; and multiplies their infectiousness
         self.define_transitions(
-            no_latency = modify_hiv('hiv.latency', multiply=0, who=treated),
-            no_progression = modify_hiv('hiv.progression', multiply=0, who=treated),
-            no_aids_death = modify_hiv('hiv.aids_death', multiply=0, who=treated),
-            no_hiv_death = modify_hiv('hiv.hiv_death', multiply=0, who=on_art),
-            infectiousness = modify_hiv('hiv.rel_trans', multiply=self.rel_trans_multiplier),
+            no_latency = ss.modify('hiv.latency', multiply=0, who=treated),
+            no_progression = ss.modify('hiv.progression', multiply=0, who=treated),
+            no_aids_death = ss.modify('hiv.aids_death', multiply=0, who=treated),
+            no_hiv_death = ss.modify('hiv.hiv_death', multiply=0, who=on_art),
+            infectiousness = ss.modify('hiv.rel_trans', multiply=self.rel_trans_multiplier),
         )
         self.define_results(new_deaths = self.art_death + self.post_art_death)
 
@@ -782,7 +772,6 @@ class ART(ss.Disease):
             effective = p.p_effective_art.filter(uids)
         self.move(effective, self.on_effective_art)
         self.move(uids.remove(effective), self.on_nonsuppressive_art)
-        self.hold_hiv_exits(uids)
 
         # When they will stop
         dur_on_art = p.dur_on_art.rvs(uids) * p.rel_dur_on_art
@@ -800,18 +789,6 @@ class ART(ss.Disease):
                 raise ValueError('CD4 count is zero at initiation of ART')
             cd4_scale_factor = (cd4_max - cd4_preart)/cd4_healthy*np.log(cd4_max/cd4_preart)
             self.cd4_potential[newly_treated] = cd4_preart + cd4_preart*cd4_scale_factor
-        return
-
-    def hold_hiv_exits(self, uids):
-        """
-        Those starting ART leave HIV's natural history at once: an exit from their stage that is due in this step (e.g. aids_death) is
-        put off to the next, so that ART's modifiers of it stop it, as they stop the exits due later
-        """
-        hiv = self.hiv
-        for state in ['acute', 'latent', 'falling']:
-            ti_exit = hiv[f'ti_exit_{state}'].raw
-            due = uids[hiv[state][uids] & (ti_exit[uids] <= hiv.ti)]
-            ti_exit[due] = hiv.ti + 1 # [PROPOSAL ST-H] A speed of 0 from a modifier stops an exit that is due in the step it starts to apply
         return
 
     def stop_art(self, uids=None):
