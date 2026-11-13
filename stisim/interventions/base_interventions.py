@@ -257,7 +257,7 @@ class STITest(ss.Intervention):
 
         return outcomes
 
-    def record_flows(self):
+    def record_events(self):
         # Store results
         ti = self.ti
         self.results['new_diagnoses'][ti] += count(self.ti_positive == ti)
@@ -428,8 +428,8 @@ class SymptomaticTesting(STITest):
 
             return
 
-    def record_flows(self):
-        super().record_flows()
+    def record_events(self):
+        super().record_events()
         ti = self.ti
         just_tested = self.ti_tested == ti
         self.results['new_care_seekers'][ti] += count(just_tested)
@@ -1009,7 +1009,7 @@ class STITreatment(ss.Intervention):
 
         return treat_uids
 
-    def record_flows(self):
+    def record_events(self):
         ti = self.ti
         just_treated = self.ti_treated == ti
 

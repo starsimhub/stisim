@@ -692,8 +692,8 @@ class HIV(ss.Disease, STIResults):
         self.define_results(*[res for res in results if res.name not in self.results and res.name not in self.graph.exprs and res.name not in self.graph.outcomes])
         return
 
-    def record_stocks(self):
-        super().record_stocks()
+    def record_states(self):
+        super().record_states()
         ti = self.ti
         res = self.results
         ppl = self.sim.people
@@ -725,8 +725,8 @@ class HIV(ss.Disease, STIResults):
                     res[f'prevalence_risk_group_{rg}_{sex}'][ti] = t.div(t.count(infected & in_group), t.count(in_group))
         return
 
-    def record_flows(self):
-        super().record_flows()
+    def record_events(self):
+        super().record_events()
         ti = self.ti
         res = self.results
         ppl = self.sim.people

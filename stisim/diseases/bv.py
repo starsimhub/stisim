@@ -298,8 +298,8 @@ class BV(ss.Disease, STIResults):
         )
         return
 
-    def record_stocks(self):
-        super().record_stocks()
+    def record_states(self):
+        super().record_states()
         t = self.tally()
         self.record_sti_stocks(t)
         ti = self.ti
@@ -310,8 +310,8 @@ class BV(ss.Disease, STIResults):
             res[f'{key}_prevalence'][ti] = t.div(t.count(t.vals(state) & women), n_women)
         return
 
-    def record_flows(self):
-        super().record_flows()
+    def record_events(self):
+        super().record_events()
         self.record_sti_flows()
         return
 

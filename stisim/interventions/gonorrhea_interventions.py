@@ -69,8 +69,8 @@ class GonorrheaTreatment(STITreatment):
 
         return treat_uids
 
-    def record_flows(self):
-        super().record_flows()
+    def record_events(self):
+        super().record_events()
         self.sim.diseases.ng.results['rel_treat'][self.ti] = np.mean(self.rel_treat)
         return
 
