@@ -31,7 +31,7 @@ class AgeMatchedMSM(MFNetwork):
     """
 
     def __init__(self, pars=None, **kwargs):
-        super().__init__(name='msm')
+        super().__init__(name='msm', between='mm')
         self.define_pars(
             p_msm=ss.bernoulli(p=0.015),
         )
@@ -117,10 +117,10 @@ class MSMScaleFreeNetwork(BaseNetwork):
     Args:
         target_mean_degree (float): target mean number of concurrent
             partners per agent in the pool (default 2.0).
-        target_mean_dur (ss.dur or int): target mean edge duration. Accepts
-            an ``ss.dur`` (converted to integer steps at ``init_pre`` via
+        target_mean_dur (ss.Duration or int): target mean edge duration. Accepts
+            an ``ss.Duration`` (converted to integer steps at ``init_pre`` via
             ``self.t.dt``) or a raw integer step count. Default ``ss.years(2)``.
-        max_edge_dur (ss.dur or int): hard cap on edge persistence. Default
+        max_edge_dur (ss.Duration or int): hard cap on edge persistence. Default
             ``ss.years(10)``.
         phi (float): Whittles-2019 turnover parameter. Default 1.0. Sets
             the q0 initial-network density via ``q0 = 1/(1+phi)``.
@@ -135,7 +135,7 @@ class MSMScaleFreeNetwork(BaseNetwork):
     records_all_expirations = False
 
     def __init__(self, pars=None, name=None, **kwargs):
-        super().__init__(name=name)
+        super().__init__(name=name, between='mm')
         self.define_pars(
             p_msm=ss.bernoulli(p=0.015),  # fraction of males in the MSM pool
             target_mean_degree=2.0,
@@ -163,9 +163,9 @@ class MSMScaleFreeNetwork(BaseNetwork):
         return
 
     def init_pre(self, sim):
-        """Convert ``ss.dur`` parameters to integer step counts.
+        """Convert ``ss.Duration`` parameters to integer step counts.
 
-        Uses ``ss.dur / ss.dur`` arithmetic (sciris-native unit conversion).
+        Uses ``ss.Duration / ss.Duration`` arithmetic (sciris-native unit conversion).
         """
         super().init_pre(sim)
         self._target_mean_dur_steps = int(round(self.pars.target_mean_dur / self.t.dt))
@@ -407,7 +407,7 @@ class MSMScaleFreeNetwork(BaseNetwork):
         ages = self.sim.people.age
         self.append(
             p1=p1, p2=p2,
-            beta=np.ones(n, dtype=float),
+            weight=np.ones(n, dtype=float),
             dur=np.full(n, float(self._max_edge_dur_steps), dtype=float),
             acts=np.ones(n, dtype=int),
             condoms=np.zeros(n, dtype=float),
@@ -520,7 +520,7 @@ class AgeApproxMSM(MFNetwork):
     """
 
     def __init__(self, pars=None, **kwargs):
-        super().__init__(name='msm')
+        super().__init__(name='msm', between='mm')
         self.define_pars(
             p_msm=ss.bernoulli(p=0.015),
         )
@@ -561,7 +561,7 @@ class AgeApproxMSM(MFNetwork):
         group1 = m_looking[::2]
         group2 = m_looking[1::2]
         loc, scale = self.get_age_risk_pars(group1, self.pars.age_diff_pars)
-        self.pars.age_diffs.set(loc=loc, scale=scale)
+        self.pars.age_diffs.set(mean=loc, std=scale)
         age_gaps = self.pars.age_diffs.rvs(group1)
         desired_ages = ppl.age[group1] + age_gaps
         g2_ages = ppl.age[group2]

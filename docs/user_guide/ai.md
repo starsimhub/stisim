@@ -71,7 +71,7 @@ A typical workflow for a new analysis is:
 | `extending-stisim` | Before subclassing or monkey-patching STIsim, classifies the change and steers fixes upstream rather than into private forks. |
 | `editable-dep-hygiene` | Keeps edits to editable (`pip install -e`) dependencies committed and shared. |
 | `comment-hygiene` | Keeps shared-library comments and docstrings about the code, not about a particular project or session. |
-| `result-extraction` | Uses `ss.Result` methods (`annualize`, `resample`, `to_df`) rather than hand-rolled aggregation, which can mishandle flows vs. stocks. |
+| `result-extraction` | Uses `ss.Result` methods (`resample`, `to_df`) rather than hand-rolled aggregation, which can mishandle flows vs. stocks. |
 | `writing-tests` | Favors a small number of scientifically meaningful tests over exhaustive enumeration. |
 
 ## Companion plugins

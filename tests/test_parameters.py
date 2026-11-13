@@ -16,10 +16,10 @@ def test_basic_routing():
 
 
 def test_broadcast():
-    """A key valid in 2+ categories is broadcast to all of them (e.g. dt)."""
+    """A key valid in 2+ categories is broadcast to all of them (e.g. dt), but not to the diseases, which keep their own (monthly) step"""
     routed = sti.route_pars(dt=0.5, verbose=False)
     assert routed.sim['dt'] == 0.5
-    assert routed.sti['dt'] == 0.5
+    assert 'dt' not in routed.sti
     assert routed.connector['dt'] == 0.5
     return routed
 

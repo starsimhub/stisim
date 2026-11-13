@@ -118,8 +118,8 @@ import starsim as ss
 
 ng = sti.Gonorrhea(beta_m2f=0.08, init_prev=0.03)
 nw = sti.StructuredSexual()
-pregnancy = ss.Pregnancy(fertility_rate=20)
-deaths = ss.Deaths(death_rate=10)
+pregnancy = ss.Pregnancy(fertility_rate=ss.peryear(20)) # Per 1,000 women
+deaths = ss.Deaths(death_rate=ss.peryear(10)) # Per 1,000 people
 
 sim = sti.Sim(
     diseases=ng,

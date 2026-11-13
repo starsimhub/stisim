@@ -72,12 +72,12 @@ class coinfection_stats(result_grouper):
     def init_results(self):
         super().init_results()
         results = [
-            ss.Result(f'{self.disease1}_prev_no_{self.disease2}', dtype=float, scale=False),
-            ss.Result(f'{self.disease1}_prev_has_{self.disease2}', dtype=float, scale=False),
-            ss.Result(f'{self.disease1}_prev_no_{self.disease2}_f', dtype=float, scale=False),
-            ss.Result(f'{self.disease1}_prev_has_{self.disease2}_f', dtype=float, scale=False),
-            ss.Result(f'{self.disease1}_prev_no_{self.disease2}_m', dtype=float, scale=False),
-            ss.Result(f'{self.disease1}_prev_has_{self.disease2}_m', dtype=float, scale=False),
+            ss.Result(f'{self.disease1}_prev_no_{self.disease2}', kind='ratio', dtype=float, scale=False),
+            ss.Result(f'{self.disease1}_prev_has_{self.disease2}', kind='ratio', dtype=float, scale=False),
+            ss.Result(f'{self.disease1}_prev_no_{self.disease2}_f', kind='ratio', dtype=float, scale=False),
+            ss.Result(f'{self.disease1}_prev_has_{self.disease2}_f', kind='ratio', dtype=float, scale=False),
+            ss.Result(f'{self.disease1}_prev_no_{self.disease2}_m', kind='ratio', dtype=float, scale=False),
+            ss.Result(f'{self.disease1}_prev_has_{self.disease2}_m', kind='ratio', dtype=float, scale=False),
         ]
         self.define_results(*results)
         return
@@ -136,8 +136,8 @@ class sw_stats(result_grouper):
         results = sc.autolist()
         for d in self.diseases:
             results += [
-                ss.Result('share_new_infections_fsw_'+d, scale=False, summarize_by='mean', auto_plot=False),
-                ss.Result('share_new_infections_client_'+d,scale=False, summarize_by='mean', auto_plot=False),
+                ss.Result('share_new_infections_fsw_'+d, scale=False, kind='ratio', auto_plot=False),
+                ss.Result('share_new_infections_client_'+d,scale=False, kind='ratio', auto_plot=False),
                 ss.Result('new_infections_fsw_'+d, dtype=int, auto_plot=False),
                 ss.Result('new_infections_client_'+d, dtype=int, auto_plot=False),
                 ss.Result('new_infections_non_fsw_'+d, dtype=int, auto_plot=False),
@@ -164,19 +164,15 @@ class sw_stats(result_grouper):
                 client = nw.client & adult
                 non_fsw = sim.people.female & ~nw.fsw & adult
                 non_client = sim.people.male & ~nw.client & adult
-                newly_infected = (dis.ti_exposed == ti) & adult
-                new_trans = dis.ti_transmitted_sex == ti
-                total_acq = len(newly_infected.uids)
+                newly_infected = dis.new_infected() & adult
 
-                newly_transmitting_fsw = (dis.ti_transmitted_sex == ti) & fsw
-                newly_transmitting_clients = (dis.ti_transmitted_sex == ti) & client
-                newly_transmitting_non_fsw = (dis.ti_transmitted_sex == ti) & non_fsw
-                newly_transmitting_non_client = (dis.ti_transmitted_sex == ti) & non_client
-
-                new_transmissions_fsw = dis.new_transmissions_sex[newly_transmitting_fsw]
-                new_transmissions_client = dis.new_transmissions_sex[newly_transmitting_clients]
-                new_transmissions_non_fsw = dis.new_transmissions_sex[newly_transmitting_non_fsw]
-                new_transmissions_non_client = dis.new_transmissions_sex[newly_transmitting_non_client]
+                # Sexual transmissions, by who transmitted them
+                transmitters, counts = dis.transmitters()
+                new_transmissions = lambda group: counts[group[transmitters]].sum()
+                new_transmissions_fsw = new_transmissions(fsw)
+                new_transmissions_client = new_transmissions(client)
+                new_transmissions_non_fsw = new_transmissions(non_fsw)
+                new_transmissions_non_client = new_transmissions(non_client)
 
                 self.results['share_new_infections_fsw_'+d][ti] = self.cond_prob(fsw, newly_infected)
                 self.results['share_new_infections_client_'+d][ti] = self.cond_prob(client, newly_infected)
@@ -186,10 +182,10 @@ class sw_stats(result_grouper):
                 self.results['new_infections_non_fsw_'+d][ti] = len((non_fsw & newly_infected).uids)
                 self.results['new_infections_non_client_'+d][ti] = len((non_client & newly_infected).uids)
 
-                self.results['new_transmissions_fsw_'+d][ti] = sum(new_transmissions_fsw)
-                self.results['new_transmissions_client_'+d][ti] = sum(new_transmissions_client)
-                self.results['new_transmissions_non_fsw_'+d][ti] = sum(new_transmissions_non_fsw)
-                self.results['new_transmissions_non_client_'+d][ti] = sum(new_transmissions_non_client)
+                self.results['new_transmissions_fsw_'+d][ti] = new_transmissions_fsw
+                self.results['new_transmissions_client_'+d][ti] = new_transmissions_client
+                self.results['new_transmissions_non_fsw_'+d][ti] = new_transmissions_non_fsw
+                self.results['new_transmissions_non_client_'+d][ti] = new_transmissions_non_client
 
                 # Note: total_trans only counts sexual transmission, not MTC (congenital).
                 # So we don't validate against newly_infected which includes MTC.
@@ -211,15 +207,15 @@ class RelationshipDurations(ss.Analyzer):
     def init_results(self):
         super().init_results()
         self.define_results(
-            ss.Result('mean_duration', dtype=float, scale=False, auto_plot=False),
-            ss.Result('median_duration', dtype=float, scale=False, auto_plot=False),
+            ss.Result('mean_duration', kind='ratio', dtype=float, scale=False, auto_plot=False),
+            ss.Result('median_duration', kind='ratio', dtype=float, scale=False, auto_plot=False),
         )
         return
 
     def step(self):
         pass
 
-    def update_results(self):
+    def record_states(self):
         sim = self.sim
         ti = self.ti
         nw = sim.networks.structuredsexual
@@ -329,8 +325,8 @@ class NetworkDegree(ss.Analyzer):
         super().init_results()
         for relationship_type in self.relationship_types:
             self.results += [
-                ss.Result(f'{relationship_type}_f', dtype=int, scale=False, shape=len(self.bins), auto_plot=False),
-                ss.Result(f'{relationship_type}_m', dtype=int, scale=False, shape=len(self.bins), auto_plot=False),
+                ss.Result(f'{relationship_type}_f', kind='stock', dtype=int, scale=False, shape=len(self.bins), auto_plot=False),
+                ss.Result(f'{relationship_type}_m', kind='stock', dtype=int, scale=False, shape=len(self.bins), auto_plot=False),
             ]
         return
 
@@ -480,9 +476,9 @@ class partner_age_diff(ss.Analyzer):
         """
         super().init_results()
         self.define_results(
-            ss.Result('age_diff_mean', dtype=float, scale=False, auto_plot=False),
-            ss.Result('age_diff_median', dtype=float, scale=False, auto_plot=False),
-            ss.Result('age_diff_std', dtype=float, scale=False, auto_plot=False),
+            ss.Result('age_diff_mean', kind='ratio', dtype=float, scale=False, auto_plot=False),
+            ss.Result('age_diff_median', kind='ratio', dtype=float, scale=False, auto_plot=False),
+            ss.Result('age_diff_std', kind='ratio', dtype=float, scale=False, auto_plot=False),
         )
         return
 
@@ -571,8 +567,8 @@ class DebutAge(ss.Analyzer):
     def init_results(self):
         super().init_results()
         self.define_results(
-            ss.Result('prop_active_f', dtype=float, scale=False, shape=len(self.cohort_starts), auto_plot=False),
-            ss.Result('prop_active_m', dtype=float, scale=False, shape=len(self.cohort_starts), auto_plot=False),
+            ss.Result('prop_active_f', kind='ratio', dtype=float, scale=False, shape=len(self.cohort_starts), auto_plot=False),
+            ss.Result('prop_active_m', kind='ratio', dtype=float, scale=False, shape=len(self.cohort_starts), auto_plot=False),
         )
         return
 
@@ -652,11 +648,11 @@ class art_coverage(ss.Analyzer):
 
         # Aggregate results
         results.append(ss.Result('n_art',   dtype=int,   label='Total on ART'))
-        results.append(ss.Result('p_art',   scale=False, label='ART coverage (proportion of infected)'))
+        results.append(ss.Result('p_art', kind='ratio',   scale=False, label='ART coverage (proportion of infected)'))
         results.append(ss.Result('n_art_f', dtype=int,   label='Women on ART'))
         results.append(ss.Result('n_art_m', dtype=int,   label='Men on ART'))
-        results.append(ss.Result('p_art_f', scale=False, label='ART coverage (women)'))
-        results.append(ss.Result('p_art_m', scale=False, label='ART coverage (men)'))
+        results.append(ss.Result('p_art_f', kind='ratio', scale=False, label='ART coverage (women)'))
+        results.append(ss.Result('p_art_m', kind='ratio', scale=False, label='ART coverage (men)'))
 
         # Viral suppression. HIV maintains on_effective_art and
         # on_nonsuppressive_art, and the difference between them is large
@@ -671,22 +667,22 @@ class art_coverage(ss.Analyzer):
         # is the quantity ART's `vls_coverage` sets as an INPUT. Conflating them
         # double-counts the coverage ramp.
         results.append(ss.Result('n_vls',             dtype=int,   label='Total virally suppressed'))
-        results.append(ss.Result('p_vls',             scale=False, label='Viral suppression (proportion of infected)'))
-        results.append(ss.Result('p_vls_given_art',   scale=False, label='Viral suppression (proportion on ART)'))
+        results.append(ss.Result('p_vls', kind='ratio',             scale=False, label='Viral suppression (proportion of infected)'))
+        results.append(ss.Result('p_vls_given_art', kind='ratio',   scale=False, label='Viral suppression (proportion on ART)'))
         for sex in ['f', 'm']:
             results.append(ss.Result(f'n_vls_{sex}',           dtype=int,   label=f'Virally suppressed ({sex.upper()})'))
-            results.append(ss.Result(f'p_vls_{sex}',           scale=False, label=f'Viral suppression ({sex.upper()})'))
-            results.append(ss.Result(f'p_vls_given_art_{sex}', scale=False, label=f'Viral suppression given ART ({sex.upper()})'))
+            results.append(ss.Result(f'p_vls_{sex}', kind='ratio',           scale=False, label=f'Viral suppression ({sex.upper()})'))
+            results.append(ss.Result(f'p_vls_given_art_{sex}', kind='ratio', scale=False, label=f'Viral suppression given ART ({sex.upper()})'))
 
         # Per age bin × sex
         for i in range(len(self.age_bins) - 1):
             lo, hi = self.age_bins[i], self.age_bins[i + 1]
             for sex in ['f', 'm']:
                 results.append(ss.Result(f'n_art_{sex}_{lo}_{hi}', dtype=int, label=f'On ART {sex.upper()} {lo}-{hi}'))
-                results.append(ss.Result(f'p_art_{sex}_{lo}_{hi}', scale=False, label=f'ART coverage {sex.upper()} {lo}-{hi}'))
+                results.append(ss.Result(f'p_art_{sex}_{lo}_{hi}', kind='ratio', scale=False, label=f'ART coverage {sex.upper()} {lo}-{hi}'))
                 results.append(ss.Result(f'n_vls_{sex}_{lo}_{hi}', dtype=int, label=f'Virally suppressed {sex.upper()} {lo}-{hi}'))
-                results.append(ss.Result(f'p_vls_{sex}_{lo}_{hi}', scale=False, label=f'Viral suppression {sex.upper()} {lo}-{hi}'))
-                results.append(ss.Result(f'p_vls_given_art_{sex}_{lo}_{hi}', scale=False, label=f'Viral suppression given ART {sex.upper()} {lo}-{hi}'))
+                results.append(ss.Result(f'p_vls_{sex}_{lo}_{hi}', kind='ratio', scale=False, label=f'Viral suppression {sex.upper()} {lo}-{hi}'))
+                results.append(ss.Result(f'p_vls_given_art_{sex}_{lo}_{hi}', kind='ratio', scale=False, label=f'Viral suppression given ART {sex.upper()} {lo}-{hi}'))
 
                 # Banded incidence inputs. Without a per-band new_infections
                 # there is no way to compute age-stratified incidence from
@@ -696,7 +692,7 @@ class art_coverage(ss.Analyzer):
                 # using the whole band understates incidence by (1 - prevalence).
                 results.append(ss.Result(f'new_infections_{sex}_{lo}_{hi}', dtype=int, label=f'New infections {sex.upper()} {lo}-{hi}'))
                 results.append(ss.Result(f'n_susceptible_{sex}_{lo}_{hi}', dtype=int, label=f'Susceptible {sex.upper()} {lo}-{hi}'))
-                results.append(ss.Result(f'incidence_{sex}_{lo}_{hi}', scale=False, label=f'Incidence {sex.upper()} {lo}-{hi}'))
+                results.append(ss.Result(f'incidence_{sex}_{lo}_{hi}', kind='ratio', scale=False, label=f'Incidence {sex.upper()} {lo}-{hi}'))
 
         self.define_results(*results)
         return
@@ -905,7 +901,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
         window (half-open interval test).
 
     Args:
-        age_bins (list[str]): Age bin strings parsable by ``ss.parse_age_range``
+        age_bins (list[str]): Age bin strings parsable by ``sti.parse_age_range``
             (e.g. ``['0-5', '5-10', ..., '70-75']``). Bins may overlap; a
             partner is counted in every bin containing its age. Defaults to
             five-year bins from ``'0-5'`` through ``'70-75'``.
@@ -938,7 +934,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
         if len(dups) > 0:
             raise ValueError(f"PartnershipFormationAnalyzer: duplicate age_bins are not allowed: {dups}")
 
-        self.age_ranges = [ss.parse_age_range(b) for b in self.age_bins]
+        self.age_ranges = [sti.parse_age_range(b) for b in self.age_bins]
         self.target_nw_names = networks
         self._tracked_nw_names = []                     # populated in init_results
         self._skipped_nw_names = []                  # networks skipped (can't record expirations)
@@ -953,7 +949,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
         # Validate passed-in network names for tracking. The analyzer requires a
         # stisim BaseNetwork-derived sexual network (it reads BaseNetwork-only
         # edge meta -- ti_formed, age_p1, age_p2 -- and the expired_this_loop
-        # buffer), so a plain ss.SexualNetwork is not enough.
+        # buffer), so a plain ss.SexualNet is not enough.
         all_nw_names = self.sim.networks.keys()
         if self.target_nw_names is None:
             # default to all BaseNetwork-derived sexual networks
@@ -1179,7 +1175,7 @@ class PartnershipFormationAnalyzer(ss.Analyzer):
             #                   '40-50': array([1])}}
         """
         bins = self.age_bins if age_bins is None else age_bins
-        ranges = self.age_ranges if age_bins is None else [ss.parse_age_range(b) for b in bins]
+        ranges = self.age_ranges if age_bins is None else [sti.parse_age_range(b) for b in bins]
         n_ti = self._final_ti + 1
         threshold = self._threshold(window_months)
         lo_ti = 0 if threshold is None else max(0, threshold)

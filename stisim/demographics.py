@@ -36,7 +36,7 @@ class Migration(ss.Demographics):
         self.define_pars(
             # Migration parameters
             # dt = ss.years(1),  # Unit of time for migration data # TODO: not implemented
-            migration_propensity = ss.normal(loc=1, scale=0.1),  # Propensity to emigrate
+            migration_propensity = ss.normal(mean=1, std=0.1),  # Propensity to emigrate
             slot_scale = 100, # Random slots will be assigned to new agents between min=n_agents and max=slot_scale*n_agents; larger reduces slot collisions, and (since starsim 3.5.0's hash-based CRN) no longer costs extra random draws
             min_slots  = 100, # Minimum number of slots, useful if the population size is very small
             rel_migration = 1, # Scale factor for net migration (both immigration and emigration)
@@ -97,7 +97,7 @@ class Migration(ss.Demographics):
             n_migrants = mrd.loc[nearest_year].Value
         elif sc.isnumber(mrd):
             n_migrants = mrd
-        scaled_migrants = int(n_migrants*self.t.dt_year/self.sim.pars.pop_scale*self.pars.rel_migration)
+        scaled_migrants = int(n_migrants*self.t.dt_year/self.sim.pop_scale*self.pars.rel_migration)
         return scaled_migrants
 
     def make_immigrants(self, twin_uids):

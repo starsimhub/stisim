@@ -18,9 +18,9 @@ def _make_sim(net=None, n_agents=1_000, dur=2, rand_seed=1):
         net = _make_net()
     return sti.Sim(
         diseases=[sti.HIV(init_prev=0.05, beta_m2f=0.05)],
-        networks=[net, ss.MaternalNet()],
+        networks=[net, ss.PrenatalNet()],
         demographics=[ss.Pregnancy(), ss.Deaths()],
-        n_agents=n_agents, dur=dur, start=2010, verbose=-1, rand_seed=rand_seed,
+        n_agents=n_agents, dur=dur, start=2010, verbose=0, rand_seed=rand_seed,
     )
 
 

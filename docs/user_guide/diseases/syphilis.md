@@ -2,7 +2,7 @@
 
 Syphilis in STIsim progresses through exposed, primary, secondary, latent, and tertiary stages, with stage-dependent transmissibility and congenital syphilis outcomes. Treatment at any stage clears the infection but leaves the agent seropositive and susceptible to reinfection.
 
-**Class:** `sti.Syphilis` | **Alias:** `'syphilis'` / `'syph'` | **Base class:** `BaseSTI`
+**Class:** `sti.Syphilis` | **Alias:** `'syphilis'` / `'syph'` | **Base class:** `ss.Disease` (declared: its stages and transitions, with serology and visible symptoms as code)
 
 ## States and transitions
 
@@ -51,12 +51,18 @@ Syphilis in STIsim progresses through exposed, primary, secondary, latent, and t
                      └─────────────┘
 ```
 
-**Treatment and reinfection:** Treatment (via `SyphTx`) clears all stage states and returns the agent to susceptible. The `ever_exposed` flag persists -- these agents are seropositive (detectable by treponemal tests) but can be reinfected. This reinfection cycle is a key driver of syphilis epidemics: symptomatic agents seek care, get treated, become susceptible again, and are reinfected by their partners.
+The stages are declared states (`exposed`, `primary`, `secondary`, `early`, `late`, `tertiary`), with the transitions `primary_onset`, `secondary_onset`, `latency`, `to_late`, `reactivation` and `tertiary_onset` (timed from the start of the latent stage, so moving from early to late latent does not restart them), and `death`. A fetus is infected at a rate `beta_m2c` per month while its mother is infectious (`mtct`), into a state by the outcome to come, which is decided by the mother's stage: `fetus_miscarriage` and `fetus_stillborn` die at the delivery (`miscarriage`, `stillbirth`), `fetus_nnd` dies once born (`nnd`), `fetus_congenital` is born with congenital syphilis (`born_congenital`, to `congenital`), and `fetus_normal` is born susceptible (`born_normal`).
+
+**Treatment and reinfection:** Treatment (via `SyphTx`) moves the agent back to `susceptible` from any stage. The `ever_exposed` flag persists -- these agents are seropositive (detectable by treponemal tests) but can be reinfected. This reinfection cycle is a key driver of syphilis epidemics: symptomatic agents seek care, get treated, become susceptible again, and are reinfected by their partners. Treating a pregnant woman also moves an infected fetus to `fetus_normal`.
+
+**Not stages:** serology (`trep`, `nontrep`, and their timers), whether the chancre and rash are visible (`chancre_visible`, `rash_visible`), and the decay of infectiousness in the latent stage are arrays of each person's, updated by code at the events of the stages.
 
 **Key properties:**
 
-- `active` = primary | secondary (used by connectors for HIV susceptibility effects)
-- `infectious` = active | latent
+- `symptomatic` = primary | secondary (used by connectors for HIV susceptibility effects)
+- `latent` = early | late
+- `infectious` = symptomatic | latent
+- `infected` = exposed | infectious | tertiary
 - `naive` = never exposed (seronegative)
 - `sus_not_naive` = susceptible & ever_exposed (seropositive but susceptible to reinfection)
 
@@ -97,9 +103,8 @@ Pars of `sti.Syphilis`. The Source column follows the conventions of the [parame
 |-----------|---------|-------------|--------|
 | `beta_m2f` | 0.1 | Per-act male-to-female transmission probability; usually calibrated | Not recorded |
 | `rel_beta_f2m` | 0.5 | Female-to-male per-act probability relative to `beta_m2f` | Not recorded |
-| `beta_m2c` | None | Mother-to-child transmission probability per timestep | Not applicable |
-| `beta_breastfeed` | None | Breastfeeding transmission probability per timestep | Not applicable |
-| `beta_m2m` | None | Per-act male-to-male transmission probability (used on an `msm` network) | Not applicable |
+| `beta_m2c` | 0 | Mother-to-fetus transmission rate while the mother is infectious, per month | Not applicable |
+| `beta_m2m` | 0 | Per-act male-to-male transmission probability (used on an `msm` network) | Not applicable |
 | `eff_condom` | 0.0 | Condom efficacy against transmission | Not recorded |
 | `rel_trans_primary` | 1 | Relative transmissibility during the primary stage | Assumption |
 | `rel_trans_secondary` | 1 | Relative transmissibility during the secondary stage (reference) | Assumption |
@@ -126,7 +131,5 @@ Birth outcomes depend on the maternal stage of infection. Probabilities sum to 1
 
 | Parameter | Default | Description | Source |
 |-----------|---------|-------------|--------|
-| `init_prev` | 0.0 | Initial active syphilis prevalence | Not applicable |
-| `init_latent_prev` | 0.0 | Initial latent syphilis prevalence | Not applicable |
-| `rel_init_prev` | 1 | Multiplier on initial prevalence | Not applicable |
-| `dist_ti_init_infected` | constant(0) | Time of initial infection relative to the start (timesteps) | Not applicable |
+| `init_prev` | 0.0 | Initial prevalence, seeded into `exposed` | Not applicable |
+| `init_latent_prev` | 0.0 | Initial prevalence of early latent syphilis | Not applicable |

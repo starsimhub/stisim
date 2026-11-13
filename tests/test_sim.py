@@ -62,7 +62,7 @@ def test_sim_creation():
         stop=stop,
     )
 
-    nw_pars = dict(debut_f=ss.lognorm_ex(20, 5), debut_m=ss.lognorm_ex(21, 5))
+    nw_pars = dict(debut_f=ss.lognormal(20, 5), debut_m=ss.lognormal(21, 5))
     sti_pars = dict(ng=dict(eff_condom=0.6))
 
     # Test 1: default networks with custom pars, demographics from location string, and diseases from disease names with custom pars
@@ -108,8 +108,8 @@ def test_sim_creation():
     sim3 = sti.Sim(**pars)
     sim3.init()
 
-    assert sim3.diseases.ng.pars.beta_m2f == pars['beta_m2f'], "Disease parameter not set correctly"
-    assert sim3.diseases.ct.pars.beta_m2f == pars['beta_m2f'], "Disease parameter not set correctly"
+    assert sim3.diseases.ng.current_value('beta_m2f') == pars['beta_m2f'], "Disease parameter not set correctly"
+    assert sim3.diseases.ct.current_value('beta_m2f') == pars['beta_m2f'], "Disease parameter not set correctly"
     assert sim3.diseases.ng.pars.eff_condom == pars['ng']['eff_condom'], "Disease parameter not set correctly"
     assert sim3.networks.structuredsexual.pars.prop_f0 == pars['prop_f0'], "Network parameter not set correctly"
 
@@ -136,7 +136,7 @@ def test_hivsim_pars():
     beta = 0.05
     sim = hivsim.Sim(beta_m2f=beta, n_agents=500, dur=5)
     sim.init()
-    assert sim.diseases.hiv.pars.beta_m2f == beta, f"beta_m2f not routed to HIV: {sim.diseases.hiv.pars.beta_m2f}"
+    assert sim.diseases.hiv.current_value('beta_m2f') == beta, f"beta_m2f not routed to HIV: {sim.diseases.hiv.current_value('beta_m2f')}"
     return sim
 
 
@@ -186,7 +186,7 @@ def test_demo_zimbabwe():
     assert np.allclose(prev1, prev2), 'make_sim and hivsim.demo should produce identical results'
 
     # Check population is scaled to ~10M (Zimbabwe 1990)
-    n_alive_start = sim1.results.n_alive[0]
+    n_alive_start = sim1.results.alive[0]
     assert np.isclose(n_alive_start, 9_980_999, rtol=0.05), \
         f'n_alive at t=0 ({n_alive_start}) should be close to 9,980,999'
 

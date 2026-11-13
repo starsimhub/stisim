@@ -148,7 +148,6 @@ website:
             - api/networks.qmd
             - api/demographics.qmd
             - api/analyzers.qmd
-            - api/calibration.qmd
             - api/care_seeking.qmd
             - api/utils.qmd
         - section: "**Diseases**"
@@ -184,7 +183,6 @@ website:
         - section: "**Connectors**"
           contents:
             - api/connectors.hiv_sti.qmd
-            - api/connectors.gud_syph.qmd
         - section: "**HIVsim**"
           contents:
             - api/hivsim/sim.qmd
@@ -205,7 +203,6 @@ quartodoc:
         - networks
         - demographics
         - analyzers
-        - calibration
         - care_seeking
         - utils
     - title: Diseases
@@ -231,7 +228,6 @@ quartodoc:
       desc: Coinfection interactions.
       contents:
         - connectors.hiv_sti
-        - connectors.gud_syph
 
 format:
   html:

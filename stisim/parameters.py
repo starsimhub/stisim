@@ -37,8 +37,8 @@ class SimPars(ss.SimPars):
         self.n_agents  = 1e3   # Number of agents
 
         # Simulation parameters
-        self.start     = ss.years(2000)   # Start of the simulation
-        self.stop      = ss.years(2030)   # End of the simulation
+        self.start     = 2000   # Start of the simulation (a calendar year)
+        self.stop      = 2030   # End of the simulation (a calendar year)
         self.dur       = None   # Duration of time to run, if stop isn't specified
         self.dt        = ss.years(1/12)   # Timestep
         self.rand_seed = 1      # Random seed; if None, don't reset
@@ -79,7 +79,6 @@ def sti_register(key=None):
     sti_dict = sc.objdict(
         bv=sti.BV,
         ct=sti.Chlamydia,
-        ctbl=sti.ChlamydiaBL,
         gud=sti.GUDPlaceholder,  # Placeholder for GUD
         ng=sti.Gonorrhea,
         hiv=sti.HIV,
@@ -93,11 +92,13 @@ def merged_sti_pars():
     """ Merge all the parameters from the STI disease modules """
     # Initialize an empty dictionary to hold the merged parameters
     merged_pars = {}
+    sim_keys = ss.SimPars().keys() # A declared disease can have a parameter named after a slot (e.g. "dur" for a dur=0), which is the sim's
     # Get the parameters from each disease module
     for dname, disease in sti_register().items():
-        disease_pars = disease().pars
+        disease_pars = {k:v for k,v in disease().pars.items() if k not in sim_keys}
         # Merge the parameters into the merged_pars dictionary
         merged_pars.update(disease_pars)
+    merged_pars['init_prev'] = None # Every disease takes it, though a declared one holds it in its model rather than its pars
     return merged_pars
 
 
@@ -162,6 +163,6 @@ def dem_pars():
     """
     death_pars = ss.Deaths().pars
     birth_pars = ss.Births().pars
-    preg_pars = ss.PregnancyPars()
+    preg_pars = {k:v for k,v in ss.Pregnancy().pars.items() if k != 'fertility'} # Its conception rate, a method
     migration_pars = sti.Migration().pars
     return mergepars(death_pars, birth_pars, preg_pars, migration_pars)

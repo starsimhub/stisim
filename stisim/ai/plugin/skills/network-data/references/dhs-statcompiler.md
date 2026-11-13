@@ -7,8 +7,8 @@ Country-specific age-of-debut data for the `debut_f` and `debut_m` network param
 STIsim's default age of debut is:
 
 ```python
-debut_f = ss.lognorm_ex(20, 3)   # female mean 20, std 3
-debut_m = ss.lognorm_ex(21, 3)   # male mean 21, std 3
+debut_f = ss.lognormal(20, 3)   # female mean 20, std 3
+debut_m = ss.lognormal(21, 3)   # male mean 21, std 3
 ```
 
 For a country study we want:
@@ -107,16 +107,16 @@ Notice the Zimbabwe medians (~18.7 women, ~19.5 men) run meaningfully lower than
 
 ## Translating to STIsim parameters
 
-**Median → mean of the lognormal.** For an `ss.lognorm_ex(mean, std)` distribution, `mean` is the arithmetic mean and `std` is the standard deviation of the distribution — not of the underlying normal. The DHS median is close enough to the mean for practical use in STIsim's lognormal shape (the distributions are moderately skewed but not extreme).
+**Median → mean of the lognormal.** For an `ss.lognormal(mean, std)` distribution, `mean` is the arithmetic mean and `std` is the standard deviation of the distribution — not of the underlying normal. The DHS median is close enough to the mean for practical use in STIsim's lognormal shape (the distributions are moderately skewed but not extreme).
 
 Simple substitution:
 
 ```python
-debut_f = ss.lognorm_ex(18.7, 3)   # Zimbabwe women 20–49
-debut_m = ss.lognorm_ex(19.5, 3)   # Zimbabwe men 20–49
+debut_f = ss.lognormal(18.7, 3)   # Zimbabwe women 20–49
+debut_m = ss.lognormal(19.5, 3)   # Zimbabwe men 20–49
 ```
 
-**Cumulative curve → distribution parameters.** With `F(15)`, `F(18)`, `F(20)`, `F(22)`, `F(25)` (fractions who have had first sex by that exact age), two points identify a two-parameter distribution. `stisim.data.logn_percentiles_to_pars` inverts a pair of quantiles to scipy-style lognormal parameters; a short conversion then gives the `(mean, std)` form `ss.lognorm_ex` wants.
+**Cumulative curve → distribution parameters.** With `F(15)`, `F(18)`, `F(20)`, `F(22)`, `F(25)` (fractions who have had first sex by that exact age), two points identify a two-parameter distribution. `stisim.data.logn_percentiles_to_pars` inverts a pair of quantiles to scipy-style lognormal parameters; a short conversion then gives the `(mean, std)` form `ss.lognormal` wants.
 
 ```python
 import numpy as np
@@ -126,10 +126,10 @@ from stisim.data import logn_percentiles_to_pars
 # e.g. Zimbabwe DHS: 18% had first sex by 15, 60% by 18.
 s, scale = logn_percentiles_to_pars(x1=15, p1=0.18, x2=18, p2=0.60)
 
-# Convert scipy (s, scale) to ss.lognorm_ex (mean, std).
+# Convert scipy (s, scale) to ss.lognormal (mean, std).
 mean = scale * np.exp(s ** 2 / 2)
 std = mean * np.sqrt(np.exp(s ** 2) - 1)
-debut_f = ss.lognorm_ex(mean, std)
+debut_f = ss.lognormal(mean, std)
 ```
 
 Pick two points that flank the mass — early (below the median) and late (above) — for a well-conditioned fit. Additional points can be used to check the fit: predict `F(x)` at the held-out ages from the fitted lognormal and compare to the observed cumulative fractions.

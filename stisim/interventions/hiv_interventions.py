@@ -67,7 +67,7 @@ class HIVTest(STITest):
         name, label: standard module identifiers.
         newborn_test (:class:`InfantHIVTest`): if supplied, schedules an infant
             HIV test at delivery for unborn children of mothers who test
-            positive (requires ``ss.MaternalNet`` and ``ss.Pregnancy`` in the sim).
+            positive (requires ``ss.PrenatalNet`` and ``ss.Pregnancy`` in the sim).
         dur_dx2tx (ss.Dist): delay from diagnosis to scheduled ART start
             (default: ``ss.constant(0)``, no delay). May be passed directly
             or via the ``pars`` dict. Example: ``ss.constant(ss.years(0.5))``
@@ -95,9 +95,8 @@ class HIVTest(STITest):
             test_prob_data=0.9,
             dt_scale=False,
             name='anc_test',
-            eligibility=lambda sim: sim.demographics.pregnancy.tri1_uids[
-                ~sim.diseases.hiv.diagnosed[sim.demographics.pregnancy.tri1_uids]
-            ],
+            eligibility=lambda sim: (sim.demographics.pregnancy.P & (sim.demographics.pregnancy.P.time_in < ss.weeks(13))
+                                     & ~sim.diseases.hiv.diagnosed),
         )
     """
     def __init__(self, product=None, pars=None, test_prob_data=None, years=None, start=None,
@@ -138,16 +137,16 @@ class HIVTest(STITest):
 
         # Schedule infant HIV test for unborn children of newly diagnosed mothers
         if self.newborn_test is not None and len(pos_uids):
-            mn        = sim.get_module(ss.MaternalNet, die=False)
+            mn        = sim.get_module(ss.PrenatalNet, die=False)
             pregnancy = sim.get_module(ss.Pregnancy, die=False)
             if mn is None or pregnancy is None:
                 raise RuntimeError(
-                    'HIVTest: cannot schedule newborn_test without ss.MaternalNet '
+                    'HIVTest: cannot schedule newborn_test without ss.PrenatalNet '
                     'and ss.Pregnancy in the sim'
                 )
             pos_mask  = np.isin(mn.p1, pos_uids)
             unborn    = mn.p2[pos_mask]
-            ti_births = pregnancy.ti_delivery[mn.p1[pos_mask]]
+            ti_births = np.ceil(pregnancy.ti_exit_P[mn.p1[pos_mask]]) # The step of the delivery
             valid     = ~np.isnan(ti_births)
             if valid.any():
                 self.newborn_test.schedule(unborn[valid], ti_births[valid].astype(int))
@@ -356,12 +355,8 @@ class ART(ss.Intervention):
         n_target = int(np.clip(round(target), 0, len(uids)))
         order = uids[np.argsort(-self.adherence[uids])]
         keep, drop = order[:n_target], order[n_target:]
-        if len(keep):
-            hiv.on_effective_art[keep] = True
-            hiv.on_nonsuppressive_art[keep] = False
-        if len(drop):
-            hiv.on_effective_art[drop] = False
-            hiv.on_nonsuppressive_art[drop] = True
+        hiv.set_suppression(keep, effective=True)
+        hiv.set_suppression(drop, effective=False)
 
     def vls_stock_correction(self, sim):
         """
@@ -452,15 +447,15 @@ class ART(ss.Intervention):
             preg = sim.people.pregnancy
 
             # Prenatal: protect unborn infants of pregnant mothers on ART
-            if hasattr(sim.networks, 'maternalnet'):
-                art_pregnant = (hiv.on_art & preg.pregnant).uids
+            if hasattr(sim.networks, 'prenatalnet'):
+                art_pregnant = (hiv.on_art & preg.P).uids
                 if len(art_pregnant):
-                    unborn = sim.networks.maternalnet.find_contacts(art_pregnant)
+                    unborn = sim.networks.prenatalnet.find_contacts(art_pregnant)
                     hiv.rel_sus[ss.uids(unborn)] *= 1 - pmtct_eff
 
             # Postnatal: protect breastfed infants of breastfeeding mothers on ART
             if hasattr(sim.networks, 'breastfeedingnet'):
-                art_breastfeeding = (hiv.on_art & preg.breastfeeding).uids
+                art_breastfeeding = (hiv.on_art & preg.lactating).uids
                 if len(art_breastfeeding):
                     breastfed = sim.networks.breastfeedingnet.find_contacts(art_breastfeeding)
                     hiv.rel_sus[ss.uids(breastfed)] *= 1 - pmtct_eff
@@ -576,7 +571,7 @@ class VMMC(ss.Intervention):
     """
     Voluntary medical male circumcision.
 
-    Reduces male susceptibility to HIV acquisition (see ``HIVPars.eff_circ``).
+    Reduces male susceptibility to HIV acquisition (see HIV's ``eff_circ``).
     Unlike ART, VMMC does not require diagnosis — it circumcises males up to a
     coverage target, prioritized by willingness (a random per-agent score).
 
@@ -589,7 +584,7 @@ class VMMC(ss.Intervention):
 
     Circumcision status (``circumcised``/``circ_traditional``/``ti_circumcised``) and
     efficacy (``eff_circ``) live on :class:`~stisim.diseases.hiv.HIV`, not on
-    this intervention — see ``HIV.circumcise()`` and ``HIVPars.eff_circ``. This
+    this intervention — see ``HIV.circumcise()`` and HIV's ``eff_circ``. This
     lets other circumcision sources (e.g. non-program/traditional circumcision)
     share the same state and be included in this intervention's "already
     circumcised" checks without going through VMMC at all.
@@ -625,7 +620,7 @@ class VMMC(ss.Intervention):
     """
 
     def __init__(self, pars=None, coverage=None, eligibility=None, smoothness=0, format_priority='n', **kwargs):
-        super().__init__(eligibility=eligibility)
+        super().__init__(who=eligibility)
 
         self.define_pars(
             traditional_prob=ss.bernoulli(p=0),
@@ -755,7 +750,7 @@ class Prep(ss.Intervention):
     Args:
         prep_eff:         base efficacy (0-1) when fully adherent (default 0.8)
         prep_dur:         course duration before renewal is needed, an
-                          ``ss.dur``/Time value (default ``ss.months(3)``)
+                          ``ss.Duration``/Time value (default ``ss.months(3)``)
         prep_adh:         adherence level (0-1), multiplied into prep_eff to get
                           the realized efficacy (default 1.0 = fully adherent)
         coverage:         coverage target; any format accepted by parse_coverage.
