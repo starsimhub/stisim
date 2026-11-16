@@ -72,7 +72,7 @@ Attach the data to the sim, and fit:
 
 ```{python}
 sim = sti.Sim(diseases=ng, n_agents=2000, start=2010, stop=2030, data=data, verbose=0)
-fit = sim.fit(method=ss.fit.method('optuna', n_trials=20))
+fit = sim.fit(method=ss.fitting.method('optuna', n_trials=20))
 ```
 
 The fit found parameters that minimize the mismatch between model output and data. Let's see how they compare to the true values:
@@ -101,7 +101,7 @@ fit.plot()
 fit.sim.plot('ng')
 ```
 
-With only 20 trials and 2000 agents, recovery won't be perfect. In practice, you'd use 1000-2000 trials with 5000-10000 agents (and `ss.fit.method('optuna', workers=...)` to run the trials in parallel).
+With only 20 trials and 2000 agents, recovery won't be perfect. In practice, you'd use 1000-2000 trials with 5000-10000 agents (and `ss.fitting.method('optuna', workers=...)` to run the trials in parallel).
 
 ## Extracting calibrated parameters
 
@@ -150,7 +150,7 @@ Or reject them during the calibration itself, with a goodness of fit of your own
 
 ```{python}
 def gof(sim):
-    return ss.fit.mismatch(sim) if check_ng_alive(sim) else np.inf
+    return ss.fitting.mismatch(sim) if check_ng_alive(sim) else np.inf
 ```
 
 and `sim.fit(gof=gof)`.
@@ -160,7 +160,7 @@ and `sim.fit(gof=gof)`.
 Give `storage=` to the method to keep the trials in a file: calling the fit again with the same storage resumes it, e.g. after a crash, running only the trials still to do. The fit itself can be saved as any object:
 
 ```python
-fit = sim.fit(method=ss.fit.method('optuna', n_trials=2000, workers=8, storage='results/fit.log'))
+fit = sim.fit(method=ss.fitting.method('optuna', n_trials=2000, workers=8, storage='results/fit.log'))
 sc.save('results/fit.obj', fit)
 fit.to_df().to_csv('results/trials.csv')
 ```
@@ -252,7 +252,7 @@ sim = sti.Sim(
     prop_f0=ss.par(0.7, bounds=[0.55, 0.9]),
     data=pd.read_csv('data/calibration_targets.csv'),
 )
-fit = sim.fit(weights={'hiv.prevalence': 5.0}, method=ss.fit.method('optuna', n_trials=2000, workers=8, storage='results/fit.log'))
+fit = sim.fit(weights={'hiv.prevalence': 5.0}, method=ss.fitting.method('optuna', n_trials=2000, workers=8, storage='results/fit.log'))
 fit.to_df().to_csv('results/trials.csv', index=False)
 ```
 

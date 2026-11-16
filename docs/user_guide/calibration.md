@@ -17,7 +17,7 @@ sim = sti.Sim(
 )
 fit = sim.fit(
     weights={'hiv.prevalence': 1.0, 'hiv.on_art': 0.5},
-    method=ss.fit.method('optuna', n_trials=200, workers=4),
+    method=ss.fitting.method('optuna', n_trials=200, workers=4),
 )
 ```
 
@@ -35,12 +35,12 @@ By default, the fit compares each result in the data with the corresponding colu
 |--------|--------------|
 | `gof='nae'` | Normalized absolute error (the default) |
 | `gof='rmse'` | Root mean squared error |
-| `gof=fn` | A function of the sim that returns the loss, e.g. one that returns `np.inf` for implausible runs and `ss.fit.mismatch(sim)` otherwise |
+| `gof=fn` | A function of the sim that returns the loss, e.g. one that returns `np.inf` for implausible runs and `ss.fitting.mismatch(sim)` otherwise |
 | `likelihood=dict(...)` | A likelihood for each data series (e.g. `ss.binom(n=...)`), for a fit that maximizes the likelihood |
 
 ## Running the calibration
 
-`sim.fit()` runs Optuna trials for an agent-based sim (in parallel with `ss.fit.method('optuna', workers=...)`), and returns a fit with the best values as `fit.pars` and the calibrated sim, already run, as `fit.sim`. After calibration:
+`sim.fit()` runs Optuna trials for an agent-based sim (in parallel with `ss.fitting.method('optuna', workers=...)`), and returns a fit with the best values as `fit.pars` and the calibrated sim, already run, as `fit.sim`. After calibration:
 
 ```python
 fit.summarize()               # Goodness of fit before and after, and the estimates
@@ -49,7 +49,7 @@ sim2 = sim.new(pars=fit.pars) # A new sim with the best-fit values
 trials = fit.to_df()          # Every trial: the values and the score (objective)
 ```
 
-With `ss.fit.method('optuna', storage='fit.log')`, the trials are kept in a file, and calling the fit again resumes it.
+With `ss.fitting.method('optuna', storage='fit.log')`, the trials are kept in a file, and calling the fit again resumes it.
 
 ## Running the best parameter sets
 
@@ -63,5 +63,5 @@ Each parameter set is a scenario of its own in the results (`msim.results`), run
 ## API reference
 
 - `sim.fit()`: fit the parameters with bounds to the data (see the [Starsim documentation](https://docs.starsim.org))
-- `ss.fit.mismatch()`: the default goodness of fit of a sim that has run
+- `ss.fitting.mismatch()`: the default goodness of fit of a sim that has run
 - `ss.parallel()`: run sims with sets of parameter values
