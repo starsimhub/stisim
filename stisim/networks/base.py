@@ -78,7 +78,7 @@ class BaseNetwork(ss.SexualNet):
             # Default True (all agents). Subclasses may restrict it in
             # set_network_states — e.g. the MSM networks flag only the `p_msm`
             # fraction of males via set_msm(), and gate the pool/matching on it.
-            ss.BoolArr('participant', default=True),
+            ss.BoolArr('participant', default=True, result=False),
             ss.FloatArr('debut', default=0),
             reset=True,
         )

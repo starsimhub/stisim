@@ -536,7 +536,7 @@ class SyndromicManagement(STITest):
         self.define_states(
             ss.FloatArr('ti_referred'),
             ss.FloatArr('ti_dismissed'),
-            ss.BoolArr('has_cerv_symp'),
+            ss.BoolArr('has_cerv_symp', result=False),
         )
         self.treat_prob_data = treat_prob_data
         self.treated_by_uid = None

@@ -65,12 +65,12 @@ class treat_BV(ss.Intervention):
         self.define_states(
             ss.FloatArr("ti_treated"),
             ss.FloatArr("orig_CST"),
-            ss.BoolArr("on_tx"),
+            ss.BoolArr("on_tx", result=False),
             ss.FloatArr(
                 "ti_return_stable_cst"
             ),  # Timestep to return to original stable CST when post-treatment effect wanes
             ss.BoolArr(
-                "post_tx_effect"
+                "post_tx_effect", result=False
             ),  # Flag for ongoing post-treatment effect (durable CST change)
         )
 

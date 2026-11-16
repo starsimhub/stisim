@@ -24,7 +24,7 @@ class SyphilisPlaceholder(ss.Disease):
         )
         self.update_pars(pars, **kwargs)
         self.define_states(
-            ss.BoolArr('active'), # Active syphilis
+            ss.BoolArr('active', result=False), # Active syphilis
             ss.FloatArr('ti_active'), # Time of active syphilis
         )
         self._prev_dist = ss.bernoulli(p=0)

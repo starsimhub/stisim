@@ -1162,7 +1162,7 @@ class VMMC(ss.Intervention):
         # States
         self.define_states(
             ss.FloatArr('willingness', default=ss.random()),
-            ss.BoolArr('traditional_assessed', default=False),
+            ss.BoolArr('traditional_assessed', default=False, result=False),
         )
         return
 
