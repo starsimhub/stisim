@@ -602,7 +602,7 @@ def test_records_expired_end_to_end(deaths=False):
     sc.heading("End-to-end: MFNetwork records expirations; intervals consistent")
     if deaths:
         sim = sti.Sim(n_agents=500, dur=5, rand_seed=1, diseases=[sti.HIV(init_prev=0.05)],
-                      networks=[sti.MFNetwork()], demographics=[ss.Deaths(death_rate=30, rate_per=1000)],
+                      networks=[sti.MFNetwork()], demographics=[ss.Deaths(death_rate=0.03)],
                       analyzers=[sti.PartnershipFormationAnalyzer()])
     else:
         sim = sti.Sim(n_agents=500, dur=5, rand_seed=1, diseases=[sti.HIV(init_prev=0.05)],

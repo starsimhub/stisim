@@ -54,8 +54,8 @@ def test_gon(n_agents=500, dt=1/12, start=2000, dur=40):
         disease_treatment_map={'ng': ng_tx, 'ct': ct_tx, 'tv': metro, 'bv': metro}
     )
 
-    pregnancy = ss.Pregnancy(fertility_rate=10, rate_per=1000)
-    death = ss.Deaths(death_rate=10, rate_per=1000)
+    pregnancy = ss.Pregnancy(fertility_rate=0.01)
+    death = ss.Deaths(death_rate=0.01)
     sexual = sti.StructuredSexual()
     sim = ss.Sim(
         dt=dt,

@@ -201,12 +201,12 @@ class STITest(ss.Intervention):
 
     @property
     def eligibility(self):
-        """ Who it can reach: a function of the sim (or UIDs), kept as Starsim's who= (self.eligible), which check_eligibility() reads """
-        return self.eligible
+        """ Who it can reach: a function of the sim (or UIDs), kept as Starsim's who= (self.who), which check_eligibility() reads """
+        return self.who
 
     @eligibility.setter
     def eligibility(self, value):
-        self.eligible = value
+        self.who = value
 
     def get_testers(self, sim):
         """
@@ -897,12 +897,12 @@ class STITreatment(ss.Intervention):
 
     @property
     def eligibility(self):
-        """ Who it can reach: a function of the sim (or UIDs), kept as Starsim's who= (self.eligible), which check_eligibility() reads """
-        return self.eligible
+        """ Who it can reach: a function of the sim (or UIDs), kept as Starsim's who= (self.who), which check_eligibility() reads """
+        return self.who
 
     @eligibility.setter
     def eligibility(self, value):
-        self.eligible = value
+        self.who = value
 
     def get_candidates(self, sim):
         """

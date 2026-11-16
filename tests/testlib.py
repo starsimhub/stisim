@@ -44,12 +44,12 @@ def build_testing_sim(n_agents: int = 500,
     # setup demographics
     demographics = []
     if pregnancy == DEFAULT_STR:
-        pregnancy = ss.Pregnancy(fertility_rate=10, rate_per=1000)
+        pregnancy = ss.Pregnancy(fertility_rate=0.01)
     if pregnancy is not None:
         demographics.append(pregnancy)
 
     if death == DEFAULT_STR:
-        death = ss.Deaths(death_rate=10, rate_per=1000)
+        death = ss.Deaths(death_rate=0.01)
     if death is not None:
         demographics.append(death)
 

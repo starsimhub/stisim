@@ -170,7 +170,7 @@ def _run_beta_test(baseline_m2f, baseline_m2c, mode: str, multiplier=2, result_t
     else:
         raise ValueError(f'Unknown beta test mode: {mode}')
 
-    pregnancy = ss.Pregnancy(fertility_rate=fertility, rate_per=1000)
+    pregnancy = ss.Pregnancy(fertility_rate=fertility/1000)
 
     # Build baseline and test sims
     baseline_hiv = sti.HIV(beta_m2f=baseline_m2f, beta_m2c=baseline_m2c, init_prev=init_prev)
@@ -186,7 +186,7 @@ def _run_beta_test(baseline_m2f, baseline_m2c, mode: str, multiplier=2, result_t
         analyzer_test = nha.MTCTransmissionCountTracker()
 
     test_hiv = sti.HIV(beta_m2f=multiplier * baseline_m2f, beta_m2c=multiplier * baseline_m2c, init_prev=init_prev)
-    sim_test = build_testing_sim(diseases=[test_hiv], pregnancy=ss.Pregnancy(fertility_rate=fertility, rate_per=1000),
+    sim_test = build_testing_sim(diseases=[test_hiv], pregnancy=ss.Pregnancy(fertility_rate=fertility/1000),
                             analyzers=[analyzer_test],
                             n_agents=n_agents, duration=duration)
     sim_test.pars['rand_seed'] = rand_seed

@@ -337,7 +337,7 @@ def test_art_effects(do_plot=do_plot):
         sim_without = sti.Sim(
             diseases=sti.HIV(beta_m2f=0.05, init_prev=0.05),
             networks=sti.StructuredSexual(),
-            demographics=[ss.Pregnancy(fertility_rate=10, rate_per=1000), ss.Deaths(death_rate=10, rate_per=1000)],
+            demographics=[ss.Pregnancy(fertility_rate=0.01), ss.Deaths(death_rate=0.01)],
             interventions=[sti.ART(coverage=0.9)],
             n_agents=n_agents, dur=5, verbose=0,
         )
@@ -368,7 +368,7 @@ def test_art_no_pregnancy(do_plot=do_plot):
     sim = sti.Sim(
         diseases=sti.HIV(beta_m2f=0.05, init_prev=0.05),
         networks=sti.StructuredSexual(),
-        demographics=[ss.Deaths(death_rate=10, rate_per=1000)],
+        demographics=[ss.Deaths(death_rate=0.01)],
         interventions=[
             sti.HIVTest(name='hiv_test', test_prob_data=0.3),
             sti.ART(coverage=0.8),
@@ -590,7 +590,7 @@ def test_art_duration(do_plot=do_plot):
     # Make the sim
     sim = hivsim.demo(
         'simple', plot=False,
-        demographics=[ss.Deaths(death_rate=0, rate_per=1000)],  # No deaths to isolate ART duration effect
+        demographics=[ss.Deaths(death_rate=0)],  # No deaths to isolate ART duration effect
         interventions=interventions,
         **hiv_pars,
         **sim_kwargs,
@@ -632,7 +632,7 @@ def test_art_dx2tx_delay(do_plot=do_plot):
     def make_sim(delay):
         return hivsim.demo(
             'simple', plot=False,
-            demographics=[ss.Deaths(death_rate=0, rate_per=1000)],
+            demographics=[ss.Deaths(death_rate=0)],
             interventions=[
                 sti.HIVTest(test_prob_data=1.0, dt_scale=False,
                             dur_dx2tx=ss.constant(ss.years(delay))),
