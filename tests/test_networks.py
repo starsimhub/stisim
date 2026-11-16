@@ -12,8 +12,8 @@ import hivsim
 def test_msm_network(n_agents=2000): # 500 agents gave no infections for some seeds, on Starsim 3 too
     """ Test MSM HIV transmission via AgeMatchedMSM network """
     hiv = sti.HIV(beta_m2m=0.1, init_prev=0.05)
-    pregnancy = ss.Pregnancy(fertility_rate=10)
-    death = ss.Deaths(death_rate=10)
+    pregnancy = ss.Pregnancy(fertility_rate=10, rate_per=1000)
+    death = ss.Deaths(death_rate=10, rate_per=1000)
     msm = sti.AgeMatchedMSM(p_msm=ss.bernoulli(p=0.3))
     sim = sti.Sim(
         start=1990,
@@ -141,8 +141,8 @@ def test_partner_seeking_rates():
     # effect well above noise. Note each sim needs its own analyzer instance.
     low_p_pair_form  = sti.StructuredSexual(pars={'p_pair_form': ss.bernoulli(p=0.1)})
     high_p_pair_form = sti.StructuredSexual(pars={'p_pair_form': ss.bernoulli(p=0.9)})
-    pregnancy = ss.Pregnancy(fertility_rate=10)
-    death = ss.Deaths(death_rate=10)
+    pregnancy = ss.Pregnancy(fertility_rate=10, rate_per=1000)
+    death = ss.Deaths(death_rate=10, rate_per=1000)
 
     kw = dict(demographics=[death, pregnancy], stop=2040, n_agents=1000, rand_seed=0)
     s1 = sti.Sim(networks=[low_p_pair_form],  analyzers=[sti.TimeBetweenRelationships()], **kw)

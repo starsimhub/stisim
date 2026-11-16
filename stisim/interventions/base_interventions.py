@@ -201,12 +201,12 @@ class STITest(ss.Intervention):
 
     @property
     def eligibility(self):
-        """ Who it can reach: a function of the sim (or UIDs), kept as Starsim's who=, which check_eligibility() reads """
-        return self.who
+        """ Who it can reach: a function of the sim (or UIDs), kept as Starsim's who= (self.eligible), which check_eligibility() reads """
+        return self.eligible
 
     @eligibility.setter
     def eligibility(self, value):
-        self.who = value
+        self.eligible = value
 
     def get_testers(self, sim):
         """
@@ -766,7 +766,7 @@ class ANCTest(ss.Intervention):
         sim = self.sim
         ti  = self.ti
 
-        if sim.now < self.start or sim.now >= self.stop:
+        if self.t.now('year') < self.start or self.t.now('year') >= self.stop:
             return
 
         # Schedule a visit for each newly pregnant woman
@@ -897,12 +897,12 @@ class STITreatment(ss.Intervention):
 
     @property
     def eligibility(self):
-        """ Who it can reach: a function of the sim (or UIDs), kept as Starsim's who=, which check_eligibility() reads """
-        return self.who
+        """ Who it can reach: a function of the sim (or UIDs), kept as Starsim's who= (self.eligible), which check_eligibility() reads """
+        return self.eligible
 
     @eligibility.setter
     def eligibility(self, value):
-        self.who = value
+        self.eligible = value
 
     def get_candidates(self, sim):
         """

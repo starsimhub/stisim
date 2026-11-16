@@ -18,7 +18,7 @@ def _make_sim(visit_prob=1.0, n_agents=2000, dur=8, rand_seed=1, art_coverage=0.
     art = sti.ART(coverage=art_coverage)
     sim = sti.Sim(
         diseases=[sti.HIV(init_prev=0.3, beta_m2f=0.05, beta_m2c=0.1)],
-        demographics=[ss.Pregnancy(fertility_rate=50), ss.Deaths()],
+        demographics=[ss.Pregnancy(fertility_rate=50, rate_per=1000), ss.Deaths()],
         networks=[sti.StructuredSexual(), ss.PrenatalNet(), ss.BreastfeedingNet()],
         interventions=[anc, infant_hiv, art],
         n_agents=n_agents, dur=dur, start=2000, verbose=0, rand_seed=rand_seed,
@@ -47,7 +47,7 @@ def test_anctest_schedules_immediate_art():
     art = sti.ART(coverage=0.6)
     sim = sti.Sim(
         diseases=[sti.HIV(init_prev=0)],
-        demographics=[ss.Pregnancy(fertility_rate=50), ss.Deaths()],
+        demographics=[ss.Pregnancy(fertility_rate=50, rate_per=1000), ss.Deaths()],
         networks=[sti.StructuredSexual(), ss.PrenatalNet(), ss.BreastfeedingNet()],
         interventions=[anc, infant_hiv, art],
         n_agents=500, dur=1, start=2000, verbose=0, rand_seed=1,
