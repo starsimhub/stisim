@@ -136,7 +136,7 @@ class HIVTest(STITest):
         # Schedule ART start for those not already on ART
         to_schedule = pos_uids[~hiv.on_art[pos_uids]]
         if len(to_schedule):
-            delay = self.pars.dur_dx2tx.rvs(to_schedule, round=True)
+            delay = self.pars.dur_dx2tx.rvs(to_schedule, round='random')
             hiv.refer(to_schedule, self.ti + delay)
 
         # Schedule infant HIV test for unborn children of newly diagnosed mothers
@@ -232,7 +232,7 @@ class HIVCare(ss.Intervention):
 
     def refer(self, uids, ti, art):
         """ People referred at `ti` are in care after dur_link, when ART can start (ART's ti_art) """
-        self.ti_link[uids] = ti + self.pars.dur_link.rvs(uids, round=True)
+        self.ti_link[uids] = ti + self.pars.dur_link.rvs(uids, round='random')
         art.ti_art[uids] = self.ti_link[uids]
         return
 
@@ -740,7 +740,7 @@ class ART(ss.Disease):
         self.dur_post_art[uids] = np.maximum(dur_post_art.astype(int), 0)
         self.ti_zero[uids] = ti + self.dur_post_art[uids]
         if self.pars.dur_reengage is not None:
-            self.ti_art[uids] = ti + self.pars.dur_reengage.rvs(uids, round=True) # Not ready to restart until then
+            self.ti_art[uids] = ti + self.pars.dur_reengage.rvs(uids, round='random') # Not ready to restart until then
         if self.care is not None:
             self.care.on_stop(uids)
         return hiv.dt*self.dur_post_art[uids]
