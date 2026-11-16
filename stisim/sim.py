@@ -225,7 +225,7 @@ class Sim(ss.Sim):
     def init_results(self):
         """ Initialize the results, also keeping the sim's deaths and emigrants under their STIsim names (see `finalize_results()`) """
         super().init_results()
-        if 'died' in self.results:
+        if 'death' in self.results:
             kw = dict(module='People', shape=self.t.npts, timevec=self.t.timevec, dtype=float, scale=False, auto_plot=False)
             self.results += [ss.Result('new_deaths', label='Deaths', kind='flow', **kw),
                              ss.Result('new_emigrants', label='Emigrants', kind='flow', **kw),
@@ -233,13 +233,13 @@ class Sim(ss.Sim):
         return
 
     def finalize_results(self):
-        """ Copy Starsim's died and emigrated to the names kept in `init_results()`, once they are scaled """
+        """ Copy Starsim's death and emigration to the names kept in `init_results()`, once they are scaled """
         super().finalize_results()
         res = self.results
-        if 'died' in res:
-            res.new_deaths[:] = res.died
-            res.new_emigrants[:] = res.emigrated
-            res.cum_deaths[:] = np.cumsum(res.died)
+        if 'death' in res:
+            res.new_deaths[:] = res.death
+            res.new_emigrants[:] = res.emigration
+            res.cum_deaths[:] = np.cumsum(res.death)
         return
 
     def process_networks(self):

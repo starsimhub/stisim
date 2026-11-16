@@ -11,6 +11,7 @@ birth: 8818212.616500001
 breastfeedingnet.n_edges: 334363.4665
 cbr: 34.82663351716275
 cmr: 13.170139997271853
+cum_deaths: 3388549.1604999984
 death: 3388549.1605
 deaths.cmr: 13.151900974883453
 deaths.death: 3383558.6610000003
@@ -209,6 +210,8 @@ low_cd4_testing.diagnosed: 0.0
 low_cd4_testing.new_diagnoses: 0.0
 low_cd4_testing.new_tests: 0.0
 low_cd4_testing.tested: 0.0
+new_deaths: 3388549.1605
+new_emigrants: 0.0
 other_testing.diagnosed: 0.0
 other_testing.new_diagnoses: 0.0
 other_testing.new_tests: 51402144.849999994
