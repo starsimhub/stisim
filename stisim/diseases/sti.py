@@ -384,7 +384,7 @@ class SEIS(ss.Disease, STIResults):
         symptoms = presymptomatic >> symptomatic @ dur_presymp
         seek_care = ss.Transition(symptomatic, {symptomatic: p_symp_care, ss.stay: None}, when=ss.on(symptoms, delay=dur_symp2care)) # A share seek care, and stay symptomatic
         clear_symp = ss.Transition(symptomatic, susceptible, when=ss.on(symptoms, delay=dur_symp2clear)) # Timed from the symptoms, so seeking care does not restart it
-        clear_asymp = asymptomatic >> susceptible @ dur_asymp2clear
+        clear_asymp = ss.Transition(asymptomatic, susceptible, dur=dur_asymp2clear, p=None)
         persist = ss.Transition(asymptomatic, susceptible, p=1 - p_clear, dur=dur_persist, who=female) # The rest of the asymptomatic clear by clear_asymp
         pid_onset = ss.Transition(presymptomatic + asymptomatic + symptomatic, {pid: p_pid, ss.stay: None}, when=ss.on(onset, delay=dur_prepid), who=female)
         seek_care_pid = ss.Transition(pid, {pid: p_pid_care, ss.stay: None}, when=ss.on(pid_onset, delay=dur_pid2care))
