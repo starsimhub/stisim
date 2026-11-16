@@ -51,7 +51,7 @@ class condoms(ss.modify):
         kwargs (dict): passed to `ss.modify()`
     """
     def __init__(self, transmission, **kwargs):
-        super().__init__(transmission, efficacy=lambda self: self.pars.eff_condom, share=lambda net: net.edges.condoms, network=[], **kwargs)
+        super().__init__(transmission, efficacy=lambda self: self.pars.eff_condom, frac=lambda net: net.edges.condoms, network=[], **kwargs)
         return
 
     def init_pre(self, sim):
