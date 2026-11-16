@@ -301,13 +301,13 @@ class Sim(ss.Sim):
                 fertility_rates = stidata.get_rates(location, 'asfr', self.datafolder)
                 preg_pars = {k: v for k, v in self.dem_pars.items() if k in ss.Pregnancy().pars and k != 'fertility'}
                 columns = dict(year='Time', age='AgeStart', value='Value')
-                pregnancy = ss.Pregnancy(fertility_rate=fertility_rates, pars=preg_pars, columns=columns)
+                pregnancy = ss.Pregnancy(fertility_rate=fertility_rates, rate_per=1000, pars=preg_pars, columns=columns)
                 demographics += pregnancy
             else:
                 birth_rates = stidata.get_rates(location, 'birth', self.datafolder)
                 birth_pars = {k: v for k, v in self.dem_pars.items() if k in ss.Births().pars.keys()}
                 columns = dict(year='Time', value='Value')
-                births = ss.Births(birth_rate=birth_rates, pars=birth_pars, columns=columns)
+                births = ss.Births(birth_rate=birth_rates, rate_per=1000, pars=birth_pars, columns=columns)
                 demographics += births
 
             # Load death rates and turn into a module
