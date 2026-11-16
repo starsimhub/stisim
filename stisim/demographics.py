@@ -43,7 +43,7 @@ class Migration(ss.Demographics):
         )
         self.update_pars(pars, **kwargs)
         self.define_states(
-            ss.BoolState('immigrant', label='Immigrant'),
+            ss.BoolArr('immigrant', label='Immigrant'),
             ss.FloatArr('migration_propensity', label='Propensity to migrate'),
             ss.FloatArr('ti_emigrate', label='Time of emigration'),
         )

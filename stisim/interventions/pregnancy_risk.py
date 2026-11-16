@@ -92,9 +92,9 @@ class PregnancyRiskReduction(ss.Intervention):
         self.update_pars(pars, **kwargs)
         # Renamed off the network's own ``ever_fsw`` to avoid collisions.
         self.define_states(
-            ss.BoolState('was_fsw'),
-            ss.BoolState('was_high_risk'),
-            ss.BoolState('ever_pregnant'),
+            ss.BoolArr('was_fsw'),
+            ss.BoolArr('was_high_risk'),
+            ss.BoolArr('ever_pregnant'),
             ss.FloatArr('default_concurrency', default=0.0),
         )
         return

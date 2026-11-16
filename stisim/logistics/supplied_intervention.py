@@ -25,7 +25,7 @@ class SuppliedIntervention(ss.Intervention, metaclass=abc.ABCMeta):
         - determine_care_seeking(self, eligible): OPTIONAL override; defaults to all eligible agents.
         - the dist_func passed to distribute(): a callback that applies the intervention's effect to selected
           agents and draws down supply via use() (see distribute() for its signature).
-        - the on_intervention BoolState is defined here for subclasses to track active participation; the base
+        - the on_intervention BoolArr is defined here for subclasses to track active participation; the base
           neither reads nor writes it.
 
     Provided building blocks: determine_care_seeking(), calc_supply_distribution(), distribute(), use().
@@ -100,7 +100,7 @@ class SuppliedIntervention(ss.Intervention, metaclass=abc.ABCMeta):
 
         states = [
             # TODO: ensure this defaults to False
-            ss.BoolState('on_intervention'),  # T/F: are agents actively on/in this intervention in some way?
+            ss.BoolArr('on_intervention'),  # T/F: are agents actively on/in this intervention in some way?
         ]
         self.define_states(*states)
 

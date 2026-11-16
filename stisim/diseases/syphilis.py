@@ -217,12 +217,12 @@ class Syphilis(ss.Disease, STIResults):
 
         # Not stages: serology and visible symptoms, each person's own, updated at the events of the stages (see step_state())
         self.define_states(
-            ss.BoolState('ever_exposed'), # Ever infected
+            ss.BoolArr('ever_exposed'), # Ever infected
             ss.IntArr('n_infections', default=0), # Infections in a lifetime
-            ss.BoolState('trep'), # Treponemal test positive: 80% stay so for life, 20% sero-revert eventually
-            ss.BoolState('nontrep'), # Non-treponemal (RPR/VDRL) test positive
-            ss.BoolState('chancre_visible'), # Whether the primary chancre is at a visible site
-            ss.BoolState('rash_visible'), # Whether the secondary rash is noticed
+            ss.BoolArr('trep'), # Treponemal test positive: 80% stay so for life, 20% sero-revert eventually
+            ss.BoolArr('nontrep'), # Non-treponemal (RPR/VDRL) test positive
+            ss.BoolArr('chancre_visible'), # Whether the primary chancre is at a visible site
+            ss.BoolArr('rash_visible'), # Whether the secondary rash is noticed
             ss.FloatArr('ti_latent'), # When the latent stage began, for the decay of infectiousness
             ss.FloatArr('ti_nontrep_end'), # When the non-treponemal titre falls below detection
             ss.FloatArr('ti_trep_start'), # When treponemal antibodies appear; NaN if treated in the window period
