@@ -112,8 +112,8 @@ def test_stis(which='discharging', n_agents=1e3, start=2010, stop=2020):
             gud=dict(prevalence=0.05),
         )
 
-    pregnancy = ss.Pregnancy(fertility_rate=10)
-    death = ss.Deaths(death_rate=10)
+    pregnancy = ss.Pregnancy(fertility_rate=10, rate_per=1000)
+    death = ss.Deaths(death_rate=10, rate_per=1000)
 
     sim = sti.Sim(
         n_agents=n_agents,
@@ -137,7 +137,7 @@ def test_optional_stratification(n_agents=500):
         dis = [sti.Gonorrhea(init_prev=0.1, **kw), sti.Syphilis(init_prev=0.1, **kw), sti.HIV(init_prev=0.1, **kw)]
         return ss.Sim(n_agents=n_agents, start=2000, stop=2005, rand_seed=1, diseases=dis,
                       networks=[sti.StructuredSexual(), ss.PrenatalNet()],
-                      demographics=[ss.Pregnancy(fertility_rate=50), ss.Deaths(death_rate=10)])
+                      demographics=[ss.Pregnancy(fertility_rate=50, rate_per=1000), ss.Deaths(death_rate=10, rate_per=1000)])
 
     s_full = make_sim()
     s_none = make_sim(age_bins=None, sex_keys=None)
@@ -201,8 +201,8 @@ def test_bv(include_hiv=False, n_agents=500):
 
         nets += [sti.StructuredSexual(store_register=True), ss.PrenatalNet()]
 
-        pregnancy = ss.Pregnancy(fertility_rate=10)
-        death = ss.Deaths(death_rate=10)
+        pregnancy = ss.Pregnancy(fertility_rate=10, rate_per=1000)
+        death = ss.Deaths(death_rate=10, rate_per=1000)
         dem += [pregnancy, death]
 
         testing = sti.HIVTest(test_prob_data=0.2, start=2000)
