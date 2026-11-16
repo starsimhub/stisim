@@ -310,9 +310,9 @@ class SyphTest(STITest):
 
         return
 
-    def record_flows(self):
+    def record_events(self):
         ti = self.ti
-        super().record_flows()
+        super().record_events()
         if 'positive' in self.outcomes.keys() and (self.ti_positive == ti).any():
             self.update_positives()
         if 'negative' in self.outcomes.keys() and (self.ti_negative == ti).any():

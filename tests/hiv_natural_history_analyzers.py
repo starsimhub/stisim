@@ -15,7 +15,7 @@ class TimeToAIDSTracker(ss.Analyzer):
         # results are a list of times to AIDS for agents reaching it at each timestep
         self.define_results(ss.Result('hiv.ti_to_aids', dtype=list, scale=False))
 
-    def record_flows(self):
+    def record_events(self):
         hiv = self.sim.diseases.hiv
         falling = hiv.progression.uids # Those who reached the falling stage in this step
         self.results['hiv.ti_to_aids'][self.ti] = self.ti - hiv.ti_infected[falling]
@@ -45,7 +45,7 @@ class CD4ByUIDTracker(ss.Analyzer):
         super().init_results()
         self.results[self.result_name] = {}
 
-    def record_flows(self): # After each step
+    def record_events(self): # After each step
         hiv = self.sim.diseases.hiv
         result_name = self.result_name
 
@@ -89,7 +89,7 @@ class RelativeInfectivityByUIDTracker(ss.Analyzer):
         super().init_results()
         self.results[self.result_name] = {}
 
-    def record_flows(self): # After each step
+    def record_events(self): # After each step
         hiv = self.sim.diseases.hiv
         result_name = self.result_name
 
@@ -138,7 +138,7 @@ class RelativeInfectivityTracker(ss.Analyzer):
             state_dict = self.STATES[state]
             self.define_results(ss.Result(state_dict['result_name'], dtype=list, scale=False))
 
-    def record_flows(self):
+    def record_events(self):
         hiv = self.sim.diseases.hiv
         for state in self.states_to_track:
             state_dict = self.STATES[state]
@@ -164,7 +164,7 @@ class SexualTransmissionCountTracker(ss.Analyzer):
         super().init_results()
         self.define_results(ss.Result(self.result_name, dtype=list, scale=False))
 
-    def record_flows(self):
+    def record_events(self):
         self.results[self.result_name][self.ti] = self.sim.diseases.hiv.results['new_infections_sex'][self.ti]
 
 
@@ -183,7 +183,7 @@ class MTCTransmissionCountTracker(ss.Analyzer):
         super().init_results()
         self.define_results(ss.Result(self.result_name, dtype=list, scale=False))
 
-    def record_flows(self):
+    def record_events(self):
         self.results[self.result_name][self.ti] = self.sim.diseases.hiv.results['new_infections_mtct'][self.ti]
 
 
