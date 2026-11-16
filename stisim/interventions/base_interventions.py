@@ -347,12 +347,12 @@ class SymptomaticTesting(STITest):
         ti = self.ti
 
         # If this intervention has stopped, reset eligibility for all associated treatments
-        if sim.now >= self.stop:
+        if self.t.now('year') >= self.stop:
             for treatment in self.treatments:
                 treatment.eligibility = ss.uids()  # Reset
             return
 
-        if sim.now >= self.start:
+        if self.t.now('year') >= self.start:
 
             if uids is None:
                 uids = self.check_eligibility()
@@ -580,12 +580,12 @@ class SyndromicManagement(STITest):
         ppl = sim.people
         self.treated_by_uid = None
 
-        if sim.now >= self.stop:
+        if self.t.now('year') >= self.stop:
             for treatment in self.treatments:
                 treatment.eligibility = ss.uids()
             return
 
-        if sim.now >= self.start:
+        if self.t.now('year') >= self.start:
             if uids is None:
                 uids = self.check_eligibility()
                 self.ti_tested[uids] = self.ti
@@ -769,7 +769,7 @@ class ANCTest(ss.Intervention):
         sim = self.sim
         ti  = self.ti
 
-        if sim.now < self.start or sim.now >= self.stop:
+        if self.t.now('year') < self.start or self.t.now('year') >= self.stop:
             return
 
         # Schedule a visit for each newly pregnant woman
