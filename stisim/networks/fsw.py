@@ -13,8 +13,8 @@ __all__ = ['SWPars', 'SWNetwork']
 def _sw_states():
     """States specific to the sex-work (SW) network (excludes shared)."""
     return [
-        ss.BoolArr('ever_fsw'),                # Lifetime SW fate (female)
-        ss.BoolArr('ever_client'),             # Lifetime SW fate (male)
+        ss.BoolArr('ever_fsw', result=False),                # Lifetime SW fate (female)
+        ss.BoolArr('ever_client', result=False),             # Lifetime SW fate (male)
         ss.FloatArr('age_sw_start'),           # Age of SW entry (NaN unless ever_fsw)
         ss.FloatArr('dur_sw'),                 # SW duration in years (NaN unless ever_fsw)
         ss.FloatArr('age_client_start'),
@@ -22,7 +22,7 @@ def _sw_states():
         ss.FloatArr('sw_intensity'),
         ss.FloatArr('sw_partners', default=0),
         ss.FloatArr('lifetime_sw_partners', default=0),
-        ss.BoolArr('paused'),                  # Reversible exclusion from FSW status (e.g. during pregnancy); leaves ever_fsw untouched
+        ss.BoolArr('paused', result=False),                  # Reversible exclusion from FSW status (e.g. during pregnancy); leaves ever_fsw untouched
     ]
 
 

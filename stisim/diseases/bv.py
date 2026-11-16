@@ -119,14 +119,14 @@ class BV(ss.Disease, STIResults):
         # Each person's own: the stable CST and the risk factors, and treatment (see sti.treat_BV)
         self.define_states(
             ss.FloatArr('stable_cst', default=self.pars.stable_cst_distribution, label='Stable CST'), # From birth (read only for women)
-            ss.BoolArr('douching', label='Douching'),
-            ss.BoolArr('poor_menstrual_hygiene', label='Poor menstrual hygiene'),
-            ss.BoolArr('concurrency', default=False, label='Concurrent sexual partners'),
-            ss.BoolArr('circumcised', label='Circumcised'),
-            ss.BoolArr('has_traits', default=False, label='Risk factors drawn'),
+            ss.BoolArr('douching', label='Douching', result=False),
+            ss.BoolArr('poor_menstrual_hygiene', label='Poor menstrual hygiene', result=False),
+            ss.BoolArr('concurrency', default=False, label='Concurrent sexual partners', result=False),
+            ss.BoolArr('circumcised', label='Circumcised', result=False),
+            ss.BoolArr('has_traits', default=False, label='Risk factors drawn', result=False),
             ss.FloatArr('rel_cst_change', default=1.0, label='Relative risk of a worse CST'),
             ss.FloatArr('ti_treated', label='Time of treatment'),
-            ss.BoolArr('on_tx', default=False, label='On treatment'),
+            ss.BoolArr('on_tx', default=False, label='On treatment', result=False),
         )
         self.set_strata([15, 50], age_bins, sex_keys)
         self.include_care = include_care
