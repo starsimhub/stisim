@@ -460,8 +460,8 @@ class SEIS(ss.Disease, STIResults):
         self.define_results(*results)
         return
 
-    def record_stocks(self):
-        super().record_stocks()
+    def record_states(self):
+        super().record_states()
         ti = self.ti
         ppl = self.sim.people
         res = self.results
@@ -483,8 +483,8 @@ class SEIS(ss.Disease, STIResults):
                 self.set_age_results(skk, symp_prevalence=t.hdiv(t.hist(sym_s), t.hist(sex)))
         return
 
-    def record_flows(self):
-        super().record_flows()
+    def record_events(self):
+        super().record_events()
         ti = self.ti
         ppl = self.sim.people
         res = self.results
