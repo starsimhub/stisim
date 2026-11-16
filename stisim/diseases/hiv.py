@@ -126,15 +126,15 @@ class HIV(ss.Disease, STIResults):
             ss.FloatArr('cd4_nadir'), # Lowest CD4
 
             # Knowledge of HIV status
-            ss.BoolState('diagnosed'),
+            ss.BoolArr('diagnosed'),
             ss.FloatArr('ti_diagnosed'),
 
             # PrEP. Efficacy/duration/adherence are specified directly on whichever Prep intervention enrolls someone:
             # prep_eff is the realized efficacy for this person's current course (eff*adherence, computed at enrollment),
             # and prep_source identifies which Prep instance enrolled them (for its own coverage-target accounting)
-            ss.BoolState('prep_naive', default=True), # Never started PrEP, from any source
-            ss.BoolState('on_prep'),
-            ss.BoolState('prep_discontinued'), # Currently off after a course ended
+            ss.BoolArr('prep_naive', default=True), # Never started PrEP, from any source
+            ss.BoolArr('on_prep'),
+            ss.BoolArr('prep_discontinued'), # Currently off after a course ended
             ss.FloatArr('prep_eff'), # Realized rel_sus multiplier reduction for the current course
             ss.FloatArr('prep_source'), # Id of the enrolling Prep instance; NaN=not on PrEP
             ss.FloatArr('ti_prep_start'),
@@ -146,8 +146,8 @@ class HIV(ss.Disease, STIResults):
             ss.FloatArr('ti_pmtct_stop'),
 
             # Circumcision (VMMC)
-            ss.BoolState('circumcised'),
-            ss.BoolState('circ_traditional', default=False), # True=traditional (non-program), False=program (medical) VMMC
+            ss.BoolArr('circumcised'),
+            ss.BoolArr('circ_traditional', default=False), # True=traditional (non-program), False=program (medical) VMMC
             ss.FloatArr('ti_circumcised'),
         )
         self.define_pars(**code_pars)

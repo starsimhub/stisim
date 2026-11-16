@@ -215,8 +215,8 @@ class HIVCare(ss.Intervention):
         )
         self.update_pars(pars, **kwargs)
         self.define_states(
-            ss.BoolState('in_care'),
-            ss.BoolState('lost'), # Lost to follow-up
+            ss.BoolArr('in_care'),
+            ss.BoolArr('lost'), # Lost to follow-up
             ss.FloatArr('ti_link'), # When those referred will be in care
             ss.FloatArr('ti_in_care'),
             ss.FloatArr('ti_lost'),

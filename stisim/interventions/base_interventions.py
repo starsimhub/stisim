@@ -139,8 +139,8 @@ class STITest(ss.Intervention):
 
         # States
         self.define_states(
-            ss.BoolState('tested'),
-            ss.BoolState('diagnosed'),
+            ss.BoolArr('tested'),
+            ss.BoolArr('diagnosed'),
             ss.FloatArr('ti_tested'),
             ss.FloatArr('ti_scheduled'),
             ss.FloatArr('ti_positive'),
@@ -870,7 +870,7 @@ class STITreatment(ss.Intervention):
 
         # States
         self.define_states(
-            ss.BoolState('treated'),
+            ss.BoolArr('treated'),
             ss.FloatArr('ti_treated'),
         )
 
