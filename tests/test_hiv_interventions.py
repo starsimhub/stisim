@@ -337,7 +337,7 @@ def test_art_effects(do_plot=do_plot):
         sim_without = sti.Sim(
             diseases=sti.HIV(beta_m2f=0.05, init_prev=0.05),
             networks=sti.StructuredSexual(),
-            demographics=[ss.Pregnancy(fertility_rate=10), ss.Deaths(death_rate=10)],
+            demographics=[ss.Pregnancy(fertility_rate=10, rate_per=1000), ss.Deaths(death_rate=10, rate_per=1000)],
             interventions=[sti.ART(coverage=0.9)],
             n_agents=n_agents, dur=5, verbose=0,
         )
@@ -368,7 +368,7 @@ def test_art_no_pregnancy(do_plot=do_plot):
     sim = sti.Sim(
         diseases=sti.HIV(beta_m2f=0.05, init_prev=0.05),
         networks=sti.StructuredSexual(),
-        demographics=[ss.Deaths(death_rate=10)],
+        demographics=[ss.Deaths(death_rate=10, rate_per=1000)],
         interventions=[
             sti.HIVTest(name='hiv_test', test_prob_data=0.3),
             sti.ART(coverage=0.8),
