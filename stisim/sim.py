@@ -296,23 +296,25 @@ class Sim(ss.Sim):
                     print(printmsg, end='')
                     stidl.download_data(location=location, indicators=missing, start=start_year)
 
+            # Each module gets its own copy of its pars, so its distributions are the module's (traced and seeded as
+            # they are when the same module is passed in), not shared with self.dem_pars
             # Load birth or fertility rates and turn into module
             if self.pars['use_pregnancy']:
                 fertility_rates = stidata.get_rates(location, 'asfr', self.datafolder)
-                preg_pars = {k: v for k, v in self.dem_pars.items() if k in ss.Pregnancy().pars and k != 'fertility'}
+                preg_pars = sc.dcp({k: v for k, v in self.dem_pars.items() if k in ss.Pregnancy().pars and k != 'fertility'})
                 columns = dict(year='Time', age='AgeStart', value='Value')
                 pregnancy = ss.Pregnancy(fertility_rate=fertility_rates, rate_per=1000, pars=preg_pars, columns=columns)
                 demographics += pregnancy
             else:
                 birth_rates = stidata.get_rates(location, 'birth', self.datafolder)
-                birth_pars = {k: v for k, v in self.dem_pars.items() if k in ss.Births().pars.keys()}
+                birth_pars = sc.dcp({k: v for k, v in self.dem_pars.items() if k in ss.Births().pars.keys()})
                 columns = dict(year='Time', value='Value')
                 births = ss.Births(birth_rate=birth_rates, rate_per=1000, pars=birth_pars, columns=columns)
                 demographics += births
 
             # Load death rates and turn into a module
             death_rates = stidata.get_rates(location, 'death', self.datafolder)
-            death_pars = {k: v for k, v in self.dem_pars.items() if k in ss.Deaths().pars.keys()}
+            death_pars = sc.dcp({k: v for k, v in self.dem_pars.items() if k in ss.Deaths().pars.keys()})
             columns = dict(year='Time', sex='Sex', age='AgeStart', value='Value')
             deaths = ss.Deaths(death_rate=death_rates, rate_per=1, pars=death_pars, columns=columns)
             demographics += deaths
@@ -320,7 +322,7 @@ class Sim(ss.Sim):
             # Optionally add migration
             if self.pars['use_migration']:
                 migration_data = stidata.get_rates(location, 'migration', self.datafolder)
-                migration_pars = {k: v for k, v in self.dem_pars.items() if k in sti.Migration().pars.keys()}
+                migration_pars = sc.dcp({k: v for k, v in self.dem_pars.items() if k in sti.Migration().pars.keys()})
                 migration = sti.Migration(migration_data=migration_data, pars=migration_pars)
                 demographics += migration
 
