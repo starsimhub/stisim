@@ -29,7 +29,7 @@ def test_hiv_syph():
         return hiv, syphilis, coinfection_analyzer
 
     hiv, syphilis, coinfection_analyzer = make_args()
-    pars = dict(analyzers=coinfection_analyzer, diseases=[hiv, syphilis], n_agents=500, dur=10)
+    pars = dict(analyzers=coinfection_analyzer, diseases=[hiv, syphilis], n_agents=500, dur=10, connectors=False)
     s0 = sti.Sim(pars)
 
     pars['connectors'] = sti.hiv_syph(hiv, syphilis, rel_sus_hiv_syph=20, rel_trans_hiv_syph=20)
@@ -68,6 +68,27 @@ def test_single_connector_instance():
     return sim
 
 
+def test_auto_connectors():
+    """
+    With no ``connectors=``, a connector is auto-added for each HIV-STI pair, and
+    ``SimpleBV`` (also named 'bv') gets ``hiv_simplebv``, not the CST-based ``hiv_bv``.
+    ``connectors=False`` turns auto-adding off.
+    """
+    def make_diseases():
+        return [sti.HIV(init_prev=0.05), sti.Syphilis(init_prev=0.05), sti.Gonorrhea(init_prev=0.05), sti.SimpleBV()]
+
+    sim = sti.Sim(diseases=make_diseases(), n_agents=200, dur=2, verbose=-1)
+    sim.run()
+    conns = sim.connectors
+    assert set(conns.keys()) == {'hiv_syph', 'hiv_ng', 'hiv_simplebv'}, f'Got {list(conns.keys())}'
+    assert type(conns.hiv_simplebv) is sti.hiv_simplebv
+
+    sim = sti.Sim(diseases=make_diseases(), connectors=False, n_agents=200, dur=2, verbose=-1)
+    sim.run()
+    assert len(sim.connectors) == 0, f'Got {list(sim.connectors.keys())}'
+    return sim
+
+
 # %% Run as a script
 if __name__ == '__main__':
 
@@ -75,6 +96,7 @@ if __name__ == '__main__':
 
     s0, s1 = test_hiv_syph()
     test_single_connector_instance()
+    test_auto_connectors()
 
     pl.plot(s0.results.hiv.timevec, s0.results.hiv.prevalence, label='No connector')
     pl.plot(s1.results.hiv.timevec, s1.results.hiv.prevalence, label='With connector')

@@ -390,7 +390,7 @@ class Sim(ss.Sim):
         Auto-add coinfection connectors for disease pairs that have a registered
         ``sti.<d1>_<d2>`` class (e.g. ``hiv_syph``, ``hiv_ng``). Skipped if the
         user already supplied any connectors — pass your own list to take full
-        control. Connector module pars (e.g. ``rel_sus_hiv_syph=3.5``) passed
+        control, or ``connectors=False`` for none. Connector module pars (e.g. ``rel_sus_hiv_syph=3.5``) passed
         as kwargs to ``sti.Sim`` are routed to whichever auto-added connector
         accepts them.
 
@@ -403,10 +403,13 @@ class Sim(ss.Sim):
         """
         user_pars = self._user_connector_pars
 
-        # Normalize before length check: pars['connectors'] may be a single
-        # Connector instance (whose own __len__ can return 0), a list, or an ndict.
-        existing = sc.tolist(self.pars['connectors'])
-        if len(existing) > 0:
+        # pars['connectors'] may be None or empty (auto-add), False (no connectors),
+        # a single Connector instance (whose own __len__ can return 0), a list, or an ndict.
+        existing = self.pars['connectors']
+        if existing is False:
+            self.pars['connectors'] = ss.ndict()
+            existing = True  # Treat as user-supplied so nothing is auto-added
+        if isinstance(existing, ss.Connector) or existing:
             if user_pars:
                 raise ValueError(
                     f'Got flat connector pars {sorted(user_pars)} but `connectors=` '
@@ -424,6 +427,8 @@ class Sim(ss.Sim):
                 args = (m2, m1)  # reversed to match class name
             else:
                 continue
+            if cls is sti.hiv_bv and not isinstance(args[1], sti.BV):
+                cls = sti.hiv_simplebv  # SimpleBV is also named 'bv' but has no CST states
             accepted = set(cls(None, None).pars.keys())
             kwargs = {k: v for k, v in user_pars.items() if k in accepted}
             consumed.update(kwargs)
