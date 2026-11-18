@@ -202,7 +202,7 @@ class SimpleBV(ss.Disease):
         self.clear_infection(new_cleared)
 
         # Symptomatic/PID care seeking
-        old_seekers = self.seeking_care
+        old_seekers = self.seeking_care.uids  # snapshot: the next line clears seeking_care
         self.seeking_care[old_seekers] = False
         self.ti_seeks_care[old_seekers] = np.nan  # Remove the old
         new_seekers = (self.infected & (self.ti_seeks_care <= ti)).uids
