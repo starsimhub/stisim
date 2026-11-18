@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import sys
 from pathlib import Path
 
+import numpy as np
 import pytest
 import sciris as sc
 import starsim as ss
@@ -52,6 +53,18 @@ class UsingSuppliedIntervention(SuppliedIntervention):
         for prod_name, quantity in self.usage.items():
             self.use(prod_name=prod_name, quantity=quantity)
         self.n_steps_run += 1
+
+
+class DistributingSuppliedIntervention(SuppliedIntervention):
+    """Concrete subclass that offers the product to every eligible agent each step, recording who is selected"""
+    def step(self):
+        eligible = self.eligibilities[0](self.sim)
+        pool = eligible.uids[~self.on_intervention[eligible.uids]]
+        n_on = self.on_intervention[eligible.uids].sum()
+        def dist_func(uptakers):
+            self.on_intervention[uptakers] = True
+        self.distribute(offer_pools=[pool], cur_coverages=[n_on/len(eligible.uids)], target_coverages=self.coverages,
+                        n_eligibles=[len(eligible.uids)], n_supply=np.inf, dist_func=dist_func)
 
 
 def make_product(name='oral_prep', cost=10.0):
@@ -255,6 +268,24 @@ def test_shared_supplies_accounting_after_sim_run():
         f"Product C (intervention 2 only): expected {expected_C} remaining, got {s.get_quantity('C')}"
     return sim
 
+@sc.timer()
+def test_distribute_is_reproducible():
+    sc.heading("Ensuring distribute() selects recipients from Starsim's random streams, so the seed sets who is chosen.")
+
+    def run(seed):
+        iv = DistributingSuppliedIntervention(name='dist', eligibilities=test_eligibilities, coverages=[0.5])
+        sim = ss.Sim(n_agents=200, dur=2, dt=1, rand_seed=seed, interventions=iv)
+        sim.run()
+        iv = sim.interventions.dist
+        n_f = np.count_nonzero(sim.people.female)
+        assert iv.on_intervention.sum() == int(0.5*n_f), f'Expected half of {n_f} females covered, got {iv.on_intervention.sum()}'
+        return iv.on_intervention.uids
+
+    a, b, c = run(1), run(1), run(2)
+    assert np.array_equal(a, b), 'Expected the same recipients with the same seed'
+    assert not np.array_equal(a, c), 'Expected different recipients with a different seed'
+
+
 if __name__ == '__main__':
     do_plot = True
     sc.options(interactive=do_plot)
@@ -271,6 +302,7 @@ if __name__ == '__main__':
     test_calc_supply_distribution_raises_on_empty_lists()
     test_calc_supply_distribution_accepts_aligned_lists()
     test_shared_supplies_accounting_after_sim_run()
+    test_distribute_is_reproducible()
 
     sc.heading("Total:")
     timer.toc()

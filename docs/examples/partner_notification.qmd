@@ -12,9 +12,8 @@ follow-up testing. STIsim's :class:`~stisim.PartnerNotification`
 intervention does this through two channels:
 
 - **Current partners**: anyone with an active edge in the sexual network.
-- **Previous partners**: anyone with an edge in the
-  :class:`~stisim.PriorPartners` recall network — dissolved partnerships
-  within a configurable lookback window.
+- **Previous partners**: anyone whose partnership in the same network
+  ended within its ``memory=`` — a configurable lookback window.
 
 Each contact is independently subject to a notification step (probability
 ``p_notify_<scope>``) and an attendance step (probability ``p_attends_<scope>``).
@@ -54,9 +53,8 @@ def newly_diagnosed(sim):
 
 ## Building the sim
 
-The active sexual network needs ``recall_prior=True`` so dissolved
-partnerships are pushed into the :class:`~stisim.PriorPartners` recall
-network. We set the lookback to 6 months — typical of real-world PN
+The active sexual network needs ``memory=`` so it remembers the
+partnerships that end. We set the lookback to 6 months — typical of real-world PN
 programs that ask about partners from the past 3–12 months.
 
 ```{python}
@@ -76,10 +74,7 @@ def make_sim(use_pn=False, rand_seed=1):
         )
         interventions.append(pn)
 
-    networks = [
-        sti.StructuredSexual(recall_prior=True),
-        sti.PriorPartners(dur_recall=ss.years(0.5)),
-    ]
+    networks = [sti.StructuredSexual(memory=ss.years(0.5))] # Remember partners of the past 6 months
 
     sim = hivsim.demo(
         'simple', run=False, plot=False,
@@ -149,12 +144,12 @@ plt.show()
 ## Key takeaways
 
 - PN runs through *both* a current-partner channel (active sexual network)
-  and an optional prior-partner channel (PriorPartners recall network).
+  and an optional prior-partner channel (the network's ``memory=``).
 - The notification and attendance probabilities are separate
   (``p_notify_<scope>`` × ``p_attends_<scope>``), reflecting real-world
   attrition between contact tracing and clinic attendance.
 - Set ``p_notify_previous=ss.bernoulli(p=0)`` to disable the prior-partner
-  channel; the active sexual network must have ``recall_prior=True``
+  channel; the active sexual network must have ``memory=`` set
   whenever the prior channel is enabled.
 - For more elaborate downstream actions — for example, applying a specific
   treatment regimen to partners by sex or by network channel — subclass

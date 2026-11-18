@@ -163,6 +163,7 @@ class HIV(ss.Disease, STIResults):
         )
         self.define_pars(**code_pars)
         self.pars.update(given) # Including those with bounds, which are kept for fitting
+        self.dur_post_art_dist = ss.normal() # Time from stopping ART until the CD4 count reaches zero; set for each person as they stop (see post_art_dwell())
         self.set_strata([15, 50], age_bins, sex_keys)
         self.include_care = include_care
         return
@@ -215,8 +216,7 @@ class HIV(ss.Disease, STIResults):
             dur_on_art = ss.lognormal(ss.years(3), ss.years(1.5)), # Base ART duration (scaled by rel_dur_on_art and trend)
             rel_dur_on_art = 1.0, # Calibratable scalar that scales ART duration
             dur_on_art_trend = None, # Optional time-varying scale, e.g. sc.objdict(years=np.array([2004, 2015, 2030]), vals=np.array([0.5, 1.0, 1.5]))
-            dur_post_art = ss.normal(), # Time from stopping ART until the CD4 count reaches zero; set for each person as they stop (see post_art_dwell()), in years
-            dur_post_art_scale_factor = 0.1,
+            dur_post_art_scale_factor = 0.1, # Standard deviation of the time from stopping ART until the CD4 count reaches zero, as a fraction of its mean
         )
 
     # Conditions over the states
@@ -319,8 +319,8 @@ class HIV(ss.Disease, STIResults):
         self.cd4_postart[uids] = self.cd4[uids]
         dur_mean = np.log(self.cd4_preart[uids])*self.cd4[uids]/self.cd4_potential[uids]
         dur_scale = dur_mean*self.pars.dur_post_art_scale_factor
-        self.pars.dur_post_art.set(mean=ss.years(dur_mean), std=ss.years(np.maximum(dur_scale, 1e-3))) # Not zero
-        dur_post_art = self.pars.dur_post_art.rvs(uids)
+        self.dur_post_art_dist.set(mean=ss.years(dur_mean), std=ss.years(np.maximum(dur_scale, 1e-3))) # Not zero
+        dur_post_art = self.dur_post_art_dist.rvs(uids)
         if np.isnan(dur_post_art).any():
             bad = uids[np.isnan(dur_post_art)]
             errormsg = f'Invalid post-ART duration for {bad}: CD4 {self.cd4[bad]}, before ART {self.cd4_preart[bad]}, potential {self.cd4_potential[bad]}'

@@ -51,7 +51,6 @@ Pars of `sti.BV`. The Source column follows the conventions of the [parameter re
 | `stable_cst_distribution` | CST 1: 0.10, CST 3: 0.30, CST 4: 0.60 | Distribution of baseline (stable) CST | [Munoz 2021](https://doi.org/10.1186/s40168-021-01096-9) |
 | `p_cst_change` | cst1: 0.1, cst3: 0.05 | Probability of transition to a worse CST (CST 1 to 3; CST 3 to 4) | Not recorded |
 | `rr_stable_cst1` | 0.1 | Relative risk of CST transition for women with stable CST 1 | Not recorded |
-| `rr_stable_cst3` | 1.0 | Relative risk of CST transition for women with stable CST 3 (reference) | Not applicable |
 | `rr_stable_cst4` | 2.0 | Relative risk of CST transition for women with stable CST 4 | Not recorded |
 
 ### Clearance

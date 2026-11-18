@@ -35,11 +35,9 @@ class treat_BV(ss.Intervention):
         self.define_pars(
             dt='month',
             # Treatment effects
-            start_year=0,  # Day to start treatment
-            stop_year=None,  # Day to stop treatment
+            start_year=0,  # Year to start treatment
+            stop_year=None,  # Year to stop treatment (default: end of the sim)
             p_seek_care=ss.bernoulli(p=0.9),  # Distribution of care-seeking behavior
-            tx_delay=ss.weeks(1),  # Delay between symptoms and treatment
-            tx_effect_delay=ss.weeks(1),  # Delay between treatment and effect
             tx_doses=14,  # Number of doses of treatment administered (2x/day for 7 days)
             tx_effectiveness=sc.objdict(
                 stable_cst1=ss.bernoulli(
@@ -61,6 +59,8 @@ class treat_BV(ss.Intervention):
         ),
         self.update_pars(pars, **kwargs)
         self.eligibility = eligibility
+        self.ti_start = None # Steps to start and stop treatment, set in init_pre from start_year and stop_year
+        self.ti_stop = None
 
         self.define_states(
             ss.FloatArr("ti_treated"),
@@ -87,14 +87,14 @@ class treat_BV(ss.Intervention):
 
     def init_pre(self, sim):
         if self.pars.stop_year is None:
-            self.pars.stop_year = sim.t.npts - 1
+            self.ti_stop = sim.t.npts - 1
         else:
-            ti = sc.findfirst(sim.t.yearvec, self.pars.stop_year)
-            self.pars.stop_year = ti
+            self.ti_stop = sc.findfirst(sim.t.yearvec, self.pars.stop_year)
 
         if self.pars.start_year:
-            ti = sc.findfirst(sim.t.yearvec, self.pars.start_year)
-            self.pars.start_year = ti
+            self.ti_start = sc.findfirst(sim.t.yearvec, self.pars.start_year)
+        else:
+            self.ti_start = 0
         super().init_pre(sim)
         return
 
@@ -133,7 +133,7 @@ class treat_BV(ss.Intervention):
 
     def step(self):
         bv = self.sim.diseases.bv
-        if self.pars.stop_year >= self.ti >= self.pars.start_year:
+        if self.ti_stop >= self.ti >= self.ti_start:
             # Identify eligible agents for treatment
             eligible_inds = self.check_eligibility()
             seeks_care = self.pars.p_seek_care.filter(eligible_inds)

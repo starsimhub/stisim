@@ -37,8 +37,6 @@ class MFPars(ss.Pars):
             young=(20, 25),
             adult=(25, np.inf),
         )
-        self.p_lo_risk = ss.bernoulli(p=0)
-        self.p_hi_risk = ss.bernoulli(p=0)
         self.prop_f0 = 0.85
         self.prop_m0 = 0.8
         self.prop_f2 = 0.01
@@ -62,7 +60,6 @@ class MFPars(ss.Pars):
 
         # Relationship initiation, stability, and duration
         self.p_pair_form = ss.bernoulli(p=0.5)              # Probability of a (stable) pair forming between two matched people
-        self.match_dist = ss.bernoulli(p=0)                 # Placeholder value replaced by risk-group stratified values below
         self.p_matched_stable = [0.9, 0.5, 0]               # Probability of a stable pair forming between matched people (otherwise casual)
         self.p_mismatched_casual = [0.5, 0.5, 0.5]          # Probability of a casual pair forming between mismatched people (otherwise instantaneous)
 
@@ -90,13 +87,7 @@ class MFPars(ss.Pars):
             adult=[[ss.years(1), ss.years(3)]]*3,
         )
 
-        # Distributions populated by other methods at runtime
-        self.age_diffs = ss.normal()
-        self.dur_dist = ss.lognormal()
-
         # relationship search taper for older women -- used only for match method closest_age_tapered_seeking
-        self.p_actually_looking = ss.bernoulli(p=0)  # Placeholder to be replaced by agent-based calculation per-timestep
-        self._f_partnership_taper_offset = 0  # Placeholder: mean_age_gap_target + 3*sd, maximum of all age groupings. Set in init_post()
         self.f_partnership_taper_cut = 55  # max age, over which females no longer search for new relationships
 
         # Pair-formation algorithm: string key in matchers.MATCHERS, or a callable.
@@ -130,6 +121,15 @@ class MFNetwork(BaseNetwork):
         self.edge_types = {'stable': 0, 'casual': 1, 'onetime': 2}
         self.define_states(*_mf_states())
         self.relationship_durs = defaultdict(list)
+
+        # Distributions whose values are set at each step from the parameters above (not parameters themselves)
+        self.p_lo_risk = ss.bernoulli(p=0)           # Whether in the low risk group, by sex
+        self.p_hi_risk = ss.bernoulli(p=0)           # Whether in the high risk group, of the rest
+        self.match_dist = ss.bernoulli(p=0)          # Whether a matched pair forms a partnership, by risk group
+        self.age_diffs = ss.normal()                 # Desired age gaps, by age and risk group (age_diff_pars)
+        self.dur_dist = ss.lognormal()               # Partnership durations (stable_dur_pars, casual_dur_pars)
+        self.p_actually_looking = ss.bernoulli(p=0)  # The taper in older women's seeking (match_method='closest_age_tapered_seeking')
+        self.f_partnership_taper_offset = 0          # The maximum over groups of the mean age gap + 3 SD, set in init_post()
         return
 
     def init_post(self):
@@ -140,7 +140,7 @@ class MFNetwork(BaseNetwork):
         super().init_post()
         uids_born = (self.sim.people.age > 0).uids
         loc, scale = self.get_age_risk_pars(uids_born, self.pars.age_diff_pars)
-        self.pars._f_partnership_taper_offset = max(loc + 3 * scale)  # mean age + 3*sd
+        self.f_partnership_taper_offset = max(loc + 3 * scale)  # mean age + 3*sd
         return
 
     def get_age_risk_pars(self, uids, par):
@@ -177,14 +177,14 @@ class MFNetwork(BaseNetwork):
         p_lo = np.full(len(uids), fill_value=np.nan, dtype=ss_float)
         p_lo[ppl.female[uids]] = self.pars.prop_f0
         p_lo[ppl.male[uids]] = self.pars.prop_m0
-        self.pars.p_lo_risk.set(p=p_lo)
-        lo_risk, hi_med_risk = self.pars.p_lo_risk.split(uids)
+        self.p_lo_risk.set(p=p_lo)
+        lo_risk, hi_med_risk = self.p_lo_risk.split(uids)
 
         p_hi = np.full(len(hi_med_risk), fill_value=np.nan, dtype=ss_float)
         p_hi[ppl.female[hi_med_risk]] = self.pars.prop_f2/(1-self.pars.prop_f0)
         p_hi[ppl.male[hi_med_risk]] = self.pars.prop_m2/(1-self.pars.prop_m0)
-        self.pars.p_hi_risk.set(p=p_hi)
-        hi_risk, med_risk = self.pars.p_hi_risk.split(hi_med_risk)
+        self.p_hi_risk.set(p=p_hi)
+        hi_risk, med_risk = self.p_hi_risk.split(hi_med_risk)
 
         self.risk_group[lo_risk] = 0
         self.risk_group[med_risk] = 1
@@ -243,8 +243,8 @@ class MFNetwork(BaseNetwork):
     def _sample_desired_ages(self, f_looking):
         """Sample desired male partner ages for the given f_looking uids."""
         loc, scale = self.get_age_risk_pars(f_looking, self.pars.age_diff_pars)
-        self.pars.age_diffs.set(mean=loc, std=scale)
-        age_gaps = self.pars.age_diffs.rvs(f_looking)
+        self.age_diffs.set(mean=loc, std=scale)
+        age_gaps = self.age_diffs.rvs(f_looking)
         return self.sim.people.age[f_looking] + age_gaps
 
     def match_pairs(self):
@@ -280,8 +280,8 @@ class MFNetwork(BaseNetwork):
         for rg in range(self.pars.n_risk_groups):
             p_match[matched_risk & (self.risk_group[p1] == rg)] = self.pars.p_matched_stable[rg]
             p_match[mismatched_risk & (self.risk_group[p2] == rg)] = self.pars.p_mismatched_casual[rg]
-        self.pars.match_dist.set(p=p_match)
-        matches = self.pars.match_dist.rvs(p2)
+        self.match_dist.set(p=p_match)
+        matches = self.match_dist.rvs(p2)
 
         stable = matches & matched_risk
         casual = matches & mismatched_risk
@@ -309,9 +309,9 @@ class MFNetwork(BaseNetwork):
                 mean, std = self.get_age_risk_pars(uids, thesepars)
                 dur_mean[bools] = mean
                 dur_std[bools] = std
-        self.pars.dur_dist.set(mean=dur_mean[any_match], std=dur_std[any_match])
-        dur[any_match] = self.pars.dur_dist.rvs(p2[any_match])
-        # dur[any_match] = self.pars.dur_dist.rvs(sum(any_match))
+        self.dur_dist.set(mean=dur_mean[any_match], std=dur_std[any_match])
+        dur[any_match] = self.dur_dist.rvs(p2[any_match])
+        # dur[any_match] = self.dur_dist.rvs(sum(any_match))
 
         edge_types[(dur == 1)] = self.edge_types['onetime']
 
@@ -360,22 +360,8 @@ class MFNetwork(BaseNetwork):
         fires — overriding this hook without ``super()`` would silently disable
         expiration tracking for MFNetwork and its subclasses.
         """
-        super()._on_edge_dissolution(active)
-        self._record_prior_partners(active)
+        super()._on_edge_dissolution(active) # Records expired edges, and remembers them with memory=
         self._decrement_partners(active)
-
-    def _record_prior_partners(self, active):
-        """If ``recall_prior``, push dissolved partnerships into the PriorPartners network."""
-        if not self.pars.recall_prior:
-            return
-        prior_network = self.sim.networks.get('priorpartners')
-        if prior_network is None:
-            return
-        ended_p1 = self.edges.p1[~active]
-        ended_p2 = self.edges.p2[~active]
-        durs = np.zeros_like(ended_p1, dtype=ss_float)
-        weights = np.zeros_like(ended_p1, dtype=ss_float)
-        prior_network.append(p1=ended_p1, p2=ended_p2, dur=durs, weight=weights)
 
     def _decrement_partners(self, active):
         """Decrement partner counters for expired non-SW edges.

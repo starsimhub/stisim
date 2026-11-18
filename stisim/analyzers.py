@@ -335,7 +335,8 @@ class NetworkDegree(ss.Analyzer):
         Initialize the analyzer
         """
         super().init_pre(sim, **kwargs)
-        self.year = sim.t.yearvec[-1]
+        if self.year is None:
+            self.year = sim.t.yearvec[-1]
         return
 
 
@@ -544,7 +545,7 @@ class DebutAge(ss.Analyzer):
     def __init__(self, bins=None, cohort_starts=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.bins = bins or np.arange(12, 31, 1)
+        self.bins = np.arange(12, 31, 1) if bins is None else bins
         self.binspan = self.bins[-1] - self.bins[0]
         self.cohort_starts = cohort_starts
 
@@ -555,9 +556,10 @@ class DebutAge(ss.Analyzer):
             first_cohort = sim.t.start.years
             last_cohort = sim.t.stop.years - self.binspan
             self.cohort_starts = sc.inclusiverange(first_cohort, last_cohort)
-            self.cohort_ends = self.cohort_starts + self.binspan
-            self.n_cohorts = len(self.cohort_starts)
-            self.cohort_years = np.array([sc.inclusiverange(i, i + self.binspan) for i in self.cohort_starts])
+        self.cohort_starts = np.array(self.cohort_starts)
+        self.cohort_ends = self.cohort_starts + self.binspan
+        self.n_cohorts = len(self.cohort_starts)
+        self.cohort_years = np.array([sc.inclusiverange(i, i + self.binspan) for i in self.cohort_starts])
 
         self.prop_active_f = np.zeros((self.n_cohorts, self.binspan + 1))
         self.prop_active_m = np.zeros((self.n_cohorts, self.binspan + 1))

@@ -73,8 +73,7 @@ These do not appear on any rate table. They determine *when* the `ti_zero` AIDS 
 | Parameter | Effect | Notes |
 |---|---|---|
 | `dur_falling` | Duration of late-stage HIV (falling CD4) | Determines how much time between `ti_falling` and `ti_zero`. Shorter = earlier deaths. |
-| `dur_post_art` | Post-ART-interruption survival distribution | Sets the mean / scale for the delay to death after an ART interruption. |
-| `dur_post_art_scale_factor` | Variance parameter for `dur_post_art` | Controls the spread around the mean. |
+| `dur_post_art_scale_factor` | Spread of the delay to death after an ART interruption | Its standard deviation as a fraction of its mean; the mean is set by each person's CD4 count as they stop ART, and is not a parameter. |
 
 If your AIDS-mortality deficit persists after tuning the rate knobs in (2), check these. The rate knobs cannot fix a deficit whose source is the `ti_zero` pathway.
 
@@ -132,7 +131,7 @@ MF-network parameters (`stisim/networks/mf.py`):
 | `prop_f2` | 0.01 | Proportion of women in the high-risk group. |
 | `prop_m2` | 0.02 | Proportion of men in the high-risk group. |
 | `concurrency_dist` | `ss.poisson(mean=1)` | Concurrent-partnership distribution. Country- and population-specific. |
-| `dur_dist` | `ss.lognormal()` | Partnership duration distribution. |
+| `stable_dur_pars`, `casual_dur_pars` | see source | Partnership durations (mean, SD) by age group and risk group. |
 | `p_matched_stable`, `p_mismatched_casual` | see source | Assortative-mixing probabilities by risk group. |
 
 ### Sex-work-specific parameters

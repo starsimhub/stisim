@@ -46,7 +46,7 @@ def test_cd4_counts_decline_untreated():
     analyzer = nha.CD4ByUIDTracker(subpop=nha.CD4ByUIDTracker.INFECTED)
     hiv = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=1.0)
     sim = build_testing_sim(analyzers=[analyzer], diseases=[hiv],
-                            maternal_network=None, prior_network=None, sexual_network=None,
+                            maternal_network=None, sexual_network=None,
                             pregnancy=None, death=None,
                             n_agents=tiny_pop, duration=5)
     sim.run()
@@ -338,7 +338,7 @@ def test_cd4_rises_on_ART():
     duration = 1  # years
     hiv = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=1.0, dur_on_art=ss.constant(value=ss.years(duration)))
     sim = build_testing_sim(analyzers=[analyzer], diseases=[hiv],
-                            death=None, maternal_network=None, prior_network=None, sexual_network=None,
+                            death=None, maternal_network=None, sexual_network=None,
                             interventions=[test_intervention, initial_art_intervention],
                             n_agents=tiny_pop, duration=duration)
     sim.run()
@@ -422,7 +422,7 @@ def test_cd4_falls_after_ART_dropout():
     art_duration = ss.years(duration / 2)
     hiv = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=1.0, dur_on_art=ss.constant(value=art_duration))
     sim = build_testing_sim(analyzers=[analyzer], diseases=[hiv],
-                            death=None, maternal_network=None, prior_network=None, sexual_network=None,
+                            death=None, maternal_network=None, sexual_network=None,
                             interventions=[test_intervention, initial_art_intervention],
                             n_agents=tiny_pop, duration=duration)
     sim.run()
@@ -459,7 +459,7 @@ def test_rel_trans_rises_after_ART_dropout():
     art_duration = ss.years(duration / 2)
     hiv = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=1.0, dur_on_art=ss.constant(value=art_duration))
     sim = build_testing_sim(analyzers=[analyzer], diseases=[hiv],
-                            death=None, maternal_network=None, prior_network=None, sexual_network=None,
+                            death=None, maternal_network=None, sexual_network=None,
                             interventions=[test_intervention, initial_art_intervention],
                             n_agents=tiny_pop, duration=duration)
     sim.run()
@@ -499,12 +499,12 @@ def test_increased_testing_speeds_diagnosis():
     sim1 = build_testing_sim(n_agents=n_agents, duration=duration,
                             diseases=[disease],
                             pregnancy=None, death=None,
-                            prior_network=None, sexual_network=None, maternal_network=None,
+                            sexual_network=None, maternal_network=None,
                             interventions=[base_testing])
     sim2 = build_testing_sim(n_agents=n_agents, duration=duration,
                             diseases=[disease],
                             pregnancy=None, death=None,
-                            prior_network=None, sexual_network=None, maternal_network=None,
+                            sexual_network=None, maternal_network=None,
                             interventions=[higher_testing])
     sims = [sim1, sim2]
     msim = ss.parallel(*sims)
@@ -686,26 +686,25 @@ def test_rel_sus_age(n_agents=3000):
     Higher rel_sus_age multiplier for young women should produce more infections
     in that group relative to a sim with uniform susceptibility.
     """
-    hiv_age = sti.HIV(
-        rel_sus_age=[(15, 25, 'f', 3.0), (25, np.inf, 'f', 1.0)],
-        init_prev=0.1,
-    )
-    sim_age = sti.Sim(diseases=hiv_age, n_agents=n_agents, dur=10, rand_seed=1, verbose=0)
-    sim_uni = sti.Sim(diseases='hiv', n_agents=n_agents, dur=10, rand_seed=1, verbose=0)
-    ss.parallel(sim_age, sim_uni)
+    seeds = [1, 2, 3] # Summed over seeds, since the effect on one is small
+    rel_sus_age = [(15, 25, 'f', 3.0), (25, np.inf, 'f', 1.0)]
+    make = lambda seed, **kw: sti.Sim(diseases=sti.HIV(init_prev=0.1, **kw), n_agents=n_agents, dur=10, rand_seed=seed, verbose=0) # The same init_prev in both, so only rel_sus_age differs
+    sims_age = [make(seed, rel_sus_age=rel_sus_age) for seed in seeds]
+    sims_uni = [make(seed) for seed in seeds]
+    ss.parallel(sims_age + sims_uni)
 
     def young_female_infections(sim):
         ppl = sim.people
         ti_inf = sim.diseases.hiv.ti_infected.values
         return ((ppl.age.values >= 15) & (ppl.age.values < 25) & ppl.female.values & (ti_inf >= 0)).sum()
 
-    yf_age = young_female_infections(sim_age)
-    yf_uni = young_female_infections(sim_uni)
+    yf_age = sum(young_female_infections(sim) for sim in sims_age)
+    yf_uni = sum(young_female_infections(sim) for sim in sims_uni)
     assert yf_age > yf_uni, (
         f'rel_sus_age multiplier for young women should increase their infections; '
         f'age-dep={yf_age}, uniform={yf_uni}'
     )
-    return sim_age, sim_uni
+    return sims_age, sims_uni
 
 
 @sc.timer()

@@ -4,7 +4,6 @@ Define gonorrhea interventions for STIsim
 
 import starsim as ss
 import numpy as np
-import sciris as sc
 from stisim.interventions.base_interventions import STITreatment
 
 
@@ -24,38 +23,38 @@ class GonorrheaTreatment(STITreatment):
         pars (dict): Parameter overrides (e.g. ``base_treat_eff``,
             ``rel_treat_unsucc``, ``rel_treat_unneed``).
         eligibility (func): Function returning eligible UIDs.
-        max_capacity (int): Maximum treatments per timestep.
-        years (list): Calendar years during which the intervention is active.
         name (str): Intervention name.
         **kwargs: Additional parameter overrides.
     """
-    def __init__(self, pars=None, eligibility=None, max_capacity=None, years=None, name=None, *args, **kwargs):
-        super().__init__(diseases='ng', name=name, eligibility=eligibility, max_capacity=max_capacity, years=years, *args)
+    def __init__(self, pars=None, eligibility=None, name=None, *args, **kwargs):
+        super().__init__(diseases='ng', name=name, eligibility=eligibility, *args)
         self.requires = ['ng', 'structuredsexual']
         self.define_pars(
             base_treat_eff=0.96,
-            treat_eff=ss.bernoulli(p=0),  # Reset each time step depending on base_treat_eff and population AMR
             rel_treat_unsucc=0.01,
             rel_treat_unneed=0.005,
         )
         self.update_pars(pars, **kwargs)
+
+        # Treatment outcome: probability is set each step from base_treat_eff and the agent's rel_treat
+        self.treat_eff = ss.bernoulli(p=0)
 
         # States
         self.define_states(
             ss.FloatArr('rel_treat', default=1),  # How well a person will respond to treatment
         )
 
-    def set_treat_eff(self, uids):
+    def get_treat_eff(self, uids):
+        """ Set the probability of treatment success from base_treat_eff and each agent's rel_treat """
         rt = self.rel_treat[uids]
         rt = np.where(np.isnan(rt), 1.0, rt)  # default for agents whose slot was inactive at init
         new_treat_eff = rt * self.pars.base_treat_eff
-        self.pars.treat_eff.set(new_treat_eff)
-        return
+        self.treat_eff.set(new_treat_eff)
+        return self.treat_eff
 
     def step(self):
         """
-        Apply treatment. On each timestep, this method will add eligible people who are willing to accept treatment to a
-        queue, and then will treat as many people in the queue as there is capacity for.
+        Apply treatment to eligible people who accept it, and update their treatment response.
         """
         treat_uids = super().step()
 
@@ -87,17 +86,15 @@ class UpdateDrugs(ss.Intervention):
         pars (dict): Parameter overrides; key parameter is ``threshold_amr``
             (default 0.05).
         eligibility (func): Function returning UIDs to monitor.
-        years (list): Calendar years during which the intervention is active.
         **kwargs: Additional parameter overrides.
     """
-    def __init__(self, pars=None, eligibility=None, years=None, *args, **kwargs):
+    def __init__(self, pars=None, eligibility=None, *args, **kwargs):
         super().__init__(*args, who=eligibility)
         self.requires = ['ng', 'gonorrheatreatment']
         self.define_pars(
             threshold_amr=0.05
         )
         self.update_pars(pars, **kwargs)
-        self.years = years
         self.define_states(
             ss.FloatArr('rel_treat_prev'),  # Store a copy of AMR to the previous regimen
         )
@@ -109,12 +106,12 @@ class UpdateDrugs(ss.Intervention):
         ]
 
     def step(self):
-        sim = self.sim
+        tx = self.sim.interventions.gonorrheatreatment
         target_uids = self.check_eligibility()
-        pop_rel_treat = np.mean(self.sim.people.rel_treat[target_uids])
+        pop_rel_treat = np.mean(tx.rel_treat[target_uids])
         if pop_rel_treat < self.pars.threshold_amr:
-            self.sim.people.rel_treat_prev = sc.dcp(self.sim.people.rel_treat)
-            self.sim.people.rel_treat[:] = 1  # Reset
-            self.change_time = self.sim.year
+            self.rel_treat_prev[:] = tx.rel_treat[:]
+            tx.rel_treat[:] = 1  # Reset
+            self.change_time = self.t.now('year')
         return
 

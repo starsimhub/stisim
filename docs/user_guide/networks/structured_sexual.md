@@ -10,7 +10,7 @@ STIsim's sexual networks are layered. Each network below extends `sti.BaseNetwor
 
 | Class | Models | Notes |
 |-------|--------|-------|
-| `sti.BaseNetwork` | shared infrastructure | debut, acts, condom data, `recall_prior` |
+| `sti.BaseNetwork` | shared infrastructure | debut, acts, condom data, `memory` |
 | `sti.MFNetwork` | heterosexual partnerships | risk groups, concurrency, age mixing |
 | `sti.SWNetwork` | sex work | FSW–client edges |
 | `sti.StructuredSexual` | MF + sex work | the default; extends `MFNetwork` and adds sex-work edges |
@@ -136,7 +136,6 @@ Pars of `sti.StructuredSexual`, including those inherited from `sti.MFNetwork`, 
 | `dur_client` | lognorm(10 yr, 5 yr) | Duration as a client | Not recorded |
 | `sw_seeking_rate` | 1/month | Probability per month that an active client seeks an FSW | Not recorded |
 | `sw_intensity` | uniform(0, 1) | Per-step working intensity of each FSW, weighting client allocation | Not recorded |
-| `sw_beta` | 1 | Multiplier on transmission probability for sex-work edges | Not applicable |
 | `fsw_mf_conc_mult` | 1.0 | Multiplier on FSW non-sex-work concurrency; values below 1 give active sex workers fewer non-sex-work partners | Not applicable |
 
 ### Coital acts and condoms
@@ -146,9 +145,8 @@ Pars of `sti.StructuredSexual`, including those inherited from `sti.MFNetwork`, 
 | `acts` | lognorm(80/yr, 30/yr) | Coital acts per partnership per year | Not recorded |
 | `condom_data` | None | Condom use probability: scalar, or time series stratified by risk-group pair and sex-work edges | Not applicable |
 | `condom_smoothness` | None | Smoothing applied when interpolating time-varying `condom_data` | Not applicable |
-| `recall_prior` | False | Whether former partners are stored for partner notification (requires `sti.PriorPartners`) | Not applicable |
-| `between` | 'mf' | Who partnerships are between, from `ss.SexualNet`: men and women (`'mf'`), or men (`'mm'`, the MSM networks) | Not applicable |
-| `memory` | None | How long the network remembers partnerships that have ended, from `ss.Network`, for contact tracing by `find_contacts()` | Not applicable |
+| `memory` | None | How long the network remembers partnerships that have ended, from `ss.DynamicNetwork`, for contact tracing by `find_contacts()` and the prior-partner channel of `sti.PartnerNotification`, e.g. `ss.years(1)` | Not applicable |
+
 ## Other networks
 
 STIsim also includes:
@@ -156,4 +154,3 @@ STIsim also includes:
 - **`sti.MFNetwork`** / **`sti.SWNetwork`**: the heterosexual and sex-work layers, usable standalone (see [Architecture](#architecture)).
 - **`ss.MaternalNet`**: Mother-to-child transmission network (created automatically).
 - **MSM networks**: men-who-have-sex-with-men contact, with several matching strategies — see [MSM networks](msm.md).
-- **`sti.PriorPartners`**: Stores former partners for contact tracing. Add it alongside an MF network and set `recall_prior=True`.
