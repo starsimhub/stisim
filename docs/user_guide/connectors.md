@@ -22,7 +22,6 @@ Each effect is implemented as a connector class so that users can mix and match.
 | `sti.hiv_ng` | gonorrhea → HIV | Gonorrhea infection raises HIV `rel_sus` (default 1.2×) and `rel_trans` (1.2×) |
 | `sti.hiv_ct` | chlamydia → HIV | Chlamydia infection raises HIV `rel_sus` (default 1× — placeholder) |
 | `sti.hiv_bv` | BV → HIV | CST-IV state raises HIV `rel_sus` (default 2×) and `rel_trans` (2×) |
-| `sti.gud_syph` | syphilis → GUD | Syphilis stage drives GUD prevalence |
 
 Most connectors are unidirectional (the STI affects HIV but not vice versa); `hiv_syph` is the exception.
 
@@ -44,10 +43,6 @@ Multipliers are applied to `rel_sus` or `rel_trans` of the affected disease whil
 | `rel_sus_hiv_ct` | 1 | HIV susceptibility multiplier with chlamydia (`sti.hiv_ct`) | Assumption (placeholder) |
 | `rel_sus_hiv_bv` | 2 | HIV susceptibility multiplier with CST IV (`sti.hiv_bv`) | Assumption (placeholder) |
 | `rel_trans_hiv_bv` | 2 | HIV transmissibility multiplier with CST IV (`sti.hiv_bv`) | Assumption (placeholder) |
-| `rel_sus_syph_gud` | 2 | Syphilis susceptibility multiplier with GUD (`sti.gud_syph`) | Not recorded |
-| `rel_trans_syph_gud` | 2 | Syphilis transmissibility multiplier with GUD (`sti.gud_syph`) | Not recorded |
-| `rel_sus_gud_syph` | 2 | GUD susceptibility multiplier with syphilis (`sti.gud_syph`) | Not recorded |
-| `rel_trans_gud_syph` | 2 | GUD transmissibility multiplier with syphilis (`sti.gud_syph`) | Not recorded |
 
 ## Adding connectors
 

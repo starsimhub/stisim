@@ -45,15 +45,13 @@ class SWPars(ss.Pars):
         self.fsw_shares = ss.bernoulli(p=0.05)         # Lifetime proportion of females ever FSW
         self.client_shares = ss.bernoulli(p=0.12)      # Lifetime proportion of males ever client
         self.sw_seeking_rate = ss.probpermonth(1.0)    # Monthly rate at which clients seek FSWs
-        self.sw_seeking_dist = ss.bernoulli(p=0.5)     # Placeholder; replaced by dt-adjusted sw_seeking_rate
-        self.sw_beta = 1
         self.sw_intensity = ss.random()                # FSW may work with varying intensity each step
 
         # Per-agent age window — placeholders; tune to context
-        self.age_sw_start = ss.normal(loc=20, scale=3)
-        self.dur_sw = ss.lognorm_ex(mean=5, std=3)
-        self.age_client_start = ss.normal(loc=25, scale=5)
-        self.dur_client = ss.lognorm_ex(mean=10, std=5)
+        self.age_sw_start = ss.normal(mean=20, std=3)
+        self.dur_sw = ss.lognormal(mean=5, std=3)
+        self.age_client_start = ss.normal(mean=25, std=5)
+        self.dur_client = ss.lognormal(mean=10, std=5)
 
         self.update(kwargs)
         return
@@ -80,6 +78,7 @@ class SWNetwork(BaseNetwork):
         self.update_pars(pars, **kwargs)
         self.edge_types = {'sw': 0}
         self.define_states(*_sw_states())
+        self.sw_seeking_dist = ss.bernoulli(p=0.5) # Whether each client seeks a sex worker on this step, from sw_seeking_rate (not a parameter itself)
         return
 
     def set_network_states(self, upper_age=None):
@@ -162,8 +161,8 @@ class SWNetwork(BaseNetwork):
         active_clients = active & self.client
         self.sw_intensity[active_fsw.uids] = self.pars.sw_intensity.rvs(active_fsw.uids)
 
-        self.pars.sw_seeking_dist.pars.p = self.pars.sw_seeking_rate.to_prob()
-        m_looking = self.pars.sw_seeking_dist.filter(active_clients.uids)
+        self.sw_seeking_dist.pars.p = self.pars.sw_seeking_rate.to_prob()
+        m_looking = self.sw_seeking_dist.filter(active_clients.uids)
 
         if len(m_looking) == 0 or len(active_fsw.uids) == 0:
             raise NoPartnersFound()
@@ -215,7 +214,7 @@ class SWNetwork(BaseNetwork):
             return
 
         match_count = len(p1)
-        beta = np.ones(match_count, dtype=ss_float)
+        weight = np.ones(match_count, dtype=ss_float)
         condoms = np.zeros(match_count, dtype=ss_float)
         acts = (self.pars.acts.rvs(p2)).astype(int)
         dur = np.full(match_count, fill_value=1)
@@ -224,7 +223,7 @@ class SWNetwork(BaseNetwork):
         edge_types = np.full(match_count, dtype=ss_float, fill_value=self.edge_types['sw'])
 
         ti_formed = np.full(match_count, self.ti, dtype=int)
-        self.append(p1=p1, p2=p2, beta=beta, condoms=condoms, dur=dur, acts=acts, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types, ti_formed=ti_formed)
+        self.append(p1=p1, p2=p2, weight=weight, condoms=condoms, dur=dur, acts=acts, age_p1=age_p1, age_p2=age_p2, edge_type=edge_types, ti_formed=ti_formed)
 
         p1_edges, p1_counts = np.unique(p1, return_counts=True)
         p2_edges, p2_counts = np.unique(p2, return_counts=True)

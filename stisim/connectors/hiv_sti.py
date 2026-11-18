@@ -6,10 +6,20 @@ import starsim as ss
 from stisim.diseases.syphilis import SyphilisPlaceholder
 
 
-__all__ = ['hiv_syph', 'hiv_tv', 'hiv_ng', 'hiv_ct', 'hiv_bv']
+__all__ = ['Coinfection', 'hiv_syph', 'hiv_tv', 'hiv_ng', 'hiv_ct', 'hiv_bv']
 
 
-class hiv_syph(ss.Connector):
+class Coinfection(ss.Connector):
+    """ Base for the connectors below: it is given the diseases, and acts on the sim's own copies of them (found by name) """
+    def init_pre(self, sim):
+        super().init_pre(sim)
+        for key, val in list(vars(self).items()):
+            if isinstance(val, ss.Disease):
+                setattr(self, key, sim.get_module(val.name))
+        return
+
+
+class hiv_syph(Coinfection):
     """Connector for bidirectional HIV-syphilis coinfection interactions.
 
     Models how syphilis increases susceptibility to HIV (default 2.67x) and
@@ -76,7 +86,7 @@ class hiv_syph(ss.Connector):
         return
 
 
-class hiv_tv(ss.Connector):
+class hiv_tv(Coinfection):
     """Connector for HIV-trichomoniasis coinfection interaction.
 
     Models how trichomoniasis increases susceptibility to HIV acquisition
@@ -112,7 +122,7 @@ class hiv_tv(ss.Connector):
         return
 
 
-class hiv_ng(ss.Connector):
+class hiv_ng(Coinfection):
     """Connector for HIV-gonorrhea coinfection interaction.
 
     Models how gonorrhea increases both susceptibility to HIV acquisition
@@ -145,7 +155,7 @@ class hiv_ng(ss.Connector):
         return
 
 
-class hiv_ct(ss.Connector):
+class hiv_ct(Coinfection):
     """Connector for HIV-chlamydia coinfection interaction.
 
     Models how chlamydia infection modifies susceptibility to HIV acquisition.
@@ -177,7 +187,17 @@ class hiv_ct(ss.Connector):
         return
 
 
-class hiv_simplebv(ss.Connector):
+class hiv_bv(Coinfection):
+    """Connector for HIV-bacterial vaginosis coinfection interaction.
+
+    Women in CST 4 (BV, ``bv.cst4``) have increased HIV susceptibility (default 2x)
+    and transmissibility (default 2x).
+
+    Args:
+        hiv_module: The HIV disease module instance.
+        bv_module: The BV disease module instance.
+        pars (dict): Optional parameter overrides.
+    """
 
     def __init__(self, hiv_module, bv_module, pars=None, **kwargs):
         super().__init__()
@@ -190,28 +210,7 @@ class hiv_simplebv(ss.Connector):
             rel_trans_hiv_bv=2,     # PLACEHOLDER: BV leads to 2x risk of HIV transmission
         )
         self.update_pars(pars, **kwargs)
-
         return
-
-    def step(self):
-        bv = self.bv.infected
-        self.hiv.rel_trans[bv] *= self.pars.rel_trans_hiv_bv
-        self.hiv.rel_sus[bv] *= self.pars.rel_sus_hiv_bv
-        return
-
-
-class hiv_bv(hiv_simplebv):
-    """Connector for HIV-bacterial vaginosis coinfection interaction.
-
-    Extends ``hiv_simplebv`` to use the CST-IV vaginal microbiome state
-    (rather than a simple infected flag) to determine which agents receive
-    increased HIV susceptibility (default 2x) and transmissibility (default 2x).
-
-    Args:
-        hiv_module: The HIV disease module instance.
-        bv_module: The BV disease module instance.
-        pars (dict): Optional parameter overrides.
-    """
 
     def step(self):
         cst4 = self.bv.cst4.uids

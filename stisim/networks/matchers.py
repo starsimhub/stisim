@@ -342,7 +342,7 @@ def closest_age_tapered_seeking(net):
     desired age who has not been selected already in this selection process. Any matches proposed by algorithm that
     exceed the maximum specified: target_age_gap + 3*stddev ... will be trimmed as unrealistic. This algorithm also
     employs an age-based female-seeking-taper that linearly reduces the chances of women over
-    age: (pars.f_partnership_taper_cut - pars._f_partnership_taper_offset) from searching for partners
+    age: (pars.f_partnership_taper_cut - f_partnership_taper_offset) from searching for partners
     (reaches 0% chance at pars.f_partnership_taper_cut). This forces better alignment in age gap of pairings when
     older men looking for additional relationships become scarce.
 
@@ -363,10 +363,10 @@ def closest_age_tapered_seeking(net):
     # Now we throttle the likelihood of older women looking for partners to reduce the downward bias in
     # F-M age gaps due to a lack of available males for older females to partner with (especially when they draw
     # higher gaps, below, than their average target gap)
-    actual_looking_chance = ((net.pars.f_partnership_taper_cut - ppl.age[f_eligible]) / net.pars._f_partnership_taper_offset)  # taper in looking chance for older women
+    actual_looking_chance = ((net.pars.f_partnership_taper_cut - ppl.age[f_eligible]) / net.f_partnership_taper_offset)  # taper in looking chance for older women
     actual_looking_chance = np.clip(actual_looking_chance, 0, 1)**1.5  # arbitrary, but more forceful than linear tapering
-    net.pars.p_actually_looking.set(p=actual_looking_chance)
-    actually_looking = net.pars.p_actually_looking.rvs()
+    net.p_actually_looking.set(p=actual_looking_chance)
+    actually_looking = net.p_actually_looking.rvs()
     f_eligible_uids = f_eligible_uids[actually_looking]
 
     m_eligible = active & ppl.male & underpartnered
@@ -377,13 +377,13 @@ def closest_age_tapered_seeking(net):
         raise NoPartnersFound()
 
     loc, scale = net.get_age_risk_pars(f_looking, net.pars.age_diff_pars)
-    net.pars.age_diffs.set(loc=loc, scale=scale)
+    net.age_diffs.set(mean=loc, std=scale)
 
     # Extreme age-gap relationships beyond this limit will be trimmed after matching
     max_allowed_age_delta = np.max(loc + 3*scale)
 
     # females choose their target male age + identifying eligible male ages
-    age_gaps = net.pars.age_diffs.rvs(f_looking)
+    age_gaps = net.age_diffs.rvs(f_looking)
     desired_ages = ppl.age[f_looking] + age_gaps
     m_ages = ppl.age[m_eligible]
 

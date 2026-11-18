@@ -24,7 +24,7 @@ class CareSeeking(ss.Module):
     def __init__(self, pars=None, **kwargs):
         super().__init__(name='care_seeking')
         self.define_pars(
-            propensity_dist=ss.lognorm_ex(1, 0.3),  # Mean=1, moderate variation
+            propensity_dist=ss.lognormal(1, 0.3),  # Mean=1, moderate variation
             rel_care_m2f=0.7,  # Men are less likely to seek care than women
         )
         self.update_pars(pars, **kwargs)
@@ -75,5 +75,5 @@ class CareSeeking(ss.Module):
 
         # Future: apply temporary modifiers, e.g.:
         # if 'pregnancy' in self.sim.demographics:
-        #     pregnant = self.sim.demographics.pregnancy.pregnant
+        #     pregnant = self.sim.demographics.pregnancy.P
         #     self.propensity[pregnant] *= pregnancy_scale

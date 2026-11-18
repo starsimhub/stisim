@@ -1,6 +1,6 @@
 ---
 name: result-extraction
-description: Use when writing analysis, plotting, or post-processing code that reads sim results. Directs to ss.Result / ss.Results built-in methods (annualize, resample, to_df) instead of hand-rolled groupby aggregation, which silently mishandles the flow-vs-stock distinction.
+description: Use when writing analysis, plotting, or post-processing code that reads sim results. Directs to ss.Result / ss.Results built-in methods (resample, to_df) instead of hand-rolled groupby aggregation, which silently mishandles the flow-vs-stock distinction.
 metadata:
   version: "0.1"
   versiondate: "2026-09-23"
@@ -22,13 +22,13 @@ metadata:
 
 ## Framing
 
-Every `ss.Result` carries a `summarize_by` field, or falls back to a name-based heuristic (`new_* → sum`, `n_* → mean`, `cum_* → last`, see [`starsim/results.py:149`](../../../../../../starsim/starsim/results.py)). The built-in API — `annualize()`, `resample()`, `to_df(resample=…)` — reads that field and applies the correct aggregation automatically. Hand-rolled `df.groupby('year').mean()` or `.sum()` bypasses this, so the analyst has to re-decide flow-vs-stock at every call site and gets it wrong silently when they guess.
+Every `ss.Result` carries a `summarize_by` field, or falls back to a name-based heuristic (its `kind`: `new_*` is a flow, summed; `n_*` and `cum_*` are stocks, the last value; `*prevalence` is a ratio, the mean). The built-in API — `resample()`, `to_df(resample=…)` — reads that field and applies the correct aggregation automatically. Hand-rolled `df.groupby('year').mean()` or `.sum()` bypasses this, so the analyst has to re-decide flow-vs-stock at every call site and gets it wrong silently when they guess.
 
 The wrong answer is usually a factor of `n_timesteps_per_year` off (flows aggregated as means, or stocks aggregated as sums). At weekly or monthly timesteps that is a 12–52× error, but it still looks plausible for calibration ranges — the errors don't scream, and they compound with any downstream per-capita or per-year calculation that uses the wrong quantity as its numerator.
 
 Common failure modes this skill prevents:
 - `df.groupby('year')['new_infections'].mean()` — silently divides annual incidence by the number of timesteps per year.
-- `df.groupby('year')['n_alive'].sum()` — silently multiplies population by the number of timesteps per year.
+- `df.groupby('year')['alive'].sum()` — silently multiplies population by the number of timesteps per year.
 - Reading a saved parquet, losing the `ss.Result` wrapper, then guessing the aggregation method from column names alone.
 
 ## Instructions
@@ -36,12 +36,12 @@ Common failure modes this skill prevents:
 1. **Identify what the input is.** If it is `sim.results`, an `ss.Result`, or an `ss.Results` container, use the API directly — do not convert to a raw DataFrame first. If it is a saved parquet / csv that has lost the Result wrapper, note the round-trip loss and prefer reloading the sim or MultiSim if it is still available.
 
 2. **Choose the method that matches the goal:**
-   - `result.annualize()` — annual rollup, fast numpy-based, respects `summarize_by` / `summary_method()`. Use this for the common case.
-   - `sim.results.annualize()` (container-level) — annualize every result in the container at once with the correct method for each. Use when producing a whole-sim summary table.
-   - `result.resample(new_unit='month', …)` — non-annual cadences, pandas-backed, more flexible.
+   - `result.resample('year')` — annual rollup, respecting the result's `kind` (`summarize_by`). Use this for the common case.
+   - `sim.results.resample('year')` (container-level) — resample every result in the container at once with the correct method for each. Use when producing a whole-sim summary table.
+   - `result.resample('month')` — other cadences.
    - `result.to_df(resample='year')` — annual DataFrame ready for plotting or joining, with low/high bounds preserved.
 
-3. **If the result name doesn't match the heuristic, pass `summarize_by=` explicitly.** The heuristic only recognizes `new_*`, `n_*` / `_n_*`, and `cum_*`. A result named `treatment_success_rate` or `prev_15_49` will default to `mean`, which may or may not be what you want. Either set `summarize_by='sum'|'mean'|'last'` on the Result at creation time (preferred — the decision travels with the data), or pass it into `annualize()` / `resample()` at the call site.
+3. **If the result name doesn't match the heuristic, pass `summarize_by=` explicitly.** The heuristic only recognizes `new_*` (a flow), `n_*` and `cum_*` (stocks), and `*prevalence` (a ratio); any other name needs `kind=` (Starsim warns otherwise). Either set `kind='flow'|'stock'|'ratio'` (or `summarize_by='sum'|'mean'|'last'`) on the Result at creation time (preferred — the decision travels with the data), or pass it into `resample()` at the call site.
 
 4. **Never hand-roll aggregation over sim results.** If the code you are about to write contains `df.groupby(…)[<result_col>].mean()` or `.sum()`, stop and use one of the above instead. The only legitimate exception is a genuinely custom denominator that no method covers — and even then, aggregate the numerator and denominator separately using the correct per-Result method, then divide. Do not compute per-capita rates by summing a stock.
 

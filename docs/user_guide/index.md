@@ -10,6 +10,6 @@ This user guide documents what STIsim adds on top of Starsim:
 - **[Analyzers](analyzers.md)** -- Observe and record derived results: coinfection, sex-work transmission, and network/partnership structure.
 - **[Care-seeking](care_seeking.md)** -- Cross-disease care-seeking propensity shared across interventions.
 - **[Connectors](connectors.md)** -- Coinfection interactions between co-circulating diseases.
-- **[Calibration](calibration.md)** -- Fitting model parameters to data with Optuna.
+- **[Calibration](calibration.md)** -- Fitting model parameters to data with `sim.fit()`.
 - **[HIVsim](hivsim.md)** -- The HIV-focused convenience wrapper around `sti.Sim`.
 - **[AI plugin](ai.md)** -- Installing and using `stisim.ai`, the Claude Code plugin for STIsim/HIVsim research.

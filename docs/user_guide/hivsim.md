@@ -21,7 +21,7 @@ When you create `hivsim.Sim()` with no arguments, you get an HIV-focused simulat
 Compared to `sti.Sim`, HIVsim:
 
 - Always includes HIV first in the disease list.
-- Splits parameter passing: any parameter belonging to `HIVPars` is routed to the HIV module, anything else goes to the sim.
+- Splits parameter passing: any parameter of `sti.HIV` is routed to the HIV module, anything else goes to the sim.
 - Provides a `demo()` helper for runnable examples.
 
 ## Quick start
@@ -36,7 +36,7 @@ sim.plot('hiv', annualize=True)
 
 ## Routing parameters to HIV vs the sim
 
-Any keyword argument that matches a key in `sti.HIVPars()` is routed to HIV; the rest are passed to `sti.Sim`. To pass them explicitly:
+Any keyword argument that matches a parameter of `sti.HIV()` is routed to HIV; the rest are passed to `sti.Sim`. To pass them explicitly:
 
 ```python
 sim = hivsim.Sim(

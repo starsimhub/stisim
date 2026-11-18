@@ -9,11 +9,11 @@ import sciris as sc
 import hivsim
 
 
-def test_msm_network(n_agents=500):
+def test_msm_network(n_agents=2000): # 500 agents gave no infections for some seeds, on Starsim 3 too
     """ Test MSM HIV transmission via AgeMatchedMSM network """
     hiv = sti.HIV(beta_m2m=0.1, init_prev=0.05)
-    pregnancy = ss.Pregnancy(fertility_rate=10)
-    death = ss.Deaths(death_rate=10)
+    pregnancy = ss.Pregnancy(fertility_rate=0.01)
+    death = ss.Deaths(death_rate=0.01)
     msm = sti.AgeMatchedMSM(p_msm=ss.bernoulli(p=0.3))
     sim = sti.Sim(
         start=1990,
@@ -141,15 +141,15 @@ def test_partner_seeking_rates():
     # effect well above noise. Note each sim needs its own analyzer instance.
     low_p_pair_form  = sti.StructuredSexual(pars={'p_pair_form': ss.bernoulli(p=0.1)})
     high_p_pair_form = sti.StructuredSexual(pars={'p_pair_form': ss.bernoulli(p=0.9)})
-    pregnancy = ss.Pregnancy(fertility_rate=10)
-    death = ss.Deaths(death_rate=10)
+    pregnancy = ss.Pregnancy(fertility_rate=0.01)
+    death = ss.Deaths(death_rate=0.01)
 
     kw = dict(demographics=[death, pregnancy], stop=2040, n_agents=1000, rand_seed=0)
     s1 = sti.Sim(networks=[low_p_pair_form],  analyzers=[sti.TimeBetweenRelationships()], **kw)
     s2 = sti.Sim(networks=[high_p_pair_form], analyzers=[sti.TimeBetweenRelationships()], **kw)
 
     # Run the simulation
-    ss.parallel(s1, s2, debug=True)
+    ss.parallel(s1, s2, workers=1)
 
     # compute the mean time between relationships for both sims, excluding the time until first relationship because some agents
     # take a long time to get their initial pairing, and some never do. This effect is magnified in higher probability
@@ -186,6 +186,15 @@ def test_debut_age():
     assert np.all(s1.analyzers.debutage.prop_active_m[0] >= s2.analyzers.debutage.prop_active_m[0]), "Proportion of males active should be higher in default network than in late debut network at any given age"
 
 
+def test_debut_age_cohorts():
+    """ DebutAge with given cohort_starts """
+    analyzer = sti.DebutAge(cohort_starts=[1990, 1995])
+    sim = sti.Sim(n_agents=500, start=1990, dur=30, networks=sti.StructuredSexual(), analyzers=analyzer, verbose=0)
+    sim.run()
+    assert sim.analyzers.debutage.prop_active_f.shape == (2, 19)
+    return sim
+
+
 def test_shorter_sw():
     """ Shorter SW participation window → fewer HIV transmissions attributable to FSW """
     # rand_seed=1 draws zero FSW-sourced transmissions from the small FSW pool
@@ -209,7 +218,7 @@ def test_match_pairs_refactor_preserves_output():
     import numpy as np
     import starsim as ss
     import stisim as sti
-    sim = ss.Sim(n_agents=2_000, networks=sti.StructuredSexual(), diseases='sis',
+    sim = ss.Sim(n_agents=2_000, networks=sti.StructuredSexual(), diseases=ss.SIS(beta=ss.peract(0.05)),
                  start='2000-01-01', stop='2001-01-01', rand_seed=42)
     sim.init()
     net = sim.networks.structuredsexual
@@ -250,7 +259,7 @@ def test_decrement_partners_duplicate_edges():
     p2 = ss.uids([1, 2])
     n = len(p1)
     net.append(
-        p1=p1, p2=p2, beta=np.ones(n), condoms=np.zeros(n), dur=np.ones(n),
+        p1=p1, p2=p2, weight=np.ones(n), condoms=np.zeros(n), dur=np.ones(n),
         acts=np.ones(n), age_p1=np.zeros(n), age_p2=np.zeros(n),
         edge_type=np.full(n, net.edge_types['stable'], dtype=float),
         ti_formed=np.zeros(n, dtype=int),
@@ -306,6 +315,7 @@ if __name__ == '__main__':
     test_relationship_duration()
     test_partner_seeking_rates()
     test_debut_age()
+    test_debut_age_cohorts()
     test_shorter_sw()
     test_match_pairs_refactor_preserves_output()
     test_decrement_partners_duplicate_edges()

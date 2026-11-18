@@ -28,6 +28,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import sciris as sc
+import starsim as ss
 import stisim as sti
 import sys
 
@@ -73,7 +74,7 @@ def _run_age_gap_sim(target_age_gap, seed, n_agents=N_AGENTS, dur=DUR,
                    dur=dur, rand_seed=seed)
     sim.run()
     nw = sim.networks.mfnetwork
-    taper_start = float(nw.pars.f_partnership_taper_cut) - float(nw.pars._f_partnership_taper_offset)
+    taper_start = float(nw.pars.f_partnership_taper_cut) - float(nw.f_partnership_taper_offset)
     loose_bin_lo = math.ceil(taper_start / 5) * 5
     return sim, sim.analyzers.agegapwindowanalyzer.get_first_appearance(), loose_bin_lo
 
@@ -238,7 +239,7 @@ def test_mfnetwork_taper_kwargs(n_agents=N_AGENTS, dur=DUR, target_age_gap=5,
     # --- Baseline: default kwargs ------------------------------------------
     nw_def, ages_def = _run()
     cut_def = float(nw_def.pars.f_partnership_taper_cut)
-    offset_def = float(nw_def.pars._f_partnership_taper_offset)
+    offset_def = float(nw_def.f_partnership_taper_offset)
     n_above_def = int((ages_def >= cut_def).sum())
     n_below_def = int((ages_def < cut_def).sum())
     n_in_taper_def = int(((ages_def >= cut_def - offset_def) &

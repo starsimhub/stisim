@@ -230,7 +230,7 @@ def logn_percentiles_to_pars(x1, p1, x2, p2):
     of the underlying normal) and scale (``exp`` of its mean) parameters
     used by ``scipy.stats.lognorm``.
 
-    To convert to the ``(mean, std)`` form used by ``ss.lognorm_ex``::
+    To convert to the ``(mean, std)`` form used by ``ss.lognormal``::
 
         s, scale = logn_percentiles_to_pars(x1, p1, x2, p2)
         mean = scale * np.exp(s ** 2 / 2)

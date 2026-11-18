@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) and other agents whe
 
 ## Overview
 
-STIsim is an agent-based modeling framework for co-circulating sexually transmitted infections, built on [Starsim](https://docs.starsim.org) (`starsim>=3.6.0`). Nearly every class subclasses a Starsim base (`ss.Sim`, `ss.Infection`, `ss.SexualNetwork`, `ss.Intervention`, `ss.Connector`, `ss.Pars`), so Starsim semantics (module lifecycle, `ss.Arr` states, UIDs, time/rate types like `ss.years`/`ss.permonth`, results) apply throughout. Convention: `import stisim as sti`, `import starsim as ss`, `import sciris as sc`.
+STIsim is an agent-based modeling framework for co-circulating sexually transmitted infections, built on [Starsim](https://docs.starsim.org) (`starsim>=4.0.0`). Nearly every class subclasses a Starsim base (`ss.Sim`, `ss.Infection`, `ss.SexualNetwork`, `ss.Intervention`, `ss.Connector`, `ss.Pars`), so Starsim semantics (module lifecycle, `ss.Arr` states, UIDs, time/rate types like `ss.years`/`ss.permonth`, results) apply throughout. Convention: `import stisim as sti`, `import starsim as ss`, `import sciris as sc`.
 
 The repo ships three installable packages: `stisim` (the library), `hivsim` (a thin HIV-defaults wrapper), and `hivsim_examples` (runnable example sims plus Zimbabwe CSV data).
 
@@ -43,11 +43,11 @@ pytest test_*.py -k hiv -v              # Pattern match
 
 ### Diseases (`stisim/diseases/`)
 
-`BaseSTI(ss.Infection)` in `sti.py` is the common base; `SEIS(BaseSTI)` is the template for bacterial STIs (chlamydia, gonorrhea, trichomoniasis). HIV, syphilis and BV subclass `BaseSTI` directly with their own natural history. Each disease has a companion `*Pars` class (`BaseSTIPars` → `STIPars` → disease-specific). Transmission is expressed per network through `BaseSTI.validate_beta`, which maps `beta_m2f` (+ `rel_beta_f2m`) → `structuredsexual`, `beta_m2c` → `maternal`, `beta_breastfeed` → `breastfeeding`, `beta_m2m` → `msm`. Network *names* therefore matter: a custom network needs one of those names for these pars to apply. Results are age/sex stratified by default; `age_bins=None` / `sex_keys=None` disable stratification.
+The diseases are declared (Starsim's `ss.Disease`: states and transitions), with the parts that are not states and transitions written as code in the same class (e.g. HIV's CD4 count, syphilis's serology, BV's risk factors). `SEIS` in `sti.py` is the template for bacterial STIs (chlamydia, gonorrhea, trichomoniasis), which pass their defaults to it; HIV, syphilis, BV and GUD declare their own. `STIResults` in `sti.py` gives them STIsim's results. Transmission is a beta per network, by name (`sti.sexual_beta()`): `beta_m2f` (+ `rel_beta_f2m`) per act on the sexual networks between men and women (`sti.hetero_networks`: `structuredsexual`, `mfnetwork`, `swnetwork`, and `sexualnet`/`sexualnetwork`), `beta_m2m` on `msm`, and `beta_m2c` (and HIV's `beta_breastfeed`) as rates per month on `maternalnet` (`breastfeedingnet`). Network *names* therefore matter: a custom network needs one of those names for these pars to apply. Results are age/sex stratified by default; `age_bins=None` / `sex_keys=None` disable stratification.
 
 ### Networks (`stisim/networks/`)
 
-`BaseNetwork(ss.SexualNetwork)` → `MFNetwork` → `StructuredSexual` (the default: risk groups, partnership types, sex work, debut ages). Partner matching algorithms live in `matchers.py` and are pluggable. MSM networks are in `msm.py`.
+`BaseNetwork(ss.SexualNet)` → `MFNetwork` → `StructuredSexual` (the default: risk groups, partnership types, sex work, debut ages). Partner matching algorithms live in `matchers.py` and are pluggable. MSM networks are in `msm.py`.
 
 ### Interventions (`stisim/interventions/`)
 
