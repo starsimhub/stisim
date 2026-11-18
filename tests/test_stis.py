@@ -230,3 +230,30 @@ if __name__ == '__main__':
     test_optional_stratification()
     test_bv()
     test_bv(include_hiv=True)
+
+
+def test_simplebv_seeks_care_once_per_episode():
+    """
+    Untreated SimpleBV: each infection episode seeks care at most once.
+    Regression: seeking_care was aliased before being cleared, so ti_seeks_care
+    was never reset and infected women sought care every step until clearance.
+    """
+    class CareLog(ss.Analyzer):
+        def init_results(self):
+            super().init_results()
+            self.seeks = np.zeros(len(self.sim.people.uid.raw))
+            self.episodes = np.zeros(len(self.sim.people.uid.raw))
+
+        def step(self):
+            bv = self.sim.diseases.bv
+            self.seeks[(bv.ti_seeks_care == self.ti).uids] += 1
+            self.episodes[(bv.ti_infected == self.ti).uids] += 1
+
+    sim = sti.Sim(diseases=[sti.SimpleBV()], analyzers=[CareLog()], n_agents=2000,
+                  start=2000, dur=3, verbose=-1)
+    sim.run()
+    log = sim.analyzers.carelog
+    assert log.seeks.sum() > 0, 'No BV care seeking at all'
+    assert np.all(log.seeks <= log.episodes + 1), \
+        f'Max {log.seeks.max():.0f} care-seeking events for one woman vs {log.episodes.max():.0f} episodes'
+    return sim
