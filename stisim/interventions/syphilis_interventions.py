@@ -127,7 +127,7 @@ class SyphTx(STITreatment):
         # Successfully treated fetuses who were infected will be born without complications; for the others, the treatment was unnecessary
         syph = sim.diseases.syph
         cured = treat_uids[(syph.fetal & ~syph.fetus_normal)[treat_uids]]
-        syph.move(cured, syph.fetus_normal)
+        syph.move(syph.fetus_normal, uids=cured)
         sim.diseases.syph.results['new_fetus_treated_success'][self.ti] += len(cured)
         sim.diseases.syph.results['new_fetus_treated_unnecessary'][self.ti] -= len(cured)
 
@@ -175,7 +175,7 @@ class NewbornTreatment(STITreatment):
     def change_states(self, disease, treat_succ):
         """ Cure congenital cases: they are susceptible """
         d = self.sim.diseases[disease]
-        d.move(treat_succ, d.susceptible)
+        d.move(d.susceptible, uids=treat_succ)
 
     def administer(self, sim, uids, disease, return_format='dict'):
         """ Administer treatment to newborns """

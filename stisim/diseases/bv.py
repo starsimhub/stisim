@@ -258,8 +258,8 @@ class BV(ss.Disease, STIResults):
     def clear_infection(self, uids):
         """ Cure people (e.g. treated): women return to the CST that follows CST 4, and men are no longer colonized """
         to_cst1 = uids[self.p_clear_to(self.sim, uids, cst=1)]
-        self.move(to_cst1, self.cst1)
-        self.move(uids.remove(to_cst1), self.cst3, self.susceptible)
+        self.move(self.cst1, uids=to_cst1)
+        self.move(self.cst3, self.susceptible, uids=uids.remove(to_cst1))
         return
 
     def init_post(self):

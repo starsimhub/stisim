@@ -315,7 +315,7 @@ class Syphilis(ss.Disease, STIResults):
 
     def clear_infection(self, uids):
         """ Cure people (e.g. treated): they are susceptible again, and their serology stays as it is """
-        self.move(uids, self.susceptible)
+        self.move(self.susceptible, uids=uids)
         return
 
     def init_post(self):

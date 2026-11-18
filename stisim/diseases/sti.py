@@ -410,7 +410,7 @@ class SEIS(ss.Disease, STIResults):
 
     def clear_infection(self, uids):
         """ Cure people (e.g. treated): they are susceptible again """
-        self.move(uids, self.susceptible)
+        self.move(self.susceptible, uids=uids)
         return
 
     def init_results(self):

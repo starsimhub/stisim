@@ -378,7 +378,7 @@ class HIV(ss.Disease, STIResults):
         for state, start, end in [('acute', began, to_latent), ('latent', to_latent, to_falling), ('falling', to_falling, to_zero)]:
             here = (start <= now) & ((end > now) | (state == 'falling')) # Those whose course ended before the start are due to die in its first step
             if here.any():
-                self.move(uids[here], self[state])
+                self.move(self[state], uids=uids[here])
                 self[f'ti_{state}'].raw[uids[here]] = start[here] # [PROPOSAL ST-E] ss.move(..., since=): when they entered it, and when they leave it (by now at the latest)
                 self[f'ti_exit_{state}'].raw[uids[here]] = np.maximum(end[here], now)
         return
@@ -564,8 +564,8 @@ class HIV(ss.Disease, STIResults):
             if p_effective_art is not None:
                 p.p_effective_art.set(p=p_effective_art)
             effective = p.p_effective_art.filter(uids)
-        self.move(effective, self.on_effective_art)
-        self.move(uids.remove(effective), self.on_nonsuppressive_art)
+        self.move(self.on_effective_art, uids=effective)
+        self.move(self.on_nonsuppressive_art, uids=uids.remove(effective))
 
         # When they will stop
         dur_on_art = p.dur_on_art.rvs(uids) * p.rel_dur_on_art
@@ -589,16 +589,16 @@ class HIV(ss.Disease, STIResults):
         """ Take agents off ART (by default, those whose time on it is up); see post_art_dwell() for what follows """
         if uids is None:
             uids = (self.on_art & (self.ti_stop_art <= self.ti)).uids
-        self.move(ss.uids(uids), self.art_discontinued)
+        self.move(self.art_discontinued, uids=ss.uids(uids))
         return
 
     def set_suppression(self, uids, effective):
         """ Make agents on ART virally suppressed (effective=True), or not """
         uids = ss.uids(uids)
         if effective:
-            self.move(uids[self.on_nonsuppressive_art[uids]], self.on_effective_art)
+            self.move(self.on_effective_art, uids=uids[self.on_nonsuppressive_art[uids]])
         else:
-            self.move(uids[self.on_effective_art[uids]], self.on_nonsuppressive_art)
+            self.move(self.on_nonsuppressive_art, uids=uids[self.on_effective_art[uids]])
         return
 
     def start_prep(self, uids, eff, dur, source_id, adh=1.0):
