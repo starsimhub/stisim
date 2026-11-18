@@ -2,6 +2,14 @@
 
 All notable changes to the codebase are documented in this file.
 
+## Unreleased
+
+### Auto-added connectors were never added
+
+Since 1.5.5, `sti.Sim` added no coinfection connectors unless you supplied them. With no `connectors=` argument, the default empty `ndict` counted as user-supplied. Connectors are now auto-added for each registered disease pair as documented, so **sims with HIV plus syphilis, NG, CT, TV or BV now include `hiv_*` connectors at their default parameters, and their results will change.** Pass `connectors=False` to turn auto-adding off.
+
+Auto-adding also picked the CST-based `hiv_bv` for `SimpleBV`, which shares the module name `bv`, and that crashed. `SimpleBV` now gets `hiv_simplebv`, which is exported as `sti.hiv_simplebv`.
+
 ## Version 1.7.2 (2026-11-01)
 
 Require Starsim below 4 (`starsim<4`), since this version does not run on Starsim 4.
