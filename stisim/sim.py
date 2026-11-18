@@ -142,7 +142,7 @@ class Sim(ss.Sim):
             self.pars['start' if 'stop' in routed.sim and 'start' not in routed.sim else 'stop'] = None
 
         self.sti_pars = sc.mergedicts(routed.sti, nested_sti, _copy=True)
-        self.nw_pars  = sc.mergedicts(sti.NetworkPars(), routed.nw, _copy=True)
+        self.nw_pars  = sc.dcp(dict(routed.nw)) # Only those given: the network has its own defaults
         self.dem_pars = sc.mergedicts(sti.dem_pars(), routed.dem, _copy=True)
 
         # Track user-supplied contributions (excluding defaults) so process_*
@@ -247,7 +247,8 @@ class Sim(ss.Sim):
         Process the network parameters to create network module.
         If networks are provided, they will be used; otherwise, use default networks (usual case)
         """
-        if len(self.pars['networks']) > 0:
+        nets = self.pars['networks']
+        if isinstance(nets, ss.Module) or len(nets) > 0: # A single network, or a list or dict of them (len() of a network is its number of edges, zero before it runs)
             # XOR: user provided network instances AND network pars — refuse to guess.
             if self._user_nw_pars:
                 raise ValueError(

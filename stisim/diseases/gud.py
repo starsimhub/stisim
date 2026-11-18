@@ -19,7 +19,7 @@ class Placeholder(ss.Disease):
     connectors without a full transmission model.
 
     Args:
-        pars (dict): Override default parameters (prevalence, care_seeking).
+        pars (dict): Override default parameters (prevalence).
         name (str): Module name.
         **kwargs: Additional parameters passed to ``update_pars``.
     """
@@ -29,14 +29,10 @@ class Placeholder(ss.Disease):
 
         self.define_pars(
             prevalence=0.1,  # Target prevalance. If None, no automatic infections will be applied
-            care_seeking=ss.bernoulli(p=0.5),
         )
         self.update_pars(pars, **kwargs)
         self.define_states(
             ss.BoolState('symptomatic'),  # Symptomatic
-            ss.FloatArr('ti_symptomatic'),  # Time of active symptoms
-            ss.BoolState('seeking_care'),  # Care seeking
-            ss.FloatArr('ti_seeks_care'),  # Time of active symptoms
         )
         self._prev_dist = ss.bernoulli(p=0)
 

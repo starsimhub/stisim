@@ -45,8 +45,6 @@ class SWPars(ss.Pars):
         self.fsw_shares = ss.bernoulli(p=0.05)         # Lifetime proportion of females ever FSW
         self.client_shares = ss.bernoulli(p=0.12)      # Lifetime proportion of males ever client
         self.sw_seeking_rate = ss.probpermonth(1.0)    # Monthly rate at which clients seek FSWs
-        self.sw_seeking_dist = ss.bernoulli(p=0.5)     # Placeholder; replaced by dt-adjusted sw_seeking_rate
-        self.sw_beta = 1
         self.sw_intensity = ss.random()                # FSW may work with varying intensity each step
 
         # Per-agent age window — placeholders; tune to context
@@ -80,6 +78,7 @@ class SWNetwork(BaseNetwork):
         self.update_pars(pars, **kwargs)
         self.edge_types = {'sw': 0}
         self.define_states(*_sw_states())
+        self.sw_seeking_dist = ss.bernoulli(p=0.5) # Whether each client seeks a sex worker on this step, from sw_seeking_rate (not a parameter itself)
         return
 
     def set_network_states(self, upper_age=None):
@@ -162,8 +161,8 @@ class SWNetwork(BaseNetwork):
         active_clients = active & self.client
         self.sw_intensity[active_fsw.uids] = self.pars.sw_intensity.rvs(active_fsw.uids)
 
-        self.pars.sw_seeking_dist.pars.p = self.pars.sw_seeking_rate.to_prob()
-        m_looking = self.pars.sw_seeking_dist.filter(active_clients.uids)
+        self.sw_seeking_dist.pars.p = self.pars.sw_seeking_rate.to_prob()
+        m_looking = self.sw_seeking_dist.filter(active_clients.uids)
 
         if len(m_looking) == 0 or len(active_fsw.uids) == 0:
             raise NoPartnersFound()

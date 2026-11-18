@@ -302,7 +302,6 @@ sm = sti.SyndromicManagement(
 | `diseases` | Disease names presenting as the syndrome (e.g. `['ng','ct']`). Passed as names, not module objects. |
 | `cervical_diseases` | Subset checked via the cervical-symptom path. |
 | `treatments` / `outcome_tx_map` | Treatment interventions and the syndrome → treatment routing. |
-| `treat_prob_data` | Probability a symptomatic care-seeker is managed. |
 
 > **Stub** — expand with the symptom-detection logic and a worked discharge example. See [`SymptomaticTesting`](#symptomatictesting) for the test-and-treat variant, and the API reference for [`interventions.base_interventions`](../../api/interventions.base_interventions.qmd).
 

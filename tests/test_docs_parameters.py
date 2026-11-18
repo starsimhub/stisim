@@ -10,16 +10,14 @@ sys.path.insert(0, str(sti.root / 'stisim/ai/plugin/skills/parameter-table/scrip
 import parameter_table
 
 # Internal pars that are placeholders or set at runtime, so are not documented
-internal = {'beta', 'dt', 'include_care', 'dur_post_art', 'p_hiv_death', 'birth_outcome_keys', 'p_spontaneous',
-            '_f_partnership_taper_offset', 'age_diffs', 'dur_dist', 'match_dist', 'p_actually_looking', 'p_hi_risk', 'p_lo_risk'}
-unused_inherited = dict(StructuredSexual={'concurrency', 'debut', 'dur', 'match', 'max_contacts', 'n_contacts', 'participation', 'who'}) # Pars of ss.SexualNet that StructuredSexual inherits but replaces with its own (debut_f/m, the *_conc pars, its own matching)
+internal = {'beta', 'dt', 'include_care', 'p_hiv_death', 'birth_outcome_keys', 'p_spontaneous'}
 
 
 def test_parameter_docs_coverage():
     sc.heading('Every module par is in the user-guide tables, and every documented par exists')
     rows = parameter_table.parse(docs=docs)
     for cls, (undocumented, unknown) in parameter_table.check_coverage(rows, exclude=internal).items():
-        undocumented = [k for k in undocumented if not k.endswith('_dist') and k not in unused_inherited.get(cls, set())]
+        undocumented = [k for k in undocumented if not k.endswith('_dist')]
         assert not undocumented, f'{cls} pars missing from the docs: {undocumented}'
         assert not unknown, f'{cls} pars documented but not in the code: {unknown}'
     return rows

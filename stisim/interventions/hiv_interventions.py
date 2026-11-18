@@ -161,19 +161,17 @@ class InfantHIVTest(HIVTest):
     when the mother tests positive. Fires only at the scheduled timestep.
     A positive result sets ``hiv.diagnosed`` on the infant, enabling ART linkage.
 
+    Every scheduled infant is tested.
+
     Args:
-        test_prob (float): probability of the infant receiving the test once
-                           scheduled (default 1.0 — if scheduled, it happens)
         name, label:       standard
     """
-    def __init__(self, test_prob=1.0, name=None, label=None, **kwargs):
+    def __init__(self, name=None, label=None, **kwargs):
         super().__init__(name=name, label=label, **kwargs)
-        self.test_prob_dist = ss.bernoulli(p=test_prob)
 
     def check_eligibility(self):
         # Only test infants at their scheduled timestep
-        scheduled_now = (self.ti_scheduled == self.ti).uids
-        return self.test_prob_dist.filter(scheduled_now)
+        return (self.ti_scheduled == self.ti).uids
 
 
 class ART(ss.Intervention):

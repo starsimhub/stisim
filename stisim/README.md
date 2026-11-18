@@ -7,7 +7,7 @@ Source for the `stisim` Python package. STIsim extends [Starsim](https://docs.st
 | `sim.py` | The `Sim` class — STIsim's entry point, subclassing `ss.Sim` to wire in default networks, demographics, and connectors. |
 | `parameters.py` | `SimPars` and parameter-handling utilities. |
 | `diseases/` | Disease modules (HIV, syphilis, chlamydia, gonorrhea, trichomoniasis, BV, GUD) and the SEIS template (`SEIS`). See `diseases/README.md`. |
-| `networks.py` | Sexual contact networks: `StructuredSexual`, `PriorPartners`, `AgeMatchedMSM`, `AgeApproxMSM`. |
+| `networks.py` | Sexual contact networks: `StructuredSexual`, `AgeMatchedMSM`, `AgeApproxMSM`. |
 | `interventions/` | Testing, treatment, partner notification, and HIV-specific interventions (ART, VMMC, PrEP). See `interventions/README.md`. |
 | `connectors/` | Coinfection connectors that adjust susceptibility/transmissibility between co-circulating diseases. See `connectors/README.md`. |
 | `analyzers.py` | Result-tracking analyzers (coinfection statistics, sex-worker statistics, etc.). |

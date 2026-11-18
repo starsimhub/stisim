@@ -7,6 +7,7 @@ import numpy as np
 import starsim as ss
 import sciris as sc
 import stisim.utils as ut
+from stisim.networks.base import BaseNetwork
 from stisim.diseases.sti import STIResults, sexual_beta, default_age_bins, default_sex_keys
 
 __all__ = ['BV']
@@ -90,8 +91,7 @@ class BV(ss.Disease, STIResults):
             spontaneous_clearance = sc.objdict(stable_cst1=1, stable_cst3=3, stable_cst4=3), # The CST reached when CST 4 clears, by stable CST: https://pmc.ncbi.nlm.nih.gov/articles/PMC9387550/
             p_cst_change = sc.objdict(cst1=0.1, cst3=0.05), # Probability per month of moving from CST 1 to 3, and from 3 to 4
             rr_stable_cst1 = 0.1, # Relative risk of a CST change for those with stable CST 1
-            rr_stable_cst3 = 1, # ... stable CST 3 (the reference)
-            rr_stable_cst4 = 2, # ... stable CST 4
+            rr_stable_cst4 = 2, # ... stable CST 4 (stable CST 3 is the reference)
             p_douching = ss.bernoulli(p=0.64), # Nigeria (https://www.sciencedirect.com/science/article/abs/pii/S1083318820302400), Ghana (https://pmc.ncbi.nlm.nih.gov/articles/PMC6368746/)
             p_poor_menstrual_hygiene = ss.bernoulli(p=0.55), # https://pmc.ncbi.nlm.nih.gov/articles/PMC9817285/
             n_partners = ss.poisson(mean=0.05), # Number of current partners
@@ -219,7 +219,7 @@ class BV(ss.Disease, STIResults):
         risk[self.poor_menstrual_hygiene.uids] *= p.rr_poor_menstrual_hygiene
         if p.count_partners: # Concurrency from the sexual network
             for net in self.sim.networks.values():
-                if isinstance(net, ss.SexualNet):
+                if isinstance(net, (ss.SexualNet, BaseNetwork)):
                     female = self.sim.people.female.uids
                     self.concurrency[female] = net.partners[female] > 1
         risk[self.concurrency.uids] *= p.rr_concurrency
@@ -229,7 +229,7 @@ class BV(ss.Disease, STIResults):
         # Women in CST 3 with an uncircumcised partner
         uncirc = (self.sim.people.male & ~self.circumcised).uids
         for net in self.sim.networks.values():
-            if isinstance(net, ss.SexualNet):
+            if isinstance(net, (ss.SexualNet, BaseNetwork)):
                 partners = ss.uids(net.find_contacts(uncirc)) & self.cst3.uids
                 risk[partners] *= p.rr_uncircumcised
 

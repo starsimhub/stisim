@@ -38,18 +38,14 @@ class SyphTx(STITreatment):
 
     Args:
         pars (dict): Parameter overrides (e.g. ``treat_eff``, ``fetus_treat_eff``).
-        max_capacity (int): Maximum number of treatments per timestep.
-        years (list): Calendar years during which the intervention is active.
         eligibility (func): Function returning eligible UIDs.
         name (str): Intervention name.
         **kwargs: Additional parameter overrides.
     """
 
-    def __init__(self, pars=None, max_capacity=None, years=None, eligibility=None, name=None, **kwargs):
-        super().__init__(diseases='syph', name=name, eligibility=eligibility, years=years, max_capacity=max_capacity)
+    def __init__(self, pars=None, eligibility=None, name=None, **kwargs):
+        super().__init__(diseases='syph', name=name, eligibility=eligibility)
         self.define_pars(
-            rel_treat_prob=1,
-            treat_prob=ss.bernoulli(p=1),
             treat_eff=ss.bernoulli(p=.98),
             fetus_treat_eff=ss.bernoulli(p=.98),
             fetus_age_cutoff_treat_eff=-0.25,  # Reduced treatment efficacy for fetuses in the last trimester
@@ -153,25 +149,24 @@ class SyphTx(STITreatment):
         return treat_uids
 
 
-class NewbornTreatment(SyphTx):
+class NewbornTreatment(STITreatment):
     """Treatment for congenital syphilis in newborns.
 
-    Extends :class:`SyphTx` to treat newborns diagnosed with congenital
+    Treats newborns diagnosed with congenital
     syphilis. Successful treatment clears the congenital state and resets
     the birth outcome to normal.
 
     Args:
         pars (dict): Parameter overrides.
         eligibility (func): Function returning eligible newborn UIDs.
-        max_capacity (int): Maximum treatments per timestep.
-        years (list): Calendar years during which the intervention is active.
         name (str): Intervention name.
         **kwargs: Additional parameter overrides.
     """
 
-    def __init__(self, pars=None, eligibility=None, max_capacity=None, years=None, name=None, *args, **kwargs):
-        super().__init__(name=name, eligibility=eligibility, max_capacity=max_capacity, years=years, *args)
+    def __init__(self, pars=None, eligibility=None, name=None, *args, **kwargs):
+        super().__init__(diseases='syph', name=name, eligibility=eligibility, *args)
         self.define_pars(
+            treat_eff=ss.bernoulli(p=.98),
             by_sex=False,
         )
         self.update_pars(pars, **kwargs)
@@ -397,8 +392,13 @@ class NewbornSyphTest(SyphTest):
 
     Administers scheduled tests to newborns whose mothers tested positive
     for syphilis at any point during pregnancy. Tests are only given at the
-    scheduled timestep, filtered by acceptance probability.
+    scheduled timestep, filtered by acceptance probability. Each newborn is
+    tested once, so the probability is not dt-scaled (``dt_scale=False``).
     """
+    def __init__(self, *args, pars=None, **kwargs):
+        pars = sc.mergedicts(dict(dt_scale=False), pars)
+        super().__init__(*args, pars=pars, **kwargs)
+        return
 
     def get_testers(self, sim):
         # For newborn testing, only administer scheduled tests, and account for probability of testing at this point

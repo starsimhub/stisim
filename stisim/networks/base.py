@@ -17,10 +17,9 @@ class NoPartnersFound(Exception):
 
 
 class BasePars(ss.Pars):
-    """Defaults shared by every sexual network (debut, acts, condom data, recall_prior)."""
+    """Defaults shared by every sexual network (debut, acts, condom data)."""
     def __init__(self, **kwargs):
         super().__init__()
-        self.recall_prior = False
         self.debut_f = ss.lognormal(20, 3)
         self.debut_m = ss.lognormal(21, 3)
         self.acts = ss.lognormal(ss.freqperyear(80), ss.freqperyear(30))
@@ -31,25 +30,28 @@ class BasePars(ss.Pars):
 
 
 class NetworkPars(ss.Pars):
-    """Combined defaults — union of base + MF + SW pars.
+    """The parameters of the default network, :class:`StructuredSexual`, and their defaults.
 
-    Used by :class:`sti.Sim` to filter network kwargs into the right bucket.
+    Used by :class:`sti.Sim` to route network kwargs into the right bucket.
 
     Args:
         **kwargs: Any parameter name-value pairs to override defaults.
     """
     def __init__(self, **kwargs):
         super().__init__()
-        from .mf import MFPars
-        from .fsw import SWPars
-        for src in (BasePars(), MFPars(), SWPars()):
-            self.update(dict(src), create=True)
+        from .layered_networks import StructuredSexual
+        self.update(dict(StructuredSexual().pars), create=True)
         self.update(kwargs)
         return
 
 
-class BaseNetwork(ss.SexualNet):
+class BaseNetwork(ss.DynamicNetwork):
     """Shared infrastructure for the heterosexual and sex-work networks.
+
+    Subclasses ``ss.DynamicNetwork``, not ``ss.SexualNet``: STIsim forms its
+    partnerships in its own ``step()``, so it owns debut (``debut_f``/``debut_m``)
+    and participation rather than inheriting ``ss.SexualNet``'s, which it would
+    never use.
 
     Provides the common edge meta layout, condom-data processing, debut
     setting, end-of-step edge accounting, and the orchestrating ``step``
@@ -66,8 +68,11 @@ class BaseNetwork(ss.SexualNet):
     records_all_expirations = True
 
     def __init__(self, name=None, record_expired: bool = False, between='mf', **kwargs):
-        super().__init__(name=name, between=between)
+        super().__init__(name=name)
+        self.set_between(between)
+        self.meta.acts = ss_float
         self.meta.condoms = ss_float
+        self.edge_defaults['condoms'] = 0.0
         self.meta.age_p1 = ss_float
         self.meta.age_p2 = ss_float
         self.meta.edge_type = ss_float
@@ -84,6 +89,27 @@ class BaseNetwork(ss.SexualNet):
         )
         self.record_expired = record_expired
         self.expired_this_loop = {}  # only utilized if self.record_expired is True
+
+    def update_pars(self, pars=None, **kwargs):
+        if 'recall_prior' in kwargs or 'recall_prior' in (pars or {}): # Removed: memory= replaces it
+            raise ValueError('recall_prior= and sti.PriorPartners have been removed: pass memory= to the network instead, e.g. sti.StructuredSexual(memory=ss.years(1))')
+        return super().update_pars(pars, **kwargs)
+
+    def set_between(self, between):
+        """Set who partnerships are between, as ``ss.SexualNet`` does: ``'mf'``, a man and a woman (directions ``m2f`` and ``f2m``), or ``'mm'``, two men (one beta)"""
+        if between == 'mf':
+            self.sides = dict(m='male', f='female')
+        elif between == 'mm':
+            self.sides = None
+        else:
+            errormsg = f'between= of "{self.name}" is "mf" or "mm", not {between!r}'
+            raise ValueError(errormsg)
+        self.between = between
+        return
+
+    def agent_reasons(self, sim):
+        """Partnerships are formed agent by agent, so ``solver='auto'`` runs as agents"""
+        return [ss.modules.Preference(f'"{self.name}" ({type(self).__name__}) forms partnerships between agents')]
 
     @staticmethod
     def process_condom_data(condom_data):
@@ -103,11 +129,7 @@ class BaseNetwork(ss.SexualNet):
 
     def init_pre(self, sim):
         super().init_pre(sim)
-        if self.pars.recall_prior:
-            from .layered_networks import PriorPartners
-            isprior = [isinstance(nw, PriorPartners) for nw in self.sim.networks.values()]
-            if not any(isprior):
-                raise ValueError('PriorPartners network is required if recall_prior is True.')
+        ss.networks.check_acts(self, self.pars.acts)
         # Convert any DataFrame condom_data to dict; smooth-interp time-varying values
         cd = self.pars.condom_data
         if cd is not None and not sc.isnumber(cd):
@@ -128,6 +150,11 @@ class BaseNetwork(ss.SexualNet):
     def set_network_states(self, upper_age=None):
         """Default: only set debut. Subclasses extend with risk groups, sex work, etc."""
         self.set_debut(upper_age=upper_age)
+
+    def active(self, people):
+        """The agents who can have partners, as a boolean array: alive, taking part, and past their debut (and male, for ``between='mm'``)"""
+        active = self.participant & (people.age > self.debut) & people.alive
+        return active & people.male if self.between == 'mm' else active
 
     @property
     def over_debut(self):
@@ -262,6 +289,8 @@ class BaseNetwork(ss.SexualNet):
             analyzers know the expiry data is incomplete and skip the network.
         """
         self._append_expired_relationships(~active)
+        if self.pars.memory is not None: # Remember the partnerships that end, for find_contacts() (see ss.DynamicNetwork)
+            self.remember(self.edges.p1[~active], self.edges.p2[~active])
 
     def remove_uids(self, uids):
         """Record death/removal-driven edge removals before dropping them.
@@ -271,8 +300,8 @@ class BaseNetwork(ss.SexualNet):
         ``self.edges`` directly, bypassing ``end_pairs`` / ``_on_edge_dissolution``.
         When ``record_expired`` is True we append those edges to
         ``expired_this_loop`` first, so analyzers capture death/removal expirations
-        (consumed on the next step, hence ``ti_expired = T+1``). Upstream
-        behavior is otherwise unchanged.
+        (consumed on the next step, hence ``ti_expired = T+1``); with ``memory=``,
+        they are also remembered. Upstream behavior is otherwise unchanged.
 
         The ``super().remove_uids(uids)`` call is required and must be at the end. it performs
         the actual edge removal (slicing the dead/removed agents out of
@@ -281,7 +310,7 @@ class BaseNetwork(ss.SexualNet):
         dead agents' edges in the network, corrupting every downstream step, and putting it first would prevent
         proper accounting of death-terminated relationships.
         """
-        if self.record_expired and len(self.edges.p1) > 0:
+        if (self.record_expired or self.pars.memory is not None) and len(self.edges.p1) > 0:
             removing = np.isin(self.edges.p1, uids) | np.isin(self.edges.p2, uids)
             self._on_edge_dissolution(~removing)
         super().remove_uids(uids)

@@ -221,7 +221,7 @@ class STIResults:
         t = t or self.tally()
         new = t.vals(self.new_infected())
         for skk, skl, attr in self.sex_strata():
-            new_s = new & t.vals(ppl[attr])
+            new_s = new if attr == 'alive' else new & t.vals(ppl[attr]) # Everyone infected in the step, including those who then died in it (who are no longer alive)
             n_new = t.count(new_s)
             n_sus, h_sus = self._susceptible[skk]
             self.results[f'new_infections{skk}'][ti] = n_new

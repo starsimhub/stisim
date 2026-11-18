@@ -188,9 +188,7 @@ class Syphilis(ss.Disease, STIResults):
             eff_condom = 0.0, # Read by the sexual networks (see sti.BaseNetwork.net_beta())
             rel_trans_latent_half_life = ss.years(1),
             p_symp_primary = [0.3, 0.5], # [female, male]: primary chancres are internal in women (less visible), external in men; ~60% go unnoticed
-            p_symp_primary_dist = ss.bernoulli(p=0), # Set for each person
             p_symp_secondary = [0.85, 0.85], # A disseminated rash, visible in both sexes
-            p_symp_secondary_dist = ss.bernoulli(p=0),
             time_to_undetectable = ss.lognormal(ss.years(15), ss.years(5)), # From late latent until the non-treponemal titre is below detection
             dur_to_trep = ss.normal(ss.weeks(3), ss.weeks(1)), # Window period: from infection until treponemal antibodies are detected
             p_trep_persists = ss.bernoulli(p=0.80), # The other 20% sero-revert eventually
@@ -214,6 +212,8 @@ class Syphilis(ss.Disease, STIResults):
         )
         self.define_pars(**code_pars, **delays)
         self.pars.update(given)
+        self.chancre_dist = ss.bernoulli(p=0) # Whether the primary chancre is visible; set for each person from p_symp_primary (see set_infection())
+        self.rash_dist = ss.bernoulli(p=0) # Whether the secondary rash is noticed; set for each person from p_symp_secondary (see after_moves())
 
         # Not stages: serology and visible symptoms, each person's own, updated at the events of the stages (see step_state())
         self.define_states(
@@ -336,8 +336,8 @@ class Syphilis(ss.Disease, STIResults):
         self.ti_trep_end[reverters] = self.ti_trep_start[reverters] + rr(p.time_to_trep_revert.rvs(reverters))
 
         # Whether the primary chancre will be at a visible site
-        p.p_symp_primary_dist.set(self.by_sex(p.p_symp_primary, uids))
-        self.chancre_visible[uids] = p.p_symp_primary_dist.rvs(uids)
+        self.chancre_dist.set(self.by_sex(p.p_symp_primary, uids))
+        self.chancre_visible[uids] = self.chancre_dist.rvs(uids)
         return
 
     def step_state(self):
@@ -366,8 +366,8 @@ class Syphilis(ss.Disease, STIResults):
         # Entering the secondary stage (from primary, or a relapse): the non-treponemal titre rises, and the rash may be noticed
         secondary = self.secondary_onset.uids | self.reactivation.uids
         self.nontrep[secondary] = True
-        p.p_symp_secondary_dist.set(self.by_sex(p.p_symp_secondary, secondary))
-        self.rash_visible[secondary] = p.p_symp_secondary_dist.rvs(secondary)
+        self.rash_dist.set(self.by_sex(p.p_symp_secondary, secondary))
+        self.rash_visible[secondary] = self.rash_dist.rvs(secondary)
 
         # Entering the latent stage: the rash clears, and infectiousness begins to decay
         latent = self.latency.uids

@@ -276,7 +276,7 @@ class SymptomaticTesting(STITest):
     """
 
     def __init__(self, pars=None, treatments=None, diseases=None, disease_treatment_map=None, negative_treatments=None,
-                treat_prob_data=None, years=None, start=None, stop=None, eligibility=None, name=None, label=None, **kwargs):
+                years=None, start=None, stop=None, eligibility=None, name=None, label=None, **kwargs):
         super().__init__(years=years, start=start, stop=stop, eligibility=eligibility, name=name, label=label)
         self.define_pars(
             sens=dict(  # VDS: treat-all approach. UDS: treat most for NG+CT, rarely treat for TV
@@ -289,27 +289,27 @@ class SymptomaticTesting(STITest):
                 ct=[0.95, 0.95],
                 tv=[0.95, 0.95],
             ),
-            sens_dist=ss.bernoulli(p=0),
-            spec_dist=ss.bernoulli(p=0),
             p_mtnz=ss.bernoulli(p=0),
             dt_scale=False,
         )
         self.update_pars(pars, **kwargs)
 
+        # Test outcomes: probabilities are set per agent each step from sens and spec
+        self.sens_dist = ss.bernoulli(p=0)
+        self.spec_dist = ss.bernoulli(p=0)
+
         # Store treatments and diseases (diseases are names, resolved in init_pre)
         self.treatments = sc.tolist(treatments)
         self.diseases = sc.tolist(diseases)
         if disease_treatment_map is None:
-            disease_treatment_map = {t.disease: t for t in self.treatments}
+            disease_treatment_map = {d: t for t in self.treatments for d in t.diseases}
         self.disease_treatment_map = disease_treatment_map
-        self.negative_treatments = negative_treatments
+        self.negative_treatments = sc.tolist(negative_treatments)
 
         self.define_states(
             ss.FloatArr('ti_referred'),
             ss.FloatArr('ti_dismissed'),
         )
-        self.treat_prob_data = treat_prob_data
-        self.treat_prob = None
         self.treated_by_uid = None
         self.n_treatments = 0
 
@@ -322,8 +322,6 @@ class SymptomaticTesting(STITest):
         # the sim never steps — state reads and result writes below would hit
         # dead copies.
         self.diseases = [sim.diseases[name] for name in self.diseases]
-        if self.treat_prob_data is not None:
-            self.treat_prob = sc.smoothinterp(sim.yearvec, self.treat_prob_data.year.values, self.treat_prob_data.treat_prob.values, smoothness=0)
         return
 
     def init_results(self):
@@ -344,12 +342,12 @@ class SymptomaticTesting(STITest):
         ti = self.ti
 
         # If this intervention has stopped, reset eligibility for all associated treatments
-        if sim.now >= self.stop:
+        if self.t.now('year') >= self.stop:
             for treatment in self.treatments:
                 treatment.eligibility = ss.uids()  # Reset
             return
 
-        if sim.now >= self.start:
+        if self.t.now('year') >= self.start:
 
             if uids is None:
                 uids = self.check_eligibility()
@@ -385,10 +383,10 @@ class SymptomaticTesting(STITest):
                         p_spec[sus_m] = spec[1]
 
                     # Apply the test
-                    self.pars.sens_dist.set(p_sens)
-                    self.pars.spec_dist.set(p_spec)
-                    true_pos, false_neg = self.pars.sens_dist.split(uids[treatable])
-                    true_neg, false_pos = self.pars.spec_dist.split(uids[susceptible])
+                    self.sens_dist.set(p_sens)
+                    self.spec_dist.set(p_spec)
+                    true_pos, false_neg = self.sens_dist.split(uids[treatable])
+                    true_neg, false_pos = self.spec_dist.split(uids[susceptible])
                     treat_uids = true_pos | false_pos
                     do_treat = np.array([True if u in treat_uids else False for u in uids])
 
@@ -398,7 +396,7 @@ class SymptomaticTesting(STITest):
                     disease.results['new_true_neg'][ti] += len(true_neg)
                     disease.results['new_false_neg'][ti] += len(false_neg)
 
-                    tx = self.disease_treatment_map[disease.name]
+                    tx = self.disease_treatment_map.get(disease.name)
                     if tx is not None:
                         tx_ind = self.treatments.index(tx)
                         treated_by_uid[:, tx_ind] = treated_by_uid[:, tx_ind] | do_treat
@@ -474,7 +472,6 @@ class SyndromicManagement(STITest):
                                   any disease named 'ng' or 'ct' in ``diseases``
         outcome_tx_map (dict):    maps outcome name → list of treatment modules;
                                   auto-constructed from ``treatments`` if omitted
-        treat_prob_data:          unused; reserved for future time-varying tx prob
         years, start, stop, eligibility, name, label: passed to STITest
 
     Examples::
@@ -488,7 +485,7 @@ class SyndromicManagement(STITest):
 
     def __init__(self, pars=None, treatments=None, diseases=None,
                  cervical_diseases=None, outcome_tx_map=None,
-                 treat_prob_data=None, years=None, start=None, stop=None,
+                 years=None, start=None, stop=None,
                  eligibility=None, name=None, label=None, **kwargs):
         super().__init__(years=years, start=start, stop=stop, eligibility=eligibility,
                          name=name, label=label)
@@ -505,17 +502,17 @@ class SyndromicManagement(STITest):
                 mtnz=[0.20, 0.00],
                 none=[0.30, 0.15],
             ),
-            tx_cerv_f=ss.choice(a=4),
-            tx_cerv_m=ss.choice(a=4),
-            tx_noncerv_f=ss.choice(a=4),
-            tx_noncerv_m=ss.choice(a=4),
             dt_scale=False,
         )
         self.update_pars(pars, **kwargs)
         self.fvals_cerv    = [v[0] for v in self.pars.tx_mix_cerv.values()]
         self.mvals_cerv    = [v[1] for v in self.pars.tx_mix_cerv.values()]
         self.fvals_noncerv = [v[0] for v in self.pars.tx_mix_noncerv.values()]
-        self.mvals_noncerv = [v[1] for v in self.pars.tx_mix_noncerv.values()]
+
+        # Treatment outcomes: probabilities are set in init_pre from tx_mix_cerv and tx_mix_noncerv
+        self.tx_cerv_f = ss.choice(a=4)
+        self.tx_cerv_m = ss.choice(a=4)
+        self.tx_noncerv_f = ss.choice(a=4)
 
         self.treatments = sc.tolist(treatments)
         self.diseases = sc.tolist(diseases)
@@ -535,16 +532,14 @@ class SyndromicManagement(STITest):
             ss.FloatArr('ti_dismissed'),
             ss.BoolArr('has_cerv_symp'),
         )
-        self.treat_prob_data = treat_prob_data
         self.treated_by_uid = None
         return
 
     def init_pre(self, sim):
         super().init_pre(sim)
-        self.pars.tx_cerv_f.set(p=self.fvals_cerv)
-        self.pars.tx_cerv_m.set(p=self.mvals_cerv)
-        self.pars.tx_noncerv_f.set(p=self.fvals_noncerv)
-        self.pars.tx_noncerv_m.set(p=self.mvals_noncerv)
+        self.tx_cerv_f.set(p=self.fvals_cerv)
+        self.tx_cerv_m.set(p=self.mvals_cerv)
+        self.tx_noncerv_f.set(p=self.fvals_noncerv)
         # diseases/cervical_diseases are passed as names, not module objects:
         # Sim deep-copies modules, so a constructor-passed object would be an
         # orphan copy the sim never steps. Resolve names to the live modules.
@@ -577,12 +572,12 @@ class SyndromicManagement(STITest):
         ppl = sim.people
         self.treated_by_uid = None
 
-        if sim.now >= self.stop:
+        if self.t.now('year') >= self.stop:
             for treatment in self.treatments:
                 treatment.eligibility = ss.uids()
             return
 
-        if sim.now >= self.start:
+        if self.t.now('year') >= self.start:
             if uids is None:
                 uids = self.check_eligibility()
                 self.ti_tested[uids] = self.ti
@@ -599,9 +594,9 @@ class SyndromicManagement(STITest):
                 f_cerv_uids    = f_uids[self.has_cerv_symp[f_uids]]
                 f_noncerv_uids = f_uids[~self.has_cerv_symp[f_uids]]
 
-                ofc  = self.pars.tx_cerv_f.rvs(f_cerv_uids)
-                ofnc = self.pars.tx_noncerv_f.rvs(f_noncerv_uids)
-                om   = self.pars.tx_cerv_m.rvs(m_uids)
+                ofc  = self.tx_cerv_f.rvs(f_cerv_uids)
+                ofnc = self.tx_noncerv_f.rvs(f_noncerv_uids)
+                om   = self.tx_cerv_m.rvs(m_uids)
 
                 outcomes = dict(
                     all3=f_cerv_uids[ofc == 0] | f_noncerv_uids[ofnc == 0] | m_uids[om == 0],
@@ -845,7 +840,7 @@ class STITreatment(ss.Intervention):
         pars:
         disease (str): should match the name of one of the diseases in the simulation
     """
-    def __init__(self, name=None, pars=None, diseases=None, eligibility=None, max_capacity=None, years=None, *args, **kwargs):
+    def __init__(self, name=None, pars=None, diseases=None, eligibility=None, *args, **kwargs):
         super().__init__(*args, name=name)
         self.requires = diseases
         self.define_pars(
@@ -858,9 +853,6 @@ class STITreatment(ss.Intervention):
         self.eligibility = eligibility
         if self.eligibility is None:
             self.eligibility = ss.uids()
-        self.queue = []
-        self.max_capacity = max_capacity
-        self.years = years
 
         # Results by sex - set during init_results
         self.sexkeys = None
@@ -917,9 +909,9 @@ class STITreatment(ss.Intervention):
             accept_uids = self.pars.treat_prob.filter(eligible_uids)
         return accept_uids
 
-    def set_treat_eff(self, uids):
-        """ Can be changed by derived classes """
-        return
+    def get_treat_eff(self, uids):
+        """ Return the distribution of treatment success for these agents; can be changed by derived classes """
+        return self.pars.treat_eff
 
     def administer(self, sim, uids, disease, return_format='dict'):
         """ Administer treatment, keeping track of unnecessarily treated individuals """
@@ -927,8 +919,8 @@ class STITreatment(ss.Intervention):
         inf = uids & sim.diseases[disease].treatable
         sus = uids & sim.diseases[disease].susceptible
 
-        self.set_treat_eff(inf)
-        successful = self.pars.treat_eff.filter(inf)
+        treat_eff = self.get_treat_eff(inf)
+        successful = treat_eff.filter(inf)
         unsuccessful = np.setdiff1d(inf, successful)
         unnecessary = sus
 
@@ -959,8 +951,7 @@ class STITreatment(ss.Intervention):
 
     def step(self):
         """
-        Apply treatment. On each timestep, this method will add eligible people who are willing to accept treatment to a
-        queue, and then will treat as many people in the queue as there is capacity for.
+        Apply treatment to eligible people who accept it.
         """
         sim = self.sim
         self.outcomes = sc.objdict()
@@ -1039,8 +1030,8 @@ class PartnerNotification(ss.Intervention):
     partners identified across two channels:
 
     - **Current partners**: edges in the active sexual network.
-    - **Previous partners**: edges in a :class:`stisim.PriorPartners` recall
-      network — dissolved partnerships within the recall window.
+    - **Previous partners**: partnerships of the same network that ended within
+      its ``memory=`` (e.g. ``sti.StructuredSexual(memory=ss.years(1))``).
 
     Each contact is offered notification with probability ``p_notify_<scope>``;
     notified contacts attend follow-up with probability ``p_attends_<scope>``.
@@ -1069,13 +1060,11 @@ class PartnerNotification(ss.Intervention):
             prior partners (default p=0.01).
         current_network: Name of the active sexual network (default
             ``'structuredsexual'``).
-        previous_network: Name of the prior-partner network (default
-            ``'priorpartners'``). Required if the prior channel is enabled.
 
     Notes:
         - To use the prior-partner channel, the active sexual network must
-          have ``recall_prior=True`` so dissolved partnerships are pushed to
-          ``PriorPartners``.
+          have ``memory=`` set, the time for which it remembers ended
+          partnerships.
         - For more elaborate downstream actions (e.g. setting treatment
           eligibility per partnership), subclass and override :meth:`step`.
     """
@@ -1088,7 +1077,6 @@ class PartnerNotification(ss.Intervention):
             p_notify_previous=ss.bernoulli(p=0.05),
             p_attends_previous=ss.bernoulli(p=0.01),
             current_network='structuredsexual',
-            previous_network='priorpartners',
         )
         self.update_pars(pars=pars, **kwargs)
         self.eligibility = eligibility
@@ -1098,7 +1086,6 @@ class PartnerNotification(ss.Intervention):
             ss.FloatArr('ti_notified'),
         )
         self._cur_nw = None
-        self._prev_nw = None
         self._use_previous = False
         return
 
@@ -1112,13 +1099,12 @@ class PartnerNotification(ss.Intervention):
         # Enable the prior-partner channel iff it could ever notify someone.
         # Probe the bernoulli with a zero-length filter to detect p=0 cases.
         self._use_previous = self.pars.p_notify_previous.pars.p > 0
-        if self._use_previous:
-            self._prev_nw = sim.networks.get(self.pars.previous_network)
-            if self._prev_nw is None:
-                raise ValueError(
-                    f"PartnerNotification with p_notify_previous>0 requires network "
-                    f"'{self.pars.previous_network}' in the sim. Set p_notify_previous=0 to disable."
-                )
+        if self._use_previous and self._cur_nw.pars.get('memory') is None:
+            raise ValueError(
+                f"PartnerNotification with p_notify_previous>0 requires network "
+                f"'{self.pars.current_network}' to have memory=, e.g. memory=ss.years(1). "
+                f"Set p_notify_previous=0 to disable."
+            )
         return
 
     def init_results(self):
@@ -1151,7 +1137,8 @@ class PartnerNotification(ss.Intervention):
 
     def find_partners(self, nw, index_uids):
         """
-        Unique UIDs of partners of ``index_uids`` on network ``nw``. Partner
+        Unique UIDs of partners of ``index_uids`` in ``nw``, anything with
+        ``p1`` and ``p2`` (a network, or its ``history`` of ended partnerships). Partner
         UIDs that are themselves index cases are dropped: index cases
         partnered with each other are not notified as partners (they are
         already in the cascade). Used for the prior-partner channel, which
@@ -1217,9 +1204,11 @@ class PartnerNotification(ss.Intervention):
         # (this is within-step cross-channel dedup, not across timesteps).
         # Edge-type stratification is current-channel only: a pn_rates callable
         # passed here sees an empty current_partner_edges and returns zeros.
-        if self._use_previous:
-            prev_partners = self.find_partners(self._prev_nw, index_uids)
-            prev_partners = ss.uids(prev_partners[~np.isin(prev_partners, cur_partners)])
+        history = self._cur_nw.history # The partnerships that ended within the network's memory=
+        if self._use_previous and history is not None:
+            prev_partners = self.find_partners(history, index_uids)
+            prev_partners = prev_partners[~np.isin(prev_partners, cur_partners)]
+            prev_partners = ss.uids(prev_partners[self.sim.people.alive[prev_partners]]) # Partnerships ended by death are remembered too
             prev_notified = self.pars.p_notify_previous.filter(prev_partners)
             prev_attending = self.pars.p_attends_previous.filter(prev_notified)
         else:

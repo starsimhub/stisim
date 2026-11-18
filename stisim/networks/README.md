@@ -8,7 +8,7 @@ Sexual contact networks for STIsim simulations. Each file defines one or more ne
 | `mf.py` | `MFNetwork`, `MFPars` — heterosexual partnerships |
 | `fsw.py` | `SWNetwork`, `SWPars` — sex-work (FSW–client) partnerships |
 | `msm.py` | `AgeMatchedMSM`, `AgeApproxMSM` — men who have sex with men |
-| `layered_networks.py` | `StructuredSexual`, `PriorPartners` — composite networks |
+| `layered_networks.py` | `StructuredSexual` — composite networks |
 | `matchers.py` | Pair-formation algorithms used by `MFNetwork.match_pairs` |
 
 ## Layered networks
@@ -17,7 +17,7 @@ A *layered network* bundles two or more network behaviours into a single class s
 
 `StructuredSexual` is the canonical example and the default choice in most STIsim models: it layers heterosexual partnerships (from `MFNetwork`) with sex-work partnerships (from `SWNetwork`) on a single edge list. Real populations have both regular and transactional partnerships, and STIs transmit across both — so most calibrated models reach for `StructuredSexual` rather than `MFNetwork` alone.
 
-`PriorPartners` is a supplementary network you add *alongside* an MF network when `recall_prior=True`. It stores recently-dissolved edges so partner-notification interventions can trace them.
+To remember former partners (e.g. for partner notification), give the network `memory=`, e.g. `sti.StructuredSexual(memory=ss.years(1))`: it keeps the partnerships that ended within that time, and `find_contacts()` and `sti.PartnerNotification` reach them.
 
 ## Pair-formation algorithms
 

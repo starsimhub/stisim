@@ -696,8 +696,7 @@ def test_pn():
         return hivsim.demo(
             'simple', run=False, plot=False,
             n_agents=n_agents, dur=5, rand_seed=rand_seed, verbose=0,
-            networks=[sti.StructuredSexual(recall_prior=True),
-                      sti.PriorPartners(dur_recall=ss.years(0.5))],
+            networks=[sti.StructuredSexual(memory=ss.years(0.5))],
             interventions=intvs,
         )
 
@@ -712,6 +711,7 @@ def test_pn():
     pn_res = with_pn.results.pn
     assert int(pn_res.new_attending.sum()) <= int(pn_res.new_notified.sum()), \
         'Attendance should not exceed notification'
+    assert int(pn_res.new_notified_previous.sum()) > 0, 'Expected prior partners notified (memory= on the network)'
     return n_dx_no_pn, n_dx_with_pn
 
 
@@ -778,9 +778,7 @@ def test_pn_rates_sim():
             p_attends_previous=ss.bernoulli(p=1.0),
             name='pn',
         )
-        networks = [sti.StructuredSexual(recall_prior=use_prior)]
-        if use_prior:
-            networks.append(sti.PriorPartners(dur_recall=ss.years(0.5)))
+        networks = [sti.StructuredSexual(memory=ss.years(0.5) if use_prior else None)]
         return hivsim.demo('simple', run=False, plot=False, n_agents=n_agents,
                            dur=5, rand_seed=1, verbose=0,
                            networks=networks, interventions=[hiv_test, pn])
@@ -794,7 +792,7 @@ def test_pn_rates_sim():
     assert n_match > 0, f'Expected current notifications with matching rates, got {n_match}'
     assert int(none.results.pn.new_notified_current.sum()) == 0, 'Unmatched edge type should notify nobody'
 
-    # Two networks: with a prior network also configured, the current channel
+    # With memory= (prior partners) also on, the current channel
     # still notifies via pn_rates. The prior channel is current-channel-blind:
     # pn_rates returns 0 there (covered deterministically in test_pn_rates).
     both = make_sim({k: 1.0 for k in edge_types}, use_prior=True); both.run()

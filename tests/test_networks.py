@@ -186,6 +186,15 @@ def test_debut_age():
     assert np.all(s1.analyzers.debutage.prop_active_m[0] >= s2.analyzers.debutage.prop_active_m[0]), "Proportion of males active should be higher in default network than in late debut network at any given age"
 
 
+def test_debut_age_cohorts():
+    """ DebutAge with given cohort_starts """
+    analyzer = sti.DebutAge(cohort_starts=[1990, 1995])
+    sim = sti.Sim(n_agents=500, start=1990, dur=30, networks=sti.StructuredSexual(), analyzers=analyzer, verbose=0)
+    sim.run()
+    assert sim.analyzers.debutage.prop_active_f.shape == (2, 19)
+    return sim
+
+
 def test_shorter_sw():
     """ Shorter SW participation window → fewer HIV transmissions attributable to FSW """
     # rand_seed=1 draws zero FSW-sourced transmissions from the small FSW pool
@@ -306,6 +315,7 @@ if __name__ == '__main__':
     test_relationship_duration()
     test_partner_seeking_rates()
     test_debut_age()
+    test_debut_age_cohorts()
     test_shorter_sw()
     test_match_pairs_refactor_preserves_output()
     test_decrement_partners_duplicate_edges()
