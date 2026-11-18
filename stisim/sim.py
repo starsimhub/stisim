@@ -170,7 +170,7 @@ class Sim(ss.Sim):
                 raise ValueError(errormsg)
         return pars
 
-    def init(self, force=False, **kwargs):
+    def init(self, **kwargs):
         """
         Perform all initializations for the sim
         """
@@ -193,7 +193,7 @@ class Sim(ss.Sim):
         # Reset n_agents
         if self.pars['people'] is not None: self.pars['n_agents'] = len(self.pars['people'])
 
-        super().init(force=force, **kwargs)  # Call the parent init method
+        super().init(**kwargs)  # Call the parent init method
 
         return self
 
