@@ -29,15 +29,15 @@ def test_hiv_syph():
         return hiv, syphilis, coinfection_analyzer
 
     hiv, syphilis, coinfection_analyzer = make_args()
-    pars = dict(analyzers=coinfection_analyzer, diseases=[hiv, syphilis], n_agents=500, dur=10)
+    pars = dict(analyzers=coinfection_analyzer, diseases=[hiv, syphilis], n_agents=1000, dur=3)
     s0 = sti.Sim(pars)
 
-    pars['connectors'] = sti.hiv_syph(hiv, syphilis, rel_sus_hiv_syph=20, rel_trans_hiv_syph=20)
     hiv, syphilis, coinfection_analyzer = make_args()
-    pars = dict(analyzers=coinfection_analyzer, diseases=[hiv, syphilis], n_agents=500, dur=10)
+    pars = dict(analyzers=coinfection_analyzer, diseases=[hiv, syphilis], n_agents=1000, dur=3)
+    pars['connectors'] = sti.hiv_syph(hiv, syphilis, rel_sus_hiv_syph=20, rel_trans_hiv_syph=20) # Was set before pars was made again, so s1 had no connector
     s1 = sti.Sim(pars)
 
-    ss.parallel(s0, s1, debug=debug)
+    ss.parallel(s0, s1, workers=1 if debug else None)
 
     r0 = s0.results.hiv.cum_infections[-1]
     r1 = s1.results.hiv.cum_infections[-1]
@@ -60,7 +60,7 @@ def test_single_connector_instance():
     sim = sti.Sim(
         diseases=[hiv, syph],
         connectors=sti.hiv_syph(hiv, syph),  # single instance, not a list
-        n_agents=200, dur=2, verbose=-1,
+        n_agents=200, dur=2, verbose=0,
     )
     sim.run()
     assert len(sim.pars['connectors']) == 1, \

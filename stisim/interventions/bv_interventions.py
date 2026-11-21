@@ -35,11 +35,9 @@ class treat_BV(ss.Intervention):
         self.define_pars(
             dt='month',
             # Treatment effects
-            start_year=0,  # Day to start treatment
-            stop_year=None,  # Day to stop treatment
+            start_year=0,  # Year to start treatment
+            stop_year=None,  # Year to stop treatment (default: end of the sim)
             p_seek_care=ss.bernoulli(p=0.9),  # Distribution of care-seeking behavior
-            tx_delay=ss.weeks(1),  # Delay between symptoms and treatment
-            tx_effect_delay=ss.weeks(1),  # Delay between treatment and effect
             tx_doses=14,  # Number of doses of treatment administered (2x/day for 7 days)
             tx_effectiveness=sc.objdict(
                 stable_cst1=ss.bernoulli(
@@ -61,12 +59,13 @@ class treat_BV(ss.Intervention):
         ),
         self.update_pars(pars, **kwargs)
         self.eligibility = eligibility
+        self.ti_start = None # Steps to start and stop treatment, set in init_pre from start_year and stop_year
+        self.ti_stop = None
 
         self.define_states(
             ss.FloatArr("ti_treated"),
             ss.FloatArr("orig_CST"),
             ss.BoolArr("on_tx"),
-            ss.FloatArr("ti_clearance"),
             ss.FloatArr(
                 "ti_return_stable_cst"
             ),  # Timestep to return to original stable CST when post-treatment effect wanes
@@ -88,14 +87,14 @@ class treat_BV(ss.Intervention):
 
     def init_pre(self, sim):
         if self.pars.stop_year is None:
-            self.pars.stop_year = sim.t.npts - 1
+            self.ti_stop = sim.t.npts - 1
         else:
-            ti = sc.findfirst(sim.t.yearvec, self.pars.stop_year)
-            self.pars.stop_year = ti
+            self.ti_stop = sc.findfirst(sim.t.yearvec, self.pars.stop_year)
 
         if self.pars.start_year:
-            ti = sc.findfirst(sim.t.yearvec, self.pars.start_year)
-            self.pars.start_year = ti
+            self.ti_start = sc.findfirst(sim.t.yearvec, self.pars.start_year)
+        else:
+            self.ti_start = 0
         super().init_pre(sim)
         return
 
@@ -106,7 +105,7 @@ class treat_BV(ss.Intervention):
 
     def check_eligibility(self):
         if self.eligibility is None:
-            return (self.sim.diseases.bv.ti_symptomatic == self.ti).uids
+            return self.sim.diseases.bv.symptoms.uids # Those whose symptoms began
         else:
             return self.eligibility(self.sim)
 
@@ -134,7 +133,7 @@ class treat_BV(ss.Intervention):
 
     def step(self):
         bv = self.sim.diseases.bv
-        if self.pars.stop_year >= self.ti >= self.pars.start_year:
+        if self.ti_stop >= self.ti >= self.ti_start:
             # Identify eligible agents for treatment
             eligible_inds = self.check_eligibility()
             seeks_care = self.pars.p_seek_care.filter(eligible_inds)
@@ -167,43 +166,18 @@ class treat_BV(ss.Intervention):
                         treated_cst
                     )
                     if len(tx_effective):
-                        # Transition CST states
+                        # Move to the CST that the treatment leads to
                         if stable_cst_val == "stable_cst1":
-                            bv.cst[tx_effective] = 1
+                            bv.move(bv.cst1, uids=tx_effective)
+                        elif self.pars.durable_cst1_change: # A durable change to a stable CST 1, for a while
+                            bv.move(bv.cst1, uids=tx_effective)
+                            self.orig_CST[tx_effective] = bv.stable_cst[tx_effective]
+                            bv.stable_cst[tx_effective] = 1
+                            dur_stable_cst_change = self.tx_cst1_change_duration(tx_effective)
+                            self.ti_return_stable_cst[tx_effective] = np.round(self.ti + dur_stable_cst_change)
+                            self.post_tx_effect[tx_effective] = True
                         else:
-                            bv.cst[tx_effective] = 3
-                            if self.pars.durable_cst1_change:
-                                bv.cst[tx_effective] = 1
-                                if len(tx_effective):
-                                    self.orig_CST[tx_effective] = bv.stable_cst[
-                                        tx_effective
-                                    ]
-                                    bv.stable_cst[tx_effective] = 1
-                                    dur_stable_cst_change = (
-                                        self.tx_cst1_change_duration(tx_effective)
-                                    )
-                                    self.ti_return_stable_cst[tx_effective] = np.round(
-                                        self.ti + dur_stable_cst_change
-                                    )
-                                    self.post_tx_effect[tx_effective] = True
-
-                        # Update symptomatic and clearance times
-                        bv.symptomatic[tx_effective] = False
-                        self.ti_clearance[tx_effective] = np.nan
-                        bv.ti_clearance[tx_effective] = np.nan
-
-                        # Update pregnancy module
-                        if "pregnancy" in self.sim.demographics:
-                            self.sim.demographics.pregnancy.rel_sus_ptb[
-                                tx_effective
-                            ] = 1
-                            cst_pregnant_uids = tx_effective[
-                                self.sim.demographics.pregnancy.pregnant[tx_effective]
-                            ]
-                            if len(cst_pregnant_uids):
-                                self.sim.demographics.pregnancy.set_prognoses(
-                                    cst_pregnant_uids, bv_update=True
-                                )
+                            bv.move(bv.cst3, uids=tx_effective)
 
             # Return agents to their original CST state
             treatment_waned = (

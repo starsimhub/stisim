@@ -100,7 +100,7 @@ def make_sim(**kwargs):
         demographics='zimbabwe',
         datafolder=datadir,
         diseases=[hiv],
-        networks=[network, ss.MaternalNet(), ss.BreastfeedingNet()],
+        networks=[network, ss.PrenatalNet(), ss.BreastfeedingNet()],
         interventions=intvs + user_intvs,
         sim_pars=sim_pars,
         data=hiv_data,

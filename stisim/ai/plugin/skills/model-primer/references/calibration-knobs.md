@@ -73,8 +73,7 @@ These do not appear on any rate table. They determine *when* the `ti_zero` AIDS 
 | Parameter | Effect | Notes |
 |---|---|---|
 | `dur_falling` | Duration of late-stage HIV (falling CD4) | Determines how much time between `ti_falling` and `ti_zero`. Shorter = earlier deaths. |
-| `dur_post_art` | Post-ART-interruption survival distribution | Sets the mean / scale for the delay to death after an ART interruption. |
-| `dur_post_art_scale_factor` | Variance parameter for `dur_post_art` | Controls the spread around the mean. |
+| `dur_post_art_scale_factor` | Spread of the delay to death after an ART interruption | Its standard deviation as a fraction of its mean; the mean is set by each person's CD4 count as they stop ART, and is not a parameter. |
 
 If your AIDS-mortality deficit persists after tuning the rate knobs in (2), check these. The rate knobs cannot fix a deficit whose source is the `ti_zero` pathway.
 
@@ -117,9 +116,9 @@ Base parameters (`stisim/networks/base.py`):
 
 | Parameter | Default | Notes |
 |---|---|---|
-| `debut_f` | `ss.lognorm_ex(20, 3)` | Female age at sexual debut. Country-specific; fill from DHS. |
-| `debut_m` | `ss.lognorm_ex(21, 3)` | Male age at sexual debut. Country-specific; fill from DHS. |
-| `acts` | `ss.lognorm_ex(freqperyear(80), freqperyear(30))` | Annual coital frequency per partnership. Country-specific; fill from behavioral surveys where available. |
+| `debut_f` | `ss.lognormal(20, 3)` | Female age at sexual debut. Country-specific; fill from DHS. |
+| `debut_m` | `ss.lognormal(21, 3)` | Male age at sexual debut. Country-specific; fill from DHS. |
+| `acts` | `ss.lognormal(freqperyear(80), freqperyear(30))` | Annual coital frequency per partnership. Country-specific; fill from behavioral surveys where available. |
 
 ### Risk-group composition and partnership dynamics
 
@@ -131,8 +130,8 @@ MF-network parameters (`stisim/networks/mf.py`):
 | `prop_m0` | 0.80 | Proportion of men in the low-risk group. |
 | `prop_f2` | 0.01 | Proportion of women in the high-risk group. |
 | `prop_m2` | 0.02 | Proportion of men in the high-risk group. |
-| `concurrency_dist` | `ss.poisson(lam=1)` | Concurrent-partnership distribution. Country- and population-specific. |
-| `dur_dist` | `ss.lognorm_ex()` | Partnership duration distribution. |
+| `concurrency_dist` | `ss.poisson(mean=1)` | Concurrent-partnership distribution. Country- and population-specific. |
+| `stable_dur_pars`, `casual_dur_pars` | see source | Partnership durations (mean, SD) by age group and risk group. |
 | `p_matched_stable`, `p_mismatched_casual` | see source | Assortative-mixing probabilities by risk group. |
 
 ### Sex-work-specific parameters
@@ -141,8 +140,8 @@ FSW-network parameters (`stisim/networks/fsw.py`):
 
 | Parameter | Default | Notes |
 |---|---|---|
-| `dur_sw` | `ss.lognorm_ex(mean=5, std=3)` years | Duration in sex work. Highly country-specific; fill from IBBS. |
-| `dur_client` | `ss.lognorm_ex(mean=10, std=5)` years | Duration as a client of sex work. |
+| `dur_sw` | `ss.lognormal(mean=5, std=3)` years | Duration in sex work. Highly country-specific; fill from IBBS. |
+| `dur_client` | `ss.lognormal(mean=10, std=5)` years | Duration as a client of sex work. |
 | `age_sw_start` | derived | Age of entry into sex work. |
 
 Canonical source: `stisim/networks/base.py`, `mf.py`, `fsw.py`, `msm.py`.

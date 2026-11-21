@@ -33,14 +33,14 @@ If a country's data disagrees with the default, that's the normal case, not a de
    - Coital frequency (`acts`) → DHS behavioral indicators (section to be added)
    - Risk-group composition (`prop_f0`, `prop_m0`, `prop_f2`, `prop_m2`) → DHS partnership counts (section to be added)
    - Concurrency (`concurrency_dist`) → DHS or IBBS (section to be added)
-   - Partnership durations (`dur_dist`) → DHS or setting-specific studies (section to be added)
+   - Partnership durations (`stable_dur_pars`, `casual_dur_pars`) → DHS or setting-specific studies (section to be added)
    - Sex-work durations (`dur_sw`, `dur_client`) → IBBS surveys (section to be added)
 
 2. **Consult the appropriate data source reference.** Each network parameter has (or will have) a dedicated reference file under `references/` describing where to find the data and how to translate it into STIsim's parameter form. For age of debut, that's `dhs-statcompiler.md`.
 
 3. **Retrieve the data.** Follow the reference's manual or programmatic workflow. Record the source, the survey year, and the raw value in the analysis brief.
 
-4. **Translate to STIsim parameter form.** Data usually comes as a median or a cumulative distribution; STIsim usually wants a distribution shape (`ss.lognorm_ex(mean, std)`). The reference explains the translation for each indicator.
+4. **Translate to STIsim parameter form.** Data usually comes as a median or a cumulative distribution; STIsim usually wants a distribution shape (`ss.lognormal(mean, std)`). The reference explains the translation for each indicator.
 
 5. **Update the Sim.** Pass the new values as network parameters (either via `network_pars={...}` in `sti.Sim(...)`, or by constructing the network module directly with the values).
 

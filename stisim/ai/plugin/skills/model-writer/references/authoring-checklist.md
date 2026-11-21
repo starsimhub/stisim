@@ -32,7 +32,7 @@ Run this checklist against a Sim drafted by `stisim:model-writer` before handing
 ## Results and outputs
 
 - [ ] **Analyzers present for every analysis output.** Every quantity the analysis needs to compare, plot, or report has a corresponding analyzer or a standard `ss.Result` that captures it.
-- [ ] **Annual resampling via `.annualize()`.** Any code that produces annual summaries from a `ss.Result` uses `.annualize()` or `.to_df(resample='year')` — flow vs stock semantics are already handled. No manual `groupby('year').mean()` on flow results.
+- [ ] **Annual resampling via `.resample('year')`.** Any code that produces annual summaries from a `ss.Result` uses `.resample('year')` or `.to_df(resample='year')` — flow vs stock semantics are already handled. No manual `groupby('year').mean()` on flow results.
 - [ ] **No absolute claims where the model has a structural ceiling.** If the analysis will report on a quantity known to have a structural ceiling in STIsim (syphilis absolute prevalence is the standing example), that limitation is flagged in `analysis-brief.md` under **Unresolved decisions** or **Structural limitations**, and the analysis frames its claim as a relative contrast rather than an absolute number.
 
 ## Handoff

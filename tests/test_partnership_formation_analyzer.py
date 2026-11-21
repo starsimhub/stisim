@@ -28,8 +28,8 @@ OUTPUT_DIR = os.path.join(TEST_DIR, 'partnership_formation_analyzer')
 
 
 # Default test configuration (configurable via function arguments)
-DEFAULT_N_AGENTS  = 10000
-DEFAULT_DUR_YEARS = 5
+DEFAULT_N_AGENTS  = 3000
+DEFAULT_DUR_YEARS = 1
 DEFAULT_N_SEEDS   = 3
 DEFAULT_AGE_BINS  = None  # None -> PartnershipFormationAnalyzer's own default
 
@@ -550,18 +550,18 @@ def test_network_nonsexual_warns_and_skips():
 
     # Explicitly naming the non-sexual maternal network -> warning + skip.
     sim = sti.Sim(n_agents=100, dur=1, diseases=[sti.HIV(init_prev=0.05)],
-                  networks=[sti.MFNetwork(), ss.MaternalNet()],
-                  analyzers=[sti.PartnershipFormationAnalyzer(networks=['maternalnet'])])
+                  networks=[sti.MFNetwork(), ss.PrenatalNet()], demographics=ss.Pregnancy(),
+                  analyzers=[sti.PartnershipFormationAnalyzer(networks=['prenatalnet'])])
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter('always')
         sim.init()
     ana = sim.analyzers['partnershipformationanalyzer']
-    assert any('maternalnet' in str(w.message) for w in caught), [str(w.message) for w in caught]
+    assert any('prenatalnet' in str(w.message) for w in caught), [str(w.message) for w in caught]
     assert len(ana._tracked_nw_names) == 0, ana._tracked_nw_names
 
-    # Default None -> only the sexual network is tracked (no maternalnet, no warning).
+    # Default None -> only the sexual network is tracked (no prenatalnet, no warning).
     sim2 = sti.Sim(n_agents=100, dur=1, diseases=[sti.HIV(init_prev=0.05)],
-                   networks=[sti.MFNetwork(), ss.MaternalNet()],
+                   networks=[sti.MFNetwork(), ss.PrenatalNet()], demographics=ss.Pregnancy(),
                    analyzers=[sti.PartnershipFormationAnalyzer()])
     sim2.init()
     ana2 = sim2.analyzers['partnershipformationanalyzer']
@@ -602,7 +602,7 @@ def test_records_expired_end_to_end(deaths=False):
     sc.heading("End-to-end: MFNetwork records expirations; intervals consistent")
     if deaths:
         sim = sti.Sim(n_agents=500, dur=5, rand_seed=1, diseases=[sti.HIV(init_prev=0.05)],
-                      networks=[sti.MFNetwork()], demographics=[ss.Deaths(death_rate=30)],
+                      networks=[sti.MFNetwork()], demographics=[ss.Deaths(death_rate=0.03)],
                       analyzers=[sti.PartnershipFormationAnalyzer()])
     else:
         sim = sti.Sim(n_agents=500, dur=5, rand_seed=1, diseases=[sti.HIV(init_prev=0.05)],

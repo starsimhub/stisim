@@ -13,7 +13,7 @@ benchmark_filename = sc.thisdir(__file__, 'benchmark.yaml')
 sc.options(interactive=False) # Assume not running interactively
 
 # Default parameters for testing (smaller/shorter for speed)
-default_kw = dict(n_agents=2000, stop=2010, rand_seed=2, verbose=0)
+default_kw = dict(n_agents=2000, stop=2010, rand_seed=1, verbose=0) # Seed 2 gives no initial HIV infections on Starsim 4
 
 
 def make_sim(run=False, **kwargs):
@@ -59,7 +59,7 @@ def test_baseline():
     new.run()
 
     # Compute the comparison
-    ss.diff_sims(old, new, die=True)
+    ss.debugtools.diff_sims(old, new, die=True)
 
     return new
 

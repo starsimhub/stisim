@@ -2,6 +2,7 @@
 import abc
 from typing import Callable
 
+import numpy as np
 import starsim as ss
 
 from stisim.logistics.supplies import Supplies
@@ -72,8 +73,7 @@ class SuppliedIntervention(ss.Intervention, metaclass=abc.ABCMeta):
 
 
         """
-        super().__init__(*args, **kwargs)
-        self.name = name
+        super().__init__(*args, name=name, **kwargs)
         self.supplies = Supplies() if supplies is None else supplies
         self.eligibilities = eligibilities
         self.coverages = self.default_coverages if coverages is None else coverages
@@ -96,7 +96,8 @@ class SuppliedIntervention(ss.Intervention, metaclass=abc.ABCMeta):
         self.accrued_cost = 0
         # self.allow_reuptake = False  # disabled for now pending further clarification/research request
 
-        self.update_pars(pars, **kwargs)
+        self.update_pars(pars)
+        self.select_dist = ss.random()  # Used by distribute() to choose recipients at random
 
         states = [
             # TODO: ensure this defaults to False
@@ -208,8 +209,6 @@ class SuppliedIntervention(ss.Intervention, metaclass=abc.ABCMeta):
         Returns:
             ss.uids of all agents selected across all offer pools.
         """
-        import random  # TODO: change this to use a ss-based selection
-
         # determine how many agents will be distributed to in each offer pool
         supply_dists = self.calc_supply_distribution(offer_pools=offer_pools,
                                                      cur_coverages=cur_coverages, target_coverages=target_coverages,
@@ -217,8 +216,11 @@ class SuppliedIntervention(ss.Intervention, metaclass=abc.ABCMeta):
 
         all_selected = ss.arrays.uids()
         for i, offer_pool in enumerate(offer_pools):
-            selected = random.sample(population=list(offer_pool), k=supply_dists[i])
-            selected = ss.arrays.uids(selected)
+            offer_pool = ss.uids(offer_pool)
+            selected = ss.uids()
+            if supply_dists[i] > 0:  # Choose supply_dists[i] of the pool at random, without replacement
+                order = np.argsort(self.select_dist.rvs(offer_pool))
+                selected = ss.uids(np.sort(offer_pool[order[:supply_dists[i]]]))
 
             if len(selected) > 0:
                 dist_func(uptakers=selected)

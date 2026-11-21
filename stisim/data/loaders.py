@@ -3,6 +3,9 @@ Load data
 '''
 
 #%% Housekeeping
+import os
+import functools
+import numpy as np
 import pandas as pd
 import sciris as sc
 
@@ -40,13 +43,40 @@ def get_age_distribution(location=None, year=None, datafolder=None):
 
 
 def get_rates(location, which, datafolder=None):
-    """ Load birth/death/fertility/migration rates for a given location """
+    """ Load birth/death/fertility/migration rates for a given location, with a row for every year (see interp_years()) """
     if datafolder is None: datafolder = filesdir
     filepath = sc.makefilepath(filename=f'{location}_{files[which]}', folder=datafolder)
     try:
-        df = pd.read_csv(filepath)
+        stat = os.stat(filepath)
     except Exception as E:
         errormsg = f'Could not locate datafile for {which}.'
         raise ValueError(errormsg) from E
-    return df
+    return read_rates(filepath, stat.st_mtime_ns, stat.st_size).copy() # A copy, so the one cached is not changed
+
+
+@functools.lru_cache(maxsize=64)
+def read_rates(filepath, mtime, size):
+    """ The rates in a file, read and interpolated once for each version of it (see get_rates()) """
+    return interp_years(pd.read_csv(filepath))
+
+
+def interp_years(df, year='Time', keys=('Sex', 'AgeStart')):
+    """
+    Interpolate rates given for some years (e.g. every decade, as downloaded) linearly to every year in between
+
+    The rates are estimates for single years, and Starsim holds a year's rate until the next year in the data,
+    so without this the rate for 1990 would apply until 2000.
+    """
+    if year not in df.columns:
+        return df
+    keys = [k for k in keys if k in df.columns]
+    years = np.arange(df[year].min(), df[year].max() + 1)
+    if len(years) == df[year].nunique(): # Already yearly
+        return df
+    out = []
+    for vals, group in (df.groupby(keys) if keys else [((), df)]):
+        group = group.drop(columns=keys).set_index(year).sort_index().reindex(years).interpolate(method='index')
+        group[keys] = vals
+        out.append(group.reset_index(names=year))
+    return pd.concat(out, ignore_index=True)[df.columns].astype({col:df[col].dtype for col in [year] + keys})
 

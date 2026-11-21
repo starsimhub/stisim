@@ -61,7 +61,7 @@ def make_sim(use_anc, rand_seed=1):
         demographics=[ss.Pregnancy(), ss.Deaths()],
         networks=[sti.StructuredSexual(), ss.MaternalNet(), ss.BreastfeedingNet()],
         interventions=interventions,
-        n_agents=5_000, dur=15, start=2005, verbose=-1, rand_seed=rand_seed,
+        n_agents=5_000, dur=15, start=2005, verbose=0, rand_seed=rand_seed,
     )
     sim.label = 'With ANC testing' if use_anc else 'No ANC testing'
     return sim

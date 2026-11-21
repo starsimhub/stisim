@@ -16,31 +16,18 @@ from .mf import MFNetwork
 __all__ = ['AgeMatchedMSM', 'AgeApproxMSM', 'MSMScaleFreeNetwork']
 
 
-class AgeMatchedMSM(MFNetwork):
-    """Men-who-have-sex-with-men network using exact age-sorted matching.
+class MSM:
+    """What the MSM networks share: the fraction of men who take part (``p_msm``), drawn as they reach the network
 
-    Extends :class:`MFNetwork` for MSM partnerships. Eligible males
-    are sorted by age and paired sequentially so that partners have similar
-    ages. The ``p_msm`` parameter controls what fraction of males
-    participate.
-
-    Args:
-        pars (dict): Parameter overrides; key parameter is ``p_msm``
-            (default ``ss.bernoulli(p=0.015)``).
-        **kwargs: Additional parameter overrides.
+    A mixin, listed before the network class it is used with, e.g. ``class AgeMatchedMSM(MSM, MFNetwork)``.
     """
-
-    def __init__(self, pars=None, **kwargs):
-        super().__init__(name='msm')
-        self.define_pars(
-            p_msm=ss.bernoulli(p=0.015),
-        )
-        self.update_pars(pars=pars, **kwargs)
-
+    def define_msm_pars(self):
+        """Define ``p_msm``, the fraction of men who have sex with men"""
+        self.define_pars(p_msm=ss.bernoulli(p=0.015))
         return
 
     def set_network_states(self, upper_age=None):
-        super().set_network_states(upper_age=upper_age)  # debut, risk groups, concurrency
+        super().set_network_states(upper_age=upper_age)  # Debut, and for the MF-based networks, risk groups and concurrency
         self.set_msm(upper_age=upper_age)
         return
 
@@ -55,6 +42,29 @@ class AgeMatchedMSM(MFNetwork):
         _, m_uids = self._get_uids(upper_age=upper_age)
         self.participant[m_uids] = self.pars.p_msm.rvs(m_uids)
         return
+
+
+class AgeMatchedMSM(MSM, MFNetwork):
+    """Men-who-have-sex-with-men network using exact age-sorted matching.
+
+    Extends :class:`MFNetwork` for MSM partnerships. Eligible males
+    are sorted by age and paired sequentially so that partners have similar
+    ages. The ``p_msm`` parameter controls what fraction of males
+    participate.
+
+    Args:
+        pars (dict): Parameter overrides; key parameter is ``p_msm``
+            (default ``ss.bernoulli(p=0.015)``).
+        **kwargs: Additional parameter overrides.
+    """
+
+    def __init__(self, pars=None, **kwargs):
+        super().__init__(name='msm', between='mm')
+        self.define_msm_pars()
+        self.update_pars(pars=pars, **kwargs)
+
+        return
+
 
     def match_pairs(self):
         """ Match males by age using sorting """
@@ -87,7 +97,7 @@ class AgeMatchedMSM(MFNetwork):
         return p1, p2
 
 
-class MSMScaleFreeNetwork(BaseNetwork):
+class MSMScaleFreeNetwork(MSM, BaseNetwork):
     """Preferential-attachment MSM sexual network with continuous-time
     formation and Markovian deletion (Whittles-2019 S2 kernel).
 
@@ -117,10 +127,10 @@ class MSMScaleFreeNetwork(BaseNetwork):
     Args:
         target_mean_degree (float): target mean number of concurrent
             partners per agent in the pool (default 2.0).
-        target_mean_dur (ss.dur or int): target mean edge duration. Accepts
-            an ``ss.dur`` (converted to integer steps at ``init_pre`` via
+        target_mean_dur (ss.Duration or int): target mean edge duration. Accepts
+            an ``ss.Duration`` (converted to integer steps at ``init_pre`` via
             ``self.t.dt``) or a raw integer step count. Default ``ss.years(2)``.
-        max_edge_dur (ss.dur or int): hard cap on edge persistence. Default
+        max_edge_dur (ss.Duration or int): hard cap on edge persistence. Default
             ``ss.years(10)``.
         phi (float): Whittles-2019 turnover parameter. Default 1.0. Sets
             the q0 initial-network density via ``q0 = 1/(1+phi)``.
@@ -135,9 +145,9 @@ class MSMScaleFreeNetwork(BaseNetwork):
     records_all_expirations = False
 
     def __init__(self, pars=None, name=None, **kwargs):
-        super().__init__(name=name)
+        super().__init__(name=name, between='mm')
+        self.define_msm_pars()
         self.define_pars(
-            p_msm=ss.bernoulli(p=0.015),  # fraction of males in the MSM pool
             target_mean_degree=2.0,
             target_mean_dur=ss.years(2),
             max_edge_dur=ss.years(10),
@@ -157,15 +167,12 @@ class MSMScaleFreeNetwork(BaseNetwork):
         # BespokeNet defaults — promote to user pars only when needed.
         self._k1 = 1.0  # consumed by _g_of_lambda
         self._rebuild_every = 10  # consumed by step()
-        # Subclass extension knobs — read by overridden _mix_weights_row.
-        self._age_a = 0.0
-        self._partnering_assortivity = 1.0
         return
 
     def init_pre(self, sim):
-        """Convert ``ss.dur`` parameters to integer step counts.
+        """Convert ``ss.Duration`` parameters to integer step counts.
 
-        Uses ``ss.dur / ss.dur`` arithmetic (sciris-native unit conversion).
+        Uses ``ss.Duration / ss.Duration`` arithmetic (sciris-native unit conversion).
         """
         super().init_pre(sim)
         self._target_mean_dur_steps = int(round(self.pars.target_mean_dur / self.t.dt))
@@ -177,22 +184,6 @@ class MSMScaleFreeNetwork(BaseNetwork):
             )
         return
 
-    def set_network_states(self, upper_age=None):
-        super().set_network_states(upper_age=upper_age)  # set debut
-        self.set_msm(upper_age=upper_age)
-        return
-
-    def set_msm(self, upper_age=None):
-        """Flag the ``p_msm`` fraction of post-debut males as MSM participants.
-
-        Writes the shared ``participant`` state (True for the sampled fraction,
-        False for the rest), which gates the MSM pool/matching. Called from
-        ``set_network_states``, so it runs at init and re-samples for
-        newly-entered males each step.
-        """
-        _, m_uids = self._get_uids(upper_age=upper_age)
-        self.participant[m_uids] = self.pars.p_msm.rvs(m_uids)
-        return
 
     def _get_rng(self):
         """Step-local numpy Generator. Not CRN — see class docstring."""
@@ -407,9 +398,9 @@ class MSMScaleFreeNetwork(BaseNetwork):
         ages = self.sim.people.age
         self.append(
             p1=p1, p2=p2,
-            beta=np.ones(n, dtype=float),
+            weight=np.ones(n, dtype=float),
             dur=np.full(n, float(self._max_edge_dur_steps), dtype=float),
-            acts=np.ones(n, dtype=int),
+            acts=self.pars.acts.rvs(p2).astype(int), # Acts per step, from acts per unit time, as for the other networks
             condoms=np.zeros(n, dtype=float),
             age_p1=ages[p1],
             age_p2=ages[p2],
@@ -505,7 +496,7 @@ class MSMScaleFreeNetwork(BaseNetwork):
         return
 
 
-class AgeApproxMSM(MFNetwork):
+class AgeApproxMSM(MSM, MFNetwork):
     """Men-who-have-sex-with-men network using approximate age-preference matching.
 
     Extends :class:`MFNetwork` for MSM partnerships. Unlike
@@ -520,29 +511,11 @@ class AgeApproxMSM(MFNetwork):
     """
 
     def __init__(self, pars=None, **kwargs):
-        super().__init__(name='msm')
-        self.define_pars(
-            p_msm=ss.bernoulli(p=0.015),
-        )
+        super().__init__(name='msm', between='mm')
+        self.define_msm_pars()
         self.update_pars(pars=pars, **kwargs)
         return
 
-    def set_network_states(self, upper_age=None):
-        super().set_network_states(upper_age=upper_age)  # debut, risk groups, concurrency
-        self.set_msm(upper_age=upper_age)
-        return
-
-    def set_msm(self, upper_age=None):
-        """Flag the ``p_msm`` fraction of post-debut males as MSM participants.
-
-        Writes the shared ``participant`` state (True for the sampled fraction,
-        False for the rest), which gates the MSM pool/matching. Called from
-        ``set_network_states``, so it runs at init and re-samples for
-        newly-entered males each step.
-        """
-        _, m_uids = self._get_uids(upper_age=upper_age)
-        self.participant[m_uids] = self.pars.p_msm.rvs(m_uids)
-        return
 
     def match_pairs(self):
         """ Match pairs using age preferences """
@@ -561,8 +534,8 @@ class AgeApproxMSM(MFNetwork):
         group1 = m_looking[::2]
         group2 = m_looking[1::2]
         loc, scale = self.get_age_risk_pars(group1, self.pars.age_diff_pars)
-        self.pars.age_diffs.set(loc=loc, scale=scale)
-        age_gaps = self.pars.age_diffs.rvs(group1)
+        self.age_diffs.set(mean=loc, std=scale)
+        age_gaps = self.age_diffs.rvs(group1)
         desired_ages = ppl.age[group1] + age_gaps
         g2_ages = ppl.age[group2]
         p1 = group1[np.argsort(desired_ages)]

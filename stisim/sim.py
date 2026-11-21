@@ -3,11 +3,13 @@ User API for creating an STI simulation
 """
 
 import itertools
+import numpy as np
 import starsim as ss
 import stisim as sti
 import sciris as sc
 from .data import loaders as stidata
 from .data import downloaders as stidl
+from .utils import _par_registry
 
 
 class Sim(ss.Sim):
@@ -61,7 +63,7 @@ class Sim(ss.Sim):
         ```python
         sim = sti.Sim(network_pars={
                     'structuredsexual': dict(sw_seeking_rate=0.5),
-                    'maternalnet': dict(maternal_age=30),
+                    'prenatalnet': dict(maternal_age=30),
         })
         ```
 
@@ -82,7 +84,7 @@ class Sim(ss.Sim):
 
     def __init__(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None, dem_pars=None,
                  label=None, people=None, demographics=None, diseases=None, networks=None,
-                 interventions=None, analyzers=None, connectors=None, custom=None,
+                 interventions=None, analyzers=None, connectors=None, modules=None,
                  datafolder=None, data=None, **kwargs):
 
         # Inputs and defaults
@@ -99,14 +101,14 @@ class Sim(ss.Sim):
 
         # Separate the parameters, storing sim pars now and saving module pars to process in init
         sim_kwargs = dict(label=label, people=people, demographics=demographics, diseases=diseases, networks=networks,
-                    interventions=interventions, analyzers=analyzers, connectors=connectors, custom=custom)
+                    interventions=interventions, analyzers=analyzers, connectors=connectors, modules=modules)
         sim_kwargs = {key: val for key, val in sim_kwargs.items() if val is not None}
         updated_pars = self.separate_pars(pars, sim_pars, sti_pars, nw_pars, dem_pars, sim_kwargs, **kwargs)
         self.pars.update(updated_pars)
         return
 
     def separate_pars(self, pars=None, sim_pars=None, sti_pars=None, nw_pars=None, dem_pars=None,
-                      sim_kwargs=None, verbose=True, **kwargs):
+                      sim_kwargs=None, **kwargs):
         """
         Sort all incoming pars into per-category dicts (sim, sti, nw, dem,
         connector). Most of the work is delegated to ``sti.route_pars``; this
@@ -115,16 +117,15 @@ class Sim(ss.Sim):
         (``_user_sti_pars``, ``_user_nw_pars``, ``_user_dem_pars``,
         ``_user_connector_pars``) for the two-phase init's XOR checks.
 
-        Args:
-            verbose (bool): If True, ``route_pars`` prints one line per
-                cross-category broadcast. See ``sti.route_pars`` for design.
+        ``route_pars`` prints one line per cross-category broadcast if the sim
+        is verbose; see ``sti.route_pars`` for design.
         """
         merged = self.remap_pars(sc.mergedicts(pars, sim_kwargs, kwargs))
 
         # Pull out per-module nested dicts (e.g. hiv=dict(init_prev=0.05))
         # before flat routing — these aren't valid par-names themselves, but
         # their values contain sti pars scoped to a single disease module.
-        sti_keys = set(sti.merged_sti_pars())
+        sti_keys = _par_registry()['sti']
         nested_sti = {}
         for k in list(merged):
             v = merged[k]
@@ -135,14 +136,14 @@ class Sim(ss.Sim):
             merged,
             sim_pars=sim_pars, sti_pars=sti_pars, nw_pars=nw_pars,
             dem_pars=dem_pars,
-            strict=True, verbose=verbose,
+            strict=True, verbose=bool(merged.get('verbose', self.pars.verbose)),
         )
 
-        if 'dur' in routed.sim:
-            self.pars['stop'] = None
+        if 'dur' in routed.sim: # A dur replaces the default stop, or with a stop given, the default start (stop=2035, dur=10 runs 2025-2035); all three given must agree
+            self.pars['start' if 'stop' in routed.sim and 'start' not in routed.sim else 'stop'] = None
 
         self.sti_pars = sc.mergedicts(routed.sti, nested_sti, _copy=True)
-        self.nw_pars  = sc.mergedicts(sti.NetworkPars(), routed.nw, _copy=True)
+        self.nw_pars  = sc.dcp(dict(routed.nw)) # Only those given: the network has its own defaults
         self.dem_pars = sc.mergedicts(sti.dem_pars(), routed.dem, _copy=True)
 
         # Track user-supplied contributions (excluding defaults) so process_*
@@ -150,7 +151,7 @@ class Sim(ss.Sim):
         self._user_sti_pars = {**routed.sti, **nested_sti}
         self._user_nw_pars  = dict(routed.nw)
         self._user_dem_pars = dict(routed.dem)
-        self._user_connector_pars = dict(routed.connector)
+        self._user_connector_pars = {k:v for k,v in routed.connector.items() if k not in routed.sim} # Not those that are the sim's too, e.g. dt
 
         return routed.sim
 
@@ -170,7 +171,7 @@ class Sim(ss.Sim):
                 raise ValueError(errormsg)
         return pars
 
-    def init(self, force=False, **kwargs):
+    def init(self, **kwargs):
         """
         Perform all initializations for the sim
         """
@@ -188,12 +189,12 @@ class Sim(ss.Sim):
         self.pars['people'] = people
         self.pars['total_pop'] = total_pop
         if self.pars['demographics'] is not None:
-            self.pars.use_aging = True
+            self.pars.aging = True
 
         # Reset n_agents
         if self.pars['people'] is not None: self.pars['n_agents'] = len(self.pars['people'])
 
-        super().init(force=force, **kwargs)  # Call the parent init method
+        super().init(**kwargs)  # Call the parent init method
 
         return self
 
@@ -215,19 +216,40 @@ class Sim(ss.Sim):
                 key = [
                     'hiv_new_infections',
                     'hiv_new_deaths',
-                    'hiv_n_infected',
+                    'hiv_infected',
                     'hiv_prevalence',
-                    'hiv_n_on_art',
-                    'n_alive',
+                    'hiv_on_art',
+                    'alive',
                 ]
         return super().plot(key=key, **kwargs)
+
+    def init_results(self):
+        """ Initialize the results, also keeping the sim's deaths and emigrants under their STIsim names (see `finalize_results()`) """
+        super().init_results()
+        if 'death' in self.results:
+            kw = dict(module='People', shape=self.t.npts, timevec=self.t.timevec, dtype=float, scale=False, auto_plot=False)
+            self.results += [ss.Result('new_deaths', label='Deaths', kind='flow', **kw),
+                             ss.Result('new_emigrants', label='Emigrants', kind='flow', **kw),
+                             ss.Result('cum_deaths', label='Cumulative deaths', kind='stock', **kw)]
+        return
+
+    def finalize_results(self):
+        """ Copy Starsim's death and emigration to the names kept in `init_results()`, once they are scaled """
+        super().finalize_results()
+        res = self.results
+        if 'death' in res:
+            res.new_deaths[:] = res.death
+            res.new_emigrants[:] = res.emigration
+            res.cum_deaths[:] = np.cumsum(res.death)
+        return
 
     def process_networks(self):
         """
         Process the network parameters to create network module.
         If networks are provided, they will be used; otherwise, use default networks (usual case)
         """
-        if len(self.pars['networks']) > 0:
+        nets = self.pars['networks']
+        if isinstance(nets, ss.Module) or len(nets) > 0: # A single network, or a list or dict of them (len() of a network is its number of edges, zero before it runs)
             # XOR: user provided network instances AND network pars — refuse to guess.
             if self._user_nw_pars:
                 raise ValueError(
@@ -240,10 +262,15 @@ class Sim(ss.Sim):
 
         else:
             # If no networks are provided, create them based on the network parameters
-            networks = ss.ndict(
-                sti.StructuredSexual(pars=self.nw_pars),
-                ss.MaternalNet(),
-            )
+            networks = ss.ndict(sti.StructuredSexual(pars=self.nw_pars))
+            demographics = self.pars['demographics']
+            if sc.checktype(demographics, str): # A location, whose demographics are built next
+                has_pregnancy = self.pars['use_pregnancy']
+            else:
+                modules = demographics.values() if isinstance(demographics, dict) else sc.tolist(demographics)
+                has_pregnancy = any(isinstance(mod, ss.Pregnancy) for mod in modules)
+            if has_pregnancy: # ss.Pregnancy makes the maternal network's edges
+                networks.append(ss.PrenatalNet())
         return networks
 
     def process_demographics(self):
@@ -274,22 +301,22 @@ class Sim(ss.Sim):
             # Load birth or fertility rates and turn into module
             if self.pars['use_pregnancy']:
                 fertility_rates = stidata.get_rates(location, 'asfr', self.datafolder)
-                preg_pars = {k: v for k, v in self.dem_pars.items() if k in ss.PregnancyPars()}
-                metadata = dict(data_cols=dict(year='Time', age='AgeStart', value='Value'))
-                pregnancy = ss.Pregnancy(fertility_rate=fertility_rates, pars=preg_pars, metadata=metadata)
+                preg_pars = {k: v for k, v in self.dem_pars.items() if k in ss.Pregnancy().pars and k != 'fertility'}
+                columns = dict(year='Time', age='AgeStart', value='Value')
+                pregnancy = ss.Pregnancy(fertility_rate=fertility_rates, rate_per=1000, pars=preg_pars, columns=columns)
                 demographics += pregnancy
             else:
                 birth_rates = stidata.get_rates(location, 'birth', self.datafolder)
                 birth_pars = {k: v for k, v in self.dem_pars.items() if k in ss.Births().pars.keys()}
-                metadata = dict(data_cols=dict(year='Time', value='Value'))
-                births = ss.Births(birth_rate=birth_rates, pars=birth_pars, metadata=metadata)
+                columns = dict(year='Time', value='Value')
+                births = ss.Births(birth_rate=birth_rates, rate_per=1000, pars=birth_pars, columns=columns)
                 demographics += births
 
             # Load death rates and turn into a module
             death_rates = stidata.get_rates(location, 'death', self.datafolder)
             death_pars = {k: v for k, v in self.dem_pars.items() if k in ss.Deaths().pars.keys()}
-            metadata = dict(data_cols=dict(year='Time', sex='Sex', age='AgeStart', value='Value'))
-            deaths = ss.Deaths(death_rate=death_rates, rate_units=1, pars=death_pars, metadata=metadata)
+            columns = dict(year='Time', sex='Sex', age='AgeStart', value='Value')
+            deaths = ss.Deaths(death_rate=death_rates, rate_per=1, pars=death_pars, columns=columns)
             demographics += deaths
 
             # Optionally add migration
@@ -336,7 +363,7 @@ class Sim(ss.Sim):
         if len(disease_pars) == 0:
             return stis
 
-        all_sti_pars = sti.merged_sti_pars()  # All STI parameters, ignoring duplicates
+        all_sti_pars = _par_registry()['sti']  # The names of all STI parameters
         sti_main_pars = {k: v for k, v in self.sti_pars.items() if k in all_sti_pars}
         remaining_pars = {k: v for k, v in self.sti_pars.items() if k not in all_sti_pars}
 
@@ -381,7 +408,7 @@ class Sim(ss.Sim):
                     )
                 stis += stidis
             else:
-                raise ValueError(f"Invalid STI type: {type(stidis)}. Must be str or sti.BaseSTI.")
+                raise ValueError(f"Invalid STI type: {type(stidis)}. Must be a str or a disease (e.g. sti.HIV()).")
 
         return stis
 

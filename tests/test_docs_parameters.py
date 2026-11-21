@@ -10,8 +10,7 @@ sys.path.insert(0, str(sti.root / 'stisim/ai/plugin/skills/parameter-table/scrip
 import parameter_table
 
 # Internal pars that are placeholders or set at runtime, so are not documented
-internal = {'beta', 'dt', 'include_care', 'dur_post_art', 'p_hiv_death', 'birth_outcome_keys', 'p_spontaneous',
-            '_f_partnership_taper_offset', 'age_diffs', 'dur_dist', 'match_dist', 'p_actually_looking', 'p_hi_risk', 'p_lo_risk'}
+internal = {'beta', 'dt', 'include_care', 'p_hiv_death', 'birth_outcome_keys', 'p_spontaneous'}
 
 
 def test_parameter_docs_coverage():

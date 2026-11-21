@@ -46,7 +46,7 @@ def test_cd4_counts_decline_untreated():
     analyzer = nha.CD4ByUIDTracker(subpop=nha.CD4ByUIDTracker.INFECTED)
     hiv = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=1.0)
     sim = build_testing_sim(analyzers=[analyzer], diseases=[hiv],
-                            maternal_network=None, prior_network=None, sexual_network=None,
+                            maternal_network=None, sexual_network=None,
                             pregnancy=None, death=None,
                             n_agents=tiny_pop, duration=5)
     sim.run()
@@ -74,12 +74,11 @@ def test_time_from_infection_to_aids_untreated():
     """Note: if a different definition of AIDS is represented in HIV module, update to use that."""
     sc.heading("Regression: Ensuring mean time from infection to AIDS (to falling state) is reasonable.")
 
-    result_tolerance = 0.03  # fraction of the expected value
-    # 500 agents × 5 years yields only ~25–100 progressed-to-AIDS samples and a means
-    # spread of ~12% across seeds — far too noisy for 3% tolerance. 4000 × 15 yields
-    # ~900 samples and means within ~0.7% across seeds; the fixed rand_seed makes the
-    # test deterministic.
-    sim = build_testing_sim(analyzers=[nha.TimeToAIDSTracker()], n_agents=large_pop, duration=15)
+    result_tolerance = 0.04  # fraction of the expected value: about 4 standard errors of the mean of the ~800 agents tracked
+    # The infections at the start begin at it, and with no transmission or deaths, each reaches the falling stage
+    # within 25 years, so their times are not cut short by the end of the run or selected by who survives
+    hiv = sti.HIV(init_prev=0.2, beta_m2f=0, beta_m2c=0, beta_breastfeed=0, rel_death=0, dist_ti_init_infected=ss.constant(0))
+    sim = build_testing_sim(analyzers=[nha.TimeToAIDSTracker()], diseases=[hiv], n_agents=large_pop, duration=25, pregnancy=None, death=None) # All ~800 infected reach AIDS
     sim.pars.rand_seed = 0
     sim.run()
     results = sim.results
@@ -89,7 +88,7 @@ def test_time_from_infection_to_aids_untreated():
     assert len(times_to_aids) > 0, "Failed to generate at least one HIV infection for testing"
 
     mean_time = np.mean(times_to_aids)
-    expected_mean = 121.02083587646484  # months, from 10k agents, 25 years 5% prevalence
+    expected_mean = 121.7  # months: the mean of dur_acute (1.7 months) plus that of dur_latent (10 years)
     if verbose:
         print(f"{len(times_to_aids)} agents progressed to AIDS.")
         print(f"mean time to AIDS stage: {mean_time} timesteps.")
@@ -138,7 +137,7 @@ def test_aids_transmission_is_higher_than_latent():
 
     # 25 agents frequently produced no AIDS-stage transmission at all; small_pop
     # sustains the epidemic long enough for agents to progress to AIDS.
-    sim = build_testing_sim(analyzers=[nha.RelativeInfectivityTracker(states=['aids'])], n_agents=small_pop, duration=10)
+    sim = build_testing_sim(analyzers=[nha.RelativeInfectivityTracker(states=['aids'])], n_agents=3*small_pop, duration=4)
     sim.run()
     aids_ratios = sim.results['relativeinfectivitytracker']['hiv.aids_rel_trans']
     aids_ratios = list(set(chain(*aids_ratios)))
@@ -171,7 +170,7 @@ def _run_beta_test(baseline_m2f, baseline_m2c, mode: str, multiplier=2, result_t
     else:
         raise ValueError(f'Unknown beta test mode: {mode}')
 
-    pregnancy = ss.Pregnancy(fertility_rate=fertility)
+    pregnancy = ss.Pregnancy(fertility_rate=fertility/1000)
 
     # Build baseline and test sims
     baseline_hiv = sti.HIV(beta_m2f=baseline_m2f, beta_m2c=baseline_m2c, init_prev=init_prev)
@@ -187,7 +186,7 @@ def _run_beta_test(baseline_m2f, baseline_m2c, mode: str, multiplier=2, result_t
         analyzer_test = nha.MTCTransmissionCountTracker()
 
     test_hiv = sti.HIV(beta_m2f=multiplier * baseline_m2f, beta_m2c=multiplier * baseline_m2c, init_prev=init_prev)
-    sim_test = build_testing_sim(diseases=[test_hiv], pregnancy=ss.Pregnancy(fertility_rate=fertility),
+    sim_test = build_testing_sim(diseases=[test_hiv], pregnancy=ss.Pregnancy(fertility_rate=fertility/1000),
                             analyzers=[analyzer_test],
                             n_agents=n_agents, duration=duration)
     sim_test.pars['rand_seed'] = rand_seed
@@ -223,7 +222,7 @@ def test_doubling_hiv_maternal_beta_doubles_transmissions():
 
     # High fertility + prevalence to generate enough births/transmissions with fewer agents
     _run_beta_test(baseline_m2f=0, baseline_m2c=0.0025, mode='mtc', multiplier=2, fertility=1000,
-                   duration=10, n_agents=medium_pop, init_prev=1.0, result_tolerance=0.25)
+                   duration=5, n_agents=3*medium_pop, init_prev=1.0, result_tolerance=0.25) # About 110 vs 210 transmissions, a ratio of 1.7-2.1 over seeds
 
 
 @sc.timer()
@@ -232,7 +231,7 @@ def test_mtct(do_plot=do_plot):
     sc.heading('Testing MTCT (prenatal + postnatal)...')
 
     # High fertility + high breastfeeding beta to ensure both transmission routes
-    sim = hivsim.demo('simple', run=False, plot=False, n_agents=medium_pop, dur=10,
+    sim = hivsim.demo('simple', run=False, plot=False, n_agents=large_pop, dur=4, # At least 7 prenatal and 20 postnatal infections over seeds
                       beta_breastfeed=ss.permonth(0.1), init_prev=0.3)
     sim.run()
 
@@ -273,11 +272,11 @@ def test_pmtct():
     """
     sc.heading('Testing PMTCT...')
 
-    n_agents = 500
-    dur = 10
-    anc_eligibility = lambda sim: sim.demographics.pregnancy.tri1_uids[
-        ~sim.diseases.hiv.diagnosed[sim.demographics.pregnancy.tri1_uids]
-    ]
+    n_agents = 2000 # More agents for fewer years: at 500 for 10, breastfeeding gave as few as 2 vs 1 postnatal infections
+    dur = 5
+    def anc_eligibility(sim): # Undiagnosed women in the first trimester
+        preg = sim.demographics.pregnancy
+        return preg.P & (preg.P.time_in < ss.weeks(13)) & ~sim.diseases.hiv.diagnosed
 
     def make_sim(label, anc_prob=0, pmtct_eff=0.96, dur_bf=ss.years(0.75)):
         pregnancy = ss.Pregnancy(dur_breastfeed=dur_bf)
@@ -337,9 +336,9 @@ def test_cd4_rises_on_ART():
     initial_art_intervention = sti.ART(art_initiation=1.0)  # everyone diagnosed starts ART.
 
     duration = 1  # years
-    hiv = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=1.0, dur_on_art=ss.constant(v=ss.years(duration)))
+    hiv = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=1.0, dur_on_art=ss.constant(value=ss.years(duration)))
     sim = build_testing_sim(analyzers=[analyzer], diseases=[hiv],
-                            death=None, maternal_network=None, prior_network=None, sexual_network=None,
+                            death=None, maternal_network=None, sexual_network=None,
                             interventions=[test_intervention, initial_art_intervention],
                             n_agents=tiny_pop, duration=duration)
     sim.run()
@@ -368,7 +367,7 @@ def test_art_increases_longevity():
     # agents are on art for the full sim length
     #   ... and more (due to bug: https://github.com/starsimhub/stisim/issues/336)
     duration = 20  # years by default
-    disease = sti.HIV(init_prev=1.0, dur_on_art=ss.constant(v=ss.years(duration*100)))
+    disease = sti.HIV(init_prev=1.0, dur_on_art=ss.constant(value=ss.years(duration*100)))
 
     sim = build_testing_sim(n_agents=tiny_pop, duration=duration, pregnancy=None, death=None,
                             interventions=interventions, diseases=[disease])
@@ -400,7 +399,7 @@ def test_no_hiv_with_no_outbreaks():
     sim.run()
 
     # HIV infections should be 0 at all timesteps
-    n_infected = sim.results.hiv.n_infected
+    n_infected = sim.results.hiv.infected
     unique_values = list(set(n_infected))
 
     assert len(unique_values) == 1, f"Found {len(unique_values)} unique HIV infection counts, but there should only be one."
@@ -421,9 +420,9 @@ def test_cd4_falls_after_ART_dropout():
 
     duration = 2  # years
     art_duration = ss.years(duration / 2)
-    hiv = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=1.0, dur_on_art=ss.constant(v=art_duration))
+    hiv = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=1.0, dur_on_art=ss.constant(value=art_duration))
     sim = build_testing_sim(analyzers=[analyzer], diseases=[hiv],
-                            death=None, maternal_network=None, prior_network=None, sexual_network=None,
+                            death=None, maternal_network=None, sexual_network=None,
                             interventions=[test_intervention, initial_art_intervention],
                             n_agents=tiny_pop, duration=duration)
     sim.run()
@@ -458,9 +457,9 @@ def test_rel_trans_rises_after_ART_dropout():
 
     duration = 1  # years
     art_duration = ss.years(duration / 2)
-    hiv = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=1.0, dur_on_art=ss.constant(v=art_duration))
+    hiv = sti.HIV(beta_m2f=0.05, beta_m2c=0.1, init_prev=1.0, dur_on_art=ss.constant(value=art_duration))
     sim = build_testing_sim(analyzers=[analyzer], diseases=[hiv],
-                            death=None, maternal_network=None, prior_network=None, sexual_network=None,
+                            death=None, maternal_network=None, sexual_network=None,
                             interventions=[test_intervention, initial_art_intervention],
                             n_agents=tiny_pop, duration=duration)
     sim.run()
@@ -470,10 +469,10 @@ def test_rel_trans_rises_after_ART_dropout():
     assert len(rel_trans_by_uid.keys()) > 0
 
     n_dts_on_art = int(art_duration.value * 12)  # number of steps where agents are on ART
-    first_dt_off_art = n_dts_on_art + 1
+    first_dt_off_art = n_dts_on_art # ART's effect follows its start and stop in the same step (see HIV.art_ramp())
     for uid, rel_trans_ts in rel_trans_by_uid.items():
         # in short-term ART, rel_trans will drop monotonically. Check delta_rel_trans during this time.
-        delta_rel_trans = [rel_trans_ts[i+1] - rel_trans_ts[i] for i in range(n_dts_on_art)]
+        delta_rel_trans = [rel_trans_ts[i+1] - rel_trans_ts[i] for i in range(n_dts_on_art - 1)]
         for i, delta in enumerate(delta_rel_trans):
             assert delta < 0, f"Expected rel_trans on ART to go down, but instead changed by: {delta}"
 
@@ -500,21 +499,21 @@ def test_increased_testing_speeds_diagnosis():
     sim1 = build_testing_sim(n_agents=n_agents, duration=duration,
                             diseases=[disease],
                             pregnancy=None, death=None,
-                            prior_network=None, sexual_network=None, maternal_network=None,
+                            sexual_network=None, maternal_network=None,
                             interventions=[base_testing])
     sim2 = build_testing_sim(n_agents=n_agents, duration=duration,
                             diseases=[disease],
                             pregnancy=None, death=None,
-                            prior_network=None, sexual_network=None, maternal_network=None,
+                            sexual_network=None, maternal_network=None,
                             interventions=[higher_testing])
     sims = [sim1, sim2]
     msim = ss.parallel(*sims)
 
     hiv = sim1.diseases.hiv
-    n_diagnosed_base = hiv.results.n_diagnosed[-1]  # total diagnoses by end of simulation
+    n_diagnosed_base = hiv.results.diagnosed[-1]  # total diagnoses by end of simulation
 
     hiv = sim2.diseases.hiv
-    n_diagnosed_higher = hiv.results.n_diagnosed[-1]  # total diagnoses by end of simulation
+    n_diagnosed_higher = hiv.results.diagnosed[-1]  # total diagnoses by end of simulation
 
     if True:
         print(f"Testing rate: {base_prob}/dt n_diagnosed: {n_diagnosed_base} after {duration} year(s)\n"
@@ -654,9 +653,9 @@ def test_par_ranges(n_agents=medium_pop):
 
     # [lo, hi, result_key, dur] — higher par values should produce higher result values
     par_effects = dict(
-        beta_m2f              = [0.01,  0.2,  'cum_infections', 10],
-        init_prev              = [0.01,  0.1,  'cum_infections', 10],
-        effective_art_efficacy = [0.96,  0.5,  'cum_deaths',     10],
+        beta_m2f              = [0.01,  0.2,  'cum_infections', 3], # About 4-10x more infections over seeds
+        init_prev              = [0.01,  0.1,  'cum_infections', 1], # Compared at t=1, so a year is enough
+        effective_art_efficacy = [0.96,  0.0,  'cum_deaths',     10], # Through extra infections, so it needs 10 years (at 5 it is often a tie); 0 rather than 0.5, whose few more deaths in 10 years (1 to 7 over seeds) are close to a tie
     )
 
     # Build all sims and run in one parallel call
@@ -682,35 +681,34 @@ def test_par_ranges(n_agents=medium_pop):
 
 
 @sc.timer()
-def test_rel_sus_age(n_agents=3000):
+def test_rel_sus_age(n_agents=6000):
     """
     Higher rel_sus_age multiplier for young women should produce more infections
     in that group relative to a sim with uniform susceptibility.
     """
-    hiv_age = sti.HIV(
-        rel_sus_age=[(15, 25, 'f', 3.0), (25, np.inf, 'f', 1.0)],
-        init_prev=0.1,
-    )
-    sim_age = sti.Sim(diseases=hiv_age, n_agents=n_agents, dur=10, rand_seed=1, verbose=0)
-    sim_uni = sti.Sim(diseases='hiv', n_agents=n_agents, dur=10, rand_seed=1, verbose=0)
-    ss.parallel(sim_age, sim_uni)
+    seeds = [1, 2] # Summed over seeds, since the effect on one is small (at 6,000 agents for 5 years, each of 18 seeds alone passed)
+    rel_sus_age = [(15, 25, 'f', 3.0), (25, np.inf, 'f', 1.0)]
+    make = lambda seed, **kw: sti.Sim(diseases=sti.HIV(init_prev=0.1, **kw), n_agents=n_agents, dur=5, rand_seed=seed, verbose=0) # The same init_prev in both, so only rel_sus_age differs
+    sims_age = [make(seed, rel_sus_age=rel_sus_age) for seed in seeds]
+    sims_uni = [make(seed) for seed in seeds]
+    ss.parallel(sims_age + sims_uni)
 
     def young_female_infections(sim):
         ppl = sim.people
         ti_inf = sim.diseases.hiv.ti_infected.values
         return ((ppl.age.values >= 15) & (ppl.age.values < 25) & ppl.female.values & (ti_inf >= 0)).sum()
 
-    yf_age = young_female_infections(sim_age)
-    yf_uni = young_female_infections(sim_uni)
+    yf_age = sum(young_female_infections(sim) for sim in sims_age)
+    yf_uni = sum(young_female_infections(sim) for sim in sims_uni)
     assert yf_age > yf_uni, (
         f'rel_sus_age multiplier for young women should increase their infections; '
         f'age-dep={yf_age}, uniform={yf_uni}'
     )
-    return sim_age, sim_uni
+    return sims_age, sims_uni
 
 
 @sc.timer()
-def test_prevalence_by_sex(n_agents=3000):
+def test_prevalence_by_sex(n_agents=6000):
     """
     Under default parameters, female HIV prevalence should exceed male prevalence.
 
@@ -718,7 +716,7 @@ def test_prevalence_by_sex(n_agents=3000):
     women are more easily infected) and network structure should produce higher
     female prevalence. If this fails, something fundamental has changed.
     """
-    sim = sti.Sim(diseases='hiv', n_agents=n_agents, dur=10, beta_m2f=0.05, init_prev=0.05)
+    sim = sti.Sim(diseases='hiv', n_agents=n_agents, dur=5, beta_m2f=0.05, init_prev=0.05) # At 3,000 agents for 10 years, a seed in six had higher male prevalence
     sim.run(verbose=0)
 
     prev_f = sim.results.hiv.prevalence_f[-1]
@@ -741,9 +739,9 @@ def test_mtct_rates_in_range():
     Uses analytical calculation from beta values, not simulation, to avoid
     stochastic noise while still validating the parameterisation.
     """
-    pars = sti.HIVPars()
-    beta_prenatal  = pars.beta_m2c.value        # rate per month (ss.permonth object)
-    beta_postnatal = pars.beta_breastfeed.value  # rate per month
+    hiv = sti.HIV()
+    beta_prenatal  = float(hiv.pars.beta_m2c)        # rate per month
+    beta_postnatal = float(hiv.pars.beta_breastfeed)  # rate per month
 
     dur_preg_mo = 9   # standard gestation
     dur_bf_mo   = 9   # ss.Pregnancy default: lognorm mean=0.75 yr = 9 mo
@@ -771,52 +769,57 @@ def test_mtct_rates_in_range():
 
 
 @sc.timer()
-def test_rel_death_scales_hiv_mortality(n_agents=3000):
+@pytest.mark.parametrize('on_art', [False, True])
+def test_rel_death_scales_hiv_mortality(on_art, n_agents=6000):
     """rel_death scales HIV mortality monotonically, off- and on-ART alike."""
-    sc.heading("Ensuring rel_death scales HIV deaths")
+    sc.heading(f"Ensuring rel_death scales HIV deaths ({'on' if on_art else 'off'} ART)")
 
-    def _deaths(rel_death=1.0, art_initiation=1.0):
+    def _deaths(rel_death=1.0, art_initiation=1.0, duration=15):
         test_intv = sti.HIVTest(test_prob_data=1, dt_scale=False)
         art = sti.ART(art_initiation=art_initiation)
         hiv = sti.HIV(init_prev=1.0, beta_m2f=0.0, rel_death=rel_death,
-                      dur_on_art=ss.constant(v=ss.years(50)))
-        sim = build_testing_sim(n_agents=n_agents, duration=15,
+                      dur_on_art=ss.constant(value=ss.years(50)))
+        sim = build_testing_sim(n_agents=n_agents, duration=duration,
                                 pregnancy=None, death=None,
                                 diseases=[hiv], interventions=[test_intv, art])
         sim.run()
         return int(sim.diseases.hiv.results.new_deaths.sum())
 
-    # Off-ART: nobody initiates ART, so all deaths come from make_p_hiv_death
-    d1 = _deaths(rel_death=0.5, art_initiation=0.0)
-    d2 = _deaths(rel_death=1.0, art_initiation=0.0)
-    d3 = _deaths(rel_death=2.0, art_initiation=0.0)
-    assert d1 < d2 < d3, (
-        f'rel_death should scale off-ART HIV deaths monotonically; got {d1}, {d2}, {d3}'
-    )
-
-    # On-ART: everyone initiates ART immediately, so deaths come from get_art_mortality_hazard
-    z1 = _deaths(rel_death=0.5, art_initiation=1.0)
-    z2 = _deaths(rel_death=1.0, art_initiation=1.0)
-    z3 = _deaths(rel_death=2.0, art_initiation=1.0)
-    assert z1 < z2 < z3, (
-        f'rel_death should scale on-ART HIV deaths monotonically; got {z1}, {z2}, {z3}'
-    )
+    if not on_art:
+        # Off-ART: nobody initiates ART, so all deaths come from hiv_death (off_art_death_rate()).
+        # 3 years, since by 15 nearly everyone has died whatever rel_death is; 3 gives about 760, 790, and 860 deaths
+        d1 = _deaths(rel_death=0.5, art_initiation=0.0, duration=3)
+        d2 = _deaths(rel_death=1.0, art_initiation=0.0, duration=3)
+        d3 = _deaths(rel_death=2.0, art_initiation=0.0, duration=3)
+        assert d1 < d2 < d3, (
+            f'rel_death should scale off-ART HIV deaths monotonically; got {d1}, {d2}, {d3}'
+        )
+    else:
+        # On-ART: everyone initiates ART immediately, so deaths come from art_death (on_art_death_rate()).
+        # 4 years gives about 15-30, 35-60, and 75-105 deaths
+        z1 = _deaths(rel_death=0.5, art_initiation=1.0, duration=4)
+        z2 = _deaths(rel_death=1.0, art_initiation=1.0, duration=4)
+        z3 = _deaths(rel_death=2.0, art_initiation=1.0, duration=4)
+        assert z1 < z2 < z3, (
+            f'rel_death should scale on-ART HIV deaths monotonically; got {z1}, {z2}, {z3}'
+        )
 
 
 def test_rel_death_f_applies_off_art_too(n_agents=3000):
-    """ rel_death_f is folded into the shared off-ART baseline (make_p_hiv_death), so it
+    """ rel_death_f is folded into the shared off-ART baseline (off_art_death_rate()), so it
     should give women the same mortality benefit off ART as on ART -- not just on ART,
     which was the behavior prior to this fix. """
     sc.heading('Testing rel_death_f applies to off-ART mortality')
 
     captured = []
-    orig = sti.HIV.make_p_hiv_death
-    def wrapped(self, uids=None):
-        p = orig(self, uids=uids)
+    orig = sti.HIV.off_art_death_rate
+    def wrapped(self, uids):
+        p = orig(self, uids)
         female = ~self.sim.people.male[uids]
-        captured.append((sc.dcp(female), sc.dcp(p)))
+        base = self.pars.cd4_death_rates[np.digitize(self.cd4[uids], self.pars.cd4_death_bins)] * self.pars.rel_death # The rate by CD4 count alone
+        captured.append((sc.dcp(female), sc.dcp(p/base)))
         return p
-    sti.HIV.make_p_hiv_death = wrapped
+    sti.HIV.off_art_death_rate = wrapped
     try:
         hiv = sti.HIV(init_prev=1.0, beta_m2f=0.0)
         art = sti.ART(art_initiation=0.0)  # nobody goes on ART -- isolates off-ART mortality
@@ -825,13 +828,13 @@ def test_rel_death_f_applies_off_art_too(n_agents=3000):
                      n_agents=n_agents, start=2015, stop=2016, verbose=0)
         sim.run()
     finally:
-        sti.HIV.make_p_hiv_death = orig
+        sti.HIV.off_art_death_rate = orig
 
     all_female = np.concatenate([f for f, p in captured])
     all_p = np.concatenate([p for f, p in captured])
-    ratio = all_p[all_female].mean() / all_p[~all_female].mean()
+    ratio = all_p[all_female].mean() / all_p[~all_female].mean() # The multiplier for women, at the same CD4 count
     expected = hiv.pars.rel_death_f
-    assert abs(ratio - expected) < 0.02, (
+    assert abs(ratio - expected) < 1e-6, (
         f'Expected off-ART female:male mortality ratio ~= rel_death_f ({expected}), got {ratio:.3f}'
     )
 
@@ -862,7 +865,7 @@ def test_on_art_mortality_invariant_enforced():
 
 
 def test_art_efficacy_ramp_stays_in_bounds():
-    """ rel_trans for on-ART agents ramps from 1 down to (1 - full_eff) over
+    """ Infectiousness of on-ART agents ramps from 1 down to (1 - full_eff) over
     time_to_art_efficacy; this must hold regardless of dt, not just at the
     default monthly resolution (time_to_art_efficacy is authored in months and
     must be converted to timesteps via dt, not used as a raw timestep count).
@@ -881,19 +884,20 @@ def test_art_efficacy_ramp_stays_in_bounds():
         orig(self)
         art_uids = self.on_art.uids
         if len(art_uids):
-            mins.append(self.rel_trans[art_uids].min())
+            mins.append(self.infectiousness(art_uids).min())
     sti.HIV.update_transmission = wrapped
     try:
         hiv = sti.HIV(init_prev=0.5, dt=ss.weeks(1))
         sim = ss.Sim(diseases=hiv, networks=sti.StructuredSexual(),
                      interventions=[sti.HIVTest(test_prob_data=0.9), sti.ART(coverage=0.9)],
-                     n_agents=small_pop, start=2015, stop=2017, verbose=0)
+                     n_agents=small_pop, start=2015, stop=2016, verbose=0) # A year is twice the 6-month ramp
         sim.run()
     finally:
         sti.HIV.update_transmission = orig
 
     min_rel_trans = min(mins)
-    min_possible = 1 - max(hiv.pars.effective_art_efficacy, hiv.pars.nonsupp_art_efficacy)
+    hiv = sim.diseases.hiv
+    min_possible = 1 - max(hiv.current_value('effective_art_efficacy'), hiv.current_value('nonsupp_art_efficacy'))
     assert min_rel_trans >= min_possible - 1e-9, (
         f'rel_trans for on-ART agents should never drop below 1-full_eff={min_possible}, '
         f'got min {min_rel_trans} over the run. A dt/unit mismatch in the efficacy ramp would let this go negative.'
@@ -927,7 +931,8 @@ if __name__ == '__main__':
     test_cd4_falls_after_ART_dropout()
     test_rel_trans_rises_after_ART_dropout()
     test_rel_sus_age()
-    test_rel_death_scales_hiv_mortality()
+    test_rel_death_scales_hiv_mortality(on_art=False)
+    test_rel_death_scales_hiv_mortality(on_art=True)
 
     sc.heading("Total:")
     timer.toc()
