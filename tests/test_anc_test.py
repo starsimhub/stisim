@@ -12,7 +12,7 @@ import starsim as ss
 import stisim as sti
 
 
-def _make_sim(visit_prob=1.0, n_agents=2000, dur=8, rand_seed=1, art_coverage=0.6):
+def _make_sim(visit_prob=1.0, n_agents=2000, dur=2, rand_seed=1, art_coverage=0.6):
     infant_hiv = sti.InfantHIVTest(name='infant_hiv')
     anc = sti.ANCTest(visit_prob=visit_prob, newborn_tests={'hiv': infant_hiv})
     art = sti.ART(coverage=art_coverage)

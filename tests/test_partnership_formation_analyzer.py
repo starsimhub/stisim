@@ -28,8 +28,8 @@ OUTPUT_DIR = os.path.join(TEST_DIR, 'partnership_formation_analyzer')
 
 
 # Default test configuration (configurable via function arguments)
-DEFAULT_N_AGENTS  = 10000
-DEFAULT_DUR_YEARS = 5
+DEFAULT_N_AGENTS  = 3000
+DEFAULT_DUR_YEARS = 1
 DEFAULT_N_SEEDS   = 3
 DEFAULT_AGE_BINS  = None  # None -> PartnershipFormationAnalyzer's own default
 

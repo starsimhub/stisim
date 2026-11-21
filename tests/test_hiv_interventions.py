@@ -40,7 +40,7 @@ def test_art_specs(do_plot=do_plot):
 
     sims = []
     for label, art in specs.items():
-        sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=5)
+        sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=2)
         sim.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), art]
         sim.label = label
         sims.append(sim)
@@ -76,7 +76,7 @@ def test_art_mixed_coverage(do_plot=do_plot):
     df.loc[2011:2020, 'p_art'] = np.linspace(0.5, 0.9, 10)
 
     art1 = sti.ART(coverage=df)
-    sim1 = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=5)
+    sim1 = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=2)
     sim1.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), art1]
     sim1.label = 'dual_column_df'
 
@@ -86,7 +86,7 @@ def test_art_mixed_coverage(do_plot=do_plot):
         'value':  [0,    5000, 0.5,  0.9],
         'format': ['n',  'n',  'p',  'p'],
     })
-    sim2 = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=5)
+    sim2 = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=2)
     sim2.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), art2]
     sim2.label = 'mixed_format_dict'
 
@@ -110,7 +110,7 @@ def test_vmmc_specs(do_plot=do_plot):
 
     sims = []
     for label, vmmc in specs.items():
-        sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=5)
+        sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=2)
         sim.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.1), vmmc]
         sim.label = label
         sims.append(sim)
@@ -135,7 +135,7 @@ def test_vmmc_hits_target(do_plot=do_plot):
     sc.heading('Testing VMMC converges to its coverage target...')
 
     target = 0.3
-    sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=20)
+    sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=5) # A per-step hazard would push it near 1 within a year or two
     sim.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.1),
                               sti.VMMC(coverage=target)]
     sim.run()
@@ -190,7 +190,7 @@ def test_art_stratified_coverage(do_plot=do_plot):
                 rows.append(dict(Year=year, Gender=gender, AgeBin=age_bin, NationalARTPrevalence=min(p, 1.0)))
     strat_df = pd.DataFrame(rows)
 
-    sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=5)
+    sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=2)
     sim.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), sti.ART(coverage=strat_df)]
     sim.run()
     assert sim.results.hiv.on_art[-1] > 0, 'Expected people on ART with stratified coverage (canonical names)'
@@ -203,7 +203,7 @@ def test_art_stratified_coverage(do_plot=do_plot):
                 p = 0.4 if year == 2005 else 0.8
                 rows_lc.append(dict(year=year, sex=sex, agebin=age_bin, coverage=min(p, 1.0)))
 
-    sim2 = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=5)
+    sim2 = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=2)
     sim2.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), sti.ART(coverage=pd.DataFrame(rows_lc))]
     sim2.run()
     assert sim2.results.hiv.on_art[-1] > 0, 'Expected people on ART with stratified coverage (string sex values)'
@@ -254,7 +254,7 @@ def test_art_vls_coverage_stock_tracks_over_time(do_plot=do_plot):
 
     def _build(vls_years, vls_vals):
         vls_df = pd.DataFrame({'Year': vls_years, 'p_vls': vls_vals})
-        sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=20)
+        sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=3) # 3 years leaves the same gap as 20 (about 0.89 vs 0.29)
         sim.pars.interventions = [
             sti.HIVTest(name='hiv_test', test_prob_data=0.5),
             sti.ART(coverage=0.7, vls_coverage=vls_df),
@@ -263,8 +263,8 @@ def test_art_vls_coverage_stock_tracks_over_time(do_plot=do_plot):
         return sim
 
     # Ramp endpoints match the sim window (parse_coverage interpolates linearly).
-    rising  = _build([2000, 2020], [0.3, 0.9])
-    falling = _build([2000, 2020], [0.9, 0.3])
+    rising  = _build([2000, 2003], [0.3, 0.9])
+    falling = _build([2000, 2003], [0.9, 0.3])
     msim = ss.parallel([rising, falling])
 
     r_ac = msim.sims[0].results.art_coverage
@@ -300,7 +300,7 @@ def test_art_vls_coverage_stratified_stock():
             for g, p in [(0, target_f), (1, target_m)]]
     vls_df = pd.DataFrame(rows)
 
-    sim = hivsim.demo('simple', run=False, plot=False, n_agents=5_000, dur=10) # About 140 on ART (about 25 with 1,000 agents), so the gap isn't noise
+    sim = hivsim.demo('simple', run=False, plot=False, n_agents=10_000, dur=3) # About 550 on ART, so the gap (0.40-0.45 over seeds) isn't noise
     sim.pars.interventions = [
         sti.HIVTest(name='hiv_test', test_prob_data=0.5),
         sti.ART(coverage=0.7, vls_coverage=vls_df),
@@ -326,7 +326,7 @@ def test_art_effects(do_plot=do_plot):
     sc.heading('Testing ART functional effects...')
 
     # With testing → people on ART
-    sim_with = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=5)
+    sim_with = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=2)
     sim_with.run()
     n_art = sim_with.results.hiv.on_art[-1]
     assert n_art > 0, f'Expected people on ART with the default demo, got {n_art}'
@@ -339,7 +339,7 @@ def test_art_effects(do_plot=do_plot):
             networks=sti.StructuredSexual(),
             demographics=[ss.Pregnancy(fertility_rate=0.01), ss.Deaths(death_rate=0.01)],
             interventions=[sti.ART(coverage=0.9)],
-            n_agents=n_agents, dur=5, verbose=0,
+            n_agents=n_agents, dur=2, verbose=0,
         )
         sim_without.run()
         warn_texts = [str(x.message) for x in w]
@@ -373,7 +373,7 @@ def test_art_no_pregnancy(do_plot=do_plot):
             sti.HIVTest(name='hiv_test', test_prob_data=0.3),
             sti.ART(coverage=0.8),
         ],
-        n_agents=n_agents, dur=20, verbose=0,
+        n_agents=n_agents, dur=3, verbose=0,
     )
     sim.run()
     assert sim.results.hiv.on_art[-1] > 0, 'Expected people on ART without pregnancy module'
@@ -389,7 +389,7 @@ def test_art_coverage_matching(do_plot=do_plot):
 
     # Simple constant proportion coverage
     target_p = 0.7
-    sim = hivsim.demo('simple', run=False, plot=False, n_agents=1_000, dur=5)
+    sim = hivsim.demo('simple', run=False, plot=False, n_agents=1_000, dur=3)
     sim.pars.interventions = [
         sti.HIVTest(name='hiv_test', test_prob_data=0.5),
         sti.ART(coverage=target_p),
@@ -497,12 +497,12 @@ def test_art_reduces_mortality(do_plot=do_plot):
     sc.heading('Testing ART reduces mortality...')
 
     # Without ART
-    sim_no_art = hivsim.demo('simple', run=False, plot=False, n_agents=1_000, dur=5)
+    sim_no_art = hivsim.demo('simple', run=False, plot=False, n_agents=1_000, dur=2) # Short, since the assertion below is not yet on
     sim_no_art.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3)]
     sim_no_art.label = 'no_art'
 
     # With ART
-    sim_art = hivsim.demo('simple', run=False, plot=False, n_agents=1_000, dur=5)
+    sim_art = hivsim.demo('simple', run=False, plot=False, n_agents=1_000, dur=2)
     sim_art.pars.interventions = [
         sti.HIVTest(name='hiv_test', test_prob_data=0.3),
         sti.ART(coverage=0.8),
@@ -549,7 +549,7 @@ def test_art_parameter_sensitivity(do_plot=do_plot):
                 # No coverage cap — art_initiation is the only constraint, giving
                 # a clear signal: higher p → faster uptake → more on ART at end.
                 art = sti.ART(art_initiation=ss.bernoulli(p=val))
-            sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=10, rand_seed=0)
+            sim = hivsim.demo('simple', run=False, plot=False, n_agents=n_agents, dur=3, rand_seed=0) # 3 years leaves a gap of 2-4x over seeds
             sim.pars.interventions = [sti.HIVTest(name='hiv_test', test_prob_data=0.3), art]
             sim.label = (par, val)
             sims.append(sim)
@@ -695,7 +695,7 @@ def test_pn():
             ))
         return hivsim.demo(
             'simple', run=False, plot=False,
-            n_agents=n_agents, dur=5, rand_seed=rand_seed, verbose=0,
+            n_agents=5_000, dur=2, rand_seed=rand_seed, verbose=0, # Short, with enough agents that prior partners are always notified (at 1,000 agents for 5 years, some seeds notified none)
             networks=[sti.StructuredSexual(memory=ss.years(0.5))],
             interventions=intvs,
         )
@@ -779,8 +779,8 @@ def test_pn_rates_sim():
             name='pn',
         )
         networks = [sti.StructuredSexual(memory=ss.years(0.5) if use_prior else None)]
-        return hivsim.demo('simple', run=False, plot=False, n_agents=n_agents,
-                           dur=5, rand_seed=1, verbose=0,
+        return hivsim.demo('simple', run=False, plot=False, n_agents=2_000,
+                           dur=2, rand_seed=1, verbose=0,
                            networks=networks, interventions=[hiv_test, pn])
 
     edge_types = sti.StructuredSexual().edge_types

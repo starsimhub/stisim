@@ -20,7 +20,7 @@ def test_syph_epi():
     """ Test that syphilis epi parameters affect dynamics in the expected direction """
     sc.heading('Test epi dynamics of syphilis')
 
-    base_pars = dict(n_agents=4*n_agents) # The effect of rel_trans_primary is within the noise of one run at 500 agents (Starsim 3 and 4 alike)
+    base_pars = dict(n_agents=8*n_agents, dur=4) # The effect of rel_trans_primary is small: at 2,000 agents for 10 years it was as close as 431 vs 432; 4,000 for 4 gives 12-44 more
 
     # Define the parameters to vary
     par_effects = dict(
@@ -34,8 +34,8 @@ def test_syph_epi():
     for par, (lo, hi) in par_effects.items():
         simpardict_lo = sc.mergedicts(dict(beta_m2f=0.3, init_prev=0.05), {par: lo})
         simpardict_hi = sc.mergedicts(dict(beta_m2f=0.3, init_prev=0.05), {par: hi})
-        sims.append(sti.Sim(sc.mergedicts(base_pars, dict(diseases=sti.Syphilis(**simpardict_lo), dur=10)), label=f'{par}={lo}'))
-        sims.append(sti.Sim(sc.mergedicts(base_pars, dict(diseases=sti.Syphilis(**simpardict_hi), dur=10)), label=f'{par}={hi}'))
+        sims.append(sti.Sim(sc.mergedicts(base_pars, dict(diseases=sti.Syphilis(**simpardict_lo))), label=f'{par}={lo}'))
+        sims.append(sti.Sim(sc.mergedicts(base_pars, dict(diseases=sti.Syphilis(**simpardict_hi))), label=f'{par}={hi}'))
 
     ss.parallel(*sims, workers=1 if debug else None)
 
@@ -68,7 +68,7 @@ def test_syph_congenital_death_timing():
         p = np.zeros(5)
         p[outcome_idx] = 1.0
         birth_outcomes = sc.objdict(mat_active=ss.choice(a=5, p=p), early=ss.choice(a=5, p=p), late=ss.choice(a=5, p=p))
-        return sti.Sim(n_agents=n_agents, dur=12, start=2000,
+        return sti.Sim(n_agents=4*n_agents, dur=4, start=2000, # About 100 congenital outcomes
                         diseases=sti.Syphilis(init_prev=0.3, beta_m2f=0.5, beta_m2c=1.0, birth_outcomes=birth_outcomes),
                         demographics=[ss.Pregnancy(), ss.Deaths()])
 
@@ -95,7 +95,7 @@ def test_syph_congenital_death_timing():
     return sim_still, sim_misc
 
 
-def test_stis(which='discharging', n_agents=1e3, start=2010, stop=2020):
+def test_stis(which='discharging', n_agents=1e3, start=2010, stop=2013):
     """ Test running grouped STIs: discharging (NG, CT, TV, BV) and ulcerative (syphilis, GUD) """
     sc.heading('Test STI sim')
 
@@ -135,13 +135,15 @@ def test_optional_stratification(n_agents=500):
 
     def make_sim(**kw):
         dis = [sti.Gonorrhea(init_prev=0.1, **kw), sti.Syphilis(init_prev=0.1, **kw), sti.HIV(init_prev=0.1, **kw)]
-        return ss.Sim(n_agents=n_agents, start=2000, stop=2005, rand_seed=1, diseases=dis,
+        return ss.Sim(n_agents=n_agents, start=2000, stop=2001, dt=ss.months(1), rand_seed=1, diseases=dis, # Monthly, not the daily default from gonorrhea's units, to run quickly
                       networks=[sti.StructuredSexual(), ss.PrenatalNet()],
                       demographics=[ss.Pregnancy(fertility_rate=0.05), ss.Deaths(death_rate=0.01)])
 
     s_full = make_sim()
     s_none = make_sim(age_bins=None, sex_keys=None)
-    ss.parallel(s_full, s_none, workers=1 if debug else None)
+    s_ages = make_sim(age_bins=None) # Each stratification can also be disabled on its own
+    s_sexes = make_sim(sex_keys=None)
+    ss.parallel(s_full, s_none, s_ages, s_sexes, workers=1 if debug else None)
 
     for name in ['ng', 'syph', 'hiv']:
         r_full = s_full.diseases[name].results
@@ -158,11 +160,6 @@ def test_optional_stratification(n_agents=500):
             if key in r_full:
                 assert np.allclose(np.asarray(r_full[key], float), np.asarray(r_none[key], float), equal_nan=True), \
                     f'{name}: result {key} changed when stratification was disabled'
-
-    # Each stratification can also be disabled on its own
-    for kw in [dict(age_bins=None), dict(sex_keys=None)]:
-        sim = make_sim(**kw)
-        sim.run(verbose=0)
 
     return s_full, s_none
 
@@ -213,7 +210,7 @@ def test_bv(include_hiv=False, n_agents=500):
         con += [sti.hiv_bv(hiv_module=hiv, bv_module=bv)]
 
     # Make sim
-    sim_args = dict(start=2015, stop=2030, n_agents=n_agents, diseases=dis, networks=nets, demographics=dem, connectors=con)
+    sim_args = dict(start=2018, stop=2022, n_agents=n_agents, diseases=dis, networks=nets, demographics=dem, connectors=con) # Spans the intervention's start in 2020
 
     s0 = ss.Sim(**sim_args, interventions=intvs)
     s1 = ss.Sim(**sim_args, interventions=intvs + [menstrual_hygiene(start=2020, new_val=0.1)])

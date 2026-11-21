@@ -375,12 +375,13 @@ class HIV(ss.Disease, STIResults):
         to_falling = to_latent + steps(trs.progression)
         to_zero = to_falling + steps(trs.aids_death)
         self.ti_infected[uids] = began
-        for state, start, end in [('acute', began, to_latent), ('latent', to_latent, to_falling), ('falling', to_falling, to_zero)]:
+        for state, start, end, tr in [('acute', began, to_latent, trs.latency), ('latent', to_latent, to_falling, trs.progression), ('falling', to_falling, to_zero, trs.aids_death)]:
             here = (start <= now) & ((end > now) | (state == 'falling')) # Those whose course ended before the start are due to die in its first step
             if here.any():
                 self.move(self[state], uids=uids[here])
                 self[f'ti_{state}'].raw[uids[here]] = start[here] # [PROPOSAL ST-E] ss.move(..., since=): when they entered it, and when they leave it (by now at the latest)
                 self[f'ti_exit_{state}'].raw[uids[here]] = np.maximum(end[here], now)
+                self[f'exit_{state}'].raw[uids[here]] = eng.exits_of[state].index(tr) # Which exit is scheduled: those already in acute at the start were never moved, so were never given it, and would stay in acute for good
         return
 
     # CD4 count and care seeking

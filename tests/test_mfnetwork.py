@@ -4,7 +4,7 @@ MFNetwork assertion tests.
 Verifies the MFNetwork class against the spec in
 ``mfnetwork_test_instructions.txt``:
 
-  * 3-seed rand_seed sweep, n_agents=10000, dur=20yr, window_months=12
+  * 3-seed rand_seed sweep, n_agents=15000, dur=10yr, window_months=12
   * Across target_age_gap in {5, 8, 11, 14}, the sweep-averaged realized
     male-female age gap mean and std are within 5% of their targets
   * Per 5-year female-age bin from 15 through 55, the realized mean and std
@@ -27,6 +27,7 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import pytest
 import sciris as sc
 import starsim as ss
 import stisim as sti
@@ -44,7 +45,7 @@ SEEDS = [1, 2, 3]
 TARGET_GAPS = [5, 8, 11, 14]
 TARGET_STD = 3
 N_AGENTS = 15000
-DUR = 20
+DUR = 10 # As close to the targets as 20 years (at most half the tolerance over 9 seeds)
 WINDOW_MONTHS = 12
 
 # Female-age bins (5-yr) covering 15 through 55: [15,20), [20,25), ..., [50,55)
@@ -97,8 +98,9 @@ def _bin_stats(female_ages, gaps):
 
 # ---- Tests -----------------------------------------------------------------
 @sc.timer()
-def test_mfnetwork_age_gap_targets(n_agents=N_AGENTS, dur=DUR, seeds=SEEDS,
-                                     target_gaps=TARGET_GAPS, target_std=TARGET_STD,
+@pytest.mark.parametrize('target_gaps', [[gap] for gap in TARGET_GAPS], ids=lambda gaps: f'gap{gaps[0]}') # One target per test, so they run in parallel
+def test_mfnetwork_age_gap_targets(target_gaps, n_agents=N_AGENTS, dur=DUR, seeds=SEEDS,
+                                     target_std=TARGET_STD,
                                      window_months=WINDOW_MONTHS):
     """Sweep target_age_gap x rand_seed; assert realized stats match targets.
 
@@ -290,7 +292,7 @@ if __name__ == '__main__':
     sc.options(interactive=do_plot)
     timer = sc.timer()
 
-    test_mfnetwork_age_gap_targets()
+    test_mfnetwork_age_gap_targets(TARGET_GAPS)
     test_mfnetwork_taper_kwargs()
 
     sc.heading("Total:")

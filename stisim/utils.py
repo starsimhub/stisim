@@ -1,5 +1,6 @@
 """ STIsim utilities """
 
+import functools
 import sciris as sc
 import pandas as pd
 import numpy as np
@@ -144,9 +145,11 @@ def apply_age_range(age_string, arr):
         return (arr >= lo) & (arr < hi)
 
 
+@functools.lru_cache(maxsize=1)
 def _par_registry():
     """Registry of category -> set of valid par-names. Built lazily to avoid
-    circular imports at module load time.
+    circular imports at module load time, and once, since it makes every module
+    to read its pars (frozen, so the one cached can't be changed).
 
     The registry is built from the default out-of-the-box module classes only.
     User-supplied modules (custom connectors, networks, etc.) are not
@@ -155,11 +158,11 @@ def _par_registry():
     """
     import stisim as sti
     return {
-        'sim':       set(sti.SimPars()),
-        'sti':       set(sti.merged_sti_pars()),
-        'nw':        set(sti.NetworkPars()),
-        'dem':       set(sti.dem_pars()),
-        'connector': set(sti.merged_connector_pars()),
+        'sim':       frozenset(sti.SimPars()),
+        'sti':       frozenset(sti.merged_sti_pars()),
+        'nw':        frozenset(sti.NetworkPars()),
+        'dem':       frozenset(sti.dem_pars()),
+        'connector': frozenset(sti.merged_connector_pars()),
     }
 
 

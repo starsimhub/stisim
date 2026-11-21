@@ -9,6 +9,7 @@ import stisim as sti
 import sciris as sc
 from .data import loaders as stidata
 from .data import downloaders as stidl
+from .utils import _par_registry
 
 
 class Sim(ss.Sim):
@@ -124,7 +125,7 @@ class Sim(ss.Sim):
         # Pull out per-module nested dicts (e.g. hiv=dict(init_prev=0.05))
         # before flat routing — these aren't valid par-names themselves, but
         # their values contain sti pars scoped to a single disease module.
-        sti_keys = set(sti.merged_sti_pars())
+        sti_keys = _par_registry()['sti']
         nested_sti = {}
         for k in list(merged):
             v = merged[k]
@@ -362,7 +363,7 @@ class Sim(ss.Sim):
         if len(disease_pars) == 0:
             return stis
 
-        all_sti_pars = sti.merged_sti_pars()  # All STI parameters, ignoring duplicates
+        all_sti_pars = _par_registry()['sti']  # The names of all STI parameters
         sti_main_pars = {k: v for k, v in self.sti_pars.items() if k in all_sti_pars}
         remaining_pars = {k: v for k, v in self.sti_pars.items() if k not in all_sti_pars}
 

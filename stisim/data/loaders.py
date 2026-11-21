@@ -3,6 +3,8 @@ Load data
 '''
 
 #%% Housekeeping
+import os
+import functools
 import numpy as np
 import pandas as pd
 import sciris as sc
@@ -45,11 +47,17 @@ def get_rates(location, which, datafolder=None):
     if datafolder is None: datafolder = filesdir
     filepath = sc.makefilepath(filename=f'{location}_{files[which]}', folder=datafolder)
     try:
-        df = pd.read_csv(filepath)
+        stat = os.stat(filepath)
     except Exception as E:
         errormsg = f'Could not locate datafile for {which}.'
         raise ValueError(errormsg) from E
-    return interp_years(df)
+    return read_rates(filepath, stat.st_mtime_ns, stat.st_size).copy() # A copy, so the one cached is not changed
+
+
+@functools.lru_cache(maxsize=64)
+def read_rates(filepath, mtime, size):
+    """ The rates in a file, read and interpolated once for each version of it (see get_rates()) """
+    return interp_years(pd.read_csv(filepath))
 
 
 def interp_years(df, year='Time', keys=('Sex', 'AgeStart')):

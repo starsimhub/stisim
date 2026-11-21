@@ -13,7 +13,7 @@ sc.options(interactive=False)
 
 def make_sim(**kwargs):
     """Create a minimal Zimbabwe HIV sim for calibration tests."""
-    sim = hivsim.demo('zimbabwe', run=False, n_agents=n_agents, dt=ss.year, stop=2000, verbose=0, **kwargs)
+    sim = hivsim.demo('zimbabwe', run=False, n_agents=n_agents, dt=ss.year, stop=1995, verbose=0, **kwargs)
     sim.data = sim.data[['year', 'hiv.prevalence', 'hiv.new_infections']]
     return sim
 

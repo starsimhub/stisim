@@ -17,7 +17,7 @@ import starsim as ss
 import stisim as sti
 
 
-def _make_sim(intervention_pars=None, n_agents=3_000, dur=15, rand_seed=1):
+def _make_sim(intervention_pars=None, n_agents=3_000, dur=3, rand_seed=1): # 3 years leaves about 50 pregnant and 180 postpartum agents
     return sti.Sim(
         diseases=[sti.HIV(init_prev=0.05, beta_m2f=0.05)],
         networks=[sti.StructuredSexual(), ss.PrenatalNet(), ss.BreastfeedingNet()],
@@ -135,7 +135,7 @@ def test_runs_without_breastfeedingnet():
         networks=[sti.StructuredSexual(), ss.PrenatalNet()],
         demographics=[ss.Pregnancy(), ss.Deaths()],
         interventions=[sti.PregnancyRiskReduction()],
-        n_agents=3_000, dur=15, start=2005, verbose=0, rand_seed=1,
+        n_agents=3_000, dur=3, start=2005, verbose=0, rand_seed=1,
     )
     sim.run()
     intv = sim.interventions.pregnancyriskreduction

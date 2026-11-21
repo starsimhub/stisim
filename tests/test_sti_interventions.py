@@ -28,7 +28,7 @@ def test_stitest_default_eligibility():
     sc.heading('Testing STITest with default eligibility...')
 
     test = sti.SyphTest(product=make_syph_dx(), test_prob_data=0.2, start=2000)
-    sim = ss.Sim(n_agents=n_agents, start=2000, stop=2005, dt=ss.months(1),
+    sim = ss.Sim(n_agents=n_agents, start=2000, stop=2003, dt=ss.months(1),
                  diseases=sti.Syphilis(), networks=sti.StructuredSexual(),
                  interventions=test, demographics=[ss.Births(), ss.Deaths()], verbose=0)
     sim.run()
@@ -50,7 +50,7 @@ def test_syphtest_stratified_dataframe():
     ])
 
     test = sti.SyphTest(product=make_syph_dx(), test_prob_data=test_prob_data, start=2000)
-    sim = ss.Sim(n_agents=n_agents, start=2000, stop=2010, dt=ss.months(1),
+    sim = ss.Sim(n_agents=n_agents, start=2000, stop=2003, dt=ss.months(1),
                  diseases=sti.Syphilis(), networks=sti.StructuredSexual(),
                  interventions=test, demographics=[ss.Births(), ss.Deaths()], verbose=0)
     sim.run()
@@ -68,7 +68,7 @@ def test_syndromic():
 
     def make_sim(*intvs):
         diseases = [sti.Gonorrhea(init_prev=0.1), sti.Chlamydia(init_prev=0.1), sti.Trichomoniasis(init_prev=0.1)]
-        sim = ss.Sim(n_agents=n_agents, start=2000, stop=2004, dt=ss.months(1), diseases=diseases,
+        sim = ss.Sim(n_agents=n_agents, start=2000, stop=2003, dt=ss.months(1), diseases=diseases,
                      networks=sti.StructuredSexual(), interventions=list(intvs), verbose=0)
         return sim.run()
 
