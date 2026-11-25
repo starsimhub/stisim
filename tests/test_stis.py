@@ -218,6 +218,29 @@ def test_bv(include_hiv=False, n_agents=500):
     return s0, s1
 
 
+def test_simple_bv(n_agents=2000):
+    """ SimpleBV: spontaneous BV in women only, and each symptomatic episode seeks care at most once """
+    seekers = []
+
+    class probe(ss.Analyzer):
+        def step(self):
+            seekers.append(self.sim.diseases.bv.seek_care.uids)
+            return
+
+    sim = ss.Sim(n_agents=n_agents, start=2000, stop=2005, dt=ss.months(1), diseases=sti.SimpleBV(),
+                 networks=sti.StructuredSexual(), demographics=[ss.Births(), ss.Deaths()], analyzers=probe(), verbose=0)
+    sim.run()
+
+    bv = sim.diseases.bv
+    res = sim.results.bv
+    assert res.prevalence_f.values[-12:].mean() > 0.1, 'Expected a background prevalence of BV among women'
+    assert not (bv.infected & sim.people.male).any(), 'SimpleBV should only affect women'
+    n_seek = sum(len(u) for u in seekers)
+    n_symp = res.new_symptomatic.values.sum()
+    assert 0 < n_seek <= n_symp, f'Care seeking ({n_seek}) should happen at most once per symptomatic episode ({n_symp})'
+    return sim
+
+
 if __name__ == '__main__':
     sc.options(interactive=False)
     s1, s2 = test_syph_epi()
@@ -227,3 +250,4 @@ if __name__ == '__main__':
     test_optional_stratification()
     test_bv()
     test_bv(include_hiv=True)
+    test_simple_bv()

@@ -1,5 +1,7 @@
 """
-Bacterial vaginosis (BV): a model of the vaginal microbiome by community state type (CST)
+Bacterial vaginosis (BV) models:
+    - SimpleBV: a spontaneous (not sexually transmitted) condition, for a background prevalence of vaginal discharge
+    - BV: a model of the vaginal microbiome by community state type (CST)
 """
 
 import functools
@@ -10,7 +12,168 @@ import stisim.utils as ut
 from stisim.networks.base import BaseNetwork
 from stisim.diseases.sti import STIResults, sexual_beta, default_age_bins, default_sex_keys
 
-__all__ = ['BV']
+__all__ = ['SimpleBV', 'BV']
+
+
+class SimpleBV(ss.Disease, STIResults):
+    """
+    Bacterial vaginosis as a spontaneous condition, for a background prevalence of vaginal discharge, declared
+
+    BV is not sexually transmitted here. Each month, women over 15 who are prone to BV (`bv_prone`, a share
+    `p_bv_prone` drawn at birth) develop it with a probability from a logistic model: an intercept of
+    `p_base`, raised by douching and poor menstrual hygiene (`p_spontaneous`, odds ratios). A share `p_symp`
+    become symptomatic after `dur_presymp`; the rest stay asymptomatic. A share `p_symp_care` of the
+    symptomatic seek care, `dur_symp2care` after their symptoms start. Infections clear `dur_symp2clear`
+    after symptoms start, or `dur_asymp2clear` after onset without symptoms, except a share `1 - p_clear`
+    that persists for `dur_persist`.
+
+    States: `susceptible`, `presymptomatic`, `asymptomatic`, `symptomatic`; `infected` is a condition over
+    the last three.
+
+    Transitions (each is an event that interventions can be triggered by, e.g. `who=bv.seek_care`):
+
+    - `onset`: spontaneous BV, to `presymptomatic` (with probability `p_symp`) or `asymptomatic`
+    - `symptoms`: `dur_presymp` after onset
+    - `seek_care`: a share `p_symp_care` of the symptomatic seek care, `dur_symp2care` after their symptoms start; they stay symptomatic
+    - `clear_symp`, `clear_asymp`: clearance; `persist_symp`, `persist_asymp`: the share `1 - p_clear` that does not clear
+
+    The results are those of the other STIs (`sti.STIResults`): `prevalence` is over adults of both sexes,
+    so among women it is `prevalence_f`.
+
+    Args:
+        pars (dict): parameter values, as for the keywords
+        name (str): the name of the module (default ``'bv'``)
+        age_bins (list): bin edges for age-stratified results; ``None`` skips them
+        sex_keys (dict): sex strata for results; ``None`` skips sex-stratified results
+        include_care (bool): whether to define the results of care
+        kwargs (dict): parameter values, or `label`
+    """
+    suggested_solver = ss.solvers.abm(step='wholestep') # As agents, rates over whole steps, as the other STIs
+    def __init__(self, pars=None, name='bv', age_bins=default_age_bins, sex_keys=default_sex_keys, include_care=True, **kwargs):
+
+        # Natural history
+        p_symp = ss.par(0.5, doc='Probability that BV becomes symptomatic')
+        dur_presymp = ss.par(ss.uniform(ss.weeks(1), ss.weeks(8)), doc='Time from onset to symptoms')
+        p_symp_care = ss.par(0.3, doc='Probability that a woman with symptoms seeks care')
+        dur_symp2care = ss.par(ss.lognormal(ss.weeks(4), ss.weeks(4)), name='dur_symp2care', doc='Time from symptoms to seeking care')
+        dur_symp2clear = ss.par(ss.uniform(ss.weeks(1), ss.weeks(18)), doc='Time from symptoms to clearance')
+        dur_asymp2clear = ss.par(ss.uniform(ss.weeks(1), ss.weeks(18)), doc='Time from onset to clearance, without symptoms')
+        p_clear = ss.par(0.5, doc='Probability that BV clears (the rest persist)')
+        dur_persist = ss.par(ss.constant(ss.years(100)), doc='Duration of persistent BV')
+
+        # States
+        susceptible, presymptomatic, asymptomatic, symptomatic = ss.states('susceptible presymptomatic asymptomatic symptomatic')
+
+        # Spontaneous onset, with a probability per month from the risk factors (see p_onset())
+        onset = ss.Transition(susceptible, {presymptomatic: p_symp, asymptomatic: None}, rate=functools.partial(self.p_onset))
+        symptoms = presymptomatic >> symptomatic @ dur_presymp
+        seek_care = ss.Transition(symptomatic, {symptomatic: p_symp_care, ss.stay: None}, when=ss.on(symptoms, delay=dur_symp2care)) # A share seek care, and stay symptomatic
+        clear_symp = ss.Transition(symptomatic, susceptible, dur=dur_symp2clear, p=None) # Takes those who do not persist
+        persist_symp = ss.Transition(symptomatic, susceptible, p=1 - p_clear, dur=dur_persist)
+        clear_asymp = ss.Transition(asymptomatic, susceptible, dur=dur_asymp2clear, p=None)
+        persist_asymp = ss.Transition(asymptomatic, susceptible, p=1 - p_clear, dur=dur_persist)
+
+        # Parameters read by its own code, and (as for sti.SEIS) the time after an event, set once the graph is built
+        values = sc.mergedicts(dict(init_prev=0), pars, kwargs) # Nobody is seeded: onset starts on the first step
+        code_pars = dict(
+            p_bv_prone = 0.5, # Share of women prone to BV
+            p_douching = ss.bernoulli(p=0), # Share of women douching
+            p_poor_menstrual_hygiene = ss.bernoulli(p=0), # Share of women with poor menstrual hygiene
+            p_base = 0.45, # Probability per month of BV for a prone woman without risk factors (the intercept of the logistic model)
+            p_spontaneous = sc.objdict(douching=3, poor_menstrual_hygiene=2), # Odds ratios of BV for each risk factor
+        )
+        delays = dict(dur_symp2care=dur_symp2care)
+        given = {key:values.pop(key) for key in list(code_pars) + list(delays) if key in values}
+
+        super().__init__(
+            onset=onset, symptoms=symptoms, seek_care=seek_care,
+            clear_symp=clear_symp, persist_symp=persist_symp, clear_asymp=clear_asymp, persist_asymp=persist_asymp,
+            new_symptomatic=1*symptoms, # Result of the flow
+            name=name, **sc.mergedicts(dict(dt='month'), values), # Monthly unless dt is given
+        )
+        self.define_pars(**code_pars, **delays)
+        self.pars.update(given)
+
+        # Each woman's own risk factors
+        self.define_states(
+            ss.BoolArr('bv_prone', default=ss.bernoulli(p=self.pars.p_bv_prone), label='Prone to BV'),
+            ss.BoolArr('douching', label='Douching'),
+            ss.BoolArr('poor_menstrual_hygiene', label='Poor menstrual hygiene'),
+        )
+        self.set_strata([15, 100], age_bins, sex_keys)
+        self.include_care = include_care
+        return
+
+    @property
+    def infected(self):
+        """ Women with BV """
+        return self.presymptomatic | self.asymptomatic | self.symptomatic
+
+    @property
+    def treatable(self):
+        """ Responds to treatment """
+        return self.infected
+
+    def p_onset(self, sim, uids):
+        """ The rate of spontaneous BV: a probability per month for prone women over 15, from the logistic model """
+        p = self.pars
+        rhs = np.full(len(uids), -np.log(1/p.p_base - 1))
+        for term, val in p.p_spontaneous.items():
+            rhs += val*getattr(self, term)[uids]
+        prob = 1/(1 + np.exp(-rhs))
+        eligible = sim.people.female[uids] & (sim.people.age[uids] > 15) & self.bv_prone[uids]
+        return ss.probpermonth(np.where(eligible, np.minimum(prob, 1 - 1e-9), 0.0))
+
+    def set_hygiene_states(self):
+        """ Draw each woman's vaginal hygiene risk factors (each step, as they may change) """
+        f_uids = self.sim.people.female.uids
+        self.douching[f_uids] = self.pars.p_douching.rvs(f_uids)
+        self.poor_menstrual_hygiene[f_uids] = self.pars.p_poor_menstrual_hygiene.rvs(f_uids)
+        return
+
+    def clear_infection(self, uids):
+        """ Cure people (e.g. treated): they are susceptible again """
+        self.move(self.susceptible, uids=uids)
+        return
+
+    def step_state(self):
+        """ At the start of the step: the risk factors (the declared transitions are taken in step()) """
+        self.set_hygiene_states()
+        return
+
+    def new_infected(self):
+        """ Who developed BV in this step """
+        return self.sim.people.uid.isin(self.onset.uids)
+
+    def init_results(self):
+        """ Initialize results """
+        super().init_results()
+        self.define_sti_results(include_care=self.include_care)
+        self.define_results(ss.Result('symp_prevalence', scale=False, label='Symptomatic prevalence', auto_plot=False))
+        return
+
+    def record_states(self):
+        super().record_states()
+        t = self.tally()
+        self.record_sti_stocks(t)
+        women = t.vals(self.sim.people.female) & (np.asarray(self.sim.people.age.values) >= 15)
+        self.results.symp_prevalence[self.ti] = t.div(t.count(t.vals(self.symptomatic) & women), t.count(women))
+        return
+
+    def record_events(self):
+        super().record_events()
+        t = self.tally()
+        self.record_sti_flows(t)
+        if self.include_care:
+            seekers = t.events(self.seek_care)
+            for skk, skl, attr in self.sex_strata():
+                self.results[f'new_care_seekers{skk}'][self.ti] = t.count(seekers & t.vals(self.sim.people[attr]))
+        return
+
+    def finalize_results(self):
+        super().finalize_results()
+        self.finalize_sti_results()
+        return
 
 
 class BV(ss.Disease, STIResults):
