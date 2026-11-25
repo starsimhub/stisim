@@ -180,6 +180,7 @@ class BaseNetwork(ss.DynamicNetwork):
         return
 
     def net_beta(self, disease_beta=None, inds=None, disease=None):
+        """ The chance of transmission over each edge in a step, with condoms, for a disease written as code; a declared disease's condoms are its sti.condoms modifier """
         if inds is None: inds = Ellipsis
         p_condom = self.edges.condoms[inds]
         eff_condom = float(disease.pars.eff_condom) if 'eff_condom' in disease.pars else 0.0 # No protection for a disease without it

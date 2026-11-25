@@ -185,7 +185,7 @@ class Syphilis(ss.Disease, STIResults):
         # them [PROPOSAL ST-D], the times after an event (ss.on(delay=)), named above, whose values are set once it is built
         values = sc.mergedicts(dict(init_prev=0.0), pars, kwargs)
         code_pars = dict(
-            eff_condom = 0.0, # Read by the sexual networks (see sti.BaseNetwork.net_beta())
+            eff_condom = 0.0, # Read by its condoms modifier (see sti.condoms)
             rel_trans_latent_half_life = ss.years(1),
             p_symp_primary = [0.3, 0.5], # [female, male]: primary chancres are internal in women (less visible), external in men; ~60% go unnoticed
             p_symp_secondary = [0.85, 0.85], # A disseminated rash, visible in both sexes
@@ -202,7 +202,7 @@ class Syphilis(ss.Disease, STIResults):
 
         # [PROPOSAL ST-A] Declared here rather than in the class body, since when= a sibling transition does not yet work there
         super().__init__(
-            infection=infection, primary_onset=primary_onset, secondary_onset=secondary_onset, latency=latency, to_late=to_late,
+            infection=infection, condoms=sti.condoms(infection), primary_onset=primary_onset, secondary_onset=secondary_onset, latency=latency, to_late=to_late,
             reactivation=reactivation, tertiary_onset=tertiary_onset, death=death,
             mtct=mtct, miscarriage=miscarriage, stillbirth=stillbirth, nnd=nnd, born_congenital=born_congenital, born_normal=born_normal,
             n_active=primary + secondary, new_infections_sex=1*infection, new_infections_prenatal=1*mtct, new_infections_mtct=1*mtct, # Results of the states and flows
