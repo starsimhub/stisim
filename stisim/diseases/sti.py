@@ -11,7 +11,7 @@ import pandas as pd
 
 ss_float_ = ss.dtypes.float
 
-__all__ = ['STIResults', 'SEIS', 'init_prev_by_group', 'sexual_beta', 'hetero_networks', 'msm_networks', 'by_sex', 'lognorm_by_sex', 'default_age_bins', 'default_sex_keys']
+__all__ = ['STIResults', 'SEIS', 'condoms', 'init_prev_by_group', 'sexual_beta', 'hetero_networks', 'msm_networks', 'by_sex', 'lognorm_by_sex', 'default_age_bins', 'default_sex_keys']
 
 # Default stratifications for disease results. Pass age_bins=None or sex_keys=None to a
 # disease module to skip creating the corresponding stratified results.
@@ -21,6 +21,35 @@ default_sex_keys = {'': 'alive', 'f': 'female', 'm': 'male'}
 
 hetero_networks = ['structuredsexual', 'mfnetwork', 'swnetwork', 'sexualnet', 'sexualnetwork'] # The sexual networks between men and women, by name: STIsim's, Starsim's (ss.SexualNet), and others named like it (e.g. HPVsim's)
 msm_networks = ['msm', 'msmscalefreenetwork'] # ... and between men
+
+
+class condoms(ss.modify):
+    """
+    Condoms on the sexual networks: they cut a transmission's hazard per act by the disease's `eff_condom`, in the fraction of acts that use them
+
+    A member of a disease (e.g. `condoms=sti.condoms(infection)`): on each sexual network of the sim (`ss.SexualNet` or `sti.BaseNetwork`),
+    whose partnerships record condom use (`edges.condoms`, as `sti.StructuredSexual` sets from its `condom_data`), the hazard of each partnership is multiplied by
+    `1 - condoms*eff_condom`, the disease's own parameter.
+
+    Args:
+        target (Transition): the disease's sexual transmission
+        kwargs (dict): passed to `ss.modify`
+    """
+    def __init__(self, target, **kwargs):
+        super().__init__(target, efficacy=self.eff_condom, frac=lambda net: net.edges.condoms, network=[], **kwargs)
+        return
+
+    def eff_condom(self, sim):
+        """ The efficacy of a condom against the disease: its own parameter """
+        mod = self.target_module
+        return sim.get_module(getattr(mod, 'name', mod)).pars.eff_condom
+
+    def init_pre(self, sim):
+        """ Act on every sexual network of the sim """
+        from stisim.networks.base import BaseNetwork # Here, as the networks import the diseases' helpers
+        self.networks = [name for name, net in sim.networks.items() if isinstance(net, (ss.SexualNet, BaseNetwork))]
+        super().init_pre(sim)
+        return
 
 
 def sexual_beta(m2f, f2m, m2m=0, hetero=None, msm=None):
@@ -369,7 +398,7 @@ class SEIS(ss.Disease, STIResults):
         seek_care_pid = ss.Transition(pid, {pid: p_pid_care, ss.stay: None}, when=ss.on(pid_onset, delay=dur_pid2care))
         clear_pid = pid >> susceptible @ dur_pid2clear
 
-        # The parameters that the transitions do not read: the condoms' efficacy, which the sexual networks read (see sti.BaseNetwork.net_beta());
+        # The parameters that the transitions do not read: the condoms' efficacy, which its condoms modifier reads (see sti.condoms);
         # and, as the graph does not yet register them [PROPOSAL ST-D], the times after an event (ss.on(delay=)), named above, whose values are set once it is built
         values = sc.mergedicts(dict(init_prev=0.01), pars, kwargs)
         delays = dict(dur_symp2care=dur_symp2care, dur_symp2clear=dur_symp2clear, dur_prepid=dur_prepid, dur_pid2care=dur_pid2care)
@@ -377,7 +406,7 @@ class SEIS(ss.Disease, STIResults):
 
         # [PROPOSAL ST-A] Declared here rather than in the class body, since when= a sibling transition does not yet work there
         super().__init__(
-            infection=infection, mtct=mtct, onset=onset, symptoms=symptoms, seek_care=seek_care,
+            infection=infection, mtct=mtct, onset=onset, symptoms=symptoms, seek_care=seek_care, condoms=condoms(infection),
             clear_symp=clear_symp, clear_asymp=clear_asymp, persist=persist,
             pid_onset=pid_onset, seek_care_pid=seek_care_pid, clear_pid=clear_pid,
             new_infections_sex=1*infection, new_infections_prenatal=1*mtct, new_infections_mtct=1*mtct, # Results of the flows, by route

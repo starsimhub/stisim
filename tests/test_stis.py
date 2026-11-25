@@ -218,6 +218,28 @@ def test_bv(include_hiv=False, n_agents=500):
     return s0, s1
 
 
+def test_condoms(n_agents=3000):
+    """ Condom use on the sexual network reduces transmission of the declared STIs and HIV, by eff_condom """
+    def prev(condom_data, eff_condom):
+        out = {}
+        for seed in range(2):
+            sim = ss.Sim(n_agents=n_agents, start=2000, stop=2010, dt=ss.months(1), rand_seed=seed,
+                         diseases=[sti.Gonorrhea(beta_m2f=0.06, init_prev=0.05, eff_condom=eff_condom), sti.HIV(beta_m2f=0.05, init_prev=0.05)],
+                         networks=sti.StructuredSexual(condom_data=condom_data), demographics=[ss.Births(), ss.Deaths()], verbose=0)
+            sim.run()
+            for d in ('ng', 'hiv'):
+                out.setdefault(d, []).append(sim.results[d].new_infections.values.sum())
+        return {d: np.mean(v) for d, v in out.items()}
+
+    none = prev(None, 0.9)
+    used = prev(0.8, 0.9)
+    useless = prev(0.8, 0.0)
+    for d in ('ng', 'hiv'):
+        assert used[d] < 0.6*none[d], f'Condoms in 80% of acts should cut {d} infections a lot: {used[d]:.0f} vs {none[d]:.0f} without'
+    assert abs(useless['ng'] - none['ng']) < 0.2*none['ng'], 'Condoms with eff_condom=0 should not change NG transmission'
+    return used, none
+
+
 if __name__ == '__main__':
     sc.options(interactive=False)
     s1, s2 = test_syph_epi()
@@ -227,3 +249,4 @@ if __name__ == '__main__':
     test_optional_stratification()
     test_bv()
     test_bv(include_hiv=True)
+    test_condoms()
