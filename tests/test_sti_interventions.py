@@ -6,7 +6,11 @@ Tests cover:
       an explicit eligibility function (regression test for GH #537)
     - SyphTest accepts a DataFrame of test probabilities stratified by
       risk group/sex/sex-work status, as documented in the interventions user guide
+    - Gonorrhea infections inherit a finite rel_treat: seed infections (source -1)
+      must not copy the unused buffer slot, which is NaN
 """
+
+import numpy as np
 
 import pandas as pd
 import sciris as sc
@@ -57,6 +61,24 @@ def test_syphtest_stratified_dataframe():
     return sim
 
 
+def test_ng_rel_treat_seeds():
+    """ Seed infections (source -1) get the default rel_treat, not the value in the last array slot """
+    sc.heading('Testing gonorrhea rel_treat for seed infections...')
+
+    sim = ss.Sim(n_agents=n_agents, start=2000, stop=2005, dt=ss.months(1),
+                 diseases=sti.Gonorrhea(init_prev=0.1), networks=sti.StructuredSexual(),
+                 interventions=sti.GonorrheaTreatment(name='ng_tx'), verbose=0)
+    sim.init()
+
+    ng = sim.diseases.ng
+    rel_treat = sim.interventions.ng_tx.rel_treat
+    rel_treat.raw[-1] = np.nan  # Unused slots of a FloatArr hold NaN
+    seeds = ng.susceptible.uids[:10]
+    ng.set_prognoses(seeds, sources=-1)
+    assert np.all(rel_treat[seeds] == 1), f'Seed infections should have rel_treat=1, not {rel_treat[seeds]}'
+    return sim
+
 if __name__ == '__main__':
     test_stitest_default_eligibility()
     test_syphtest_stratified_dataframe()
+    test_ng_rel_treat_seeds()

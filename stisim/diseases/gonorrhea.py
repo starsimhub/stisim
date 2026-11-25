@@ -2,6 +2,7 @@
 Gonorrhea disease module
 """
 
+import numpy as np
 import starsim as ss
 from stisim.diseases.sti import SEIS, STIPars, default_age_bins, default_sex_keys
 
@@ -88,7 +89,11 @@ class Gonorrhea(SEIS):
 
     def set_prognoses(self, uids, sources=None):
         super().set_prognoses(uids, sources)
-        # Also pass on the relative treatability
+        # Also pass on the relative treatability; seed infections (source -1) keep the default
         if 'ng_tx' in self.sim.interventions and sources is not None:
-            self.sim.people.ng_tx.rel_treat[uids] = self.sim.people.ng_tx.rel_treat[sources]
+            sources = np.broadcast_to(sources, len(uids))
+            known = sources >= 0
+            rel_treat = self.sim.people.ng_tx.rel_treat
+            rel_treat[uids[known]] = rel_treat[ss.uids(sources[known])]
+            rel_treat[uids[~known]] = 1.0
         return
